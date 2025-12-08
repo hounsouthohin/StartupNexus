@@ -1,0 +1,254 @@
+{
+  "name": "Factory — Phrase → SaaS (V3.0 - Stable)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-saas",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "1. Webhook Démarrer",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [300, 300],
+      "webhookId": "factory-webhook"
+    },
+    {
+      "parameters": {
+        "values": [
+          {
+            "name": "phrase",
+            "value": "={{ $json.body.phrase || $json.query.phrase || \"Fais-moi un SaaS de gestion de tâches avec authentification\" }}"
+          }
+        ],
+        "options": {}
+      },
+      "name": "2. Extraire la phrase (Set)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": [
+          {
+            "value1": "={{ $json.phrase }}",
+            "operation": "isNotEmpty"
+          }
+        ]
+      },
+      "name": "3. Si Phrase Non Vide (If)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "values": [
+          {
+            "name": "statusCode",
+            "value": "400"
+          },
+          {
+            "name": "responseBody",
+            "value": "{\"error\": \"400 Bad Request: Le paramètre 'phrase' est manquant ou vide.\"}"
+          }
+        ],
+        "options": {}
+      },
+      "name": "Set 400 Bad Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "resource": "custom",
+        "operation": "executeWorkflow",
+        "workflowId": "HelloWorkflow.run",
+        "inputData": "={{ $json.phrase }}",
+        "taskQueue": "hello-queue",
+        "workflowIdCustom": "saas-{{$now.format('YYYYMMDD-HHmmss')}}"
+      },
+      "name": "4. Lancer Temporal",
+      "type": "n8n-nodes-temporal.triggerWorkflow",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "temporalApi": {
+          "id": "1",
+          "name": "Temporal local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": [
+          {
+            "name": "statusCode",
+            "value": "503"
+          },
+          {
+            "name": "responseBody",
+            "value": "{\"error\": \"503 Service Unavailable: Le moteur de la factory (Temporal) est hors ligne.\"}"
+          }
+        ],
+        "options": {}
+      },
+      "name": "Set 503 Temporal Down",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "values": [
+          {
+            "name": "statusCode",
+            "value": "200"
+          },
+          {
+            "name": "responseBody",
+            "value": "={{ '{\"message\": \"Ton SaaS est en cours de création !\", \"suivi\": \"http://localhost:8080/namespaces/default/workflows/' + $('4. Lancer Temporal').parameter.workflowIdCustom + '\"}' }}"
+          }
+        ],
+        "options": {}
+      },
+      "name": "5. Set 200 OK (Dynamique)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByIndex"
+      },
+      "name": "6. Fusionner Réponses (Merge)",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 1,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "responseCode": "={{ $json.statusCode }}",
+        "options": {
+          "body": "={{ $json.responseBody }}"
+        }
+      },
+      "name": "7. Réponse Finale (Unique)",
+      "type": "n8n-nodes-base.respond",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    }
+  ],
+  "connections": {
+    "1. Webhook Démarrer": {
+      "main": [
+        [
+          {
+            "node": "2. Extraire la phrase (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Extraire la phrase (Set)": {
+      "main": [
+        [
+          {
+            "node": "3. Si Phrase Non Vide (If)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Si Phrase Non Vide (If)": {
+      "main": [
+        [
+          {
+            "node": "4. Lancer Temporal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set 400 Bad Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set 400 Bad Request": {
+      "main": [
+        [
+          {
+            "node": "6. Fusionner Réponses (Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Lancer Temporal": {
+      "main": [
+        [
+          {
+            "node": "5. Set 200 OK (Dynamique)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ],
+      "error": [
+        [
+          {
+            "node": "Set 503 Temporal Down",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set 503 Temporal Down": {
+      "main": [
+        [
+          {
+            "node": "6. Fusionner Réponses (Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Set 200 OK (Dynamique)": {
+      "main": [
+        [
+          {
+            "node": "6. Fusionner Réponses (Merge)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Fusionner Réponses (Merge)": {
+      "main": [
+        [
+          {
+            "node": "7. Réponse Finale (Unique)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "tags": []
+}
