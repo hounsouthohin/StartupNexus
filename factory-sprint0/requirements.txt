@@ -1,0 +1,6 @@
+temporalio==1.7.0
+flask
+langgraph
+langchain-openai
+langchain-core
+python-dotenv
