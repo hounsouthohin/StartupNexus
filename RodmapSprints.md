@@ -1,70 +1,169 @@
-# ROADMAP AGILE 2025 – SOFTWARE AGENT FACTORY (Version Hybride Optimisée)
+# 🚀 ROADMAP AGILE 2025 -- SOFTWARE AGENT FACTORY
 
-> **Startup constituée uniquement d’agents AI**  
-> Architecture finale : **n8n (front visuel & entrée utilisateur) + Temporal.io (cerveau durable) + LangGraph (multi-agents ReAct) + Qdrant (RAG production)**
+### **Version Hybride Optimisée -- Mise à jour Décembre 2025**
 
-## VISION (inchangée mais plus précise)
-Créer la première usine logicielle 100% autonome capable de transformer **une phrase humaine** (« Fais-moi un SaaS de gestion de tâches avec authentification ») en **application full-stack déployée, testée, sécurisée et monitorée** sans aucune intervention humaine après le lancement.
+------------------------------------------------------------------------
 
-## NOUVELLES FONDATIONS TECHNIQUES (explications simples incluses)
+## 🌟 **VISION**
 
-| Composant        | Rôle simple (comme si je te l’expliquais au café)                                                                                 | Pourquoi on le choisit (et pas l’ancien)                         |
-|------------------|------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------|
-| **n8n**          | L’interface humaine + le bouton « Démarrer » + le tableau de bord joli que tu connais déjà                                          | Tu maîtrises, parfait pour le webhook d’entrée et le monitoring |
-| **Temporal.io**  | Le « cerveau increvable » : même si le serveur crash pendant 3 jours, il reprend exactement là où il s’était arrêté                | Durabilité + retries automatiques + workflows de plusieurs heures |
-| **LangGraph**    | Le chef d’orchestre des agents AI (Architecte → Dev → QA → DevOps). Gère les boucles ReAct, la mémoire, les outils                  | Meilleur que notre wrapper FastAPI maison → 10× moins de code   |
-| **Qdrant**       | Base de données vectorielle pro (remplace ChromaDB) – persistance, backup, filtrage metadata                                       | On ne réécrit pas tout en phase 2                                |
-| **E2B**          | Sandbox cloud sécurisée où les agents exécutent du code sans risquer de détruire ton PC/serveur                                    | Sécurité réelle (exit les shell_exec dangereux)                  |
+Créer la **première usine logicielle 100% autonome**, capable de
+transformer une simple commande humaine\
+➡️ *« Fais-moi un SaaS de gestion de tâches avec authentification »*\
+en une application **full‑stack déployée, testée, sécurisée et
+monitorée**, sans intervention humaine.
 
----
+------------------------------------------------------------------------
 
-## ROADMAP FINALE – 8 SPRINTS SEULEMENT (au lieu de 11)
+## 🧱 **NOUVELLES FONDATIONS TECHNIQUES**
 
-### PHASE 0 – Fondations blindées (2 semaines)
+  ------------------------------------------------------------------------------
+  Composant         Rôle simple        Pourquoi ce choix          Statut
+  ----------------- ------------------ -------------------------- --------------
+  **n8n**           Interface          Tu maîtrises déjà, parfait ▶️ Simulation
+                    humaine + bouton   pour webhooks + monitoring via Flask
+                    *Start* +                                     
+                    dashboard                                     
 
-| Sprint | Objectif                                                       | Livrables concrets                                                                                  | Mini-tuto inclus |
-|-------|----------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|------------------|
-| 0     | Cœur hybride n8n + Temporal + LangGraph + Qdrant fonctionnel  | • Workflow n8n → webhook → déclenche Temporal<br>• 1er Agent « Architecte » en LangGraph (ReAct + outils E2B)<br>• Qdrant déployé avec les premiers standards (Tailwind, Next.js, Prisma…)<br>• Repo GitHub Factory vide avec GitHub App bot | Je te donne les 3 commandes Docker + le code Temporal de 40 lignes |
+  **Temporal.io**   Le *cerveau        Durabilité + retries +     ✅ Fonctionnel
+                    increvable*        workflows longs            
+                    (reprend après                                
+                    crash)                                        
 
-### PHASE 1 – MVP fermé (bout en bout en 5 semaines)
+  **LangGraph**     Chef d'orchestre   10× moins de code qu'un    ✅ Fonctionnel
+                    des agents AI      wrapper maison             (Architecte)
+                    (ReAct)                                       
 
-| Sprint | Focus                                 | Agents actifs                                  | Livrable final                                      |
-|-------|---------------------------------------|------------------------------------------------|-----------------------------------------------------|
-| 1     | Spécifications + création repo        | PO Agent → Architecte Agent                    | Repo créé, branche `feat-001`, SPEC.md + diagramme Mermaid |
-| 2     | Génération code + tests unitaires     | Dev Agent + TestCoverage Agent                 | Tout le code + tests → PR auto vers `dev`           |
-| 3     | Déploiement staging automatique       | QA Agent → FluxCD (léger) ou Render temporaire | Lien https://app-001-staging.onrender.com en < 10 min |
+  **Qdrant**        Base vectorielle   Remplace Chroma, pas de    🔧 À déployer
+                    pro, Docker,       réécriture                 
+                    persistance                                   
 
-### PHASE 2 – Industrialisation & Qualité pro (3 semaines)
+  **E2B**           Sandbox sécurisée  Élimine tout risque        🔧 À intégrer
+                    pour exécuter du   serveur/shell              plus tard
+                    code                                          
+  ------------------------------------------------------------------------------
 
-| Sprint | Focus de spécialisation                          | Nouveaux agents micro-spécialisés                       | Gain majeur |
-|-------|--------------------------------------------------|---------------------------------------------------------|-------------|
-| 4     | Sécurité + Qualité + Auto-correction             | Security Agent (Bandit/Semgrep) + Linter Agent          | 0 vuln critique, 90% coverage, boucle ReAct complète |
-| 5     | GitOps réel + Infra as Code                      | Terraform/Crossplane Agent + DevOps Agent + ArgoCD      | DB, VPC, K8s provisionnés automatiquement           |
-| 6     | Frontend pro + Tests E2E                         | UX/UI Agent (shadcn/ui + Tailwind) + Playwright Agent   | Application magnifique + 100% E2E passant           |
-| 7     | Boucle d’amélioration continue (le Graal)        | Meta-Agent « Continuous Improvement »                   | La Factory lit ses propres logs et propose des PR d’optimisation toute seule |
+------------------------------------------------------------------------
 
-→ Total : **8 sprints** (4 mois max) au lieu de 11 → usine 100% autonome prête début avril 2026.
+# 🏗️ **ROADMAP FINALE -- 8 SPRINTS**
 
-## Détail des mini-concepts (quand tu les rencontreras)
+------------------------------------------------------------------------
 
-- **Temporal.io en 3 phrases** : C’est comme un n8n mais en code, qui ne perd jamais l’état. Tu écris une fonction Python `@workflow.defn` et Temporal la rend increvable.
-- **LangGraph** : C’est LangChain mais en mode « graphe d’états ». Chaque agent est un nœud, les flèches = messages. Parfait pour Architecte → passe le relai à Dev → qui appelle QA, etc.
-- **E2B** : Un petit `e2b.CodeInterpreter()` dans le prompt de l’agent = il exécute du code dans un container cloud sécurisé (aucun risque).
-- **Qdrant** : Même principe que Chroma mais avec API REST + Docker persistant + backup facile.
+# 🟦 PHASE 0 -- Fondations (2 semaines)
 
----
+### 🎯 Objectif :
 
-## Prochaine étape IMMÉDIATE (aujourd’hui ou demain)
+Avoir le cœur **n8n → Temporal → LangGraph → Qdrant** opérationnel.
 
-Je te propose de remplacer ton ancien fichier **RoadmapSprints.md** par celui-ci (copie-colle direct, il est prêt).
+### 📦 Livrables :
 
-Ensuite, on attaque le **Sprint 0** ensemble :
-1. Je te génère le `docker-compose.yml` complet (n8n + Temporal + Qdrant + Postgres pour Temporal)
-2. Je t’écris le premier workflow Temporal en 40 lignes (celui qui reçoit la phrase utilisateur)
-3. Je te livre le template LangGraph de l’Agent Architecte avec ReAct + outils E2B déjà configurés
+-   Webhook n8n → Temporal (via Flask)
+-   Premier Agent **Architecte** (ReAct simplifié)
+-   Qdrant avec premiers schémas standard (Next.js, Prisma...)
+-   Repo GitHub "Factory"
 
-Tu me dis juste :  
-« OK, remplace le fichier et lance le Sprint 0 »  
-et je te balance tout le code prêt à `docker-compose up` en 5 minutes.
+------------------------------------------------------------------------
 
-On y va ? 
+# 🟧 PHASE 1 -- MVP (5 semaines)
+
+### **Sprint 1 -- Spécifications + création repo**
+
+📌 Agents : *PO → Architecte*\
+📦 Livrables :\
+- Repo + branche `feat-001`\
+- `SPEC.md` + diagramme Mermaid
+
+------------------------------------------------------------------------
+
+### **Sprint 2 -- Génération code + tests**
+
+📌 Agents : *Dev Agent + TestCoverage Agent*\
+📦 Livrables :\
+- Code complet + tests\
+- PR automatique vers `dev`
+
+------------------------------------------------------------------------
+
+### **Sprint 3 -- Déploiement staging**
+
+📌 Agents : *QA Agent → Render / FluxCD*\
+📦 Livrables :\
+- Staging : `https://app-001-staging.onrender.com`\
+- Déploiement \< 10 min
+
+------------------------------------------------------------------------
+
+# 🟩 PHASE 2 -- Industrialisation (3 semaines)
+
+------------------------------------------------------------------------
+
+### **Sprint 4 -- Sécurité & Auto‑correction**
+
+🔐 *Security Agent + Linter Agent*\
+🎯 Objectifs :\
+- 0 vulnérabilité critique\
+- 90% coverage\
+- Boucles ReAct complètes
+
+------------------------------------------------------------------------
+
+### **Sprint 5 -- GitOps + Infra as Code**
+
+⚙️ *Terraform/Crossplane Agent + DevOps Agent + ArgoCD*\
+🎯 Objectifs :\
+- DB + VPC + K8s provisionnés automatiquement
+
+------------------------------------------------------------------------
+
+### **Sprint 6 -- Frontend Pro + Tests E2E**
+
+🎨 *UI/UX Agent + Playwright Agent*\
+🎯 Objectifs :\
+- UI professionnelle (shadcn/ui)\
+- 100% tests E2E OK
+
+------------------------------------------------------------------------
+
+### **Sprint 7 -- Amélioration Continue**
+
+🤖 *Meta-Agent "Continuous Improvement"*\
+🎯 Objectifs :\
+- Lecture des logs\
+- PR d'optimisation automatiques
+
+------------------------------------------------------------------------
+
+# 🧠 Mini‑Concepts (Résumé express)
+
+### **Temporal.io**
+
+> Comme un *n8n en code* : ne perd jamais l'état.\
+> Une fonction `@workflow.defn` devient *increvable*.
+
+### **LangGraph**
+
+> LangChain sous forme de graphe.\
+> Chaque agent = un nœud → transitions logiques → parfait pour
+> multistep.
+
+### **E2B**
+
+> Exécution de code sécurisée, sans risque serveur.
+
+### **Qdrant**
+
+> ChromaDB mais en version pro : Docker, persistance, REST API.
+
+------------------------------------------------------------------------
+
+# 🎯 Priorités actuelles
+
+-   Fonctionnement bout‑en‑bout \> esthétique\
+-   Outils avancés (E2B, Mermaid renderer...) ajoutés plus tard\
+-   LLM standard (OpenAI API) pour l'instant
+
+------------------------------------------------------------------------
+
+# 🏁 Objectif final
+
+🚀 **Usine logicielle 100% autonome prête début avril 2026**\
+✨ 8 sprints seulement -- architecture robuste et évolutive.
