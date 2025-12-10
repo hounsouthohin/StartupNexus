@@ -3,14 +3,18 @@ from temporalio import workflow, activity
 from temporalio.common import RetryPolicy
 import asyncio
 
+
 # --------------------------
 # WORKFLOW
 # --------------------------
 @workflow.defn
 class HelloWorkflow:
     @workflow.run
-    async def run(self, name: str) -> str:
-        print(f"Workflow démarré pour {name}")
+    async def run(self, input_data: dict) -> str:   # ← ON PASSE UN DICT POUR PLUS DE CLARTÉ
+        name = input_data.get("name", "Inconnu")   # ← robuste
+        #NB :Temporal
+        #print(f"Workflow démarré pour : {name}")
+        workflow.logger.info(f"Workflow démarré pour la phrase : {name}")
 
         result = await workflow.execute_activity(
             sleepy_activity,
@@ -24,45 +28,27 @@ class HelloWorkflow:
 
 
 # --------------------------
-# ACTIVITY (correcte)
+# ACTIVITY (indestructible avec heartbeat)
 # --------------------------
 
 
-
 @activity.defn
-async def sleepy_activity(name: str) -> str:
-    # Récupération robuste du dernier heartbeat
+async def sleepy_activity(name: str) -> str:    
     info = activity.info()
-    raw = info.heartbeat_details  # peut être None, int, list, etc.
+    details = info.heartbeat_details or []
 
-    # Normaliser raw en entier
     last = 0
-    if raw is None:
-        last = 0
-    elif isinstance(raw, list):
-        # si c'est une liste, prendre le dernier élément (ou le premier)
-        if len(raw) == 0:
-            last = 0
-        else:
-            candidate = raw[-1]
-            try:
-                last = int(candidate)
-            except Exception:
-                # fallback si ce n'est pas convertible
-                last = 0
-    else:
-        # cas scalaire (str/int/float)
+    if details:
         try:
-            last = int(raw)
-        except Exception:
+            last = int(details[-1])
+        except (ValueError, TypeError):
             last = 0
 
-    print(f"Activité pour {name} — reprise à {last}/120")
+    activity.logger.info(f"Activité pour {name} — reprise à {last}/120 secondes")
 
     for i in range(last, 120):
-        await asyncio.sleep(1)         # ✅ non-bloquant
-        activity.heartbeat(i + 1)      # ✅ envoie heartbeat
-        print(f"  → {i+1}/120 secondes…")
+        await asyncio.sleep(1)
+        activity.heartbeat(i + 1)
+        activity.logger.info(f"  → {i + 1}/120 secondes…")
 
-    return f"Bonjour {name}, j’ai terminé mon sommeil !"
-
+    return f"Bonjour {name}, j’ai terminé mon sommeil de 120 secondes !"

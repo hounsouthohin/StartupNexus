@@ -7,6 +7,7 @@ from temporalio.worker import Worker
 from workflow import HelloWorkflow
 
 # Queue thread-safe pour passer les jobs Flask → Worker asyncio
+# Pont de communication entre asycio worker et Flask
 job_queue = Queue()
 
 app = Flask(__name__)
@@ -16,7 +17,7 @@ def start_saas():
     phrase = request.json.get('phrase', 'No phrase')
 
     # On push la tâche dans la queue
-    job_queue.put(phrase)
+    job_queue.put({"phrase": phrase})  # on passe un dict pour plus de flexibilité
 
     return jsonify({
         "message": "SaaS en cours de création",
@@ -25,14 +26,15 @@ def start_saas():
 
 
 # -------------------------------
-# THREAD Flask
+# THREAD Flask : Un thread pour rouler Flask qui est synchrone
 # -------------------------------
 def run_flask():
     app.run(host="0.0.0.0", port=5000)
 
 
 # -------------------------------
-# ASYNC WORKER + CONSO QUEUE
+# ASYNC WORKER + CONSO QUEUE : Un autre thread pour rouler worker ayncio  qui est asynchrone
+# asyncio : le moteur qui execute le worker temporal
 # -------------------------------
 async def workflow_dispatcher(client):
     """Lit la queue Flask et démarre les workflows"""

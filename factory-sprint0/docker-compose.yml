@@ -48,6 +48,7 @@ services:
       - DB_PORT=5432
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
+      #Postgres_seeds : nom du service de Base de donné que temporal utilise pour se connecter
       - POSTGRES_SEEDS=temporal-postgresql
       - POSTGRESQL_SEEDS=temporal-postgresql
       - ENABLE_ES=true
