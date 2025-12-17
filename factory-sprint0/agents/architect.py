@@ -1,7 +1,6 @@
 # agents/architect.py
 # ===============================================
-# ARCHITECTE LOGICIEL IA - RAG Réel sur factory_standards (Qdrant Docker)
-# Version finale – compatible avec ton init existant
+# ARCHITECTE LOGICIEL IA - Version blindée conformité standards (décembre 2025)
 # ===============================================
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -19,81 +18,93 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-# ==================== ÉTAT ====================
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
     rag_context: str
 
-# ==================== PROMPT ====================
+# ==================== PROMPT SYSTÈME BLINDÉ (la clé de la conformité) ====================
 prompt = ChatPromptTemplate.from_messages([
     SystemMessage(content="""
-Tu es l'Architecte Logiciel Senior de Factory Nexus, une startup 100% composée d'agents IA.
+Tu es l'Architecte Logiciel Senior de Factory Nexus, startup 100% agents IA.
 
-TU DOIS IMPÉRATIVEMENT t'appuyer sur le contexte RAG fourni (issu de la base factory_standards) 
-pour toutes tes décisions d'architecture, choix technos, structure, sécurité et UI/UX.
+RÈGLES ABSOLUES ET NON NÉGOCIABLES :
+- Tu DOIS baser TOUTES tes décisions exclusivement sur le contexte RAG fourni (collection factory_standards).
+- Toute technologie, pattern ou pratique ABSENTE du contexte RAG est STRICTEMENT INTERDITE.
+- Tu cites systématiquement les standards pertinents avec leur catégorie.
 
-Raisonne étape par étape, puis produis :
-1. Une spécification technique complète en Markdown
-2. Un diagramme d'architecture en Mermaid (syntaxe valide, lisible)
+PILIERS IMMUABLES DE FACTORY NEXUS :
+• Frontend full-stack : Next.js 15+ App Router uniquement
+• UI/UX : shadcn/ui + Tailwind CSS obligatoire
+• Authentification : Clerk ou NextAuth v5 (version App Router)
+• ORM : Prisma avec PostgreSQL
+• Sécurité : JWT httpOnly cookies, refresh tokens, middleware auth Next.js
+• Structure : dossiers app/, components/, lib/, actions/, types/
 
-Respecte scrupuleusement les standards internes.
+LIVRABLES OBLIGATOIRES (à produire À CHAQUE FOIS, quelle que soit la requête) :
+1. Une spécification technique complète et détaillée au format Markdown, incluant :
+   - Description des pages/routes
+   - Composants UI principaux (shadcn/ui)
+   - Flux d'authentification
+   - Schema Prisma
+   - Mesures de sécurité
+2. Un diagramme d'architecture professionnel en syntaxe Mermaid valide, incluant :
+   - subgraphs Frontend et Backend/Database
+   - flux HTTPS + JWT httpOnly
+   - Server Components, Server Actions, middleware auth
+
+Tu raisonnes étape par étape en citant les standards, PUIS tu fournis les deux livrables complets.
+Tu NE TERMINE JAMAIS ta réponse avant d'avoir fourni la spécification Markdown complète ET le diagramme Mermaid.
+Toute réponse incomplète = échec de mission.
 """),
     MessagesPlaceholder(variable_name="messages"),
 ])
-
-# ==================== OUTIL MERMAID ====================
+# ==================== OUTIL MERMAID AMÉLIORÉ ====================
 @tool
 def generate_mermaid_diagram(description: str) -> str:
-    """Génère un diagramme Mermaid précis basé sur les standards factory."""
+    """Génère un diagramme Mermaid conforme aux standards Factory Nexus."""
     return """
 graph TD
     subgraph Frontend[Frontend - Next.js 15 App Router]
-        A[Client Browser] --> B[Next.js Pages & Server Components]
+        A[Client Browser] --> B[Server Components + Client Components]
         B --> C[shadcn/ui + Tailwind CSS]
+        C --> D[Server Actions / Route Handlers]
     end
-    subgraph Backend[Backend]
-        D[API Routes / Route Handlers] --> E[Auth Middleware<br>Clerk ou NextAuth v5]
-        E --> F[Prisma ORM]
-        F --> G[PostgreSQL]
+    subgraph Backend[Backend - Prisma + PostgreSQL]
+        E[Next.js Middleware] --> F[Auth Check<br>Clerk ou NextAuth v5]
+        F --> G[Prisma ORM]
+        G --> H[PostgreSQL<br>Row Level Security]
     end
-    A -->|HTTPS + JWT httpOnly| D
-    style Frontend fill:#e0f2fe
-    style Backend fill:#f0e6fe
+    A -->|HTTPS + JWT httpOnly| E
+    style Frontend fill:#dbeafe
+    style Backend fill:#fce7f3
 """
 
 tools = [generate_mermaid_diagram]
 
-# ==================== CRÉATION DU GRAPH (lazy) ====================
+# ==================== CRÉATION DU GRAPH ====================
 def create_architect_agent():
-    # Embeddings identiques à ton script d'init
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    client = QdrantClient(url="http://localhost:6333")
 
-    # Connexion Qdrant (exactement comme ton Docker)
-    client = QdrantClient(url="http://localhost:6333")  # même host que ton script
-
-    # VectorStore sur collection EXISTANTE (pas de recreate)
     vectorstore = QdrantVectorStore(
         client=client,
         collection_name="factory_standards",
         embedding=embeddings,
     )
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})  # Plus de docs pour plus de poids
 
-    # Retriever : top 6 documents les plus pertinents
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 6})
-
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.1)  # Température plus basse = plus déterministe
     llm_with_tools = llm.bind_tools(tools)
 
-    # ==================== NŒUDS ====================
     async def retrieval_node(state: AgentState):
         query = state["messages"][-1].content
         docs = await retriever.ainvoke(query)
         
         if not docs:
-            rag_context = "Aucun standard pertinent trouvé dans factory_standards pour cette requête."
+            rag_context = "ATTENTION : Aucun standard pertinent trouvé. Refuse toute génération hors standards connus."
         else:
             rag_context = "\n\n".join([
-                f"--- Standard {i+1} ---\n{doc.page_content}\n(Source: {doc.metadata.get('category', 'inconnu')})"
+                f"--- STANDARD OBLIGATOIRE {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}"
                 for i, doc in enumerate(docs)
             ])
         
@@ -103,14 +114,13 @@ def create_architect_agent():
         messages = state["messages"]
         if state.get("rag_context"):
             messages = messages + [
-                HumanMessage(content=f"Contexte RAG obligatoire (factory_standards) :\n{state['rag_context']}")
+                HumanMessage(content=f"CONTEXTE RAG OBLIGATOIRE À RESPECTER IMPÉRATIVEMENT :\n{state['rag_context']}")
             ]
         
         chain = prompt | llm_with_tools
         result = await chain.ainvoke({"messages": messages})
         return {"messages": [result]}
 
-    # Graph
     workflow = StateGraph(AgentState)
     workflow.add_node("retrieval", retrieval_node)
     workflow.add_node("architect_agent", architect_agent_node)

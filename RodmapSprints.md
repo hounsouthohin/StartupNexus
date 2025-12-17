@@ -1,169 +1,142 @@
 # 🚀 ROADMAP AGILE 2025 -- SOFTWARE AGENT FACTORY
 
-### **Version Hybride Optimisée -- Mise à jour Décembre 2025**
+### **Version Hybride Optimisée + Auto-Apprenante -- Mise à jour 17 Décembre 2025**
 
 ------------------------------------------------------------------------
 
 ## 🌟 **VISION**
 
-Créer la **première usine logicielle 100% autonome**, capable de
-transformer une simple commande humaine\
-➡️ *« Fais-moi un SaaS de gestion de tâches avec authentification »*\
-en une application **full‑stack déployée, testée, sécurisée et
-monitorée**, sans intervention humaine.
+Créer la **première usine logicielle 100% autonome et auto-apprenante**, capable de
+transformer une simple commande humaine  
+➡️ *« Fais-moi un SaaS de gestion de tâches avec authentification »*  
+en une application **full‑stack déployée, testée, sécurisée, monitorée et constamment améliorée**,  
+sans intervention humaine – et qui **s’enrichit automatiquement** à chaque projet livré.
 
 ------------------------------------------------------------------------
 
-## 🧱 **NOUVELLES FONDATIONS TECHNIQUES**
+## 🧱 **FONDATIONS TECHNIQUES – ÉTAT ACTUEL**
 
   ------------------------------------------------------------------------------
-  Composant         Rôle simple        Pourquoi ce choix          Statut
-  ----------------- ------------------ -------------------------- --------------
-  **n8n**           Interface          Tu maîtrises déjà, parfait ▶️ Simulation
-                    humaine + bouton   pour webhooks + monitoring via Flask
-                    *Start* +                                     
-                    dashboard                                     
+  Composant         Rôle simple                  Pourquoi ce choix          Statut
+  ----------------- ---------------------------- -------------------------- --------------
+  **n8n**           Interface humaine + webhook  Maîtrise + dashboard       ✅ Fonctionnel
 
-  **Temporal.io**   Le *cerveau        Durabilité + retries +     ✅ Fonctionnel
-                    increvable*        workflows longs            
-                    (reprend après                                
-                    crash)                                        
+  **Temporal.io**   Orchestration durable        Retries + état persistant  ✅ Fonctionnel
+                    (cerveau increvable)                                   
 
-  **LangGraph**     Chef d'orchestre   10× moins de code qu'un    ✅ Fonctionnel
-                    des agents AI      wrapper maison             (Architecte)
-                    (ReAct)                                       
+  **LangGraph**     Chef d'orchestre des agents  Graphes clairs, ReAct      ✅ Fonctionnel
+                                                 10× moins de code          (Architecte + RAG)
 
-  **Qdrant**        Base vectorielle   Remplace Chroma, pas de    🔧 À déployer
-                    pro, Docker,       réécriture                 
-                    persistance                                   
+  **Qdrant**        Base vectorielle persistante Mémoire collective         ✅ Fonctionnel
+                    + RAG réel                   Auto-apprentissage futur   (collection factory_standards peuplée)
 
-  **E2B**           Sandbox sécurisée  Élimine tout risque        🔧 À intégrer
-                    pour exécuter du   serveur/shell              plus tard
-                    code                                          
+  **E2B**           Sandbox sécurisée code       Exécution sans risque       🔧 À intégrer plus tard
   ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
-# 🏗️ **ROADMAP FINALE -- 8 SPRINTS**
+# 🏗️ **ROADMAP MISE À JOUR -- 9 SPRINTS (évolution vers l’auto-apprentissage)**
 
 ------------------------------------------------------------------------
 
-# 🟦 PHASE 0 -- Fondations (2 semaines)
+# 🟦 PHASE 0 -- Fondations (terminée 🚀)
 
-### 🎯 Objectif :
+### 🎯 Objectif atteint :
+Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement opérationnel.
 
-Avoir le cœur **n8n → Temporal → LangGraph → Qdrant** opérationnel.
-
-### 📦 Livrables :
-
--   Webhook n8n → Temporal (via Flask)
--   Premier Agent **Architecte** (ReAct simplifié)
--   Qdrant avec premiers schémas standard (Next.js, Prisma...)
--   Repo GitHub "Factory"
+### 📦 Livrables réalisés :
+- API Flask + queue → déclenchement workflow
+- Agent **Architecte** avec RAG réel sur collection `factory_standards`
+- Standards initiaux (Next.js App Router, shadcn/ui, Clerk/NextAuth, Prisma, sécurité)
+- Repo GitHub + worker Temporal fonctionnel
 
 ------------------------------------------------------------------------
 
-# 🟧 PHASE 1 -- MVP (5 semaines)
+# 🟧 PHASE 1 -- MVP (en cours – 5 semaines)
 
-### **Sprint 1 -- Spécifications + création repo**
+### **Sprint 1 -- Spécifications + création repo** (terminé)
+📌 Agents : *Architecte (avec RAG renforcé)*  
+📦 Livrables : `SPEC.md` + diagramme Mermaid conformes aux standards
 
-📌 Agents : *PO → Architecte*\
-📦 Livrables :\
-- Repo + branche `feat-001`\
-- `SPEC.md` + diagramme Mermaid
+### **Sprint 2 -- Génération code + tests** (prochain)
+📌 Agents : *Dev Agent + TestCoverage Agent*  
+📦 Livrables : Code full-stack + tests unitaires + PR auto
 
-------------------------------------------------------------------------
-
-### **Sprint 2 -- Génération code + tests**
-
-📌 Agents : *Dev Agent + TestCoverage Agent*\
-📦 Livrables :\
-- Code complet + tests\
-- PR automatique vers `dev`
+### **Sprint 3 -- Déploiement staging** (prochain)
+📌 Agents : *QA Agent + Deploy Agent*  
+📦 Livrables : Staging live < 10 min (Render/Vercel)
 
 ------------------------------------------------------------------------
 
-### **Sprint 3 -- Déploiement staging**
+# 🟩 PHASE 2 -- Industrialisation & Sécurité (3 semaines)
 
-📌 Agents : *QA Agent → Render / FluxCD*\
-📦 Livrables :\
-- Staging : `https://app-001-staging.onrender.com`\
-- Déploiement \< 10 min
-
-------------------------------------------------------------------------
-
-# 🟩 PHASE 2 -- Industrialisation (3 semaines)
-
-------------------------------------------------------------------------
-
-### **Sprint 4 -- Sécurité & Auto‑correction**
-
-🔐 *Security Agent + Linter Agent*\
-🎯 Objectifs :\
-- 0 vulnérabilité critique\
-- 90% coverage\
-- Boucles ReAct complètes
-
-------------------------------------------------------------------------
+### **Sprint 4 -- Sécurité & Conformité**
+🔐 Agents : *Security Agent + Compliance Agent*  
+🎯 Objectifs :
+- Audit automatique de chaque spec (vulnérabilités, déviation standards)
+- 0 vulnérabilité critique
+- Boucles de correction ReAct si non-conforme
 
 ### **Sprint 5 -- GitOps + Infra as Code**
-
-⚙️ *Terraform/Crossplane Agent + DevOps Agent + ArgoCD*\
-🎯 Objectifs :\
-- DB + VPC + K8s provisionnés automatiquement
-
-------------------------------------------------------------------------
+⚙️ Agents : *Terraform Agent + DevOps Agent*  
+🎯 Objectifs : Provisionning auto DB, VPC, CI/CD GitHub Actions
 
 ### **Sprint 6 -- Frontend Pro + Tests E2E**
-
-🎨 *UI/UX Agent + Playwright Agent*\
-🎯 Objectifs :\
-- UI professionnelle (shadcn/ui)\
-- 100% tests E2E OK
-
-------------------------------------------------------------------------
-
-### **Sprint 7 -- Amélioration Continue**
-
-🤖 *Meta-Agent "Continuous Improvement"*\
-🎯 Objectifs :\
-- Lecture des logs\
-- PR d'optimisation automatiques
+🎨 Agents : *UI/UX Agent + Playwright Agent*  
+🎯 Objectifs :
+- UI professionnelle (shadcn/ui + Tailwind obligatoire)
+- 100% tests E2E passés
 
 ------------------------------------------------------------------------
 
-# 🧠 Mini‑Concepts (Résumé express)
+# 🟪 PHASE 3 -- Auto-Apprentissage & Évolution Continue (nouveau – 3 semaines)
 
-### **Temporal.io**
+### **Sprint 7 -- Meta-Agent Learner (Continuous Learning)**
+🤖 Agent : *LearnerAgent* (nouveau rôle clé)  
+🎯 Objectifs :
+- À la fin de chaque projet réussi : analyse logs, métriques prod, feedback client, code final
+- Extraction automatique des "winning patterns"
+- Génération + upsert de nouveaux standards dans Qdrant (`factory_standards`)
+- Enrichissement continu de la mémoire collective (plus besoin d’ajout manuel)
 
-> Comme un *n8n en code* : ne perd jamais l'état.\
-> Une fonction `@workflow.defn` devient *increvable*.
+### **Sprint 8 -- Standards dynamiques & par client**
+🧠 Agents : *LearnerAgent + Superviseur*  
+🎯 Objectifs :
+- Collections dédiées par client (ex: `client_123_standards`) héritant des standards globaux
+- Personnalisation automatique selon historique client
+- Versioning léger des standards (métadonnées : project_id, outcome, metrics)
 
-### **LangGraph**
-
-> LangChain sous forme de graphe.\
-> Chaque agent = un nœud → transitions logiques → parfait pour
-> multistep.
-
-### **E2B**
-
-> Exécution de code sécurisée, sans risque serveur.
-
-### **Qdrant**
-
-> ChromaDB mais en version pro : Docker, persistance, REST API.
-
-------------------------------------------------------------------------
-
-# 🎯 Priorités actuelles
-
--   Fonctionnement bout‑en‑bout \> esthétique\
--   Outils avancés (E2B, Mermaid renderer...) ajoutés plus tard\
--   LLM standard (OpenAI API) pour l'instant
+### **Sprint 9 -- Boucle d’amélioration complète**
+🔄 Agents : *Tous les agents + Superviseur central*  
+🎯 Objectifs :
+- Détection proactive d’améliorations (Security → nouveau standard, DevOps → optimisation infra)
+- PR automatiques d’optimisation sur les repos existants
+- Usine qui s’améliore seule à chaque livraison
 
 ------------------------------------------------------------------------
 
-# 🏁 Objectif final
+# 🧠 Mini‑Concepts (Résumé express mis à jour)
 
-🚀 **Usine logicielle 100% autonome prête début avril 2026**\
-✨ 8 sprints seulement -- architecture robuste et évolutive.
+### **Qdrant + LearnerAgent**
+> Plus qu’une base vectorielle → **mémoire vive et évolutive** de la startup.  
+> Chaque projet réussi nourrit automatiquement les standards → les prochains projets sont meilleurs dès le départ.
+
+### **Standards**
+> Ce ne sont plus des règles statiques imposées manuellement →  
+> Ce sont des **leçons apprises validées en production**, extraites et injectées par les agents eux-mêmes.
+
+------------------------------------------------------------------------
+
+# 🎯 Priorités actuelles (17 décembre 2025)
+
+- Respect strict des standards existants (prompt Architecte renforcé) → en cours
+- Fonctionnement bout-en-bout > esthétique
+- Prochaine milestone : **Security Agent + Compliance** (Sprint 4)
+- Puis **LearnerAgent** pour passer à l’usine auto-apprenante
+
+------------------------------------------------------------------------
+
+# 🏁 Objectif final mis à jour
+
+🚀 **Usine logicielle 100% autonome ET auto-apprenante prête mi-mai 2026**  
+✨ 9 sprints seulement → architecture robuste, évolutive et qui **ne demande jamais d’intervention humaine pour s’améliorer**.
