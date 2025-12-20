@@ -14,6 +14,7 @@ from qdrant_client import QdrantClient
 from typing import TypedDict, Annotated, List
 import operator
 import os
+import json # Added for parsing LLM output
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -21,6 +22,7 @@ load_dotenv(override=True)
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
     rag_context: str
+    architect_output: dict # New field for structured output
 
 # ==================== PROMPT SYSTÈME BLINDÉ (la clé de la conformité) ====================
 prompt = ChatPromptTemplate.from_messages([
@@ -55,31 +57,11 @@ LIVRABLES OBLIGATOIRES (à produire À CHAQUE FOIS, quelle que soit la requête)
 Tu raisonnes étape par étape en citant les standards, PUIS tu fournis les deux livrables complets.
 Tu NE TERMINE JAMAIS ta réponse avant d'avoir fourni la spécification Markdown complète ET le diagramme Mermaid.
 Toute réponse incomplète = échec de mission.
-"""),
+
+Output UNIQUEMENT un JSON valide : { 'specification': 'texte Markdown complet de la spec', 'mermaid_diagram': 'code Mermaid valide (classDiagram ou flowChart) entre ```mermaid et ```' }. Pas de texte supplémentaire.
+"""),   
     MessagesPlaceholder(variable_name="messages"),
 ])
-# ==================== OUTIL MERMAID AMÉLIORÉ ====================
-@tool
-def generate_mermaid_diagram(description: str) -> str:
-    """Génère un diagramme Mermaid conforme aux standards Factory Nexus."""
-    return """
-graph TD
-    subgraph Frontend[Frontend - Next.js 15 App Router]
-        A[Client Browser] --> B[Server Components + Client Components]
-        B --> C[shadcn/ui + Tailwind CSS]
-        C --> D[Server Actions / Route Handlers]
-    end
-    subgraph Backend[Backend - Prisma + PostgreSQL]
-        E[Next.js Middleware] --> F[Auth Check<br>Clerk ou NextAuth v5]
-        F --> G[Prisma ORM]
-        G --> H[PostgreSQL<br>Row Level Security]
-    end
-    A -->|HTTPS + JWT httpOnly| E
-    style Frontend fill:#dbeafe
-    style Backend fill:#fce7f3
-"""
-
-tools = [generate_mermaid_diagram]
 
 # ==================== CRÉATION DU GRAPH ====================
 def create_architect_agent():
@@ -94,7 +76,6 @@ def create_architect_agent():
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})  # Plus de docs pour plus de poids
 
     llm = ChatOpenAI(model="gpt-4o", temperature=0.1)  # Température plus basse = plus déterministe
-    llm_with_tools = llm.bind_tools(tools)
 
     async def retrieval_node(state: AgentState):
         query = state["messages"][-1].content
@@ -117,18 +98,31 @@ def create_architect_agent():
                 HumanMessage(content=f"CONTEXTE RAG OBLIGATOIRE À RESPECTER IMPÉRATIVEMENT :\n{state['rag_context']}")
             ]
         
-        chain = prompt | llm_with_tools
-        result = await chain.ainvoke({"messages": messages})
-        return {"messages": [result]}
+        chain = prompt | llm
+        llm_response = await chain.ainvoke({"messages": messages})
+        
+        # Try to parse the LLM's content as JSON
+        try:
+            # The response can be enclosed in ```json ... ```, let's strip that.
+            clean_response = llm_response.content.strip()
+            if clean_response.startswith("```json"):
+                clean_response = clean_response[7:-3].strip()
+
+            json_output = json.loads(clean_response)
+            # Store the structured output and also keep the message in state
+            return {"messages": [llm_response], "architect_output": json_output}
+        except json.JSONDecodeError:
+            # Handle cases where LLM doesn't output valid JSON
+            error_message = "LLM did not produce valid JSON output. Raw response: " + llm_response.content
+            # Store an error in architect_output and the raw response in messages
+            return {"messages": [llm_response, HumanMessage(content=error_message)], "architect_output": {"error": error_message}}
 
     workflow = StateGraph(AgentState)
     workflow.add_node("retrieval", retrieval_node)
     workflow.add_node("architect_agent", architect_agent_node)
-    workflow.add_node("tools", ToolNode(tools))
 
     workflow.add_edge(START, "retrieval")
     workflow.add_edge("retrieval", "architect_agent")
-    workflow.add_conditional_edges("architect_agent", tools_condition, {"tools": "tools", END: END})
-    workflow.add_edge("tools", "architect_agent")
+    workflow.add_edge("architect_agent", END)
 
     return workflow.compile()

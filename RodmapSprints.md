@@ -1,16 +1,16 @@
 # 🚀 ROADMAP AGILE 2025 -- SOFTWARE AGENT FACTORY
 
-### **Version Hybride Optimisée + Auto-Apprenante -- Mise à jour 17 Décembre 2025**
+### **Version Hybride Optimisée + Auto-Apprenante -- Mise à jour 19 Décembre 2025**
 
 ------------------------------------------------------------------------
 
 ## 🌟 **VISION**
 
-Créer la **première usine logicielle 100% autonome et auto-apprenante**, capable de
+Créer la **première usine logicielle 100% autonome et auto-apprenante**, capable de  
 transformer une simple commande humaine  
 ➡️ *« Fais-moi un SaaS de gestion de tâches avec authentification »*  
 en une application **full‑stack déployée, testée, sécurisée, monitorée et constamment améliorée**,  
-sans intervention humaine – et qui **s’enrichit automatiquement** à chaque projet livré.
+sans intervention humaine à long terme – et qui **s’enrichit automatiquement** à chaque projet livré.
 
 ------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 - API Flask + queue → déclenchement workflow
 - Agent **Architecte** avec RAG réel sur collection `factory_standards`
 - Standards initiaux (Next.js App Router, shadcn/ui, Clerk/NextAuth, Prisma, sécurité)
-- Repo GitHub + worker Temporal fonctionnel
+- Worker Temporal fonctionnel
 
 ------------------------------------------------------------------------
 
@@ -60,11 +60,17 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 
 ### **Sprint 2 -- Génération code + tests** (prochain)
 📌 Agents : *Dev Agent + TestCoverage Agent*  
-📦 Livrables : Code full-stack + tests unitaires + PR auto
+📦 Livrables : Code full-stack + tests unitaires + PR auto + **GitHub repo auto-push**
 
 ### **Sprint 3 -- Déploiement staging** (prochain)
 📌 Agents : *QA Agent + Deploy Agent*  
 📦 Livrables : Staging live < 10 min (Render/Vercel)
+
+### **Hybride Hooks (temporaires – Phase 1)**
+- **Hook secrets externes** : Si token GitHub/Render/Vercel expiré ou erreur critique non réparable par retry → notification au directeur (email/Slack) pour fourniture rapide (2 min max)  
+- **Hook review qualité** : Si score de confiance RAG < 0.8 ou détection de pattern inconnu → PR GitHub avec label "human-review-needed" pour validation rapide (5-10 min)  
+- **Tracking** : Chaque hook est loggé dans Temporal + upsert dans Qdrant pour analyse par LearnerAgent plus tard  
+- **Objectif** : Limiter à <10% des workflows, disparaître progressivement
 
 ------------------------------------------------------------------------
 
@@ -76,6 +82,7 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 - Audit automatique de chaque spec (vulnérabilités, déviation standards)
 - 0 vulnérabilité critique
 - Boucles de correction ReAct si non-conforme
+- **Hook sécurité critique** : Si vulnérabilité zero-day ou compliance légale non gérée → pause + notification humaine pour override (rare)
 
 ### **Sprint 5 -- GitOps + Infra as Code**
 ⚙️ Agents : *Terraform Agent + DevOps Agent*  
@@ -86,6 +93,12 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 🎯 Objectifs :
 - UI professionnelle (shadcn/ui + Tailwind obligatoire)
 - 100% tests E2E passés
+- **Hook feedback UX initial** : Sur les premiers projets, option de demander feedback humain rapide sur staging pour valider patterns UI
+
+### **Hybride Hooks (temporaires – Phase 2)**
+- **Hook sécurité & compliance** : Overrides exceptionnels pour cas légaux ou zero-day  
+- **Hook feedback initial** : Sur les premiers déploiements staging, feedback humain rapide (UX, métriques) pour accélérer l’apprentissage  
+- **Tracking & réduction** : Chaque intervention humaine est analysée par le Superviseur pour réduire automatiquement les hooks au fil des sprints
 
 ------------------------------------------------------------------------
 
@@ -96,8 +109,8 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 🎯 Objectifs :
 - À la fin de chaque projet réussi : analyse logs, métriques prod, feedback client, code final
 - Extraction automatique des "winning patterns"
-- Génération + upsert de nouveaux standards dans Qdrant (`factory_standards`)
-- Enrichissement continu de la mémoire collective (plus besoin d’ajout manuel)
+- Analyse des interventions humaines passées → upsert de nouveaux standards pour réduire les hooks
+- Enrichissement continu de la mémoire collective
 
 ### **Sprint 8 -- Standards dynamiques & par client**
 🧠 Agents : *LearnerAgent + Superviseur*  
@@ -105,13 +118,15 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 - Collections dédiées par client (ex: `client_123_standards`) héritant des standards globaux
 - Personnalisation automatique selon historique client
 - Versioning léger des standards (métadonnées : project_id, outcome, metrics)
+- **Objectif explicite** : Automatisation progressive des anciens hooks humains
 
 ### **Sprint 9 -- Boucle d’amélioration complète**
 🔄 Agents : *Tous les agents + Superviseur central*  
 🎯 Objectifs :
 - Détection proactive d’améliorations (Security → nouveau standard, DevOps → optimisation infra)
 - PR automatiques d’optimisation sur les repos existants
-- Usine qui s’améliore seule à chaque livraison
+- **Usine qui s’améliore seule à chaque livraison**
+- **Élimination complète des hooks humains** (objectif atteint ici)
 
 ------------------------------------------------------------------------
 
@@ -119,18 +134,24 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 
 ### **Qdrant + LearnerAgent**
 > Plus qu’une base vectorielle → **mémoire vive et évolutive** de la startup.  
-> Chaque projet réussi nourrit automatiquement les standards → les prochains projets sont meilleurs dès le départ.
+> Chaque projet réussi (et chaque intervention humaine) nourrit automatiquement les standards → les prochains projets sont meilleurs et plus autonomes.
 
 ### **Standards**
 > Ce ne sont plus des règles statiques imposées manuellement →  
-> Ce sont des **leçons apprises validées en production**, extraites et injectées par les agents eux-mêmes.
+> Ce sont des **leçons apprises validées en production**, extraites et injectées par les agents eux-mêmes (y compris les leçons tirées des rares interventions humaines).
+
+### **Hybride Hooks**
+> Interventions humaines ciblées, temporaires et trackées pour accélérer le démarrage  
+> → Objectif : <10% des workflows, disparition progressive via auto-apprentissage
 
 ------------------------------------------------------------------------
 
-# 🎯 Priorités actuelles (17 décembre 2025)
+# 🎯 Priorités actuelles (19 décembre 2025)
 
 - Respect strict des standards existants (prompt Architecte renforcé) → en cours
 - Fonctionnement bout-en-bout > esthétique
+- Implémentation Sprint 2 (code gen + tests + GitHub auto)
+- Intégration des premiers **Hybride Hooks** (secrets & review qualité)
 - Prochaine milestone : **Security Agent + Compliance** (Sprint 4)
 - Puis **LearnerAgent** pour passer à l’usine auto-apprenante
 
@@ -139,4 +160,4 @@ Cœur **n8n → Flask API → Temporal → LangGraph → Qdrant** pleinement op�
 # 🏁 Objectif final mis à jour
 
 🚀 **Usine logicielle 100% autonome ET auto-apprenante prête mi-mai 2026**  
-✨ 9 sprints seulement → architecture robuste, évolutive et qui **ne demande jamais d’intervention humaine pour s’améliorer**.
+✨ 9 sprints seulement → architecture robuste, évolutive et qui **ne demande plus jamais d’intervention humaine pour s’améliorer** (hooks disparus grâce au LearnerAgent).

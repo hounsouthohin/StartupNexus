@@ -1,8 +1,14 @@
 temporalio==1.7.0
 flask
 langgraph
+langchain
 langchain-openai
 langchain-core
+langchain-community
 python-dotenv
 qdrant-client
-langchain-qdrant 
+langchain-qdrant
+pygithub
+git-filter-repo
+ollama
+e2b

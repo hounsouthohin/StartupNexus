@@ -111,12 +111,26 @@ services:
     networks:
       - temporal-network
 
+  # --------------------------------------------------------------------------------
+  # Ollama - pour le fallback LLM local
+  # --------------------------------------------------------------------------------
+  ollama:
+    container_name: ollama
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - temporal-network
+
 # Volumes persistants
 volumes:
   postgresql-data:
   elasticsearch-data:
   n8n_data:
   qdrant_data:
+  ollama_data:
 
 # Réseau
 networks:

@@ -1,3 +1,11 @@
+# run/worker.py – tout en haut du fichier
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Maintenant tous les imports relatifs fonctionnent comme si on était à la racine
+
+
+
 import asyncio
 import threading
 from queue import Queue
@@ -9,8 +17,12 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # ← FIX CHEMIN
 
-from workflows.factory_workflow import SaaSFactoryWorkflow # ← maintenant OK
+from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.activities.architect_activity import architect_activity
+
+
+from workflows.activities.dev_activity import dev_activity
+from workflows.activities.github_activity import github_activity
 
 # Queue thread-safe Flask → Temporal
 job_queue = Queue()
@@ -50,11 +62,15 @@ async def main():
     threading.Thread(target=run_flask, daemon=True).start()
 
     worker = Worker(
-    client,
-    task_queue="factory-queue",
-    workflows=[SaaSFactoryWorkflow],
-    activities=[architect_activity],  
-)
+        client,
+        task_queue="factory-queue",
+        workflows=[SaaSFactoryWorkflow],
+        activities=[
+        architect_activity,
+        dev_activity,          # ← ajouté
+        github_activity,       # ← ajouté
+    ],
+    )
     print("Worker + API Flask démarrés – prêts 🚀")
     print("Test : POST http://localhost:5000/start-saas avec {'phrase': 'crée un SaaS de gestion de tâches'}")
 
