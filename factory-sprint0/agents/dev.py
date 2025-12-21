@@ -104,22 +104,30 @@ def call_llm(state: AgentState) -> dict:
 # Conditional edge for ReAct loop
 def should_continue(state: AgentState) -> str:
     """
-    Determines if the agent should continue iterating.
-    - If the last message has tool calls, execute them.
-    - If the iteration limit is reached, end.
-    - Otherwise, continue the loop.
+    Determines the next step for the agent.
+    - If the last message was a tool call, execute tools.
+    - If essential files are created, end.
+    - If max iterations are reached, end.
+    - Otherwise, continue the dev loop.
     """
     last_message = state["messages"][-1]
     
+    # 1. If the LLM just decided to call a tool, execute it
     if last_message.tool_calls:
         return "tools"
     
-    # End if we've reached the maximum number of iterations
-    if state["iterations"] >= 10: # Increased limit
-        logger.info(f"Dev Agent: Max iterations ({state['iterations']}/10) reached. Ending.")
+    # 2. Check for early exit condition: core files are generated
+    required_files = ["package.json", "prisma/schema.prisma", "app/layout.tsx"]
+    if all(file in state.get("files", {}) for file in required_files):
+        logger.info("Dev Agent: Core files generated. Ending.")
+        return "end"
+
+    # 3. If max iterations are reached, end the loop
+    if state["iterations"] >= 12: # Increased limit
+        logger.info(f"Dev Agent: Max iterations ({state['iterations']}/12) reached. Ending.")
         return "end"
         
-    # Otherwise, continue the dev loop
+    # 4. Otherwise, continue the dev loop
     return "dev"
 
 

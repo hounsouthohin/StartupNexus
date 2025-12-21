@@ -21,7 +21,7 @@ def write_file(path: str, content: str) -> str:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding='utf-8') as f:
             f.write(content)
-        return f"File '{path}' was written successfully."
+        return f"File '{path}' was written successfully. Content snippet: {content[:100]}..."
     except Exception as e:
         return f"Error writing file '{path}': {e}"
 

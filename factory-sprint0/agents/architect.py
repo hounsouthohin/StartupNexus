@@ -42,17 +42,17 @@ def load_prompts():
             content = f.read()
         
         prompts = {}
-        # Use regex to split based on markdown headi
-        sections = re.split(r'\n#\s+', content)
-        for section in sections:
-            if section.strip():
-                parts = section.split('\n', 1)
-                title = parts[0].strip().lower().replace(' ', '_')
-                prompt_content = parts[1].strip()
-                prompts[title] = ChatPromptTemplate.from_messages([
-                    SystemMessage(content=prompt_content),
-                    HumanMessage(content="{input}")
-                ])
+        # Find all sections starting with a '#' heading
+        pattern = r'#\s*(.*?)\n(.*?)(?=\n#\s*|\Z)'
+        matches = re.findall(pattern, content, re.DOTALL)
+        
+        for match in matches:
+            title = match[0].strip().lower().replace(' ', '_')
+            prompt_content = match[1].strip()
+            prompts[title] = ChatPromptTemplate.from_messages([
+                SystemMessage(content=prompt_content),
+                HumanMessage(content="{input}")
+            ])
         return prompts
     except FileNotFoundError:
         raise FileNotFoundError("prompts/architect.md not found.")
