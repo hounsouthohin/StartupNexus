@@ -2,68 +2,95 @@ import os
 import subprocess
 import e2b
 
+from langchain_core.tools import tool
+from pydantic import BaseModel, Field
+
+# --- Tool: write_file ---
+class WriteFileArgs(BaseModel):
+    path: str = Field(description="The full, relative path where the file should be written. E.g., 'src/components/Button.tsx'.")
+    content: str = Field(description="The complete and final content to be written to the file.")
+
+@tool(args_schema=WriteFileArgs)
 def write_file(path: str, content: str) -> str:
-    """Writes content to a specified file path."""
+    """
+    Writes the provided 'content' to a file at the specified 'path'.
+    This tool creates the file if it doesn't exist and overwrites it if it does.
+    It's essential for creating the project structure and code files.
+    """
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
+        with open(path, "w", encoding='utf-8') as f:
             f.write(content)
-        return f"Fichier '{path}' écrit avec succès."
+        return f"File '{path}' was written successfully."
     except Exception as e:
-        return f"Erreur lors de l'écriture du fichier '{path}': {e}"
+        return f"Error writing file '{path}': {e}"
 
+# --- Tool: validate_syntax ---
+class ValidateSyntaxArgs(BaseModel):
+    file_path: str = Field(description="The relative path of the file to be validated. E.g., 'app/page.tsx'.")
+
+@tool(args_schema=ValidateSyntaxArgs)
 def validate_syntax(file_path: str) -> str:
     """
-    Validates the syntax of a file based on its extension.
-    Supports .tsx (ESLint) and .prisma (Prisma Validate).
+    Validates the syntax of a file based on its extension. It's a crucial tool
+    for ensuring the generated code is correct before proceeding.
+    - For .tsx files, it uses ESLint.
+    - For .prisma files, it uses 'prisma validate'.
+    Requires 'npx' to be available in the environment.
     """
     try:
+        if not os.path.exists(file_path):
+            return f"Error: File '{file_path}' not found."
+            
         if file_path.endswith(".tsx"):
-            # Assuming npx is available in the environment where this runs
             result = subprocess.run(
                 ['npx', 'eslint', '--no-eslintrc', '--parser', '@typescript-eslint/parser', '--parser-options', '{"ecmaVersion": 2020, "sourceType": "module"}', '--rule', '{"semi": ["error", "always"]}', file_path],
                 capture_output=True, text=True, check=True
             )
-            return f"ESLint validation for {file_path}:\n{result.stdout}\n{result.stderr}"
+            return f"ESLint validation for {file_path} successful:\n{result.stdout}"
         elif file_path.endswith(".prisma"):
             result = subprocess.run(
                 ['npx', 'prisma', 'validate', '--schema', file_path],
                 capture_output=True, text=True, check=True
             )
-            return f"Prisma validation for {file_path}:\n{result.stdout}\n{result.stderr}"
+            return f"Prisma validation for {file_path} successful:\n{result.stdout}"
         else:
-            return f"Validation non supportée pour le type de fichier : {file_path}"
+            return f"Validation not supported for file type: {file_path}. Skipping."
     except subprocess.CalledProcessError as e:
-        return f"Erreur de validation pour '{file_path}':\n{e.stderr}"
+        return f"Validation error for '{file_path}':\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
     except FileNotFoundError:
-        return f"Erreur: 'npx' ou le linter/validator requis n'a pas été trouvé. Assurez-vous que Node.js/npm et les outils sont installés."
+        return "Error: 'npx' not found. Please ensure Node.js and npm are installed and in the system's PATH."
     except Exception as e:
-        return f"Une erreur inattendue est survenue lors de la validation de '{file_path}': {e}"
+        return f"An unexpected error occurred during validation of '{file_path}': {e}"
 
+# --- Tool: prisma_migrate ---
+class PrismaMigrateArgs(BaseModel):
+    schema_path: str = Field(description="The relative path to the 'schema.prisma' file.")
+
+@tool(args_schema=PrismaMigrateArgs)
 def prisma_migrate(schema_path: str) -> str:
     """
-    Executes a Prisma migration. Assumes the current working directory
-    or a specified temporary directory context where `npx prisma` can be run.
+    Executes a Prisma migration using 'prisma migrate dev'. This tool is essential
+    for applying schema changes to the database. It requires 'npx' and 'prisma'
+    to be available in the environment. The '--name' of the migration is
+    automatically set to 'init'.
     """
-    schema_dir = os.path.dirname(schema_path) if os.path.dirname(schema_path) else '.'
+    if not os.path.exists(schema_path):
+        return f"Error: Schema file not found at '{schema_path}'"
+
+    schema_dir = os.path.dirname(schema_path) or '.'
     
     try:
-        original_cwd = os.getcwd()
-        os.chdir(schema_dir)
-        
+        # Prisma needs to be run from the directory containing the schema file
+        # or have it specified, but changing cwd is more robust for related tooling.
         result = subprocess.run(
-            ['npx', 'prisma', 'migrate', 'dev', '--name', 'init', '--schema', os.path.basename(schema_path)],
-            capture_output=True, text=True, check=True
+            ['npx', 'prisma', 'migrate', 'dev', '--name', 'init', '--schema', schema_path],
+            capture_output=True, text=True, check=True, cwd=schema_dir
         )
-        
-        os.chdir(original_cwd) # Change back
-        return f"Prisma migration for '{schema_path}':\n{result.stdout}\n{result.stderr}"
+        return f"Prisma migration for '{schema_path}' successful:\n{result.stdout}"
     except subprocess.CalledProcessError as e:
-        os.chdir(original_cwd) # Ensure we change back even on error
-        return f"Erreur lors de la migration Prisma pour '{schema_path}':\n{e.stderr}\n{e.stdout}"
+        return f"Error during Prisma migration for '{schema_path}':\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
     except FileNotFoundError:
-        os.chdir(original_cwd) # Ensure we change back even on error
-        return f"Erreur: 'npx' ou 'prisma' n'a pas été trouvé. Assurez-vous que Node.js/npm et Prisma sont installés."
+        return "Error: 'npx' or 'prisma' not found. Please ensure Node.js and npm are installed and Prisma is in node_modules."
     except Exception as e:
-        os.chdir(original_cwd) # Ensure we change back even on error
-        return f"Une erreur inattendue est survenue lors de la migration Prisma pour '{file_path}': {e}"
+        return f"An unexpected error occurred during Prisma migration: {e}"

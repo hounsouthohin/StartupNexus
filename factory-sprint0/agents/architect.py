@@ -1,128 +1,126 @@
 # agents/architect.py
 # ===============================================
-# ARCHITECTE LOGICIEL IA - Version blindée conformité standards (décembre 2025)
+# ARCHITECTE LOGICIEL IA - Refactored for Chained Prompts (décembre 2025)
 # ===============================================
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.tools import tool
+from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from typing import TypedDict, Annotated, List
 import operator
 import os
-import json # Added for parsing LLM output
+import json
+import re
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 load_dotenv(override=True)
+
+# --- Pydantic Models for State ---
+class ArchitectOutput(BaseModel):
+    specification: str = Field(description="The full technical specification in Markdown format.")
+    mermaid_diagram: str = Field(description="The complete and valid Mermaid diagram syntax.")
 
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
     rag_context: str
-    architect_output: dict # New field for structured output
+    plan: dict
+    specification: str
+    mermaid_diagram: str
+    architect_output: ArchitectOutput 
 
-# ==================== PROMPT SYSTÈME BLINDÉ (la clé de la conformité) ====================
-prompt = ChatPromptTemplate.from_messages([
-    SystemMessage(content="""
-Tu es l'Architecte Logiciel Senior de Factory Nexus, startup 100% agents IA.
-
-RÈGLES ABSOLUES ET NON NÉGOCIABLES :
-- Tu DOIS baser TOUTES tes décisions exclusivement sur le contexte RAG fourni (collection factory_standards).
-- Toute technologie, pattern ou pratique ABSENTE du contexte RAG est STRICTEMENT INTERDITE.
-- Tu cites systématiquement les standards pertinents avec leur catégorie.
-
-PILIERS IMMUABLES DE FACTORY NEXUS :
-• Frontend full-stack : Next.js 15+ App Router uniquement
-• UI/UX : shadcn/ui + Tailwind CSS obligatoire
-• Authentification : Clerk ou NextAuth v5 (version App Router)
-• ORM : Prisma avec PostgreSQL
-• Sécurité : JWT httpOnly cookies, refresh tokens, middleware auth Next.js
-• Structure : dossiers app/, components/, lib/, actions/, types/
-
-LIVRABLES OBLIGATOIRES (à produire À CHAQUE FOIS, quelle que soit la requête) :
-1. Une spécification technique complète et détaillée au format Markdown, incluant :
-   - Description des pages/routes
-   - Composants UI principaux (shadcn/ui)
-   - Flux d'authentification
-   - Schema Prisma
-   - Mesures de sécurité
-2. Un diagramme d'architecture professionnel en syntaxe Mermaid valide, incluant :
-   - subgraphs Frontend et Backend/Database
-   - flux HTTPS + JWT httpOnly
-   - Server Components, Server Actions, middleware auth
-
-Tu raisonnes étape par étape en citant les standards, PUIS tu fournis les deux livrables complets.
-Tu NE TERMINE JAMAIS ta réponse avant d'avoir fourni la spécification Markdown complète ET le diagramme Mermaid.
-Toute réponse incomplète = échec de mission.
-
-Output UNIQUEMENT un JSON valide : { 'specification': 'texte Markdown complet de la spec', 'mermaid_diagram': 'code Mermaid valide (classDiagram ou flowChart) entre ```mermaid et ```' }. Pas de texte supplémentaire.
-"""),   
-    MessagesPlaceholder(variable_name="messages"),
-])
+# --- Prompt Loading ---
+def load_prompts():
+    """Reads and parses the architect.md file to get prompts for each node."""
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        prompts_path = os.path.join(current_dir, '..', 'prompts', 'architect.md')
+        with open(prompts_path, "r", encoding='utf-8') as f:
+            content = f.read()
+        
+        prompts = {}
+        # Use regex to split based on markdown headi
+        sections = re.split(r'\n#\s+', content)
+        for section in sections:
+            if section.strip():
+                parts = section.split('\n', 1)
+                title = parts[0].strip().lower().replace(' ', '_')
+                prompt_content = parts[1].strip()
+                prompts[title] = ChatPromptTemplate.from_messages([
+                    SystemMessage(content=prompt_content),
+                    HumanMessage(content="{input}")
+                ])
+        return prompts
+    except FileNotFoundError:
+        raise FileNotFoundError("prompts/architect.md not found.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to parse prompts/architect.md: {e}")
 
 # ==================== CRÉATION DU GRAPH ====================
 def create_architect_agent():
+    prompts = load_prompts()
+    
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     client = QdrantClient(url="http://localhost:6333")
+    vectorstore = QdrantVectorStore(client=client, collection_name="factory_standards", embedding=embeddings)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 
-    vectorstore = QdrantVectorStore(
-        client=client,
-        collection_name="factory_standards",
-        embedding=embeddings,
-    )
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})  # Plus de docs pour plus de poids
-
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.1)  # Température plus basse = plus déterministe
-
+    # --- Nodes ---
     async def retrieval_node(state: AgentState):
         query = state["messages"][-1].content
         docs = await retriever.ainvoke(query)
-        
-        if not docs:
-            rag_context = "ATTENTION : Aucun standard pertinent trouvé. Refuse toute génération hors standards connus."
-        else:
-            rag_context = "\n\n".join([
-                f"--- STANDARD OBLIGATOIRE {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}"
-                for i, doc in enumerate(docs)
-            ])
-        
+        rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
         return {"rag_context": rag_context}
 
-    async def architect_agent_node(state: AgentState):
-        messages = state["messages"]
-        if state.get("rag_context"):
-            messages = messages + [
-                HumanMessage(content=f"CONTEXTE RAG OBLIGATOIRE À RESPECTER IMPÉRATIVEMENT :\n{state['rag_context']}")
-            ]
-        
-        chain = prompt | llm
-        llm_response = await chain.ainvoke({"messages": messages})
-        
-        # Try to parse the LLM's content as JSON
+    async def planner_node(state: AgentState):
+        input_text = f"User Request: {state['messages'][-1].content}\n\nRAG Context:\n{state['rag_context']}"
+        chain = prompts['planner'] | llm
+        llm_response = await chain.ainvoke({"input": input_text})
         try:
-            # The response can be enclosed in ```json ... ```, let's strip that.
-            clean_response = llm_response.content.strip()
-            if clean_response.startswith("```json"):
-                clean_response = clean_response[7:-3].strip()
-
-            json_output = json.loads(clean_response)
-            # Store the structured output and also keep the message in state
-            return {"messages": [llm_response], "architect_output": json_output}
+            plan = json.loads(llm_response.content)
+            return {"plan": plan}
         except json.JSONDecodeError:
-            # Handle cases where LLM doesn't output valid JSON
-            error_message = "LLM did not produce valid JSON output. Raw response: " + llm_response.content
-            # Store an error in architect_output and the raw response in messages
-            return {"messages": [llm_response, HumanMessage(content=error_message)], "architect_output": {"error": error_message}}
+            raise ValueError("Planner failed to produce a valid JSON plan.")
 
+    async def spec_writer_node(state: AgentState):
+        input_text = f"High-Level Plan:\n{json.dumps(state['plan'], indent=2)}"
+        chain = prompts['spec_writer'] | llm
+        llm_response = await chain.ainvoke({"input": input_text})
+        return {"specification": llm_response.content}
+
+    async def diagrammer_node(state: AgentState):
+        input_text = f"Technical Specification:\n{state['specification']}"
+        chain = prompts['diagrammer'] | llm
+        llm_response = await chain.ainvoke({"input": input_text})
+        
+        match = re.search(r'```mermaid\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
+        mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
+        return {"mermaid_diagram": mermaid_code}
+
+    def formatter_node(state: AgentState):
+        architect_output = ArchitectOutput(
+            specification=state['specification'],
+            mermaid_diagram=state['mermaid_diagram']
+        )
+        return {"architect_output": architect_output}
+
+    # --- Graph Definition ---
     workflow = StateGraph(AgentState)
     workflow.add_node("retrieval", retrieval_node)
-    workflow.add_node("architect_agent", architect_agent_node)
+    workflow.add_node("planner", planner_node)
+    workflow.add_node("spec_writer", spec_writer_node)
+    workflow.add_node("diagrammer", diagrammer_node)
+    workflow.add_node("formatter", formatter_node)
 
     workflow.add_edge(START, "retrieval")
-    workflow.add_edge("retrieval", "architect_agent")
-    workflow.add_edge("architect_agent", END)
+    workflow.add_edge("retrieval", "planner")
+    workflow.add_edge("planner", "spec_writer")
+    workflow.add_edge("spec_writer", "diagrammer")
+    workflow.add_edge("diagrammer", "formatter")
+    workflow.add_edge("formatter", END)
 
     return workflow.compile()

@@ -26,11 +26,7 @@ class SaaSFactoryWorkflow:
             "architect_activity",
             input_data,
             start_to_close_timeout=timedelta(seconds=300),
-            retry_policy=RetryPolicy(
-                initial_interval=timedelta(seconds=5),
-                backoff_coefficient=2.0,
-                maximum_attempts=3,
-            ),
+            retry_policy=common_retry_policy,
         )
 
         # Accès direct aux sorties structurées
@@ -67,7 +63,7 @@ class SaaSFactoryWorkflow:
             "github_activity",
             github_input,
             start_to_close_timeout=timedelta(minutes=10),
-            retry_policy=common_retry_policy,  # ← corrigé ici
+            retry_policy=common_retry_policy,
         )
 
         workflow.logger.info("GitHub terminé")

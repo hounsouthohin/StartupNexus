@@ -4,6 +4,7 @@ import operator
 import json # For parsing tool calls if necessary
 
 from langgraph.graph import StateGraph, END
+from langgraph.prebuilt import ToolNode
 from langchain_core.tools import Tool
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
@@ -45,16 +46,11 @@ class AgentState(TypedDict):
 llm_openai = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.2)
 # llm_ollama = ChatOllama(model="qwen2:7b", temperature=0.2, base_url="http://ollama:11434") # Assuming Ollama server is running and qwen2:7b is pulled
 
-# Bind tools to LLMs
-tools = [
-    Tool(name="write_file", func=write_file, description="Writes content to a specified file path."),
-    Tool(name="validate_syntax", func=validate_syntax, description="Validates the syntax of .tsx (ESLint) and .prisma (Prisma Validate) files."),
-    Tool(name="prisma_migrate", func=prisma_migrate, description="Executes a Prisma migration.")
-]
+tools = [write_file, validate_syntax, prisma_migrate]
 
 llm_openai_with_tools = llm_openai.bind_tools(tools)
 # llm_ollama_with_tools = llm_ollama.bind_tools(tools)
-
+tool_node = ToolNode(tools)
 
 # Agent node function
 def call_llm(state: AgentState) -> dict:
@@ -66,7 +62,9 @@ def call_llm(state: AgentState) -> dict:
     
     # Read the system prompt from prompts/dev.md
     try:
-        with open("prompts/dev.md", "r") as f:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        prompts_path = os.path.join(current_dir, '..', 'prompts', 'dev.md')
+        with open(prompts_path, "r") as f:
             system_prompt_content = f.read()
     except FileNotFoundError:
         logger.error("prompts/dev.md not found. Using fallback system prompt.")
@@ -81,7 +79,8 @@ def call_llm(state: AgentState) -> dict:
     
     # TODO: Implement RAG score based LLM fallback here
     # For now, default to OpenAI
-    response = llm_openai_with_tools.invoke({"messages": state["messages"]})
+    chain = prompt | llm_openai_with_tools
+    response = chain.invoke(state)
     
     # Increment iteration count
     current_iterations = state["iterations"] + 1
@@ -92,10 +91,10 @@ def call_llm(state: AgentState) -> dict:
     updated_files = state.get("files", {}).copy()
     if response.tool_calls:
         for tool_call in response.tool_calls:
-            if tool_call.name == "write_file":
+            if tool_call['name'] == "write_file":
                 # Assuming the content will be in the arguments
-                path = tool_call.args.get("path")
-                content = tool_call.args.get("content")
+                path = tool_call['args'].get("path")
+                content = tool_call['args'].get("content")
                 if path and content:
                     updated_files[path] = content
                     logger.info(f"Dev Agent: Proposed writing file: {path}")
@@ -106,38 +105,30 @@ def call_llm(state: AgentState) -> dict:
 def should_continue(state: AgentState) -> str:
     """
     Determines if the agent should continue iterating.
-    Checks for tool calls, explicit termination, and iteration limit.
+    - If the last message has tool calls, execute them.
+    - If the iteration limit is reached, end.
+    - Otherwise, continue the loop.
     """
     last_message = state["messages"][-1]
     
-    # If the last message contains tool calls, the graph needs to continue to process their output.
     if last_message.tool_calls:
-        logger.info(f"Dev Agent: Continuing for tool calls.")
-        return "continue"
+        return "tools"
     
-    # Check for explicit errors or if the agent indicates it needs to re-evaluate
-    # This is a very basic check; a more sophisticated agent would parse tool_messages for errors
-    # or have a specific "think" step.
-    has_error_message = any("error" in str(msg.content).lower() for msg in state["messages"] if isinstance(msg, ToolMessage))
-    
-    if has_error_message and state["iterations"] < 3:
-        logger.info(f"Dev Agent: Continuing due to error and remaining iterations ({state['iterations']}/3).")
-        return "continue"
-    
-    # If no tool calls and no explicit error in tool messages, and iterations limit reached, or success
-    if state["iterations"] >= 3:
-        logger.info(f"Dev Agent: Max iterations ({state['iterations']}/3) reached. Ending.")
+    # End if we've reached the maximum number of iterations
+    if state["iterations"] >= 10: # Increased limit
+        logger.info(f"Dev Agent: Max iterations ({state['iterations']}/10) reached. Ending.")
         return "end"
-
-    # If the agent's last message is not a tool call and no clear error, it's likely done.
-    logger.info(f"Dev Agent: No tool calls or unhandled errors. Ending.")
-    return "end"
+        
+    # Otherwise, continue the dev loop
+    return "dev"
 
 
 # Graph definition
 graph = StateGraph(AgentState)
 
 graph.add_node("dev", call_llm)
+graph.add_node("tools", tool_node)
+
 
 # Define the entry point
 graph.set_entry_point("dev")
@@ -146,22 +137,23 @@ graph.add_conditional_edges(
     "dev", # From the 'dev' node
     should_continue,
     {
-        "continue": "dev", # Loop back to 'dev' node
+        "tools": "tools", # Loop back to 'dev' no
+        "dev": "dev",
         "end": END # End the graph
     }
 )
-
+graph.add_edge("tools", "dev")
 # Compile the graph
 app = graph.compile()
 
 
-def dev_agent(spec: str, mermaid: str) -> dict:
+def dev_agent(spec: str, mermaid: str, project_name: str) -> dict:
     """
     Main function to run the Dev Agent.
-    Takes architectural specification and Mermaid diagram as input.
+    Takes architectural specification, Mermaid diagram, and project_name as input.
     """
     logger.info("Starting Dev Agent process.")
-    initial_message = HumanMessage(content=f"Architectural Specification:\n{spec}\n\nMermaid Diagram:\n{mermaid}")
+    initial_message = HumanMessage(content=f"Project Name: {project_name}\n\nArchitectural Specification:\n{spec}\n\nMermaid Diagram:\n{mermaid}")
     
     # Initialize the state with the initial message
     final_state = app.invoke(

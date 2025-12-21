@@ -13,9 +13,7 @@ from flask import Flask, request, jsonify
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # ← FIX CHEMIN
+
 
 from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.activities.architect_activity import architect_activity
