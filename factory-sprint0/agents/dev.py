@@ -16,7 +16,7 @@ from langchain_core.messages import BaseMessage, ToolMessage, HumanMessage, Syst
 # from utils.logger import logger
 
 # Import shared tools
-from .shared_tools import write_file, validate_syntax, prisma_migrate
+from .shared_tools import write_file, validate_syntax, prisma_migrate, rag_search
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -46,7 +46,7 @@ class AgentState(TypedDict):
 llm_openai = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.2)
 # llm_ollama = ChatOllama(model="qwen2:7b", temperature=0.2, base_url="http://ollama:11434") # Assuming Ollama server is running and qwen2:7b is pulled
 
-tools = [write_file, validate_syntax, prisma_migrate]
+tools = [write_file, validate_syntax, prisma_migrate, rag_search]
 
 llm_openai_with_tools = llm_openai.bind_tools(tools)
 # llm_ollama_with_tools = llm_ollama.bind_tools(tools)
@@ -58,6 +58,11 @@ def call_llm(state: AgentState) -> dict:
     Invokes the LLM with the current messages and returns the response.
     Handles tool calls and updates the state.
     """
+    required_files = ["package.json", "prisma/schema.prisma", "app/layout.tsx"]
+    if all(file in state.get("files", {}) for file in required_files):
+        logger.info("Core files generated. Ending.")
+        return "end"
+        
     logger.info(f"Dev Agent: Starting iteration {state['iterations'] + 1}")
     
     # Read the system prompt from prompts/dev.md

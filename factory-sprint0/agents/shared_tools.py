@@ -1,96 +1,165 @@
 import os
 import subprocess
-import e2b
+from datetime import datetime
+from functools import lru_cache
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
+from qdrant_client import QdrantClient
+from langchain_openai import OpenAIEmbeddings
+from langchain_qdrant import QdrantVectorStore
 
-# --- Tool: write_file ---
+# --- Global Configurations & Clients (Singleton Pattern) ---
+# For performance, clients are initialized once and reused across all tool calls.
+try:
+    qdrant_client = QdrantClient(url="http://localhost:6333")
+    openai_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    vectorstore = QdrantVectorStore(client=qdrant_client, collection_name="factory_standards", embedding=openai_embeddings)
+except Exception as e:
+    # If clients fail to initialize, set them to None to prevent application crash.
+    # Tools that depend on them will fail gracefully.
+    qdrant_client = None
+    openai_embeddings = None
+    vectorstore = None
+    print(f"[ERROR] Failed to initialize global clients: {e}")
+
+# Setup basic logger (can be replaced with a more robust logger)
+class Logger:
+    def info(self, message):
+        print(f"[INFO] {message}")
+    def warning(self, message):
+        print(f"[WARNING] {message}")
+    def error(self, message):
+        print(f"[ERROR] {message}")
+logger = Logger()
+
+# --- Tool Definitions ---
+
+@tool
+@lru_cache(maxsize=50)
+def rag_search(query: str) -> str:
+    """
+    Searches for development standards in the 'factory_standards' Qdrant collection.
+    Uses a global, cached client for high performance and reliability.
+    Example: rag_search("How to implement Clerk authentication?")
+    """
+    logger.info(f"Executing rag_search with query: '{query}'")
+    if not vectorstore:
+        logger.error("RAG search failed: Vectorstore is not initialized.")
+        return "Aucun résultat (erreur de recherche)."
+    
+    try:
+        retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+        docs = retriever.invoke(query)
+        return "\n\n".join([doc.page_content for doc in docs])
+    except Exception as e:
+        logger.error(f"RAG search encountered an error: {e}")
+        return "Aucun résultat (erreur de recherche)."
+
 class WriteFileArgs(BaseModel):
-    path: str = Field(description="The full, relative path where the file should be written. E.g., 'src/components/Button.tsx'.")
+    path: str = Field(description="The relative project path for the file. E.g., 'src/components/Button.tsx'. Absolute paths are not allowed.")
     content: str = Field(description="The complete and final content to be written to the file.")
 
 @tool(args_schema=WriteFileArgs)
 def write_file(path: str, content: str) -> str:
     """
-    Writes the provided 'content' to a file at the specified 'path'.
-    This tool creates the file if it doesn't exist and overwrites it if it does.
-    It's essential for creating the project structure and code files.
+    Writes content to a file at a specified relative path. Overwrites existing files.
+    For security, absolute paths are prohibited.
     """
+    # Security check: prevent writing outside the project directory.
+    if os.path.isabs(path):
+        return "Error: Absolute paths are forbidden for security reasons."
+
     try:
+        # Log if the file already exists to track overwrites.
+        if os.path.exists(path):
+            logger.warning(f"File '{path}' already exists and will be overwritten.")
+        
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding='utf-8') as f:
             f.write(content)
-        return f"File '{path}' was written successfully. Content snippet: {content[:100]}..."
+        return f"File '{path}' was written successfully."
     except Exception as e:
         return f"Error writing file '{path}': {e}"
 
-# --- Tool: validate_syntax ---
 class ValidateSyntaxArgs(BaseModel):
-    file_path: str = Field(description="The relative path of the file to be validated. E.g., 'app/page.tsx'.")
+    file_path: str = Field(description="The relative path of the file to validate. Supported extensions: .js, .ts, .tsx, .prisma.")
 
 @tool(args_schema=ValidateSyntaxArgs)
 def validate_syntax(file_path: str) -> str:
     """
-    Validates the syntax of a file based on its extension. It's a crucial tool
-    for ensuring the generated code is correct before proceeding.
-    - For .tsx files, it uses ESLint.
-    - For .prisma files, it uses 'prisma validate'.
-    Requires 'npx' to be available in the environment.
+    Validates the syntax of a file using external tools (ESLint, Prisma).
+    Includes a 30-second timeout to prevent indefinite hangs.
     """
+    if not os.path.exists(file_path):
+        return f"Error: File '{file_path}' not found."
+
     try:
-        if not os.path.exists(file_path):
-            return f"Error: File '{file_path}' not found."
-            
-        if file_path.endswith(".tsx"):
-            result = subprocess.run(
-                ['npx', 'eslint', '--no-eslintrc', '--parser', '@typescript-eslint/parser', '--parser-options', '{"ecmaVersion": 2020, "sourceType": "module"}', '--rule', '{"semi": ["error", "always"]}', file_path],
-                capture_output=True, text=True, check=True
-            )
-            return f"ESLint validation for {file_path} successful:\n{result.stdout}"
+        if file_path.endswith((".js", ".ts", ".tsx")):
+            command = [
+                'npx', 'eslint', '--no-eslintrc', '--parser', '@typescript-eslint/parser',
+                '--parser-options', '{"ecmaVersion": 2020, "sourceType": "module"}',
+                '--rule', '{"semi": ["error", "always"]}', file_path
+            ]
+            result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
+            return f"ESLint validation for {file_path} successful."
+        
         elif file_path.endswith(".prisma"):
-            result = subprocess.run(
-                ['npx', 'prisma', 'validate', '--schema', file_path],
-                capture_output=True, text=True, check=True
-            )
-            return f"Prisma validation for {file_path} successful:\n{result.stdout}"
+            command = ['npx', 'prisma', 'validate', '--schema', file_path]
+            result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
+            return f"Prisma validation for {file_path} successful."
+            
         else:
             return f"Validation not supported for file type: {file_path}. Skipping."
+            
+    except subprocess.TimeoutExpired:
+        return f"Validation timed out for '{file_path}' after 30 seconds."
     except subprocess.CalledProcessError as e:
-        return f"Validation error for '{file_path}':\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        return (f"Validation error for '{file_path}' (Exit Code: {e.returncode}):\n"
+                f"STDOUT:\n{e.stdout}\n"
+                f"STDERR:\n{e.stderr}")
     except FileNotFoundError:
-        return "Error: 'npx' not found. Please ensure Node.js and npm are installed and in the system's PATH."
+        return "Error: 'npx' not found. Please ensure Node.js and npm are installed."
     except Exception as e:
         return f"An unexpected error occurred during validation of '{file_path}': {e}"
 
-# --- Tool: prisma_migrate ---
 class PrismaMigrateArgs(BaseModel):
     schema_path: str = Field(description="The relative path to the 'schema.prisma' file.")
 
 @tool(args_schema=PrismaMigrateArgs)
 def prisma_migrate(schema_path: str) -> str:
     """
-    Executes a Prisma migration using 'prisma migrate dev'. This tool is essential
-    for applying schema changes to the database. It requires 'npx' and 'prisma'
-    to be available in the environment. The '--name' of the migration is
-    automatically set to 'init'.
+    Executes a Prisma migration with a unique name and a 60-second timeout.
+    Checks migration status beforehand to avoid redundant migrations.
     """
     if not os.path.exists(schema_path):
         return f"Error: Schema file not found at '{schema_path}'"
 
     schema_dir = os.path.dirname(schema_path) or '.'
-    
+
     try:
-        # Prisma needs to be run from the directory containing the schema file
-        # or have it specified, but changing cwd is more robust for related tooling.
-        result = subprocess.run(
-            ['npx', 'prisma', 'migrate', 'dev', '--name', 'init', '--schema', schema_path],
-            capture_output=True, text=True, check=True, cwd=schema_dir
-        )
-        return f"Prisma migration for '{schema_path}' successful:\n{result.stdout}"
+        # Step 1: Check current migration status.
+        status_command = ['npx', 'prisma', 'migrate', 'status', '--schema', schema_path]
+        status_result = subprocess.run(status_command, capture_output=True, text=True, check=True, cwd=schema_dir, timeout=60)
+        
+        # If no pending migrations, there's no need to run 'migrate dev'.
+        if "No pending migrations to apply" in status_result.stdout:
+            return f"Prisma migration check for '{schema_path}': No pending migrations to apply."
+
+        # Step 2: Generate a unique migration name and run the migration.
+        migration_name = 'init_' + datetime.now().strftime("%Y%m%d_%H%M%S")
+        migrate_command = ['npx', 'prisma', 'migrate', 'dev', '--name', migration_name, '--schema', schema_path]
+        
+        result = subprocess.run(migrate_command, capture_output=True, text=True, check=True, cwd=schema_dir, timeout=60)
+        return f"Prisma migration '{migration_name}' for '{schema_path}' successful:\n{result.stdout}"
+
+    except subprocess.TimeoutExpired:
+        return f"Prisma migration timed out for '{schema_path}' after 60 seconds."
     except subprocess.CalledProcessError as e:
-        return f"Error during Prisma migration for '{schema_path}':\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        return (f"Error during Prisma migration for '{schema_path}' (Exit Code: {e.returncode}):\n"
+                f"STDOUT:\n{e.stdout}\n"
+                f"STDERR:\n{e.stderr}")
     except FileNotFoundError:
-        return "Error: 'npx' or 'prisma' not found. Please ensure Node.js and npm are installed and Prisma is in node_modules."
+        return "Error: 'npx' or 'prisma' not found. Please ensure Node.js and npm are installed."
     except Exception as e:
         return f"An unexpected error occurred during Prisma migration: {e}"

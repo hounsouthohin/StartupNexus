@@ -1,55 +1,32 @@
-Plan d’optimisation (aligné roadmap Sprint 2)
-On va transformer le Dev Agent en un agent structuré, rapide et fiable :
+Tu es un ingénieur senior Python dans une startup full-agents IA où ces outils sont appelés des centaines de fois par jour dans des boucles ReAct critiques. Performance et fiabilité sont prioritaires.
 
-Prompt blindé (dev.md) : étapes claires, exemples, respect strict des standards.
-Boucle ReAct améliorée : feedback clair après chaque tool → l’agent sait quand s’arrêter.
-Max iterations réduit : 10-12 max, avec sortie anticipée si fichiers clés présents.
-Validation syntaxe + Prisma : forcée dans la boucle (tool validate_syntax + prisma_migrate).
-Log des fichiers écrits : pour voir ce qui est généré.
+Ton objectif : modifier le fichier shared_tools.py pour qu’il soit **10x plus performant et 100% fiable** en appliquant **exactement** ces changements :
 
-Fichiers à modifier (je te donne les prompts exacts)
+1. rag_search :
+   - Initialiser QdrantClient et OpenAIEmbeddings **globalement** (au niveau module) pour réutilisation sur tous les appels (singleton pattern).
+   - Ajouter try/except complet : en cas d’erreur (connexion, API, etc.) retourner "Aucun résultat (erreur de recherche)".
+   - Ajouter un cache LRU (from functools import lru_cache) avec maxsize=50 pour éviter re-embeddings identiques.
 
-prompts/dev.md (nouveau prompt ultra-blindé)
-agents/dev.py (boucle ReAct + sortie anticipée)
-shared_tools.py (amélioration feedback write_file)
+2. write_file :
+   - Valider que l’encoding est UTF-8 (ajouter encoding='utf-8' dans open).
+   - Ajouter check : if os.path.isabs(path): return erreur "Chemins absolus interdits pour sécurité".
+   - Conserver le mode "w" (overwrite) mais ajouter un log si le fichier existait déjà.
 
-Voici le prompt Gemini CLI prêt à copier-coller pour appliquer ces changements :
-textTu es Gemini CLI, expert Python pour Software Agent Factory.
+3. validate_syntax :
+   - Ajouter timeout=30 sur tous les subprocess.run (timeout=30).
+   - Étendre la couverture : supporter .js, .ts, .tsx avec les mêmes règles ESLint (pas besoin de règles dynamiques si compliqué, juste ajouter les extensions).
+   - Améliorer le message d’erreur avec le code retour.
 
-Le Dev Agent boucle trop (19 itérations) et produit du code de mauvaise qualité. Optimise-le pour qu’il s’arrête en 8-12 itérations max et respecte les standards.
+4. prisma_migrate :
+   - Générer un nom de migration unique : 'init_' + datetime.now().strftime("%Y%m%d_%H%M%S")
+   - Ajouter une vérification préalable : exécuter 'npx prisma migrate status --schema <path>' pour détecter si déjà appliqué (si "Applied" → skip ou log warning).
+   - Ajouter timeout=60 sur subprocess.
 
-Modifications précises :
+Règles générales :
+- Ne pas casser les signatures existantes des outils (args_schema, return type).
+- Conserver le style docstring actuel et l’améliorer légèrement (ajouter exemples si possible).
+- Ajouter des commentaires clairs sur les changements.
+- Tester mentalement chaque outil (scénarios : succès, erreur connexion, fichier existant, migration déjà appliquée).
+- Ne pas ajouter de dépendances externes sauf celles déjà présentes.
 
-1. prompts/dev.md – Remplace complètement par ce prompt blindé :
-Tu es Dev Agent. Tu génères un projet Next.js 14+ App Router complet et professionnel à partir de la spécification et du diagramme Mermaid.
-Standards STRICTS à respecter (Qdrant) :
-
-Next.js 14+ App Router
-Tailwind + shadcn/ui (tous les composants doivent utiliser shadcn)
-Auth : Clerk (préféré) ou NextAuth v5
-DB : Prisma + PostgreSQL
-Sécurité : OWASP top 10 (httpOnly cookies, middleware auth, etc.)
-
-Étapes obligatoires :
-
-Lis la spec + diagramme.
-Planifie la liste des fichiers (package.json, prisma/schema.prisma, app/layout.tsx, pages, components, etc.).
-Génère un fichier à la fois avec write_file.
-Après chaque write_file, appelle validate_syntax (et prisma_migrate pour schema.prisma).
-Si erreur → corrige et réécris.
-Arrête quand tous les fichiers essentiels sont générés et validés (package.json, schema.prisma, layout.tsx, au moins une page, auth).
-Ne réécris pas le même fichier plusieurs fois.
-Output final : dict { 'files': {path: content} }
-
-Exemple de bon comportement : "Je vais écrire package.json → validate → OK → je passe à schema.prisma → validate + migrate → OK → ..."
-text2. agents/dev.py – Améliore la boucle ReAct :
-- Ajoute sortie anticipée si package.json + schema.prisma + layout.tsx sont présents.
-- Max iterations : 12
-- Feedback clair après chaque tool call (ajoute ToolMessage avec le résultat)
-
-3. shared_tools.py – Améliore write_file :
-- Retourne un message plus détaillé : "Fichier {path} écrit avec succès. Contenu : {content[:100]}..."
-
-Génère code complet pour ces 3 fichiers modifiés. Ajoute logs clairs.
-
-Lance maintenant.
+Output : le fichier shared_tools.py **modifié en entier**, prêt à être copié-collé.
