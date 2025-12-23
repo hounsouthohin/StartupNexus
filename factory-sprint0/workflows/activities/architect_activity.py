@@ -1,7 +1,5 @@
 # workflows/activities/architect_activity.py
 from temporalio import activity
-from agents.architect import create_architect_agent
-from langchain_core.messages import HumanMessage
 import os
 from dotenv import load_dotenv
 import re
@@ -9,6 +7,10 @@ import json
 
 @activity.defn
 async def architect_activity(input_data: dict) -> dict:
+    # Imports moved inside the activity function
+    from agents.architect import create_architect_agent
+    from langchain_core.messages import HumanMessage
+    
     load_dotenv(override=True)
 
     if not os.getenv("OPENAI_API_KEY"):

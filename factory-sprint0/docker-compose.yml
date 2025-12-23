@@ -124,6 +124,25 @@ services:
     networks:
       - temporal-network
 
+  # --------------------------------------------------------------------------------
+  # Factory Worker - notre application Python
+  # --------------------------------------------------------------------------------
+  factory-worker:
+    container_name: factory-worker
+    build: .
+    env_file:
+      - .env
+    command: >
+      bash -c "python scripts/wait-for-it.py temporal:7233 30 && python run/worker.py"
+    volumes:
+      - .:/app
+    networks:
+      - temporal-network
+    depends_on:
+      - temporal
+      - qdrant
+      - ollama
+
 # Volumes persistants
 volumes:
   postgresql-data:

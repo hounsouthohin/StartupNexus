@@ -1,5 +1,4 @@
 from temporalio import activity
-from agents.dev import dev_agent
 
 @activity.defn
 async def dev_activity(input_data: dict) -> dict:
@@ -8,6 +7,9 @@ async def dev_activity(input_data: dict) -> dict:
     Takes a dict with 'spec', 'mermaid', 'project_name'.
     Returns the generated files and the final message from the Dev Agent.
     """
+    # Import moved inside the activity function
+    from agents.dev import dev_agent
+
     activity.logger.info("Starting Dev Agent activity...")
 
     spec = input_data.get("spec", "")

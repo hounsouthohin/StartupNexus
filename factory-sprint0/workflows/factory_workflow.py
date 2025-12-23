@@ -3,6 +3,9 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict
 
+# Import the new activity
+from workflows.activities.test_coverage_activity import test_coverage_activity
+
 # Logger pour Temporal UI
 workflow.logger = workflow.logger
 
@@ -54,10 +57,27 @@ class SaaSFactoryWorkflow:
 
         workflow.logger.info("Dev terminé – code généré")
 
-        # Étape 3 : GitHub Activity
+        # Étape 3 : TestCoverage Activity
+        test_result: Dict = await workflow.execute_activity(
+            "test_coverage_activity", # Use the activity's string name
+            dev_result.get("files", {}),
+            start_to_close_timeout=timedelta(minutes=15),
+            retry_policy=common_retry_policy,
+        )
+
+        generated_tests = test_result.get("tests", {})
+        if not generated_tests:
+            workflow.logger.error("TestCoverage Activity failed to generate tests.")
+            # Temporary human hook: raise an error
+            raise ValueError("TestCoverage Agent did not generate any tests. Human intervention required.")
+        
+        workflow.logger.info(f"TestCoverage terminé – {len(generated_tests)} tests générés")
+
+        # Étape 4 : GitHub Activity (only if tests were generated)
         github_input = {
-            "files": dev_result.get("files", {}),
+            "files": dev_result.get("files", {}), # Pass original dev files
             "project_name": project_name,
+            "tests": generated_tests # Add generated tests to github_input
         }
         github_result: str = await workflow.execute_activity(
             "github_activity",

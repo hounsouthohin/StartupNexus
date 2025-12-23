@@ -1,4 +1,4 @@
-temporalio==1.7.0
+temporalio==1.21.1
 flask
 langgraph
 langchain
@@ -12,3 +12,4 @@ pygithub
 git-filter-repo
 ollama
 e2b
+langchain_ollama

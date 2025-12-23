@@ -3,14 +3,6 @@ from typing import TypedDict, Annotated, List, Tuple
 import operator
 import json # For parsing tool calls if necessary
 
-from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolNode
-from langchain_core.tools import Tool
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_openai import ChatOpenAI
-# from langchain_community.chat_models import ChatOllama
-from langchain_core.messages import BaseMessage, ToolMessage, HumanMessage, SystemMessage, AIMessage
-
 # Assuming config.factory_config and utils.logger exist and are configured
 # from config.factory_config import *
 # from utils.logger import logger
@@ -30,34 +22,17 @@ class Logger:
         print(f"[ERROR] {message}")
 logger = Logger() # Placeholder
 
-# Define Agent State
-class AgentState(TypedDict):
-    """
-    Represents the state of the Dev Agent.
-    messages: A list of messages in the conversation.
-    files: A dictionary to store generated files {path: content}.
-    iterations: Counter for ReAct loop iterations.
-    """
-    messages: Annotated[List[BaseMessage], operator.add]
-    files: dict
-    iterations: int
-
-# Initialize LLMs
-llm_openai = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.2)
-# llm_ollama = ChatOllama(model="qwen2:7b", temperature=0.2, base_url="http://ollama:11434") # Assuming Ollama server is running and qwen2:7b is pulled
-
-tools = [write_file, validate_syntax, prisma_migrate, rag_search]
-
-llm_openai_with_tools = llm_openai.bind_tools(tools)
-# llm_ollama_with_tools = llm_ollama.bind_tools(tools)
-tool_node = ToolNode(tools)
-
 # Agent node function
-def call_llm(state: AgentState) -> dict:
+def call_llm(state: dict) -> dict:
     """
     Invokes the LLM with the current messages and returns the response.
     Handles tool calls and updates the state.
     """
+    # Imports moved inside the function
+    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+    from langchain_core.messages import SystemMessage
+    from langchain_openai import ChatOpenAI
+
     required_files = ["package.json", "prisma/schema.prisma", "app/layout.tsx"]
     if all(file in state.get("files", {}) for file in required_files):
         logger.info("Core files generated. Ending.")
@@ -81,6 +56,11 @@ def call_llm(state: AgentState) -> dict:
             MessagesPlaceholder(variable_name="messages"),
         ]
     )
+    
+    # Initialize LLMs
+    llm_openai = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.2)
+    tools = [write_file, validate_syntax, prisma_migrate, rag_search]
+    llm_openai_with_tools = llm_openai.bind_tools(tools)
     
     # TODO: Implement RAG score based LLM fallback here
     # For now, default to OpenAI
@@ -106,65 +86,45 @@ def call_llm(state: AgentState) -> dict:
 
     return {"messages": [response], "files": updated_files, "iterations": current_iterations}
 
-# Conditional edge for ReAct loop
-def should_continue(state: AgentState) -> str:
-    """
-    Determines the next step for the agent.
-    - If the last message was a tool call, execute tools.
-    - If essential files are created, end.
-    - If max iterations are reached, end.
-    - Otherwise, continue the dev loop.
-    """
-    last_message = state["messages"][-1]
-    
-    # 1. If the LLM just decided to call a tool, execute it
-    if last_message.tool_calls:
-        return "tools"
-    
-    # 2. Check for early exit condition: core files are generated
-    required_files = ["package.json", "prisma/schema.prisma", "app/layout.tsx"]
-    if all(file in state.get("files", {}) for file in required_files):
-        logger.info("Dev Agent: Core files generated. Ending.")
-        return "end"
-
-    # 3. If max iterations are reached, end the loop
-    if state["iterations"] >= 12: # Increased limit
-        logger.info(f"Dev Agent: Max iterations ({state['iterations']}/12) reached. Ending.")
-        return "end"
-        
-    # 4. Otherwise, continue the dev loop
-    return "dev"
-
-
-# Graph definition
-graph = StateGraph(AgentState)
-
-graph.add_node("dev", call_llm)
-graph.add_node("tools", tool_node)
-
-
-# Define the entry point
-graph.set_entry_point("dev")
-
-graph.add_conditional_edges(
-    "dev", # From the 'dev' node
-    should_continue,
-    {
-        "tools": "tools", # Loop back to 'dev' no
-        "dev": "dev",
-        "end": END # End the graph
-    }
-)
-graph.add_edge("tools", "dev")
-# Compile the graph
-app = graph.compile()
-
-
 def dev_agent(spec: str, mermaid: str, project_name: str) -> dict:
     """
     Main function to run the Dev Agent.
     Takes architectural specification, Mermaid diagram, and project_name as input.
     """
+    # Imports moved inside the function
+    from langgraph.graph import StateGraph, END
+    from langgraph.prebuilt import ToolNode
+    from langchain_core.messages import BaseMessage, ToolMessage, HumanMessage, AIMessage
+    
+    # Define Agent State
+    class AgentState(TypedDict):
+        messages: Annotated[List[BaseMessage], operator.add]
+        files: dict
+        iterations: int
+        
+    tools = [write_file, validate_syntax, prisma_migrate, rag_search]
+    tool_node = ToolNode(tools)
+
+    def should_continue(state: AgentState) -> str:
+        last_message = state["messages"][-1]
+        if last_message.tool_calls:
+            return "tools"
+        required_files = ["package.json", "prisma/schema.prisma", "app/layout.tsx"]
+        if all(file in state.get("files", {}) for file in required_files):
+            return "end"
+        if state["iterations"] >= 12:
+            return "end"
+        return "dev"
+
+    # Graph definition
+    graph = StateGraph(AgentState)
+    graph.add_node("dev", call_llm)
+    graph.add_node("tools", tool_node)
+    graph.set_entry_point("dev")
+    graph.add_conditional_edges("dev", should_continue, {"tools": "tools", "dev": "dev", "end": END})
+    graph.add_edge("tools", "dev")
+    app = graph.compile()
+    
     logger.info("Starting Dev Agent process.")
     initial_message = HumanMessage(content=f"Project Name: {project_name}\n\nArchitectural Specification:\n{spec}\n\nMermaid Diagram:\n{mermaid}")
     

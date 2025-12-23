@@ -12,7 +12,7 @@ from langchain_qdrant import QdrantVectorStore
 # --- Global Configurations & Clients (Singleton Pattern) ---
 # For performance, clients are initialized once and reused across all tool calls.
 try:
-    qdrant_client = QdrantClient(url="http://localhost:6333")
+    qdrant_client = QdrantClient(url="http://qdrant:6333", timeout=60)
     openai_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     vectorstore = QdrantVectorStore(client=qdrant_client, collection_name="factory_standards", embedding=openai_embeddings)
 except Exception as e:

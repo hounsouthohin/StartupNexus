@@ -3,17 +3,11 @@
 # ARCHITECTE LOGICIEL IA - Refactored for Chained Prompts (décembre 2025)
 # ===============================================
 
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langgraph.graph import StateGraph, START, END
-from langchain_qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient
-from typing import TypedDict, Annotated, List
-import operator
 import os
 import json
 import re
+from typing import TypedDict, Annotated, List
+import operator
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
@@ -35,6 +29,8 @@ class AgentState(TypedDict):
 # --- Prompt Loading ---
 def load_prompts():
     """Reads and parses the architect.md file to get prompts for each node."""
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.messages import SystemMessage, HumanMessage
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         prompts_path = os.path.join(current_dir, '..', 'prompts', 'architect.md')
@@ -61,10 +57,16 @@ def load_prompts():
 
 # ==================== CRÉATION DU GRAPH ====================
 def create_architect_agent():
+    # Imports moved inside the function to avoid Temporal sandbox issues
+    from langgraph.graph import StateGraph, START, END
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+    from langchain_qdrant import QdrantVectorStore
+    from qdrant_client import QdrantClient
+
     prompts = load_prompts()
     
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-    client = QdrantClient(url="http://localhost:6333")
+    client = QdrantClient(url="http://qdrant:6333")
     vectorstore = QdrantVectorStore(client=client, collection_name="factory_standards", embedding=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
     llm = ChatOpenAI(model="gpt-4o", temperature=0.1)

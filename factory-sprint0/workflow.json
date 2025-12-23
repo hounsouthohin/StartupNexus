@@ -1,5 +1,4 @@
 {
-  "name": "Start SaaS Factory - Déclenchement usine",
   "nodes": [
     {
       "parameters": {
@@ -10,14 +9,17 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [240, 300],
-      "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      "position": [
+        -432,
+        304
+      ],
+      "webhookId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "id": "25f41f8d-0bcd-4877-b3ec-d80a96c9e2d1"
     },
     {
       "parameters": {
-        "authentication": "none",
         "requestMethod": "POST",
-        "url": "http://localhost:5000/start-saas",
+        "url": "http://factory-worker:5000/start-saas",
         "jsonParameters": true,
         "options": {},
         "bodyParametersJson": "={{ { \"phrase\": $json.body.phrase || \"SaaS inconnu\" } }}"
@@ -25,16 +27,19 @@
       "name": "Call Factory API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
-      "position": [460, 300]
+      "position": [
+        -208,
+        304
+      ],
+      "id": "1c4c51dc-d551-4d86-a136-d51548a294c1"
     },
     {
       "parameters": {
         "conditions": {
-          "boolean": [
+          "string": [
             {
               "value1": "={{ $node[\"Call Factory API\"].json[\"message\"] }}",
-              "operation": "contains",
-              "value2": "Factory lancée"
+              "operation": "isNotEmpty"
             }
           ]
         }
@@ -42,31 +47,41 @@
       "name": "Success?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [
+        16,
+        304
+      ],
+      "id": "cb1eeb22-ff2a-4617-a37c-b484c9a38050"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseCode": 200,
-        "options": {},
-        "responseBody": "={{ $json }}"
+        "responseBody": "={{ $json }}",
+        "options": {}
       },
       "name": "Success Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 240]
+      "position": [
+        288,
+        96
+      ],
+      "id": "aae9638f-5029-4a2f-a5cc-cd295a232b59"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseCode": 500,
-        "options": {},
-        "responseBody": "={{ { \"error\": $node[\"Call Factory API\"].json[\"error\"] || \"Erreur inconnue\" } }}"
+        "responseBody": "={{ { \"error\": $node[\"Call Factory API\"].json[\"error\"] || \"Erreur inconnue\" } }}",
+        "options": {}
       },
       "name": "Error Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [900, 360]
+      "position": [
+        272,
+        448
+      ],
+      "id": "3c3c6218-7379-4164-9627-cc27d9acbedb"
     }
   ],
   "connections": {
@@ -110,5 +125,9 @@
         ]
       ]
     }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "6ad4dee8fff2a0bfa275a46303c84f9c895f24d999afc8fd92dd2b3380417e37"
   }
 }
