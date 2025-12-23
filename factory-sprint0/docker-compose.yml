@@ -16,6 +16,11 @@ services:
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
       - temporal-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   # --------------------------------------------------------------------------------
   # POSTGRESQL – base principale
@@ -40,8 +45,10 @@ services:
   temporal:
     container_name: temporal
     depends_on:
-      - postgresql
-      - elasticsearch
+      postgresql:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
     image: temporalio/auto-setup:${TEMPORAL_VERSION}
     environment:
       - DB=postgres12
@@ -51,7 +58,7 @@ services:
       #Postgres_seeds : nom du service de Base de donné que temporal utilise pour se connecter
       - POSTGRES_SEEDS=temporal-postgresql
       - POSTGRESQL_SEEDS=temporal-postgresql
-      - ENABLE_ES=true
+      - ENABLE_ES=false
       - ES_SEEDS=elasticsearch
       - ES_VERSION=v8
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
@@ -133,7 +140,7 @@ services:
     env_file:
       - .env
     command: >
-      bash -c "python scripts/wait-for-it.py temporal:7233 30 && python run/worker.py"
+      bash -c "python scripts/wait-for-it.py temporal:7233 90 && python run/worker.py"
     volumes:
       - .:/app
     networks:

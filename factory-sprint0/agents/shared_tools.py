@@ -88,25 +88,41 @@ class ValidateSyntaxArgs(BaseModel):
 @tool(args_schema=ValidateSyntaxArgs)
 def validate_syntax(file_path: str) -> str:
     """
-    Validates the syntax of a file using external tools (ESLint, Prisma).
+    Validates the syntax of a file using external tools (ESLint for JS/TS, Prisma for schema).
+    It relies on a central .eslintrc.json file for robust validation rules.
     Includes a 30-second timeout to prevent indefinite hangs.
     """
     if not os.path.exists(file_path):
         return f"Error: File '{file_path}' not found."
 
+    # Assumes the command is run from the root of the 'factory-sprint0' project
+    # where the .eslintrc.json file is located.
+    working_dir = '.' 
+
     try:
         if file_path.endswith((".js", ".ts", ".tsx")):
-            command = [
-                'npx', 'eslint', '--no-eslintrc', '--parser', '@typescript-eslint/parser',
-                '--parser-options', '{"ecmaVersion": 2020, "sourceType": "module"}',
-                '--rule', '{"semi": ["error", "always"]}', file_path
-            ]
-            result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
+            # This command now relies on the .eslintrc.json file in the working directory
+            command = ['npx', 'eslint', file_path]
+            result = subprocess.run(
+                command, 
+                capture_output=True, 
+                text=True, 
+                check=True, 
+                timeout=30,
+                cwd=working_dir
+            )
             return f"ESLint validation for {file_path} successful."
         
         elif file_path.endswith(".prisma"):
             command = ['npx', 'prisma', 'validate', '--schema', file_path]
-            result = subprocess.run(command, capture_output=True, text=True, check=True, timeout=30)
+            result = subprocess.run(
+                command, 
+                capture_output=True, 
+                text=True, 
+                check=True, 
+                timeout=30,
+                cwd=working_dir
+            )
             return f"Prisma validation for {file_path} successful."
             
         else:
@@ -115,6 +131,8 @@ def validate_syntax(file_path: str) -> str:
     except subprocess.TimeoutExpired:
         return f"Validation timed out for '{file_path}' after 30 seconds."
     except subprocess.CalledProcessError as e:
+        # ESLint returns exit code 1 for linting errors, which is a "failure" for check=True
+        # We need to return the output so the ReAct agent can fix it.
         return (f"Validation error for '{file_path}' (Exit Code: {e.returncode}):\n"
                 f"STDOUT:\n{e.stdout}\n"
                 f"STDERR:\n{e.stderr}")
@@ -129,8 +147,9 @@ class PrismaMigrateArgs(BaseModel):
 @tool(args_schema=PrismaMigrateArgs)
 def prisma_migrate(schema_path: str) -> str:
     """
-    Executes a Prisma migration with a unique name and a 60-second timeout.
-    Checks migration status beforehand to avoid redundant migrations.
+    Executes a Prisma migration conditionally. It first checks the migration status.
+    If the database is out of sync or does not exist, it runs 'migrate dev'.
+    Otherwise, it skips the migration. Includes a 60-second timeout.
     """
     if not os.path.exists(schema_path):
         return f"Error: Schema file not found at '{schema_path}'"
@@ -138,20 +157,49 @@ def prisma_migrate(schema_path: str) -> str:
     schema_dir = os.path.dirname(schema_path) or '.'
 
     try:
-        # Step 1: Check current migration status.
+        # Step 1: Check current migration status without check=True to handle failures gracefully.
+        logger.info(f"Checking Prisma migration status for '{schema_path}'...")
         status_command = ['npx', 'prisma', 'migrate', 'status', '--schema', schema_path]
-        status_result = subprocess.run(status_command, capture_output=True, text=True, check=True, cwd=schema_dir, timeout=60)
-        
-        # If no pending migrations, there's no need to run 'migrate dev'.
-        if "No pending migrations to apply" in status_result.stdout:
-            return f"Prisma migration check for '{schema_path}': No pending migrations to apply."
+        status_result = subprocess.run(
+            status_command, 
+            capture_output=True, 
+            text=True, 
+            cwd=schema_dir, 
+            timeout=60
+        )
 
-        # Step 2: Generate a unique migration name and run the migration.
-        migration_name = 'init_' + datetime.now().strftime("%Y%m%d_%H%M%S")
-        migrate_command = ['npx', 'prisma', 'migrate', 'dev', '--name', migration_name, '--schema', schema_path]
+        # Step 2: Decide if migration is needed.
+        # Run migration if status command failed (e.g., DB not found) or if schema is out of sync.
+        run_migration = False
+        if status_result.returncode != 0:
+            logger.warning(f"Prisma migrate status failed (Exit Code: {status_result.returncode}). A migration is likely needed.\nSTDERR: {status_result.stderr}")
+            run_migration = True
+        elif "Database schema is not in sync" in status_result.stdout or "migrations to apply" in status_result.stdout:
+            logger.info("Database schema is out of sync. A migration is needed.")
+            run_migration = True
+        else:
+            logger.info("Prisma migration check: Database is up to date. No migration needed.")
+            return f"Prisma migration check for '{schema_path}': Database is up to date."
+
+        if run_migration:
+            # Step 3: Generate a unique migration name and run the migration.
+            logger.info("Executing prisma migrate dev...")
+            migration_name = 'init_' + datetime.now().strftime("%Y%m%d_%H%M%S")
+            migrate_command = ['npx', 'prisma', 'migrate', 'dev', '--name', migration_name, '--schema', schema_path]
+            
+            # Using check=True here because failure at this stage is a genuine error for the agent.
+            result = subprocess.run(
+                migrate_command, 
+                capture_output=True, 
+                text=True, 
+                check=True, 
+                cwd=schema_dir, 
+                timeout=60
+            )
+            return f"Prisma migration '{migration_name}' for '{schema_path}' successful:\n{result.stdout}"
         
-        result = subprocess.run(migrate_command, capture_output=True, text=True, check=True, cwd=schema_dir, timeout=60)
-        return f"Prisma migration '{migration_name}' for '{schema_path}' successful:\n{result.stdout}"
+        # This part should not be reached due to the logic above, but as a safeguard:
+        return "Prisma migration check completed with no action taken."
 
     except subprocess.TimeoutExpired:
         return f"Prisma migration timed out for '{schema_path}' after 60 seconds."

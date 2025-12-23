@@ -1,6 +1,17 @@
 import os
-from typing import TypedDict, Annotated, List
+from typing import TypedDict, Annotated, List, Dict
 import operator
+from pydantic import BaseModel, Field
+
+# --- Pydantic Models for Structured Output ---
+class TestFile(BaseModel):
+    """Represents a single generated test file."""
+    file_path: str = Field(description="The full relative path for the test file, e.g., 'tests/components/Button.test.tsx'.")
+    content: str = Field(description="The complete source code for the test file.")
+
+class TestSuite(BaseModel):
+    """A collection of generated test files."""
+    tests: List[TestFile]
 
 # Setup basic logger (replace with actual logger if available)
 class Logger:
@@ -14,29 +25,28 @@ logger = Logger()
 def call_llm(state: dict) -> dict:
     """
     Invokes the LLM with the current messages and returns the response.
-    The LLM generates test files based on the provided source files.
+    The LLM generates test files based on the provided source files,
+    with its output structured by the TestSuite Pydantic model.
     """
     # Imports moved inside the function to avoid Temporal sandbox issues
     from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
     from langchain_core.messages import HumanMessage, SystemMessage
     from langchain_openai import ChatOpenAI
-    import json # Import json
 
-    logger.info("TestCoverage Agent: Starting test generation using OpenAI.")
+    logger.info("TestCoverage Agent: Starting test generation using OpenAI with structured output.")
 
-    # Use ChatOpenAI instead of Ollama
-    # The OPENAI_API_KEY is already loaded from the .env file in the worker's environment
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.2)
+    # Upgraded to a model that is more reliable with structured output
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
     
     # Read the system prompt from prompts/test_coverage.md
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         prompts_path = os.path.join(current_dir, '..', 'prompts', 'test_coverage.md')
-        with open(prompts_path, "r") as f:
+        with open(prompts_path, "r", encoding='utf-8') as f:
             system_prompt_content = f.read()
     except FileNotFoundError:
         logger.error("prompts/test_coverage.md not found. Using fallback system prompt.")
-        system_prompt_content = "You are TestCoverage Agent. Generate unit tests."
+        system_prompt_content = "You are TestCoverage Agent. Generate unit tests for the provided files, conforming to the required JSON schema."
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -49,26 +59,27 @@ def call_llm(state: dict) -> dict:
     files_content_message = "Provided source code files:\n\n"
     for path, content in state.get("files", {}).items():
         files_content_message += f"File: {path}\n```\n{content}\n```\n\n"
-        
-    chain = prompt | llm
-    response = chain.invoke({"messages": state["messages"] + [HumanMessage(content=files_content_message)]})
-    logger.info(f"RAW RESPONSE FROM LLM (test_coverage):\n{response.content[:1000]}...")
-
-    # Safely parse the LLM's response using json.loads
+    
+    # Chain with structured output
+    structured_llm = llm.with_structured_output(TestSuite)
+    chain = prompt | structured_llm
+    
     try:
-        generated_tests = json.loads(response.content)
-        if "tests" in generated_tests and isinstance(generated_tests["tests"], dict):
-            logger.info("TestCoverage Agent: Successfully generated tests.")
-            return {"messages": [response], "tests": generated_tests["tests"]}
-        else:
-            logger.error(f"TestCoverage Agent: LLM response did not contain expected 'tests' dictionary. Raw content: {response.content}")
-            return {"messages": [response], "tests": {}}
-    except json.JSONDecodeError as e:
-        logger.error(f"TestCoverage Agent: Error parsing LLM response as JSON: {e}. Raw content: {response.content}")
-        return {"messages": [response], "tests": {}}
+        # The chain now returns a Pydantic object, not a raw string
+        response_suite = chain.invoke({"messages": state["messages"] + [HumanMessage(content=files_content_message)]})
+        
+        # Convert the Pydantic model into the dictionary format expected by the agent state
+        generated_tests_dict = {test.file_path: test.content for test in response_suite.tests}
+        
+        logger.info(f"TestCoverage Agent: Successfully generated {len(generated_tests_dict)} test files.")
+        # We no longer have the raw AIMessage, so we can't add it to the state.
+        # This is fine as the test agent is a one-shot process.
+        return {"tests": generated_tests_dict}
+
     except Exception as e:
-        logger.error(f"TestCoverage Agent: Unexpected error during response parsing: {e}. Raw content: {response.content}")
-        return {"messages": [response], "tests": {}}
+        # This will catch errors from the LLM call or Pydantic validation
+        logger.error(f"TestCoverage Agent: An error occurred during structured output generation: {e}")
+        return {"tests": {}}
 
 def test_coverage_agent(files: dict) -> dict:
     """

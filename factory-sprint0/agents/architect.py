@@ -99,7 +99,9 @@ def create_architect_agent():
         chain = prompts['diagrammer'] | llm
         llm_response = await chain.ainvoke({"input": input_text})
         
-        match = re.search(r'```mermaid\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
+        # Regex is now more flexible, making 'mermaid' optional.
+        match = re.search(r'```(?:mermaid)?\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
+        # If a match is found, use the captured group. Otherwise, fallback to the entire stripped content.
         mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
         return {"mermaid_diagram": mermaid_code}
 

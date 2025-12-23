@@ -1,3 +1,9 @@
 # Ignore environment variables file
 /.env
 /note.txt
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
