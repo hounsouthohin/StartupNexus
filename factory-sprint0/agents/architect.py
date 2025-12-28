@@ -6,7 +6,7 @@
 import os
 import json
 import re
-from typing import TypedDict, Annotated, List
+from typing import List, TypedDict, Annotated
 import operator
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field

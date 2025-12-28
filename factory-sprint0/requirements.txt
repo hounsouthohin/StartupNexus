@@ -7,9 +7,8 @@ langchain-core
 langchain-community
 python-dotenv
 qdrant-client
-langchain-qdrant
+openai
+langchain_openai
+langchain_qdrant
 pygithub
 git-filter-repo
-ollama
-e2b
-langchain_ollama

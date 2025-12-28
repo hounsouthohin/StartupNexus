@@ -64,14 +64,16 @@ async def github_activity(input_data: Dict) -> str:
             activity.logger.error(f"Failed to create initial file: {e}")
             raise
 
-    # Now that the main branch is guaranteed to exist, create the 'dev' branch
+    # Now that the main branch is guaranteed to exist, create the 'dev' branch if it doesn't exist
+    activity.logger.info("Checking if 'dev' branch exists...")
     try:
+        repo.get_branch("dev")
+        activity.logger.warning("Branch 'dev' already exists. Skipping creation.")
+    except Exception: # github.UnknownObjectException
+        activity.logger.info("'dev' branch not found. Creating it now...")
         main_branch = repo.get_branch(main_branch_name)
         repo.create_git_ref(ref=f"refs/heads/dev", sha=main_branch.commit.sha)
         activity.logger.info("Created 'dev' branch from main branch.")
-    except Exception as e:
-        # This might fail if 'dev' already exists, which is fine
-        activity.logger.warning(f"Could not create 'dev' branch (it might already exist): {e}")
 
     # Push all remaining files to the 'dev' branch
     for path, content in files.items():
@@ -85,6 +87,15 @@ async def github_activity(input_data: Dict) -> str:
             activity.logger.info(f"Created file: {path} in 'dev' branch.")
     
     # Open a Pull Request from 'dev' to main branch
+    activity.logger.info(f"Checking for existing PRs from 'dev' to '{main_branch_name}'...")
+    # Check for existing PRs from 'dev' to main
+    open_prs = repo.get_pulls(state="open", head="dev", base=main_branch_name)
+    if open_prs.totalCount > 0:
+        pr = open_prs[0]
+        activity.logger.warning(f"An open Pull Request from 'dev' to '{main_branch_name}' already exists: {pr.html_url}. Skipping creation.")
+        return pr.html_url
+    
+    activity.logger.info("No existing PR found. Creating a new one...")
     try:
         pr = repo.create_pull(
             title=f"feat: Initial code generation for {project_name}",
@@ -95,7 +106,6 @@ async def github_activity(input_data: Dict) -> str:
         activity.logger.info(f"Pull Request created: {pr.html_url}")
         return pr.html_url
     except Exception as e:
-        activity.logger.error(f"Failed to create Pull Request (it might already exist): {e}")
-        # If PR creation fails, it might be because one already exists.
-        # We can still return the repo URL as a success metric.
+        activity.logger.error(f"Failed to create Pull Request: {e}")
+        # If PR creation fails for other reasons, return the repo URL as a fallback.
         return repo.html_url

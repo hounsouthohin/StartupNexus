@@ -74,10 +74,14 @@ class SaaSFactoryWorkflow:
         workflow.logger.info(f"TestCoverage terminé – {len(generated_tests)} tests générés")
 
         # Étape 4 : GitHub Activity (only if tests were generated)
+        
+        # On fusionne les fichiers du dev et les tests générés
+        all_files = dev_result.get("files", {})
+        all_files.update(generated_tests)
+
         github_input = {
-            "files": dev_result.get("files", {}), # Pass original dev files
+            "files": all_files, # On passe le dict fusionné
             "project_name": project_name,
-            "tests": generated_tests # Add generated tests to github_input
         }
         github_result: str = await workflow.execute_activity(
             "github_activity",

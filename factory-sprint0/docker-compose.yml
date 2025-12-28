@@ -4,7 +4,7 @@ services:
   # --------------------------------------------------------------------------------
   elasticsearch:
     container_name: temporal-es
-    image: elasticsearch:${ELASTICSEARCH_VERSION}
+    image: elasticsearch:9.2.1
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -27,7 +27,7 @@ services:
   # --------------------------------------------------------------------------------
   postgresql:
     container_name: temporal-postgresql
-    image: postgres:${POSTGRESQL_VERSION}
+    image: postgres:17.7
     environment:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
@@ -36,6 +36,11 @@ services:
       - "5432:5432"
     volumes:
       - postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - temporal-network
 
@@ -49,7 +54,7 @@ services:
         condition: service_started
       elasticsearch:
         condition: service_healthy
-    image: temporalio/auto-setup:${TEMPORAL_VERSION}
+    image: temporalio/auto-setup:1.29.1
     environment:
       - DB=postgres12
       - DB_PORT=5432
@@ -76,7 +81,7 @@ services:
     container_name: temporal-ui
     depends_on:
       - temporal
-    image: temporalio/ui:${TEMPORAL_UI_VERSION}
+    image: temporalio/ui:2.38.0
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CORS_ORIGIN=*
@@ -118,18 +123,7 @@ services:
     networks:
       - temporal-network
 
-  # --------------------------------------------------------------------------------
-  # Ollama - pour le fallback LLM local
-  # --------------------------------------------------------------------------------
-  ollama:
-    container_name: ollama
-    image: ollama/ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - temporal-network
+
 
   # --------------------------------------------------------------------------------
   # Factory Worker - notre application Python
@@ -140,15 +134,15 @@ services:
     env_file:
       - .env
     command: >
-      bash -c "python scripts/wait-for-it.py temporal:7233 90 && python run/worker.py"
+      bash -c "python scripts/wait-for-it.py qdrant:6333 90 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 90 && python run/worker.py"
     volumes:
       - .:/app
     networks:
       - temporal-network
     depends_on:
-      - temporal
-      - qdrant
-      - ollama
+      temporal:
+        condition: service_started
+
 
 # Volumes persistants
 volumes:
@@ -156,7 +150,7 @@ volumes:
   elasticsearch-data:
   n8n_data:
   qdrant_data:
-  ollama_data:
+
 
 # Réseau
 networks:
