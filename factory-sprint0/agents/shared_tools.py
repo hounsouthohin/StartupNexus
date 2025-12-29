@@ -9,19 +9,32 @@ from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 
+# Import central configuration
+from config.factory_config import (
+    QDRANT_URL,
+    QDRANT_COLLECTION_NAME,
+    EMBEDDING_MODEL,
+    DEFAULT_VECTOR_SEARCH_LIMIT,
+    SUBPROCESS_TIMEOUT_SHORT,
+    SUBPROCESS_TIMEOUT_MEDIUM,
+    SUBPROCESS_TIMEOUT_LONG
+)
+
 # --- Global Configurations & Clients (Singleton Pattern) ---
-# For performance, clients are initialized once and reused across all tool calls.
 try:
-    qdrant_client = QdrantClient(url="http://qdrant:6333", timeout=60)
-    openai_embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-    vectorstore = QdrantVectorStore(client=qdrant_client, collection_name="factory_standards", embedding=openai_embeddings)
+    qdrant_client = QdrantClient(url=QDRANT_URL, timeout=SUBPROCESS_TIMEOUT_MEDIUM)
+    openai_embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    vectorstore = QdrantVectorStore(
+        client=qdrant_client, 
+        collection_name=QDRANT_COLLECTION_NAME, 
+        embedding=openai_embeddings
+    )
 except Exception as e:
-    # If clients fail to initialize, set them to None to prevent application crash.
-    # Tools that depend on them will fail gracefully.
     qdrant_client = None
     openai_embeddings = None
     vectorstore = None
     print(f"[ERROR] Failed to initialize global clients: {e}")
+
 
 # Setup basic logger (can be replaced with a more robust logger)
 class Logger:
@@ -49,7 +62,7 @@ def rag_search(query: str) -> str:
         return "Aucun résultat (erreur de recherche)."
     
     try:
-        retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
+        retriever = vectorstore.as_retriever(search_kwargs={"k": DEFAULT_VECTOR_SEARCH_LIMIT})
         docs = retriever.invoke(query)
         return "\n\n".join([doc.page_content for doc in docs])
     except Exception as e:
@@ -90,25 +103,22 @@ def validate_syntax(file_path: str) -> str:
     """
     Validates the syntax of a file using external tools (ESLint for JS/TS, Prisma for schema).
     It relies on a central .eslintrc.json file for robust validation rules.
-    Includes a 30-second timeout to prevent indefinite hangs.
+    Includes a timeout to prevent indefinite hangs.
     """
     if not os.path.exists(file_path):
         return f"Error: File '{file_path}' not found."
 
-    # Assumes the command is run from the root of the 'factory-sprint0' project
-    # where the .eslintrc.json file is located.
     working_dir = '.' 
 
     try:
         if file_path.endswith((".js", ".ts", ".tsx")):
-            # This command now relies on the .eslintrc.json file in the working directory
             command = ['npx', 'eslint', file_path]
             result = subprocess.run(
                 command, 
                 capture_output=True, 
                 text=True, 
                 check=True, 
-                timeout=30,
+                timeout=SUBPROCESS_TIMEOUT_SHORT,
                 cwd=working_dir
             )
             return f"ESLint validation for {file_path} successful."
@@ -120,7 +130,7 @@ def validate_syntax(file_path: str) -> str:
                 capture_output=True, 
                 text=True, 
                 check=True, 
-                timeout=30,
+                timeout=SUBPROCESS_TIMEOUT_SHORT,
                 cwd=working_dir
             )
             return f"Prisma validation for {file_path} successful."
@@ -129,10 +139,8 @@ def validate_syntax(file_path: str) -> str:
             return f"Validation not supported for file type: {file_path}. Skipping."
             
     except subprocess.TimeoutExpired:
-        return f"Validation timed out for '{file_path}' after 30 seconds."
+        return f"Validation timed out for '{file_path}' after {SUBPROCESS_TIMEOUT_SHORT} seconds."
     except subprocess.CalledProcessError as e:
-        # ESLint returns exit code 1 for linting errors, which is a "failure" for check=True
-        # We need to return the output so the ReAct agent can fix it.
         return (f"Validation error for '{file_path}' (Exit Code: {e.returncode}):\n"
                 f"STDOUT:\n{e.stdout}\n"
                 f"STDERR:\n{e.stderr}")
@@ -165,7 +173,7 @@ def prisma_migrate(schema_path: str) -> str:
             capture_output=True, 
             text=True, 
             cwd=schema_dir, 
-            timeout=60
+            timeout=SUBPROCESS_TIMEOUT_MEDIUM
         )
 
         # Step 2: Decide if migration is needed.
@@ -194,7 +202,7 @@ def prisma_migrate(schema_path: str) -> str:
                 text=True, 
                 check=True, 
                 cwd=schema_dir, 
-                timeout=60
+                timeout=SUBPROCESS_TIMEOUT_MEDIUM
             )
             return f"Prisma migration '{migration_name}' for '{schema_path}' successful:\n{result.stdout}"
         
@@ -202,7 +210,7 @@ def prisma_migrate(schema_path: str) -> str:
         return "Prisma migration check completed with no action taken."
 
     except subprocess.TimeoutExpired:
-        return f"Prisma migration timed out for '{schema_path}' after 60 seconds."
+        return f"Prisma migration timed out for '{schema_path}' after {SUBPROCESS_TIMEOUT_MEDIUM} seconds."
     except subprocess.CalledProcessError as e:
         return (f"Error during Prisma migration for '{schema_path}' (Exit Code: {e.returncode}):\n"
                 f"STDOUT:\n{e.stdout}\n"
@@ -211,3 +219,86 @@ def prisma_migrate(schema_path: str) -> str:
         return "Error: 'npx' or 'prisma' not found. Please ensure Node.js and npm are installed."
     except Exception as e:
         return f"An unexpected error occurred during Prisma migration: {e}"
+
+class ReadFileArgs(BaseModel):
+    path: str = Field(description="The relative project path for the file to read. E.g., 'src/components/Button.tsx'.")
+
+@tool(args_schema=ReadFileArgs)
+def read_files(path: str) -> str:
+    """
+    Reads the content of a file at a specified relative path and returns it as a string.
+    """
+    if not os.path.exists(path):
+        return f"Error: File not found at '{path}'"
+    try:
+        with open(path, "r", encoding='utf-8') as f:
+            content = f.read()
+        return content
+    except Exception as e:
+        return f"Error reading file '{path}': {e}"
+
+class RunBuildArgs(BaseModel):
+    project_dir: str = Field(description="Répertoire racine du projet (défaut: '.')", default='.')
+
+@tool(args_schema=RunBuildArgs)
+def run_build(project_dir: str = '.') -> str:
+    """
+    Executes 'npm run build' in the specified project directory to validate the build process.
+    Returns a detailed error message if the build fails, for use in ReAct loops.
+    """
+    logger.info(f"Executing 'npm run build' in directory '{project_dir}'...")
+    try:
+        command = ['npm', 'run', 'build']
+        result = subprocess.run(
+            command, 
+            capture_output=True, 
+            text=True, 
+            check=True, 
+            cwd=project_dir, 
+            timeout=SUBPROCESS_TIMEOUT_LONG
+        )
+        logger.info(f"Build successful in '{project_dir}'.")
+        return f"Build successful: {result.stdout}"
+    except subprocess.TimeoutExpired:
+        return f"Build timed out for 'npm run build' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
+    except subprocess.CalledProcessError as e:
+        error_message = f"Build failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        logger.error(error_message)
+        return error_message
+    except FileNotFoundError:
+        return "Error: 'npm' not found. Please ensure Node.js and npm are installed and in the PATH."
+    except Exception as e:
+        return f"An unexpected error occurred during build: {e}"
+
+class RunTestsArgs(BaseModel):
+    project_dir: str = Field(description="Répertoire racine du projet (défaut: '.')", default='.')
+
+@tool(args_schema=RunTestsArgs)
+def run_tests(project_dir: str = '.') -> str:
+    """
+    Executes 'npm test' in the specified project directory to run the test suite.
+    Returns a detailed error message if tests fail, for use in ReAct loops.
+    """
+    logger.info(f"Executing 'npm test' in directory '{project_dir}'...")
+    try:
+        command = ['npm', 'test']
+        result = subprocess.run(
+            command, 
+            capture_output=True, 
+            text=True, 
+            check=True, 
+            cwd=project_dir, 
+            timeout=SUBPROCESS_TIMEOUT_MEDIUM
+        )
+        logger.info(f"Tests passed in '{project_dir}'.")
+        return f"Tests passed: {result.stdout}"
+    except subprocess.TimeoutExpired:
+        return f"Test run timed out for 'npm test' in '{project_dir}' after {SUBPROCESS_TIMEOUT_MEDIUM} seconds."
+    except subprocess.CalledProcessError as e:
+        error_message = f"Tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        logger.error(error_message)
+        return error_message
+    except FileNotFoundError:
+        return "Error: 'npm' not found. Please ensure Node.js and npm are installed and in the PATH."
+    except Exception as e:
+        return f"An unexpected error occurred during tests: {e}"

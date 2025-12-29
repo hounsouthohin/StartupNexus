@@ -7,7 +7,7 @@ import operator
 # from utils.logger import logger
 
 # Import shared tools
-from .shared_tools import write_file, validate_syntax, prisma_migrate, rag_search
+from .shared_tools import write_file, validate_syntax, prisma_migrate, rag_search, run_build, read_files
 
 # Load environment variables
 from dotenv import load_dotenv
@@ -46,12 +46,22 @@ def call_llm(state: AgentState) -> dict:
     # Check for tool errors in the last message and prepare ReAct prompt
     messages_to_process = state['messages']
     last_message = messages_to_process[-1]
-    if isinstance(last_message, ToolMessage) and "Error:" in last_message.content:
-        logger.warning("Dev Agent: An error occurred. Entering error correction loop.")
-        error_feedback = HumanMessage(
-            content=f"An error occurred during the last tool execution: '{last_message.content}'. Please analyze this error, determine the cause, and provide a corrected plan by calling the necessary tools to fix the issue."
-        )
-        messages_to_process = messages_to_process + [error_feedback]
+    
+    if isinstance(last_message, ToolMessage):
+        # If the tool call resulted in an error
+        if "Error:" in last_message.content or "failed" in last_message.content.lower():
+            logger.warning("Dev Agent: A tool error occurred. Entering error correction loop.")
+            error_feedback = HumanMessage(
+                content=f"An error occurred during the last tool execution: '{last_message.content}'. Please analyze this error, determine the cause, and provide a corrected plan by calling the necessary tools to fix the issue."
+            )
+            messages_to_process = messages_to_process + [error_feedback]
+        # If the tool call was successful
+        else:
+            logger.info("Dev Agent: Tool executed successfully. Prompting to continue.")
+            proceed_feedback = HumanMessage(
+                content="Tool execution was successful. Please proceed to the next step based on the original plan."
+            )
+            messages_to_process = messages_to_process + [proceed_feedback]
 
     # Read the system prompt from prompts/dev.md
     try:
@@ -71,7 +81,7 @@ def call_llm(state: AgentState) -> dict:
     )
     
     llm = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.2)
-    tools = [write_file, validate_syntax, prisma_migrate, rag_search]
+    tools = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
     llm_with_tools = llm.bind_tools(tools)
     
     chain = prompt | llm_with_tools
@@ -100,23 +110,46 @@ def dev_agent(spec: str, mermaid: str, project_name: str) -> dict:
     from langgraph.graph import StateGraph, END
     from langgraph.prebuilt import ToolNode
     
-    tools = [write_file, validate_syntax, prisma_migrate, rag_search]
+    tools = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
     tool_node = ToolNode(tools)
+
+    # This new node will call the run_build tool
+    def build_node(state: AgentState) -> dict:
+        logger.info("Build Node: Attempting to build the project.")
+        result = run_build(project_dir='.') # Assumes the agent runs in the project root
+        
+        if "Build successful" in result:
+            logger.info("Build successful. Ending process.")
+            return {"messages": state["messages"] + [HumanMessage(content="Build was successful.")]}
+        else:
+            logger.error(f"Build failed. Looping back for corrections. Error: {result}")
+            # Add the build failure message to the state to inform the ReAct loop
+            return {"messages": state["messages"] + [HumanMessage(content=f"Build failed with the following error: {result}. Please fix the code.")]}
 
     # --- Conditional Edges ---
     def should_continue(state: AgentState) -> str:
-        if state["iterations"] >= 15:
+        if state["iterations"] >= 25: # Increased max iterations
             logger.warning("Max iterations reached. Ending process.")
             return "end"
         
         last_message = state["messages"][-1]
+        
+        # If the last message was a build failure, go back to dev
+        if "Build failed" in last_message.content:
+            return "dev"
+            
+        # If the last message was a successful build, end
+        if "Build was successful" in last_message.content:
+            return "end"
+
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
             return "tools"
         
+        # Check if core files are created, then trigger the build
         required_files = ["package.json", "prisma/schema.prisma", "app/layout.tsx"]
-        if all(file in state.get("files", {}) for file in required_files):
-            logger.info("Core files generated. Ending.")
-            return "end"
+        if all(os.path.exists(file) for file in required_files):
+            logger.info("Core files generated. Proceeding to build step.")
+            return "build"
         
         return "dev"
 
@@ -124,10 +157,29 @@ def dev_agent(spec: str, mermaid: str, project_name: str) -> dict:
     graph = StateGraph(AgentState)
     graph.add_node("dev", call_llm)
     graph.add_node("tools", tool_node)
+    graph.add_node("build", build_node)
 
     graph.set_entry_point("dev")
-    graph.add_conditional_edges("dev", should_continue, {"tools": "tools", "end": END, "dev": "dev"})
-    graph.add_edge("tools", "dev") # Simple loop back to dev node after tools run
+    
+    graph.add_conditional_edges(
+        "dev", 
+        should_continue, 
+        {
+            "tools": "tools", 
+            "build": "build", # New edge
+            "dev": "dev",
+            "end": END
+        }
+    )
+    graph.add_conditional_edges(
+        "build",
+        should_continue,
+        {
+            "dev": "dev", # If build fails, go back to dev
+            "end": END    # If build succeeds, end
+        }
+    )
+    graph.add_edge("tools", "dev")
 
     app = graph.compile()
     
@@ -136,7 +188,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str) -> dict:
     
     final_state = app.invoke(
         {"messages": [initial_message], "files": {}, "iterations": 0},
-        config={"recursion_limit": 150} # Increased recursion limit for error loops
+        config={"recursion_limit": 200} # Increased recursion limit
     )
     
     generated_files = final_state.get("files", {})

@@ -6,6 +6,8 @@
 import os
 import json
 import re
+import subprocess
+import tempfile
 from typing import List, TypedDict, Annotated
 import operator
 from dotenv import load_dotenv
@@ -82,11 +84,16 @@ def create_architect_agent():
         input_text = f"User Request: {state['messages'][-1].content}\n\nRAG Context:\n{state['rag_context']}"
         chain = prompts['planner'] | llm
         llm_response = await chain.ainvoke({"input": input_text})
+        
+        # Robustly extract JSON from LLM response
+        match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
+        json_content = match.group(1).strip() if match else llm_response.content.strip()
+
         try:
-            plan = json.loads(llm_response.content)
+            plan = json.loads(json_content)
             return {"plan": plan}
-        except json.JSONDecodeError:
-            raise ValueError("Planner failed to produce a valid JSON plan.")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Planner failed to produce a valid JSON plan. Raw LLM response: {llm_response.content}. Error: {e}")
 
     async def spec_writer_node(state: AgentState):
         input_text = f"High-Level Plan:\n{json.dumps(state['plan'], indent=2)}"
@@ -95,15 +102,59 @@ def create_architect_agent():
         return {"specification": llm_response.content}
 
     async def diagrammer_node(state: AgentState):
-        input_text = f"Technical Specification:\n{state['specification']}"
-        chain = prompts['diagrammer'] | llm
-        llm_response = await chain.ainvoke({"input": input_text})
+        from langchain_core.messages import HumanMessage
         
-        # Regex is now more flexible, making 'mermaid' optional.
-        match = re.search(r'```(?:mermaid)?\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
-        # If a match is found, use the captured group. Otherwise, fallback to the entire stripped content.
-        mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
-        return {"mermaid_diagram": mermaid_code}
+        max_attempts = 3
+        attempts = 0
+        input_text = f"Technical Specification:\n{state['specification']}"
+        
+        while attempts < max_attempts:
+            attempts += 1
+            chain = prompts['diagrammer'] | llm
+            llm_response = await chain.ainvoke({"input": input_text})
+            
+            match = re.search(r'```(?:mermaid)?\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
+            mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
+
+            # Validate the Mermaid syntax using mermaid-cli (mmdc)
+            try:
+                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.mmd') as tmp_file:
+                    tmp_file.write(mermaid_code)
+                    tmp_file_path = tmp_file.name
+                
+                # mmdc requires an output file, even if we just want to validate
+                output_file = os.path.join(tempfile.gettempdir(), 'output.png')
+                
+                subprocess.run(
+                    ['mmdc', '-i', tmp_file_path, '-o', output_file],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                
+                # If validation is successful, clean up and return
+                os.remove(tmp_file_path)
+                os.remove(output_file)
+                return {"mermaid_diagram": mermaid_code}
+
+            except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                os.remove(tmp_file_path) # Ensure temp file is cleaned up on error
+                error_message = f"Mermaid syntax validation failed (Attempt {attempts}/{max_attempts}). Error: {e.stderr or e.stdout}"
+                print(error_message) # Or use a proper logger
+                if attempts >= max_attempts:
+                    raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts. Last error: {error_message}")
+                # Prepare for retry
+                input_text += f"\n\nPrevious attempt failed. The generated diagram was invalid. Please correct the syntax based on this error: {error_message}"
+                # The HumanMessage here simulates the ReAct feedback loop for the LLM
+                state["messages"].append(HumanMessage(content=f"Diagram generation failed with error: {error_message}. Please fix the Mermaid syntax."))
+
+            except FileNotFoundError:
+                # mmdc is not installed, so we skip validation
+                print("WARNING: 'mmdc' (mermaid-cli) not found. Skipping Mermaid diagram validation.")
+                return {"mermaid_diagram": mermaid_code}
+
+        raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts.")
 
     def formatter_node(state: AgentState):
         architect_output = ArchitectOutput(

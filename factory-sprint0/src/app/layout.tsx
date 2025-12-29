@@ -1,1 +1,0 @@
-import React from 'react';\nimport './globals.css';\n\nexport const metadata = {\n  title: 'Smart Home Lighting System',\n  description: 'Control your lights from anywhere!',\n};\n\nconst RootLayout = ({ children }: { children: React.ReactNode }) => {\n  return (\n    <html lang="en">\n      <body>{children}</body>\n    </html>\n  );\n};\n\nexport default RootLayout;

@@ -5,7 +5,7 @@ from qdrant_client.http.models import Distance, VectorParams, PointStruct
 from langchain_openai import OpenAIEmbeddings
 import os
 
-load_dotenv(dotenv_path='factory-sprint0/.env')
+load_dotenv(dotenv_path='.env')
 
 
 collection_name = "factory_standards"
@@ -42,6 +42,54 @@ standards = [
         "metadata": {"category": "structure", "tech": "nextjs", "priority": "high"}
     },
     # Ajoutes-en autant que tu veux ici plus tard
+    {
+        "text": "Pinned Dependencies: All `package.json` dependencies must be pinned to exact versions to ensure reproducible builds. Example: `\"next\": \"14.2.3\"`, not `\"^14.2.3\"`.",
+        "metadata": {"category": "build", "tech": "npm", "priority": "high"}
+    },
+    {
+        "text": "Password Hashing (bcrypt): User passwords must always be hashed before being stored in the database. Use the `bcrypt` library with a salt factor of at least 10.",
+        "metadata": {"category": "security", "tech": "bcrypt", "priority": "critical"}
+    },
+    {
+        "text": "Input Validation (Zod): All API route inputs and form submissions must be validated server-side using Zod to prevent invalid data and common vulnerabilities like injection.",
+        "metadata": {"category": "security", "tech": "zod", "priority": "high"}
+    },
+    {
+        "text": "Authentication Middleware (Clerk): Protect all application routes by default using Clerk's `middleware.ts`. Only explicitly public pages (e.g., `/sign-in`) should be exempted.",
+        "metadata": {"category": "security", "tech": "clerk", "priority": "critical"}
+    },
+    {
+        "text": "OWASP Top 10 - Injection: Prevent injection flaws by using Prisma's parameterized queries. Never concatenate strings to build database queries.",
+        "metadata": {"category": "security", "tech": "prisma", "priority": "critical"}
+    },
+    {
+        "text": "OWASP Top 10 - Broken Authentication: Manage sessions securely using Clerk's built-in session management. Do not implement custom session logic.",
+        "metadata": {"category": "security", "tech": "clerk", "priority": "critical"}
+    },
+    {
+        "text": "Mocking Authentication in Tests: When testing components that use Clerk, mock the `@clerk/nextjs` library using `jest.mock('@clerk/nextjs')` to provide a controlled test environment.",
+        "metadata": {"category": "testing", "tech": "jest", "priority": "high"}
+    },
+    {
+        "text": "Test Coverage Standard: All new components, hooks, and API routes must have a corresponding Jest test file with a target of >80% test coverage.",
+        "metadata": {"category": "testing", "tech": "jest", "priority": "medium"}
+    },
+    {
+        "text": "State Management: For simple global state, use React Context. For complex state, consider using Zustand, but consult RAG for project approval first.",
+        "metadata": {"category": "frontend", "tech": "react", "priority": "medium"}
+    },
+    {
+        "text": "UI Components (shadcn/ui): All UI components should be built using `shadcn/ui` and Tailwind CSS for consistency. Do not introduce other UI libraries without architectural approval.",
+        "metadata": {"category": "ui", "tech": "shadcn", "priority": "high"}
+    },
+    {
+        "text": "Error Handling in APIs: API routes should handle errors gracefully, return appropriate HTTP status codes (e.g., 400 for bad request, 500 for server error), and log errors server-side.",
+        "metadata": {"category": "backend", "tech": "api", "priority": "high"}
+    },
+    {
+        "text": "Environment Variables: Sensitive information like API keys and database URLs must be loaded from environment variables (`.env`) and never be hardcoded in the source code.",
+        "metadata": {"category": "security", "tech": "general", "priority": "critical"}
+    },
 ]
 
 async def init_collection():

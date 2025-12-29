@@ -21,6 +21,7 @@ from workflows.activities.architect_activity import architect_activity
 from workflows.activities.dev_activity import dev_activity
 from workflows.activities.github_activity import github_activity
 from workflows.activities.test_coverage_activity import test_coverage_activity
+from workflows.activities.qa_activity import qa_activity
 
 # Queue thread-safe Flask → Temporal
 job_queue = Queue()
@@ -67,6 +68,7 @@ async def main():
             dev_activity,
             github_activity,
             test_coverage_activity,
+            qa_activity,
         ],
         workflow_runner=SandboxedWorkflowRunner(restrictions=sandbox_restrictions),
     )

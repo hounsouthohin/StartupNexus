@@ -1,1 +1,0 @@
-import React from 'react';\n\nconst HomePage = () => {\n  return (\n    <div>\n      <h1>Welcome to the Smart Home Lighting System</h1>\n      <p>Control your lights from anywhere!</p>\n    </div>\n  );\n};\n\nexport default HomePage;

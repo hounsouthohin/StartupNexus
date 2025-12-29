@@ -131,6 +131,8 @@ services:
   factory-worker:
     container_name: factory-worker
     build: .
+    ports:
+      - "5000:5000"
     env_file:
       - .env
     command: >
