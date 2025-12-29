@@ -1,1 +1,1 @@
-import { auth } from '@clerk/nextjs/api';\nimport { NextApiRequest, NextApiResponse } from 'next';\n\nexport default auth((req: NextApiRequest, res: NextApiResponse) => {\n  // Handle authentication logic here\n  res.status(200).json({ message: 'Authenticated' });\n});
+import { auth } from '@clerk/nextjs/api';\n\nexport default auth();

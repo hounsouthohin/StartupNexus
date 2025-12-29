@@ -33,8 +33,12 @@ class SaaSFactoryWorkflow:
         )
         spec_part = architect_result.get("specification", "")
         mermaid_part = architect_result.get("mermaid_diagram", "")
-        if not spec_part or not mermaid_part:
-            raise ValueError("Architect Agent did not return complete structured output.")
+
+        # Add a more robust check for a valid specification
+        if not spec_part or not mermaid_part or "I'm sorry" in spec_part:
+            workflow.logger.error(f"Architecte terminé – sortie invalide ou incomplète. Spec: '{spec_part}'")
+            raise ValueError("Architect Agent produced an invalid or incomplete specification.")
+            
         workflow.logger.info("Architecte terminé – sortie structurée OK")
 
         # Étape 2 : Dev Activity

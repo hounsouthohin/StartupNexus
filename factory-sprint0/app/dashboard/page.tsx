@@ -1,0 +1,1 @@
+import { useUser } from '@clerk/nextjs';\nimport { z } from 'zod';\n\nconst DashboardPage = () => {\n  const { user } = useUser();\n\n  return (\n    <div>\n      <h1>Welcome, {user?.firstName}</h1>\n    </div>\n  );\n};\n\nexport default DashboardPage;

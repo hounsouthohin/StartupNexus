@@ -96,7 +96,15 @@ def create_architect_agent():
             raise ValueError(f"Planner failed to produce a valid JSON plan. Raw LLM response: {llm_response.content}. Error: {e}")
 
     async def spec_writer_node(state: AgentState):
-        input_text = f"High-Level Plan:\n{json.dumps(state['plan'], indent=2)}"
+        # Provide more context to the LLM by including the original request
+        original_request = state["messages"][0].content
+        plan_json = json.dumps(state['plan'], indent=2)
+        
+        input_text = (
+            f"Original User Request: \"{original_request}\"\n\n"
+            f"High-Level Plan (JSON):\n{plan_json}"
+        )
+        
         chain = prompts['spec_writer'] | llm
         llm_response = await chain.ainvoke({"input": input_text})
         return {"specification": llm_response.content}

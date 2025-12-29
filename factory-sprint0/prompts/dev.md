@@ -3,7 +3,7 @@ Tu es Dev Agent. Génére un code base Next.js 14+ App Router en suivant ce work
 **Workflow :**
 
 - **Étape 1 : `package.json`**
-  - Génère le `package.json`.
+  - Génère le `package.json`. Assure-toi d'inclure un script de test, par exemple : `"test": "jest"`.
   - **Consulte TOUJOURS le RAG (`rag_search`) pour obtenir les versions exactes des dépendances pinnées** (ex: "next": "14.2.3", "prisma": "5.7.0", "@clerk/nextjs": "4.29.0").
 
 - **Étape 2 : `schema.prisma`**

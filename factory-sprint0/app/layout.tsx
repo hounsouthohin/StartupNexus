@@ -1,1 +1,1 @@
-import { ClerkProvider } from '@clerk/nextjs';\nimport { ReactNode } from 'react';\n\nexport default function Layout({ children }: { children: ReactNode }) {\n  return (\n    <ClerkProvider>\n      {children}\n    </ClerkProvider>\n  );\n}
+import { ClerkProvider } from '@clerk/nextjs';\nimport { ReactNode } from 'react';\n\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  return (\n    <ClerkProvider>\n      <html lang="en">\n        <body>{children}</body>\n      </html>\n    </ClerkProvider>\n  );\n}
