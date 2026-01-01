@@ -1,4 +1,5 @@
 import os
+import subprocess
 from typing import TypedDict, Annotated, List
 import operator
 from pydantic import BaseModel, Field
@@ -9,6 +10,9 @@ from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
+
+# Import central configuration (Added)
+from config.factory_config import SUBPROCESS_TIMEOUT_LONG
 
 # --- Pydantic Models for Structured Output ---
 class TestFile(BaseModel):
@@ -34,6 +38,44 @@ class Logger:
 logger = Logger()
 
 # --- Node Functions ---
+
+def write_source_files_node(state: AgentState) -> dict:
+    """Writes the application source files (received from Dev Agent) to disk and installs dependencies."""
+    logger.info("Writing application source files to disk...")
+    written_files = []
+    for path, content in state["files"].items():
+        write_file.invoke({"path": path, "content": content})
+        written_files.append(path)
+    
+    logger.info(f"Source files written to disk: {written_files}")
+
+    # Run npm install after writing files, if a package.json was written
+    if "package.json" in state["files"]:
+        package_json_path = os.path.join(os.getcwd(), "package.json")
+        if os.path.exists(package_json_path): # Check if it actually exists after writing
+            logger.info("package.json detected. Running npm install...")
+            try:
+                install_command = ['npm', 'install']
+                subprocess.run(
+                    install_command,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    cwd=".", # Assuming current working directory is the project root
+                    timeout=SUBPROCESS_TIMEOUT_LONG
+                )
+                logger.info("npm install completed successfully in write_source_files_node.")
+            except subprocess.CalledProcessError as e:
+                logger.error(f"npm install failed in write_source_files_node (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}")
+                return {"messages": state["messages"] + [HumanMessage(content=f"Error: npm install failed during source file setup: {e.stderr}.")]}
+            except Exception as e:
+                logger.error(f"An unexpected error occurred during npm install in write_source_files_node: {e}")
+                return {"messages": state["messages"] + [HumanMessage(content=f"Error: An unexpected error occurred during npm install: {e}.")]}
+        else:
+            logger.warning("package.json was in state['files'] but not found on disk after writing.")
+
+    return {"messages": state["messages"] + [HumanMessage(content="Application source files written and dependencies installed.")]}
+
 
 def generation_node(state: AgentState) -> dict:
     """Generates the test files' content based on source files and prior errors."""
@@ -110,12 +152,14 @@ def test_coverage_agent(files: dict) -> dict:
     """
     graph = StateGraph(AgentState)
     
+    graph.add_node("write_source_files", write_source_files_node) # New node
     graph.add_node("generate", generation_node)
     graph.add_node("write_tests", writing_node)
     graph.add_node("run_tests", test_runner_node)
     
-    graph.set_entry_point("generate")
+    graph.set_entry_point("write_source_files") # New entry point
     
+    graph.add_edge("write_source_files", "generate") # New edge
     graph.add_edge("generate", "write_tests")
     graph.add_edge("write_tests", "run_tests")
     
@@ -146,4 +190,3 @@ def test_coverage_agent(files: dict) -> dict:
     
     logger.info("TestCoverage Agent process completed.")
     return {"tests": final_state.get("tests", {})}
-
