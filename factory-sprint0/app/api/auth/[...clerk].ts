@@ -1,1 +1,0 @@
-import { auth } from '@clerk/nextjs/api';\n\nexport default auth();

@@ -188,7 +188,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str) -> dict:
     
     final_state = app.invoke(
         {"messages": [initial_message], "files": {}, "iterations": 0},
-        config={"recursion_limit": 200} # Increased recursion limit
+        config={"recursion_limit": 250} # Increased recursion limit
     )
     
     generated_files = final_state.get("files", {})

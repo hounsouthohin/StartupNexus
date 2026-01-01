@@ -90,6 +90,10 @@ standards = [
         "text": "Environment Variables: Sensitive information like API keys and database URLs must be loaded from environment variables (`.env`) and never be hardcoded in the source code.",
         "metadata": {"category": "security", "tech": "general", "priority": "critical"}
     },
+    {
+        "text": "Tests Jest : Toujours créer un fichier jest.config.js à la racine avec preset ts-jest, testEnvironment jsdom, setupFilesAfterEnv @testing-library/jest-dom, et moduleNameMapper pour CSS avec identity-obj-proxy.",
+        "metadata": {"category": "testing", "tech": "jest", "priority": "high"}
+    },
 ]
 
 async def init_collection():

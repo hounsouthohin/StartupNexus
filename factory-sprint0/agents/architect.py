@@ -78,6 +78,7 @@ def create_architect_agent():
         query = state["messages"][-1].content
         docs = await retriever.ainvoke(query)
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
+        print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
         return {"rag_context": rag_context}
 
     async def planner_node(state: AgentState):
@@ -134,7 +135,7 @@ def create_architect_agent():
                 output_file = os.path.join(tempfile.gettempdir(), 'output.png')
                 
                 subprocess.run(
-                    ['mmdc', '-i', tmp_file_path, '-o', output_file],
+                    ['mmdc', '-i', tmp_file_path, '-o', output_file, '--puppeteerConfigFile', '/app/puppeteer-config.json'],
                     check=True,
                     capture_output=True,
                     text=True,

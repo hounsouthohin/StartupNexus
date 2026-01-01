@@ -276,29 +276,62 @@ class RunTestsArgs(BaseModel):
 @tool(args_schema=RunTestsArgs)
 def run_tests(project_dir: str = '.') -> str:
     """
-    Executes 'npm test' in the specified project directory to run the test suite.
+    Executes 'npx jest --coverage' in the specified project directory to run the test suite.
+    First, it checks for a package.json and installs required dev dependencies if found.
     Returns a detailed error message if tests fail, for use in ReAct loops.
     """
-    logger.info(f"Executing 'npm test' in directory '{project_dir}'...")
+    logger.info(f"Executing tests in directory '{project_dir}'...")
+    
+    package_json_path = os.path.join(project_dir, 'package.json')
+    if os.path.exists(package_json_path):
+        logger.info(f"package.json found in '{project_dir}'. Installing dev dependencies...")
+        try:
+            # Install required dev dependencies. Add identity-obj-proxy for moduleNameMapper.
+            install_command = [
+                'npm', 'install', '--save-dev',
+                'jest', '@testing-library/react', '@testing-library/jest-dom',
+                'babel-jest', '@babel/preset-env', '@babel/preset-react',
+                'ts-jest', 'typescript', 'identity-obj-proxy'
+            ]
+            subprocess.run(
+                install_command,
+                capture_output=True,
+                text=True,
+                check=True,
+                cwd=project_dir,
+                timeout=SUBPROCESS_TIMEOUT_LONG # Use long timeout for npm install
+            )
+            logger.info("Dev dependencies installed successfully.")
+        except subprocess.TimeoutExpired:
+            return f"npm install timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
+        except subprocess.CalledProcessError as e:
+            error_message = f"npm install failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+            logger.error(error_message)
+            return error_message
+        except FileNotFoundError:
+            return "Error: 'npm' not found during dependency installation. Please ensure Node.js and npm are installed and in the PATH."
+        except Exception as e:
+            return f"An unexpected error occurred during npm install: {e}"
+
     try:
-        command = ['npm', 'test']
+        command = ['npx', 'jest', '--coverage']
         result = subprocess.run(
-            command, 
-            capture_output=True, 
-            text=True, 
-            check=True, 
-            cwd=project_dir, 
-            timeout=SUBPROCESS_TIMEOUT_MEDIUM
+            command,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=project_dir,
+            timeout=SUBPROCESS_TIMEOUT_LONG # Using SUBPROCESS_TIMEOUT_LONG for 120s
         )
         logger.info(f"Tests passed in '{project_dir}'.")
         return f"Tests passed: {result.stdout}"
     except subprocess.TimeoutExpired:
-        return f"Test run timed out for 'npm test' in '{project_dir}' after {SUBPROCESS_TIMEOUT_MEDIUM} seconds."
+        return f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
     except subprocess.CalledProcessError as e:
         error_message = f"Tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
         logger.error(error_message)
         return error_message
     except FileNotFoundError:
-        return "Error: 'npm' not found. Please ensure Node.js and npm are installed and in the PATH."
+        return "Error: 'npx' not found during test execution. Please ensure Node.js and npm are installed and in the PATH."
     except Exception as e:
         return f"An unexpected error occurred during tests: {e}"
