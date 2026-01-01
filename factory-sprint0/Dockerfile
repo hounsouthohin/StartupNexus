@@ -30,9 +30,7 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y docker-ce-cli
 
-# Install Jest + testing libs globalement
-RUN npm install -g jest @testing-library/react @testing-library/jest-dom \
-    babel-jest @babel/preset-env @babel/preset-react ts-jest typescript
+
 
 # Copy le code usine
 RUN find . -name "*.pyc" -delete

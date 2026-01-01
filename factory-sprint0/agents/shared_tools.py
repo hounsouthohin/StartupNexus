@@ -1,3 +1,4 @@
+import codecs
 import os
 import subprocess
 from datetime import datetime
@@ -291,46 +292,88 @@ def run_build(project_dir: str = '.') -> str:
         return f"An unexpected error occurred during build process: {e}"
 class RunTestsArgs(BaseModel):
     project_dir: str = Field(description="Répertoire racine du projet (défaut: '.')", default='.')
+    files: dict = Field(description="A dictionary of files to write to disk before running tests, with path as key and content as value.")
 
 @tool(args_schema=RunTestsArgs)
-def run_tests(project_dir: str = '.') -> str:
+def run_tests(project_dir: str = '.', files: dict = None) -> str:
     """
-    Executes 'npx jest --coverage' in the specified project directory to run the test suite.
-    First, it checks for a package.json and installs required dev dependencies if found.
+    Writes a dictionary of files to disk, then executes 'npx jest --coverage' in the specified project directory.
+    Installs dependencies using 'npm ci' or 'npm install' if a package.json is found.
     Returns a detailed error message if tests fail, for use in ReAct loops.
     """
     logger.info(f"Executing tests in directory '{project_dir}'...")
+
+    if files:
+        logger.info(f"Writing {len(files)} files to disk before running tests...")
+        for path, content in files.items():
+            try:
+                # Ensure parent directories exist
+                parent_dir = os.path.dirname(path)
+                if parent_dir:
+                    os.makedirs(parent_dir, exist_ok=True)
+                
+                content_to_write = content
+                # Sanitize package.json to fix malformed JSON from the agent
+                if path == 'package.json':
+                    logger.info("Sanitizing package.json before writing...")
+                    try:
+                        # Decode escaped characters like \\n into \n
+                        content_to_write = codecs.decode(content, 'unicode_escape')
+                    except Exception as e:
+                        return f"Error: Failed to sanitize package.json content. Details: {e}. Original content: {content}"
+
+                with open(path, "w", encoding='utf-8') as f:
+                    f.write(content_to_write)
+                logger.info(f"Successfully wrote file: {path}")
+            except Exception as e:
+                error_msg = f"Error writing file '{path}' at the start of run_tests: {e}"
+                logger.error(error_msg)
+                return error_msg
     
     package_json_path = os.path.join(project_dir, 'package.json')
     if os.path.exists(package_json_path):
         logger.info(f"package.json found in '{project_dir}'. Installing dev dependencies...")
-        try:
-            # Install required dev dependencies. Add identity-obj-proxy for moduleNameMapper.
-            install_command = [
+        
+        npm_command = []
+        if os.path.exists(os.path.join(project_dir, 'package-lock.json')):
+            logger.info(f"package-lock.json found. Using 'npm ci' for consistent installation.")
+            npm_command = ['npm', 'ci']
+        else:
+            logger.info(f"package-lock.json not found. Using 'npm install --save-dev' for installation.")
+            npm_command = [
                 'npm', 'install', '--save-dev',
                 'jest', '@testing-library/react', '@testing-library/jest-dom',
                 'babel-jest', '@babel/preset-env', '@babel/preset-react',
                 'ts-jest', 'typescript', 'identity-obj-proxy', 'jest-environment-jsdom'
             ]
-            subprocess.run(
-                install_command,
+
+        try:
+            install_result = subprocess.run(
+                npm_command,
                 capture_output=True,
                 text=True,
                 check=True,
                 cwd=project_dir,
-                timeout=SUBPROCESS_TIMEOUT_LONG # Use long timeout for npm install
+                timeout=SUBPROCESS_TIMEOUT_LONG,
+                env={"NODE_ENV": "development", **os.environ} if 'ci' in npm_command else os.environ
             )
-            logger.info("Dev dependencies installed successfully.")
+            logger.info(f"npm command completed successfully. STDOUT:\n{install_result.stdout}\nSTDERR:\n{install_result.stderr}")
+
+            # Explicitly check if jest executable is present after npm install
+            jest_bin_path = os.path.join(project_dir, 'node_modules', '.bin', 'jest')
+            if not os.path.exists(jest_bin_path):
+                return f"Error: Jest executable not found at '{jest_bin_path}' after npm command. Installation might have failed or been incomplete. npm STDOUT:\n{install_result.stdout}\nnpm STDERR:\n{install_result.stderr}"
+
         except subprocess.TimeoutExpired:
-            return f"npm install timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
+            return f"npm command timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
         except subprocess.CalledProcessError as e:
-            error_message = f"npm install failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+            error_message = f"npm command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
             logger.error(error_message)
             return error_message
         except FileNotFoundError:
             return "Error: 'npm' not found during dependency installation. Please ensure Node.js and npm are installed and in the PATH."
         except Exception as e:
-            return f"An unexpected error occurred during npm install: {e}"
+            return f"An unexpected error occurred during npm command: {e}"
 
     try:
         command = ['npx', 'jest', '--coverage']

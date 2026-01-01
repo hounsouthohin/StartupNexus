@@ -40,41 +40,12 @@ logger = Logger()
 # --- Node Functions ---
 
 def write_source_files_node(state: AgentState) -> dict:
-    """Writes the application source files (received from Dev Agent) to disk and installs dependencies."""
-    logger.info("Writing application source files to disk...")
-    written_files = []
-    for path, content in state["files"].items():
-        write_file.invoke({"path": path, "content": content})
-        written_files.append(path)
-    
-    logger.info(f"Source files written to disk: {written_files}")
 
-    # Run npm install after writing files, if a package.json was written
-    if "package.json" in state["files"]:
-        package_json_path = os.path.join(os.getcwd(), "package.json")
-        if os.path.exists(package_json_path): # Check if it actually exists after writing
-            logger.info("package.json detected. Running npm install...")
-            try:
-                install_command = ['npm', 'install']
-                subprocess.run(
-                    install_command,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    cwd=".", # Assuming current working directory is the project root
-                    timeout=SUBPROCESS_TIMEOUT_LONG
-                )
-                logger.info("npm install completed successfully in write_source_files_node.")
-            except subprocess.CalledProcessError as e:
-                logger.error(f"npm install failed in write_source_files_node (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}")
-                return {"messages": state["messages"] + [HumanMessage(content=f"Error: npm install failed during source file setup: {e.stderr}.")]}
-            except Exception as e:
-                logger.error(f"An unexpected error occurred during npm install in write_source_files_node: {e}")
-                return {"messages": state["messages"] + [HumanMessage(content=f"Error: An unexpected error occurred during npm install: {e}.")]}
-        else:
-            logger.warning("package.json was in state['files'] but not found on disk after writing.")
+    """This node is now a no-op. File writing is handled by the test_runner_node."""
 
-    return {"messages": state["messages"] + [HumanMessage(content="Application source files written and dependencies installed.")]}
+    logger.info("Skipping explicit file writing; will be handled by the test runner tool.")
+
+    return {}
 
 
 def generation_node(state: AgentState) -> dict:
@@ -111,18 +82,17 @@ def generation_node(state: AgentState) -> dict:
     return {"tests": generated_tests_dict, "iterations": state["iterations"] + 1}
 
 def writing_node(state: AgentState) -> dict:
-    """Writes the generated test files to disk."""
-    logger.info("Writing test files to disk...")
-    for path, content in state["tests"].items():
-        # Use the .invoke() method for LangChain tools
-        write_file.invoke({"path": path, "content": content})
+    """This node is now a no-op. Test file writing is handled by the test_runner_node."""
+    logger.info("Skipping explicit test file writing; will be handled by the test runner tool.")
     return {}
 
 def test_runner_node(state: AgentState) -> dict:
     """Runs the tests and returns the result."""
     logger.info("Running tests...")
     # Use the .invoke() method for LangChain tools
-    test_results = run_tests.invoke({"project_dir": "."})
+    # Pass the source files directly to the tool.
+    all_files_to_write = {**state.get("files", {}), **state.get("tests", {})}
+    test_results = run_tests.invoke({"project_dir": ".", "files": all_files_to_write})
     
     if "Tests passed" in test_results:
         logger.info("All tests passed!")
