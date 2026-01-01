@@ -14,6 +14,10 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-large")  # ou ton modèle 
 # === PREMIERS STANDARDS (on commence solide, on enrichira après) ===
 standards = [
     {
+        "text": "Dans tout projet Next.js impliquant de l'authentification : utiliser EXCLUSIVEMENT Clerk (@clerk/nextjs). Interdire bcrypt, stockage de passwords, JWT custom, table Session séparée. Utiliser les pages/routes Clerk standards : app/sign-in/[[...sign-in]]/page.tsx et app/sign-up/[[...sign-up]]/page.tsx. Toute implémentation manuelle d'auth est une violation critique des standards.",
+        "metadata": {"category": "authentication", "tech": "clerk", "priority": "critical", "priority_score": 100}
+    },
+    {
         "text": "UI/UX : Toujours utiliser shadcn/ui + Tailwind CSS. Composants accessibles, dark mode natif. Mobile-first obligatoire. Utiliser la fonction cn() de tailwind-merge pour les className conditionnelles.",
         "metadata": {"category": "ui", "tech": "tailwind", "priority": "high"}
     },

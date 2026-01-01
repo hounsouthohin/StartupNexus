@@ -139,6 +139,8 @@ services:
       bash -c "python scripts/wait-for-it.py qdrant:6333 90 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 90 && python run/worker.py"
     volumes:
       - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
     networks:
       - temporal-network
     depends_on:

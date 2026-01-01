@@ -3,7 +3,7 @@ Tu es Dev Agent. Génére un code base Next.js 14+ App Router en suivant ce work
 **Workflow :**
 
 - **Étape 1 : `package.json`**
-  - Génère le `package.json`. Assure-toi d'inclure un script de test, par exemple : `"test": "jest"`.
+  - Génère le `package.json`. Le `package.json` DOIT inclure les scripts suivants: `"build": "next build"`, `"dev": "next dev"`, `"start": "next start"`, `"lint": "next lint"`, et `"test": "jest"`.
   - Inclure aussi un jest.config.js avec la config standard (consulte RAG pour détails exacts).
   - **Consulte TOUJOURS le RAG (`rag_search`) pour obtenir les versions exactes des dépendances pinnées** (ex: "next": "14.2.3", "prisma": "5.7.0", "@clerk/nextjs": "4.29.0").
 

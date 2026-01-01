@@ -243,33 +243,52 @@ class RunBuildArgs(BaseModel):
 @tool(args_schema=RunBuildArgs)
 def run_build(project_dir: str = '.') -> str:
     """
-    Executes 'npm run build' in the specified project directory to validate the build process.
-    Returns a detailed error message if the build fails, for use in ReAct loops.
+    Executes 'npm install' then 'npm run build' in the specified project directory to validate the build process.
+    Returns a detailed error message if the build or install fails, for use in ReAct loops.
     """
-    logger.info(f"Executing 'npm run build' in directory '{project_dir}'...")
+    logger.info(f"Executing 'npm install' and 'npm run build' in directory '{project_dir}'...")
+
+    package_json_path = os.path.join(project_dir, 'package.json')
+    if not os.path.exists(package_json_path):
+        return f"Error: package.json not found at '{package_json_path}'. Cannot run build."
+
     try:
-        command = ['npm', 'run', 'build']
+        # Step 1: Run npm install
+        logger.info(f"Running npm install in '{project_dir}'...")
+        install_command = ['npm', 'install']
+        subprocess.run(
+            install_command,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=project_dir,
+            timeout=SUBPROCESS_TIMEOUT_LONG # Use long timeout for npm install
+        )
+        logger.info("npm install completed successfully.")
+
+        # Step 2: Run npm run build
+        logger.info(f"Running npm run build in '{project_dir}'...")
+        build_command = ['npm', 'run', 'build']
         result = subprocess.run(
-            command, 
-            capture_output=True, 
-            text=True, 
-            check=True, 
-            cwd=project_dir, 
+            build_command,
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=project_dir,
             timeout=SUBPROCESS_TIMEOUT_LONG
         )
         logger.info(f"Build successful in '{project_dir}'.")
         return f"Build successful: {result.stdout}"
-    except subprocess.TimeoutExpired:
-        return f"Build timed out for 'npm run build' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
+    except subprocess.TimeoutExpired as e:
+        return f"Command timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds: {e.cmd}"
     except subprocess.CalledProcessError as e:
-        error_message = f"Build failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        error_message = f"Command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
         logger.error(error_message)
         return error_message
     except FileNotFoundError:
         return "Error: 'npm' not found. Please ensure Node.js and npm are installed and in the PATH."
     except Exception as e:
-        return f"An unexpected error occurred during build: {e}"
-
+        return f"An unexpected error occurred during build process: {e}"
 class RunTestsArgs(BaseModel):
     project_dir: str = Field(description="Répertoire racine du projet (défaut: '.')", default='.')
 
@@ -291,7 +310,7 @@ def run_tests(project_dir: str = '.') -> str:
                 'npm', 'install', '--save-dev',
                 'jest', '@testing-library/react', '@testing-library/jest-dom',
                 'babel-jest', '@babel/preset-env', '@babel/preset-react',
-                'ts-jest', 'typescript', 'identity-obj-proxy'
+                'ts-jest', 'typescript', 'identity-obj-proxy', 'jest-environment-jsdom'
             ]
             subprocess.run(
                 install_command,

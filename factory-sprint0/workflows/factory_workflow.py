@@ -64,9 +64,24 @@ class SaaSFactoryWorkflow:
         else:
             workflow.logger.info(f"TestCoverage terminé – {len(generated_tests)} tests générés")
 
+        # Étape 4 : QA Activity
+        qa_result: Dict = await workflow.execute_activity(
+            "qa_activity",
+            {"specification": spec_part, "project_name": project_name}, # Input for QA agent
+            start_to_close_timeout=timedelta(minutes=20),
+            retry_policy=common_retry_policy,
+        )
+        generated_e2e_tests = qa_result.get("e2e_tests", {})
+        if not generated_e2e_tests:
+            workflow.logger.warning("QA Agent did not generate any E2E tests.")
+        else:
+            workflow.logger.info(f"QA terminé – {len(generated_e2e_tests)} E2E tests générés")
+
+
         # Étape 5 : GitHub Activity
         all_files = dev_result.get("files", {})
         all_files.update(generated_tests)
+        all_files.update(generated_e2e_tests) # Include E2E tests for GitHub
 
         github_input = {
             "files": all_files,

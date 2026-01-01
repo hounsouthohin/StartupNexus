@@ -72,17 +72,17 @@ Here is a simple example of a valid Mermaid diagram:
 ```mermaid
 graph TD
     subgraph Frontend
-        A[Next.js App] --> B{Clerk Middleware};
-        B -- Authenticated --> C[Dashboard Page];
-        B -- Not Authenticated --> D[Sign-in Page];
+        A[Next.js App] --> B(Clerk Middleware)
+        B -- Authenticated --> C[Dashboard Page]
+        B -- Not Authenticated --> D[Sign-in Page]
     end
     subgraph Backend
-        C --> E(API Route);
-        E --> F[Prisma ORM];
-        F --> G[(Database)];
+        C --> E[API Route]
+        E --> F[Prisma ORM]
+        F --> G[(Database)]
     end
     subgraph External
-        B --> H{Clerk Auth Service};
+        B --> H["Clerk Auth Service"]
     end
 ```
 

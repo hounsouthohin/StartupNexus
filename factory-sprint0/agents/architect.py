@@ -125,43 +125,55 @@ def create_architect_agent():
             match = re.search(r'```(?:mermaid)?\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
             mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
 
-            # Validate the Mermaid syntax using mermaid-cli (mmdc)
+            # Validate the Mermaid syntax using minlag/mermaid-cli Docker image
             try:
-                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.mmd') as tmp_file:
+                # Force tempfile to create in /tmp so it's accessible by the Docker volume mount
+                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.mmd', dir='/tmp') as tmp_file:
                     tmp_file.write(mermaid_code)
                     tmp_file_path = tmp_file.name
                 
-                # mmdc requires an output file, even if we just want to validate
-                output_file = os.path.join(tempfile.gettempdir(), 'output.png')
-                
+                input_filename = os.path.basename(tmp_file_path)
+                output_filename = f"{input_filename}.png"
+
+                host_dir = '/tmp' # Add this line
+
+                container_input_path = f"/data/{input_filename}"
+                container_output_path = f"/data/{output_filename}"
+
                 subprocess.run(
-                    ['mmdc', '-i', tmp_file_path, '-o', output_file, '--puppeteerConfigFile', '/app/puppeteer-config.json'],
+                    [
+                        'docker', 'run', '--rm',
+                        '--user', f"{os.getuid()}:{os.getgid()}",
+                        '-v', f"{host_dir}:/data",
+                        'minlag/mermaid-cli:latest',
+                        '-i', f"/data/{input_filename}",
+                        '-o', f"/data/{output_filename}"
+                    ],
                     check=True,
                     capture_output=True,
                     text=True,
-                    timeout=30
+                    timeout=120
                 )
                 
                 # If validation is successful, clean up and return
                 os.remove(tmp_file_path)
-                os.remove(output_file)
+                os.remove(os.path.join('/tmp', output_filename)) # Output file is also in /tmp now
                 return {"mermaid_diagram": mermaid_code}
 
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                os.remove(tmp_file_path) # Ensure temp file is cleaned up on error
+                # Ensure temp file is cleaned up on error
+                if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
+                    os.remove(tmp_file_path)
+                
                 error_message = f"Mermaid syntax validation failed (Attempt {attempts}/{max_attempts}). Error: {e.stderr or e.stdout}"
                 print(error_message) # Or use a proper logger
                 if attempts >= max_attempts:
                     raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts. Last error: {error_message}")
+                
                 # Prepare for retry
                 input_text += f"\n\nPrevious attempt failed. The generated diagram was invalid. Please correct the syntax based on this error: {error_message}"
                 # The HumanMessage here simulates the ReAct feedback loop for the LLM
                 state["messages"].append(HumanMessage(content=f"Diagram generation failed with error: {error_message}. Please fix the Mermaid syntax."))
-
-            except FileNotFoundError:
-                # mmdc is not installed, so we skip validation
-                print("WARNING: 'mmdc' (mermaid-cli) not found. Skipping Mermaid diagram validation.")
-                return {"mermaid_diagram": mermaid_code}
 
         raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts.")
 
