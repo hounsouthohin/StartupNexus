@@ -319,6 +319,8 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                     try:
                         # Decode escaped characters like \\n into \n
                         content_to_write = codecs.decode(content, 'unicode_escape')
+                        # Explicitly replace the incorrect ts-jest version
+                        content_to_write = content_to_write.replace('"ts-jest": "29.5.0"', '"ts-jest": "29.1.2"')
                     except Exception as e:
                         return f"Error: Failed to sanitize package.json content. Details: {e}. Original content: {content}"
 
