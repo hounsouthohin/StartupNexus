@@ -313,16 +313,20 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                     os.makedirs(parent_dir, exist_ok=True)
                 
                 content_to_write = content
-                # Sanitize package.json to fix malformed JSON from the agent
+                try:
+                    # Decode escaped characters like \\n into \n for all files
+                    content_to_write = codecs.decode(content, 'unicode_escape')
+                except Exception as e:
+                    # Log but don't fail if decoding fails for non-package.json files
+                    logger.warning(f"Warning: Failed to decode unicode escape for '{path}'. Details: {e}. Original content: {content}")
+                    # Fallback to original content if decoding fails
+                    content_to_write = content
+
+                # Sanitize package.json specifically
                 if path == 'package.json':
                     logger.info("Sanitizing package.json before writing...")
-                    try:
-                        # Decode escaped characters like \\n into \n
-                        content_to_write = codecs.decode(content, 'unicode_escape')
-                        # Explicitly replace the incorrect ts-jest version
-                        content_to_write = content_to_write.replace('"ts-jest": "29.5.0"', '"ts-jest": "29.1.2"')
-                    except Exception as e:
-                        return f"Error: Failed to sanitize package.json content. Details: {e}. Original content: {content}"
+                    # Explicitly replace the incorrect ts-jest version
+                    content_to_write = content_to_write.replace('"ts-jest": "29.5.0"', '"ts-jest": "29.1.2"')
 
                 with open(path, "w", encoding='utf-8') as f:
                     f.write(content_to_write)
@@ -331,6 +335,97 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 error_msg = f"Error writing file '{path}' at the start of run_tests: {e}"
                 logger.error(error_msg)
                 return error_msg
+    
+    # --- Ensure critical config files exist for testing ---
+    # Grok's recommendation: Inject standard tsconfig.json and jest.setup.js if they don't exist.
+    
+    # tsconfig.json content
+    tsconfig_content = """{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}"""
+    tsconfig_path = os.path.join(project_dir, 'tsconfig.json')
+    if not os.path.exists(tsconfig_path):
+        logger.info(f"Writing default tsconfig.json to '{tsconfig_path}'...")
+        try:
+            with open(tsconfig_path, "w", encoding='utf-8') as f:
+                f.write(tsconfig_content)
+            logger.info(f"Successfully wrote file: {tsconfig_path}")
+        except Exception as e:
+            error_msg = f"Error writing default tsconfig.json: {e}"
+            logger.error(error_msg)
+            return error_msg
+
+    # jest.setup.js content
+    jest_setup_content = """import '@testing-library/jest-dom';"""
+    jest_setup_path = os.path.join(project_dir, 'jest.setup.js')
+    if not os.path.exists(jest_setup_path):
+        logger.info(f"Writing default jest.setup.js to '{jest_setup_path}'...")
+        try:
+            with open(jest_setup_path, "w", encoding='utf-8') as f:
+                f.write(jest_setup_content)
+            logger.info(f"Successfully wrote file: {jest_setup_path}")
+        except Exception as e:
+            error_msg = f"Error writing default jest.setup.js: {e}"
+            logger.error(error_msg)
+            return error_msg
+
+    # jest.config.js content
+    jest_config_content = """module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^@clerk/nextjs/middleware$': '<rootDir>/__mocks__/clerk-middleware.js',
+  },
+};"""
+    jest_config_path = os.path.join(project_dir, 'jest.config.js')
+    if not os.path.exists(jest_config_path):
+        logger.info(f"Writing default jest.config.js to '{jest_config_path}'...")
+        try:
+            with open(jest_config_path, "w", encoding='utf-8') as f:
+                f.write(jest_config_content)
+            logger.info(f"Successfully wrote file: {jest_config_path}")
+        except Exception as e:
+            error_msg = f"Error writing default jest.config.js: {e}"
+            logger.error(error_msg)
+            return error_msg
+            
+    # Clerk middleware mock content (updated per Grok's suggestion)
+    clerk_middleware_mock_content = """module.exports = {
+  withClerkMiddleware: (handler) => handler,
+  clerkMiddleware: (handler) => handler, // Added per Grok's suggestion
+};"""
+    clerk_middleware_mock_path = os.path.join(project_dir, '__mocks__', 'clerk-middleware.js')
+    os.makedirs(os.path.dirname(clerk_middleware_mock_path), exist_ok=True)
+    if not os.path.exists(clerk_middleware_mock_path):
+        logger.info(f"Writing clerk middleware mock to '{clerk_middleware_mock_path}'...")
+        try:
+            with open(clerk_middleware_mock_path, "w", encoding='utf-8') as f:
+                f.write(clerk_middleware_mock_content)
+            logger.info(f"Successfully wrote file: {clerk_middleware_mock_path}")
+        except Exception as e:
+            error_msg = f"Error writing clerk middleware mock: {e}"
+            logger.error(error_msg)
+            return error_msg
     
     package_json_path = os.path.join(project_dir, 'package.json')
     if os.path.exists(package_json_path):
@@ -346,7 +441,9 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 'npm', 'install', '--save-dev',
                 'jest', '@testing-library/react', '@testing-library/jest-dom',
                 'babel-jest', '@babel/preset-env', '@babel/preset-react',
-                'ts-jest', 'typescript', 'identity-obj-proxy', 'jest-environment-jsdom'
+                'ts-jest', 'typescript', 'zod', 'node-mocks-http',
+                'identity-obj-proxy', 'jest-environment-jsdom',
+                'bcrypt', '@types/bcrypt', '@types/jsonwebtoken'
             ]
 
         try:
@@ -377,8 +474,10 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
         except Exception as e:
             return f"An unexpected error occurred during npm command: {e}"
 
+    logger.info(f"Attempting to run Jest tests in '{project_dir}'...")
     try:
         command = ['npx', 'jest', '--coverage']
+        logger.info(f"Executing Jest command: {' '.join(command)}")
         result = subprocess.run(
             command,
             capture_output=True,
@@ -387,15 +486,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             cwd=project_dir,
             timeout=SUBPROCESS_TIMEOUT_LONG # Using SUBPROCESS_TIMEOUT_LONG for 120s
         )
+        logger.info(f"Jest tests command completed. STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
         logger.info(f"Tests passed in '{project_dir}'.")
         return f"Tests passed: {result.stdout}"
     except subprocess.TimeoutExpired:
+        logger.error(f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds.")
         return f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
     except subprocess.CalledProcessError as e:
         error_message = f"Tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
         logger.error(error_message)
         return error_message
     except FileNotFoundError:
+        logger.error("Error: 'npx' not found during test execution. Please ensure Node.js and npm are installed and in the PATH.")
         return "Error: 'npx' not found during test execution. Please ensure Node.js and npm are installed and in the PATH."
     except Exception as e:
+        logger.error(f"An unexpected error occurred during tests: {e}")
         return f"An unexpected error occurred during tests: {e}"
