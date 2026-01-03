@@ -9,7 +9,7 @@ Tu es Dev Agent. Génére un code base Next.js 14+ App Router en suivant ce work
 
 - **Étape 2 : `schema.prisma`**
   - Génère le `schema.prisma`.
-  - Pour la gestion des mots de passe, **consulte le RAG (`rag_search`) pour les standards de sécurité comme bcrypt**. Le schéma doit contenir un champ `password` de type `String`, et tu dois noter (dans ta logique interne) que le hachage doit être appliqué avant la sauvegarde).
+  - Le schéma doit gérer les utilisateurs et leurs données conformément à la spécification. La gestion des mots de passe et de l'authentification est entièrement déléguée à Clerk.
 
 - **Étape 3 : Auth et Middleware**
   - Implémente l'authentification Clerk dans `app/layout.tsx` en enveloppant l'application avec `<ClerkProvider>`.
