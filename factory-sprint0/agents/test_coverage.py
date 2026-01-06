@@ -84,41 +84,25 @@ def generation_node(state: AgentState) -> dict:
     state["files"]["tsconfig.json"] = tsconfig_content
 
     # jest.config.js content
-    jest_config_content = """const nextJest = require('next/jest');
-
-const createJestConfig = nextJest({
-  dir: './',
-});
-
-const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    jest_config_content = """module.exports = {
   testEnvironment: 'jsdom',
-  testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+  testPathIgnorePatterns: ['/node_modules/', '/.next/'],
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.css$': 'identity-obj-proxy', // Mock CSS imports
+    '\\\\.css$': 'identity-obj-proxy',
   },
-  transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': 'ts-jest',
-  },
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-      isolatedModules: true,
-      jsx: 'react-jsx', // Ensure ts-jest processes JSX
-    },
-  },
-  collectCoverageFrom: [
-    'app/**/*.{js,jsx,ts,tsx}',
-    'components/**/*.{js,jsx,ts,tsx}',
-    'lib/**/*.{js,jsx,ts,tsx}',
-    '!**/*.d.ts',
-    '!**/node_modules/**',
-  ],
-};
-
-module.exports = createJestConfig(customJestConfig);"""
+};"""
     state["files"]["jest.config.js"] = jest_config_content
+
+    # .babelrc content
+    babelrc_content = """{
+  "presets": ["next/babel"]
+}"""
+    state["files"][".babelrc"] = babelrc_content
 
     # jest.setup.js content
     jest_setup_content = """import '@testing-library/jest-dom';"""

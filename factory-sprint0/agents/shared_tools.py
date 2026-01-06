@@ -3,6 +3,7 @@ import os
 import subprocess
 from datetime import datetime
 from functools import lru_cache
+import time # Add this import at the top of the file
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
@@ -158,15 +159,29 @@ def prisma_migrate(schema_path: str) -> str:
     """
     Executes a Prisma migration conditionally. It first checks the migration status.
     If the database is out of sync or does not exist, it runs 'migrate dev'.
-    Otherwise, it skips the migration. Includes a 60-second timeout.
+    Includes a retry mechanism to handle filesystem sync delays.
     """
-    if not os.path.exists(schema_path):
-        return f"Error: Schema file not found at '{schema_path}'"
+    # --- START MODIFICATION ---
+    # Retry loop to wait for the file to be available
+    max_retries = 5
+    retry_delay = 0.5 # seconds
+    for attempt in range(max_retries):
+        if os.path.exists(schema_path):
+            logger.info(f"Schema file found at '{schema_path}' on attempt {attempt + 1}.")
+            break
+        logger.warning(f"Schema file not found at '{schema_path}' on attempt {attempt + 1}. Retrying in {retry_delay}s...")
+        time.sleep(retry_delay)
+    else:
+        # This 'else' belongs to the 'for' loop and runs if the loop completes without a 'break'
+        logger.error(f"Schema file not found at '{schema_path}' after {max_retries} retries.")
+        return f"Error: Schema file not found at '{schema_path}' after multiple retries."
+    # --- END MODIFICATION ---
 
     schema_dir = os.path.dirname(schema_path) or '.'
-
+    
+    # ... (rest of the function remains the same)
     try:
-        # Step 1: Check current migration status without check=True to handle failures gracefully.
+        # Step 1: Check current migration status...
         logger.info(f"Checking Prisma migration status for '{schema_path}'...")
         status_command = ['npx', 'prisma', 'migrate', 'status', '--schema', schema_path]
         status_result = subprocess.run(
@@ -442,8 +457,7 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 'jest', '@testing-library/react', '@testing-library/jest-dom',
                 'babel-jest', '@babel/preset-env', '@babel/preset-react',
                 'ts-jest', 'typescript', 'zod', 'node-mocks-http',
-                'identity-obj-proxy', 'jest-environment-jsdom',
-                'bcrypt', '@types/bcrypt', '@types/jsonwebtoken'
+                'identity-obj-proxy', 'jest-environment-jsdom'
             ]
 
         try:

@@ -20,89 +20,63 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 
-# --- Dev Agent v3 Ultimate – Version 3.1.2 Finale (Truncation Simple & Efficace) ---
+# --- Dev Agent v3 Ultimate – Version 3.2 Breakthrough (Premier SaaS imminent) ---
 def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") -> dict:
     """
-    Dev Agent v3 Ultimate – Stabilité maximale, exécution manuelle des tools,
-    truncation simple évitant les ToolMessage orphelins.
+    Dev Agent v3 Ultimate – Version finale stable.
+    Correction boucle jest.config.js + détection run_build + progression forcée.
     """
-    # LLM principal
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
-    # Tools disponibles
     tools = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
     tool_map = {tool.name: tool for tool in tools}
 
-    MAX_ITERATIONS = 20
-    MAX_BUILD_ATTEMPTS = 6
+    MAX_ITERATIONS = 30  # Augmenté pour donner de la marge
+    MAX_BUILD_ATTEMPTS = 8
     MAX_SPEC_TOKENS = 50000
     MAX_MERMAID_TOKENS = 10000
 
-    # --- Helper summarization ---
     def summarize_text(text: str, max_tokens: int, description: str) -> str:
         try:
             current_tokens = llm.get_num_tokens(text)
         except Exception:
             current_tokens = len(text) // 4
         if current_tokens <= max_tokens:
-            logger.info(f"{description} dans la limite ({current_tokens} tokens).")
             return text
-        logger.warning(f"{description} trop long ({current_tokens} tokens) → summarization.")
         try:
-            summary_prompt = [
-                SystemMessage(content=f"Résume ce texte en moins de {max_tokens} tokens. Garde uniquement l’essentiel pour le développement logiciel."),
+            summary = llm.invoke([
+                SystemMessage(content=f"Résume en moins de {max_tokens} tokens pour le développement."),
                 HumanMessage(content=text)
-            ]
-            summary = llm.invoke(summary_prompt).content
-            logger.info(f"{description} résumé à {llm.get_num_tokens(summary)} tokens.")
+            ]).content
             return summary
-        except Exception as e:
-            logger.error(f"Summarization échouée : {e} → truncation brute.")
+        except:
             return text[:int(max_tokens * 3.5)] + "\n\n[TRUNCATED]"
 
-    # Summarization initiale
     summarized_spec = summarize_text(spec, MAX_SPEC_TOKENS, "Specification")
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
 
-    # Messages initiaux
     messages = [
         SystemMessage(content="""
-Tu es Dev Agent. Génère un code base Next.js 14+ App Router en suivant ce workflow séquentiel :
+Tu es Dev Agent autonome. Tu suis STRICTEMENT cet ordre :
 
-**Workflow :**
+1. RAG → génère package.json en PREMIER (versions pinned, @clerk/nextjs obligatoire)
+2. jest.config.js avec babel-jest + next/babel (standard 2026)
+3. prisma/schema.prisma → prisma_migrate
+4. app/layout.tsx avec ClerkProvider + middleware.ts
+5. Pages/composants shadcn/ui + Zod validation
+6. run_build dès que package.json, layout.tsx, middleware.ts, schema.prisma existent
 
-- **Étape 1 : `package.json`**
-  - Génère le `package.json`. Le `package.json` DOIT inclure les scripts suivants: "build": "next build", "dev": "next dev", "start": "next start", "lint": "next lint", et "test": "jest".
-  - Inclure aussi un jest.config.js avec la config standard.
-  - **Consulte TOUJOURS le RAG (`rag_search`) pour obtenir les versions exactes des dépendances pinnées**.
-
-- **Étape 2 : `schema.prisma`**
-  - Génère le `schema.prisma`. Authentification déléguée à Clerk.
-
-- **Étape 3 : Auth et Middleware**
-  - Implémente Clerk dans `app/layout.tsx` et crée `middleware.ts`.
-
-- **Étape 4 : Pages et Composants**
-  - Utilise shadcn/ui + Zod pour validation.
-
-- **Étape 5 : Validation Continue**
-  - Après chaque `write_file` → `validate_syntax`.
-  - Après `schema.prisma` → `prisma_migrate`.
-
-- **Condition d'arrêt :**
-  - Termine uniquement quand `run_build` réussit.
-
-**Règles Générales :**
-- Un fichier à la fois.
-- Tout vient du RAG.
-- Corrige en une itération si possible.
-- Clerk uniquement. Interdit : bcrypt, JWT custom, champ password.
+RÈGLES ABSOLUES :
+- Un seul fichier par itération max.
+- Ne réécris JAMAIS un fichier existant.
+- Clerk uniquement (@clerk/nextjs). Jamais bcrypt, JWT, password field.
+- Termine uniquement sur "Build successful" → "TERMINÉ : CODE PRÊT"
 """),
         HumanMessage(content=(
-            f"Nom du projet : {project_name}\n\n"
-            f"Specification architecturale :\n{summarized_spec}\n\n"
-            f"Diagramme Mermaid :\n{summarized_mermaid}\n\n"
-            "Commence immédiatement par l'Étape 1 : appelle rag_search pour les versions, puis génère package.json."
+            f"Projet : {project_name}\n\n"
+            f"Spec :\n{summarized_spec}\n\n"
+            f"Mermaid :\n{summarized_mermaid}\n\n"
+            "Étape 1 : appelle rag_search pour versions Next.js/Clerk/Prisma, puis génère package.json (UNE SEULE FOIS)."
         ))
     ]
 
@@ -110,104 +84,161 @@ Tu es Dev Agent. Génère un code base Next.js 14+ App Router en suivant ce work
     final_message = ""
     build_attempts = 0
     build_success = False
-    total_tokens_estimate = 0
 
     for iteration in range(1, MAX_ITERATIONS + 1):
-        logger.info(f"[DEV AGENT v3 ULTIMATE] Itération {iteration}/{MAX_ITERATIONS} | Build attempts: {build_attempts}")
+        logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Build attempts: {build_attempts}")
 
-        # === TRUNCATION SIMPLE & EFFICACE (évite ToolMessage orphelins) ===
-        if len(messages) > 30:
-            logger.warning("Historique trop long → truncation simple : garde début + derniers 20 messages")
-            # Trouve l'index du premier ToolMessage
-            first_tool_index = next((i for i, m in enumerate(messages) if isinstance(m, ToolMessage)), len(messages))
-            # Garde tout jusqu'au premier tool + les 20 derniers messages
-            messages = messages[:first_tool_index] + messages[-20:]
+        # Truncation ultra-safe : garde system + initial + paires AIMessage-ToolMessage récentes
+        if len(messages) > 28:
+            logger.warning("Historique trop long → truncation ultra-safe par paires.")
+            kept = [messages[0], messages[1]]  # System + Premier Human
+            i = len(messages) - 1
+            pair_count = 0
+            max_pairs = 12  # ~24 messages max + début
 
-        # Appel LLM
+            while i >= 2 and pair_count < max_pairs:
+                current = messages[i]
+                previous = messages[i-1] if i-1 >= 2 else None
+
+                if isinstance(current, ToolMessage):
+                    # Si c'est un ToolMessage, on garde le AIMessage précédent s'il a tool_calls
+                    if previous and hasattr(previous, "tool_calls") and previous.tool_calls:
+                        kept.insert(2, previous)   # AIMessage
+                        kept.insert(3, current)    # ToolMessage
+                        pair_count += 1
+                        i -= 2
+                    else:
+                        i -= 1  # Drop orphelin
+                elif isinstance(current, HumanMessage) and "TERMINÉ" in current.content:
+                    kept.insert(2, current)
+                    i -= 1
+                elif hasattr(current, "tool_calls") and current.tool_calls:
+                    kept.insert(2, current)
+                    i -= 1
+                else:
+                    i -= 1
+
+            messages = kept
+            logger.info(f"Historique truncaté à {len(messages)} messages (sécurisé).")
+
         response = llm.bind_tools(tools).invoke(messages)
         messages.append(response)
 
-        # Exécution manuelle des tools
         tool_messages = []
         if response.tool_calls:
             for tool_call in response.tool_calls:
                 tool_name = tool_call["name"]
                 tool_to_call = tool_map.get(tool_name)
-
                 if tool_to_call:
                     try:
-                        logger.info(f"Executing tool: {tool_name} with args: {tool_call['args']}")
-                        tool_output = tool_to_call.invoke(tool_call["args"])
-                        tool_messages.append(ToolMessage(content=str(tool_output), tool_call_id=tool_call["id"]))
+                        logger.info(f"Exécution tool: {tool_name}")
+                        output = tool_to_call.invoke(tool_call["args"])
+                        tool_messages.append(ToolMessage(content=str(output), tool_call_id=tool_call["id"]))
                     except Exception as e:
-                        error_msg = f"Error executing tool {tool_name}: {str(e)}"
-                        logger.error(error_msg)
-                        tool_messages.append(ToolMessage(content=error_msg, tool_call_id=tool_call["id"]))
+                        tool_messages.append(ToolMessage(content=f"ERREUR {tool_name}: {e}", tool_call_id=tool_call["id"]))
                 else:
-                    error_msg = f"Tool '{tool_name}' not found."
-                    logger.error(error_msg)
-                    tool_messages.append(ToolMessage(content=error_msg, tool_call_id=tool_call["id"]))
+                    tool_messages.append(ToolMessage(content=f"Tool {tool_name} inconnu", tool_call_id=tool_call["id"]))
 
             messages.extend(tool_messages)
 
-            # Mise à jour files
             for tc in response.tool_calls:
                 if tc["name"] == "write_file":
                     path = tc["args"].get("path")
                     content = tc["args"].get("content")
-                    if path and content is not None:
+                    if path and content is not None and path not in files:  # ÉVITE RÉÉCRITURE
                         files[path] = content
                         logger.info(f"Fichier généré : {path}")
 
-        # Détection build
-        if any("Build successful" in str(m.content) for m in tool_messages):
+        # Détection build succès/échec
+        build_output = " ".join(str(m.content) for m in tool_messages)
+        if "Build successful" in build_output:
             build_success = True
             build_attempts = 0
-        elif any("build" in str(m.content).lower() and ("error" in str(m.content).lower() or "failed" in str(m.content).lower()) for m in tool_messages):
+        elif "build" in build_output.lower() and ("error" in build_output.lower() or "failed" in build_output.lower()):
             build_attempts += 1
 
-        # Self-reflection (list directe)
+        # Forçage progression si fichiers clés présents
+        key_files = ["package.json", "app/layout.tsx", "middleware.ts", "prisma/schema.prisma"]
+        if all(any(k in p for p in files) for k in key_files) and not build_success:
+            messages.append(HumanMessage(content="Fichiers clés présents. Appelle run_build maintenant pour valider le projet."))
+
+        # Reflection renforcée – VERSION DÉFINITIVE FIXÉE (anti-400 + paires préservées)
+        safe_reflection_history = []
+        i = len(messages) - 1
+        pair_count = 0
+        max_pairs = 10
+
+        while i >= 0 and pair_count < max_pairs:
+            current = messages[i]
+            
+            if isinstance(current, ToolMessage):
+                found_parent = False
+                for j in range(i-1, max(i-10, 0), -1):
+                    prev = messages[j]
+                    if (hasattr(prev, "tool_calls") and prev.tool_calls and 
+                        any(tc["id"] == current.tool_call_id for tc in prev.tool_calls if "id" in tc)):
+                        safe_reflection_history.insert(0, prev)
+                        safe_reflection_history.insert(1, current)
+                        pair_count += 1
+                        found_parent = True
+                        i = j - 1
+                        break
+                if not found_parent:
+                    i -= 1
+            else:
+                safe_reflection_history.insert(0, current)
+                i -= 1
+
+        safe_reflection_history = safe_reflection_history[:20]
+
         reflection_messages = [
             SystemMessage(content=(
-                "Analyse l’état actuel du projet selon le workflow séquentiel.\n"
-                f"Tentatives build échouées consécutives : {build_attempts}/{MAX_BUILD_ATTEMPTS}\n"
-                "- Si run_build a réussi → réponds exactement 'TERMINÉ : CODE PRÊT'\n"
-                "- Si plus de 5 échecs build → réponds exactement 'ÉCHEC : ERREUR RÉCURRENTE BUILD'\n"
-                "- Sinon → continue le workflow étape par étape en corrigeant précisément les erreurs détectées."
+                "État actuel :\n"
+                f"Fichiers générés : {list(files.keys())}\n"
+                f"Build attempts : {build_attempts}/{MAX_BUILD_ATTEMPTS}\n"
+                "- Si 'Build successful' dans les logs → réponds 'TERMINÉ : CODE PRÊT'\n"
+                "- Si trop d'échecs → 'ÉCHEC : ERREUR RÉCURRENTE BUILD'\n"
+                "- Sinon → continue l'étape suivante sans réécrire les fichiers existants."
             )),
-            *messages[-18:]
+            *safe_reflection_history
         ]
-        reflection = llm.invoke(reflection_messages).content.strip()
+
+        # FIX ABSOLU : bind_tools obligatoire sur reflection
+        reflection_response = llm.bind_tools(tools).invoke(reflection_messages)
+        reflection = reflection_response.content.strip()
+
+        if hasattr(reflection_response, "tool_calls") and reflection_response.tool_calls:
+            logger.warning("Reflection a généré des tool_calls inattendus → ignorés pour sécurité")
+            # FIX FINAL : ToolMessage placeholder pour chaque call ignoré
+            for tc in reflection_response.tool_calls:
+                messages.append(ToolMessage(
+                    content="Tool call généré par reflection ignoré (sécurité anti-boucle). Aucune exécution.",
+                    tool_call_id=tc["id"]
+                ))
+            # Ne pas ajouter ToolMessage → évite boucle infinie
+
         messages.append(HumanMessage(content=reflection))
         final_message = reflection
 
         if "TERMINÉ : CODE PRÊT" in reflection.upper():
-            logger.info("Dev Agent : Build réussi → terminaison.")
+            logger.info("SUCCESS TOTAL : Premier SaaS généré !")
             build_success = True
             break
-        if "ÉCHEC : ERREUR RÉCURRENTE BUILD" in reflection.upper() or build_attempts >= MAX_BUILD_ATTEMPTS:
-            logger.warning("Dev Agent : Trop d'échecs build → arrêt.")
+        if build_attempts >= MAX_BUILD_ATTEMPTS:
             final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
             break
 
-    # Stats + nettoyage
-    try:
-        total_tokens_estimate = sum(llm.get_num_tokens(m.content) for m in messages if hasattr(m, "content") and isinstance(m.content, str))
-    except:
-        total_tokens_estimate = "indisponible"
-
+    # Nettoyage
     for folder in ["node_modules", ".next", "__pycache__"]:
         if os.path.exists(folder):
             shutil.rmtree(folder, ignore_errors=True)
-            logger.info(f"Nettoyage : {folder} supprimé.")
 
-    logger.info("Dev Agent v3 Ultimate terminé.")
+    logger.info("Dev Agent v3.2 terminé.")
     return {
         "files": files,
         "final_message": final_message,
         "iterations": iteration,
         "success": build_success,
         "build_attempts": build_attempts,
-        "total_messages": len(messages),
-        "token_estimate": total_tokens_estimate
+        "total_messages": len(messages)
     }

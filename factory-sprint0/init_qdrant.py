@@ -52,11 +52,19 @@ standards = [
     # Ajoutes-en autant que tu veux ici plus tard
     {
         "text": "Pinned Dependencies: All `package.json` dependencies must be pinned to exact versions to ensure reproducible builds. Example: `\"next\": \"14.2.3\"`, not `\"^14.2.3\"`.",
-        "metadata": {"category": "build", "tech": "npm", "priority": "high"}
+        "metadata": {"category": "build", "tech": "npm", "priority": "critical", "priority_score": 100}
     },
     {
-        "text": "Password Hashing (bcrypt): User passwords must always be hashed before being stored in the database. Use the `bcrypt` library with a salt factor of at least 10.",
-        "metadata": {"category": "security", "tech": "bcrypt", "priority": "critical"}
+        "text": "Jest Config Officielle Next.js 2026 : Utiliser EXCLUSIVEMENT babel-jest avec preset next/babel. Config exacte : transform '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]. testEnvironment jsdom, setupFilesAfterEnv jest.setup.js, moduleNameMapper pour CSS et @clerk/nextjs/middleware.",
+        "metadata": {"category": "testing", "tech": "jest", "priority": "critical", "priority_score": 100}
+    },
+    {
+        "text": "package.json Priorité Absolue : Génère TOUJOURS package.json en PREMIER avec versions pinned. Obligatoire : \"next\": \"14.2.3\", \"@clerk/nextjs\": \"^5.0.0\", \"prisma\": \"^5.0.0\", \"tailwindcss\": \"^3.4.0\", \"shadcn-ui\": latest.",
+        "metadata": {"category": "build", "tech": "npm", "priority": "critical", "priority_score": 100}
+    },
+    {
+        "text": "Clerk Auth 2026 : Utiliser UNIQUEMENT @clerk/nextjs. Interdit tout autre package Clerk ou auth custom. Mock obligatoire pour tests : __mocks__/clerk-middleware.js avec clerkMiddleware et withClerkMiddleware.",
+        "metadata": {"category": "authentication", "tech": "clerk", "priority": "critical", "priority_score": 100}
     },
     {
         "text": "Input Validation (Zod): All API route inputs and form submissions must be validated server-side using Zod to prevent invalid data and common vulnerabilities like injection.",
@@ -102,6 +110,14 @@ standards = [
         "text": "Tests Jest : Toujours créer un fichier jest.config.js à la racine avec preset ts-jest, testEnvironment jsdom, setupFilesAfterEnv @testing-library/jest-dom, et moduleNameMapper pour CSS avec identity-obj-proxy.",
         "metadata": {"category": "testing", "tech": "jest", "priority": "high"}
     },
+    {
+        "text": "OWASP Top 10 - Injection: Prevent injection flaws by using Prisma's parameterized queries. Never concatenate strings to build database queries.",
+        "metadata": {"category": "security", "tech": "prisma", "priority": "critical"}
+    },
+    {
+        "text": "OWASP Top 10 - Broken Authentication: Manage sessions securely using Clerk's built-in session management. Do not implement custom session logic.",
+        "metadata": {"category": "security", "tech": "clerk", "priority": "critical"}
+    }
 ]
 
 async def init_collection():
