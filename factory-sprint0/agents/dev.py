@@ -88,38 +88,40 @@ RÈGLES ABSOLUES :
     for iteration in range(1, MAX_ITERATIONS + 1):
         logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Build attempts: {build_attempts}")
 
-        # Truncation ultra-safe : garde system + initial + paires AIMessage-ToolMessage récentes
+        # Truncation ultra-safe V3 – Chronologique garantie (build from newest, reverse)
         if len(messages) > 28:
-            logger.warning("Historique trop long → truncation ultra-safe par paires.")
-            kept = [messages[0], messages[1]]  # System + Premier Human
+            logger.warning("Historique trop long → truncation ultra-safe V3 chronologique.")
+            retained = [messages[0], messages[1]]  # System + Premier Human
+
+            recent = []  # Build newest to oldest
             i = len(messages) - 1
             pair_count = 0
-            max_pairs = 12  # ~24 messages max + début
+            max_pairs = 12
 
             while i >= 2 and pair_count < max_pairs:
                 current = messages[i]
-                previous = messages[i-1] if i-1 >= 2 else None
 
                 if isinstance(current, ToolMessage):
-                    # Si c'est un ToolMessage, on garde le AIMessage précédent s'il a tool_calls
-                    if previous and hasattr(previous, "tool_calls") and previous.tool_calls:
-                        kept.insert(2, previous)   # AIMessage
-                        kept.insert(3, current)    # ToolMessage
-                        pair_count += 1
-                        i -= 2
-                    else:
-                        i -= 1  # Drop orphelin
-                elif isinstance(current, HumanMessage) and "TERMINÉ" in current.content:
-                    kept.insert(2, current)
-                    i -= 1
-                elif hasattr(current, "tool_calls") and current.tool_calls:
-                    kept.insert(2, current)
-                    i -= 1
+                    found = False
+                    for j in range(i-1, max(i-20, 0), -1):
+                        prev = messages[j]
+                        if (hasattr(prev, "tool_calls") and prev.tool_calls and
+                            any(tc.get("id") == current.tool_call_id for tc in prev.tool_calls if tc.get("id"))):
+                            recent.append(current) # ToolMessage first when building newest to oldest
+                            recent.append(prev)    # Then its AIMessage parent
+                            pair_count += 1
+                            found = True
+                            i = j - 1
+                            break
+                    if not found:
+                        i -= 1 # Orphaned ToolMessage, skip
                 else:
+                    recent.append(current)
                     i -= 1
 
-            messages = kept
-            logger.info(f"Historique truncaté à {len(messages)} messages (sécurisé).")
+            recent.reverse()  # Now oldest to newest
+            messages = retained + recent
+            logger.info(f"Historique truncaté à {len(messages)} messages (chronologique sécurisé).")
 
         response = llm.bind_tools(tools).invoke(messages)
         messages.append(response)
@@ -209,13 +211,8 @@ RÈGLES ABSOLUES :
 
         if hasattr(reflection_response, "tool_calls") and reflection_response.tool_calls:
             logger.warning("Reflection a généré des tool_calls inattendus → ignorés pour sécurité")
-            # FIX FINAL : ToolMessage placeholder pour chaque call ignoré
-            for tc in reflection_response.tool_calls:
-                messages.append(ToolMessage(
-                    content="Tool call généré par reflection ignoré (sécurité anti-boucle). Aucune exécution.",
-                    tool_call_id=tc["id"]
-                ))
-            # Ne pas ajouter ToolMessage → évite boucle infinie
+            # Do not append placeholder ToolMessages to the main 'messages' list.
+            # This was the source of the persistent BadRequestError.
 
         messages.append(HumanMessage(content=reflection))
         final_message = reflection
