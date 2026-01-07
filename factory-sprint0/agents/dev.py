@@ -26,7 +26,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     Dev Agent v3 Ultimate – Version finale stable.
     Correction boucle jest.config.js + détection run_build + progression forcée.
     """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
 
     tools = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
     tool_map = {tool.name: tool for tool in tools}
@@ -76,7 +76,7 @@ RÈGLES ABSOLUES :
             f"Projet : {project_name}\n\n"
             f"Spec :\n{summarized_spec}\n\n"
             f"Mermaid :\n{summarized_mermaid}\n\n"
-            "Étape 1 : appelle rag_search pour versions Next.js/Clerk/Prisma, puis génère package.json (UNE SEULE FOIS)."
+            "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes next.js clerk prisma tailwind shadcn zod') puis génère package.json."
         ))
     ]
 

@@ -342,6 +342,20 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                     logger.info("Sanitizing package.json before writing...")
                     # Explicitly replace the incorrect ts-jest version
                     content_to_write = content_to_write.replace('"ts-jest": "29.5.0"', '"ts-jest": "29.1.2"')
+                    # Force "next" version to "14.2.3" to resolve peer dependency conflicts
+                    content_to_write = content_to_write.replace(
+                        '"next": "13.4.0"', '"next": "14.2.3"'
+                    ).replace( # Also replace if it's "^13.x.x" or similar
+                        '"next": "^13.4.0"', '"next": "14.2.3"'
+                    ).replace( # Another common problematic version
+                        '"next": "^14.0.0"', '"next": "14.2.3"'
+                    ).replace( # Ensure any other major 13 or 14 is also updated if needed
+                        '"next": "^13', '"next": "14.2.3"'
+                    ).replace(
+                        '"next": "14.0.0"', '"next": "14.2.3"'
+                    ).replace(
+                        '"next": "14.1.0"', '"next": "14.2.3"'
+                    )
 
                 with open(path, "w", encoding='utf-8') as f:
                     f.write(content_to_write)
