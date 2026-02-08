@@ -1,0 +1,46 @@
+# Configuration Centralisée des Agents - Sprint 0.5
+# Version 1.0.0
+
+agents:
+  architect:
+    enabled: true
+    contract_path: "schemas/contracts/architect_agent_contract.json"
+    timeout_seconds: 300
+    max_retries: 3
+
+  dev:
+    enabled: true
+    contract_path: "schemas/contracts/dev_agent_contract.json"
+    timeout_seconds: 1800
+    max_retries: 3
+
+  test:
+    enabled: true
+    contract_path: "schemas/contracts/test_agent_contract.json"
+    timeout_seconds: 900
+    max_retries: 3
+
+  qa:
+    enabled: true
+    contract_path: "schemas/contracts/qa_agent_contract.json"
+    timeout_seconds: 1200
+    max_retries: 3
+
+  github:
+    enabled: true
+    contract_path: "schemas/contracts/github_agent_contract.json"
+    timeout_seconds: 600
+    max_retries: 3
+
+# Configuration pour Sprint 0.5-3 (mode fusion)
+fusion_mode:
+  enabled: true  # Mode fusion par défaut
+  dev_test_agent:
+    responsibilities: ["dev", "test"]
+    contract_dev: "schemas/contracts/dev_agent_contract.json"
+    contract_test: "schemas/contracts/test_agent_contract.json"
+
+# Configuration pour Sprint 4+ (mode split)
+split_mode:
+  enabled: false  # Activable sans refactoring
+  agents_separated: true

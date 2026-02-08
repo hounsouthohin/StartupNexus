@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dev Agent Contract v1.0",
+  "description": "Contract d'interface pour le Dev Agent (génération code Next.js)",
+  "version": "1.0.0",
+  "agent_id": "dev_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["spec", "mermaid", "project_name"],
+    "additionalProperties": false,
+    "properties": {
+      "spec": {
+        "type": "string",
+        "description": "Spécification technique Markdown de l'Architect Agent",
+        "minLength": 100
+      },
+      "mermaid": {
+        "type": "string",
+        "description": "Diagramme Mermaid de l'Architect Agent",
+        "minLength": 50
+      },
+      "project_name": {
+        "type": "string",
+        "description": "Nom du projet",
+        "pattern": "^[a-z0-9-]+$"
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["files", "final_message", "success"],
+    "additionalProperties": false,
+    "properties": {
+      "files": {
+        "type": "object",
+        "description": "Dictionnaire des fichiers générés {path: content}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
+      "final_message": {
+        "type": "string",
+        "description": "Message de statut final (TERMINÉ : CODE PRÊT ou ÉCHEC...)"
+      },
+      "success": {
+        "type": "boolean",
+        "description": "True si build Next.js réussi"
+      },
+      "metadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "iterations": {"type": "integer"},
+          "build_attempts": {"type": "integer"},
+          "total_files": {"type": "integer"}
+        }
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["code", "message"],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string",
+        "enum": [
+          "VALIDATION_ERROR",
+          "BUILD_ERROR",
+          "SYNTAX_ERROR",
+          "DEPENDENCY_ERROR",
+          "TIMEOUT_ERROR"
+        ]
+      },
+      "message": {"type": "string"},
+      "details": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "failed_files": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "build_logs": {"type": "string"}
+        }
+      }
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["healthy", "degraded", "unhealthy"]
+      },
+      "checks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tools_available": {"type": "boolean"},
+          "rag_connection": {"type": "boolean"}
+        }
+      },
+      "last_check": {"type": "string", "format": "date-time"}
+    }
+  }
+}

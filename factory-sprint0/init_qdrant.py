@@ -1,195 +1,132 @@
 import asyncio
+import os
+from uuid import uuid4
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
 from langchain_openai import OpenAIEmbeddings
-import os
 
+# Configuration
 load_dotenv(dotenv_path='.env')
+COLLECTION_NAME = "factory_standards"
+EMBEDDINGS = OpenAIEmbeddings(model="text-embedding-3-large")
+QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 
+# --- Fonctions Utilitaires ---
 
-collection_name = "factory_standards"
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")  # ou ton modèle préféré
+def get_qdrant_client():
+    """Initialise et retourne un client Qdrant."""
+    return QdrantClient(url=QDRANT_URL)
 
-# === PREMIERS STANDARDS (on commence solide, on enrichira après) ===
-standards = [
-    {
-        "text": "CLERK EXCLUSIF - INTERDIRE CUSTOM AUTH\nProjet SaaS : utiliser UNIQUEMENT Clerk. Supprimer bcrypt, JWT, routes /api/auth, champ password. Générer pages Clerk standards, UserButton, Tailwind + shadcn/ui.",
-        "metadata": {"category": "authentication", "priority": "critical", "priority_score": 100}
-    },
-    {
-        "text": "Dans tout projet Next.js impliquant de l'authentification : utiliser EXCLUSIVEMENT Clerk (@clerk/nextjs). Interdire bcrypt, stockage de passwords, JWT custom, table Session séparée. Utiliser les pages/routes Clerk standards : app/sign-in/[[...sign-in]]/page.tsx et app/sign-up/[[...sign-up]]/page.tsx. Toute implémentation manuelle d'auth est une violation critique des standards.",
-        "metadata": {"category": "authentication", "tech": "clerk", "priority": "critical", "priority_score": 100}
-    },
-    {
-        "text": "UI/UX : Toujours utiliser shadcn/ui + Tailwind CSS. Composants accessibles, dark mode natif. Mobile-first obligatoire. Utiliser la fonction cn() de tailwind-merge pour les className conditionnelles.",
-        "metadata": {"category": "ui", "tech": "tailwind", "priority": "high"}
-    },
-    {
-        "text": "Frontend : Next.js 14+ avec App Router obligatoire. Server Components par défaut. Route handlers dans app/api/. Fetch data côté serveur. Utiliser React Server Components pour performances.",
-        "metadata": {"category": "frontend", "tech": "nextjs", "priority": "high"}
-    },
-    {
-        "text": "Backend : Prisma ORM avec PostgreSQL ou MongoDB. Schema strict dans prisma/schema.prisma. Toujours définir relations explicites. Migrations avec prisma migrate dev.",
-        "metadata": {"category": "backend", "tech": "prisma", "priority": "high"}
-    },
-    {
-        "text": "Authentification : Prioriser Clerk ou NextAuth v5 (app router). Sinon JWT + httpOnly cookies sécurisés. Jamais stocker JWT en localStorage. Refresh tokens obligatoires. Blacklist ou expiry court.",
-        "metadata": {"category": "security", "tech": "auth", "priority": "critical"}
-    },
-    {
-        "text": "Architecture Mermaid : Toujours séparer Frontend / Backend / Database avec subgraphs. Montrer flux JWT (génération → stockage → header → middleware). Mettre en évidence parties sécurisées (bcrypt, middleware auth).",
-        "metadata": {"category": "architecture", "tech": "mermaid", "priority": "high"}
-    },
-    {
-        "text": "Sécurité : HTTPS obligatoire, validation inputs (zod), rate limiting, CORS strict, protection CSRF, headers security (helmet). Hachage bcrypt + sel.",
-        "metadata": {"category": "security", "tech": "general", "priority": "critical"}
-    },
-    {
-        "text": "Structure projet Next.js : app/ pour pages et API routes, components/, lib/, actions/, types/. Toujours séparer server-only et client components.",
-        "metadata": {"category": "structure", "tech": "nextjs", "priority": "high"}
-    },
-    # Ajoutes-en autant que tu veux ici plus tard
-    {
-        "text": "Pinned Dependencies: All `package.json` dependencies must be pinned to exact versions to ensure reproducible builds. Example: `\"next\": \"14.2.3\"`, not `\"^14.2.3\"`.",
-        "metadata": {"category": "build", "tech": "npm", "priority": "critical", "priority_score": 100}
-    },
-    {
-        "text": "Jest Config Officielle Next.js 2026 : Utiliser EXCLUSIVEMENT babel-jest avec preset next/babel. Config exacte : transform '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]. testEnvironment jsdom, setupFilesAfterEnv jest.setup.js, moduleNameMapper pour CSS et @clerk/nextjs/middleware.",
-        "metadata": {"category": "testing", "tech": "jest", "priority": "critical", "priority_score": 100}
-    },
-    {
-        "text": "package.json Priorité Absolue : Génère TOUJOURS package.json en PREMIER avec versions pinned. Obligatoire : \"next\": \"14.2.3\", \"@clerk/nextjs\": \"^5.0.0\", \"prisma\": \"^5.0.0\", \"tailwindcss\": \"^3.4.0\", \"shadcn-ui\": latest.",
-        "metadata": {"category": "build", "tech": "npm", "priority": "critical", "priority_score": 100}
-    },
-    {
-        "text": "Clerk Auth 2026 : Utiliser UNIQUEMENT @clerk/nextjs. Interdit tout autre package Clerk ou auth custom. Mock obligatoire pour tests : __mocks__/clerk-middleware.js avec clerkMiddleware et withClerkMiddleware.",
-        "metadata": {"category": "authentication", "tech": "clerk", "priority": "critical", "priority_score": 100}
-    },
-    {
-        "text": "Input Validation (Zod): All API route inputs and form submissions must be validated server-side using Zod to prevent invalid data and common vulnerabilities like injection.",
-        "metadata": {"category": "security", "tech": "zod", "priority": "high"}
-    },
-    {
-        "text": "Authentication Middleware (Clerk): Protect all application routes by default using Clerk's `middleware.ts`. Only explicitly public pages (e.g., `/sign-in`) should be exempted.",
-        "metadata": {"category": "security", "tech": "clerk", "priority": "critical"}
-    },
-    {
-        "text": "OWASP Top 10 - Injection: Prevent injection flaws by using Prisma's parameterized queries. Never concatenate strings to build database queries.",
-        "metadata": {"category": "security", "tech": "prisma", "priority": "critical"}
-    },
-    {
-        "text": "OWASP Top 10 - Broken Authentication: Manage sessions securely using Clerk's built-in session management. Do not implement custom session logic.",
-        "metadata": {"category": "security", "tech": "clerk", "priority": "critical"}
-    },
-    {
-        "text": "Mocking Authentication in Tests: When testing components that use Clerk, mock the `@clerk/nextjs` library using `jest.mock('@clerk/nextjs')` to provide a controlled test environment.",
-        "metadata": {"category": "testing", "tech": "jest", "priority": "high"}
-    },
-    {
-        "text": "Test Coverage Standard: All new components, hooks, and API routes must have a corresponding Jest test file with a target of >80% test coverage.",
-        "metadata": {"category": "testing", "tech": "jest", "priority": "medium"}
-    },
-    {
-        "text": "State Management: For simple global state, use React Context. For complex state, consider using Zustand, but consult RAG for project approval first.",
-        "metadata": {"category": "frontend", "tech": "react", "priority": "medium"}
-    },
-    {
-        "text": "UI Components (shadcn/ui): All UI components should be built using `shadcn/ui` and Tailwind CSS for consistency. Do not introduce other UI libraries without architectural approval.",
-        "metadata": {"category": "ui", "tech": "shadcn", "priority": "high"}
-    },
-    {
-        "text": "Error Handling in APIs: API routes should handle errors gracefully, return appropriate HTTP status codes (e.g., 400 for bad request, 500 for server error), and log errors server-side.",
-        "metadata": {"category": "backend", "tech": "api", "priority": "high"}
-    },
-    {
-        "text": "Environment Variables: Sensitive information like API keys and database URLs must be loaded from environment variables (`.env`) and never be hardcoded in the source code.",
-        "metadata": {"category": "security", "tech": "general", "priority": "critical"}
-    },
-    {
-        "text": "Tests Jest : Toujours créer un fichier jest.config.js à la racine avec preset ts-jest, testEnvironment jsdom, setupFilesAfterEnv @testing-library/jest-dom, et moduleNameMapper pour CSS avec identity-obj-proxy.",
-        "metadata": {"category": "testing", "tech": "jest", "priority": "high"}
-    },
-    {
-        "text": "OWASP Top 10 - Injection: Prevent injection flaws by using Prisma's parameterized queries. Never concatenate strings to build database queries.",
-        "metadata": {"category": "security", "tech": "prisma", "priority": "critical"}
-    },
-    {
-        "text": "OWASP Top 10 - Broken Authentication: Manage sessions securely using Clerk's built-in session management. Do not implement custom session logic.",
-        "metadata": {"category": "security", "tech": "clerk", "priority": "critical"}
-    }
-]
+async def upsert_dynamic_standard(text: str, metadata: dict):
+    """
+    Embed un texte et l'ajoute (upsert) comme un nouveau standard dynamique dans Qdrant.
+    Utilise un UUID pour garantir un identifiant unique.
+    """
+    client = get_qdrant_client()
+    try:
+        vector = EMBEDDINGS.embed_query(text)
+        
+        # Utiliser UUID pour un ID unique et robuste
+        point_id = str(uuid4())
+        
+        client.upsert(
+            collection_name=COLLECTION_NAME,
+            points=[
+                PointStruct(
+                    id=point_id,
+                    vector=vector,
+                    payload={"text": text, "metadata": metadata}
+                )
+            ],
+            wait=True
+        )
+        print(f"✅ Standard dynamique upserté avec succès. ID: {point_id}")
+        return point_id
+    except Exception as e:
+        print(f"❌ Erreur lors de l'upsert du standard dynamique : {e}")
+        return None
 
 async def init_collection():
-    # --- CONFIGURATION AMÉLIORÉE ---
-    # L'URL est maintenant lue depuis une variable d'environnement pour la flexibilité en production.
-    # Fallback sur localhost si la variable n'est pas définie.
-    qdrant_url = os.getenv("QDRANT_URL", "http://qdrant:6333")
-    client = QdrantClient(url=qdrant_url)
-    
-    # --- LOGIQUE DE CONNEXION ROBUSTE AVEC RETRY ---
-    max_retries = 10
+    """
+    Initialise la connexion à Qdrant, crée la collection si elle n'existe pas,
+    et vérifie si elle est prête pour l'ajout dynamique de standards.
+    """
+    client = get_qdrant_client()
+    max_retries = 5
     wait_seconds = 5
+
+    # 1. Connexion robuste à Qdrant
     for attempt in range(max_retries):
         try:
-            # La méthode la plus simple pour vérifier la connexion est de faire un appel léger.
-            client.get_collections() 
+            client.get_collections()
             print("✅ Connexion à Qdrant réussie !")
-            break # Sort de la boucle si la connexion est OK
+            break
         except Exception as e:
-            print(f"⚠️ Tentative {attempt + 1}/{max_retries} échouée. Impossible de se connecter à Qdrant à l'adresse {qdrant_url}. Erreur : {e}")
+            print(f"⚠️ Tentative {attempt + 1}/{max_retries} échouée: {e}")
             if attempt < max_retries - 1:
-                print(f"   Prochaine tentative dans {wait_seconds} secondes...")
                 await asyncio.sleep(wait_seconds)
             else:
-                print("❌ Échec de la connexion à Qdrant après plusieurs tentatives. Le script va s'arrêter.")
-                raise # Propage l'exception pour faire échouer le script si Qdrant n'est pas dispo
+                print("❌ Échec de la connexion à Qdrant. Le script va s'arrêter.")
+                raise
 
-    # --- CRÉATION DE LA COLLECTION ---
+    # 2. Création/Vérification de la collection
     try:
         collections_response = client.get_collections()
         collection_names = [c.name for c in collections_response.collections]
         
-        if collection_name not in collection_names:
-            print(f"La collection '{collection_name}' n'existe pas. Création...")
+        if COLLECTION_NAME not in collection_names:
+            print(f"La collection '{COLLECTION_NAME}' n'existe pas. Création...")
             client.create_collection(
-                collection_name=collection_name,
-                vectors_config=VectorParams(size=3072, distance=Distance.COSINE), # 3072 pour text-embedding-3-large
+                collection_name=COLLECTION_NAME,
+                vectors_config=VectorParams(size=3072, distance=Distance.COSINE),
             )
-            print(f"Collection '{collection_name}' créée avec succès.")
+            print(f"Collection '{COLLECTION_NAME}' créée avec succès.")
         else:
-            print(f"La collection '{collection_name}' existe déjà.")
+            print(f"La collection '{COLLECTION_NAME}' existe déjà.")
 
-        # --- EMBEDDING ET UPLOAD DES STANDARDS ---
-        print("Début de l'embedding et de l'upload des standards...")
-        points_to_upsert = []
-        for i, item in enumerate(standards):
-            # L'embedding est une opération qui peut prendre du temps.
-            vector = embeddings.embed_query(item["text"])
-            points_to_upsert.append(
-                PointStruct(
-                    id=i + 1, # Les IDs doivent être uniques
-                    vector=vector,
-                    payload={
-                        "text": item["text"],
-                        "metadata": item["metadata"]
-                    }
-                )
-            )
-        
-        # Upsert en batch pour plus d'efficacité
-        client.upsert(
-            collection_name=collection_name,
-            points=points_to_upsert,
-            wait=True # Attendre que l'opération soit terminée
-        )
-        
-        print(f"✅ {len(standards)} standards ont été injectés/mis à jour dans Qdrant ! 🚀")
-        print("   L'Agent Architecte peut maintenant utiliser le RAG pour des specs et diagrammes de haute qualité.")
+        # 3. Vérification du contenu de la collection
+        count_response = client.count(collection_name=COLLECTION_NAME, exact=True)
+        if count_response.count == 0:
+            print("텅텅 Standards vides – ready for Learner upsert. 텅텅")
+        else:
+            print(f"📊 La collection contient {count_response.count} standard(s).")
 
     except Exception as e:
-        print(f"❌ Une erreur est survenue pendant la création de la collection ou l'upload des points : {e}")
+        print(f"❌ Une erreur est survenue : {e}")
         raise
 
+async def main_simulation():
+    """
+    Simule le workflow complet : initialisation puis ajout d'un standard.
+    """
+    print("--- Début de la simulation ---")
+    
+    # Étape 1: Assurer que la collection est prête
+    await init_collection()
+    
+    print("\n--- Simulation de l'ajout par un 'Learner' ---")
+    
+    # Étape 2: Un agent 'Learner', après un build réussi, ajoute un nouveau standard.
+    # Ceci est un exemple de comment la fonction `upsert_dynamic_standard` serait appelée.
+    winning_pattern_text = "Winning pattern: Pour les projets Next.js 14.2+, la dépendance `sharp` est souvent nécessaire pour l'optimisation d'images. L'ajouter via `npm install sharp` résout les erreurs de build sur Vercel."
+    winning_pattern_metadata = {
+        "category": "build",
+        "tech": "nextjs",
+        "source": "learner_agent_run_123",
+        "outcome": "success"
+    }
+    
+    await upsert_dynamic_standard(winning_pattern_text, winning_pattern_metadata)
+    
+    # Vérification que le standard a bien été ajouté
+    client = get_qdrant_client()
+    count_response = client.count(collection_name=COLLECTION_NAME, exact=True)
+    print(f"📊 Nombre de standards après upsert : {count_response.count}")
+
+    print("\n--- Fin de la simulation ---")
+
+
 if __name__ == "__main__":
-    asyncio.run(init_collection())
+    # Exécute la simulation complète pour démonstration
+    asyncio.run(main_simulation())

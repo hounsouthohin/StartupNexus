@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Test Agent Contract v1.0",
+  "description": "Contract d'interface pour le Test Coverage Agent",
+  "version": "1.0.0",
+  "agent_id": "test_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["files"],
+    "additionalProperties": false,
+    "properties": {
+      "files": {
+        "type": "object",
+        "description": "Fichiers sources à tester {path: content}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["tests"],
+    "additionalProperties": false,
+    "properties": {
+      "tests": {
+        "type": "object",
+        "description": "Tests générés {path: content}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "coverage_estimate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "test_count": {"type": "integer"}
+        }
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["code", "message"],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string",
+        "enum": ["VALIDATION_ERROR", "GENERATION_ERROR", "TIMEOUT_ERROR"]
+      },
+      "message": {"type": "string"},
+      "details": {"type": "object", "additionalProperties": false}
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {"type": "string", "enum": ["healthy", "degraded", "unhealthy"]},
+      "checks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jest_available": {"type": "boolean"}
+        }
+      },
+      "last_check": {"type": "string", "format": "date-time"}
+    }
+  }
+}

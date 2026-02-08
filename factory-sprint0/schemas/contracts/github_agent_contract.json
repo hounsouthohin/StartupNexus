@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GitHub Agent Contract v1.0",
+  "description": "Contract d'interface pour le GitHub Agent (création repo + PR)",
+  "version": "1.0.0",
+  "agent_id": "github_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["files", "project_name"],
+    "additionalProperties": false,
+    "properties": {
+      "files": {
+        "type": "object",
+        "description": "Tous les fichiers à pusher {path: content}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
+      "project_name": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["pr_url"],
+    "additionalProperties": false,
+    "properties": {
+      "pr_url": {
+        "type": "string",
+        "format": "uri",
+        "description": "URL de la Pull Request créée"
+      },
+      "repo_url": {
+        "type": "string",
+        "format": "uri",
+        "description": "URL du repository GitHub"
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["code", "message"],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string",
+        "enum": [
+          "VALIDATION_ERROR",
+          "GITHUB_AUTH_ERROR",
+          "REPO_CREATION_ERROR",
+          "PR_CREATION_ERROR",
+          "TIMEOUT_ERROR"
+        ]
+      },
+      "message": {"type": "string"},
+      "details": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "github_error": {"type": "string"}
+        }
+      }
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {"type": "string", "enum": ["healthy", "degraded", "unhealthy"]},
+      "checks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "github_token_valid": {"type": "boolean"},
+          "api_accessible": {"type": "boolean"}
+        }
+      },
+      "last_check": {"type": "string", "format": "date-time"}
+    }
+  }
+}

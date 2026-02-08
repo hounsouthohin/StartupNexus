@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Architect Agent Contract v1.0",
+  "description": "Contract d'interface pour l'Architect Agent (génération specs + diagrammes)",
+  "version": "1.0.0",
+  "agent_id": "architect_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["phrase"],
+    "additionalProperties": false,
+    "properties": {
+      "phrase": {
+        "type": "string",
+        "description": "Commande utilisateur décrivant le projet SaaS à créer",
+        "minLength": 10,
+        "maxLength": 5000,
+        "examples": ["Crée un SaaS de gestion de tâches avec authentification Clerk"]
+      },
+      "project_name": {
+        "type": "string",
+        "description": "Nom du projet (optionnel, auto-généré si absent)",
+        "pattern": "^[a-z0-9-]+$",
+        "examples": ["task-manager", "saas-crm"]
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["specification", "mermaid_diagram"],
+    "additionalProperties": false,
+    "properties": {
+      "specification": {
+        "type": "string",
+        "description": "Spécification technique complète en Markdown",
+        "minLength": 500
+      },
+      "mermaid_diagram": {
+        "type": "string",
+        "description": "Diagramme Mermaid valide (syntaxe vérifiée)",
+        "minLength": 100
+      },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "rag_standards_used": {
+            "type": "integer",
+            "description": "Nombre de standards RAG utilisés"
+          },
+          "generation_time_seconds": {
+            "type": "number",
+            "description": "Temps de génération en secondes"
+          }
+        }
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["code", "message"],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string",
+        "enum": [
+          "VALIDATION_ERROR",
+          "RAG_CONNECTION_ERROR",
+          "LLM_ERROR",
+          "MERMAID_SYNTAX_ERROR",
+          "TIMEOUT_ERROR"
+        ]
+      },
+      "message": {"type": "string"},
+      "details": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "failed_step": {
+            "type": "string",
+            "enum": ["retrieval", "planner", "spec_writer", "diagrammer"]
+          },
+          "raw_error": {"type": "string"}
+        }
+      }
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["healthy", "degraded", "unhealthy"]
+      },
+      "checks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rag_connection": {"type": "boolean"},
+          "llm_available": {"type": "boolean"},
+          "mermaid_cli_available": {"type": "boolean"}
+        }
+      },
+      "last_check": {"type": "string", "format": "date-time"}
+    }
+  }
+}
