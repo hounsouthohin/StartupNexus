@@ -1,6 +1,7 @@
 # run/worker.py – tout en haut du fichier
 import sys
 import os
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import asyncio
@@ -10,6 +11,9 @@ from flask import Flask, request, jsonify
 from temporalio.client import Client
 from temporalio.worker import Worker
 from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxRestrictions
+# Imports supplémentaires (en haut)
+from workflows.todo_pilot_workflow import TodoPilotWorkflow
+from workflows.activities.dev_test_activity import dev_test_activity
 
 # Autorise logging et traceback à accéder à os.stat
 sandbox_restrictions = SandboxRestrictions.default.with_passthrough_modules(
@@ -62,10 +66,10 @@ async def main():
     worker = Worker(
         client,
         task_queue="factory-queue",
-        workflows=[SaaSFactoryWorkflow],
+        workflows=[SaaSFactoryWorkflow,TodoPilotWorkflow,],
         activities=[
             architect_activity,
-            dev_activity,
+            dev_test_activity,
             github_activity,
             test_coverage_activity,
             qa_activity,

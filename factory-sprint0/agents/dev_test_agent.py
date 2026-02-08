@@ -25,7 +25,8 @@ class DevTestAgent:
         logger.info("DevTestAgent chargé — 2 contrats distincts (dev + test)")
 
     def _load_contract(self, filename: str) -> Dict:
-        path = Path("schemas/contracts") / filename
+        base_path = Path(__file__).parent.parent # This gets to factory-sprint0
+        path = base_path / "schemas" / "contracts" / filename
         if not path.exists():
             raise FileNotFoundError(f"Contrat manquant : {path}")
         with path.open(encoding="utf-8") as f:

@@ -1,8 +1,9 @@
 from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
-from typing import Dict
-
+from typing import Dict, Any
+# Ajouter en haut du fichier (après autres imports activities)
+from workflows.activities.dev_test_activity import dev_test_activity
 # Import the new activities
 from workflows.activities.test_coverage_activity import test_coverage_activity
 from workflows.activities.qa_activity import qa_activity
@@ -41,28 +42,26 @@ class SaaSFactoryWorkflow:
             
         workflow.logger.info("Architecte terminé – sortie structurée OK")
 
-        # Étape 2 : Dev Activity
-        dev_input = {"spec": spec_part, "mermaid": mermaid_part, "project_name": project_name}
-        dev_result: Dict = await workflow.execute_activity(
-            "dev_activity",
-            dev_input,
-            start_to_close_timeout=timedelta(minutes=30),
-            retry_policy=common_retry_policy,
-        )
-        workflow.logger.info("Dev terminé – code généré")
+        # Étape 2 : Dev + Test fusionnés (remplace les deux activities séparées)
+        dev_test_input = {
+            "spec": spec_part,          # issu de architect_result
+            "mermaid": mermaid_part,
+            "project_name": project_name
+        }
 
-        # Étape 3 : TestCoverage Activity
-        test_result: Dict = await workflow.execute_activity(
-            "test_coverage_activity",
-            dev_result.get("files", {}),
-            start_to_close_timeout=timedelta(minutes=15),
+        dev_test_result: Dict[str, Any] = await workflow.execute_activity(
+            "dev_test_activity",        # nom enregistré dans worker
+            dev_test_input,
+            start_to_close_timeout=timedelta(minutes=45),  # 30 + 15 ≈ marge
             retry_policy=common_retry_policy,
         )
-        generated_tests = test_result.get("tests", {})
-        if not generated_tests:
-            workflow.logger.warning("TestCoverage Agent did not generate any tests.")
-        else:
-            workflow.logger.info(f"TestCoverage terminé – {len(generated_tests)} tests générés")
+
+        workflow.logger.info(
+            f"DevTest fusionné terminé - "
+            f"{dev_test_result.get('metadata', {}).get('total_files', 0)} fichiers générés"
+        )
+
+        all_files = dev_test_result.get("combined_files", {})
 
         # Étape 4 : QA Activity
         qa_result: Dict = await workflow.execute_activity(
@@ -79,8 +78,7 @@ class SaaSFactoryWorkflow:
 
 
         # Étape 5 : GitHub Activity
-        all_files = dev_result.get("files", {})
-        all_files.update(generated_tests)
+        # 'all_files' is already initialized with 'combined_files' from dev_test_result
         all_files.update(generated_e2e_tests) # Include E2E tests for GitHub
 
         github_input = {
