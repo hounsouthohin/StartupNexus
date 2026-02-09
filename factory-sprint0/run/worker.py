@@ -1,4 +1,4 @@
-# run/worker.py – tout en haut du fichier
+# run/worker.py – Version finale polish Sprint 0.5
 import sys
 import os
 
@@ -10,21 +10,14 @@ from queue import Queue
 from flask import Flask, request, jsonify
 from temporalio.client import Client
 from temporalio.worker import Worker
-from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxRestrictions
-# Imports supplémentaires (en haut)
-from workflows.todo_pilot_workflow import TodoPilotWorkflow
-from workflows.activities.dev_test_activity import dev_test_activity
 
-# Autorise logging et traceback à accéder à os.stat
-sandbox_restrictions = SandboxRestrictions.default.with_passthrough_modules(
-    ("logging", "traceback", "linecache", "warnings", "sys", "builtins")
-)
-
+# Imports workflows & activities (sans sandbox pour dev local)
 from workflows.factory_workflow import SaaSFactoryWorkflow
+from workflows.todo_pilot_workflow import TodoPilotWorkflow
+
 from workflows.activities.architect_activity import architect_activity
-from workflows.activities.dev_activity import dev_activity
+from workflows.activities.dev_test_activity import dev_test_activity
 from workflows.activities.github_activity import github_activity
-from workflows.activities.test_coverage_activity import test_coverage_activity
 from workflows.activities.qa_activity import qa_activity
 
 # Queue thread-safe Flask → Temporal
@@ -38,7 +31,7 @@ def start_saas():
     job_queue.put({"phrase": phrase})
     return jsonify({
         "message": "Factory lancée – SaaS en cours de création",
-        "suivi": "http://temporal-ui:8080"
+        "suivi": "http://localhost:8080"  # temporal-ui local
     })
 
 def run_flask():
@@ -59,23 +52,26 @@ async def workflow_dispatcher(client):
         job_queue.task_done()
 
 async def main():
-    client = await Client.connect("temporal:7233")
+    client = await Client.connect("localhost:7233")
 
     threading.Thread(target=run_flask, daemon=True).start()
 
+    # Version qui marche : sandbox désactivé pour dev local
+    # (on le remettra en prod avec pass-through précis)
     worker = Worker(
         client,
         task_queue="factory-queue",
-        workflows=[SaaSFactoryWorkflow,TodoPilotWorkflow,],
+        workflows=[SaaSFactoryWorkflow, TodoPilotWorkflow],
         activities=[
             architect_activity,
             dev_test_activity,
             github_activity,
-            test_coverage_activity,
             qa_activity,
         ],
-        workflow_runner=SandboxedWorkflowRunner(restrictions=sandbox_restrictions),
+        # Désactive sandbox temporairement (clé pour passer github/requests)
+        workflow_runner=None,
     )
+
     print("Worker + API Flask démarrés – prêts 🚀")
     print("Test : POST http://localhost:5000/start-saas avec {'phrase': 'crée un SaaS de gestion de tâches'}")
 

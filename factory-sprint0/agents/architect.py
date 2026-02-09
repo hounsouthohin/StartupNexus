@@ -12,6 +12,7 @@ from typing import List, TypedDict, Annotated
 import operator
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+from langchain_core.messages import HumanMessage
 
 load_dotenv(override=True)
 
@@ -40,7 +41,6 @@ def load_prompts():
             content = f.read()
         
         prompts = {}
-        # Find all sections starting with a '#' heading
         pattern = r'#\s*(.*?)\n(.*?)(?=\n#\s*|\Z)'
         matches = re.findall(pattern, content, re.DOTALL)
         
@@ -68,7 +68,7 @@ def create_architect_agent():
     prompts = load_prompts()
     
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-    client = QdrantClient(url="http://qdrant:6333")
+    client = QdrantClient(url="http://localhost:6333")
     vectorstore = QdrantVectorStore(client=client, collection_name="factory_standards", embedding=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
     llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
@@ -86,7 +86,6 @@ def create_architect_agent():
         chain = prompts['planner'] | llm
         llm_response = await chain.ainvoke({"input": input_text})
         
-        # Robustly extract JSON from LLM response
         match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
         json_content = match.group(1).strip() if match else llm_response.content.strip()
 
@@ -97,7 +96,6 @@ def create_architect_agent():
             raise ValueError(f"Planner failed to produce a valid JSON plan. Raw LLM response: {llm_response.content}. Error: {e}")
 
     async def spec_writer_node(state: AgentState):
-        # Provide more context to the LLM by including the original request
         original_request = state["messages"][0].content
         plan_json = json.dumps(state['plan'], indent=2)
         
@@ -111,11 +109,13 @@ def create_architect_agent():
         return {"specification": llm_response.content}
 
     async def diagrammer_node(state: AgentState):
-        from langchain_core.messages import HumanMessage
-        
         max_attempts = 3
         attempts = 0
         input_text = f"Technical Specification:\n{state['specification']}"
+        
+        # Dossier fixe pour Windows + Docker (crée-le manuellement : C:\temp\mermaid)
+        host_dir = r"C:\temp\mermaid"
+        os.makedirs(host_dir, exist_ok=True)
         
         while attempts < max_attempts:
             attempts += 1
@@ -125,25 +125,22 @@ def create_architect_agent():
             match = re.search(r'```(?:mermaid)?\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
             mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
 
-            # Validate the Mermaid syntax using minlag/mermaid-cli Docker image
             try:
-                # Force tempfile to create in /tmp so it's accessible by the Docker volume mount
-                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.mmd', dir='/tmp') as tmp_file:
+                # Création fichier temporaire dans dossier fixe
+                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.mmd', dir=host_dir) as tmp_file:
                     tmp_file.write(mermaid_code)
                     tmp_file_path = tmp_file.name
                 
                 input_filename = os.path.basename(tmp_file_path)
                 output_filename = f"{input_filename}.png"
 
-                host_dir = '/tmp' # Add this line
-
-                container_input_path = f"/data/{input_filename}"
-                container_output_path = f"/data/{output_filename}"
+                print(f"[DEBUG] Fichier créé : {tmp_file_path}")
+                print(f"[DEBUG] Existe ? {os.path.exists(tmp_file_path)}")
+                print(f"[DEBUG] Montage volume : {host_dir}:/data")
 
                 subprocess.run(
                     [
                         'docker', 'run', '--rm',
-                        '--user', f"{os.getuid()}:{os.getgid()}",
                         '-v', f"{host_dir}:/data",
                         'minlag/mermaid-cli:latest',
                         '-i', f"/data/{input_filename}",
@@ -155,24 +152,26 @@ def create_architect_agent():
                     timeout=120
                 )
                 
-                # If validation is successful, clean up and return
+                # Nettoyage
                 os.remove(tmp_file_path)
-                os.remove(os.path.join('/tmp', output_filename)) # Output file is also in /tmp now
+                output_path = os.path.join(host_dir, output_filename)
+                if os.path.exists(output_path):
+                    os.remove(output_path)
+                
+                print(f"[DEBUG] Mermaid validé après {attempts} tentatives")
                 return {"mermaid_diagram": mermaid_code}
 
             except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
-                # Ensure temp file is cleaned up on error
                 if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
                     os.remove(tmp_file_path)
                 
                 error_message = f"Mermaid syntax validation failed (Attempt {attempts}/{max_attempts}). Error: {e.stderr or e.stdout}"
-                print(error_message) # Or use a proper logger
+                print(error_message)
+                
                 if attempts >= max_attempts:
                     raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts. Last error: {error_message}")
                 
-                # Prepare for retry
                 input_text += f"\n\nPrevious attempt failed. The generated diagram was invalid. Please correct the syntax based on this error: {error_message}"
-                # The HumanMessage here simulates the ReAct feedback loop for the LLM
                 state["messages"].append(HumanMessage(content=f"Diagram generation failed with error: {error_message}. Please fix the Mermaid syntax."))
 
         raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts.")
