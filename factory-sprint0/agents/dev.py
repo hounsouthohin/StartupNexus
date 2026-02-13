@@ -193,6 +193,7 @@ RÈGLES ABSOLUES :
 
         safe_reflection_history = safe_reflection_history[:20]
 
+        # REMPLACE tout le bloc "Reflection renforcée" par ceci :
         reflection_messages = [
             SystemMessage(content=(
                 "État actuel :\n"
@@ -202,12 +203,13 @@ RÈGLES ABSOLUES :
                 "- Si trop d'échecs → 'ÉCHEC : ERREUR RÉCURRENTE BUILD'\n"
                 "- Sinon → continue l'étape suivante sans réécrire les fichiers existants."
             )),
-            *safe_reflection_history
+            HumanMessage(content=f"Fichiers générés jusqu'ici : {list(files.keys())}")
         ]
 
-        # FIX ABSOLU : bind_tools obligatoire sur reflection
-        reflection_response = llm.bind_tools(tools).invoke(reflection_messages)
+        # PAS de bind_tools sur la reflection — juste du texte
+        reflection_response = llm.invoke(reflection_messages)
         reflection = reflection_response.content.strip()
+    # Pas besoin de gérer tool_calls ici — llm.invoke sans tools ne peut pas en générer
 
         if hasattr(reflection_response, "tool_calls") and reflection_response.tool_calls:
             logger.warning("Reflection a généré des tool_calls inattendus → ignorés pour sécurité")

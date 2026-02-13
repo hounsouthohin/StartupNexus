@@ -20,7 +20,7 @@ async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     validate_input("qa_agent", input_data)
 
     project_name = input_data.get("project_name", "projet-sans-nom")
-    spec_summary = input_data.get("specification_summary", "Application SaaS générique")
+    spec_summary = input_data.get("specification", "Application SaaS générique")
 
     activity.logger.info(f"QA activity démarrée → Projet: {project_name}")
 

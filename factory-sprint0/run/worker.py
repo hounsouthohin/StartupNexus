@@ -1,37 +1,41 @@
 """
 run/worker.py
-Worker Temporal — Software Agent Factory
-Enregistre tous les workflows et activities.
+Worker Temporal pour la Software Agent Factory
 """
 
 import asyncio
 import logging
-from temporalio.client import Client
-from temporalio.worker import Worker
+import os
+import sys
 
-# Workflows
+# Force le chemin racine du projet
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, PROJECT_ROOT)
+
+# Imports
 from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
-# Activities (Import pass-through recommandé pour Temporal)
-with Worker.with_import_pass_through():
-    from workflows.activities.architect_activity import architect_activity
-    from workflows.activities.dev_test_activity import dev_test_activity
-    from workflows.activities.qa_activity import qa_activity
-    from workflows.activities.github_activity import github_activity
+from workflows.activities.architect_activity import architect_activity
+from workflows.activities.dev_test_activity import dev_test_activity
+from workflows.activities.qa_activity import qa_activity
+from workflows.activities.github_activity import github_activity
+
+from temporalio.client import Client
+from temporalio.worker import Worker
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s | %(name)-22s | %(levelname)-7s | %(message)s"
 )
 logger = logging.getLogger(__name__)
 
 TASK_QUEUE = "factory-task-queue"
 
+
 async def main():
-    # Connexion au serveur Temporal local (Docker par défaut)
     client = await Client.connect("localhost:7233")
-    
+
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,
@@ -46,15 +50,26 @@ async def main():
             github_activity,
         ],
     )
-    
-    logger.info(f"🚀 Worker démarré sur queue '{TASK_QUEUE}'")
-    logger.info("✅ Workflows enregistrés: SaaSFactoryWorkflow, TodoPilotWorkflow")
-    logger.info("✅ Activities enregistrées: architect, dev_test, qa, github")
+
+    logger.info("╔════════════════════════════════════════════╗")
+    logger.info("║     Software Agent Factory Worker          ║")
+    logger.info("║     Queue : factory-task-queue             ║")
+    logger.info("╚════════════════════════════════════════════╝")
+
+    # Logging statique (pas d'accès aux attributs internes)
+    logger.info(f"Workflows   : {', '.join(w.__name__ for w in [SaaSFactoryWorkflow, TodoPilotWorkflow])}")
+    logger.info(f"Activities  : {', '.join(a.__name__ for a in [architect_activity, dev_test_activity, qa_activity, github_activity])}")
+
+    logger.info("Worker en écoute... (Ctrl+C pour arrêter)")
     
     await worker.run()
+
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Worker arrêté par l'utilisateur.")
+        logger.info("Worker arrêté proprement (Ctrl+C)")
+    except Exception as e:
+        logger.exception("Erreur critique dans le worker")
+        sys.exit(1)
