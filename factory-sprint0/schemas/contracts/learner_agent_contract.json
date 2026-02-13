@@ -1,0 +1,209 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "agent_id": "learner_agent",
+  "version": "0.1.0-shadow",
+  "description": "LearnerAgent — Mode shadow Sprint 2-3. Observe les runs et suggère des standards sans écrire dans Qdrant. Activation mode actif conditionné à validation >70% Sprint 4-5.",
+  "status": "SHADOW_MODE",
+  "activation_sprint": 2,
+  "active_mode_sprint": 5,
+
+  "input_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["project_name", "specification", "generated_files", "run_metrics"],
+    "properties": {
+      "project_name": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Nom du projet analysé"
+      },
+      "specification": {
+        "type": "string",
+        "minLength": 50,
+        "description": "Spécification générée par ArchitectAgent (Markdown)"
+      },
+      "generated_files": {
+        "type": "object",
+        "description": "Fichiers générés par DevTestAgent {path: content}",
+        "additionalProperties": { "type": "string" }
+      },
+      "run_metrics": {
+        "type": "object",
+        "required": ["total_duration_seconds", "status"],
+        "properties": {
+          "total_duration_seconds": { "type": "number", "minimum": 0 },
+          "architect_duration_seconds": { "type": "number", "minimum": 0 },
+          "dev_test_duration_seconds": { "type": "number", "minimum": 0 },
+          "qa_duration_seconds": { "type": "number", "minimum": 0 },
+          "github_duration_seconds": { "type": "number", "minimum": 0 },
+          "status": { "type": "string", "enum": ["SUCCESS", "FAILURE", "PARTIAL"] },
+          "intervention_count": { "type": "integer", "minimum": 0 },
+          "retry_count": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "e2e_tests": {
+        "type": "object",
+        "description": "Tests E2E générés par QAAgent (optionnel)",
+        "additionalProperties": { "type": "string" }
+      },
+      "pr_url": {
+        "type": "string",
+        "format": "uri",
+        "description": "URL de la PR GitHub créée (optionnel)"
+      }
+    }
+  },
+
+  "output_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["mode", "project_name", "suggested_standards", "analysis_summary"],
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": ["shadow"],
+        "description": "Mode toujours 'shadow' Sprint 2-3 — jamais 'active' avant Sprint 5"
+      },
+      "project_name": {
+        "type": "string",
+        "description": "Nom du projet analysé"
+      },
+      "suggested_standards": {
+        "type": "array",
+        "description": "Standards suggérés — loggés dans learner_shadow_log.json, pas écrits dans Qdrant",
+        "items": {
+          "type": "object",
+          "required": ["text", "metadata", "confidence_score", "rationale"],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 50,
+              "description": "Texte du standard suggéré (sera le vecteur Qdrant si validé)"
+            },
+            "metadata": {
+              "type": "object",
+              "required": ["category", "source"],
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": ["nextjs", "clerk", "prisma", "shadcn", "testing", "deployment", "security", "architecture", "pattern"]
+                },
+                "source": {
+                  "type": "string",
+                  "description": "Origine: project_name du run d'apprentissage"
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": ["observed", "inferred", "validated"]
+                }
+              }
+            },
+            "confidence_score": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Score de confiance de la suggestion (0.0-1.0)"
+            },
+            "rationale": {
+              "type": "string",
+              "description": "Justification de la suggestion (pourquoi ce pattern est utile)"
+            },
+            "human_review": {
+              "type": "string",
+              "enum": ["PENDING", "APPROVED", "REJECTED"],
+              "default": "PENDING"
+            }
+          }
+        }
+      },
+      "analysis_summary": {
+        "type": "object",
+        "required": ["patterns_detected", "total_suggestions", "avg_confidence"],
+        "properties": {
+          "patterns_detected": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Nombre de patterns identifiés dans ce run"
+          },
+          "total_suggestions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "avg_confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "categories_covered": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "shadow_log_entry": {
+        "type": "object",
+        "description": "Entrée à ajouter dans logs/shadow/learner_shadow_log.json",
+        "properties": {
+          "run_timestamp": { "type": "string", "format": "date-time" },
+          "project_name": { "type": "string" },
+          "suggestions_count": { "type": "integer" }
+        }
+      }
+    }
+  },
+
+  "error_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["error_code", "message"],
+    "properties": {
+      "error_code": {
+        "type": "string",
+        "enum": [
+          "INSUFFICIENT_DATA",
+          "ANALYSIS_FAILED",
+          "LLM_ERROR",
+          "SHADOW_MODE_VIOLATION",
+          "VALIDATION_ERROR"
+        ]
+      },
+      "message": { "type": "string" },
+      "recoverable": { "type": "boolean" },
+      "shadow_mode_active": {
+        "type": "boolean",
+        "description": "Toujours true Sprint 2-3"
+      }
+    }
+  },
+
+  "health_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["status", "mode"],
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["healthy", "degraded", "unavailable"]
+      },
+      "mode": {
+        "type": "string",
+        "enum": ["shadow", "active"],
+        "description": "Shadow Sprint 2-3, Active Sprint 5+"
+      },
+      "shadow_log_entries": {
+        "type": "integer",
+        "description": "Nombre d'entrées dans le shadow log"
+      },
+      "approval_rate": {
+        "type": ["number", "null"],
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Taux d'approbation humain (null si < 5 suggestions)"
+      },
+      "activation_ready": {
+        "type": "boolean",
+        "description": "True si approval_rate > 0.70 ET shadow_log_entries >= 15"
+      }
+    }
+  }
+}

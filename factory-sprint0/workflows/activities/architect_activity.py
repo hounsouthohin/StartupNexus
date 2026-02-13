@@ -1,32 +1,48 @@
-# workflows/activities/architect_activity.py
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 import os
+import sys
 from dotenv import load_dotenv
-import re
-import json
+from typing import Dict
 
-@activity.defn
-async def architect_activity(input_data: dict) -> dict:
-    # Imports moved inside the activity function
-    from agents.architect import create_architect_agent
-    from langchain_core.messages import HumanMessage
-    
+# Ajout des validations de contrat (doit être au niveau module)
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from scripts.validate_contracts import validate_input, validate_output
+
+
+@activity.defn(name="architect_activity")
+async def architect_activity(input_data: Dict) -> Dict:
+    """
+    Activity qui exécute l'Architect Agent (génération de spec + diagramme Mermaid).
+    """
     load_dotenv(override=True)
 
+    # Vérification minimale de la clé API (avant même la validation contrat)
     if not os.getenv("OPENAI_API_KEY"):
-        raise ValueError("OPENAI_API_KEY manquante dans les variables d'environnement")
+        raise ApplicationError("MISSING_CONFIGURATION", "OPENAI_API_KEY manquante")
+
+    # ── 1. Validation du contrat d'entrée ────────────────────────────────
+    validate_input("architect_agent", input_data)
 
     phrase = input_data.get("phrase", "").strip()
-    if not phrase:
-        raise ValueError("Le champ 'phrase' est requis et ne peut pas être vide")
+    project_name = input_data.get("project_name", "projet-sans-nom")
 
-    activity.logger.info(f"Agent Architecte démarré – Requête : {phrase}")
+    activity.logger.info(f"Architect démarré → Projet: {project_name} | Phrase: {phrase[:80]}...")
 
+    # ── 2. Imports différés (pour éviter les problèmes de circularité ou de worker startup) ──
+    try:
+        from agents.architect import create_architect_agent
+        from langchain_core.messages import HumanMessage
+    except ImportError as import_err:
+        activity.logger.error(f"Échec import modules Architect : {import_err}")
+        raise ApplicationError("IMPORT_FAILURE", f"Impossible d'importer l'agent Architect: {import_err}")
+
+    # ── 3. Création et exécution de l'agent ───────────────────────────────
     try:
         architect_agent = create_architect_agent()
     except Exception as e:
-        activity.logger.error(f"Échec création du graph Architecte : {str(e)}")
-        raise
+        activity.logger.error(f"Échec création du graph Architect : {str(e)}", exc_info=True)
+        raise ApplicationError("AGENT_INIT_FAILED", f"Impossible de créer l'agent Architect: {str(e)}")
 
     initial_state = {
         "messages": [HumanMessage(content=phrase)],
@@ -40,19 +56,27 @@ async def architect_activity(input_data: dict) -> dict:
         final_state = await architect_agent.ainvoke(initial_state)
         architect_output = final_state.get("architect_output")
 
-        # The agent now returns a validated Pydantic object.
-        # If the agent failed, it will have raised an exception internally.
-        if architect_output and hasattr(architect_output, 'specification') and hasattr(architect_output, 'mermaid_diagram'):
-            activity.logger.info("Extraction réussie : Pydantic model fourni par l'agent.")
-            return {
-                'specification': architect_output.specification,
-                'mermaid_diagram': architect_output.mermaid_diagram
-            }
-        else:
-            # This case should ideally not be reached if the agent is robust.
-            activity.logger.error("L'agent n'a pas retourné l'objet Pydantic attendu.")
-            raise ValueError("Architect Agent did not return the expected Pydantic output.")
+        if not architect_output:
+            raise ValueError("architect_output manquant dans l'état final")
+
+        # On suppose que l'agent retourne déjà un dict / Pydantic → on extrait
+        output_dict = {
+            "specification": architect_output.specification
+                if hasattr(architect_output, "specification")
+                else architect_output.get("specification", ""),
+            "mermaid_diagram": architect_output.mermaid_diagram
+                if hasattr(architect_output, "mermaid_diagram")
+                else architect_output.get("mermaid_diagram", ""),
+        }
+
+        # ── 4. Validation stricte du contrat de sortie ───────────────────────
+        validate_output("architect_agent", output_dict)
+
+        activity.logger.info(f"Architect terminé → {len(output_dict['specification'])} caractères de spec générés")
+        return output_dict
 
     except Exception as e:
-        activity.logger.error(f"Erreur lors de l'exécution de l'activité Architecte : {str(e)}")
+        activity.logger.error(f"Échec exécution Architect : {str(e)}", exc_info=True)
+        if isinstance(e, Exception):  # on attrape tout, mais on relance typed
+            raise ApplicationError("ARCHITECT_EXECUTION_FAILED", str(e))
         raise

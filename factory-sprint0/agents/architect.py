@@ -140,7 +140,14 @@ def create_architect_agent():
                 print(f"[DEBUG] Montage volume : {host_dir}:/data")
 
                # Remplacer subprocess.run(...) par :
-                await asyncio.to_thread(subprocess.run, [...], check=True, capture_output=True, text=True, timeout=120)
+                await asyncio.to_thread(
+                subprocess.run,
+                ['docker', 'run', ...],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
                 
                 # Nettoyage
                 os.remove(tmp_file_path)

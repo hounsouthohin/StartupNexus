@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "mode": "shadow",
+  "description": "LearnerAgent Shadow Mode — Sprint 2-3. Suggestions loggées ici, pas d'écriture Qdrant.",
+  "activation_sprint": 2,
+  "activation_date": null,
+  "active_mode_conditions": {
+    "validation_threshold": 0.70,
+    "min_suggestions": 15,
+    "schema_validation_required": true,
+    "min_projects": 3
+  },
+  "suggested_standards": [],
+  "confidence_scores": [],
+  "schema_validation": "PENDING",
+  "projects_analyzed": [],
+  "total_suggestions": 0,
+  "review_status": "AWAITING_SPRINT_2",
+  "last_updated": null,
+  "human_review": {
+    "reviewer": null,
+    "review_date": null,
+    "approved_count": 0,
+    "rejected_count": 0,
+    "approval_rate": null
+  }
+}

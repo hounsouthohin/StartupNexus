@@ -107,6 +107,7 @@ Fichiers générés : {dev_test_result.get('metadata', {}).get('total_files', 0)
 Mode             : {dev_test_result.get('metadata', {}).get('mode', 'inconnu')}
 
 GitHub PR        : {github_result.get('pr_url', 'N/A')}
+Repo URL         : {github_result.get('repo_url', 'N/A')}
 
 Validation :
 → DevTestAgent   : Fonctionnel

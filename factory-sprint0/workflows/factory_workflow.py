@@ -95,4 +95,4 @@ class SaaSFactoryWorkflow:
             retry_policy=common_retry_policy,
         )
         workflow.logger.info("GitHub terminé")
-        return f"Workflow terminé avec succès. GitHub PR: {github_result}"
+        return f"Workflow terminé avec succès. GitHub PR: {github_result.get('pr_url', 'N/A')}"
