@@ -7,6 +7,13 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
+import datetime
+
+with workflow.unsafe.imports_passed_through():
+    from workflows.activities.architect_activity import architect_activity
+    from workflows.activities.dev_test_activity import dev_test_activity
+    from workflows.activities.github_activity import github_activity
+    from workflows.activities.qa_activity import qa_activity
 
 @workflow.defn
 class TodoPilotWorkflow:
@@ -19,7 +26,7 @@ class TodoPilotWorkflow:
 
         workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase}")
 
-        start_time = workflow.time()  # déterministe !
+        start_time = workflow.now()  # déterministe !
 
         common_retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=5),
@@ -29,7 +36,7 @@ class TodoPilotWorkflow:
 
         # 1. Architect
         architect_result: Dict[str, Any] = await workflow.execute_activity(
-            "architect_activity",
+            architect_activity,
             {"phrase": phrase, "project_name": project_name},
             start_to_close_timeout=timedelta(seconds=300),
             retry_policy=common_retry_policy,
@@ -48,7 +55,7 @@ class TodoPilotWorkflow:
         }
 
         dev_test_result: Dict[str, Any] = await workflow.execute_activity(
-            "dev_test_activity",
+            dev_test_activity,
             dev_test_input,
             start_to_close_timeout=timedelta(minutes=45),
             retry_policy=common_retry_policy,
@@ -59,14 +66,25 @@ class TodoPilotWorkflow:
             f"Success: {dev_test_result.get('success', False)}"
         )
 
-        # 3. GitHub PR
+        # Après dev_test_result, avant github_input :
+        qa_result: Dict[str, Any] = await workflow.execute_activity(
+            qa_activity,
+            {"specification": spec_part, "project_name": project_name},
+            start_to_close_timeout=timedelta(minutes=10),
+            retry_policy=common_retry_policy,
+        )
+        e2e_tests = qa_result.get("e2e_tests", {})
+        workflow.logger.info(f"QA terminé – {len(e2e_tests)} tests générés")
+
+        # Et mettre à jour github_input :
         github_input = {
-            "files": dev_test_result.get("combined_files", {}),
+            "files": {**dev_test_result.get("combined_files", {}), **e2e_tests},
             "project_name": project_name,
         }
 
+
         github_result: str = await workflow.execute_activity(
-            "github_activity",
+            github_activity,
             github_input,
             start_to_close_timeout=timedelta(minutes=10),
             retry_policy=common_retry_policy,
@@ -74,8 +92,7 @@ class TodoPilotWorkflow:
 
         workflow.logger.info("GitHub terminé")
 
-        end_time = workflow.time()
-        total_time = end_time - start_time
+        total_time = (workflow.now() - start_time).total_seconds()
 
         # Rapport final (simple string, facile à parser plus tard)
         report = f"""
@@ -89,7 +106,7 @@ Fichiers générés : {dev_test_result.get('metadata', {}).get('total_files', 0)
   → Test         : {dev_test_result.get('metadata', {}).get('test_files_count', 0)}
 Mode             : {dev_test_result.get('metadata', {}).get('mode', 'inconnu')}
 
-GitHub PR        : {github_result}
+GitHub PR        : {github_result.get('pr_url', 'N/A')}
 
 Validation :
 → DevTestAgent   : Fonctionnel

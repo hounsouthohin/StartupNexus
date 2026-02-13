@@ -36,7 +36,7 @@ async def qa_activity(input_data: dict) -> dict:
         # Here, you might want to write the test code to a file
         # and then use the 'playwright_test' tool to run it.
         # For now, we return the generated code.
-        return {"generated_e2e_tests": generated_test_code}
+        return {"e2e_tests": {"tests/e2e/generated_test.spec.ts": generated_test_code}}
 
     except Exception as e:
         activity.logger.error(f"QA Agent activity failed: {str(e)}")

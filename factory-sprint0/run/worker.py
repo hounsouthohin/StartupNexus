@@ -1,4 +1,3 @@
-# run/worker.py – Version finale polish Sprint 0.5
 import sys
 import os
 
@@ -11,7 +10,6 @@ from flask import Flask, request, jsonify
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-# Imports workflows & activities (sans sandbox pour dev local)
 from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
@@ -20,9 +18,7 @@ from workflows.activities.dev_test_activity import dev_test_activity
 from workflows.activities.github_activity import github_activity
 from workflows.activities.qa_activity import qa_activity
 
-# Queue thread-safe Flask → Temporal
 job_queue = Queue()
-
 app = Flask(__name__)
 
 @app.route('/start-saas', methods=['POST'])
@@ -31,7 +27,7 @@ def start_saas():
     job_queue.put({"phrase": phrase})
     return jsonify({
         "message": "Factory lancée – SaaS en cours de création",
-        "suivi": "http://localhost:8080"  # temporal-ui local
+        "suivi": "http://localhost:8080"
     })
 
 def run_flask():
@@ -56,8 +52,7 @@ async def main():
 
     threading.Thread(target=run_flask, daemon=True).start()
 
-    # Version qui marche : sandbox désactivé pour dev local
-    # (on le remettra en prod avec pass-through précis)
+    # ✅ Sandbox strict par défaut — aucune restriction custom ici
     worker = Worker(
         client,
         task_queue="factory-queue",
@@ -68,8 +63,6 @@ async def main():
             github_activity,
             qa_activity,
         ],
-        # Désactive sandbox temporairement (clé pour passer github/requests)
-        workflow_runner=None,
     )
 
     print("Worker + API Flask démarrés – prêts 🚀")

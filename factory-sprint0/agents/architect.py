@@ -7,6 +7,7 @@ import os
 import json
 import re
 import subprocess
+import asyncio
 import tempfile
 from typing import List, TypedDict, Annotated
 import operator
@@ -138,19 +139,8 @@ def create_architect_agent():
                 print(f"[DEBUG] Existe ? {os.path.exists(tmp_file_path)}")
                 print(f"[DEBUG] Montage volume : {host_dir}:/data")
 
-                subprocess.run(
-                    [
-                        'docker', 'run', '--rm',
-                        '-v', f"{host_dir}:/data",
-                        'minlag/mermaid-cli:latest',
-                        '-i', f"/data/{input_filename}",
-                        '-o', f"/data/{output_filename}"
-                    ],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                    timeout=120
-                )
+               # Remplacer subprocess.run(...) par :
+                await asyncio.to_thread(subprocess.run, [...], check=True, capture_output=True, text=True, timeout=120)
                 
                 # Nettoyage
                 os.remove(tmp_file_path)

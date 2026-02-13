@@ -93,7 +93,7 @@ async def github_activity(input_data: Dict) -> str:
     if open_prs.totalCount > 0:
         pr = open_prs[0]
         activity.logger.warning(f"An open Pull Request from 'dev' to '{main_branch_name}' already exists: {pr.html_url}. Skipping creation.")
-        return pr.html_url
+        return {"pr_url": pr.html_url, "repo_url": repo.html_url}
     
     activity.logger.info("No existing PR found. Creating a new one...")
     try:
@@ -104,8 +104,8 @@ async def github_activity(input_data: Dict) -> str:
             head="dev"
         )
         activity.logger.info(f"Pull Request created: {pr.html_url}")
-        return pr.html_url
+        return {"pr_url": pr.html_url, "repo_url": repo.html_url}
     except Exception as e:
         activity.logger.error(f"Failed to create Pull Request: {e}")
         # If PR creation fails for other reasons, return the repo URL as a fallback.
-        return repo.html_url
+        return {"pr_url": pr.html_url, "repo_url": repo.html_url}

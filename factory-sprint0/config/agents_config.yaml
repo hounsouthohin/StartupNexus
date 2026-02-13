@@ -44,3 +44,16 @@ fusion_mode:
 split_mode:
   enabled: false  # Activable sans refactoring
   agents_separated: true
+
+  learner_agent:
+      enabled: false  # Shadow mode Sprint 2
+      contract_path: "schemas/contracts/learner_agent_contract.json"
+      timeout_seconds: 300
+      max_retries: 1
+      mode: "shadow"  # shadow | active (actif Sprint 5 si validation >70%)
+
+orchestration:
+  superviseur_mode: "observateur"  # observateur | actif (post Sprint 4)
+  superviseur_doc: "docs/SUPERVISEUR_DRAFT_v0.md"
+  review_mandatory: "sprint_4"
+  baseline_path: "logs/metrics/baseline_sprint05.json"
