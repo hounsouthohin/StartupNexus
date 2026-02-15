@@ -1,0 +1,74 @@
+{
+  "agent_name": "dev_test_agent",
+  "version": "1.0.0",
+  "mode": "fusion",
+  "description": "Contrat fusionné Dev+Test (Sprints 0.5-3)",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["spec", "mermaid", "project_name"],
+    "properties": {
+      "spec":         { "type": "string" },
+      "mermaid":      { "type": "string" },
+      "project_name": { "type": "string" }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["dev_output", "combined_files", "success"],
+    "properties": {
+      "dev_output": {
+        "type": "object",
+        "properties": {
+          "files":         { "type": "object" },
+          "final_message": { "type": "string" },
+          "success":       { "type": "boolean" }
+        }
+      },
+      "test_output": {
+        "type": "object",
+        "properties": {
+          "tests":   { "type": "object" },
+          "success": { "type": "boolean" }
+        }
+      },
+      "combined_files": { "type": "object" },
+      "success":        { "type": "boolean" },
+      "metadata": {
+        "type": "object",
+        "properties": {
+          "total_files":      { "type": "integer" },
+          "mode":             { "type": "string" },
+          "dev_files_count":  { "type": "integer" },
+          "test_files_count": { "type": "integer" }
+        }
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["success", "error"],
+    "properties": {
+      "success": { "type": "boolean", "enum": [false] },
+      "error": {
+        "type": "object",
+        "properties": {
+          "phase":   { "type": "string", "enum": ["dev", "test"] },
+          "message": { "type": "string" }
+        }
+      },
+      "combined_files": { "type": "object" }
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "properties": {
+      "status": { "type": "string", "enum": ["healthy", "degraded"] },
+      "mode":   { "type": "string", "enum": ["fusion", "split"] },
+      "checks": { "type": "object" }
+    }
+  }
+}

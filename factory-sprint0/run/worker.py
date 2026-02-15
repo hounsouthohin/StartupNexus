@@ -34,8 +34,8 @@ TASK_QUEUE = "factory-task-queue"
 
 
 async def main():
-    client = await Client.connect("localhost:7233")
-
+    temporal_address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
+    client = await Client.connect(temporal_address)
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,
