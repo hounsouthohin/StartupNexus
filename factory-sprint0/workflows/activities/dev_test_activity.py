@@ -18,7 +18,7 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
     activity.logger.info(f"DevTest démarré → Projet: {project_name}")
 
     # ── 1. Validation entrée ───────────────────────────────────────────────
-    validate_input("dev_agent", input_data)          # ou "test_agent" si contrat séparé
+    validate_input("dev_test_agent", input_data)
 
     # ── 2. Import différé de l'agent ──────────────────────────────────────
     try:
@@ -36,7 +36,7 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError(f"dev_test_agent a retourné {type(result)} au lieu d'un dict")
 
         # ── 4. Validation sortie ──────────────────────────────────────────
-        validate_output("dev_agent", result)         # ou "test_agent" si séparé
+        validate_output("dev_test_agent", result)
 
         metadata = result.get("metadata", {})
         activity.logger.info(

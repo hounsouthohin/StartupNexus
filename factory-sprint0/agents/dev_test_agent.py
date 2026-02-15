@@ -92,8 +92,8 @@ class DevTestAgent:
 
     def _error_payload(self, failed_phase: str, msg: str) -> Dict:
         return {
-            "dev_output": {} if failed_phase == "dev" else None,
-            "test_output": {} if failed_phase == "test" else None,
+            "dev_output": {},
+            "test_output": {},
             "combined_files": {},
             "success": False,
             "error": {"phase": failed_phase, "message": msg}

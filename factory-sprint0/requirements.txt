@@ -1,5 +1,6 @@
 temporalio==1.21.1
 flask
+jsonschema
 langgraph
 langchain
 langchain-openai

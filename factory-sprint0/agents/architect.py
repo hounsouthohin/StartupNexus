@@ -15,6 +15,7 @@ import operator
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
+from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
 
 load_dotenv(override=True)
 logger = logging.getLogger(__name__)
@@ -70,9 +71,9 @@ def create_architect_agent():
 
     prompts = load_prompts()
     
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-    client = QdrantClient(url="http://localhost:6333")
-    vectorstore = QdrantVectorStore(client=client, collection_name="factory_standards", embedding=embeddings)
+    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    client = QdrantClient(url=QDRANT_URL)
+    vectorstore = QdrantVectorStore(client=client, collection_name=QDRANT_COLLECTION_NAME, embedding=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
     llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
 
@@ -119,8 +120,9 @@ def create_architect_agent():
         attempts = 0
         input_text = f"Technical Specification:\n{state['specification']}"
         
-        # Dossier fixe pour Windows + Docker (crée-le manuellement : C:\temp\mermaid)
-        host_dir = r"C:\temp\mermaid"
+        # Dossier temporaire cross-platform (Windows local / Linux Docker)
+        default_mermaid_dir = r"C:\temp\mermaid" if os.name == "nt" else "/tmp/mermaid"
+        host_dir = os.getenv("MERMAID_TMP_DIR", default_mermaid_dir)
         os.makedirs(host_dir, exist_ok=True)
         
         while attempts < max_attempts:

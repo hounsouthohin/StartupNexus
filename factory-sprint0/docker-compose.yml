@@ -135,8 +135,12 @@ services:
       - "5000:5000"
     env_file:
       - .env
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - QDRANT_URL=http://qdrant:6333
+      - MERMAID_TMP_DIR=/tmp/mermaid
     command: >
-      bash -c "python scripts/wait-for-it.py qdrant:6333 90 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 90 && python run/worker.py"
+      bash -c "python scripts/wait-for-it.py qdrant:6333 90 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 90 && python api/flask_api.py & python run/worker.py"
     volumes:
 
       - /var/run/docker.sock:/var/run/docker.sock

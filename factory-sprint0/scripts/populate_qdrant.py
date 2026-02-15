@@ -15,7 +15,7 @@ from langchain_openai import OpenAIEmbeddings
 
 load_dotenv(dotenv_path='.env')
 
-QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
+QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 COLLECTION_NAME = "factory_standards"
 EMBEDDINGS = OpenAIEmbeddings(model="text-embedding-3-large")
 
