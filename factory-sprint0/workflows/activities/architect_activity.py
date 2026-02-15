@@ -9,6 +9,27 @@ from typing import Dict
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from scripts.validate_contracts import validate_input, validate_output
 
+FORBIDDEN_PATTERNS = [
+    "bcrypt",
+    "jwt",
+    "jsonwebtoken",
+    "password_hash",
+    "next-auth",
+    "nextauth",
+    "/api/auth/register",
+    "/api/auth/login",
+    "password field",
+]
+
+
+def _validate_clerk_compliance(spec: str, mermaid: str) -> list:
+    violations = []
+    content = (spec + " " + mermaid).lower()
+    for pattern in FORBIDDEN_PATTERNS:
+        if pattern.lower() in content:
+            violations.append(pattern)
+    return violations
+
 
 @activity.defn(name="architect_activity")
 async def architect_activity(input_data: Dict) -> Dict:
@@ -68,6 +89,17 @@ async def architect_activity(input_data: Dict) -> Dict:
                 if hasattr(architect_output, "mermaid_diagram")
                 else architect_output.get("mermaid_diagram", ""),
         }
+
+        violations = _validate_clerk_compliance(
+            output_dict.get("specification", ""),
+            output_dict.get("mermaid_diagram", ""),
+        )
+        if violations:
+            raise ApplicationError(
+                "SPEC_NOT_CLERK_COMPLIANT",
+                f"Spec rejetee - patterns interdits detectes : {violations}. "
+                f"L'architect doit utiliser Clerk exclusivement."
+            )
 
         # ── 4. Validation stricte du contrat de sortie ───────────────────────
         validate_output("architect_agent", output_dict)

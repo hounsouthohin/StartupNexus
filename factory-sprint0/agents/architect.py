@@ -20,6 +20,21 @@ from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_
 load_dotenv(override=True)
 logger = logging.getLogger(__name__)
 
+FORBIDDEN_AUTH_PATTERNS = [
+    r"\bbcrypt\b",
+    r"\bjwt\b",
+    r"\bnextauth\b",
+    r"\bnext-auth\b",
+    r"\bpassword_hash\b",
+    r"\bhashed_password\b",
+    r"/api/auth/",
+]
+
+
+def _contains_forbidden_auth(text: str) -> bool:
+    lowered = text.lower()
+    return any(re.search(pattern, lowered) for pattern in FORBIDDEN_AUTH_PATTERNS)
+
 # --- Pydantic Models for State ---
 class ArchitectOutput(BaseModel):
     specification: str = Field(description="The full technical specification in Markdown format.")
@@ -113,7 +128,22 @@ def create_architect_agent():
         
         chain = prompts['spec_writer'] | llm
         llm_response = await chain.ainvoke({"input": input_text})
-        return {"specification": llm_response.content}
+        specification = llm_response.content
+
+        if _contains_forbidden_auth(specification):
+            logger.warning("Spec contains forbidden auth terms. Forcing one rewrite with strict Clerk constraints.")
+            harden_input = (
+                input_text
+                + "\n\nMANDATORY REWRITE:\n"
+                  "- Replace any JWT/bcrypt/NextAuth/password-based auth with Clerk-only auth.\n"
+                  "- Prisma schema must not contain password or password_hash fields.\n"
+                  "- Keep PostgreSQL + Prisma and Next.js architecture.\n"
+                  "- Return only corrected markdown."
+            )
+            llm_response = await chain.ainvoke({"input": harden_input})
+            specification = llm_response.content
+
+        return {"specification": specification}
 
     async def diagrammer_node(state: AgentState):
         max_attempts = 3

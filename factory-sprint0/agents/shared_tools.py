@@ -1,9 +1,9 @@
 import codecs
+import json
 import os
 import subprocess
 from datetime import datetime
-from functools import lru_cache
-import time # Add this import at the top of the file
+import time
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
@@ -50,8 +50,32 @@ logger = Logger()
 
 # --- Tool Definitions ---
 
+MAX_TOOL_OUTPUT_CHARS = 1800
+RAG_CACHE_MAX_SIZE = 50
+_rag_cache: dict[str, str] = {}
+
+
+def _truncate_output(output: str, max_chars: int = MAX_TOOL_OUTPUT_CHARS) -> str:
+    if len(output) <= max_chars:
+        return output
+    half = max_chars // 2
+    return (
+        output[:half]
+        + f"\n...[output tronque: {len(output) - max_chars} chars]...\n"
+        + output[-half:]
+    )
+
+
+def _resolve_safe_path(path: str, base_dir: str = ".") -> tuple[bool, str]:
+    if os.path.isabs(path):
+        return False, "Absolute paths are forbidden for security reasons."
+    base_abs = os.path.abspath(base_dir)
+    candidate_abs = os.path.abspath(os.path.join(base_dir, path))
+    if os.path.commonpath([base_abs, candidate_abs]) != base_abs:
+        return False, "Path traversal outside project directory is forbidden."
+    return True, candidate_abs
+
 @tool
-@lru_cache(maxsize=50)
 def rag_search(query: str) -> str:
     """
     Searches for development standards in the 'factory_standards' Qdrant collection.
@@ -59,6 +83,8 @@ def rag_search(query: str) -> str:
     Example: rag_search("How to implement Clerk authentication?")
     """
     logger.info(f"Executing rag_search with query: '{query}'")
+    if query in _rag_cache:
+        return _rag_cache[query]
     if not vectorstore:
         logger.error("RAG search failed: Vectorstore is not initialized.")
         return "Aucun résultat (erreur de recherche)."
@@ -66,7 +92,11 @@ def rag_search(query: str) -> str:
     try:
         retriever = vectorstore.as_retriever(search_kwargs={"k": DEFAULT_VECTOR_SEARCH_LIMIT})
         docs = retriever.invoke(query)
-        return "\n\n".join([doc.page_content for doc in docs])
+        result = "\n\n".join([doc.page_content for doc in docs])
+        if len(_rag_cache) >= RAG_CACHE_MAX_SIZE:
+            _rag_cache.pop(next(iter(_rag_cache)))
+        _rag_cache[query] = result
+        return result
     except Exception as e:
         logger.error(f"RAG search encountered an error: {e}")
         return "Aucun résultat (erreur de recherche)."
@@ -82,16 +112,20 @@ def write_file(path: str, content: str) -> str:
     For security, absolute paths are prohibited.
     """
     # Security check: prevent writing outside the project directory.
-    if os.path.isabs(path):
-        return "Error: Absolute paths are forbidden for security reasons."
+    is_safe, safe_path_or_err = _resolve_safe_path(path)
+    if not is_safe:
+        return f"Error: {safe_path_or_err}"
 
     try:
+        safe_path = safe_path_or_err
         # Log if the file already exists to track overwrites.
-        if os.path.exists(path):
+        if os.path.exists(safe_path):
             logger.warning(f"File '{path}' already exists and will be overwritten.")
         
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding='utf-8') as f:
+        parent_dir = os.path.dirname(safe_path)
+        if parent_dir:
+            os.makedirs(parent_dir, exist_ok=True)
+        with open(safe_path, "w", encoding='utf-8') as f:
             f.write(content)
         return f"File '{path}' was written successfully."
     except Exception as e:
@@ -143,9 +177,11 @@ def validate_syntax(file_path: str) -> str:
     except subprocess.TimeoutExpired:
         return f"Validation timed out for '{file_path}' after {SUBPROCESS_TIMEOUT_SHORT} seconds."
     except subprocess.CalledProcessError as e:
-        return (f"Validation error for '{file_path}' (Exit Code: {e.returncode}):\n"
-                f"STDOUT:\n{e.stdout}\n"
-                f"STDERR:\n{e.stderr}")
+        return _truncate_output(
+            f"Validation error for '{file_path}' (Exit Code: {e.returncode}):\n"
+            f"STDOUT:\n{e.stdout}\n"
+            f"STDERR:\n{e.stderr}"
+        )
     except FileNotFoundError:
         return "Error: 'npx' not found. Please ensure Node.js and npm are installed."
     except Exception as e:
@@ -220,7 +256,9 @@ def prisma_migrate(schema_path: str) -> str:
                 cwd=schema_dir, 
                 timeout=SUBPROCESS_TIMEOUT_MEDIUM
             )
-            return f"Prisma migration '{migration_name}' for '{schema_path}' successful:\n{result.stdout}"
+            return _truncate_output(
+                f"Prisma migration '{migration_name}' for '{schema_path}' successful:\n{result.stdout}"
+            )
         
         # This part should not be reached due to the logic above, but as a safeguard:
         return "Prisma migration check completed with no action taken."
@@ -228,9 +266,11 @@ def prisma_migrate(schema_path: str) -> str:
     except subprocess.TimeoutExpired:
         return f"Prisma migration timed out for '{schema_path}' after {SUBPROCESS_TIMEOUT_MEDIUM} seconds."
     except subprocess.CalledProcessError as e:
-        return (f"Error during Prisma migration for '{schema_path}' (Exit Code: {e.returncode}):\n"
-                f"STDOUT:\n{e.stdout}\n"
-                f"STDERR:\n{e.stderr}")
+        return _truncate_output(
+            f"Error during Prisma migration for '{schema_path}' (Exit Code: {e.returncode}):\n"
+            f"STDOUT:\n{e.stdout}\n"
+            f"STDERR:\n{e.stderr}"
+        )
     except FileNotFoundError:
         return "Error: 'npx' or 'prisma' not found. Please ensure Node.js and npm are installed."
     except Exception as e:
@@ -244,12 +284,17 @@ def read_files(path: str) -> str:
     """
     Reads the content of a file at a specified relative path and returns it as a string.
     """
-    if not os.path.exists(path):
+    is_safe, safe_path_or_err = _resolve_safe_path(path)
+    if not is_safe:
+        return f"Error: {safe_path_or_err}"
+    safe_path = safe_path_or_err
+
+    if not os.path.exists(safe_path):
         return f"Error: File not found at '{path}'"
     try:
-        with open(path, "r", encoding='utf-8') as f:
+        with open(safe_path, "r", encoding='utf-8') as f:
             content = f.read()
-        return content
+        return _truncate_output(content)
     except Exception as e:
         return f"Error reading file '{path}': {e}"
 
@@ -294,11 +339,13 @@ def run_build(project_dir: str = '.') -> str:
             timeout=SUBPROCESS_TIMEOUT_LONG
         )
         logger.info(f"Build successful in '{project_dir}'.")
-        return f"Build successful: {result.stdout}"
+        return _truncate_output(f"Build successful: {result.stdout}")
     except subprocess.TimeoutExpired as e:
         return f"Command timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds: {e.cmd}"
     except subprocess.CalledProcessError as e:
-        error_message = f"Command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        error_message = _truncate_output(
+            f"Command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        )
         logger.error(error_message)
         return error_message
     except FileNotFoundError:
@@ -323,7 +370,11 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
         for path, content in files.items():
             try:
                 # Ensure parent directories exist
-                parent_dir = os.path.dirname(path)
+                is_safe, safe_path_or_err = _resolve_safe_path(path, project_dir)
+                if not is_safe:
+                    return f"Error writing file '{path}': {safe_path_or_err}"
+                safe_path = safe_path_or_err
+                parent_dir = os.path.dirname(safe_path)
                 if parent_dir:
                     os.makedirs(parent_dir, exist_ok=True)
                 
@@ -357,7 +408,7 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                         '"next": "14.1.0"', '"next": "14.2.3"'
                     )
 
-                with open(path, "w", encoding='utf-8') as f:
+                with open(safe_path, "w", encoding='utf-8') as f:
                     f.write(content_to_write)
                 logger.info(f"Successfully wrote file: {path}")
             except Exception as e:
@@ -484,17 +535,25 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 timeout=SUBPROCESS_TIMEOUT_LONG,
                 env={"NODE_ENV": "development", **os.environ} if 'ci' in npm_command else os.environ
             )
-            logger.info(f"npm command completed successfully. STDOUT:\n{install_result.stdout}\nSTDERR:\n{install_result.stderr}")
+            logger.info(
+                _truncate_output(
+                    f"npm command completed successfully. STDOUT:\n{install_result.stdout}\nSTDERR:\n{install_result.stderr}"
+                )
+            )
 
             # Explicitly check if jest executable is present after npm install
             jest_bin_path = os.path.join(project_dir, 'node_modules', '.bin', 'jest')
             if not os.path.exists(jest_bin_path):
-                return f"Error: Jest executable not found at '{jest_bin_path}' after npm command. Installation might have failed or been incomplete. npm STDOUT:\n{install_result.stdout}\nnpm STDERR:\n{install_result.stderr}"
+                return _truncate_output(
+                    f"Error: Jest executable not found at '{jest_bin_path}' after npm command. Installation might have failed or been incomplete. npm STDOUT:\n{install_result.stdout}\nnpm STDERR:\n{install_result.stderr}"
+                )
 
         except subprocess.TimeoutExpired:
             return f"npm command timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
         except subprocess.CalledProcessError as e:
-            error_message = f"npm command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+            error_message = _truncate_output(
+                f"npm command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+            )
             logger.error(error_message)
             return error_message
         except FileNotFoundError:
@@ -514,14 +573,20 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             cwd=project_dir,
             timeout=SUBPROCESS_TIMEOUT_LONG # Using SUBPROCESS_TIMEOUT_LONG for 120s
         )
-        logger.info(f"Jest tests command completed. STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
+        logger.info(
+            _truncate_output(
+                f"Jest tests command completed. STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+            )
+        )
         logger.info(f"Tests passed in '{project_dir}'.")
-        return f"Tests passed: {result.stdout}"
+        return _truncate_output(f"Tests passed: {result.stdout}")
     except subprocess.TimeoutExpired:
         logger.error(f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds.")
         return f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
     except subprocess.CalledProcessError as e:
-        error_message = f"Tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        error_message = _truncate_output(
+            f"Tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+        )
         logger.error(error_message)
         return error_message
     except FileNotFoundError:
@@ -530,3 +595,46 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     except Exception as e:
         logger.error(f"An unexpected error occurred during tests: {e}")
         return f"An unexpected error occurred during tests: {e}"
+
+
+class LogToLearnerArgs(BaseModel):
+    project_name: str = Field(description="Nom du projet (ex: demo-saas)")
+    metric: str = Field(description="Nom de la metrique (ex: build_success)")
+    value: str = Field(description="Valeur serialisee de la metrique")
+
+
+@tool(args_schema=LogToLearnerArgs)
+def log_to_learner(project_name: str, metric: str, value: str) -> str:
+    """
+    Appends a learner shadow metric to logs/shadow/learner_shadow_log.json.
+    Safe no-op if the file is missing or malformed: it will be initialized.
+    """
+    log_path = os.path.join("logs", "shadow", "learner_shadow_log.json")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+
+    payload = {
+        "project_name": project_name,
+        "metric": metric,
+        "value": value,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+
+    try:
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                data = {}
+        else:
+            data = {}
+
+        if "events" not in data or not isinstance(data.get("events"), list):
+            data["events"] = []
+        data["events"].append(payload)
+        data["total_suggestions"] = len(data["events"])
+
+        with open(log_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=True, indent=2)
+        return f"Learner log updated: {metric} for {project_name}"
+    except Exception as e:
+        return f"Error updating learner log: {e}"

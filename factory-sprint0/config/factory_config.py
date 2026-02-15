@@ -11,7 +11,7 @@ EMBEDDING_MODEL = "text-embedding-3-large"
 # GENERATION_MODEL_GPT3_5 = "gpt-3.5-turbo"
 
 # --- Agent & Tool Configuration ---
-DEFAULT_VECTOR_SEARCH_LIMIT = 5 # Number of documents to retrieve in RAG
+DEFAULT_VECTOR_SEARCH_LIMIT = 2 # Number of documents to retrieve in RAG
 SUBPROCESS_TIMEOUT_SHORT = 30
 SUBPROCESS_TIMEOUT_MEDIUM = 60
 SUBPROCESS_TIMEOUT_LONG = 600
