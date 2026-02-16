@@ -125,8 +125,23 @@ def write_file(path: str, content: str) -> str:
         parent_dir = os.path.dirname(safe_path)
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
+        if path in ("next.config.js", "middleware.ts", "app/middleware.ts"):
+            content = content.replace(
+                "source: '/protected/**'",
+                "source: '/protected/(.*)'"
+            )
+            content = content.replace(
+                'source: "/protected/**"',
+                'source: "/protected/(.*)"'
+            )
         with open(safe_path, "w", encoding='utf-8') as f:
             f.write(content)
+        filename = os.path.basename(path)
+        if filename == "package.json":
+            try:
+                json.loads(content)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"package.json invalide généré : {e}")
         return f"File '{path}' was written successfully."
     except Exception as e:
         return f"Error writing file '{path}': {e}"
@@ -510,22 +525,22 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     package_json_path = os.path.join(project_dir, 'package.json')
     if os.path.exists(package_json_path):
         logger.info(f"package.json found in '{project_dir}'. Installing dev dependencies...")
-        
-        npm_command = []
-        if os.path.exists(os.path.join(project_dir, 'package-lock.json')):
-            logger.info(f"package-lock.json found. Using 'npm ci' for consistent installation.")
-            npm_command = ['npm', 'ci']
-        else:
-            logger.info(f"package-lock.json not found. Using 'npm install --save-dev' for installation.")
-            npm_command = [
-                'npm', 'install', '--save-dev',
-                'jest', '@testing-library/react', '@testing-library/jest-dom',
-                'babel-jest', '@babel/preset-env', '@babel/preset-react',
-                'ts-jest', 'typescript', 'zod', 'node-mocks-http',
-                'identity-obj-proxy', 'jest-environment-jsdom'
-            ]
+        lock_path = os.path.join(project_dir, 'package-lock.json')
+        npm_install_fallback = [
+            'npm', 'install', '--save-dev', '--legacy-peer-deps',
+            'jest', '@testing-library/react', '@testing-library/jest-dom',
+            'babel-jest', '@babel/preset-env', '@babel/preset-react',
+            'ts-jest', 'typescript', 'zod', 'node-mocks-http',
+            'identity-obj-proxy', 'jest-environment-jsdom'
+        ]
+        npm_command = ['npm', 'ci'] if os.path.exists(lock_path) else npm_install_fallback
 
         try:
+            if npm_command == ['npm', 'ci']:
+                logger.info("package-lock.json found. Trying 'npm ci' first.")
+            else:
+                logger.info("package-lock.json not found. Using 'npm install --save-dev --legacy-peer-deps'.")
+
             install_result = subprocess.run(
                 npm_command,
                 capture_output=True,
@@ -533,7 +548,7 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 check=True,
                 cwd=project_dir,
                 timeout=SUBPROCESS_TIMEOUT_LONG,
-                env={"NODE_ENV": "development", **os.environ} if 'ci' in npm_command else os.environ
+                env=os.environ
             )
             logger.info(
                 _truncate_output(
@@ -551,11 +566,49 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
         except subprocess.TimeoutExpired:
             return f"npm command timed out in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
         except subprocess.CalledProcessError as e:
-            error_message = _truncate_output(
-                f"npm command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+            stderr_text = (e.stderr or "")
+            should_fallback = (
+                npm_command == ['npm', 'ci']
+                and (
+                    "EUSAGE" in stderr_text
+                    or "can only install packages when your package.json and package-lock.json" in stderr_text
+                    or "Invalid: lock file" in stderr_text
+                )
             )
-            logger.error(error_message)
-            return error_message
+            if should_fallback:
+                logger.warning("npm ci failed due to lockfile mismatch. Falling back to npm install --legacy-peer-deps.")
+                try:
+                    if os.path.exists(lock_path):
+                        os.remove(lock_path)
+                        logger.info("package-lock.json removed before fallback install.")
+                    install_result = subprocess.run(
+                        npm_install_fallback,
+                        capture_output=True,
+                        text=True,
+                        check=True,
+                        cwd=project_dir,
+                        timeout=SUBPROCESS_TIMEOUT_LONG,
+                        env=os.environ
+                    )
+                    logger.info(
+                        _truncate_output(
+                            f"npm fallback install completed successfully. STDOUT:\n{install_result.stdout}\nSTDERR:\n{install_result.stderr}"
+                        )
+                    )
+                except subprocess.CalledProcessError as e2:
+                    error_message = _truncate_output(
+                        f"npm fallback install failed (code {e2.returncode}): {e2.cmd}\nSTDOUT:\n{e2.stdout}\nSTDERR:\n{e2.stderr}"
+                    )
+                    logger.error(error_message)
+                    return error_message
+                except Exception as e2:
+                    return f"An unexpected error occurred during npm fallback install: {e2}"
+            else:
+                error_message = _truncate_output(
+                    f"npm command failed (code {e.returncode}): {e.cmd}\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
+                )
+                logger.error(error_message)
+                return error_message
         except FileNotFoundError:
             return "Error: 'npm' not found during dependency installation. Please ensure Node.js and npm are installed and in the PATH."
         except Exception as e:
@@ -603,38 +656,51 @@ class LogToLearnerArgs(BaseModel):
     value: str = Field(description="Valeur serialisee de la metrique")
 
 
+def _write_learner_event(project_name: str, metric: str, value: dict, success: bool):
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    log_path = Path("logs/shadow/learner_shadow_log.json")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        log = json.loads(log_path.read_text(encoding="utf-8"))
+    except Exception:
+        log = {"total_suggestions": 0, "suggested_standards": []}
+
+    log.setdefault("suggested_standards", [])
+    log.setdefault("total_suggestions", 0)
+
+    log["suggested_standards"].append(
+        {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "project_name": project_name,
+            "metric": metric,
+            "value": value,
+            "success": success,
+        }
+    )
+    log["total_suggestions"] += 1
+
+    log_path.write_text(json.dumps(log, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 @tool(args_schema=LogToLearnerArgs)
 def log_to_learner(project_name: str, metric: str, value: str) -> str:
     """
     Appends a learner shadow metric to logs/shadow/learner_shadow_log.json.
-    Safe no-op if the file is missing or malformed: it will be initialized.
     """
-    log_path = os.path.join("logs", "shadow", "learner_shadow_log.json")
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
-
-    payload = {
-        "project_name": project_name,
-        "metric": metric,
-        "value": value,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-    }
-
     try:
-        if os.path.exists(log_path):
-            with open(log_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not isinstance(data, dict):
-                data = {}
-        else:
-            data = {}
-
-        if "events" not in data or not isinstance(data.get("events"), list):
-            data["events"] = []
-        data["events"].append(payload)
-        data["total_suggestions"] = len(data["events"])
-
-        with open(log_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=True, indent=2)
+        parsed_value = json.loads(value) if isinstance(value, str) else value
+        if not isinstance(parsed_value, dict):
+            parsed_value = {"raw_value": parsed_value}
+        success = bool(parsed_value.get("success", False))
+        _write_learner_event(
+            project_name=project_name,
+            metric=metric,
+            value=parsed_value,
+            success=success,
+        )
         return f"Learner log updated: {metric} for {project_name}"
     except Exception as e:
         return f"Error updating learner log: {e}"

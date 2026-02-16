@@ -1,0 +1,21 @@
+# 🏭 Software Agent Factory - Sprint 1
+
+Usine logicielle SaaS autonome utilisant une stack moderne pour la génération et le test automatique de projets.
+
+## 🏗️ Architecture
+- **Orchestration** : [Temporal.io](https://temporal.io/) pour la gestion des workflows persistants.
+- **Agents** : LangGraph + LLMs (OpenAI/Gemini) pour la spécialisation (Architecte, Dev, QA).
+- **Mémoire** : Qdrant (Base vectorielle) pour le RAG (Retrieval Augmented Generation) des standards de qualité.
+- **Frontend** : Next.js 14 App Router, Tailwind CSS, shadcn/ui.
+
+## 🚀 Runbook Local
+
+### Précis-requis
+- Docker & Docker Compose
+- Python 3.10+
+- Clé API OpenAI (pour les embeddings et agents)
+
+### Installation
+1. **Démarrer l'infrastructure** :
+   ```bash
+   docker-compose up -d

@@ -9,6 +9,19 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 
 
+def _log_run_metric(project_name: str, payload: Dict[str, Any]) -> None:
+    try:
+        from agents.shared_tools import _write_learner_event
+        _write_learner_event(
+            project_name=project_name,
+            metric="dev_test_run",
+            value=payload,
+            success=bool(payload.get("build_success", False)),
+        )
+    except Exception as log_err:
+        activity.logger.warning(f"Impossible de logger dev_test_run vers Learner: {log_err}")
+
+
 @activity.defn(name="dev_test_activity")
 async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -16,6 +29,19 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     project_name = input_data.get("project_name", "projet-sans-nom")
     activity.logger.info(f"DevTest démarré → Projet: {project_name}")
+    run_metric: Dict[str, Any] = {
+        "build_success": False,
+        "files_count": 0,
+        "clerk_compliant": True,
+        "dev_files_count": 0,
+        "build_attempts": 0,
+        "iterations": 0,
+        "final_message": "",
+        "last_build_error": "",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": "run_not_started",
+    }
 
     # ── 1. Validation entrée ───────────────────────────────────────────────
     validate_input("dev_test_agent", input_data)
@@ -39,6 +65,39 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
         validate_output("dev_test_agent", result)
 
         metadata = result.get("metadata", {})
+        dev_output = result.get("dev_output", {}) if isinstance(result.get("dev_output", {}), dict) else {}
+        dev_meta = dev_output.get("metadata", {}) if isinstance(dev_output.get("metadata", {}), dict) else {}
+        final_message = str(dev_output.get("final_message", ""))[:200]
+        last_build_error = str(dev_meta.get("last_build_error", "") or "")[:200]
+        last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
+        last_failed_command = str(dev_meta.get("last_failed_command", "") or "")
+        build_success = bool(result.get("success", False))
+
+        # Capture explicite de la cause d'echec métier si pas d'exception levée.
+        runtime_error = None
+        if not build_success:
+            if last_build_error:
+                runtime_error = f"BuildFailed: {last_build_error}"
+            elif last_test_error:
+                runtime_error = f"TestsFailed: {last_test_error}"
+            elif final_message:
+                runtime_error = f"BuildFailed: {final_message}"
+            else:
+                runtime_error = "BuildFailed: DevTest returned success=False without exception"
+
+        run_metric = {
+            "build_success": build_success,
+            "files_count": int(metadata.get("total_files", 0)),
+            "clerk_compliant": True,
+            "dev_files_count": int(metadata.get("dev_files_count", 0)),
+            "build_attempts": int(dev_meta.get("build_attempts", 0)),
+            "iterations": int(dev_meta.get("iterations", 0)),
+            "final_message": final_message,
+            "last_build_error": last_build_error,
+            "last_test_error": last_test_error,
+            "last_failed_command": last_failed_command,
+            "error": runtime_error,
+        }
         activity.logger.info(
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "
             f"Success: {result.get('success', False)}"
@@ -47,8 +106,23 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
         return result
 
     except Exception as e:
+        run_metric = {
+            "build_success": False,
+            "files_count": 0,
+            "clerk_compliant": True,
+            "dev_files_count": 0,
+            "build_attempts": 0,
+            "iterations": 0,
+            "final_message": "",
+            "last_build_error": "",
+            "last_test_error": "",
+            "last_failed_command": "",
+            "error": f"{type(e).__name__}: {str(e)[:200]}",
+        }
         activity.logger.error(f"Échec DevTest : {str(e)}", exc_info=True)
         raise ApplicationError(
             "DEV_TEST_EXECUTION_FAILED",
             f"Erreur dans dev_test_activity : {str(e)}"
         )
+    finally:
+        _log_run_metric(project_name, run_metric)

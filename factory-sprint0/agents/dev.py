@@ -2,6 +2,7 @@ import os
 import logging
 import shutil
 import re
+import ast
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
@@ -157,6 +158,30 @@ RÈGLES ABSOLUES :
     final_message = ""
     build_attempts = 0
     build_success = False
+    last_build_error = ""
+    last_test_error = ""
+    last_failed_command = ""
+
+    def _extract_stderr(output: str) -> str:
+        if not output:
+            return ""
+        marker = "STDERR:\n"
+        if marker in output:
+            return output.split(marker, 1)[1].strip()
+        return ""
+
+    def _extract_failed_command(output: str) -> str:
+        match = re.search(r"Command failed \(code \d+\):\s*(\[[^\]]+\])", output)
+        if not match:
+            return ""
+        raw_cmd = match.group(1)
+        try:
+            parsed = ast.literal_eval(raw_cmd)
+            if isinstance(parsed, list):
+                return " ".join(str(x) for x in parsed)
+        except Exception:
+            pass
+        return raw_cmd
 
     for iteration in range(1, MAX_ITERATIONS + 1):
         logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Build attempts: {build_attempts}")
@@ -212,11 +237,35 @@ RÈGLES ABSOLUES :
                         output = tool_to_call.invoke(tool_call["args"])
                         raw_output = str(output)
                         raw_tool_outputs.append(raw_output)
+
+                        if tool_name == "run_build":
+                            if "Build successful" in raw_output:
+                                last_build_error = ""
+                                last_failed_command = ""
+                            else:
+                                extracted_stderr = _extract_stderr(raw_output)
+                                last_build_error = extracted_stderr[:2000] if extracted_stderr else raw_output[:2000]
+                                failed_cmd = _extract_failed_command(raw_output)
+                                if failed_cmd:
+                                    last_failed_command = failed_cmd
+
+                        if tool_name == "run_tests":
+                            if "Tests passed" in raw_output:
+                                last_test_error = ""
+                            else:
+                                extracted_stderr = _extract_stderr(raw_output)
+                                last_test_error = extracted_stderr[:2000] if extracted_stderr else raw_output[:2000]
+
                         shrunk_output = _shrink_tool_output(tool_name, raw_output)
                         tool_messages.append(ToolMessage(content=shrunk_output, tool_call_id=tool_call["id"]))
                     except Exception as e:
                         error_text = f"ERREUR {tool_name}: {e}"
                         raw_tool_outputs.append(error_text)
+                        if tool_name == "run_build":
+                            last_build_error = error_text[:2000]
+                            last_failed_command = "run_build"
+                        if tool_name == "run_tests":
+                            last_test_error = error_text[:2000]
                         tool_messages.append(ToolMessage(content=error_text, tool_call_id=tool_call["id"]))
                 else:
                     tool_messages.append(ToolMessage(content=f"Tool {tool_name} inconnu", tool_call_id=tool_call["id"]))
@@ -321,5 +370,8 @@ RÈGLES ABSOLUES :
             "iterations": iteration,
             "build_attempts": build_attempts,
             "total_files": len(files),
+            "last_build_error": last_build_error[:2000] if last_build_error else "",
+            "last_test_error": last_test_error[:2000] if last_test_error else "",
+            "last_failed_command": last_failed_command,
         },
     }

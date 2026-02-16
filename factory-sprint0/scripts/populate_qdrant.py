@@ -7,7 +7,8 @@ Usage: python scripts/populate_qdrant.py
 
 import asyncio
 import os
-from uuid import uuid4
+import hashlib
+from uuid import UUID
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
@@ -15,9 +16,15 @@ from langchain_openai import OpenAIEmbeddings
 
 load_dotenv(dotenv_path='.env')
 
-QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
+QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = "factory_standards"
 EMBEDDINGS = OpenAIEmbeddings(model="text-embedding-3-large")
+
+
+def text_to_uuid(text: str) -> str:
+    """UUID déterministe basé sur le contenu — idempotent garanti."""
+    hash_bytes = hashlib.md5(text.encode("utf-8")).digest()
+    return str(UUID(bytes=hash_bytes))
 
 # ─────────────────────────────────────────
 # STANDARDS — 7 catégories, 3+ standards chacune
@@ -44,6 +51,28 @@ STANDARDS = [
     {
         "text": "Utiliser parallel routes (@folder) et intercepting routes pour les modals d'authentification et les flux complexes dans les applications SaaS factory.",
         "metadata": {"category": "nextjs", "tech": "next.js", "version": "14.2+", "source": "factory_standards_v1", "outcome": "validated"}
+    },
+    {
+        "text": "Next.js 14 middleware matcher INTERDIT: '/protected/**'. Utilise UNIQUEMENT '/protected/(.*)'. Le pattern ** cause 'Unexpected MODIFIER' a la compilation.",
+        "metadata": {
+            "category": "nextjs",
+            "tech": "next.js",
+            "version": "14.2+",
+            "source": "factory_standards_hotfix",
+            "outcome": "failure_prevention",
+            "tags": ["nextjs", "middleware", "routing", "critical"]
+        }
+    },
+    {
+        "text": "package.json doit etre du JSON pur valide. INTERDIT: commentaires, markdown, backticks, texte avant ou apres les accolades. Valide avec json.loads() avant ecriture.",
+        "metadata": {
+            "category": "nextjs",
+            "tech": "json",
+            "version": "n/a",
+            "source": "factory_standards_hotfix",
+            "outcome": "failure_prevention",
+            "tags": ["nextjs", "json", "package", "critical"]
+        }
     },
 
     # ── CLERK ───────────────────────────────────────────────────────────
@@ -137,13 +166,63 @@ STANDARDS = [
         "text": "Toujours sanitizer les entrées utilisateur affichées (sanitize-html ou DOMPurify côté client si besoin) pour prévenir les attaques XSS même avec un bon CSP.",
         "metadata": {"category": "security", "tech": "nextjs", "version": "14.2+", "source": "factory_standards_v1", "outcome": "validated"}
     },
+    # Clerk Auth Patterns (Next.js 14)
+    {"text": "Implémenter le composant <UserButton /> dans le header pour la gestion de session côté client avec redirection automatique après déconnexion.", "metadata": {"category": "clerk", "priority": "high"}},
+    {"text": "Utiliser 'auth()' dans les Server Components pour récupérer le userId et protéger l'accès aux données au niveau du serveur.", "metadata": {"category": "clerk", "priority": "high"}},
+    {"text": "Synchroniser les données utilisateur via Webhooks Clerk vers la base de données locale pour maintenir l'intégrité des relations Prisma.", "metadata": {"category": "clerk", "priority": "medium"}},
+    {"text": "Préférer 'currentUser()' de @clerk/nextjs/server pour obtenir les détails complets de l'utilisateur (email, nom) dans les Server Components.", "metadata": {"category": "clerk", "priority": "medium"}},
+
+    # Prisma Best Practices
+    {"text": "Utiliser des index '@unique' sur le champ 'clerkId' pour optimiser les jointures entre le provider d'auth et la base de données.", "metadata": {"category": "prisma", "priority": "high"}},
+    {"text": "Ajouter systématiquement les champs 'createdAt' et 'updatedAt' sur chaque modèle pour assurer la traçabilité des données.", "metadata": {"category": "prisma", "priority": "medium"}},
+
+    # shadcn/ui Standards
+    {"text": "Installer les composants via 'npx shadcn-ui@latest add' pour garantir la compatibilité avec les dernières versions de Tailwind CSS.", "metadata": {"category": "shadcn", "priority": "high"}},
+    {"text": "Centraliser la gestion des thèmes (dark/light) via le package 'next-themes' injecté dans le RootLayout.", "metadata": {"category": "shadcn", "priority": "medium"}},
+    {"text": "Accessibilité : s'assurer que tous les composants interactifs (Dialog, Popover) utilisent les primitives Radix UI intégrées à shadcn.", "metadata": {"category": "shadcn", "priority": "high"}},
+
+    # Next.js 14 App Router
+    {"text": "Structure de dossiers : utiliser des 'Route Groups' (folder) pour organiser logiquement l'auth du reste de l'application SaaS.", "metadata": {"category": "nextjs", "priority": "medium"}},
+    {"text": "Utiliser 'loading.tsx' à la racine des segments pour fournir un feedback visuel immédiat (skeleton screens) pendant le streaming.", "metadata": {"category": "nextjs", "priority": "high"}},
+    {"text": "Préférer les Server Actions pour les mutations de données (formulaires) afin de réduire le JavaScript envoyé au client.", "metadata": {"category": "nextjs", "priority": "high"}},
+    {"text": "Optimisation : configurer 'next/image' avec des domaines autorisés et des placeholders de flou pour améliorer le LCP.", "metadata": {"category": "nextjs", "priority": "medium"}},
+
+    # Zod Validation
+    {"text": "Définir les schémas Zod dans un fichier partagé 'lib/validations' pour réutilisation côté client et côté serveur.", "metadata": {"category": "zod", "priority": "high"}},
+    {"text": "Inférer les types TypeScript directement des schémas Zod via 'z.infer<typeof schema>' pour garantir une source unique de vérité.", "metadata": {"category": "zod", "priority": "high"}},
+
+    # Tailwind CSS
+    {"text": "Utiliser la configuration 'tailwind.config.ts' pour définir les variables de design system (couleurs, espacements) conformes à shadcn.", "metadata": {"category": "tailwind", "priority": "medium"}},
+    {"text": "Privilégier les classes utilitaires 'flex' et 'grid' pour les mises en page responsives plutôt que des media queries custom.", "metadata": {"category": "tailwind", "priority": "high"}},
+    {"text": "Appliquer 'hover:', 'focus:', et 'active:' sur tous les éléments interactifs pour améliorer l'affordance de l'interface.", "metadata": {"category": "tailwind", "priority": "medium"}},
+
+    # E2E Playwright Patterns
+    {"text": "BASE_URL : utiliser 'process.env.BASE_URL' pour permettre l'exécution des tests sur localhost ou en staging/production.", "metadata": {"category": "testing", "priority": "high"}},
+    {"text": "Auth : implémenter un script global setup pour simuler le login Clerk et réutiliser l'état d'authentification entre les tests.", "metadata": {"category": "testing", "priority": "high"}},
+    {"text": "Locators : utiliser 'page.getByRole' ou 'page.getByTestId' pour cibler les composants UI de manière sémantique et résiliente.", "metadata": {"category": "testing", "priority": "medium"}},
+    {"text": "Cleanup : s'assurer que chaque test E2E supprime les données qu'il a créées pour éviter la pollution entre les runs.", "metadata": {"category": "testing", "priority": "high"}},
+    {"text": "Flakiness : utiliser 'await page.waitForLoadState('networkidle')' avant de valider des mutations de données asynchrones.", "metadata": {"category": "testing", "priority": "medium"}},
+    {"text": "Screenshots : configurer Playwright pour capturer des screenshots et vidéos uniquement lors des échecs en CI.", "metadata": {"category": "testing", "priority": "low"}},
+    {"text": "Sélecteurs Clerk : cibler les éléments d'auth via '.cl-internal-ph606s' ou les data attributes spécifiques de Clerk.", "metadata": {"category": "testing", "priority": "high"}},
+    {
+    "text": "INTERDIT dans schema.prisma quand Clerk est utilisé : champs password, password_hash, passwordHash, sessionToken, session_token. Le modèle User ne doit contenir que clerkId String @unique comme lien d'authentification.",
+    "metadata": {"category": "clerk", "tech": "prisma", "priority": "critical", "source": "run_learnings_v1", "outcome": "failure_prevention"}
+},
+{
+    "text": "Les fichiers de tests E2E Playwright générés doivent être du TypeScript pur (.spec.ts). Ne jamais retourner du JSON ou du Markdown avec des backticks. Format obligatoire : import { test, expect } from '@playwright/test'; test('...', async ({ page }) => { ... });",
+    "metadata": {"category": "testing", "tech": "playwright", "priority": "critical", "source": "run_learnings_v1", "outcome": "failure_prevention"}
+},
+{
+    "text": "Routes d'authentification Clerk obligatoires : /sign-in et /sign-up uniquement. Routes interdites : /login, /register, /api/auth/login, /api/auth/register, /api/auth/logout. L'architecture Clerk ne nécessite aucune API route custom pour l'authentification.",
+    "metadata": {"category": "clerk", "tech": "nextjs", "priority": "critical", "source": "run_learnings_v1", "outcome": "failure_prevention"}
+},
 ]
 
 async def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
     """Embed et upsert un standard dans Qdrant."""
     try:
         vector = EMBEDDINGS.embed_query(text)
-        point_id = str(uuid4())
+        point_id = text_to_uuid(text)
         client.upsert(
             collection_name=COLLECTION_NAME,
             points=[PointStruct(

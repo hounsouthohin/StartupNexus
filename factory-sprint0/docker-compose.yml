@@ -145,6 +145,8 @@ services:
 
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp
+      - ./logs:/app/logs       
+      - ./outputs:/app/outputs
     networks:
       - temporal-network
     depends_on:

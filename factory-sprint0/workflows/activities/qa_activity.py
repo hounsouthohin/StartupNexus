@@ -10,6 +10,19 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 
 
+def _log_run_metric(project_name: str, payload: Dict[str, Any]) -> None:
+    try:
+        from agents.shared_tools import _write_learner_event
+        _write_learner_event(
+            project_name=project_name,
+            metric="qa_run",
+            value=payload,
+            success=bool(payload.get("qa_e2e_coverage", False)),
+        )
+    except Exception as log_err:
+        activity.logger.warning(f"Impossible de logger qa_run vers Learner: {log_err}")
+
+
 @activity.defn(name="qa_activity")
 async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     """
@@ -21,6 +34,11 @@ async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
 
     project_name = input_data.get("project_name", "projet-sans-nom")
     spec_summary = input_data.get("specification", "Application SaaS générique")
+    run_metric: Dict[str, Any] = {
+        "qa_e2e_coverage": False,
+        "generated_tests_count": 0,
+        "error": "run_not_started",
+    }
 
     activity.logger.info(f"QA activity démarrée → Projet: {project_name}")
 
@@ -33,24 +51,22 @@ async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
 
     # 3. Préparation prompt riche
     prompt = f"""
-Tu es un expert QA E2E pour applications SaaS Next.js.
-Génère des tests Playwright complets et réalistes pour le projet suivant :
+Tu es l'Agent QA de la Software Agent Factory. Mission : Playwright E2E pour Next.js.
+PROMPT_REFERENCE: qa.md (Login Clerk, CRUD, UI Shadcn)
 
-Nom projet : {project_name}
-Description : {spec_summary[:500]}...
+Projet : {project_name}
+Specs : {spec_summary[:500]}
 
-Objectifs des tests :
-- Couvrir login / signup via Clerk
-- CRUD principal (ex: tâches si gestion de tâches)
-- Navigation et UI responsive
-- Gestion erreurs 401/403/404
-- Tests asynchrones avec waitFor
+CONTRAINTES TECHNIQUES OBLIGATOIRES :
+1. LOGIN : Simuler Clerk via locators 'input[name="identifier"]' et 'button.cl-formButtonPrimary'.
+2. CRUD : Générer des tests pour créer, éditer et supprimer une ressource (ex: Task).
+3. SHADCN : Utiliser des locators robustes pour les composants UI (ex: [role="checkbox"], .bg-card).
+4. FORMAT : Retourne exclusivement un JSON valide {{ "chemin": "code" }}.
 
-Retourne uniquement un dictionnaire JSON :
+Exemple attendu :
 {{
-  "tests/e2e/login.spec.ts": "code complet du test",
-  "tests/e2e/tasks.spec.ts": "...",
-  ...
+  "tests/e2e/auth.spec.ts": "import {{ test, expect }} from '@playwright/test'; ...",
+  "tests/e2e/crud.spec.ts": "..."
 }}
 """
 
@@ -83,9 +99,21 @@ Retourne uniquement un dictionnaire JSON :
         output = {"e2e_tests": e2e_tests}
         validate_output("qa_agent", output)
 
+        run_metric = {
+            "qa_e2e_coverage": len(e2e_tests) > 0,
+            "generated_tests_count": len(e2e_tests),
+            "error": None,
+        }
         activity.logger.info(f"QA terminé → {len(e2e_tests)} fichiers de tests générés")
         return output
 
     except Exception as e:
+        run_metric = {
+            "qa_e2e_coverage": False,
+            "generated_tests_count": 0,
+            "error": str(e),
+        }
         activity.logger.error(f"Échec QA activity: {str(e)}", exc_info=True)
         raise ApplicationError("QA_EXECUTION_FAILED", str(e))
+    finally:
+        _log_run_metric(project_name, run_metric)

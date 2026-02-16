@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-02-15T19:32:30.106295+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "success_count": 1,
+  "failure_count": 0,
+  "total_duration_seconds": 191.68,
+  "total_learner_events_delta": 2,
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-todo-batch-alpha-84eeff62",
+      "run_id": "019c62c7-5c84-7e51-a8da-5d6d07a0b5b1",
+      "project_name": "todo-batch-alpha",
+      "phrase": "Cree une Todo app Next.js avec Clerk, priorites et tags.",
+      "started_at": "2026-02-15T19:29:18.426923+00:00",
+      "duration_seconds": 191.68,
+      "success": true,
+      "error": null,
+      "learner_events_before": 4,
+      "learner_events_after": 6,
+      "learner_events_delta": 2,
+      "result_excerpt": "\n=== RAPPORT VALIDATION SPRINT 0.5 - TODO PILOT ===\n\nProjet           : todo-batch-alpha\nSucc\u00e8s DevTest   : False\nTemps total      : 191.60 s\nFichiers g\u00e9n\u00e9r\u00e9s : 12\n  \u2192 Dev          : 9\n  \u2192 Test         : 3\nMode             : fusion\n\nGitHub PR        : https://github.com/hounsouthohin/saas-todo-batch-alpha/pull/1\nRepo URL         : https://github.com/hounsouthohin/saas-todo-batch-alpha\n\nValidation "
+    }
+  ]
+}

@@ -24,11 +24,13 @@ FORBIDDEN_PATTERNS = [
 
 def _validate_clerk_compliance(spec: str, mermaid: str) -> list:
     violations = []
-    content = (spec + " " + mermaid).lower()
+    spec = spec or ""
+    mermaid = mermaid or ""
+    content = f"{spec} {mermaid}".lower()
     for pattern in FORBIDDEN_PATTERNS:
         if pattern.lower() in content:
             violations.append(pattern)
-    return violations
+    return sorted(set(violations))
 
 
 @activity.defn(name="architect_activity")
@@ -107,8 +109,8 @@ async def architect_activity(input_data: Dict) -> Dict:
         activity.logger.info(f"Architect terminé → {len(output_dict['specification'])} caractères de spec générés")
         return output_dict
 
+    except ApplicationError:
+        raise
     except Exception as e:
         activity.logger.error(f"Échec exécution Architect : {str(e)}", exc_info=True)
-        if isinstance(e, Exception):  # on attrape tout, mais on relance typed
-            raise ApplicationError("ARCHITECT_EXECUTION_FAILED", str(e))
-        raise
+        raise ApplicationError("ARCHITECT_EXECUTION_FAILED", str(e))

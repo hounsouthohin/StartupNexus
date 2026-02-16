@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-02-15T18:02:04.468776+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 5,
+  "result_timeout_seconds": 1.0,
+  "success_count": 0,
+  "failure_count": 5,
+  "total_duration_seconds": 5.14,
+  "total_learner_events_delta": 0,
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-todo-batch-alpha-ad8d7d14",
+      "run_id": "019c6277-6b49-778c-9a86-93f51a35eda6",
+      "project_name": "todo-batch-alpha",
+      "phrase": "Cree une Todo app Next.js avec Clerk, priorites et tags.",
+      "started_at": "2026-02-15T18:01:59.325539+00:00",
+      "duration_seconds": 1.06,
+      "success": false,
+      "error": "timeout_after_1.0_seconds",
+      "learner_events_before": 2,
+      "learner_events_after": 2,
+      "learner_events_delta": 0,
+      "result_excerpt": ""
+    },
+    {
+      "workflow_id": "todo-pilot-todo-batch-bravo-4b907261",
+      "run_id": "019c6277-6f43-77b8-9790-8fb79fe958f6",
+      "project_name": "todo-batch-bravo",
+      "phrase": "Cree une Todo app collaborative avec listes partagees et reminders.",
+      "started_at": "2026-02-15T18:02:00.384854+00:00",
+      "duration_seconds": 1.02,
+      "success": false,
+      "error": "timeout_after_1.0_seconds",
+      "learner_events_before": 2,
+      "learner_events_after": 2,
+      "learner_events_delta": 0,
+      "result_excerpt": ""
+    },
+    {
+      "workflow_id": "todo-pilot-todo-batch-charlie-3dbb62b2",
+      "run_id": "019c6277-733e-755e-8778-493358c755d9",
+      "project_name": "todo-batch-charlie",
+      "phrase": "Cree une Todo app avec calendrier hebdo et filtres avances.",
+      "started_at": "2026-02-15T18:02:01.403689+00:00",
+      "duration_seconds": 1.03,
+      "success": false,
+      "error": "timeout_after_1.0_seconds",
+      "learner_events_before": 2,
+      "learner_events_after": 2,
+      "learner_events_delta": 0,
+      "result_excerpt": ""
+    },
+    {
+      "workflow_id": "todo-pilot-todo-batch-delta-f1e70c16",
+      "run_id": "019c6277-7742-7147-83c2-befa4059b420",
+      "project_name": "todo-batch-delta",
+      "phrase": "Cree une Todo app orientee equipe avec tableaux Kanban.",
+      "started_at": "2026-02-15T18:02:02.430535+00:00",
+      "duration_seconds": 1.01,
+      "success": false,
+      "error": "timeout_after_1.0_seconds",
+      "learner_events_before": 2,
+      "learner_events_after": 2,
+      "learner_events_delta": 0,
+      "result_excerpt": ""
+    },
+    {
+      "workflow_id": "todo-pilot-todo-batch-echo-cef3cb30",
+      "run_id": "019c6277-7b38-765a-a502-fc930b407c2f",
+      "project_name": "todo-batch-echo",
+      "phrase": "Cree une Todo app avec analytics de productivite et objectifs.",
+      "started_at": "2026-02-15T18:02:03.445296+00:00",
+      "duration_seconds": 1.02,
+      "success": false,
+      "error": "timeout_after_1.0_seconds",
+      "learner_events_before": 2,
+      "learner_events_after": 2,
+      "learner_events_delta": 0,
+      "result_excerpt": ""
+    }
+  ]
+}

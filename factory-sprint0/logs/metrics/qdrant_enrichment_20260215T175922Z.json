@@ -1,0 +1,10 @@
+{
+  "generated_at": "2026-02-15T17:59:22.982257+00:00",
+  "patterns_report_path": "logs/shadow/patterns_report.json",
+  "collection": "factory_standards",
+  "total_patterns": 0,
+  "inserted_count": 0,
+  "failed_count": 0,
+  "inserted": [],
+  "failed": []
+}

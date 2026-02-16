@@ -5,16 +5,694 @@
   "activation_sprint": 2,
   "activation_date": null,
   "active_mode_conditions": {
-    "validation_threshold": 0.70,
+    "validation_threshold": 0.7,
     "min_suggestions": 15,
     "schema_validation_required": true,
     "min_projects": 3
   },
-  "suggested_standards": [],
+  "suggested_standards": [
+    {
+      "timestamp": "2026-02-15T19:12:43.823116+00:00",
+      "project_name": "smoke-after-fix",
+      "metric": "dev_test_run",
+      "value": {
+        "success": true,
+        "note": "direct-call"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:13:05.273845+00:00",
+      "project_name": "debug-write",
+      "metric": "qa_run",
+      "value": {
+        "success": true
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:28:46.005708+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "success": false,
+        "total_files": 10,
+        "dev_files_count": 8,
+        "test_files_count": 2,
+        "mode": "fusion"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:28:54.525317+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "success": true,
+        "generated_tests_count": 3
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:31:52.951048+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "success": false,
+        "total_files": 12,
+        "dev_files_count": 9,
+        "test_files_count": 3,
+        "mode": "fusion"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:32:06.601238+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "success": true,
+        "generated_tests_count": 3
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:34:27.405564+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "success": false,
+        "total_files": 9,
+        "dev_files_count": 8,
+        "test_files_count": 1,
+        "mode": "fusion"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:34:34.697180+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "success": true,
+        "generated_tests_count": 3
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:36:13.884355+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "dev_test_run",
+      "value": {
+        "success": false,
+        "total_files": 9,
+        "dev_files_count": 8,
+        "test_files_count": 1,
+        "mode": "fusion"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:36:20.836938+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "qa_run",
+      "value": {
+        "success": true,
+        "generated_tests_count": 3
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:39:48.566607+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "dev_test_run",
+      "value": {
+        "success": false,
+        "total_files": 10,
+        "dev_files_count": 8,
+        "test_files_count": 2,
+        "mode": "fusion"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:39:53.758621+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "qa_run",
+      "value": {
+        "success": true,
+        "generated_tests_count": 3
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:43:44.512654+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "error": null
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:43:52.830084+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:47:20.667097+00:00",
+      "project_name": "todo-batch-delta",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:47:26.777493+00:00",
+      "project_name": "todo-batch-delta",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:49:11.385847+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "error": null
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:49:18.556855+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:50:59.415743+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": true,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:52:00.070307+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "error": null
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:52:07.244827+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:52:26.299540+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:54:47.722818+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "error": null
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:54:53.633129+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:56:44.532487+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 9,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "error": null
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:56:52.900840+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-15T19:58:39.618929+00:00",
+      "project_name": "todo-batch-delta",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "error": null
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-15T19:58:46.723267+00:00",
+      "project_name": "todo-batch-delta",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T00:55:16.585133+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 9,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 1,
+        "iterations": 10,
+        "final_message": "Je vais continuer avec l'étape suivante sans réécrire les fichiers existants.",
+        "error": "BuildFailed: Je vais continuer avec l'étape suivante sans réécrire les fichiers existants."
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T00:55:22.023664+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T01:13:48.752633+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 9,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "error": "BuildFailed: Je vais continuer l'étape suivante sans réécrire les fichiers existants."
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T01:13:57.252575+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T01:28:37.981740+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 4,
+        "iterations": 10,
+        "final_message": "Je vais continuer avec l'étape suivante sans réécrire les fichiers existants.",
+        "error": "BuildFailed: Je vais continuer avec l'étape suivante sans réécrire les fichiers existants."
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T01:28:44.673825+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:00:36.242163+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": true,
+        "files_count": 13,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 0,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:00:41.899829+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:06:47.338478+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 0,
+        "iterations": 10,
+        "final_message": "Je vais continuer avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "npm error code EJSONPARSE\nnpm error path /app/package.json\nnpm error JSON.parse Expected property name or '}' in JSON at position 1 while parsing near \"{\\\\n  \\\"name\\\": \\\"todo-ba...\"\nnpm error JSON.par",
+        "last_test_error": "",
+        "last_failed_command": "npm install",
+        "error": "BuildFailed: npm error code EJSONPARSE\nnpm error path /app/package.json\nnpm error JSON.parse Expected property name or '}' in JSON at position 1 while parsing near \"{\\\\n  \\\"name\\\": \\\"todo-ba...\"\nnpm error JSON.par"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:06:52.919128+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:09:05.514357+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Continuez avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Error parsing `/protected/**` https://nextjs.org/docs/messages/invalid-route-source\nReason: Unexpected MODIFIER at 11, expected END\n\n  /protected/**\n             ^\n\n`source` parse failed for route {\"s",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Error parsing `/protected/**` https://nextjs.org/docs/messages/invalid-route-source\nReason: Unexpected MODIFIER at 11, expected END\n\n  /protected/**\n             ^\n\n`source` parse failed for route {\"s"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:09:13.472746+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:12:02.210907+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 9,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Error parsing `/protected/**` https://nextjs.org/docs/messages/invalid-route-source\nReason: Unexpected MODIFIER at 11, expected END\n\n  /protected/**\n             ^\n\n`source` parse failed for route {\"s",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Error parsing `/protected/**` https://nextjs.org/docs/messages/invalid-route-source\nReason: Unexpected MODIFIER at 11, expected END\n\n  /protected/**\n             ^\n\n`source` parse failed for route {\"s"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:12:09.053096+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:20:54.613152+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Failed to compile.\n\n./app/middleware.ts:1:0\nModule not found: Package path ./middleware is not exported from package /app/node_modules/@clerk/nextjs (see exports field in /app/node_modules/@clerk/next",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Failed to compile.\n\n./app/middleware.ts:1:0\nModule not found: Package path ./middleware is not exported from package /app/node_modules/@clerk/nextjs (see exports field in /app/node_modules/@clerk/next"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:21:02.338023+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:32:31.169942+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Failed to compile.\n\n./app/middleware.ts:1:10\nType error: Module '\"@clerk/nextjs\"' has no exported member 'ClerkMiddleware'.\n\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { \u001b[33mClerkMiddlew",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Failed to compile.\n\n./app/middleware.ts:1:10\nType error: Module '\"@clerk/nextjs\"' has no exported member 'ClerkMiddleware'.\n\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { \u001b[33mClerkMiddlew"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:32:38.686207+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:39:04.618074+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "build_attempts": 0,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:39:11.694170+00:00",
+      "project_name": "todo-batch-bravo",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:40:23.394261+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 0,
+        "iterations": 10,
+        "final_message": "Continuons avec l'étape suivante.",
+        "last_build_error": "npm error code EJSONPARSE\nnpm error path /app/package.json\nnpm error JSON.parse Expected property name or '}' in JSON at position 1 while parsing near \"{\\\\n  \\\"name\\\": \\\"todo-ba...\"\nnpm error JSON.par",
+        "last_test_error": "",
+        "last_failed_command": "npm install",
+        "error": "BuildFailed: npm error code EJSONPARSE\nnpm error path /app/package.json\nnpm error JSON.parse Expected property name or '}' in JSON at position 1 while parsing near \"{\\\\n  \\\"name\\\": \\\"todo-ba...\"\nnpm error JSON.par"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:40:31.026809+00:00",
+      "project_name": "todo-batch-charlie",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-16T02:53:00.158292+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "files_count": 9,
+        "clerk_compliant": true,
+        "dev_files_count": 8,
+        "build_attempts": 0,
+        "iterations": 10,
+        "final_message": "Je vais continuer avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "npm error code EJSONPARSE\nnpm error path /app/package.json\nnpm error JSON.parse Expected property name or '}' in JSON at position 1 while parsing near \"{\\\\n  \\\"name\\\": \\\"todo-ba...\"\nnpm error JSON.par",
+        "last_test_error": "",
+        "last_failed_command": "npm install",
+        "error": "BuildFailed: npm error code EJSONPARSE\nnpm error path /app/package.json\nnpm error JSON.parse Expected property name or '}' in JSON at position 1 while parsing near \"{\\\\n  \\\"name\\\": \\\"todo-ba...\"\nnpm error JSON.par"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-16T02:53:04.920627+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 3,
+        "error": null
+      },
+      "success": true
+    }
+  ],
   "confidence_scores": [],
   "schema_validation": "PENDING",
   "projects_analyzed": [],
-  "total_suggestions": 0,
+  "total_suggestions": 54,
   "review_status": "AWAITING_SPRINT_2",
   "last_updated": null,
   "human_review": {
@@ -23,5 +701,19 @@
     "approved_count": 0,
     "rejected_count": 0,
     "approval_rate": null
-  }
+  },
+  "events": [
+    {
+      "project_name": "smoke-devtest",
+      "metric": "dev_test_run",
+      "value": "{\"success\": true, \"total_files\": 3}",
+      "timestamp": "2026-02-15T18:00:28.554298Z"
+    },
+    {
+      "project_name": "smoke-qa",
+      "metric": "qa_run",
+      "value": "{\"success\": false, \"error\": \"synthetic failure\"}",
+      "timestamp": "2026-02-15T18:00:28.555671Z"
+    }
+  ]
 }

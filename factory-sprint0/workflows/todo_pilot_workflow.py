@@ -22,7 +22,7 @@ class TodoPilotWorkflow:
     @workflow.run
     async def run(self, input_data: Dict[str, str]) -> str:
         phrase = input_data.get("phrase", "Crée une ToDo app Next.js avec Clerk auth")
-        project_name = "todo-pilot-sprint05"
+        project_name = input_data.get("project_name", "todo-pilot-sprint05")
 
         workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase}")
 
@@ -83,7 +83,7 @@ class TodoPilotWorkflow:
         }
 
 
-        github_result: str = await workflow.execute_activity(
+        github_result: Dict[str, Any] = await workflow.execute_activity(
             github_activity,
             github_input,
             start_to_close_timeout=timedelta(minutes=10),
