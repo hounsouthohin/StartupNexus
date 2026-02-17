@@ -91,6 +91,17 @@ def _is_valid_npm_package_name(name: str) -> bool:
     return bool(re.fullmatch(r"[a-z0-9][a-z0-9._-]*", name))
 
 
+def _normalize_npm_package_name(raw_name: str, fallback: str = "generated-app") -> str:
+    candidate = (raw_name or "").strip().lower()
+    candidate = re.sub(r"[^a-z0-9._-]+", "-", candidate).strip("-.")
+    if _is_valid_npm_package_name(candidate):
+        return candidate
+    safe_fallback = re.sub(r"[^a-z0-9._-]+", "-", fallback.lower()).strip("-.") or "generated-app"
+    if _is_valid_npm_package_name(safe_fallback):
+        return safe_fallback
+    return "generated-app"
+
+
 def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
     try:
         with open(package_json_path, "r", encoding="utf-8") as f:
@@ -103,7 +114,30 @@ def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
         return False
 
     modified = False
-    for section in ("dependencies", "devDependencies"):
+
+    pkg_name = package_data.get("name")
+    if isinstance(pkg_name, str) and not _is_valid_npm_package_name(pkg_name):
+        new_name = _normalize_npm_package_name(project_name or "generated-app", "generated-app")
+        package_data["name"] = new_name
+        modified = True
+        try:
+            _write_learner_event(
+                project_name=project_name or "default-project",
+                metric="tool_patch_applied",
+                value={
+                    "file": "package.json",
+                    "patch": "invalid_npm_package_name_fixed",
+                    "field": "name",
+                    "old_value": pkg_name,
+                    "new_value": new_name,
+                    "reason": "Nom de package npm invalide corrige (cause: EINVALIDPACKAGENAME)",
+                },
+                success=True,
+            )
+        except Exception as e:
+            logger.warning(f"Learner logging failed: {e}")
+
+    for section in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
         deps = package_data.get(section)
         if not isinstance(deps, dict):
             continue
@@ -532,6 +566,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                     ).replace(
                         '"next": "14.1.0"', '"next": "14.2.3"'
                     )
+                    try:
+                        parsed_package_json = json.loads(content_to_write)
+                        with open(safe_path, "w", encoding="utf-8") as tmp_f:
+                            json.dump(parsed_package_json, tmp_f, ensure_ascii=False, indent=2)
+                            tmp_f.write("\n")
+                        _sanitize_package_json(
+                            safe_path,
+                            os.path.basename(project_dir) or "default-project",
+                        )
+                        with open(safe_path, "r", encoding="utf-8") as tmp_f:
+                            content_to_write = tmp_f.read()
+                    except Exception as e:
+                        logger.warning(f"Pré-sanitize package.json ignoré: {e}")
 
                 with open(safe_path, "w", encoding='utf-8') as f:
                     f.write(content_to_write)
