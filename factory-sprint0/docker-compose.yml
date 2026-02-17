@@ -21,6 +21,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+      start_period: 30s
 
   # --------------------------------------------------------------------------------
   # POSTGRESQL – base principale
@@ -36,31 +37,26 @@ services:
       - "5432:5432"
     volumes:
       - postgresql-data:/var/lib/postgresql/data
+    networks:
+      - temporal-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U temporal"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - temporal-network
+      start_period: 20s
 
   # --------------------------------------------------------------------------------
   # TEMPORAL SERVER – officiel + Elasticsearch activé
   # --------------------------------------------------------------------------------
   temporal:
     container_name: temporal
-    depends_on:
-      postgresql:
-        condition: service_started
-      elasticsearch:
-        condition: service_healthy
     image: temporalio/auto-setup:1.29.1
     environment:
       - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
-      #Postgres_seeds : nom du service de Base de donné que temporal utilise pour se connecter
       - POSTGRES_SEEDS=temporal-postgresql
       - POSTGRESQL_SEEDS=temporal-postgresql
       - ENABLE_ES=false
@@ -73,14 +69,23 @@ services:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     networks:
       - temporal-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   # --------------------------------------------------------------------------------
   # TEMPORAL UI – la plus belle interface du monde
   # --------------------------------------------------------------------------------
   temporal-ui:
     container_name: temporal-ui
-    depends_on:
-      - temporal
     image: temporalio/ui:2.38.0
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
@@ -89,6 +94,9 @@ services:
       - "8080:8080"
     networks:
       - temporal-network
+    depends_on:
+      temporal:
+        condition: service_healthy
 
   # --------------------------------------------------------------------------------
   # n8n – notre interface humaine (le bouton "Démarrer")
@@ -123,8 +131,6 @@ services:
     networks:
       - temporal-network
 
-
-
   # --------------------------------------------------------------------------------
   # Factory Worker - notre application Python
   # --------------------------------------------------------------------------------
@@ -140,9 +146,8 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - MERMAID_TMP_DIR=/tmp/mermaid
     command: >
-      bash -c "python scripts/wait-for-it.py qdrant:6333 90 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 90 && python api/flask_api.py & python run/worker.py"
+      bash -c "python scripts/wait-for-it.py qdrant:6333 120 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 120 && python api/flask_api.py & python run/worker.py"
     volumes:
-
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp
       - ./logs:/app/logs       
@@ -150,9 +155,10 @@ services:
     networks:
       - temporal-network
     depends_on:
-      temporal:
+      qdrant:
         condition: service_started
-
+      temporal:
+        condition: service_healthy
 
 # Volumes persistants
 volumes:
@@ -160,7 +166,6 @@ volumes:
   elasticsearch-data:
   n8n_data:
   qdrant_data:
-
 
 # Réseau
 networks:

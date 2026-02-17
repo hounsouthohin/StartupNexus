@@ -1,8 +1,9 @@
 CONTRAINTES ABSOLUES (GLOBAL):
-- Authentification : Clerk UNIQUEMENT (`@clerk/nextjs`).
+- Authentification : Clerk UNIQUEMENT.
 - INTERDIT : `bcrypt`, `JWT`, `password_hash`, `password`, `NextAuth`, `next-auth`, routes `/api/auth/*`.
 - Base de donnees : Prisma + PostgreSQL uniquement.
-- Obligatoire : pages Clerk `sign-in/sign-up`, composants `<UserButton />`, `<SignedIn />`, `<SignedOut />`, et aucun champ password dans Prisma.
+- Architecture : App Router Next.js obligatoire.
+- Principes de sécurité : pages Clerk `sign-in/sign-up` obligatoires, composants `<UserButton />`, `<SignedIn />`, `<SignedOut />`, et aucun champ password dans Prisma.
 
 # Planner
 

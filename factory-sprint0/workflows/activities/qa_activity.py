@@ -49,30 +49,11 @@ async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
     except ImportError as ie:
         raise ApplicationError("IMPORT_FAILURE", f"Échec import QA agent: {ie}")
 
-    # 3. Préparation prompt riche
-    prompt = f"""
-Tu es l'Agent QA de la Software Agent Factory. Mission : Playwright E2E pour Next.js.
-PROMPT_REFERENCE: qa.md (Login Clerk, CRUD, UI Shadcn)
-
-Projet : {project_name}
-Specs : {spec_summary[:500]}
-
-CONTRAINTES TECHNIQUES OBLIGATOIRES :
-1. LOGIN : Simuler Clerk via locators 'input[name="identifier"]' et 'button.cl-formButtonPrimary'.
-2. CRUD : Générer des tests pour créer, éditer et supprimer une ressource (ex: Task).
-3. SHADCN : Utiliser des locators robustes pour les composants UI (ex: [role="checkbox"], .bg-card).
-4. FORMAT : Retourne exclusivement un JSON valide {{ "chemin": "code" }}.
-
-Exemple attendu :
-{{
-  "tests/e2e/auth.spec.ts": "import {{ test, expect }} from '@playwright/test'; ...",
-  "tests/e2e/crud.spec.ts": "..."
-}}
-"""
-
     try:
         qa_agent = create_qa_agent()
-        initial_message = HumanMessage(content=prompt)
+        initial_message = HumanMessage(
+            content=f"Projet : {project_name}\nSpecs : {spec_summary[:500]}"
+        )
 
         final_state = await qa_agent.ainvoke({"messages": [initial_message]})
 

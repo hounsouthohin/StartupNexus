@@ -15,6 +15,7 @@ from .shared_tools import (
     read_files,
     run_build,
 )
+from utils.prompt_loader import load_prompt
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -129,23 +130,9 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     summarized_spec = summarize_text(spec, MAX_SPEC_TOKENS, "Specification")
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
 
+    prompt = load_prompt("dev")
     messages = [
-        SystemMessage(content="""
-Tu es Dev Agent autonome. Tu suis STRICTEMENT cet ordre :
-
-1. RAG → génère package.json en PREMIER (versions pinned, @clerk/nextjs obligatoire)
-2. jest.config.js avec babel-jest + next/babel (standard 2026)
-3. prisma/schema.prisma → prisma_migrate
-4. app/layout.tsx avec ClerkProvider + middleware.ts
-5. Pages/composants shadcn/ui + Zod validation
-6. run_build dès que package.json, layout.tsx, middleware.ts, schema.prisma existent
-
-RÈGLES ABSOLUES :
-- Un seul fichier par itération max.
-- Ne réécris JAMAIS un fichier existant.
-- Clerk uniquement (@clerk/nextjs). Jamais bcrypt, JWT, password field.
-- Termine uniquement sur "Build successful" → "TERMINÉ : CODE PRÊT"
-"""),
+        SystemMessage(content=prompt),
         HumanMessage(content=(
             f"Projet : {project_name}\n\n"
             f"Spec :\n{summarized_spec}\n\n"

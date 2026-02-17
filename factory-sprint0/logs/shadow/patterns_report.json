@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-02-16T02:52:06.753056+00:00",
+  "generated_at": "2026-02-17T00:59:13.664818+00:00",
   "log_source": "logs\\shadow\\learner_shadow_log.json",
-  "total_runs": 50,
-  "avg_quality_score": 13.9,
-  "global_failure_rate": 86.1,
+  "total_runs": 55,
+  "avg_quality_score": 13.8,
+  "global_failure_rate": 86.2,
   "scoring_weights": {
     "build_success": 30,
     "files_count": 15,
@@ -12,13 +12,13 @@
     "qa_e2e_coverage": 10,
     "dev_test_coverage": 10
   },
-  "patterns_detected": 2,
+  "patterns_detected": 1,
   "patterns": [
     {
       "pattern_id": "P-001",
       "signature": "dev_test_run:error:none",
       "occurrences": 6,
-      "failure_rate": 12.0,
+      "failure_rate": 10.91,
       "metrics": {
         "dev_test_run": 6
       },
@@ -27,27 +27,6 @@
         "todo-batch-bravo",
         "todo-batch-charlie",
         "todo-batch-delta"
-      ],
-      "sample_errors": [
-        "generic_failure",
-        "generic_failure",
-        "generic_failure"
-      ],
-      "recommendation": "Ajouter un standard obligatoire dans factory_standards pour corriger ce pattern récurrent.",
-      "priority": "HIGH"
-    },
-    {
-      "pattern_id": "P-002",
-      "signature": "dev_test_run:error:generic_failure",
-      "occurrences": 5,
-      "failure_rate": 10.0,
-      "metrics": {
-        "dev_test_run": 5
-      },
-      "sample_projects": [
-        "todo-batch-alpha",
-        "todo-batch-bravo",
-        "todo-batch-charlie"
       ],
       "sample_errors": [
         "generic_failure",

@@ -113,7 +113,7 @@ STANDARDS = [
 
     # ── SHADCN ──────────────────────────────────────────────────────────
     {
-        "text": "shadcn/ui avec Tailwind CSS est la librairie UI officielle pour tous les projets factory. Installation : npx shadcn-ui@latest init. Composants les plus utilisés : Button, Card, Input, Label, Form, Dialog, Table, Badge, Avatar, DropdownMenu. Importer depuis '@/components/ui/button' etc. Tailwind config doit inclure le darkMode et les custom colors shadcn.",
+        "text": "ERREUR CRITIQUE / INTERDIT dans package.json: ne jamais ajouter shadcn/ui, @shadcn/ui, ni shadcn-ui dans dependencies ou devDependencies. Cela provoque npm EINVALIDPACKAGENAME. shadcn/ui n'est pas un package npm installable: c'est un CLI de génération de composants. CORRECT: utiliser npx shadcn@latest init (ou npx shadcn-ui@latest init selon la version du CLI) puis importer les composants copiés localement depuis '@/components/ui/*'. Dans package.json, utiliser uniquement de vraies dépendances npm compatibles shadcn: class-variance-authority, clsx, tailwind-merge, lucide-react.",
         "metadata": {"category": "shadcn", "tech": "shadcn-ui", "version": "latest", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
@@ -216,6 +216,55 @@ STANDARDS = [
     "text": "Routes d'authentification Clerk obligatoires : /sign-in et /sign-up uniquement. Routes interdites : /login, /register, /api/auth/login, /api/auth/register, /api/auth/logout. L'architecture Clerk ne nécessite aucune API route custom pour l'authentification.",
     "metadata": {"category": "clerk", "tech": "nextjs", "priority": "critical", "source": "run_learnings_v1", "outcome": "failure_prevention"}
 },
+{
+    "category": "nextjs",
+    "text": "shadcn/ui N'EST PAS un package npm. INTERDIT dans dependencies/devDependencies. "
+            "shadcn/ui est un CLI : npx shadcn-ui@latest init puis npx shadcn-ui@latest add [component]. "
+            "Les composants sont copiés dans le projet, pas installés via npm.",
+    "tags": ["nextjs", "shadcn", "dependencies", "critical"],
+    "priority": "HIGH"
+},
+# Dans la liste factory_standards, ajoute :
+
+# 1. shadcn/ui invalide
+{
+    "category": "nextjs",
+    "text": "INTERDIT dans package.json: 'shadcn/ui' ou '@shadcn/ui'. shadcn/ui n'est pas une dépendance npm installable. Utiliser le CLI `npx shadcn@latest init` et ajouter uniquement les vraies dépendances npm requises.",
+    "tags": ["nextjs", "npm", "package-json", "shadcn", "critical"],
+    "priority": "HIGH"
+},
+
+# 2. Prisma 7 breaking change
+{
+    "category": "prisma",
+    "text": "Si Prisma CLI >=7 est utilisé, NE PAS générer `datasource { url = env(...) }` dans schema.prisma. Utiliser `prisma.config.ts` conforme Prisma 7, ou pinner Prisma 5.x de façon cohérente (CLI + client + schema conventions).",
+    "tags": ["prisma", "migration", "versioning", "breaking-change"],
+    "priority": "HIGH"
+},
+
+# 3. Versions Prisma cohérentes
+{
+    "category": "prisma",
+    "text": "Toujours pinner explicitement les versions `prisma` et `@prisma/client` dans package.json avant tout `prisma migrate`. Interdit de laisser `npx prisma` installer une version implicite latest.",
+    "tags": ["prisma", "dependency-management", "build-stability"],
+    "priority": "HIGH"
+},
+
+# 4. Mermaid validation
+{
+    "category": "architecture",
+    "text": "Les diagrammes Mermaid doivent rester compacts et validables en <30s. Si validation CLI timeout, marquer explicitement `mermaid_validated=false` dans metadata et propager ce signal en aval.",
+    "tags": ["mermaid", "validation", "quality-signal"],
+    "priority": "MEDIUM"
+},
+
+# 5. npm token warning
+{
+    "category": "deployment",
+    "text": "En CI/container, exécuter npm sans dépendance à un token privé pour packages publics. Si `.npmrc` contient auth expirée, neutraliser ou isoler le registry privé pour éviter bruit et erreurs de résolution.",
+    "tags": ["npm", "ci", "container", "registry"],
+    "priority": "MEDIUM"
+},
 ]
 
 async def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
@@ -235,6 +284,32 @@ async def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> st
         return point_id
     except Exception as e:
         raise RuntimeError(f"Échec upsert du standard: {text[:60]}... → {str(e)}")
+
+
+def _normalize_standard(standard: dict) -> dict:
+    """
+    Supporte deux formats d'entrée:
+    - Nouveau format: {"text": "...", "metadata": {...}}
+    - Format simplifié: {"category": "...", "text": "...", "tags": [...], "priority": "..."}
+    """
+    text = str(standard.get("text", "")).strip()
+    metadata = standard.get("metadata")
+
+    if not isinstance(metadata, dict):
+        metadata = {
+            "category": standard.get("category", "uncategorized"),
+            "source": "factory_standards_v1",
+            "outcome": "validated",
+        }
+        if "priority" in standard:
+            metadata["priority"] = standard["priority"]
+        tags = standard.get("tags")
+        if isinstance(tags, list):
+            metadata["tags"] = tags
+
+    metadata.setdefault("category", "uncategorized")
+    return {"text": text, "metadata": metadata}
+
 
 async def populate():
     """Peuple factory_standards avec tous les standards définis."""
@@ -264,9 +339,14 @@ async def populate():
     
     # Groupement par catégorie pour un affichage clair
     categories = {}
+    normalized_standards = []
     for std in STANDARDS:
-        cat = std["metadata"]["category"]
-        categories.setdefault(cat, []).append(std)
+        normalized = _normalize_standard(std)
+        if not normalized["text"]:
+            continue
+        normalized_standards.append(normalized)
+        cat = normalized["metadata"].get("category", "uncategorized")
+        categories.setdefault(cat, []).append(normalized)
     
     total_added = 0
     

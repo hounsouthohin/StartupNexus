@@ -9,6 +9,32 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 
 
+def _check_clerk_compliant(result: dict) -> bool:
+    """
+    Vérifie réellement la conformité Clerk au lieu de retourner True.
+
+    Critères:
+    - ClerkProvider présent dans le code
+    - Middleware Clerk configuré
+    - Pas d'auth custom (bcrypt, jwt, password_hash)
+    """
+    files = result.get("dev_output", {}).get("files", {})
+    if not files:
+        return False
+
+    all_content = " ".join(str(v) for v in files.values()).lower()
+
+    # Vérifications positives
+    has_clerk_provider = "clerkprovider" in all_content
+    has_middleware = "clerk" in all_content and "middleware" in all_content
+
+    # Vérifications négatives (custom auth interdit)
+    forbidden = ["bcrypt", "jsonwebtoken", "password_hash", "passport"]
+    no_custom_auth = not any(term in all_content for term in forbidden)
+
+    return has_clerk_provider and has_middleware and no_custom_auth
+
+
 def _log_run_metric(project_name: str, payload: Dict[str, Any]) -> None:
     try:
         from agents.shared_tools import _write_learner_event
@@ -32,7 +58,7 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
     run_metric: Dict[str, Any] = {
         "build_success": False,
         "files_count": 0,
-        "clerk_compliant": True,
+        "clerk_compliant": False,
         "dev_files_count": 0,
         "build_attempts": 0,
         "iterations": 0,
@@ -88,7 +114,7 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
         run_metric = {
             "build_success": build_success,
             "files_count": int(metadata.get("total_files", 0)),
-            "clerk_compliant": True,
+            "clerk_compliant": _check_clerk_compliant(result),
             "dev_files_count": int(metadata.get("dev_files_count", 0)),
             "build_attempts": int(dev_meta.get("build_attempts", 0)),
             "iterations": int(dev_meta.get("iterations", 0)),
@@ -109,7 +135,7 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
         run_metric = {
             "build_success": False,
             "files_count": 0,
-            "clerk_compliant": True,
+            "clerk_compliant": _check_clerk_compliant(result) if "result" in locals() else False,
             "dev_files_count": 0,
             "build_attempts": 0,
             "iterations": 0,

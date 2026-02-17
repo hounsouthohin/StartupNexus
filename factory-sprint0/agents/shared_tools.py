@@ -1,6 +1,7 @@
 import codecs
 import json
 import os
+import re
 import subprocess
 from datetime import datetime
 import time
@@ -75,6 +76,63 @@ def _resolve_safe_path(path: str, base_dir: str = ".") -> tuple[bool, str]:
         return False, "Path traversal outside project directory is forbidden."
     return True, candidate_abs
 
+
+def _is_valid_npm_package_name(name: str) -> bool:
+    if not isinstance(name, str) or not name:
+        return False
+    if name != name.lower():
+        return False
+    # Scoped: @scope/name (exactly one slash)
+    if name.startswith("@"):
+        return bool(re.fullmatch(r"@[a-z0-9._-]+/[a-z0-9._-]+", name))
+    # Non-scoped: no slash allowed
+    if "/" in name:
+        return False
+    return bool(re.fullmatch(r"[a-z0-9][a-z0-9._-]*", name))
+
+
+def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
+    try:
+        with open(package_json_path, "r", encoding="utf-8") as f:
+            package_data = json.load(f)
+    except Exception as e:
+        logger.warning(f"Impossible de sanitiser package.json: {e}")
+        return False
+
+    if not isinstance(package_data, dict):
+        return False
+
+    modified = False
+    for section in ("dependencies", "devDependencies"):
+        deps = package_data.get(section)
+        if not isinstance(deps, dict):
+            continue
+        invalid_names = [name for name in list(deps.keys()) if not _is_valid_npm_package_name(name)]
+        for name in invalid_names:
+            deps.pop(name, None)
+            modified = True
+            try:
+                _write_learner_event(
+                    project_name=project_name,
+                    metric="tool_patch_applied",
+                    value={
+                        "file": "package.json",
+                        "patch": "invalid_npm_package_removed",
+                        "package_name": name,
+                        "package_type": section,
+                        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)",
+                    },
+                    success=True,
+                )
+            except Exception as e:
+                logger.warning(f"Learner logging failed: {e}")
+
+    if modified:
+        with open(package_json_path, "w", encoding="utf-8") as f:
+            json.dump(package_data, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+    return modified
+
 @tool
 def rag_search(query: str) -> str:
     """
@@ -126,6 +184,23 @@ def write_file(path: str, content: str) -> str:
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
         if path in ("next.config.js", "middleware.ts", "app/middleware.ts"):
+            # Logger le patch avant de l'appliquer
+            if "source: '/protected/**'" in content or 'source: "/protected/**"' in content:
+                try:
+                    _write_learner_event(
+                        project_name=os.path.basename(os.path.dirname(path)),
+                        metric="tool_patch_applied",
+                        value={
+                            "file": os.path.basename(path),
+                            "patch": "middleware_matcher_fix",
+                            "from": "/protected/**",
+                            "to": "/protected/(.*)",
+                            "reason": "Next.js 14 App Router incompatibility",
+                        },
+                        success=True,
+                    )
+                except Exception as e:
+                    logger.warning(f"Learner logging failed: {e}")
             content = content.replace(
                 "source: '/protected/**'",
                 "source: '/protected/(.*)'"
@@ -327,6 +402,10 @@ def run_build(project_dir: str = '.') -> str:
     package_json_path = os.path.join(project_dir, 'package.json')
     if not os.path.exists(package_json_path):
         return f"Error: package.json not found at '{package_json_path}'. Cannot run build."
+    project_name = os.path.basename(project_dir) or "default-project"
+    sanitized = _sanitize_package_json(package_json_path, project_name)
+    if sanitized:
+        logger.info("package.json sanitized")
 
     try:
         # Step 1: Run npm install
@@ -406,8 +485,39 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 # Sanitize package.json specifically
                 if path == 'package.json':
                     logger.info("Sanitizing package.json before writing...")
+                    try:
+                        _write_learner_event(
+                            project_name=os.path.basename(project_dir),
+                            metric="tool_patch_applied",
+                            value={
+                                "file": "package.json",
+                                "patch": "ts_jest_version_fix",
+                                "dependency": "ts-jest",
+                                "target_version": "29.1.2",
+                                "reason": "Ensure test toolchain compatibility",
+                            },
+                            success=True,
+                        )
+                    except Exception as e:
+                        logger.warning(f"Learner logging failed: {e}")
                     # Explicitly replace the incorrect ts-jest version
                     content_to_write = content_to_write.replace('"ts-jest": "29.5.0"', '"ts-jest": "29.1.2"')
+                    if '"next"' in content_to_write:
+                        try:
+                            _write_learner_event(
+                                project_name=os.path.basename(project_dir),
+                                metric="tool_patch_applied",
+                                value={
+                                    "file": "package.json",
+                                    "patch": "next_version_fix",
+                                    "dependency": "next",
+                                    "target_version": "14.2.3",
+                                    "reason": "Ensure Next.js 14+ compatibility",
+                                },
+                                success=True,
+                            )
+                        except Exception as e:
+                            logger.warning(f"Learner logging failed: {e}")
                     # Force "next" version to "14.2.3" to resolve peer dependency conflicts
                     content_to_write = content_to_write.replace(
                         '"next": "13.4.0"', '"next": "14.2.3"'
@@ -460,6 +570,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     if not os.path.exists(tsconfig_path):
         logger.info(f"Writing default tsconfig.json to '{tsconfig_path}'...")
         try:
+            try:
+                _write_learner_event(
+                    project_name=os.path.basename(project_dir),
+                    metric="tool_patch_applied",
+                    value={
+                        "file": "tsconfig.json",
+                        "patch": "config_injection",
+                        "reason": "Missing config file generated by tool",
+                    },
+                    success=True,
+                )
+            except Exception as e:
+                logger.warning(f"Learner logging failed: {e}")
             with open(tsconfig_path, "w", encoding='utf-8') as f:
                 f.write(tsconfig_content)
             logger.info(f"Successfully wrote file: {tsconfig_path}")
@@ -474,6 +597,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     if not os.path.exists(jest_setup_path):
         logger.info(f"Writing default jest.setup.js to '{jest_setup_path}'...")
         try:
+            try:
+                _write_learner_event(
+                    project_name=os.path.basename(project_dir),
+                    metric="tool_patch_applied",
+                    value={
+                        "file": "jest.setup.js",
+                        "patch": "config_injection",
+                        "reason": "Missing config file generated by tool",
+                    },
+                    success=True,
+                )
+            except Exception as e:
+                logger.warning(f"Learner logging failed: {e}")
             with open(jest_setup_path, "w", encoding='utf-8') as f:
                 f.write(jest_setup_content)
             logger.info(f"Successfully wrote file: {jest_setup_path}")
@@ -496,6 +632,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     if not os.path.exists(jest_config_path):
         logger.info(f"Writing default jest.config.js to '{jest_config_path}'...")
         try:
+            try:
+                _write_learner_event(
+                    project_name=os.path.basename(project_dir),
+                    metric="tool_patch_applied",
+                    value={
+                        "file": "jest.config.js",
+                        "patch": "config_injection",
+                        "reason": "Missing config file generated by tool",
+                    },
+                    success=True,
+                )
+            except Exception as e:
+                logger.warning(f"Learner logging failed: {e}")
             with open(jest_config_path, "w", encoding='utf-8') as f:
                 f.write(jest_config_content)
             logger.info(f"Successfully wrote file: {jest_config_path}")
@@ -514,6 +663,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     if not os.path.exists(clerk_middleware_mock_path):
         logger.info(f"Writing clerk middleware mock to '{clerk_middleware_mock_path}'...")
         try:
+            try:
+                _write_learner_event(
+                    project_name=os.path.basename(project_dir),
+                    metric="tool_patch_applied",
+                    value={
+                        "file": "clerk-middleware.js",
+                        "patch": "config_injection",
+                        "reason": "Missing config file generated by tool",
+                    },
+                    success=True,
+                )
+            except Exception as e:
+                logger.warning(f"Learner logging failed: {e}")
             with open(clerk_middleware_mock_path, "w", encoding='utf-8') as f:
                 f.write(clerk_middleware_mock_content)
             logger.info(f"Successfully wrote file: {clerk_middleware_mock_path}")
@@ -524,6 +686,10 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     
     package_json_path = os.path.join(project_dir, 'package.json')
     if os.path.exists(package_json_path):
+        project_name = os.path.basename(project_dir) or "default-project"
+        sanitized = _sanitize_package_json(package_json_path, project_name)
+        if sanitized:
+            logger.info("package.json sanitized")
         logger.info(f"package.json found in '{project_dir}'. Installing dev dependencies...")
         lock_path = os.path.join(project_dir, 'package-lock.json')
         npm_install_fallback = [
