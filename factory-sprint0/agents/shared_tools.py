@@ -5,6 +5,7 @@ import re
 import subprocess
 from datetime import datetime
 import time
+from pathlib import Path
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
@@ -75,6 +76,52 @@ def _resolve_safe_path(path: str, base_dir: str = ".") -> tuple[bool, str]:
     if os.path.commonpath([base_abs, candidate_abs]) != base_abs:
         return False, "Path traversal outside project directory is forbidden."
     return True, candidate_abs
+
+
+def _append_rag_usage_event(
+    *,
+    query: str,
+    k: int,
+    cache_hit: bool,
+    docs: list | None = None,
+    error: str | None = None,
+) -> None:
+    """
+    Ecrit une trace d'usage RAG exploitable en audit (jsonl).
+    """
+    try:
+        metrics_dir = Path("logs/metrics")
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+        path = metrics_dir / "rag_usage.jsonl"
+
+        docs_payload = []
+        if docs:
+            for idx, doc in enumerate(docs, start=1):
+                metadata = getattr(doc, "metadata", {}) or {}
+                docs_payload.append(
+                    {
+                        "rank": idx,
+                        "category": metadata.get("category"),
+                        "source": metadata.get("source"),
+                        "tech": metadata.get("tech"),
+                        "snippet": str(getattr(doc, "page_content", ""))[:180],
+                    }
+                )
+
+        event = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "agent": "dev_tool_rag_search",
+            "query": query,
+            "k": int(k),
+            "cache_hit": bool(cache_hit),
+            "result_count": len(docs_payload),
+            "docs": docs_payload,
+            "error": error,
+        }
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception as log_err:
+        logger.warning(f"RAG metrics logging failed: {log_err}")
 
 
 def _is_valid_npm_package_name(name: str) -> bool:
@@ -176,14 +223,35 @@ def rag_search(query: str) -> str:
     """
     logger.info(f"Executing rag_search with query: '{query}'")
     if query in _rag_cache:
+        _append_rag_usage_event(
+            query=query,
+            k=DEFAULT_VECTOR_SEARCH_LIMIT,
+            cache_hit=True,
+            docs=[],
+            error=None,
+        )
         return _rag_cache[query]
     if not vectorstore:
         logger.error("RAG search failed: Vectorstore is not initialized.")
+        _append_rag_usage_event(
+            query=query,
+            k=DEFAULT_VECTOR_SEARCH_LIMIT,
+            cache_hit=False,
+            docs=[],
+            error="vectorstore_not_initialized",
+        )
         return "Aucun résultat (erreur de recherche)."
     
     try:
         retriever = vectorstore.as_retriever(search_kwargs={"k": DEFAULT_VECTOR_SEARCH_LIMIT})
         docs = retriever.invoke(query)
+        _append_rag_usage_event(
+            query=query,
+            k=DEFAULT_VECTOR_SEARCH_LIMIT,
+            cache_hit=False,
+            docs=docs,
+            error=None,
+        )
         result = "\n\n".join([doc.page_content for doc in docs])
         if len(_rag_cache) >= RAG_CACHE_MAX_SIZE:
             _rag_cache.pop(next(iter(_rag_cache)))
@@ -191,6 +259,13 @@ def rag_search(query: str) -> str:
         return result
     except Exception as e:
         logger.error(f"RAG search encountered an error: {e}")
+        _append_rag_usage_event(
+            query=query,
+            k=DEFAULT_VECTOR_SEARCH_LIMIT,
+            cache_hit=False,
+            docs=[],
+            error=str(e),
+        )
         return "Aucun résultat (erreur de recherche)."
 
 class WriteFileArgs(BaseModel):
@@ -484,6 +559,53 @@ class RunTestsArgs(BaseModel):
     project_dir: str = Field(description="Répertoire racine du projet (défaut: '.')", default='.')
     files: dict = Field(description="A dictionary of files to write to disk before running tests, with path as key and content as value.")
 
+
+def _major_from_version(version: str) -> int | None:
+    if not isinstance(version, str):
+        return None
+    match = re.search(r"(\d+)", version)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _collect_package_version_mismatches(package_json: dict) -> list[dict]:
+    mismatches: list[dict] = []
+    deps = package_json.get("dependencies", {}) if isinstance(package_json, dict) else {}
+    dev_deps = package_json.get("devDependencies", {}) if isinstance(package_json, dict) else {}
+
+    ts_jest_version = dev_deps.get("ts-jest")
+    if isinstance(ts_jest_version, str):
+        ts_jest_major = _major_from_version(ts_jest_version)
+        if ts_jest_major is not None and ts_jest_major != 29:
+            mismatches.append(
+                {
+                    "package": "ts-jest",
+                    "current": ts_jest_version,
+                    "expected": "29.x",
+                    "issue": "incompatible_version",
+                }
+            )
+
+    next_version = deps.get("next")
+    if isinstance(next_version, str):
+        next_major = _major_from_version(next_version)
+        if next_major is not None and next_major < 14:
+            mismatches.append(
+                {
+                    "package": "next",
+                    "current": next_version,
+                    "expected": ">=14",
+                    "issue": "incompatible_version",
+                }
+            )
+
+    return mismatches
+
+
 @tool(args_schema=RunTestsArgs)
 def run_tests(project_dir: str = '.', files: dict = None) -> str:
     """
@@ -520,54 +642,27 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 if path == 'package.json':
                     logger.info("Sanitizing package.json before writing...")
                     try:
-                        _write_learner_event(
-                            project_name=os.path.basename(project_dir),
-                            metric="tool_patch_applied",
-                            value={
-                                "file": "package.json",
-                                "patch": "ts_jest_version_fix",
-                                "dependency": "ts-jest",
-                                "target_version": "29.1.2",
-                                "reason": "Ensure test toolchain compatibility",
-                            },
-                            success=True,
-                        )
-                    except Exception as e:
-                        logger.warning(f"Learner logging failed: {e}")
-                    # Explicitly replace the incorrect ts-jest version
-                    content_to_write = content_to_write.replace('"ts-jest": "29.5.0"', '"ts-jest": "29.1.2"')
-                    if '"next"' in content_to_write:
-                        try:
-                            _write_learner_event(
-                                project_name=os.path.basename(project_dir),
-                                metric="tool_patch_applied",
-                                value={
-                                    "file": "package.json",
-                                    "patch": "next_version_fix",
-                                    "dependency": "next",
-                                    "target_version": "14.2.3",
-                                    "reason": "Ensure Next.js 14+ compatibility",
-                                },
-                                success=True,
-                            )
-                        except Exception as e:
-                            logger.warning(f"Learner logging failed: {e}")
-                    # Force "next" version to "14.2.3" to resolve peer dependency conflicts
-                    content_to_write = content_to_write.replace(
-                        '"next": "13.4.0"', '"next": "14.2.3"'
-                    ).replace( # Also replace if it's "^13.x.x" or similar
-                        '"next": "^13.4.0"', '"next": "14.2.3"'
-                    ).replace( # Another common problematic version
-                        '"next": "^14.0.0"', '"next": "14.2.3"'
-                    ).replace( # Ensure any other major 13 or 14 is also updated if needed
-                        '"next": "^13', '"next": "14.2.3"'
-                    ).replace(
-                        '"next": "14.0.0"', '"next": "14.2.3"'
-                    ).replace(
-                        '"next": "14.1.0"', '"next": "14.2.3"'
-                    )
-                    try:
                         parsed_package_json = json.loads(content_to_write)
+                        mismatches = _collect_package_version_mismatches(parsed_package_json)
+                        if mismatches:
+                            try:
+                                _write_learner_event(
+                                    project_name=os.path.basename(project_dir),
+                                    metric="version_mismatch_detected",
+                                    value={
+                                        "file": "package.json",
+                                        "mismatches": mismatches,
+                                        "mode": "report_only",
+                                    },
+                                    success=False,
+                                )
+                            except Exception as e:
+                                logger.warning(f"Learner logging failed: {e}")
+                            return (
+                                "Version mismatches detected in package.json: "
+                                f"{json.dumps(mismatches, ensure_ascii=False)}. "
+                                "Fix suggestion: update package.json using RAG standards, then rerun tests."
+                            )
                         with open(safe_path, "w", encoding="utf-8") as tmp_f:
                             json.dump(parsed_package_json, tmp_f, ensure_ascii=False, indent=2)
                             tmp_f.write("\n")
@@ -793,6 +888,19 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 try:
                     if os.path.exists(lock_path):
                         os.remove(lock_path)
+                        try:
+                            _write_learner_event(
+                                project_name=os.path.basename(project_dir),
+                                metric="tool_patch_applied",
+                                value={
+                                    "file": "package-lock.json",
+                                    "patch": "lockfile_reset",
+                                    "reason": "npm ci lockfile mismatch fallback",
+                                },
+                                success=True,
+                            )
+                        except Exception as e:
+                            logger.warning(f"Learner logging failed: {e}")
                         logger.info("package-lock.json removed before fallback install.")
                     install_result = subprocess.run(
                         npm_install_fallback,

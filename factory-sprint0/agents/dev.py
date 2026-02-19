@@ -144,6 +144,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     files = {}
     final_message = ""
     build_attempts = 0
+    build_attempted = False
     build_success = False
     last_build_error = ""
     last_test_error = ""
@@ -170,6 +171,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
             pass
         return raw_cmd
 
+    stagnant_iterations = 0
     for iteration in range(1, MAX_ITERATIONS + 1):
         logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Build attempts: {build_attempts}")
 
@@ -214,6 +216,8 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
 
         tool_messages = []
         raw_tool_outputs = []
+        wrote_file_this_iter = False
+        called_build_this_iter = False
         if response.tool_calls:
             for tool_call in response.tool_calls:
                 tool_name = tool_call["name"]
@@ -226,6 +230,8 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
                         raw_tool_outputs.append(raw_output)
 
                         if tool_name == "run_build":
+                            build_attempted = True
+                            called_build_this_iter = True
                             if "Build successful" in raw_output:
                                 last_build_error = ""
                                 last_failed_command = ""
@@ -265,6 +271,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
                     content = tc["args"].get("content")
                     if path and content is not None and path not in files:  # ÉVITE RÉÉCRITURE
                         files[path] = content
+                        wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
 
         # Détection build succès/échec
@@ -275,10 +282,35 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         elif "build" in build_output.lower() and ("error" in build_output.lower() or "failed" in build_output.lower()):
             build_attempts += 1
 
+        if wrote_file_this_iter or called_build_this_iter:
+            stagnant_iterations = 0
+        else:
+            stagnant_iterations += 1
+
         # Forçage progression si fichiers clés présents
         key_files = ["package.json", "app/layout.tsx", "middleware.ts", "prisma/schema.prisma"]
         if all(any(k in p for p in files) for k in key_files) and not build_success:
             messages.append(HumanMessage(content="Fichiers clés présents. Appelle run_build maintenant pour valider le projet."))
+
+        # Garde-fou: si le modele stagne sans progres, forcer un run_build.
+        if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
+            forced_build_output = str(run_build.invoke({"project_dir": "."}))
+            build_attempted = True
+            called_build_this_iter = True
+            raw_tool_outputs.append(forced_build_output)
+            messages.append(HumanMessage(content=f"[FORCED_RUN_BUILD]\n{_shrink_tool_output('run_build', forced_build_output)}"))
+            if "Build successful" in forced_build_output:
+                build_success = True
+                build_attempts = 0
+                last_build_error = ""
+                last_failed_command = ""
+            else:
+                build_attempts += 1
+                extracted_stderr = _extract_stderr(forced_build_output)
+                last_build_error = extracted_stderr[:2000] if extracted_stderr else forced_build_output[:2000]
+                failed_cmd = _extract_failed_command(forced_build_output)
+                if failed_cmd:
+                    last_failed_command = failed_cmd
 
         # Reflection renforcée – VERSION DÉFINITIVE FIXÉE (anti-400 + paires préservées)
         safe_reflection_history = []
@@ -348,6 +380,8 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         if os.path.exists(folder):
             shutil.rmtree(folder, ignore_errors=True)
 
+    if not build_attempted and not build_success:
+        final_message = "BuildNotAttempted: run_build n'a pas ete execute."
     logger.info("Dev Agent v3.2 terminé.")
     return {
         "files": files,
@@ -356,6 +390,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         "metadata": {
             "iterations": iteration,
             "build_attempts": build_attempts,
+            "build_attempted": build_attempted,
             "total_files": len(files),
             "last_build_error": last_build_error[:2000] if last_build_error else "",
             "last_test_error": last_test_error[:2000] if last_test_error else "",

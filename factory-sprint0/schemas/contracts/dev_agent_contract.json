@@ -51,14 +51,15 @@
       "metadata": {
         "type": "object",
         "additionalProperties": false,
-        "properties": {
-          "iterations": {"type": "integer"},
-          "build_attempts": {"type": "integer"},
-          "total_files": {"type": "integer"},
-          "last_build_error": {"type": "string"},
-          "last_test_error": {"type": "string"},
-          "last_failed_command": {"type": "string"}
-        }
+          "properties": {
+            "iterations": {"type": "integer"},
+            "build_attempts": {"type": "integer"},
+            "build_attempted": {"type": "boolean"},
+            "total_files": {"type": "integer"},
+            "last_build_error": {"type": "string"},
+            "last_test_error": {"type": "string"},
+            "last_failed_command": {"type": "string"}
+          }
       }
     }
   },

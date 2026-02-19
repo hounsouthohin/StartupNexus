@@ -69,20 +69,32 @@ async def _run_one(
         task_queue=TASK_QUEUE,
     )
 
+    workflow_status: str | None = None
+    build_status: str | None = None
+    build_success: bool | None = None
+
     try:
         if result_timeout_seconds and result_timeout_seconds > 0:
             result = await asyncio.wait_for(handle.result(), timeout=result_timeout_seconds)
         else:
             result = await handle.result()
-        success = True
+        workflow_success = True
         error = None
+        if isinstance(result, dict):
+            workflow_status = result.get("workflow_status")
+            build_status = result.get("build_status")
+        else:
+            workflow_status = getattr(result, "workflow_status", None)
+            build_status = getattr(result, "build_status", None)
+        if build_status is not None:
+            build_success = build_status == "SUCCESS"
     except TimeoutError:
         result = ""
-        success = False
+        workflow_success = False
         error = f"timeout_after_{result_timeout_seconds}_seconds"
     except Exception as exc:
         result = ""
-        success = False
+        workflow_success = False
         error = str(exc)
 
     duration_seconds = round(time.perf_counter() - t0, 2)
@@ -95,7 +107,10 @@ async def _run_one(
         "phrase": phrase,
         "started_at": started_at,
         "duration_seconds": duration_seconds,
-        "success": success,
+        "workflow_success": workflow_success,
+        "build_success": build_success,
+        "workflow_status": workflow_status,
+        "build_status": build_status,
         "error": error,
         "learner_events_before": learner_before,
         "learner_events_after": learner_after,
@@ -120,8 +135,11 @@ async def run_batch(
         )
         runs.append(run_data)
 
-    success_count = sum(1 for r in runs if r["success"])
-    failure_count = len(runs) - success_count
+    workflow_success_count = sum(1 for r in runs if r["workflow_success"])
+    workflow_failure_count = len(runs) - workflow_success_count
+    build_success_count = sum(1 for r in runs if r.get("build_success") is True)
+    build_failure_count = sum(1 for r in runs if r.get("build_success") is False)
+    build_unknown_count = sum(1 for r in runs if r.get("build_success") is None)
     total_duration = round(sum(r["duration_seconds"] for r in runs), 2)
     total_learner_delta = sum(r.get("learner_events_delta", 0) for r in runs)
 
@@ -131,8 +149,14 @@ async def run_batch(
         "task_queue": TASK_QUEUE,
         "batch_size": len(projects),
         "result_timeout_seconds": result_timeout_seconds,
-        "success_count": success_count,
-        "failure_count": failure_count,
+        "workflow_success_count": workflow_success_count,
+        "workflow_failure_count": workflow_failure_count,
+        "build_success_count": build_success_count,
+        "build_failure_count": build_failure_count,
+        "build_unknown_count": build_unknown_count,
+        # Compat legacy keys (deprecated)
+        "success_count": workflow_success_count,
+        "failure_count": workflow_failure_count,
         "total_duration_seconds": total_duration,
         "total_learner_events_delta": total_learner_delta,
         "runs": runs,

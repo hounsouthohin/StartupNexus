@@ -10,12 +10,15 @@ import subprocess
 import asyncio
 import tempfile
 import logging
+from datetime import datetime
 from typing import List, TypedDict, Annotated
 import operator
+from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
+from utils.prompt_loader import load_prompt
 
 load_dotenv(override=True)
 logger = logging.getLogger(__name__)
@@ -34,6 +37,39 @@ FORBIDDEN_AUTH_PATTERNS = [
 def _contains_forbidden_auth(text: str) -> bool:
     lowered = text.lower()
     return any(re.search(pattern, lowered) for pattern in FORBIDDEN_AUTH_PATTERNS)
+
+
+def _append_architect_rag_event(query: str, docs: list, error: str | None = None) -> None:
+    try:
+        metrics_dir = Path("logs/metrics")
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+        path = metrics_dir / "rag_usage.jsonl"
+        payload_docs = []
+        for idx, doc in enumerate(docs or [], start=1):
+            metadata = getattr(doc, "metadata", {}) or {}
+            payload_docs.append(
+                {
+                    "rank": idx,
+                    "category": metadata.get("category"),
+                    "source": metadata.get("source"),
+                    "tech": metadata.get("tech"),
+                    "snippet": str(getattr(doc, "page_content", ""))[:180],
+                }
+            )
+        event = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "agent": "architect_retrieval",
+            "query": query,
+            "k": 10,
+            "cache_hit": False,
+            "result_count": len(payload_docs),
+            "docs": payload_docs,
+            "error": error,
+        }
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception as log_err:
+        logger.warning(f"Architect RAG metrics logging failed: {log_err}")
 
 # --- Pydantic Models for State ---
 class ArchitectOutput(BaseModel):
@@ -54,10 +90,7 @@ def load_prompts():
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.messages import SystemMessage, HumanMessage
     try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        prompts_path = os.path.join(current_dir, '..', 'prompts', 'architect.md')
-        with open(prompts_path, "r", encoding='utf-8') as f:
-            content = f.read()
+        content = load_prompt("architect")
         
         prompts = {}
         pattern = r'#\s*(.*?)\n(.*?)(?=\n#\s*|\Z)'
@@ -97,9 +130,11 @@ def create_architect_agent():
         query = state["messages"][-1].content
         try:
             docs = await retriever.ainvoke(query)
+            _append_architect_rag_event(query=query, docs=docs, error=None)
         except Exception as e:
             logger.warning(f"RAG indisponible: {e} - continuation sans contexte")
             docs = []
+            _append_architect_rag_event(query=query, docs=[], error=str(e))
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
         print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
         return {"rag_context": rag_context}

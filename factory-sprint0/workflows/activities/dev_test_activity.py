@@ -113,6 +113,7 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
 
         run_metric = {
             "build_success": build_success,
+            "build_attempted": bool(dev_meta.get("build_attempted", False)),
             "files_count": int(metadata.get("total_files", 0)),
             "clerk_compliant": _check_clerk_compliant(result),
             "dev_files_count": int(metadata.get("dev_files_count", 0)),

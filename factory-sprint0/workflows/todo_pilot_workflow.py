@@ -34,6 +34,7 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.dev_test_activity import dev_test_activity
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
+    from workflows.activities.learner_activity import learner_activity
 
 @workflow.defn
 class TodoPilotWorkflow:
@@ -123,6 +124,28 @@ class TodoPilotWorkflow:
             )
 
             workflow.logger.info("GitHub terminé")
+
+            # 5. Learner (shadow mode)
+            learner_input = {
+                "project_name": project_name,
+                "specification": spec_part,
+                "generated_files": github_input["files"],
+                "run_metrics": {
+                    "total_duration_seconds": float((workflow.now() - start_time).total_seconds()),
+                    "status": "SUCCESS" if build_status == "SUCCESS" else "PARTIAL",
+                },
+                "e2e_tests": e2e_tests,
+                "pr_url": github_result.get("pr_url", ""),
+            }
+            try:
+                await workflow.execute_activity(
+                    learner_activity,
+                    learner_input,
+                    start_to_close_timeout=timedelta(minutes=5),
+                    retry_policy=common_retry_policy,
+                )
+            except Exception as learner_err:
+                workflow.logger.warning(f"Learner shadow skipped due to error: {learner_err}")
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})

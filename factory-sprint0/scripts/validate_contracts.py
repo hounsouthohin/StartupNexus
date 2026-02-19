@@ -35,6 +35,7 @@ AGENT_CONTRACT_FILES = {
     "qa_agent":        "qa_agent_contract.json",
     "github_agent":    "github_agent_contract.json",
     "dev_test_agent": "dev_test_agent_contract.json",
+    "learner_agent":  "learner_agent_contract.json",
 }
 
 # ─────────────────────────────────────────────────────

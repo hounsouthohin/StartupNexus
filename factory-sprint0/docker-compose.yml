@@ -130,6 +130,12 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - temporal-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   # --------------------------------------------------------------------------------
   # Factory Worker - notre application Python
@@ -156,7 +162,7 @@ services:
       - temporal-network
     depends_on:
       qdrant:
-        condition: service_started
+        condition: service_healthy
       temporal:
         condition: service_healthy
 

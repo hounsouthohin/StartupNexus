@@ -10,6 +10,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
+from utils.prompt_loader import load_prompt
 
 # Load environment variables from .env file
 load_dotenv()
@@ -58,8 +59,7 @@ def qa_agent_node(state: AgentState) -> dict:
     The primary node for the QA agent that generates test scenarios.
     """
     try:
-        with open(os.path.join(os.path.dirname(__file__), '..', 'prompts', 'qa.md'), "r", encoding='utf-8') as f:
-            system_prompt_content = f.read()
+        system_prompt_content = load_prompt("qa")
     except FileNotFoundError:
         logger.error("prompts/qa.md not found.")
         system_prompt_content = "You are a QA Agent..."

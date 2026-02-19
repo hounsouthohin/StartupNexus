@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
+from utils.prompt_loader import load_prompt
 
 # Import central configuration (Added)
 from config.factory_config import SUBPROCESS_TIMEOUT_LONG
@@ -109,8 +110,7 @@ def generation_node(state: AgentState) -> dict:
     state["files"]["jest.setup.js"] = jest_setup_content
 
     try:
-        with open(os.path.join(os.path.dirname(__file__), '..', 'prompts', 'test_coverage.md'), "r", encoding='utf-8') as f:
-            system_prompt_content = f.read()
+        system_prompt_content = load_prompt("test_coverage")
     except FileNotFoundError:
         logger.error("prompts/test_coverage.md not found.")
         system_prompt_content = "You are a TestCoverage Agent..."
