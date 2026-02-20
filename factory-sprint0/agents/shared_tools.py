@@ -56,6 +56,56 @@ MAX_TOOL_OUTPUT_CHARS = 1800
 RAG_CACHE_MAX_SIZE = 50
 _rag_cache: dict[str, str] = {}
 
+# Hard rule: remapping des packages Clerk hallucinés par le LLM → @clerk/nextjs.
+# La version cible vient uniquement du RAG (jamais hardcodée ici).
+CLERK_PACKAGE_FIXES: dict[str, str] = {
+    "@clerk/clerk-sdk": "@clerk/nextjs",
+    "@clerk/clerk-js": "@clerk/nextjs",
+    "@clerk/sdk": "@clerk/nextjs",
+    "@clerk/react": "@clerk/nextjs",
+}
+
+# Hard rule: versions minimum de dépendances peer requises par next@14+.
+# Ce sont des contraintes de compatibilité npm (faits techniques), pas des choix de stack.
+# Les versions préférées (ex: react@18.3.1) restent dans le RAG.
+PEER_DEPENDENCY_MINIMUMS: dict[str, str] = {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+}
+
+# Hard rule: version pinnée pour next afin d'éviter les breaking changes LLM.
+# next@15+ est incompatible avec le setup App Router Sprint 0 (Clerk V5, Prisma 7).
+# La version préférée reste dans le RAG ; ici on bloque seulement les versions hors-périmètre.
+VERSION_PINS: dict[str, str] = {
+    "next": "14.2.3",
+}
+
+# Hard rule: dépendances dev requises par jest.config.js + jest.setup.js injectés.
+# Injectées dans devDependencies si absentes, pour éviter les échecs npm ci post-génération.
+# Les versions préférées (ex: @testing-library/jest-dom@6.4) restent dans le RAG.
+JEST_REQUIRED_DEV_DEPS: dict[str, str] = {
+    "jest-environment-jsdom": "^29.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@babel/runtime": "^7.0.0",
+}
+
+
+def _version_is_exact_and_below(version_str: str, minimum: str) -> bool:
+    """True si version_str est un semver exact (sans ^ ~ > < * x) et numériquement inférieur à minimum."""
+    if not isinstance(version_str, str) or not version_str:
+        return False
+    if any(c in version_str for c in ("^", "~", ">", "<", "*", "x", "X")):
+        return False
+    minimum_clean = minimum.lstrip("^~>=< ").strip()
+    try:
+        current_parts = tuple(int(p) for p in version_str.strip().split(".")[:3])
+        minimum_parts = tuple(int(p) for p in minimum_clean.split(".")[:3])
+        current_parts += (0,) * (3 - len(current_parts))
+        minimum_parts += (0,) * (3 - len(minimum_parts))
+        return current_parts < minimum_parts
+    except (ValueError, AttributeError):
+        return False
+
 
 def _truncate_output(output: str, max_chars: int = MAX_TOOL_OUTPUT_CHARS) -> str:
     if len(output) <= max_chars:
@@ -152,10 +202,26 @@ def _normalize_npm_package_name(raw_name: str, fallback: str = "generated-app") 
 def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
     try:
         with open(package_json_path, "r", encoding="utf-8") as f:
-            package_data = json.load(f)
+            raw_content = f.read()
     except Exception as e:
         logger.warning(f"Impossible de sanitiser package.json: {e}")
         return False
+
+    raw_content = _normalize_json_string(raw_content)
+    try:
+        package_data = json.loads(raw_content)
+    except json.JSONDecodeError:
+        # Tentative : décoder les escape sequences littérales (\n → newline)
+        try:
+            fixed = raw_content.replace('\\n', '\n').replace('\\t', '\t').replace('\\r', '')
+            package_data = json.loads(fixed)
+            # Réécrire le fichier décodé sur disque immédiatement
+            with open(package_json_path, "w", encoding="utf-8") as f:
+                f.write(fixed)
+            logger.info("_sanitize_package_json: package.json double-encodé corrigé sur disque")
+        except Exception as e:
+            logger.warning(f"Impossible de sanitiser package.json: {e}")
+            return False
 
     if not isinstance(package_data, dict):
         return False
@@ -208,11 +274,194 @@ def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
             except Exception as e:
                 logger.warning(f"Learner logging failed: {e}")
 
+    # Hard rule: remapping packages Clerk invalides → @clerk/nextjs.
+    # La version cible = celle déjà déclarée pour @clerk/nextjs dans le fichier,
+    # ou "*" si absente. Ne jamais hériter la version du package invalide remplacé.
+    for section in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+        deps = package_data.get(section)
+        if not isinstance(deps, dict):
+            continue
+        # Capturer la version @clerk/nextjs AVANT toute suppression
+        existing_nextjs_version = deps.get("@clerk/nextjs")
+        for invalid_clerk_pkg, correct_pkg in CLERK_PACKAGE_FIXES.items():
+            if invalid_clerk_pkg in deps:
+                deps.pop(invalid_clerk_pkg)
+                modified = True
+                if correct_pkg not in deps:
+                    deps[correct_pkg] = existing_nextjs_version or "*"
+                try:
+                    _write_learner_event(
+                        project_name=project_name,
+                        metric="tool_patch_applied",
+                        value={
+                            "type": "clerk_package_fix",
+                            "file": "package.json",
+                            "patch": "clerk_package_remapped",
+                            "from": invalid_clerk_pkg,
+                            "to": correct_pkg,
+                            "version_set": deps.get(correct_pkg),
+                            "package_type": section,
+                            "reason": "Package Clerk invalide remappé vers @clerk/nextjs (hallucination LLM)",
+                        },
+                        success=True,
+                    )
+                except Exception as e:
+                    logger.warning(f"Learner logging failed: {e}")
+
     if modified:
         with open(package_json_path, "w", encoding="utf-8") as f:
             json.dump(package_data, f, ensure_ascii=False, indent=2)
             f.write("\n")
     return modified
+
+
+def _normalize_json_string(raw: str) -> str:
+    """Nettoie une string JSON avant parsing :
+    1. Strip whitespace
+    2. Retire les wrappers markdown (```json ... ``` ou ``` ... ```)
+    3. Si json.loads échoue → tente de décoder les escape sequences littérales (\\n → newline)
+    Retourne le contenu nettoyé (peut encore être invalide si le JSON est vraiment cassé).
+    """
+    content = raw.strip()
+    # Retirer wrapper markdown si présent
+    if content.startswith("```"):
+        lines = content.split('\n')
+        start = 1
+        end = len(lines) - 1 if lines and lines[-1].strip() == '```' else len(lines)
+        content = '\n'.join(lines[start:end]).strip()
+    return content
+
+
+def _sanitize_package_json_content(content: str) -> str:
+    """Applique CLERK_PACKAGE_FIXES et PEER_DEPENDENCY_MINIMUMS sur le contenu JSON brut.
+    Retourne le JSON corrigé (indenté, avec \\n final).
+    Gère le double-encodage (\\n littéraux) et les wrappers markdown générés par le LLM.
+    Si le parse échoue après toutes les tentatives → retourne le contenu inchangé.
+    Appelée par write_file() pour intercepter les hallucinations LLM à l'écriture.
+    """
+    content = _normalize_json_string(content)
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        # Tentative : décoder les escape sequences littérales (\n → newline)
+        try:
+            content_fixed = content.replace('\\n', '\n').replace('\\t', '\t').replace('\\r', '')
+            data = json.loads(content_fixed)
+            content = content_fixed
+            logger.info("_sanitize_package_json_content: JSON double-encodé corrigé (\\\\n → newline)")
+        except json.JSONDecodeError as e2:
+            logger.warning(f"_sanitize_package_json_content: parse JSON échoué → contenu inchangé. {e2}")
+            return content
+
+    if not isinstance(data, dict):
+        return content
+
+    modified = False
+
+    # Fix Clerk: remapping packages invalides → @clerk/nextjs sans hériter leur version.
+    for section in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+        deps = data.get(section)
+        if not isinstance(deps, dict):
+            continue
+        # Capturer la version @clerk/nextjs AVANT toute suppression
+        existing_nextjs_version = deps.get("@clerk/nextjs")
+        for invalid_clerk_pkg, correct_pkg in CLERK_PACKAGE_FIXES.items():
+            if invalid_clerk_pkg in deps:
+                deps.pop(invalid_clerk_pkg)
+                modified = True
+                if correct_pkg not in deps:
+                    deps[correct_pkg] = existing_nextjs_version or "*"
+                logger.info(
+                    f"[write_file] clerk_package_fix: '{invalid_clerk_pkg}' → '{correct_pkg}' "
+                    f"(version: {deps.get(correct_pkg)}, section: {section})"
+                )
+
+    # Fix peer deps: versions exactes trop basses corrigées au minimum requis.
+    for section in ("dependencies", "devDependencies"):
+        deps = data.get(section)
+        if not isinstance(deps, dict):
+            continue
+        for pkg, min_version in PEER_DEPENDENCY_MINIMUMS.items():
+            current = deps.get(pkg)
+            if isinstance(current, str) and _version_is_exact_and_below(current, min_version):
+                logger.info(f"[write_file] peer_dep_fix: '{pkg}' {current} → {min_version}")
+                deps[pkg] = min_version
+                modified = True
+
+    # Fix version pins: force les versions critiques pour éviter breaking changes.
+    for section in ("dependencies", "devDependencies"):
+        deps = data.get(section)
+        if not isinstance(deps, dict):
+            continue
+        for pkg, pinned_version in VERSION_PINS.items():
+            if pkg in deps and deps[pkg] != pinned_version:
+                logger.info(f"[sanitize] version_pin: '{pkg}' {deps[pkg]} → {pinned_version}")
+                deps[pkg] = pinned_version
+                modified = True
+
+    # Inject jest required dev deps: ajoute si absent de devDependencies.
+    dev_deps = data.setdefault("devDependencies", {})
+    if isinstance(dev_deps, dict):
+        for pkg, version in JEST_REQUIRED_DEV_DEPS.items():
+            if pkg not in dev_deps:
+                logger.info(f"[sanitize] {pkg} ajouté dans devDependencies")
+                dev_deps[pkg] = version
+                modified = True
+
+    if not modified:
+        return content
+    return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+
+
+# Template Clerk V5 injecté quand withClerkMiddleware (V3/V4) est détecté.
+_CLERK_V5_MIDDLEWARE_TEMPLATE = (
+    "import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';\n\n"
+    "const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);\n\n"
+    "export default clerkMiddleware((auth, req) => {\n"
+    "  if (isProtectedRoute(req)) auth().protect();\n"
+    "});\n\n"
+    "export const config = {\n"
+    "  matcher: [\n"
+    "    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',\n"
+    "    '/(api|trpc)(.*)',\n"
+    "  ],\n"
+    "};\n"
+)
+
+
+def _sanitize_middleware_content(content: str) -> str:
+    """Remplace les middlewares Clerk V3/V4 (withClerkMiddleware) par le template Clerk V5.
+    Si withClerkMiddleware n'est pas présent → retourne le contenu inchangé.
+    """
+    if "withClerkMiddleware" not in content:
+        return content
+    logger.info(
+        "[write_file] tool_patch_applied: {'type': 'clerk_v4_to_v5_middleware'} "
+        "— withClerkMiddleware remplacé par clerkMiddleware (Clerk V5)"
+    )
+    return _CLERK_V5_MIDDLEWARE_TEMPLATE
+
+
+# Hard rule: remapping des imports Clerk invalides dans les fichiers de test.
+# Le LLM hallucine @clerk/clerk-sdk et @clerk/nextjs/middleware dans les jest.mock().
+CLERK_TEST_MOCK_FIXES: dict[str, str] = {
+    "@clerk/clerk-sdk": "@clerk/nextjs",
+    "@clerk/nextjs/middleware": "@clerk/nextjs/server",
+}
+
+
+def _sanitize_test_content(content: str, path: str) -> str:
+    """Corrige les imports Clerk invalides dans les fichiers de test/spec.
+    Applique CLERK_TEST_MOCK_FIXES sur toutes les occurrences string dans le fichier.
+    Si aucune occurrence → retourne le contenu inchangé.
+    """
+    modified_content = content
+    for old, new in CLERK_TEST_MOCK_FIXES.items():
+        if old in modified_content:
+            logger.info(f"[sanitize_test] clerk_mock_fix: '{old}' → '{new}' in {path}")
+            modified_content = modified_content.replace(old, new)
+    return modified_content
+
 
 @tool
 def rag_search(query: str) -> str:
@@ -318,9 +567,20 @@ def write_file(path: str, content: str) -> str:
                 'source: "/protected/**"',
                 'source: "/protected/(.*)"'
             )
+            # Clerk V4 → V5 : remplace withClerkMiddleware par clerkMiddleware
+            if os.path.basename(path) == "middleware.ts":
+                content = _sanitize_middleware_content(content)
+        # Clerk package fix: remplace les packages Clerk invalides avant toute écriture disque.
+        # Ceci intercepte les hallucinations LLM (@clerk/clerk-sdk, etc.) même si le LLM
+        # appelle write_file plusieurs fois au cours de la boucle ReAct.
+        filename = os.path.basename(path)
+        if filename == "package.json":
+            content = _sanitize_package_json_content(content)
+        # Sanitize test files: corrige les imports Clerk invalides dans les fichiers test/spec.
+        if any(x in path for x in ("test", "spec", "__tests__")):
+            content = _sanitize_test_content(content, path)
         with open(safe_path, "w", encoding='utf-8') as f:
             f.write(content)
-        filename = os.path.basename(path)
         if filename == "package.json":
             try:
                 json.loads(content)
@@ -413,7 +673,53 @@ def prisma_migrate(schema_path: str) -> str:
     # --- END MODIFICATION ---
 
     schema_dir = os.path.dirname(schema_path) or '.'
-    
+
+    # Prisma 7 hard rule: la propriété url dans datasource de schema.prisma est supprimée.
+    # Détecter et corriger automatiquement avant toute commande Prisma.
+    try:
+        with open(schema_path, "r", encoding="utf-8") as _sf:
+            _schema_content = _sf.read()
+        if "datasource" in _schema_content and re.search(r'url\s*=\s*env\(', _schema_content):
+            logger.warning(
+                "Prisma 7 breaking change détecté: url dans datasource → génération prisma.config.ts"
+            )
+            _env_match = re.search(r'url\s*=\s*env\(["\']([^"\']+)["\']\)', _schema_content)
+            _env_var = _env_match.group(1) if _env_match else "DATABASE_URL"
+            _prisma_config_content = (
+                "import { defineConfig } from 'prisma'\n"
+                "export default defineConfig({\n"
+                "  datasource: {\n"
+                f"    url: process.env.{_env_var},\n"
+                "  },\n"
+                "})\n"
+            )
+            _prisma_config_path = os.path.join(schema_dir, "prisma.config.ts")
+            with open(_prisma_config_path, "w", encoding="utf-8") as _cf:
+                _cf.write(_prisma_config_content)
+            _fixed_schema = re.sub(
+                r'\n[ \t]*url\s*=\s*env\(["\'][^"\']+["\']\)[^\n]*', '', _schema_content
+            )
+            with open(schema_path, "w", encoding="utf-8") as _sf2:
+                _sf2.write(_fixed_schema)
+            try:
+                _write_learner_event(
+                    project_name=os.path.basename(schema_dir),
+                    metric="tool_patch_applied",
+                    value={
+                        "type": "prisma7_datasource_fix",
+                        "file": "schema.prisma",
+                        "patch": "datasource_url_removed",
+                        "env_var": _env_var,
+                        "prisma_config_generated": _prisma_config_path,
+                        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré",
+                    },
+                    success=True,
+                )
+            except Exception as _le:
+                logger.warning(f"Learner logging failed: {_le}")
+    except Exception as _pe:
+        logger.warning(f"Vérification Prisma 7 datasource échouée: {_pe}")
+
     # ... (rest of the function remains the same)
     try:
         # Step 1: Check current migration status...
@@ -585,6 +891,20 @@ def _collect_package_version_mismatches(package_json: dict) -> list[dict]:
                 {
                     "package": "ts-jest",
                     "current": ts_jest_version,
+                    "expected": "29.x",
+                    "issue": "incompatible_version",
+                }
+            )
+
+    # Hard rule: jest@30 est incompatible avec ts-jest@29 → bloquer en amont.
+    jest_version = dev_deps.get("jest") or deps.get("jest")
+    if isinstance(jest_version, str):
+        jest_major = _major_from_version(jest_version)
+        if jest_major is not None and jest_major >= 30:
+            mismatches.append(
+                {
+                    "package": "jest",
+                    "current": jest_version,
                     "expected": "29.x",
                     "issue": "incompatible_version",
                 }
@@ -834,12 +1154,14 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             logger.info("package.json sanitized")
         logger.info(f"package.json found in '{project_dir}'. Installing dev dependencies...")
         lock_path = os.path.join(project_dir, 'package-lock.json')
+        # Hard rule: jest@29 + ts-jest@29 + jest-environment-jsdom@29 — versions verrouillées.
+        # jest@30 (latest 2026) est INCOMPATIBLE avec ts-jest@29 → cycle d'erreur infini.
         npm_install_fallback = [
             'npm', 'install', '--save-dev', '--legacy-peer-deps',
-            'jest', '@testing-library/react', '@testing-library/jest-dom',
+            'jest@29', '@testing-library/react', '@testing-library/jest-dom',
             'babel-jest', '@babel/preset-env', '@babel/preset-react',
-            'ts-jest', 'typescript', 'zod', 'node-mocks-http',
-            'identity-obj-proxy', 'jest-environment-jsdom'
+            'ts-jest@29', 'typescript', 'zod', 'node-mocks-http',
+            'identity-obj-proxy', 'jest-environment-jsdom@29'
         ]
         npm_command = ['npm', 'ci'] if os.path.exists(lock_path) else npm_install_fallback
 
@@ -869,6 +1191,29 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             if not os.path.exists(jest_bin_path):
                 return _truncate_output(
                     f"Error: Jest executable not found at '{jest_bin_path}' after npm command. Installation might have failed or been incomplete. npm STDOUT:\n{install_result.stdout}\nnpm STDERR:\n{install_result.stderr}"
+                )
+
+            # Hard rule: jest-environment-jsdom@29 est requis par jest.config.js injecté
+            # (testEnvironment: 'jsdom'). npm ci n'installe que ce qui est dans package.json —
+            # si le LLM ne l'a pas inclus, on l'ajoute silencieusement.
+            jsdom_path = os.path.join(project_dir, 'node_modules', 'jest-environment-jsdom')
+            if not os.path.exists(jsdom_path):
+                logger.warning("jest-environment-jsdom absent après install → ajout forcé @29")
+                subprocess.run(
+                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', 'jest-environment-jsdom@29'],
+                    capture_output=True, text=True, check=False,
+                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=os.environ
+                )
+
+            # Hard rule: @testing-library/jest-dom requis par jest.setup.js injecté
+            # (import '@testing-library/jest-dom'). npm ci ne l'installe pas si absent du package.json.
+            jest_dom_path = os.path.join(project_dir, 'node_modules', '@testing-library', 'jest-dom')
+            if not os.path.exists(jest_dom_path):
+                logger.warning("@testing-library/jest-dom absent après install → ajout forcé")
+                subprocess.run(
+                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', '@testing-library/jest-dom'],
+                    capture_output=True, text=True, check=False,
+                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=os.environ
                 )
 
         except subprocess.TimeoutExpired:

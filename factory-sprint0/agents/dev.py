@@ -131,12 +131,26 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
 
     prompt = load_prompt("dev")
+    mandatory_rag_queries = [
+        "versions exactes next.js clerk prisma tailwind shadcn zod",
+        "clerk next.js 14 app/layout ClerkProvider middleware.ts clerkMiddleware createRouteMatcher sign-in sign-up routes interdites",
+        "prisma clerkId sans password schema conventions",
+    ]
+    mandatory_rag_context_chunks = []
+    for query in mandatory_rag_queries:
+        try:
+            rag_result = rag_search.invoke({"query": query})
+            mandatory_rag_context_chunks.append(f"[RAG::{query}]\n{str(rag_result)[:2500]}")
+        except Exception as rag_err:
+            mandatory_rag_context_chunks.append(f"[RAG::{query}] ERROR: {rag_err}")
+    mandatory_rag_context = "\n\n".join(mandatory_rag_context_chunks)
     messages = [
         SystemMessage(content=prompt),
         HumanMessage(content=(
             f"Projet : {project_name}\n\n"
             f"Spec :\n{summarized_spec}\n\n"
             f"Mermaid :\n{summarized_mermaid}\n\n"
+            f"Contexte RAG obligatoire (préchargé) :\n{mandatory_rag_context}\n\n"
             "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes next.js clerk prisma tailwind shadcn zod') puis génère package.json."
         ))
     ]
@@ -146,6 +160,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     build_attempts = 0
     build_attempted = False
     build_success = False
+    last_build_succeeded = False  # True uniquement quand run_build() confirme un succès réel
     last_build_error = ""
     last_test_error = ""
     last_failed_command = ""
@@ -170,6 +185,20 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         except Exception:
             pass
         return raw_cmd
+
+    def _find_project_dir(files_dict: dict) -> str:
+        """
+        Déduit le répertoire racine du projet à partir des fichiers écrits.
+        Hard rule (couche Code) : si le LLM a écrit sous un sous-répertoire
+        (ex: 'my-saas/package.json'), retourne ce sous-répertoire ('my-saas').
+        Sinon retourne '.'. Corrige le bug working-directory FORCED_RUN_BUILD.
+        """
+        for p in files_dict.keys():
+            normalized = p.replace("\\", "/")
+            if normalized == "package.json" or normalized.endswith("/package.json"):
+                parent = normalized.rsplit("/", 1)[0] if "/" in normalized else ""
+                return parent if parent else "."
+        return "."
 
     stagnant_iterations = 0
     for iteration in range(1, MAX_ITERATIONS + 1):
@@ -224,8 +253,16 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
                 tool_to_call = tool_map.get(tool_name)
                 if tool_to_call:
                     try:
+                        # Hard rule: corrige project_dir pour run_build si le LLM passe '.'
+                        # alors que les fichiers sont sous un sous-répertoire.
+                        call_args = tool_call["args"]
+                        if tool_name == "run_build":
+                            computed_dir = _find_project_dir(files)
+                            if computed_dir != "." and call_args.get("project_dir", ".") == ".":
+                                call_args = {**call_args, "project_dir": computed_dir}
+                                logger.info(f"[run_build] project_dir corrigé: '.' → '{computed_dir}'")
                         logger.info(f"Exécution tool: {tool_name}")
-                        output = tool_to_call.invoke(tool_call["args"])
+                        output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
                         raw_tool_outputs.append(raw_output)
 
@@ -233,6 +270,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
                             build_attempted = True
                             called_build_this_iter = True
                             if "Build successful" in raw_output:
+                                last_build_succeeded = True  # build réel confirmé
                                 last_build_error = ""
                                 last_failed_command = ""
                             else:
@@ -269,8 +307,15 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
                 if tc["name"] == "write_file":
                     path = tc["args"].get("path")
                     content = tc["args"].get("content")
-                    if path and content is not None and path not in files:  # ÉVITE RÉÉCRITURE
-                        files[path] = content
+                    if path and content is not None:
+                        # Lire le contenu réel depuis le disque après sanitize,
+                        # pour que files[path] == ce que test_coverage_agent utilisera.
+                        try:
+                            disk_path = os.path.abspath(path)
+                            with open(disk_path, "r", encoding="utf-8") as _df:
+                                files[path] = _df.read()
+                        except Exception:
+                            files[path] = content  # fallback si lecture échoue
                         wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
 
@@ -289,17 +334,19 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
 
         # Forçage progression si fichiers clés présents
         key_files = ["package.json", "app/layout.tsx", "middleware.ts", "prisma/schema.prisma"]
+        _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet
         if all(any(k in p for p in files) for k in key_files) and not build_success:
-            messages.append(HumanMessage(content="Fichiers clés présents. Appelle run_build maintenant pour valider le projet."))
+            messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
 
         # Garde-fou: si le modele stagne sans progres, forcer un run_build.
         if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
-            forced_build_output = str(run_build.invoke({"project_dir": "."}))
+            forced_build_output = str(run_build.invoke({"project_dir": _pdir}))
             build_attempted = True
             called_build_this_iter = True
             raw_tool_outputs.append(forced_build_output)
             messages.append(HumanMessage(content=f"[FORCED_RUN_BUILD]\n{_shrink_tool_output('run_build', forced_build_output)}"))
             if "Build successful" in forced_build_output:
+                last_build_succeeded = True  # build réel confirmé (chemin forcé)
                 build_success = True
                 build_attempts = 0
                 last_build_error = ""
@@ -368,9 +415,19 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         final_message = reflection
 
         if "TERMINÉ : CODE PRÊT" in reflection.upper():
-            logger.info("SUCCESS TOTAL : Premier SaaS généré !")
-            build_success = True
-            break
+            if last_build_succeeded:
+                logger.info("SUCCESS TOTAL : Premier SaaS généré !")
+                build_success = True
+                break
+            else:
+                logger.warning(
+                    "[DEV AGENT] Reflection certifie TERMINÉ mais aucun "
+                    "build réussi confirmé — certification ignorée"
+                )
+                messages.append(HumanMessage(content=(
+                    "Le code n'est pas encore prêt : aucun `npm run build` "
+                    "n'a réussi. Lance run_build() pour valider."
+                )))
         if build_attempts >= MAX_BUILD_ATTEMPTS:
             final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
             break

@@ -1,26 +1,31 @@
-// Jest configuration is typically not unit tested, but we can validate its structure.
-
 describe('jest.config.js', () => {
-  it('should have the correct test environment and setup files', () => {
+  it('should have correct test environment', () => {
     const jestConfig = require('../../jest.config.js');
     expect(jestConfig.testEnvironment).toBe('jsdom');
-    expect(jestConfig.setupFilesAfterEnv).toContain('<rootDir>/jest.setup.js');
   });
 
-  it('should ignore the correct paths', () => {
+  it('should setup files after env', () => {
     const jestConfig = require('../../jest.config.js');
-    expect(jestConfig.testPathIgnorePatterns).toContain('/node_modules/');
-    expect(jestConfig.testPathIgnorePatterns).toContain('/.next/');
+    expect(jestConfig.setupFilesAfterEnv).toEqual(['<rootDir>/jest.setup.js']);
   });
 
-  it('should have the correct transform configuration', () => {
+  it('should ignore correct test paths', () => {
     const jestConfig = require('../../jest.config.js');
-    expect(jestConfig.transform['^.+\.(js|jsx|ts|tsx)$']).toEqual(['babel-jest', { presets: ['next/babel'] }]);
+    expect(jestConfig.testPathIgnorePatterns).toEqual(['/node_modules/', '/.next/']);
   });
 
-  it('should have the correct module name mapper', () => {
+  it('should have correct transform configuration', () => {
     const jestConfig = require('../../jest.config.js');
-    expect(jestConfig.moduleNameMapper['^@/(.*)$']).toBe('<rootDir>/src/$1');
-    expect(jestConfig.moduleNameMapper['\.css$']).toBe('identity-obj-proxy');
+    expect(jestConfig.transform).toEqual({
+      '^.+\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+    });
+  });
+
+  it('should have correct module name mapper', () => {
+    const jestConfig = require('../../jest.config.js');
+    expect(jestConfig.moduleNameMapper).toEqual({
+      '^@/(.*)$': '<rootDir>/src/$1',
+      '\.(css)$': 'identity-obj-proxy',
+    });
   });
 });

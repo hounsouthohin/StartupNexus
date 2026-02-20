@@ -1,14 +1,8 @@
-// Since tsconfig.json is a configuration file for TypeScript, it doesn't require unit tests.
-// However, we can validate its structure and content using a simple script if needed.
-
 describe('tsconfig.json', () => {
-  it('should have the correct compiler options', () => {
+  it('should have correct compiler options', () => {
     const tsconfig = require('../../tsconfig.json');
-    expect(tsconfig.compilerOptions).toBeDefined();
     expect(tsconfig.compilerOptions.target).toBe('es5');
-    expect(tsconfig.compilerOptions.lib).toContain('dom');
-    expect(tsconfig.compilerOptions.lib).toContain('dom.iterable');
-    expect(tsconfig.compilerOptions.lib).toContain('esnext');
+    expect(tsconfig.compilerOptions.lib).toEqual(['dom', 'dom.iterable', 'esnext']);
     expect(tsconfig.compilerOptions.allowJs).toBe(true);
     expect(tsconfig.compilerOptions.skipLibCheck).toBe(true);
     expect(tsconfig.compilerOptions.strict).toBe(true);
@@ -26,15 +20,13 @@ describe('tsconfig.json', () => {
     });
   });
 
-  it('should include the correct files', () => {
+  it('should include correct files', () => {
     const tsconfig = require('../../tsconfig.json');
-    expect(tsconfig.include).toContain('next-env.d.ts');
-    expect(tsconfig.include).toContain('**/*.ts');
-    expect(tsconfig.include).toContain('**/*.tsx');
+    expect(tsconfig.include).toEqual(['next-env.d.ts', '**/*.ts', '**/*.tsx']);
   });
 
   it('should exclude node_modules', () => {
     const tsconfig = require('../../tsconfig.json');
-    expect(tsconfig.exclude).toContain('node_modules');
+    expect(tsconfig.exclude).toEqual(['node_modules']);
   });
 });

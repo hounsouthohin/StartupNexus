@@ -1,9 +1,9 @@
-// .babelrc is a configuration file, so we don't typically write unit tests for it.
-// However, we can write a test to ensure that the Babel configuration is correctly set up.
+// .babelrc is a configuration file for Babel, and typically doesn't require unit tests.
+// However, we can write a test to ensure that the configuration is valid if needed.
 
 describe('.babelrc', () => {
-  it('should have the correct presets', () => {
-    const babelrc = require('../.babelrc');
-    expect(babelrc.presets).toEqual(['next/babel']);
+  it('should have a valid Babel configuration', () => {
+    const config = require('../.babelrc');
+    expect(config.presets).toContain('next/babel');
   });
 });

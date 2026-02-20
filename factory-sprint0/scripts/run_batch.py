@@ -86,6 +86,8 @@ async def _run_one(
         else:
             workflow_status = getattr(result, "workflow_status", None)
             build_status = getattr(result, "build_status", None)
+        if workflow_status is not None:
+            workflow_success = workflow_status == "COMPLETED"
         if build_status is not None:
             build_success = build_status == "SUCCESS"
     except TimeoutError:
