@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 from agents.shared_tools import run_tests, write_file
 from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from utils.prompt_loader import load_prompt
+from agents.llm_factory import create_chat_llm
 
 # Import central configuration (Added)
 from config.factory_config import SUBPROCESS_TIMEOUT_LONG
@@ -120,7 +120,7 @@ def generation_node(state: AgentState) -> dict:
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+    llm = create_chat_llm(temperature=0.2, prefer_openai=True)
     structured_llm = llm.with_structured_output(TestSuite)
     chain = prompt | structured_llm
 

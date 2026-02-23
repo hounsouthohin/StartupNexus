@@ -10,6 +10,7 @@ import subprocess
 import asyncio
 import tempfile
 import logging
+import time
 from datetime import datetime
 from typing import List, TypedDict, Annotated
 import operator
@@ -19,8 +20,9 @@ from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
 from utils.prompt_loader import load_prompt
+from agents.llm_factory import create_chat_llm
 
-load_dotenv(override=True)
+load_dotenv()
 logger = logging.getLogger(__name__)
 
 FORBIDDEN_AUTH_PATTERNS = [
@@ -109,21 +111,45 @@ def load_prompts():
     except Exception as e:
         raise RuntimeError(f"Failed to parse prompts/architect.md: {e}")
 
+def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float = 5.0) -> None:
+    """Attend que Qdrant accepte les connexions avant d'initialiser QdrantVectorStore."""
+    from qdrant_client import QdrantClient as _QC
+    deadline = time.monotonic() + max_wait_seconds
+    last_error: Exception | None = None
+    while time.monotonic() < deadline:
+        try:
+            _QC(url=url).get_collections()
+            return
+        except Exception as exc:
+            last_error = exc
+            remaining = round(deadline - time.monotonic(), 1)
+            logger.info(
+                f"[wait_for_qdrant] Qdrant pas encore prêt ({exc}) "
+                f"— retry dans {poll_interval}s (reste {remaining}s)"
+            )
+            time.sleep(poll_interval)
+    raise RuntimeError(
+        f"Qdrant non disponible après {max_wait_seconds}s "
+        f"(url: {url}, dernière erreur: {last_error})"
+    )
+
+
 # ==================== CRÉATION DU GRAPH ====================
 def create_architect_agent():
     # Imports moved inside the function to avoid Temporal sandbox issues
     from langgraph.graph import StateGraph, START, END
-    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+    from langchain_openai import OpenAIEmbeddings
     from langchain_qdrant import QdrantVectorStore
     from qdrant_client import QdrantClient
 
     prompts = load_prompts()
     
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    _wait_for_qdrant(QDRANT_URL)
     client = QdrantClient(url=QDRANT_URL)
     vectorstore = QdrantVectorStore(client=client, collection_name=QDRANT_COLLECTION_NAME, embedding=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.1)
+    llm = create_chat_llm(temperature=0.1)
 
     # --- Nodes ---
     async def retrieval_node(state: AgentState):

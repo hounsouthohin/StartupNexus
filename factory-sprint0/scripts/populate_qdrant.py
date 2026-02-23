@@ -37,8 +37,8 @@ STANDARDS = [
         "metadata": {"category": "nextjs", "tech": "next.js", "version": "14.2+", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
-        "text": "Package.json pour projet Next.js 14 factory : next@14.2.3, react@18.3.0, react-dom@18.3.0. Scripts obligatoires : build (next build), dev (next dev), start (next start), lint (next lint), test (jest). La dépendance sharp doit être incluse pour l'optimisation des images en production sur Vercel.",
-        "metadata": {"category": "nextjs", "tech": "next.js", "version": "14.2.3", "source": "factory_standards_v1", "outcome": "validated"}
+        "text": "Package.json pour projet Next.js 14 factory : next@14.2.25, react@18.3.0, react-dom@18.3.0. Scripts obligatoires : build (next build), dev (next dev), start (next start), lint (next lint), test (jest). La dépendance sharp doit être incluse pour l'optimisation des images en production sur Vercel.",
+        "metadata": {"category": "nextjs", "tech": "next.js", "version": "14.2.25", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
         "text": "App Router Next.js 14 : utiliser des Server Components par défaut. Ajouter 'use client' uniquement pour les composants nécessitant des hooks React (useState, useEffect) ou des interactions browser. Les layouts (app/layout.tsx) doivent englober ClerkProvider. Les routes dynamiques utilisent des brackets : app/[id]/page.tsx.",

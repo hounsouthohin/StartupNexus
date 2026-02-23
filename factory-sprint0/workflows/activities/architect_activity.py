@@ -38,7 +38,7 @@ async def architect_activity(input_data: Dict) -> Dict:
     """
     Activity qui exécute l'Architect Agent (génération de spec + diagramme Mermaid).
     """
-    load_dotenv(override=True)
+    load_dotenv()
 
     # Vérification minimale de la clé API (avant même la validation contrat)
     if not os.getenv("OPENAI_API_KEY"):

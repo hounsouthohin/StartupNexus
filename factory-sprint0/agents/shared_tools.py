@@ -2,6 +2,7 @@ import codecs
 import json
 import os
 import re
+import shutil
 import subprocess
 from datetime import datetime
 import time
@@ -77,7 +78,7 @@ PEER_DEPENDENCY_MINIMUMS: dict[str, str] = {
 # next@15+ est incompatible avec le setup App Router Sprint 0 (Clerk V5, Prisma 7).
 # La version préférée reste dans le RAG ; ici on bloque seulement les versions hors-périmètre.
 VERSION_PINS: dict[str, str] = {
-    "next": "14.2.3",
+    "next": "14.2.25",
 }
 
 # Hard rule: dépendances dev requises par jest.config.js + jest.setup.js injectés.
@@ -86,6 +87,7 @@ VERSION_PINS: dict[str, str] = {
 JEST_REQUIRED_DEV_DEPS: dict[str, str] = {
     "jest-environment-jsdom": "^29.0.0",
     "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
     "@babel/runtime": "^7.0.0",
 }
 
@@ -433,7 +435,11 @@ def _sanitize_middleware_content(content: str) -> str:
     """Remplace les middlewares Clerk V3/V4 (withClerkMiddleware) par le template Clerk V5.
     Si withClerkMiddleware n'est pas présent → retourne le contenu inchangé.
     """
-    if "withClerkMiddleware" not in content:
+    if (
+        "withClerkMiddleware" not in content
+        and "withAuth(" not in content
+        and "@clerk/nextjs/middleware" not in content
+    ):
         return content
     logger.info(
         "[write_file] tool_patch_applied: {'type': 'clerk_v4_to_v5_middleware'} "
@@ -446,6 +452,15 @@ def _sanitize_middleware_content(content: str) -> str:
 # Le LLM hallucine @clerk/clerk-sdk et @clerk/nextjs/middleware dans les jest.mock().
 CLERK_TEST_MOCK_FIXES: dict[str, str] = {
     "@clerk/clerk-sdk": "@clerk/nextjs",
+    "@clerk/nextjs/api": "@clerk/nextjs/server",
+    "@clerk/nextjs/middleware": "@clerk/nextjs/server",
+}
+
+# Hard rule: remapping imports Clerk legacy dans les fichiers source app.
+CLERK_SOURCE_IMPORT_FIXES: dict[str, str] = {
+    "@clerk/clerk-sdk": "@clerk/nextjs",
+    "@clerk/clerk-sdk-react": "@clerk/nextjs",
+    "@clerk/nextjs/api": "@clerk/nextjs/server",
     "@clerk/nextjs/middleware": "@clerk/nextjs/server",
 }
 
@@ -461,6 +476,29 @@ def _sanitize_test_content(content: str, path: str) -> str:
             logger.info(f"[sanitize_test] clerk_mock_fix: '{old}' → '{new}' in {path}")
             modified_content = modified_content.replace(old, new)
     return modified_content
+
+
+def _sanitize_source_content(content: str, path: str) -> str:
+    """
+    Corrige les imports legacy Clerk dans les fichiers source et normalise
+    les contenus one-line avec '\\n' litteraux emis par le LLM.
+    """
+    modified = content
+    for old, new in CLERK_SOURCE_IMPORT_FIXES.items():
+        if old in modified:
+            logger.info(f"[sanitize_source] clerk_import_fix: '{old}' → '{new}' in {path}")
+            modified = modified.replace(old, new)
+
+    code_exts = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
+    if path.endswith(code_exts) and "\\n" in modified and "\n" not in modified:
+        try:
+            decoded = codecs.decode(modified, "unicode_escape")
+            if "\n" in decoded:
+                logger.info(f"[sanitize_source] escaped_newlines_decoded in {path}")
+                modified = decoded
+        except Exception:
+            pass
+    return modified
 
 
 @tool
@@ -534,6 +572,16 @@ def write_file(path: str, content: str) -> str:
 
     try:
         safe_path = safe_path_or_err
+        normalized_path = path.replace("\\", "/")
+        if normalized_path.startswith(("pages/", "src/pages/")):
+            app_router_present = os.path.isdir("app") or os.path.isdir(os.path.join("src", "app"))
+            if app_router_present:
+                logger.info(
+                    f"[sanitize] pages_router_blocked: '{path}' ignoré — App Router détecté"
+                )
+                return (
+                    f"Skipped file '{path}': App Router detected, pages router paths are blocked."
+                )
         # Log if the file already exists to track overwrites.
         if os.path.exists(safe_path):
             logger.warning(f"File '{path}' already exists and will be overwritten.")
@@ -576,16 +624,17 @@ def write_file(path: str, content: str) -> str:
         filename = os.path.basename(path)
         if filename == "package.json":
             content = _sanitize_package_json_content(content)
+            try:
+                json.loads(content)
+            except json.JSONDecodeError as e:
+                return f"Error writing file '{path}': package.json invalide généré : {e}"
+        elif path.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")):
+            content = _sanitize_source_content(content, path)
         # Sanitize test files: corrige les imports Clerk invalides dans les fichiers test/spec.
         if any(x in path for x in ("test", "spec", "__tests__")):
             content = _sanitize_test_content(content, path)
         with open(safe_path, "w", encoding='utf-8') as f:
             f.write(content)
-        if filename == "package.json":
-            try:
-                json.loads(content)
-            except json.JSONDecodeError as e:
-                raise ValueError(f"package.json invalide généré : {e}")
         return f"File '{path}' was written successfully."
     except Exception as e:
         return f"Error writing file '{path}': {e}"
@@ -806,6 +855,51 @@ def read_files(path: str) -> str:
 class RunBuildArgs(BaseModel):
     project_dir: str = Field(description="Répertoire racine du projet (défaut: '.')", default='.')
 
+
+def _remove_pages_router_conflicts(project_dir: str) -> None:
+    app_dir = os.path.join(project_dir, "app")
+    pages_dir = os.path.join(project_dir, "pages")
+    src_pages_dir = os.path.join(project_dir, "src", "pages")
+    if os.path.isdir(app_dir) and os.path.isdir(pages_dir):
+        shutil.rmtree(pages_dir)
+        logger.info("[sanitize] pages_router_conflict: dossier pages/ supprimé — App Router prime")
+    if os.path.isdir(app_dir) and os.path.isdir(src_pages_dir):
+        shutil.rmtree(src_pages_dir)
+        logger.info("[sanitize] pages_router_conflict: dossier src/pages/ supprimé — App Router prime")
+
+
+def _remove_problematic_babel_config(project_dir: str) -> None:
+    """
+    Next.js 14 + Clerk compile plus stablement sans Babel custom genere par le LLM.
+    On force SWC en supprimant les fichiers Babel custom avant build.
+    """
+    for rel in (".babelrc", "babel.config.js", "babel.config.cjs", "babel.config.mjs"):
+        p = os.path.join(project_dir, rel)
+        if os.path.isfile(p):
+            os.remove(p)
+            logger.info(f"[sanitize] babel_config_removed: '{rel}' supprimé — SWC par défaut")
+
+
+def _remove_pages_tests_router_conflicts(project_dir: str, incoming_files: dict | None = None) -> None:
+    """
+    Si App Router est present, supprime les tests legacy pages/ quand ils ne sont
+    pas explicitement regénérés par l'itération courante.
+    """
+    app_dir = os.path.join(project_dir, "app")
+    pages_tests_dir = os.path.join(project_dir, "tests", "pages")
+    if not (os.path.isdir(app_dir) and os.path.isdir(pages_tests_dir)):
+        return
+
+    incoming_paths = set((incoming_files or {}).keys())
+    regenerates_pages_tests = any(
+        p.replace("\\", "/").startswith("tests/pages/")
+        for p in incoming_paths
+    )
+    if not regenerates_pages_tests:
+        shutil.rmtree(pages_tests_dir)
+        logger.info("[sanitize] pages_tests_conflict: dossier tests/pages/ supprimé — App Router prime")
+
+
 @tool(args_schema=RunBuildArgs)
 def run_build(project_dir: str = '.') -> str:
     """
@@ -837,6 +931,8 @@ def run_build(project_dir: str = '.') -> str:
         logger.info("npm install completed successfully.")
 
         # Step 2: Run npm run build
+        _remove_pages_router_conflicts(project_dir)
+        _remove_problematic_babel_config(project_dir)
         logger.info(f"Running npm run build in '{project_dir}'...")
         build_command = ['npm', 'run', 'build']
         result = subprocess.run(
@@ -935,6 +1031,9 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     """
     logger.info(f"Executing tests in directory '{project_dir}'...")
 
+    _remove_pages_router_conflicts(project_dir)
+    _remove_pages_tests_router_conflicts(project_dir, files)
+
     if files:
         logger.info(f"Writing {len(files)} files to disk before running tests...")
         for path, content in files.items():
@@ -994,6 +1093,9 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                             content_to_write = tmp_f.read()
                     except Exception as e:
                         logger.warning(f"Pré-sanitize package.json ignoré: {e}")
+                # Keep Clerk/Jest imports compatible when tests are written by run_tests
+                if any(x in path for x in ("test", "spec", "__tests__")):
+                    content_to_write = _sanitize_test_content(content_to_write, path)
 
                 with open(safe_path, "w", encoding='utf-8') as f:
                     f.write(content_to_write)
@@ -1212,6 +1314,28 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 logger.warning("@testing-library/jest-dom absent après install → ajout forcé")
                 subprocess.run(
                     ['npm', 'install', '--save-dev', '--legacy-peer-deps', '@testing-library/jest-dom'],
+                    capture_output=True, text=True, check=False,
+                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=os.environ
+                )
+
+            # Hard rule: @testing-library/react requis par les tests de composants générés.
+            testing_library_react_path = os.path.join(
+                project_dir, 'node_modules', '@testing-library', 'react'
+            )
+            if not os.path.exists(testing_library_react_path):
+                logger.warning("@testing-library/react absent après install → ajout forcé")
+                subprocess.run(
+                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', '@testing-library/react'],
+                    capture_output=True, text=True, check=False,
+                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=os.environ
+                )
+
+            # Hard rule: node-mocks-http requis par des tests API générés.
+            node_mocks_http_path = os.path.join(project_dir, 'node_modules', 'node-mocks-http')
+            if not os.path.exists(node_mocks_http_path):
+                logger.warning("node-mocks-http absent après install → ajout forcé")
+                subprocess.run(
+                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', 'node-mocks-http'],
                     capture_output=True, text=True, check=False,
                     cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=os.environ
                 )

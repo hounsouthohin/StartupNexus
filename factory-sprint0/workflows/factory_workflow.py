@@ -57,6 +57,12 @@ class SaaSFactoryWorkflow:
             maximum_attempts=3,
         )
 
+        architect_retry_policy = RetryPolicy(
+            initial_interval=timedelta(seconds=15),
+            backoff_coefficient=2.0,
+            maximum_attempts=5,
+        )
+
         start_time = workflow.now()
         try:
             # Étape 1 : Architect Activity
@@ -64,7 +70,7 @@ class SaaSFactoryWorkflow:
                 architect_activity,
                 {"phrase": phrase, "project_name": project_name},
                 start_to_close_timeout=timedelta(seconds=300),
-                retry_policy=common_retry_policy,
+                retry_policy=architect_retry_policy,
             )
 
             spec_part = architect_result.get("specification", "")

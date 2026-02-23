@@ -61,13 +61,23 @@ class TodoPilotWorkflow:
             maximum_attempts=3,
         )
 
+        # Retry plus patient pour architect_activity : Qdrant peut être
+        # temporairement indisponible (redémarrage, crash). _wait_for_qdrant()
+        # dans l'activité attend déjà 90s, mais on laisse 5 tentatives avec
+        # backoff de 15s pour absorber un redémarrage Qdrant plus long.
+        architect_retry_policy = RetryPolicy(
+            initial_interval=timedelta(seconds=15),
+            backoff_coefficient=2.0,
+            maximum_attempts=5,
+        )
+
         try:
             # 1. Architect
             architect_result: Dict[str, Any] = await workflow.execute_activity(
                 architect_activity,
                 {"phrase": phrase, "project_name": project_name},
                 start_to_close_timeout=timedelta(seconds=300),
-                retry_policy=common_retry_policy,
+                retry_policy=architect_retry_policy,
             )
 
             spec_part = architect_result.get("specification", "")
@@ -113,28 +123,38 @@ class TodoPilotWorkflow:
                 build_status = "BUILD_FAILED"
 
             # Le workflow continue même si build échoue.
-            qa_result: Dict[str, Any] = await workflow.execute_activity(
-                qa_activity,
-                {"specification": spec_part, "project_name": project_name},
-                start_to_close_timeout=timedelta(minutes=10),
-                retry_policy=common_retry_policy,
-            )
-            e2e_tests = qa_result.get("e2e_tests", {})
-            workflow.logger.info(f"QA terminé – {len(e2e_tests)} tests générés")
+            # QA est en mode "best-effort": un echec QA (ex: quota fournisseur LLM)
+            # ne doit pas invalider tout le run métier.
+            e2e_tests: Dict[str, str] = {}
+            try:
+                qa_result: Dict[str, Any] = await workflow.execute_activity(
+                    qa_activity,
+                    {"specification": spec_part, "project_name": project_name},
+                    start_to_close_timeout=timedelta(minutes=10),
+                    retry_policy=common_retry_policy,
+                )
+                e2e_tests = qa_result.get("e2e_tests", {})
+                workflow.logger.info(f"QA terminé – {len(e2e_tests)} tests générés")
+            except Exception as qa_err:
+                workflow.logger.warning(f"QA skipped due to error: {qa_err}")
+                e2e_tests = {}
 
             github_input = {
                 "files": {**dev_test_result.get("combined_files", {}), **e2e_tests},
                 "project_name": project_name,
             }
 
-            github_result: Dict[str, Any] = await workflow.execute_activity(
-                github_activity,
-                github_input,
-                start_to_close_timeout=timedelta(minutes=10),
-                retry_policy=common_retry_policy,
-            )
-
-            workflow.logger.info("GitHub terminé")
+            github_result: Dict[str, Any] = {"pr_url": "N/A", "repo_url": "N/A"}
+            try:
+                github_result = await workflow.execute_activity(
+                    github_activity,
+                    github_input,
+                    start_to_close_timeout=timedelta(minutes=10),
+                    retry_policy=common_retry_policy,
+                )
+                workflow.logger.info("GitHub terminé")
+            except Exception as github_err:
+                workflow.logger.warning(f"GitHub skipped due to error: {github_err}")
 
             # 5. Learner (shadow mode)
             learner_input = {

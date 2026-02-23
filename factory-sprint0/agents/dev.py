@@ -3,8 +3,8 @@ import logging
 import shutil
 import re
 import ast
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from agents.llm_factory import create_chat_llm
 
 # Import des shared tools
 from .shared_tools import (
@@ -29,7 +29,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     Dev Agent v3 Ultimate – Version finale stable.
     Correction boucle jest.config.js + détection run_build + progression forcée.
     """
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm = create_chat_llm(temperature=0.2)
 
     tools = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
     tool_map = {tool.name: tool for tool in tools}

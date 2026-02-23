@@ -93,6 +93,17 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
         metadata = result.get("metadata", {})
         dev_output = result.get("dev_output", {}) if isinstance(result.get("dev_output", {}), dict) else {}
         dev_meta = dev_output.get("metadata", {}) if isinstance(dev_output.get("metadata", {}), dict) else {}
+        top_error = result.get("error", {})
+        top_error_message = ""
+        if isinstance(top_error, dict):
+            phase = str(top_error.get("phase", "") or "").strip()
+            msg = str(top_error.get("message", "") or "").strip()
+            if phase and msg:
+                top_error_message = f"{phase}: {msg}"
+            elif msg:
+                top_error_message = msg
+        elif top_error:
+            top_error_message = str(top_error)
         final_message = str(dev_output.get("final_message", ""))[:200]
         last_build_error = str(dev_meta.get("last_build_error", "") or "")[:200]
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
@@ -108,6 +119,8 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
                 runtime_error = f"TestsFailed: {last_test_error}"
             elif final_message:
                 runtime_error = f"BuildFailed: {final_message}"
+            elif top_error_message:
+                runtime_error = f"BuildFailed: {top_error_message[:200]}"
             else:
                 runtime_error = "BuildFailed: DevTest returned success=False without exception"
 
