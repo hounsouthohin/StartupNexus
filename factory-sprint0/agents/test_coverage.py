@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field
 from agents.shared_tools import run_tests, write_file
 from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from utils.prompt_loader import load_prompt
-from agents.llm_factory import create_chat_llm
 
 # Import central configuration (Added)
 from config.factory_config import SUBPROCESS_TIMEOUT_LONG
@@ -120,7 +120,7 @@ def generation_node(state: AgentState) -> dict:
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    llm = create_chat_llm(temperature=0.2, prefer_openai=True)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
     structured_llm = llm.with_structured_output(TestSuite)
     chain = prompt | structured_llm
 
@@ -215,4 +215,8 @@ def test_coverage_agent(files: dict) -> dict:
     )
     
     logger.info("TestCoverage Agent process completed.")
-    return {"tests": final_state.get("tests", {})}
+    last_message = final_state.get("messages", [])[-1] if final_state.get("messages") else None
+    tests_passed = bool(
+        getattr(last_message, "content", "") and "All tests passed" in str(last_message.content)
+    )
+    return {"tests": final_state.get("tests", {}), "success": tests_passed}

@@ -5,6 +5,7 @@ Workflow pilote Sprint 0.5 – Validation ToDo app avec DevTestAgent fusionné
 
 from dataclasses import dataclass
 from datetime import timedelta
+from uuid import uuid4
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
@@ -50,10 +51,13 @@ class TodoPilotWorkflow:
 
         phrase = request.phrase
         project_name = request.project_name
+        stack_id = "nextjs-clerk-prisma"
 
-        workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase}")
+        workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase} | Stack: {stack_id}")
 
         start_time = workflow.now()  # déterministe !
+        run_id = str(uuid4())
+        workflow.logger.info(f"TodoPilot run_id={run_id}")
 
         common_retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=5),
@@ -75,7 +79,7 @@ class TodoPilotWorkflow:
             # 1. Architect
             architect_result: Dict[str, Any] = await workflow.execute_activity(
                 architect_activity,
-                {"phrase": phrase, "project_name": project_name},
+                args=[{"phrase": phrase, "project_name": project_name, "stack_id": stack_id}, run_id],
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=architect_retry_policy,
             )
@@ -89,12 +93,13 @@ class TodoPilotWorkflow:
             dev_test_input = {
                 "spec": spec_part,
                 "mermaid": mermaid_part,
-                "project_name": project_name
+                "project_name": project_name,
+                "stack_id": stack_id,
             }
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
                 dev_test_activity,
-                dev_test_input,
+                args=[dev_test_input, run_id],
                 start_to_close_timeout=timedelta(minutes=45),
                 retry_policy=common_retry_policy,
             )
@@ -129,7 +134,7 @@ class TodoPilotWorkflow:
             try:
                 qa_result: Dict[str, Any] = await workflow.execute_activity(
                     qa_activity,
-                    {"specification": spec_part, "project_name": project_name},
+                    args=[{"specification": spec_part, "project_name": project_name, "stack_id": stack_id}, run_id],
                     start_to_close_timeout=timedelta(minutes=10),
                     retry_policy=common_retry_policy,
                 )
@@ -142,13 +147,14 @@ class TodoPilotWorkflow:
             github_input = {
                 "files": {**dev_test_result.get("combined_files", {}), **e2e_tests},
                 "project_name": project_name,
+                "stack_id": stack_id,
             }
 
             github_result: Dict[str, Any] = {"pr_url": "N/A", "repo_url": "N/A"}
             try:
                 github_result = await workflow.execute_activity(
                     github_activity,
-                    github_input,
+                    args=[github_input, run_id],
                     start_to_close_timeout=timedelta(minutes=10),
                     retry_policy=common_retry_policy,
                 )
@@ -167,11 +173,12 @@ class TodoPilotWorkflow:
                 },
                 "e2e_tests": e2e_tests,
                 "pr_url": github_result.get("pr_url", ""),
+                "stack_id": stack_id,
             }
             try:
                 await workflow.execute_activity(
                     learner_activity,
-                    learner_input,
+                    args=[learner_input, run_id],
                     start_to_close_timeout=timedelta(minutes=5),
                     retry_policy=common_retry_policy,
                 )

@@ -4125,12 +4125,824 @@
         "avg_confidence": 0.68
       },
       "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:24:22.066476+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package-lock.json",
+        "patch": "lockfile_reset",
+        "reason": "npm ci lockfile mismatch fallback"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:24:42.524307+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package-lock.json",
+        "patch": "lockfile_reset",
+        "reason": "npm ci lockfile mismatch fallback"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:24:52.189893+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 8,
+        "clerk_compliant": false,
+        "dev_files_count": 6,
+        "build_attempts": 7,
+        "iterations": 10,
+        "final_message": "Il semble que vous avez déjà généré deux fichiers : `package.json` et `README.md`. \n\nPour continuer, vous devez vérifier l'état actuel du build. Si vous avez 7 échecs sur 8 tentatives, vous devrez rép",
+        "last_build_error": "Error: package.json not found at 'todo-batch-alpha/package.json'. Cannot run build.",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": "BuildFailed: Error: package.json not found at 'todo-batch-alpha/package.json'. Cannot run build."
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-23T03:24:54.395181+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-23T03:25:01.329506+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-23T03:25:13.834449+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:25:27.756277+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:37:28.796179+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": false,
+        "files_count": 0,
+        "clerk_compliant": false,
+        "dev_files_count": 0,
+        "build_attempts": 0,
+        "iterations": 0,
+        "final_message": "Error code: 400 - {'error': {'message': \"Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.\", 'type': 'invalid_request_error', 'code': 'tool_use_failed', '",
+        "last_build_error": "",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": "BuildFailed: Error code: 400 - {'error': {'message': \"Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.\", 'type': 'invalid_request_error', 'code': 'tool_use_failed', '"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-23T03:37:31.952825+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-23T03:37:38.235598+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:37:41.894476+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 2,
+        "total_suggestions": 2,
+        "avg_confidence": 0.7
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:47:53.415684+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:48:22.314589+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:50:00.491681+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:50:25.803652+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:50:26.360256+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package-lock.json",
+        "patch": "lockfile_reset",
+        "reason": "npm ci lockfile mismatch fallback"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:50:46.847317+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:51:09.814554+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 11,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\n ⨯ ESLint must be installed in ord",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\n ⨯ ESLint must be installed in ord"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-23T03:51:22.957034+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-23T03:51:40.606897+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:15:03.683061+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:15:40.591100+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:17:43.940491+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:18:13.922584+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:19:01.300819+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:19:23.866254+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 16,
+        "clerk_compliant": true,
+        "dev_files_count": 11,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants. \n\nGénération des fichiers supplémentaires... \n\nFichiers générés : ['app/api/orders.ts', 'app/api/categories.ts', 'app/api/revie",
+        "last_build_error": "<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\n ⨯ ESLint must be installed in ord",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\n ⨯ ESLint must be installed in ord"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:19:45.559206+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:19:54.190828+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:20:18.213324+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:20:44.681925+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:27:53.787195+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": false,
+        "files_count": 0,
+        "clerk_compliant": false,
+        "dev_files_count": 0,
+        "build_attempts": 0,
+        "iterations": 0,
+        "final_message": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/doc",
+        "last_build_error": "",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": "BuildFailed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/doc"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:28:08.961516+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:29:11.925102+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:29:46.582412+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:30:08.079206+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:30:32.335725+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:30:35.578230+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 19,
+        "clerk_compliant": true,
+        "dev_files_count": 13,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "npm error code ETARGET\nnpm error notarget No matching version found for typescript@4.5.0.\nnpm error notarget In most cases you or one of your dependencies are requesting\nnpm error notarget a package v",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": "BuildFailed: npm error code ETARGET\nnpm error notarget No matching version found for typescript@4.5.0.\nnpm error notarget In most cases you or one of your dependencies are requesting\nnpm error notarget a package v"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:30:48.266991+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:31:19.349962+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:40:05.429331+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:43:05.298355+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 11,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer avec l'étape suivante. \n\nFichiers générés jusqu'ici : ['package.json', 'jest.config.js', 'schema.prisma', 'app/layout.tsx', 'middleware.ts', 'app/pages/index.js', 'app/pages/auth/sig",
+        "last_build_error": "Failed to compile.\n\n./app/layout.tsx\nError: \n  \u001b[31mx\u001b[0m You have a Server Component that imports next/router. Use next/navigation instead.\\nLearn more: https://nextjs.org/docs/app/api-reference/func",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Failed to compile.\n\n./app/layout.tsx\nError: \n  \u001b[31mx\u001b[0m You have a Server Component that imports next/router. Use next/navigation instead.\\nLearn more: https://nextjs.org/docs/app/api-reference/func"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:43:19.776875+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:43:40.575516+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:49:50.275471+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:53:44.571695+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 11,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Failed to compile.\n\n./app/api/user.ts\n22:13  Error: 'parsedData' is assigned a value but never used.  @typescript-eslint/no-unused-vars\n\ninfo  - Need to disable some ESLint rules? Learn more here: htt",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Failed to compile.\n\n./app/api/user.ts\n22:13  Error: 'parsedData' is assigned a value but never used.  @typescript-eslint/no-unused-vars\n\ninfo  - Need to disable some ESLint rules? Learn more here: htt"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:53:49.253038+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T02:54:08.707292+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T02:54:28.804529+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T09:02:30.382801+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": false,
+        "files_count": 0,
+        "clerk_compliant": false,
+        "dev_files_count": 0,
+        "build_attempts": 0,
+        "iterations": 0,
+        "final_message": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/doc",
+        "last_build_error": "",
+        "last_test_error": "",
+        "last_failed_command": "",
+        "error": "BuildFailed: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/doc"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T09:02:46.053798+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T09:02:49.800520+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 2,
+        "total_suggestions": 2,
+        "avg_confidence": 0.7
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T09:06:01.289688+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T09:06:14.344544+00:00",
+      "project_name": ".",
+      "metric": "tool_patch_applied",
+      "value": {
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T09:07:20.331162+00:00",
+      "project_name": ".",
+      "metric": "version_mismatch_detected",
+      "value": {
+        "file": "package.json",
+        "mismatches": [
+          {
+            "package": "ts-jest",
+            "current": "27.0.0",
+            "expected": "29.x",
+            "issue": "incompatible_version"
+          }
+        ],
+        "mode": "report_only"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T09:07:25.465840+00:00",
+      "project_name": ".",
+      "metric": "version_mismatch_detected",
+      "value": {
+        "file": "package.json",
+        "mismatches": [
+          {
+            "package": "ts-jest",
+            "current": "27.0.0",
+            "expected": "29.x",
+            "issue": "incompatible_version"
+          }
+        ],
+        "mode": "report_only"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T09:07:30.919977+00:00",
+      "project_name": ".",
+      "metric": "version_mismatch_detected",
+      "value": {
+        "file": "package.json",
+        "mismatches": [
+          {
+            "package": "ts-jest",
+            "current": "27.0.0",
+            "expected": "29.x",
+            "issue": "incompatible_version"
+          }
+        ],
+        "mode": "report_only"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T09:07:30.939369+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "dev_test_run",
+      "value": {
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 14,
+        "clerk_compliant": true,
+        "dev_files_count": 13,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants. \n\nGénération des fichiers supplémentaires...",
+        "last_build_error": "npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error\nnpm error While resolving: ts-jest@27.0.0\nnpm error Found: typescript@5.9.3\nnpm error node_modules/typescript\nnpm error   peer ty",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: npm error code ERESOLVE\nnpm error ERESOLVE could not resolve\nnpm error\nnpm error While resolving: ts-jest@27.0.0\nnpm error Found: typescript@5.9.3\nnpm error node_modules/typescript\nnpm error   peer ty"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T09:07:42.656544+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": false,
+        "generated_tests_count": 0,
+        "error": "Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "success": false
+    },
+    {
+      "timestamp": "2026-02-24T09:08:04.702034+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "qa_run",
+      "value": {
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      },
+      "success": true
+    },
+    {
+      "timestamp": "2026-02-24T09:08:29.188142+00:00",
+      "project_name": "todo-batch-alpha",
+      "metric": "learner_analysis",
+      "value": {
+        "patterns_detected": 1,
+        "total_suggestions": 1,
+        "avg_confidence": 0.68
+      },
+      "success": true
     }
   ],
   "confidence_scores": [],
   "schema_validation": "PENDING",
   "projects_analyzed": [],
-  "total_suggestions": 306,
+  "total_suggestions": 366,
   "review_status": "AWAITING_SPRINT_2",
   "last_updated": null,
   "human_review": {

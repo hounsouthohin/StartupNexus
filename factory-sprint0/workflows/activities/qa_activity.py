@@ -10,25 +10,39 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 
 
-def _log_run_metric(project_name: str, payload: Dict[str, Any]) -> None:
+def _looks_like_typescript(content: str) -> bool:
+    if not isinstance(content, str):
+        return False
+    lowered = content.lower()
+    return ("import " in lowered) or ("export " in lowered) or ("const " in lowered)
+
+
+def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = "") -> None:
     try:
         from agents.shared_tools import _write_learner_event
         _write_learner_event(
-            project_name=project_name,
-            metric="qa_run",
-            value=payload,
-            success=bool(payload.get("qa_e2e_coverage", False)),
+            event_type="qa_run",
+            payload={"project_name": project_name, "success": bool(payload.get("qa_e2e_coverage", False)), **payload},
+            run_id=run_id,
         )
     except Exception as log_err:
         activity.logger.warning(f"Impossible de logger qa_run vers Learner: {log_err}")
 
 
 @activity.defn(name="qa_activity")
-async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, Dict[str, str]]:
     """
     Exécute le QA Agent pour générer des tests E2E (Playwright/Jest).
     Retourne un dictionnaire {chemin_fichier: contenu_test}
     """
+    try:
+        from agents.shared_tools import set_run_id, set_stack_id
+        set_run_id(run_id)
+        set_stack_id(str(input_data.get("stack_id", "nextjs-clerk-prisma")))
+    except Exception:
+        pass
+    input_data["run_id"] = run_id
+
     # 1. Validation entrée
     validate_input("qa_agent", input_data)
 
@@ -69,12 +83,25 @@ async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
             try:
                 e2e_tests = json.loads(raw_output)
             except json.JSONDecodeError:
-                # Fallback : on considère que c'est un seul fichier
+                # Fallback strict: accepter uniquement du TypeScript plausible.
+                if not _looks_like_typescript(raw_output):
+                    raise ValueError(
+                        "QA output rejected: fallback raw output is not valid TypeScript-like content "
+                        "(expected at least one of: import/export/const)."
+                    )
                 e2e_tests = {"tests/e2e/generated_e2e.spec.ts": raw_output}
         elif isinstance(raw_output, dict):
             e2e_tests = raw_output
         else:
             raise ValueError(f"Format inattendu retourné par QA agent: {type(raw_output)}")
+
+        # Validation stricte du contenu: chaque fichier doit ressembler à du TypeScript.
+        for test_path, test_content in e2e_tests.items():
+            if not _looks_like_typescript(test_content):
+                raise ValueError(
+                    f"QA output rejected for '{test_path}': not valid TypeScript-like content "
+                    "(expected at least one of: import/export/const)."
+                )
 
         # 4. Validation sortie stricte
         output = {"e2e_tests": e2e_tests}
@@ -97,4 +124,4 @@ async def qa_activity(input_data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
         activity.logger.error(f"Échec QA activity: {str(e)}", exc_info=True)
         raise ApplicationError("QA_EXECUTION_FAILED", str(e))
     finally:
-        _log_run_metric(project_name, run_metric)
+        _log_run_metric(project_name, run_metric, run_id)

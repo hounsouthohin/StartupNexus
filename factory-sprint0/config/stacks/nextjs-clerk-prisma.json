@@ -1,0 +1,150 @@
+{
+  "id": "nextjs-clerk-prisma",
+  "stack_id": "nextjs-clerk-prisma",
+  "display_name": "Next.js 14 + Clerk v6 + Prisma 7",
+  "status": "stable",
+  "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
+
+  "packages": {
+    "next": "14.2.25",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@clerk/nextjs": "^6.0.0",
+    "prisma": "^7.0.0",
+    "@prisma/client": "^7.0.0",
+    "typescript": "^5.3.3"
+  },
+
+  "dev_packages": {
+    "ts-jest": "29.1.2",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "jest-environment-jsdom": "^29.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^14.0.0",
+    "@babel/runtime": "^7.0.0",
+    "node-mocks-http": "^1.14.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "14.2.25"
+  },
+
+  "peer_dependency_minimums": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+
+  "version_pins": {
+    "next": "14.2.25",
+    "typescript": "^5.3.3"
+  },
+
+  "forbidden_paths": [
+    "pages/",
+    "src/pages/"
+  ],
+
+  "forbidden_imports": [
+    "bcrypt",
+    "jsonwebtoken",
+    "password_hash",
+    "passport",
+    "next-auth",
+    "nextauth",
+    "/api/auth/register",
+    "/api/auth/login"
+  ],
+
+  "import_remaps": {
+    "package_fixes": {
+      "@clerk/clerk-sdk": "@clerk/nextjs",
+      "@clerk/clerk-js": "@clerk/nextjs",
+      "@clerk/sdk": "@clerk/nextjs",
+      "@clerk/react": "@clerk/nextjs"
+    },
+    "source_fixes": {
+      "@clerk/clerk-sdk": "@clerk/nextjs",
+      "@clerk/clerk-sdk-react": "@clerk/nextjs",
+      "@clerk/nextjs/api": "@clerk/nextjs/server",
+      "@clerk/nextjs/middleware": "@clerk/nextjs/server"
+    },
+    "test_fixes": {
+      "@clerk/clerk-sdk": "@clerk/nextjs",
+      "@clerk/nextjs/api": "@clerk/nextjs/server",
+      "@clerk/nextjs/middleware": "@clerk/nextjs/server"
+    },
+    "router_fixes": {
+      "next/router": "next/navigation"
+    }
+  },
+
+  "blueprint": {
+    "required_files": [
+      "next.config.js",
+      "app/layout.tsx",
+      "middleware.ts",
+      "schema.prisma"
+    ],
+    "optional_files": [
+      "app/page.tsx",
+      ".env.local",
+      "tsconfig.json",
+      "jest.config.js"
+    ]
+  },
+
+  "sanitizers": [
+    "remove_pages_conflicts",
+    "clerk_middleware_v5",
+    "remove_problematic_babel"
+  ],
+
+  "build_hooks": {
+    "pre_build": [
+      "_remove_pages_router_conflicts",
+      "_remove_problematic_babel_config",
+      "_ensure_nextconfig_eslint_ignore",
+      "validate_blueprint"
+    ]
+  },
+
+  "commands": {
+    "install": "npm install",
+    "install_legacy": "npm install --legacy-peer-deps",
+    "build": "npm run build",
+    "test": "npx jest --coverage",
+    "prisma_migrate": "npx prisma migrate dev"
+  },
+
+  "qdrant_filter": {
+    "collection": "factory_standards",
+    "filter": {
+      "should": [
+        {"key": "stack", "match": {"value": "nextjs-clerk-prisma"}},
+        {"key": "stack", "match": {"value": "nextjs"}},
+        {"key": "stack", "match": {"value": "clerk"}}
+      ]
+    }
+  },
+
+  "compatibility_matrix": {
+    "ts-jest": {
+      "required_major": 29,
+      "reason": "ts-jest@27/28 incompatible avec TypeScript>=5.x",
+      "incompatible_with": {
+        "jest": ">=30"
+      }
+    },
+    "next": {
+      "min_major": 14,
+      "max_major": 14,
+      "reason": "next@15+ incompatible avec Clerk V5 App Router Sprint 0-3"
+    },
+    "jest": {
+      "required_major": 29,
+      "reason": "jest@30 incompatible avec ts-jest@29"
+    }
+  }
+}

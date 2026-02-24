@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
+from uuid import uuid4
 
 
 @dataclass
@@ -50,6 +51,8 @@ class SaaSFactoryWorkflow:
         phrase = request.phrase
         project_name = request.project_name
         workflow.logger.info(f"Workflow démarré – phrase: {phrase}, project: {project_name}")
+        run_id = str(uuid4())
+        workflow.logger.info(f"Workflow run_id={run_id}")
 
         common_retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=5),
@@ -68,7 +71,7 @@ class SaaSFactoryWorkflow:
             # Étape 1 : Architect Activity
             architect_result: Dict = await workflow.execute_activity(
                 architect_activity,
-                {"phrase": phrase, "project_name": project_name},
+                args=[{"phrase": phrase, "project_name": project_name}, run_id],
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=architect_retry_policy,
             )
@@ -93,7 +96,7 @@ class SaaSFactoryWorkflow:
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
                 dev_test_activity,
-                dev_test_input,
+                args=[dev_test_input, run_id],
                 start_to_close_timeout=timedelta(minutes=45),
                 retry_policy=common_retry_policy,
             )
@@ -128,7 +131,7 @@ class SaaSFactoryWorkflow:
             # Étape 3 : QA Activity
             qa_result: Dict = await workflow.execute_activity(
                 qa_activity,
-                {"specification": spec_part, "project_name": project_name},
+                args=[{"specification": spec_part, "project_name": project_name}, run_id],
                 start_to_close_timeout=timedelta(minutes=10),
                 retry_policy=common_retry_policy,
             )
@@ -144,7 +147,7 @@ class SaaSFactoryWorkflow:
 
             github_result: Dict = await workflow.execute_activity(
                 github_activity,
-                {"files": all_files, "project_name": project_name},
+                args=[{"files": all_files, "project_name": project_name}, run_id],
                 start_to_close_timeout=timedelta(minutes=10),
                 retry_policy=common_retry_policy,
             )
@@ -165,7 +168,7 @@ class SaaSFactoryWorkflow:
             try:
                 await workflow.execute_activity(
                     learner_activity,
-                    learner_input,
+                    args=[learner_input, run_id],
                     start_to_close_timeout=timedelta(minutes=5),
                     retry_policy=common_retry_policy,
                 )

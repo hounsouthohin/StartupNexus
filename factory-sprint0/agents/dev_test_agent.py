@@ -45,15 +45,16 @@ class DevTestAgent:
         logger.info("DevTestAgent — démarrage workflow fusionné")
 
         # ─── Phase Dev ────────────────────────────────────────
+        run_id = input_data.get("run_id", "")
         dev_input = {
             "spec": input_data.get("spec"),
             "mermaid": input_data.get("mermaid"),
-            "project_name": input_data.get("project_name")
+            "project_name": input_data.get("project_name"),
         }
         self._validate(dev_input, self.dev_contract["input_schema"], "Dev", "input")
 
         try:
-            dev_output = dev_agent(**dev_input)
+            dev_output = dev_agent(**dev_input, run_id=run_id)
             self._validate(dev_output, self.dev_contract["output_schema"], "Dev", "output")
         except Exception as e:
             logger.exception("Échec phase Dev")
@@ -73,12 +74,14 @@ class DevTestAgent:
 
         # ─── Assemblage résultat ─────────────────────────────
         combined = {**dev_output.get("files", {}), **test_output.get("tests", {})}
+        build_success = bool(dev_output.get("success", False))
+        tests_passed = bool(test_output.get("success", False))
 
         result = {
             "dev_output": dev_output,
             "test_output": test_output,
             "combined_files": combined,
-            "success": dev_output.get("success", False) and len(test_output.get("tests", {})) > 0,
+            "success": build_success and tests_passed,
             "metadata": {
                 "total_files": len(combined),
                 "mode": "fusion",

@@ -1,10 +1,12 @@
 import os
+import json
 import logging
 import shutil
 import re
 import ast
+from datetime import datetime, timezone
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
-from agents.llm_factory import create_chat_llm
 
 # Import des shared tools
 from .shared_tools import (
@@ -15,6 +17,7 @@ from .shared_tools import (
     read_files,
     run_build,
 )
+from .stack_config import get_blueprint
 from utils.prompt_loader import load_prompt
 
 # Logger
@@ -24,18 +27,20 @@ if not logger.handlers:
 
 
 # --- Dev Agent v3 Ultimate – Version 3.2 Breakthrough (Premier SaaS imminent) ---
-def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") -> dict:
+def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", run_id: str = "") -> dict:
     """
     Dev Agent v3 Ultimate – Version finale stable.
     Correction boucle jest.config.js + détection run_build + progression forcée.
     """
-    llm = create_chat_llm(temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
-    tools = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
-    tool_map = {tool.name: tool for tool in tools}
+    tools_phase1 = [write_file, validate_syntax, prisma_migrate, rag_search, read_files]
+    tools_phase2 = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
+    tool_map = {tool.name: tool for tool in tools_phase2}
 
     MAX_ITERATIONS = 10
     MAX_BUILD_ATTEMPTS = 8
+    PHASE1_LIMIT = 7  # iterations 1-7 : génération ; iterations 8-10 : correction build
     # Budgets ramenés à des tailles réalistes pour limiter la pression TPM
     MAX_SPEC_TOKENS = 4000
     MAX_MERMAID_TOKENS = 1200
@@ -131,6 +136,8 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
 
     prompt = load_prompt("dev")
+    blueprint = get_blueprint("nextjs-clerk-prisma")
+    required_files = blueprint.get("required_files", []) if isinstance(blueprint, dict) else []
     mandatory_rag_queries = [
         "versions exactes next.js clerk prisma tailwind shadcn zod",
         "clerk next.js 14 app/layout ClerkProvider middleware.ts clerkMiddleware createRouteMatcher sign-in sign-up routes interdites",
@@ -144,6 +151,13 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         except Exception as rag_err:
             mandatory_rag_context_chunks.append(f"[RAG::{query}] ERROR: {rag_err}")
     mandatory_rag_context = "\n\n".join(mandatory_rag_context_chunks)
+    required_files_block = ""
+    if required_files:
+        required_files_block = (
+            "FICHIERS OBLIGATOIRES À GÉNÉRER :\n"
+            + "\n".join(f"- {f}" for f in required_files)
+            + "\n\n"
+        )
     messages = [
         SystemMessage(content=prompt),
         HumanMessage(content=(
@@ -151,6 +165,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
             f"Spec :\n{summarized_spec}\n\n"
             f"Mermaid :\n{summarized_mermaid}\n\n"
             f"Contexte RAG obligatoire (préchargé) :\n{mandatory_rag_context}\n\n"
+            f"{required_files_block}"
             "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes next.js clerk prisma tailwind shadcn zod') puis génère package.json."
         ))
     ]
@@ -202,7 +217,9 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
 
     stagnant_iterations = 0
     for iteration in range(1, MAX_ITERATIONS + 1):
-        logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Build attempts: {build_attempts}")
+        current_phase = 1 if iteration <= PHASE1_LIMIT else 2
+        current_tools = tools_phase1 if current_phase == 1 else tools_phase2
+        logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Phase {current_phase} | Build attempts: {build_attempts}")
 
         # Truncation ultra-safe V3 – Chronologique garantie (build from newest, reverse)
         if len(messages) > 28:
@@ -240,7 +257,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
             logger.info(f"Historique truncaté à {len(messages)} messages (chronologique sécurisé).")
 
         main_messages = _main_context(messages)
-        response = llm.bind_tools(tools).invoke(main_messages)
+        response = llm.bind_tools(current_tools).invoke(main_messages)
         messages.append(response)
 
         tool_messages = []
@@ -299,7 +316,15 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
                             last_test_error = error_text[:2000]
                         tool_messages.append(ToolMessage(content=error_text, tool_call_id=tool_call["id"]))
                 else:
-                    tool_messages.append(ToolMessage(content=f"Tool {tool_name} inconnu", tool_call_id=tool_call["id"]))
+                    if tool_name == "run_build" and current_phase == 1:
+                        tool_messages.append(
+                            ToolMessage(
+                                content="Génération non terminée, continue d'écrire les fichiers",
+                                tool_call_id=tool_call["id"],
+                            )
+                        )
+                    else:
+                        tool_messages.append(ToolMessage(content=f"Tool {tool_name} inconnu", tool_call_id=tool_call["id"]))
 
             messages.extend(tool_messages)
 
@@ -332,14 +357,22 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
         else:
             stagnant_iterations += 1
 
-        # Forçage progression si fichiers clés présents
-        key_files = ["package.json", "app/layout.tsx", "middleware.ts", "prisma/schema.prisma"]
+        # Forçage progression si fichiers clés présents — Phase 2 seulement
+            key_files = ["package.json", "app/layout.tsx", "middleware.ts", "schema.prisma"]
         _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet
-        if all(any(k in p for p in files) for k in key_files) and not build_success:
+        if current_phase == 2 and all(any(k in p for p in files) for k in key_files) and not build_success:
             messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
 
-        # Garde-fou: si le modele stagne sans progres, forcer un run_build.
-        if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
+        # Transition Phase 1 → Phase 2 : injecter le prompt de correction build
+        if iteration == PHASE1_LIMIT and not build_success:
+            messages.append(HumanMessage(content=(
+                "PHASE 2 — CORRECTION BUILD\n"
+                f"Génération terminée. Fichiers présents : {list(files.keys())}\n"
+                f"Appelle run_build(project_dir='{_pdir}') et corrige toutes les erreurs retournées jusqu'au succès."
+            )))
+
+        # Garde-fou: si le modele stagne sans progres, forcer un run_build — Phase 2 seulement.
+        if current_phase == 2 and not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
             forced_build_output = str(run_build.invoke({"project_dir": _pdir}))
             build_attempted = True
             called_build_this_iter = True
@@ -432,13 +465,30 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project") ->
             final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
             break
 
-    # Nettoyage
-    for folder in ["node_modules", ".next", "__pycache__"]:
-        if os.path.exists(folder):
-            shutil.rmtree(folder, ignore_errors=True)
+    # Nettoyage scopé au répertoire projet pour éviter d'impacter d'autres runs.
+    cleanup_dir = _find_project_dir(files)
+    shutil.rmtree(os.path.join(cleanup_dir, "node_modules"), ignore_errors=True)
+    shutil.rmtree(os.path.join(cleanup_dir, ".next"), ignore_errors=True)
+    shutil.rmtree(os.path.join(cleanup_dir, "__pycache__"), ignore_errors=True)
 
     if not build_attempted and not build_success:
         final_message = "BuildNotAttempted: run_build n'a pas ete execute."
+
+    # Création du fichier de méta-données du run dans le répertoire projet.
+    try:
+        meta = {
+            "run_id": run_id,
+            "stack_id": "nextjs-clerk-prisma",
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "workflow_version": "sprint3",
+        }
+        meta_path = os.path.join(cleanup_dir, ".factory-meta.json")
+        with open(meta_path, "w", encoding="utf-8") as _mf:
+            json.dump(meta, _mf, indent=2)
+        logger.info(f"[meta] .factory-meta.json créé : run_id={run_id}")
+    except Exception as _me:
+        logger.warning(f"[meta] Impossible de créer .factory-meta.json: {_me}")
+
     logger.info("Dev Agent v3.2 terminé.")
     return {
         "files": files,

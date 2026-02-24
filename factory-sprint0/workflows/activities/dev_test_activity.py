@@ -35,24 +35,30 @@ def _check_clerk_compliant(result: dict) -> bool:
     return has_clerk_provider and has_middleware and no_custom_auth
 
 
-def _log_run_metric(project_name: str, payload: Dict[str, Any]) -> None:
+def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = "") -> None:
     try:
         from agents.shared_tools import _write_learner_event
         _write_learner_event(
-            project_name=project_name,
-            metric="dev_test_run",
-            value=payload,
-            success=bool(payload.get("build_success", False)),
+            event_type="dev_test_run",
+            payload={"project_name": project_name, "success": bool(payload.get("build_success", False)), **payload},
+            run_id=run_id,
         )
     except Exception as log_err:
         activity.logger.warning(f"Impossible de logger dev_test_run vers Learner: {log_err}")
 
 
 @activity.defn(name="dev_test_activity")
-async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
+async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, Any]:
     """
     Activity qui exécute l'agent Dev + Test fusionné.
     """
+    try:
+        from agents.shared_tools import set_run_id, set_stack_id
+        set_run_id(run_id)
+        set_stack_id(str(input_data.get("stack_id", "nextjs-clerk-prisma")))
+    except Exception:
+        pass
+    input_data["run_id"] = run_id
     project_name = input_data.get("project_name", "projet-sans-nom")
     activity.logger.info(f"DevTest démarré → Projet: {project_name}")
     run_metric: Dict[str, Any] = {
@@ -165,4 +171,4 @@ async def dev_test_activity(input_data: Dict[str, Any]) -> Dict[str, Any]:
             f"Erreur dans dev_test_activity : {str(e)}"
         )
     finally:
-        _log_run_metric(project_name, run_metric)
+        _log_run_metric(project_name, run_metric, run_id)

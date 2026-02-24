@@ -20,7 +20,6 @@ from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
 from utils.prompt_loader import load_prompt
-from agents.llm_factory import create_chat_llm
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -41,31 +40,25 @@ def _contains_forbidden_auth(text: str) -> bool:
     return any(re.search(pattern, lowered) for pattern in FORBIDDEN_AUTH_PATTERNS)
 
 
-def _append_architect_rag_event(query: str, docs: list, error: str | None = None) -> None:
+def _append_architect_rag_event(query: str, docs: list, error: str | None = None, run_id: str = "") -> None:
     try:
         metrics_dir = Path("logs/metrics")
         metrics_dir.mkdir(parents=True, exist_ok=True)
         path = metrics_dir / "rag_usage.jsonl"
-        payload_docs = []
-        for idx, doc in enumerate(docs or [], start=1):
-            metadata = getattr(doc, "metadata", {}) or {}
-            payload_docs.append(
-                {
-                    "rank": idx,
-                    "category": metadata.get("category"),
-                    "source": metadata.get("source"),
-                    "tech": metadata.get("tech"),
-                    "snippet": str(getattr(doc, "page_content", ""))[:180],
-                }
-            )
+        doc_ids = [str(getattr(doc, "id", "")) for doc in (docs or [])]
+        scores = [float(getattr(doc, "score", 0.0) or 0.0) for doc in (docs or [])]
+        snippet = str(getattr(docs[0], "page_content", ""))[:180] if docs else ""
         event = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "agent": "architect_retrieval",
             "query": query,
             "k": 10,
             "cache_hit": False,
-            "result_count": len(payload_docs),
-            "docs": payload_docs,
+            "result_count": len(docs or []),
+            "doc_ids": doc_ids,
+            "scores": scores,
+            "snippet": snippet,
+            "run_id": run_id,
             "error": error,
         }
         with path.open("a", encoding="utf-8") as f:
@@ -138,7 +131,7 @@ def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float 
 def create_architect_agent():
     # Imports moved inside the function to avoid Temporal sandbox issues
     from langgraph.graph import StateGraph, START, END
-    from langchain_openai import OpenAIEmbeddings
+    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
     from langchain_qdrant import QdrantVectorStore
     from qdrant_client import QdrantClient
 
@@ -149,18 +142,18 @@ def create_architect_agent():
     client = QdrantClient(url=QDRANT_URL)
     vectorstore = QdrantVectorStore(client=client, collection_name=QDRANT_COLLECTION_NAME, embedding=embeddings)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
-    llm = create_chat_llm(temperature=0.1)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
     # --- Nodes ---
     async def retrieval_node(state: AgentState):
         query = state["messages"][-1].content
         try:
             docs = await retriever.ainvoke(query)
-            _append_architect_rag_event(query=query, docs=docs, error=None)
+            _append_architect_rag_event(query=query, docs=docs, error=None, run_id=str(state.get("run_id", "")))
         except Exception as e:
             logger.warning(f"RAG indisponible: {e} - continuation sans contexte")
             docs = []
-            _append_architect_rag_event(query=query, docs=[], error=str(e))
+            _append_architect_rag_event(query=query, docs=[], error=str(e), run_id=str(state.get("run_id", "")))
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
         print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
         return {"rag_context": rag_context}

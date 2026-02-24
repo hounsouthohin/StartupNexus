@@ -8,9 +8,9 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from utils.prompt_loader import load_prompt
-from agents.llm_factory import create_chat_llm
 
 # Load environment variables from .env file
 load_dotenv()
@@ -69,7 +69,11 @@ def qa_agent_node(state: AgentState) -> dict:
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    llm = create_chat_llm(temperature=0.2)
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.2,
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
     # The agent's primary job is to generate the test file content, not run it directly.
     # The 'playwright_test' tool would be used in a more complex graph to validate the generated tests.
     

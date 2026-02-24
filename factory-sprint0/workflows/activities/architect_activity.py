@@ -34,10 +34,17 @@ def _validate_clerk_compliance(spec: str, mermaid: str) -> list:
 
 
 @activity.defn(name="architect_activity")
-async def architect_activity(input_data: Dict) -> Dict:
+async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     """
     Activity qui exécute l'Architect Agent (génération de spec + diagramme Mermaid).
     """
+    try:
+        from agents.shared_tools import set_run_id, set_stack_id
+        set_run_id(run_id)
+        set_stack_id(str(input_data.get("stack_id", "nextjs-clerk-prisma")))
+    except Exception:
+        pass
+    input_data["run_id"] = run_id
     load_dotenv()
 
     # Vérification minimale de la clé API (avant même la validation contrat)

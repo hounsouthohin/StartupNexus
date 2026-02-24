@@ -13,11 +13,18 @@ from github import Github, GithubException
 
 
 @activity.defn(name="github_activity")
-async def github_activity(input_data: Dict[str, Any]) -> Dict[str, str]:
+async def github_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, str]:
     """
     Crée un repo GitHub, pousse les fichiers générés sur la branche 'dev',
     et ouvre une Pull Request vers main si nécessaire.
     """
+    try:
+        from agents.shared_tools import set_run_id, set_stack_id
+        set_run_id(run_id)
+        set_stack_id(str(input_data.get("stack_id", "nextjs-clerk-prisma")))
+    except Exception:
+        pass
+    input_data["run_id"] = run_id
     # 1. Validation entrée stricte
     validate_input("github_agent", input_data)
 
