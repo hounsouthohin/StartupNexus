@@ -739,19 +739,41 @@ def rag_search(query: str) -> str:
         except Exception as _filter_err:
             logger.warning(f"[rag_search] stack filter unavailable: {_filter_err}")
 
-        search_hits = qdrant_client.search(
-            collection_name=QDRANT_COLLECTION_NAME,
-            query_vector=query_vector,
-            limit=DEFAULT_VECTOR_SEARCH_LIMIT,
-            with_payload=True,
-            query_filter=qdrant_filter,
-        )
-        doc_ids = [str(h.id) for h in search_hits]
-        scores = [float(h.score) for h in search_hits]
-        result = "\n\n".join(
-            str(h.payload.get("page_content", "")) for h in search_hits
-        )
-        snippet = str(search_hits[0].payload.get("page_content", ""))[:180] if search_hits else ""
+        search_hits = []
+        if hasattr(qdrant_client, "search"):
+            search_hits = qdrant_client.search(
+                collection_name=QDRANT_COLLECTION_NAME,
+                query_vector=query_vector,
+                limit=DEFAULT_VECTOR_SEARCH_LIMIT,
+                with_payload=True,
+                query_filter=qdrant_filter,
+            )
+        elif hasattr(qdrant_client, "search_points"):
+            search_result = qdrant_client.search_points(
+                collection_name=QDRANT_COLLECTION_NAME,
+                vector=query_vector,
+                limit=DEFAULT_VECTOR_SEARCH_LIMIT,
+                with_payload=True,
+                query_filter=qdrant_filter,
+            )
+            search_hits = getattr(search_result, "points", search_result)
+        elif vectorstore:
+            search_hits = vectorstore.similarity_search_with_score(
+                query, k=DEFAULT_VECTOR_SEARCH_LIMIT, filter=qdrant_filter
+            )
+
+        if search_hits and isinstance(search_hits[0], tuple):
+            doc_ids = [str(i) for i, _ in enumerate(search_hits)]
+            scores = [float(score) for _, score in search_hits]
+            result = "\n\n".join(str(doc.page_content) for doc, _ in search_hits)
+            snippet = str(search_hits[0][0].page_content)[:180]
+        else:
+            doc_ids = [str(h.id) for h in search_hits]
+            scores = [float(h.score) for h in search_hits]
+            result = "\n\n".join(
+                str(h.payload.get("page_content", "")) for h in search_hits
+            )
+            snippet = str(search_hits[0].payload.get("page_content", ""))[:180] if search_hits else ""
         _append_rag_usage_event(
             query=query,
             k=DEFAULT_VECTOR_SEARCH_LIMIT,
@@ -1173,6 +1195,33 @@ def _remove_pages_tests_router_conflicts(project_dir: str, incoming_files: dict 
         logger.info("[sanitize] pages_tests_conflict: dossier tests/pages/ supprimé — App Router prime")
 
 
+def _remove_stale_tests(project_dir: str, incoming_files: dict | None = None) -> None:
+    """
+    Supprime les tests existants qui ne sont pas regénérés par l'itération courante.
+    Évite les tests obsolètes qui cassent le run.
+    """
+    if not incoming_files:
+        return
+    incoming_paths = set(incoming_files.keys())
+    if not any(p.startswith("tests/") for p in incoming_paths):
+        return
+    tests_dir = os.path.join(project_dir, "tests")
+    if not os.path.isdir(tests_dir):
+        return
+    removed = 0
+    for root, _, files in os.walk(tests_dir):
+        for name in files:
+            rel_path = os.path.relpath(os.path.join(root, name), project_dir).replace("\\", "/")
+            if rel_path.startswith("tests/") and rel_path not in incoming_paths:
+                try:
+                    os.remove(os.path.join(project_dir, rel_path))
+                    removed += 1
+                except Exception:
+                    pass
+    if removed:
+        logger.info(f"[sanitize] stale_tests_removed: {removed} fichiers obsoletes")
+
+
 @tool(args_schema=RunBuildArgs)
 def run_build(project_dir: str = '.') -> str:
     """
@@ -1384,6 +1433,7 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
 
     _remove_pages_router_conflicts(project_dir)
     _remove_pages_tests_router_conflicts(project_dir, files)
+    _remove_stale_tests(project_dir, files)
 
     if files:
         logger.info(f"Writing {len(files)} files to disk before running tests...")

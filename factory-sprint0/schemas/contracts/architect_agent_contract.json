@@ -22,6 +22,14 @@
         "description": "Nom du projet (optionnel, auto-généré si absent)",
         "pattern": "^[a-z0-9-]+$",
         "examples": ["task-manager", "saas-crm"]
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack (ex: nextjs-clerk-prisma)"
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (propagation observabilité)"
       }
     }
   },

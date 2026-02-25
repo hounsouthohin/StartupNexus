@@ -5,7 +5,6 @@ Workflow pilote Sprint 0.5 – Validation ToDo app avec DevTestAgent fusionné
 
 from dataclasses import dataclass
 from datetime import timedelta
-from uuid import uuid4
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
@@ -56,7 +55,7 @@ class TodoPilotWorkflow:
         workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase} | Stack: {stack_id}")
 
         start_time = workflow.now()  # déterministe !
-        run_id = str(uuid4())
+        run_id = str(workflow.uuid4())
         workflow.logger.info(f"TodoPilot run_id={run_id}")
 
         common_retry_policy = RetryPolicy(

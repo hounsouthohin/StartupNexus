@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
-from uuid import uuid4
 
 
 @dataclass
@@ -51,7 +50,7 @@ class SaaSFactoryWorkflow:
         phrase = request.phrase
         project_name = request.project_name
         workflow.logger.info(f"Workflow démarré – phrase: {phrase}, project: {project_name}")
-        run_id = str(uuid4())
+        run_id = str(workflow.uuid4())
         workflow.logger.info(f"Workflow run_id={run_id}")
 
         common_retry_policy = RetryPolicy(

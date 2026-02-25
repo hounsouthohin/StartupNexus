@@ -16,6 +16,14 @@
         "patternProperties": {
           ".*": {"type": "string"}
         }
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack (ex: nextjs-clerk-prisma)"
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (propagation observabilité)"
       }
     }
   },
@@ -31,6 +39,10 @@
         "patternProperties": {
           ".*": {"type": "string"}
         }
+      },
+      "success": {
+        "type": "boolean",
+        "description": "Indique si l'exécution des tests a réussi"
       },
       "metadata": {
         "type": "object",

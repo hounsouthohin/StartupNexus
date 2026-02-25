@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-02-25T13:07:33.904239+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "workflow_success_count": 0,
+  "workflow_failure_count": 1,
+  "build_success_count": 0,
+  "build_failure_count": 0,
+  "build_unknown_count": 1,
+  "success_count": 0,
+  "failure_count": 1,
+  "total_duration_seconds": 21.98,
+  "total_learner_events_delta": 0,
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-todo-batch-alpha-ad788ccd",
+      "run_id": "019c94e9-1fd5-733a-9c8b-022cfe58e0d9",
+      "project_name": "todo-batch-alpha",
+      "phrase": "Cree une Todo app Next.js avec Clerk, priorites et tags.",
+      "started_at": "2026-02-25T13:07:11.914367+00:00",
+      "duration_seconds": 21.98,
+      "workflow_success": false,
+      "build_success": null,
+      "workflow_status": null,
+      "build_status": null,
+      "error": "Workflow execution failed",
+      "learner_events_before": 364,
+      "learner_events_after": 364,
+      "learner_events_delta": 0,
+      "result_excerpt": ""
+    }
+  ]
+}

@@ -4937,12 +4937,369 @@
         "avg_confidence": 0.68
       },
       "success": true
+    },
+    {
+      "timestamp": "2026-02-25T13:31:41.281410+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T13:33:49.809366+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac",
+        "return_code": 1,
+        "stderr_snippet": " } \u001b[36mfrom\u001b[39m \u001b[32m'@clerk/nextjs/api'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 4 |\u001b[39m \u001b[36mexport\u001b[39m \u001b[36mdefault\u001b[39m \u001b[36masync\u001b[39m \u001b[36mfunction\u001b[39m handler(req\u001b[33m:\u001b[39m \u001b[33mNextApiRequest\u001b[39m\u001b[33m,\u001b[39m res\u001b[33m:\u001b[39m \u001b[33mNextApiResponse\u001b[39m) {\u001b[0m\n\u001b[0m \u001b[90m 5 |\u001b[39m   \u001b[36mconst\u001b[39m { userId } \u001b[33m=\u001b[39m getAuth(req)\u001b[33m;\u001b[39m\u001b[0m\nNext.js build worker exited with code: 1 and signal: null\n",
+        "stdout_snippet": "peScript in your project and reconfigured your tsconfig.json file for you. Strict-mode is set to false by default.\n   The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:\n\n   \t- include was updated to add '.next/types/**/*.ts'\n   \t- plugins was updated to add { name: 'next' }\n\n   The following mandatory changes were made to your tsconfig.json:\n\n   \t- jsx was set to preserve (next.js implements its own optimized jsx transform)\n\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T13:34:17.626235+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac",
+        "return_code": 1,
+        "stderr_snippet": " } \u001b[36mfrom\u001b[39m \u001b[32m'@clerk/nextjs/api'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m                         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 4 |\u001b[39m \u001b[36mexport\u001b[39m \u001b[36mdefault\u001b[39m \u001b[36masync\u001b[39m \u001b[36mfunction\u001b[39m handler(req\u001b[33m:\u001b[39m \u001b[33mNextApiRequest\u001b[39m\u001b[33m,\u001b[39m res\u001b[33m:\u001b[39m \u001b[33mNextApiResponse\u001b[39m) {\u001b[0m\n\u001b[0m \u001b[90m 5 |\u001b[39m   \u001b[36mconst\u001b[39m { userId } \u001b[33m=\u001b[39m getAuth(req)\u001b[33m;\u001b[39m\u001b[0m\nNext.js build worker exited with code: 1 and signal: null\n",
+        "stdout_snippet": "\n> todo-batch-alpha@1.0.0 build\n> next build\n\n  ▲ Next.js 14.2.25\n  - Environments: .env\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping linting\n   Checking validity of types ...\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T13:34:31.787887+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_Failed to compile.\n\n./app/api/comments.ts:2:28\nType error: Cannot find module '@",
+        "return_code": 1,
+        "stderr_snippet": "m\u001b[39m \u001b[32m'next'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 2 |\u001b[39m \u001b[36mimport\u001b[39m { getSession } \u001b[36mfrom\u001b[39m \u001b[32m'@clerk/nextjs/api'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m                            \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m \u001b[36mimport\u001b[39m { z } \u001b[36mfrom\u001b[39m \u001b[32m'zod'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 4 |\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 5 |\u001b[39m \u001b[36mconst\u001b[39m commentSchema \u001b[33m=\u001b[39m z\u001b[33m.\u001b[39mobject({\u001b[0m\nNext.js build worker exited with code: 1 and signal: null\n",
+        "stdout_snippet": "\n> todo-batch-alpha@1.0.0 build\n> next build\n\n  ▲ Next.js 14.2.25\n  - Environments: .env\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping linting\n   Checking validity of types ...\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T13:36:51.564695+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "Continuons l'étape suivante.",
+        "last_build_error": "Failed to compile.\n\n./app/api/comments.ts:2:28\nType error: Cannot find module '@clerk/nextjs/api' or its corresponding type declarations.\n\n\u001b[0m \u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { \u001b[33mNextApiRequest\u001b[3",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Failed to compile.\n\n./app/api/comments.ts:2:28\nType error: Cannot find module '@clerk/nextjs/api' or its corresponding type declarations.\n\n\u001b[0m \u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { \u001b[33mNextApiRequest\u001b[3"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T13:37:06.921602+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-02-25T13:37:26.108361+00:00",
+      "run_id": "f597490a-9e2c-4d9a-bdc6-6ac92203bec7",
+      "event_type": "learner_analysis",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "patterns_detected": 4,
+        "total_suggestions": 4,
+        "avg_confidence": 0.675
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:46:14.910469+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:47:27.047016+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac",
+        "return_code": 1,
+        "stderr_snippet": "age.runtime.prod.js:12:47011)\n    at nM (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47718)\n    at nN (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)\n    at nM (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)\n    at nN (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)\n\n> Export encountered errors on following paths:\n\t/_not-found/page: /_not-found\n\t/page: /\n",
+        "stdout_snippet": "be changed to fit your project's needs:\n\n   \t- include was updated to add '.next/types/**/*.ts'\n   \t- plugins was updated to add { name: 'next' }\n\n   The following mandatory changes were made to your tsconfig.json:\n\n   \t- jsx was set to preserve (next.js implements its own optimized jsx transform)\n\n   Collecting page data ...\n   Generating static pages (0/6) ...\n   Generating static pages (1/6) \n   Generating static pages (2/6) \n   Generating static pages (4/6) \n ✓ Generating static pages (6/6)\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:47:53.829573+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac",
+        "return_code": 1,
+        "stderr_snippet": "age.runtime.prod.js:12:47011)\n    at nM (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47718)\n    at nN (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)\n    at nM (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)\n    at nN (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)\n\n> Export encountered errors on following paths:\n\t/_not-found/page: /_not-found\n\t/page: /\n",
+        "stdout_snippet": "\n> todo-batch-alpha@1.0.0 build\n> next build\n\n  ▲ Next.js 14.2.25\n  - Environments: .env\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping validation of types\n   Skipping linting\n   Collecting page data ...\n   Generating static pages (0/6) ...\n   Generating static pages (1/6) \n   Generating static pages (2/6) \n   Generating static pages (4/6) \n ✓ Generating static pages (6/6)\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:48:05.625838+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https",
+        "return_code": 1,
+        "stderr_snippet": "age.runtime.prod.js:12:47011)\n    at nM (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47718)\n    at nN (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)\n    at nM (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)\n    at nN (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)\n\n> Export encountered errors on following paths:\n\t/_not-found/page: /_not-found\n\t/page: /\n",
+        "stdout_snippet": "\n> todo-batch-alpha@1.0.0 build\n> next build\n\n  ▲ Next.js 14.2.25\n  - Environments: .env\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping validation of types\n   Skipping linting\n   Collecting page data ...\n   Generating static pages (0/6) ...\n   Generating static pages (1/6) \n   Generating static pages (2/6) \n   Generating static pages (4/6) \n ✓ Generating static pages (6/6)\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:48:12.110290+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:48:48.546567+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:49:22.431146+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:49:45.781220+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 10,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "Je vais continuer l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.\n    at Object.throwMissingPublishableKeyError (/app/.next/server/chunk",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https://dashboard.clerk.com/last-active?path=api-keys.\n    at Object.throwMissingPublishableKeyError (/app/.next/server/chunk"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:49:58.181395+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-02-25T17:50:16.194266+00:00",
+      "run_id": "b1923eed-e826-4b79-aa1e-5fe14f376b48",
+      "event_type": "learner_analysis",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "patterns_detected": 7,
+        "total_suggestions": 7,
+        "avg_confidence": 0.729
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:02:56.991665+00:00",
+      "run_id": "e2724bbd-37a5-4214-b18c-26bfa70b5e1e",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac",
+        "return_code": 1,
+        "stderr_snippet": " at eP (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142093)\n    at eE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142572)\n    at Timeout._onTimeout (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135349)\n    at listOnTimeout (node:internal/timers:581:17)\n    at process.processTimers (node:internal/timers:519:7)\n\n> Export encountered errors on following paths:\n\t/_not-found/page: /_not-found\n\t/page: /\n",
+        "stdout_snippet": "be changed to fit your project's needs:\n\n   \t- include was updated to add '.next/types/**/*.ts'\n   \t- plugins was updated to add { name: 'next' }\n\n   The following mandatory changes were made to your tsconfig.json:\n\n   \t- jsx was set to preserve (next.js implements its own optimized jsx transform)\n\n   Collecting page data ...\n   Generating static pages (0/6) ...\n   Generating static pages (1/6) \n   Generating static pages (2/6) \n   Generating static pages (4/6) \n ✓ Generating static pages (6/6)\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:03:18.050325+00:00",
+      "run_id": "e2724bbd-37a5-4214-b18c-26bfa70b5e1e",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac",
+        "return_code": 1,
+        "stderr_snippet": " at eP (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142093)\n    at eE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142572)\n    at Timeout._onTimeout (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135349)\n    at listOnTimeout (node:internal/timers:581:17)\n    at process.processTimers (node:internal/timers:519:7)\n\n> Export encountered errors on following paths:\n\t/_not-found/page: /_not-found\n\t/page: /\n",
+        "stdout_snippet": "\n> todo-batch-alpha@1.0.0 build\n> next build\n\n  ▲ Next.js 14.2.25\n  - Environments: .env\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping validation of types\n   Skipping linting\n   Collecting page data ...\n   Generating static pages (0/6) ...\n   Generating static pages (1/6) \n   Generating static pages (2/6) \n   Generating static pages (4/6) \n ✓ Generating static pages (6/6)\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:03:30.404579+00:00",
+      "run_id": "e2724bbd-37a5-4214-b18c-26bfa70b5e1e",
+      "event_type": "build_failed",
+      "payload": {
+        "success": false,
+        "error_signature": "build_error_Error: Unsupported Server Component type: undefined\n    at e (/app/node_modules/",
+        "return_code": 1,
+        "stderr_snippet": " at eP (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142093)\n    at eE (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:142572)\n    at Timeout._onTimeout (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:135349)\n    at listOnTimeout (node:internal/timers:581:17)\n    at process.processTimers (node:internal/timers:519:7)\n\n> Export encountered errors on following paths:\n\t/_not-found/page: /_not-found\n\t/page: /\n",
+        "stdout_snippet": "\n> todo-batch-alpha@1.0.0 build\n> next build\n\n  ▲ Next.js 14.2.25\n  - Environments: .env\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping validation of types\n   Skipping linting\n   Collecting page data ...\n   Generating static pages (0/6) ...\n   Generating static pages (1/6) \n   Generating static pages (2/6) \n   Generating static pages (4/6) \n ✓ Generating static pages (6/6)\n"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:04:45.198271+00:00",
+      "run_id": "e2724bbd-37a5-4214-b18c-26bfa70b5e1e",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 9,
+        "clerk_compliant": true,
+        "dev_files_count": 9,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "Je vais continuer avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "Error: Unsupported Server Component type: undefined\n    at e (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137969)\n    at ek (/app/node_modules/next/dist/compiled/next-",
+        "last_test_error": "",
+        "last_failed_command": "npm run build",
+        "error": "BuildFailed: Error: Unsupported Server Component type: undefined\n    at e (/app/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:137969)\n    at ek (/app/node_modules/next/dist/compiled/next-"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:04:56.909345+00:00",
+      "run_id": "e2724bbd-37a5-4214-b18c-26bfa70b5e1e",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:05:21.410884+00:00",
+      "run_id": "e2724bbd-37a5-4214-b18c-26bfa70b5e1e",
+      "event_type": "learner_analysis",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "patterns_detected": 3,
+        "total_suggestions": 3,
+        "avg_confidence": 0.7
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:20:33.082367+00:00",
+      "run_id": "8923a8c8-5852-4bbc-bc9a-01a0e1684223",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "type": "prisma7_datasource_fix",
+        "file": "schema.prisma",
+        "patch": "datasource_url_removed",
+        "env_var": "DATABASE_URL",
+        "prisma_config_generated": "./prisma.config.ts",
+        "reason": "Prisma 7: url dans datasource supprimé, prisma.config.ts généré"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:20:58.342824+00:00",
+      "run_id": "8923a8c8-5852-4bbc-bc9a-01a0e1684223",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      }
+    },
+    {
+      "timestamp": "2026-02-25T18:25:40.936568+00:00",
+      "run_id": "17c9ab97-4ea7-4135-a744-a5786377e1d8",
+      "event_type": "tool_patch_applied",
+      "payload": {
+        "project_name": ".",
+        "success": true,
+        "file": "package.json",
+        "patch": "invalid_npm_package_removed",
+        "package_name": "shadcn/ui",
+        "package_type": "dependencies",
+        "reason": "Package npm invalide supprimé (cause: EINVALIDPACKAGENAME)"
+      }
     }
   ],
   "confidence_scores": [],
   "schema_validation": "PENDING",
   "projects_analyzed": [],
-  "total_suggestions": 366,
+  "total_suggestions": 392,
   "review_status": "AWAITING_SPRINT_2",
   "last_updated": null,
   "human_review": {

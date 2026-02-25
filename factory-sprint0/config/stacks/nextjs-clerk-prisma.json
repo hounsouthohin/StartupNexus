@@ -85,7 +85,8 @@
       "next.config.js",
       "app/layout.tsx",
       "middleware.ts",
-      "schema.prisma"
+      "schema.prisma",
+      "app/api/auth/route.ts"
     ],
     "optional_files": [
       "app/page.tsx",
@@ -146,5 +147,10 @@
       "required_major": 29,
       "reason": "jest@30 incompatible avec ts-jest@29"
     }
+  }
+  ,
+  "test_import_rules": {
+    "app_router_api": "import { handler } from '../../app/api/{name}/route'",
+    "middleware": "import middleware from '../../middleware'"
   }
 }

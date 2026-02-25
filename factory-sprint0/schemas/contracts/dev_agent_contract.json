@@ -24,6 +24,14 @@
         "type": "string",
         "description": "Nom du projet",
         "pattern": "^[a-z0-9-]+$"
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack (ex: nextjs-clerk-prisma)"
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (propagation observabilité)"
       }
     }
   },
