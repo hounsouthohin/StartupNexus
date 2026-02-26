@@ -17,6 +17,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 from config.factory_config import TEMPORAL_ADDRESS
+from agents.stack_config import _DEFAULT_STACK_ID
 from workflows.factory_workflow import SaaSFactoryWorkflow
 
 app = Flask(__name__)
@@ -24,13 +25,13 @@ app = Flask(__name__)
 TASK_QUEUE = "factory-task-queue"
 
 
-async def _start_saas_workflow(phrase: str, project_name: str) -> dict:
+async def _start_saas_workflow(phrase: str, project_name: str, stack_id: str) -> dict:
     """Démarre un workflow SaaSFactory sur Temporal et retourne ses identifiants."""
     client = await Client.connect(TEMPORAL_ADDRESS)
     workflow_id = f"saas-{project_name}-{uuid.uuid4().hex[:8]}"
     handle = await client.start_workflow(
         SaaSFactoryWorkflow.run,
-        {"phrase": phrase, "project_name": project_name},
+        {"phrase": phrase, "project_name": project_name, "stack_id": stack_id},
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
@@ -54,6 +55,7 @@ def start_saas() -> tuple:
     payload = request.get_json(silent=True) or {}
     phrase = str(payload.get("phrase", "")).strip()
     project_name = str(payload.get("project_name", "")).strip()
+    stack_id = str(payload.get("stack_id", "")).strip() or _DEFAULT_STACK_ID
 
     if not phrase:
         return jsonify({"error": "Champ 'phrase' requis"}), 400
@@ -62,12 +64,13 @@ def start_saas() -> tuple:
         project_name = f"saas-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
     try:
-        started = asyncio.run(_start_saas_workflow(phrase, project_name))
+        started = asyncio.run(_start_saas_workflow(phrase, project_name, stack_id))
         return (
             jsonify(
                 {
                     "message": "Workflow démarré",
                     "project_name": project_name,
+                    "stack_id": stack_id,
                     "workflow_id": started["workflow_id"],
                     "run_id": started["run_id"],
                 }

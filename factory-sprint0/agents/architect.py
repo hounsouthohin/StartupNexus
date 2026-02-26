@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
-from utils.prompt_loader import load_prompt, load_stack_prompt
+from utils.prompt_loader import load_base_prompt, load_stack_rules_only
 from agents.stack_config import _DEFAULT_STACK_ID
 
 load_dotenv()
@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_FORBIDDEN_AUTH_PATTERNS = [
     r"\bbcrypt\b",
     r"\bjwt\b",
+    r"\bjsonwebtoken\b",
+    r"\boauth2?\b",
+    r"\bpassport\b",
+    r"\bexpress-session\b",
+    r"\bcookie-session\b",
     r"\bnextauth\b",
     r"\bnext-auth\b",
     r"\bpassword_hash\b",
@@ -125,46 +130,71 @@ class AgentState(TypedDict):
     architect_output: ArchitectOutput 
 
 # --- Prompt Loading ---
+def _parse_level1_sections(content: str) -> dict[str, str]:
+    """
+    Parse uniquement les sections de niveau 1 (# Titre).
+    Ignore les sections ## pour éviter les captures parasites.
+    """
+    sections: dict[str, str] = {}
+    current_title = None
+    current_lines: list[str] = []
+
+    for line in content.split("\n"):
+        if line.startswith("# ") and not line.startswith("## "):
+            if current_title is not None:
+                sections[current_title] = "\n".join(current_lines).strip()
+            current_title = line[2:].strip().lower().replace(" ", "_")
+            current_lines = []
+            continue
+        current_lines.append(line)
+
+    if current_title is not None:
+        sections[current_title] = "\n".join(current_lines).strip()
+
+    return sections
+
+
 def load_prompts():
-    """Reads and parses the architect.md file to get prompts for each node."""
+    """Charge les prompts architecte base + rules stack injectées par section."""
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.messages import SystemMessage, HumanMessage
     try:
-        content = ""
         try:
             from agents.shared_tools import get_stack_id
-            content = load_stack_prompt("architect", get_stack_id())
+            active_stack = get_stack_id()
         except Exception:
-            content = load_prompt("architect")
-        
+            active_stack = _DEFAULT_STACK_ID
+
+        base_content = load_base_prompt("architect")
+        stack_rules = load_stack_rules_only("architect", active_stack)
+        sections = _parse_level1_sections(base_content)
+
         prompts = {}
-        pattern = r'#\s*(.*?)\n(.*?)(?=\n#\s*|\Z)'
-        matches = re.findall(pattern, content, re.DOTALL)
-        
-        for match in matches:
-            title = match[0].strip().lower().replace(' ', '_')
-            prompt_content = match[1].strip()
+        for title, section_content in sections.items():
+            prompt_content = section_content
+            if stack_rules:
+                prompt_content = (
+                    f"{section_content}\n\n---\n\n"
+                    "## REGLES STACK OBLIGATOIRES\n\n"
+                    f"{stack_rules}"
+                )
             prompts[title] = ChatPromptTemplate.from_messages([
                 SystemMessage(content=prompt_content),
                 HumanMessage(content="{input}")
             ])
-        if not {"planner", "spec_writer", "diagrammer"}.issubset(set(prompts.keys())):
-            # Compatibilité ascendante si le prompt stack est incomplet.
-            content = load_prompt("architect")
-            prompts = {}
-            matches = re.findall(pattern, content, re.DOTALL)
-            for match in matches:
-                title = match[0].strip().lower().replace(' ', '_')
-                prompt_content = match[1].strip()
-                prompts[title] = ChatPromptTemplate.from_messages([
-                    SystemMessage(content=prompt_content),
-                    HumanMessage(content="{input}")
-                ])
+
+        required_sections = {"planner", "spec_writer", "diagrammer"}
+        if not required_sections.issubset(set(prompts.keys())):
+            missing = required_sections - set(prompts.keys())
+            raise RuntimeError(
+                f"Sections manquantes dans prompts/base/architect.md: {sorted(missing)}. "
+                f"Trouvees: {sorted(prompts.keys())}"
+            )
         return prompts
     except FileNotFoundError:
-        raise FileNotFoundError("prompts/architect.md not found.")
+        raise FileNotFoundError("prompts/base/architect.md not found.")
     except Exception as e:
-        raise RuntimeError(f"Failed to parse prompts/architect.md: {e}")
+        raise RuntimeError(f"Failed to parse prompts/base/architect.md: {e}")
 
 def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float = 5.0) -> None:
     """Attend que Qdrant accepte les connexions avant d'initialiser QdrantVectorStore."""
@@ -202,7 +232,12 @@ def create_architect_agent():
     embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
     _wait_for_qdrant(QDRANT_URL)
     client = QdrantClient(url=QDRANT_URL)
-    vectorstore = QdrantVectorStore(client=client, collection_name=QDRANT_COLLECTION_NAME, embedding=embeddings)
+    vectorstore = QdrantVectorStore(
+        client=client,
+        collection_name=QDRANT_COLLECTION_NAME,
+        embedding=embeddings,
+        content_payload_key="text",
+    )
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
@@ -253,6 +288,52 @@ def create_architect_agent():
             harden_input = (
                 input_text
                 + "\n\nMANDATORY REWRITE — Règles auth stack obligatoires:\n"
+                + rewrite_rules
+                + "\n- Return only corrected markdown."
+            )
+            llm_response = await chain.ainvoke({"input": harden_input})
+            specification = llm_response.content
+
+        required_keywords = ["next.js", "clerk", "prisma"]
+        forbidden_keywords = [
+            "oauth 2.0",
+            "oauth2",
+            "express.js",
+            "flask",
+            "mongodb",
+            "angular",
+            "react.js or",
+            "microservices",
+        ]
+        required_sections = [
+            "## vue d'ensemble",
+            "## stack technique",
+            "## structure des pages",
+            "## schéma prisma",
+            "## authentification clerk",
+            "## api routes",
+            "## composants tailwind",
+        ]
+
+        spec_lower = specification.lower()
+        missing_keywords = [kw for kw in required_keywords if kw not in spec_lower]
+        found_forbidden = [kw for kw in forbidden_keywords if kw in spec_lower]
+        missing_sections = [sec for sec in required_sections if sec not in spec_lower]
+
+        if missing_keywords or found_forbidden or missing_sections:
+            logger.warning(
+                "Spec invalid for stack. Missing keywords=%s, forbidden=%s, missing sections=%s",
+                missing_keywords,
+                found_forbidden,
+                missing_sections,
+            )
+            rewrite_rules = _build_hard_rewrite_instructions(active_stack)
+            harden_input = (
+                input_text
+                + "\n\nMANDATORY REWRITE — Stack semantic corrections required:\n"
+                + (f"- Missing stack keywords: {missing_keywords}\n" if missing_keywords else "")
+                + (f"- Forbidden technologies found: {found_forbidden}\n" if found_forbidden else "")
+                + (f"- Missing markdown sections: {missing_sections}\n" if missing_sections else "")
                 + rewrite_rules
                 + "\n- Return only corrected markdown."
             )

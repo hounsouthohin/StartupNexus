@@ -67,7 +67,12 @@
     "nextauth",
     "/api/auth/register",
     "/api/auth/login",
-    "password field"
+    "password field",
+    "oauth 2.0",
+    "oauth2",
+    "passport",
+    "express-session",
+    "cookie-session"
   ],
   "prompt_rules": {
     "package_scripts": {

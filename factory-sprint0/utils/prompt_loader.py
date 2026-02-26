@@ -63,3 +63,29 @@ def load_stack_prompt(agent_name: str, stack_id: str) -> str:
 
     stack_rules = rules_path.read_text(encoding="utf-8")
     return f"{base_prompt}\n\n---\n\n{stack_rules}"
+
+
+def load_base_prompt(agent_name: str) -> str:
+    """
+    Charge explicitement prompts/base/<agent>.md.
+    N'utilise pas de fallback legacy pour éviter toute ambiguïté.
+    """
+    project_root = Path(__file__).parent.parent
+    base_path = project_root / "prompts" / "base" / f"{agent_name}.md"
+    if not base_path.exists():
+        raise FileNotFoundError(f"Base prompt introuvable: {base_path}")
+    return base_path.read_text(encoding="utf-8")
+
+
+def load_stack_rules_only(agent_name: str, stack_id: str) -> str:
+    """
+    Charge uniquement prompts/stacks/<stack_id>/rules_<agent>.md.
+    """
+    project_root = Path(__file__).parent.parent
+    rules_path = (
+        project_root / "prompts" / "stacks" / stack_id / f"rules_{agent_name}.md"
+    )
+    if not rules_path.exists():
+        logger.warning(f"[prompt_loader] Rules stack absentes: {rules_path}")
+        return ""
+    return rules_path.read_text(encoding="utf-8")
