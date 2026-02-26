@@ -226,6 +226,7 @@ def dev_agent(
         return "."
 
     stagnant_iterations = 0
+    key_files = ["package.json", "app/layout.tsx", "middleware.ts", "schema.prisma"]
     for iteration in range(1, MAX_ITERATIONS + 1):
         current_phase = 1 if iteration <= PHASE1_LIMIT else 2
         current_tools = tools_phase1 if current_phase == 1 else tools_phase2
@@ -274,6 +275,7 @@ def dev_agent(
         raw_tool_outputs = []
         wrote_file_this_iter = False
         called_build_this_iter = False
+        build_failed_this_iter = False
         if response.tool_calls:
             for tool_call in response.tool_calls:
                 tool_name = tool_call["name"]
@@ -298,10 +300,13 @@ def dev_agent(
                             called_build_this_iter = True
                             if "Build successful" in raw_output:
                                 last_build_succeeded = True  # build réel confirmé
+                                build_success = True
+                                build_attempts = 0
                                 last_build_error = ""
                                 last_build_error_full = ""
                                 last_failed_command = ""
                             else:
+                                build_failed_this_iter = True
                                 extracted_stderr = _extract_stderr(raw_output)
                                 last_build_error_full = extracted_stderr if extracted_stderr else raw_output
                                 last_build_error = last_build_error_full[:2000]
@@ -324,6 +329,9 @@ def dev_agent(
                         error_text = f"ERREUR {tool_name}: {e}"
                         raw_tool_outputs.append(error_text)
                         if tool_name == "run_build":
+                            build_attempted = True
+                            called_build_this_iter = True
+                            build_failed_this_iter = True
                             last_build_error = error_text[:2000]
                             last_build_error_full = error_text
                             last_failed_command = "run_build"
@@ -360,12 +368,8 @@ def dev_agent(
                         wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
 
-        # Détection build succès/échec
-        build_output = " ".join(raw_tool_outputs)
-        if "Build successful" in build_output:
-            build_success = True
-            build_attempts = 0
-        elif "build" in build_output.lower() and ("error" in build_output.lower() or "failed" in build_output.lower()):
+        # Détection build succès/échec déterministe: uniquement depuis run_build.
+        if build_failed_this_iter:
             build_attempts += 1
 
         if wrote_file_this_iter or called_build_this_iter:
@@ -374,7 +378,6 @@ def dev_agent(
             stagnant_iterations += 1
 
         # Forçage progression si fichiers clés présents — Phase 2 seulement
-            key_files = ["package.json", "app/layout.tsx", "middleware.ts", "schema.prisma"]
         _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet
         if current_phase == 2 and all(any(k in p for p in files) for k in key_files) and not build_success:
             messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
@@ -465,20 +468,12 @@ def dev_agent(
         messages.append(HumanMessage(content=reflection))
         final_message = reflection
 
-        if "TERMINÉ : CODE PRÊT" in reflection.upper():
-            if last_build_succeeded:
-                logger.info("SUCCESS TOTAL : Premier SaaS généré !")
-                build_success = True
-                break
-            else:
-                logger.warning(
-                    "[DEV AGENT] Reflection certifie TERMINÉ mais aucun "
-                    "build réussi confirmé — certification ignorée"
-                )
-                messages.append(HumanMessage(content=(
-                    "Le code n'est pas encore prêt : aucun `npm run build` "
-                    "n'a réussi. Lance run_build() pour valider."
-                )))
+        # Sortie déterministe: uniquement sur résultat build confirmé.
+        if last_build_succeeded:
+            logger.info("SUCCESS TOTAL : build confirmé, sortie de boucle.")
+            build_success = True
+            break
+
         if build_attempts >= MAX_BUILD_ATTEMPTS:
             final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
             break

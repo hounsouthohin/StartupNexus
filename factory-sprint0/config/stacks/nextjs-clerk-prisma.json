@@ -56,6 +56,17 @@
     "/api/auth/register",
     "/api/auth/login"
   ],
+  "forbidden_auth_patterns": [
+    "bcrypt",
+    "jwt",
+    "jsonwebtoken",
+    "password_hash",
+    "next-auth",
+    "nextauth",
+    "/api/auth/register",
+    "/api/auth/login",
+    "password field"
+  ],
 
   "import_remaps": {
     "package_fixes": {

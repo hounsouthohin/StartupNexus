@@ -113,20 +113,19 @@ class TodoPilotWorkflow:
             test_output = dev_test_result.get("test_output", {})
             if not isinstance(test_output, dict):
                 test_output = {}
-            tests_payload = test_output.get("tests", {})
-            tests_generated = isinstance(tests_payload, dict) and len(tests_payload) > 0
             dev_phase_success = bool(
                 dev_test_result.get("dev_output", {}).get("success", False)
                 if isinstance(dev_test_result.get("dev_output", {}), dict)
                 else False
             )
+            tests_phase_success = bool(test_output.get("success", False))
 
-            if dev_test_result.get("success", False):
+            if dev_phase_success and tests_phase_success:
                 build_status = "SUCCESS"
-            elif dev_phase_success and (bool(test_output.get("error")) or not tests_generated):
-                build_status = "TESTS_FAILED"
-            else:
+            elif not dev_phase_success:
                 build_status = "BUILD_FAILED"
+            else:
+                build_status = "TESTS_FAILED"
 
             # Le workflow continue même si build échoue.
             # QA est en mode "best-effort": un echec QA (ex: quota fournisseur LLM)

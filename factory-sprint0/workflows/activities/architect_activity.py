@@ -9,7 +9,7 @@ from typing import Dict
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from scripts.validate_contracts import validate_input, validate_output
 
-FORBIDDEN_PATTERNS = [
+DEFAULT_FORBIDDEN_PATTERNS = [
     "bcrypt",
     "jwt",
     "jsonwebtoken",
@@ -22,12 +22,25 @@ FORBIDDEN_PATTERNS = [
 ]
 
 
-def _validate_clerk_compliance(spec: str, mermaid: str) -> list:
+def _load_forbidden_patterns(stack_id: str) -> list[str]:
+    try:
+        from agents.stack_config import load_stack_config
+        stack_cfg = load_stack_config(stack_id) or {}
+        patterns = stack_cfg.get("forbidden_auth_patterns", [])
+        if isinstance(patterns, list) and patterns:
+            return [str(p) for p in patterns]
+    except Exception:
+        pass
+    return DEFAULT_FORBIDDEN_PATTERNS
+
+
+def _validate_clerk_compliance(spec: str, mermaid: str, stack_id: str = "nextjs-clerk-prisma") -> list:
+    forbidden_patterns = _load_forbidden_patterns(stack_id)
     violations = []
     spec = spec or ""
     mermaid = mermaid or ""
     content = f"{spec} {mermaid}".lower()
-    for pattern in FORBIDDEN_PATTERNS:
+    for pattern in forbidden_patterns:
         if pattern.lower() in content:
             violations.append(pattern)
     return sorted(set(violations))
@@ -41,7 +54,8 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     try:
         from agents.shared_tools import set_run_id, set_stack_id
         set_run_id(run_id)
-        set_stack_id(str(input_data.get("stack_id", "nextjs-clerk-prisma")))
+        stack_id = str(input_data.get("stack_id", "nextjs-clerk-prisma"))
+        set_stack_id(stack_id)
     except Exception:
         pass
     input_data["run_id"] = run_id
@@ -102,6 +116,7 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         violations = _validate_clerk_compliance(
             output_dict.get("specification", ""),
             output_dict.get("mermaid_diagram", ""),
+            stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         )
         if violations:
             raise ApplicationError(

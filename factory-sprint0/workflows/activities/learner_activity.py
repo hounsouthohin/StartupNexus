@@ -49,7 +49,7 @@ async def learner_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict
                 "total_suggestions": int(summary.get("total_suggestions", 0) or 0),
                 "avg_confidence": float(summary.get("avg_confidence", 0.0) or 0.0),
             },
-            run_id=input_data.get("run_id", ""),
+            run_id=run_id,
         )
         return result
     except ApplicationError:

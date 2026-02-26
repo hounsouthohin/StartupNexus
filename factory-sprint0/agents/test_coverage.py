@@ -75,8 +75,9 @@ def generation_node(state: AgentState) -> dict:
         "isolatedModules": true,
         "jsx": "react-jsx",
         "incremental": true,
+        "baseUrl": ".",
         "paths": {
-          "@/*": ["./src/*"]
+          "@/*": ["./*"]
         }
       },
       "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
@@ -93,7 +94,7 @@ def generation_node(state: AgentState) -> dict:
     '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
   },
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/$1',
     '\\\\.css$': 'identity-obj-proxy',
   },
 };"""
