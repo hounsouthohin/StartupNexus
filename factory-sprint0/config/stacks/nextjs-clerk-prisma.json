@@ -118,6 +118,11 @@
     "test": "npx jest --coverage",
     "prisma_migrate": "npx prisma migrate dev"
   },
+  "testing": {
+    "min_required_tests": 1,
+    "allow_zero_tests_debug": false,
+    "cleanup_stale_tests": "always"
+  },
 
   "qdrant_filter": {
     "collection": "factory_standards",

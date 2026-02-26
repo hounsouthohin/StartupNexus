@@ -14,6 +14,7 @@ from typing import Dict, Any
 class TodoPilotRequest:
     phrase: str
     project_name: str
+    stack_id: str = "nextjs-clerk-prisma"
 
 
 @dataclass
@@ -46,11 +47,12 @@ class TodoPilotWorkflow:
             request = TodoPilotRequest(
                 phrase=request.get("phrase", "Crée une ToDo app Next.js avec Clerk auth"),
                 project_name=request.get("project_name", "todo-pilot-sprint05"),
+                stack_id=request.get("stack_id", "nextjs-clerk-prisma"),
             )
 
         phrase = request.phrase
         project_name = request.project_name
-        stack_id = "nextjs-clerk-prisma"
+        stack_id = request.stack_id or "nextjs-clerk-prisma"
 
         workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase} | Stack: {stack_id}")
 

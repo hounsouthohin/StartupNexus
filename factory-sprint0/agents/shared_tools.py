@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import shlex
 from datetime import datetime, timezone
 import time
 from pathlib import Path
@@ -54,8 +55,9 @@ logger = Logger()
 
 
 # --- Run ID & Stack ID context (async-safe) ---
+DEFAULT_STACK_ID = "nextjs-clerk-prisma"
 _run_id_ctx: ContextVar[str] = ContextVar("run_id", default="")
-_stack_id_ctx: ContextVar[str] = ContextVar("stack_id", default="nextjs-clerk-prisma")
+_stack_id_ctx: ContextVar[str] = ContextVar("stack_id", default=DEFAULT_STACK_ID)
 
 
 def set_run_id(run_id: str) -> None:
@@ -67,11 +69,41 @@ def get_run_id() -> str:
 
 
 def set_stack_id(stack_id: str) -> None:
-    _stack_id_ctx.set(stack_id or "nextjs-clerk-prisma")
+    _stack_id_ctx.set(stack_id or DEFAULT_STACK_ID)
 
 
 def get_stack_id() -> str:
-    return _stack_id_ctx.get() or "nextjs-clerk-prisma"
+    return _stack_id_ctx.get() or DEFAULT_STACK_ID
+
+
+def _get_runtime_stack_rules(stack_id: str | None = None) -> dict:
+    """
+    Retourne les règles stack runtime depuis Stack-as-Config, avec fallback local.
+    Cela évite les divergences quand stack_id change pendant le run.
+    """
+    effective_stack_id = stack_id or get_stack_id() or DEFAULT_STACK_ID
+    try:
+        from agents.stack_config import load_stack_config
+        stack_config = load_stack_config(effective_stack_id) or {}
+    except Exception as e:
+        logger.warning(f"[stack_rules] Config load failed for '{effective_stack_id}': {e}")
+        stack_config = {}
+
+    remaps = stack_config.get("import_remaps", {}) if isinstance(stack_config.get("import_remaps"), dict) else {}
+    commands = stack_config.get("commands", {}) if isinstance(stack_config.get("commands"), dict) else {}
+    testing = stack_config.get("testing", {}) if isinstance(stack_config.get("testing"), dict) else {}
+
+    return {
+        "version_pins": stack_config.get("version_pins") or VERSION_PINS,
+        "dev_packages": stack_config.get("dev_packages") or JEST_REQUIRED_DEV_DEPS,
+        "peer_dependency_minimums": stack_config.get("peer_dependency_minimums") or PEER_DEPENDENCY_MINIMUMS,
+        "clerk_package_fixes": remaps.get("package_fixes") or CLERK_PACKAGE_FIXES,
+        "test_fixes": remaps.get("test_fixes") or CLERK_TEST_MOCK_FIXES,
+        "source_fixes": remaps.get("source_fixes") or CLERK_SOURCE_IMPORT_FIXES,
+        "router_fixes": remaps.get("router_fixes") or NEXTJS_APP_ROUTER_IMPORT_FIXES,
+        "test_command": commands.get("test") or "npx jest --coverage",
+        "testing": testing,
+    }
 
 
 def _get_node_env() -> dict:
@@ -317,6 +349,9 @@ def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
             except Exception as e:
                 logger.warning(f"Learner logging failed: {e}")
 
+    stack_rules = _get_runtime_stack_rules()
+    clerk_package_fixes = stack_rules["clerk_package_fixes"]
+
     # Hard rule: remapping packages Clerk invalides → @clerk/nextjs.
     # La version cible = celle déjà déclarée pour @clerk/nextjs dans le fichier,
     # ou "*" si absente. Ne jamais hériter la version du package invalide remplacé.
@@ -326,7 +361,7 @@ def _sanitize_package_json(package_json_path: str, project_name: str) -> bool:
             continue
         # Capturer la version @clerk/nextjs AVANT toute suppression
         existing_nextjs_version = deps.get("@clerk/nextjs")
-        for invalid_clerk_pkg, correct_pkg in CLERK_PACKAGE_FIXES.items():
+        for invalid_clerk_pkg, correct_pkg in clerk_package_fixes.items():
             if invalid_clerk_pkg in deps:
                 deps.pop(invalid_clerk_pkg)
                 modified = True
@@ -402,6 +437,12 @@ def _sanitize_package_json_content(content: str) -> str:
 
     modified = False
 
+    stack_rules = _get_runtime_stack_rules()
+    clerk_package_fixes = stack_rules["clerk_package_fixes"]
+    peer_dependency_minimums = stack_rules["peer_dependency_minimums"]
+    version_pins = stack_rules["version_pins"]
+    jest_required_dev_deps = stack_rules["dev_packages"]
+
     # Fix Clerk: remapping packages invalides → @clerk/nextjs sans hériter leur version.
     for section in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
         deps = data.get(section)
@@ -409,7 +450,7 @@ def _sanitize_package_json_content(content: str) -> str:
             continue
         # Capturer la version @clerk/nextjs AVANT toute suppression
         existing_nextjs_version = deps.get("@clerk/nextjs")
-        for invalid_clerk_pkg, correct_pkg in CLERK_PACKAGE_FIXES.items():
+        for invalid_clerk_pkg, correct_pkg in clerk_package_fixes.items():
             if invalid_clerk_pkg in deps:
                 deps.pop(invalid_clerk_pkg)
                 modified = True
@@ -428,7 +469,7 @@ def _sanitize_package_json_content(content: str) -> str:
         deps = data.get(section)
         if not isinstance(deps, dict):
             continue
-        for pkg, min_version in PEER_DEPENDENCY_MINIMUMS.items():
+        for pkg, min_version in peer_dependency_minimums.items():
             current = deps.get(pkg)
             if isinstance(current, str) and _version_is_exact_and_below(current, min_version):
                 _log_patch(
@@ -445,7 +486,7 @@ def _sanitize_package_json_content(content: str) -> str:
         deps = data.get(section)
         if not isinstance(deps, dict):
             continue
-        for pkg, pinned_version in VERSION_PINS.items():
+        for pkg, pinned_version in version_pins.items():
             if pkg in deps and deps[pkg] != pinned_version:
                 _log_patch(
                     patch_type="version_pin",
@@ -459,7 +500,7 @@ def _sanitize_package_json_content(content: str) -> str:
     # Inject jest required dev deps: ajoute si absent de devDependencies.
     dev_deps = data.setdefault("devDependencies", {})
     if isinstance(dev_deps, dict):
-        for pkg, version in JEST_REQUIRED_DEV_DEPS.items():
+        for pkg, version in jest_required_dev_deps.items():
             if pkg not in dev_deps:
                 _log_patch(
                     patch_type="dev_dependency_injected",
@@ -532,30 +573,8 @@ NEXTJS_APP_ROUTER_IMPORT_FIXES: dict[str, str] = {
     "next/router": "next/navigation",
 }
 
-# ── Stack-as-Config : surcharge des constantes depuis le JSON si disponible ──
-# Toutes les constantes ci-dessus servent de fallback. Le JSON les remplace si présent.
-# Ce bloc doit rester APRÈS toutes les déclarations de constantes.
-try:
-    from agents.stack_config import load_stack_config as _sc_load
-    _sc = _sc_load()
-    if _sc.get("version_pins"):
-        VERSION_PINS = _sc["version_pins"]
-    if _sc.get("dev_packages"):
-        JEST_REQUIRED_DEV_DEPS = _sc["dev_packages"]
-    _sc_remaps = _sc.get("import_remaps", {})
-    if _sc_remaps.get("package_fixes"):
-        CLERK_PACKAGE_FIXES = _sc_remaps["package_fixes"]
-    if _sc_remaps.get("test_fixes"):
-        CLERK_TEST_MOCK_FIXES = _sc_remaps["test_fixes"]
-    if _sc_remaps.get("source_fixes"):
-        CLERK_SOURCE_IMPORT_FIXES = _sc_remaps["source_fixes"]
-    if _sc_remaps.get("router_fixes"):
-        NEXTJS_APP_ROUTER_IMPORT_FIXES = _sc_remaps["router_fixes"]
-    if _sc.get("peer_dependency_minimums"):
-        PEER_DEPENDENCY_MINIMUMS = _sc["peer_dependency_minimums"]
-    del _sc, _sc_remaps, _sc_load
-except Exception as _sc_err:
-    print(f"[WARNING] stack_config load failed, using hardcoded defaults: {_sc_err}")
+# Les constantes ci-dessus restent des fallbacks.
+# La config stack est désormais lue au runtime via _get_runtime_stack_rules().
 
 # Template next.config.js canonique injecté si absent ou incomplet.
 # eslint.ignoreDuringBuilds évite que les erreurs de lint LLM bloquent le build.
@@ -645,7 +664,8 @@ def _sanitize_test_content(content: str, path: str) -> str:
     Si aucune occurrence → retourne le contenu inchangé.
     """
     modified_content = content
-    for old, new in CLERK_TEST_MOCK_FIXES.items():
+    test_fixes = _get_runtime_stack_rules().get("test_fixes", CLERK_TEST_MOCK_FIXES)
+    for old, new in test_fixes.items():
         if old in modified_content:
             _log_patch(
                 patch_type="clerk_mock_fix",
@@ -663,7 +683,9 @@ def _sanitize_source_content(content: str, path: str) -> str:
     les contenus one-line avec '\\n' litteraux emis par le LLM.
     """
     modified = content
-    for old, new in CLERK_SOURCE_IMPORT_FIXES.items():
+    source_fixes = _get_runtime_stack_rules().get("source_fixes", CLERK_SOURCE_IMPORT_FIXES)
+    router_fixes = _get_runtime_stack_rules().get("router_fixes", NEXTJS_APP_ROUTER_IMPORT_FIXES)
+    for old, new in source_fixes.items():
         if old in modified:
             _log_patch(
                 patch_type="clerk_import_fix",
@@ -673,7 +695,7 @@ def _sanitize_source_content(content: str, path: str) -> str:
             )
             modified = modified.replace(old, new)
 
-    for old, new in NEXTJS_APP_ROUTER_IMPORT_FIXES.items():
+    for old, new in router_fixes.items():
         if old in modified:
             _log_patch(
                 patch_type="nextjs_router_fix",
@@ -1195,7 +1217,11 @@ def _remove_pages_tests_router_conflicts(project_dir: str, incoming_files: dict 
         logger.info("[sanitize] pages_tests_conflict: dossier tests/pages/ supprimé — App Router prime")
 
 
-def _remove_stale_tests(project_dir: str, incoming_files: dict | None = None) -> None:
+def _remove_stale_tests(
+    project_dir: str,
+    incoming_files: dict | None = None,
+    force_cleanup_without_generated_tests: bool = False,
+) -> None:
     """
     Supprime les tests existants qui ne sont pas regénérés par l'itération courante.
     Évite les tests obsolètes qui cassent le run.
@@ -1203,7 +1229,10 @@ def _remove_stale_tests(project_dir: str, incoming_files: dict | None = None) ->
     if not incoming_files:
         return
     incoming_paths = set(incoming_files.keys())
-    if not any(p.startswith("tests/") for p in incoming_paths):
+    if (
+        not force_cleanup_without_generated_tests
+        and not any(p.startswith("tests/") for p in incoming_paths)
+    ):
         return
     tests_dir = os.path.join(project_dir, "tests")
     if not os.path.isdir(tests_dir):
@@ -1220,6 +1249,32 @@ def _remove_stale_tests(project_dir: str, incoming_files: dict | None = None) ->
                     pass
     if removed:
         logger.info(f"[sanitize] stale_tests_removed: {removed} fichiers obsoletes")
+
+
+def _is_test_file_path(path: str) -> bool:
+    rel = path.replace("\\", "/").lower()
+    return (
+        rel.startswith("tests/")
+        or "/__tests__/" in f"/{rel}"
+        or rel.endswith(".test.ts")
+        or rel.endswith(".test.tsx")
+        or rel.endswith(".test.js")
+        or rel.endswith(".test.jsx")
+        or rel.endswith(".spec.ts")
+        or rel.endswith(".spec.tsx")
+        or rel.endswith(".spec.js")
+        or rel.endswith(".spec.jsx")
+    )
+
+
+def _count_test_files(project_dir: str) -> int:
+    count = 0
+    for root, _, files in os.walk(project_dir):
+        for name in files:
+            rel_path = os.path.relpath(os.path.join(root, name), project_dir).replace("\\", "/")
+            if _is_test_file_path(rel_path):
+                count += 1
+    return count
 
 
 @tool(args_schema=RunBuildArgs)
@@ -1292,7 +1347,7 @@ def run_build(project_dir: str = '.') -> str:
             logger.warning(f"[sanitize] apply_sanitizers failed: {sanit_err}")
         _ensure_nextconfig_eslint_ignore(project_dir)
         try:
-            validate_blueprint(project_dir)
+            validate_blueprint(project_dir, stack_id=stack_id)
         except ValueError as e:
             return f"Blueprint validation failed: {e}"
         logger.info(f"Running npm run build in '{project_dir}'...")
@@ -1319,6 +1374,9 @@ def run_build(project_dir: str = '.') -> str:
                     "success": False,
                     "error_signature": error_signature,
                     "return_code": e.returncode,
+                    "stack_id": get_stack_id(),
+                    "stderr_full": e.stderr or "",
+                    "stdout_full": e.stdout or "",
                     "stderr_snippet": (e.stderr or "")[-500:],
                     "stdout_snippet": (e.stdout or "")[-500:],
                 },
@@ -1431,9 +1489,20 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
     """
     logger.info(f"Executing tests in directory '{project_dir}'...")
 
+    stack_rules = _get_runtime_stack_rules()
+    testing_cfg = stack_rules.get("testing", {})
+    cleanup_stale_tests = str(testing_cfg.get("cleanup_stale_tests", "if_tests_generated")).lower()
+    force_cleanup = cleanup_stale_tests == "always"
+    min_required_tests = int(testing_cfg.get("min_required_tests", 1))
+    allow_zero_tests_debug = bool(testing_cfg.get("allow_zero_tests_debug", False))
+
     _remove_pages_router_conflicts(project_dir)
     _remove_pages_tests_router_conflicts(project_dir, files)
-    _remove_stale_tests(project_dir, files)
+    _remove_stale_tests(
+        project_dir,
+        files,
+        force_cleanup_without_generated_tests=force_cleanup,
+    )
 
     if files:
         logger.info(f"Writing {len(files)} files to disk before running tests...")
@@ -1654,6 +1723,29 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             logger.error(error_msg)
             return error_msg
     
+    total_tests_count = _count_test_files(project_dir)
+    if not allow_zero_tests_debug and total_tests_count < min_required_tests:
+        message = (
+            f"TESTS_INSUFFICIENTS: {total_tests_count} test file(s) detected, "
+            f"minimum required is {min_required_tests} for stack '{get_stack_id()}'."
+        )
+        try:
+            _write_learner_event(
+                event_type="tests_insufficient",
+                payload={
+                    "project_name": os.path.basename(project_dir) or "default-project",
+                    "success": False,
+                    "stack_id": get_stack_id(),
+                    "test_files_count": total_tests_count,
+                    "min_required_tests": min_required_tests,
+                },
+                run_id=get_run_id(),
+            )
+        except Exception as e:
+            logger.warning(f"Learner logging failed: {e}")
+        logger.error(message)
+        return message
+
     package_json_path = os.path.join(project_dir, 'package.json')
     if os.path.exists(package_json_path):
         project_name = os.path.basename(project_dir) or "default-project"
@@ -1813,7 +1905,7 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
 
     logger.info(f"Attempting to run Jest tests in '{project_dir}'...")
     try:
-        command = ['npx', 'jest', '--coverage']
+        command = shlex.split(stack_rules.get("test_command", "npx jest --coverage"))
         logger.info(f"Executing Jest command: {' '.join(command)}")
         result = subprocess.run(
             command,
@@ -1832,8 +1924,9 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
         logger.info(f"Tests passed in '{project_dir}'.")
         return _truncate_output(f"Tests passed: {result.stdout}")
     except subprocess.TimeoutExpired:
-        logger.error(f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds.")
-        return f"Test run timed out for 'npx jest --coverage' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
+        cmd_text = " ".join(command) if 'command' in locals() else "npx jest --coverage"
+        logger.error(f"Test run timed out for '{cmd_text}' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds.")
+        return f"Test run timed out for '{cmd_text}' in '{project_dir}' after {SUBPROCESS_TIMEOUT_LONG} seconds."
     except subprocess.CalledProcessError as e:
         error_message = _truncate_output(
             f"Tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
@@ -1899,15 +1992,16 @@ def log_to_learner(project_name: str, metric: str, value: str) -> str:
         return f"Error updating learner log: {e}"
 
 
-def validate_blueprint(project_dir: str, stack_id: str = "nextjs-clerk-prisma") -> dict:
+def validate_blueprint(project_dir: str, stack_id: str | None = None) -> dict:
     """
     Vérifie que les fichiers requis par le blueprint stack sont présents.
     Mode WARNING uniquement (Sprint 3) : ne bloque jamais le build.
     Retourne {"missing_required": [...], "complete": bool}.
     """
+    effective_stack_id = stack_id or get_stack_id() or DEFAULT_STACK_ID
     try:
         from agents.stack_config import get_blueprint
-        blueprint = get_blueprint(stack_id)
+        blueprint = get_blueprint(effective_stack_id)
     except Exception:
         blueprint = {}
     required = blueprint.get("required_files", [])

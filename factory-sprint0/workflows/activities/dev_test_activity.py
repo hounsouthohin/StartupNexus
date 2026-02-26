@@ -70,7 +70,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         "iterations": 0,
         "final_message": "",
         "last_build_error": "",
+        "last_build_error_full": "",
         "last_test_error": "",
+        "last_test_error_full": "",
         "last_failed_command": "",
         "error": "run_not_started",
     }
@@ -112,7 +114,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             top_error_message = str(top_error)
         final_message = str(dev_output.get("final_message", ""))[:200]
         last_build_error = str(dev_meta.get("last_build_error", "") or "")[:200]
+        last_build_error_full = str(dev_meta.get("last_build_error_full", "") or "")
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
+        last_test_error_full = str(dev_meta.get("last_test_error_full", "") or "")
         last_failed_command = str(dev_meta.get("last_failed_command", "") or "")
         build_success = bool(result.get("success", False))
 
@@ -140,7 +144,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "iterations": int(dev_meta.get("iterations", 0)),
             "final_message": final_message,
             "last_build_error": last_build_error,
+            "last_build_error_full": last_build_error_full,
             "last_test_error": last_test_error,
+            "last_test_error_full": last_test_error_full,
             "last_failed_command": last_failed_command,
             "error": runtime_error,
         }
@@ -161,7 +167,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "iterations": 0,
             "final_message": "",
             "last_build_error": "",
+            "last_build_error_full": "",
             "last_test_error": "",
+            "last_test_error_full": "",
             "last_failed_command": "",
             "error": f"{type(e).__name__}: {str(e)[:200]}",
         }

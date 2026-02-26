@@ -176,5 +176,395 @@
     "confidence_score": 0.7,
     "rationale": "Build failed with signature: build_error_Error: Unsupported Server Component type: undefined\n    at e (/app/node_modules/.",
     "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'schema.prisma' lorsque 'datasource_url_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "prisma",
+      "source": "todo-batch-alpha",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "datasource_url_removed",
+      "target": "schema.prisma"
+    },
+    "confidence_score": 0.6,
+    "rationale": "Patch appliqué par tool (datasource_url_removed) sur schema.prisma.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-alpha",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-alpha",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-alpha",
+      "outcome": "observed",
+      "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-alpha",
+      "outcome": "observed",
+      "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-alpha",
+      "outcome": "observed",
+      "error_signature": "build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "error_signature": "build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-bravo",
+      "outcome": "observed",
+      "error_signature": "build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'schema.prisma' lorsque 'datasource_url_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "prisma",
+      "source": "todo-batch-charlie",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "datasource_url_removed",
+      "target": "schema.prisma"
+    },
+    "confidence_score": 0.6,
+    "rationale": "Patch appliqué par tool (datasource_url_removed) sur schema.prisma.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-charlie",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-charlie",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-charlie",
+      "outcome": "observed",
+      "error_signature": "build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (189kiB) impac.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-charlie",
+      "outcome": "observed",
+      "error_signature": "build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Error: @clerk/clerk-react: Missing publishableKey. You can get your key at https.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Failed to compile.\n\n./node_modules/@clerk/shared/dist/runtime/react/index.mjs\nAt'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-charlie",
+      "outcome": "observed",
+      "error_signature": "build_error_Failed to compile.\n\n./node_modules/@clerk/shared/dist/runtime/react/index.mjs\nAt"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Failed to compile.\n\n./node_modules/@clerk/shared/dist/runtime/react/index.mjs\nAt.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'schema.prisma' lorsque 'datasource_url_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "prisma",
+      "source": "todo-batch-delta",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "datasource_url_removed",
+      "target": "schema.prisma"
+    },
+    "confidence_score": 0.6,
+    "rationale": "Patch appliqué par tool (datasource_url_removed) sur schema.prisma.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-delta",
+      "outcome": "observed",
+      "error_signature": "build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-delta",
+      "outcome": "observed",
+      "error_signature": "build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-delta",
+      "outcome": "observed",
+      "error_signature": "build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_⨯ Failed to load next.config.js, see more info here https://nextjs.org/docs/mess.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Corriger automatiquement 'shadcn/ui' lorsque 'invalid_npm_package_removed' est détecté. Contexte: tool_guardrail. Impact: éviter échec build ou test.",
+    "metadata": {
+      "category": "testing",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "trigger_context": "tool_guardrail",
+      "patch_type": "invalid_npm_package_removed",
+      "target": "shadcn/ui"
+    },
+    "confidence_score": 0.75,
+    "rationale": "Patch appliqué par tool (invalid_npm_package_removed) sur shadcn/ui.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "error_signature": "build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "error_signature": "build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl.",
+    "human_review": "PENDING"
+  },
+  {
+    "text": "INTERDIT: Générer du code déclenchant l'erreur build 'build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl'. Ajouter un anti-pattern si la signature réapparaît sur plusieurs runs.",
+    "metadata": {
+      "category": "pattern",
+      "source": "todo-batch-echo",
+      "outcome": "observed",
+      "error_signature": "build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl"
+    },
+    "confidence_score": 0.7,
+    "rationale": "Build failed with signature: build_error_Failed to compile.\n\n./app/api/auth/route.ts\nModule not found: Can't resolve '@cl.",
+    "human_review": "PENDING"
   }
 ]

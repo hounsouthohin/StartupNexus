@@ -50,6 +50,7 @@ class DevTestAgent:
             "spec": input_data.get("spec"),
             "mermaid": input_data.get("mermaid"),
             "project_name": input_data.get("project_name"),
+            "stack_id": input_data.get("stack_id", "nextjs-clerk-prisma"),
         }
         self._validate(dev_input, self.dev_contract["input_schema"], "Dev", "input")
 

@@ -16,6 +16,7 @@ from .shared_tools import (
     rag_search,
     read_files,
     run_build,
+    get_stack_id,
 )
 from .stack_config import get_blueprint
 from utils.prompt_loader import load_prompt
@@ -27,7 +28,13 @@ if not logger.handlers:
 
 
 # --- Dev Agent v3 Ultimate – Version 3.2 Breakthrough (Premier SaaS imminent) ---
-def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", run_id: str = "") -> dict:
+def dev_agent(
+    spec: str,
+    mermaid: str,
+    project_name: str = "default-project",
+    run_id: str = "",
+    stack_id: str = "",
+) -> dict:
     """
     Dev Agent v3 Ultimate – Version finale stable.
     Correction boucle jest.config.js + détection run_build + progression forcée.
@@ -136,7 +143,8 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
 
     prompt = load_prompt("dev")
-    blueprint = get_blueprint("nextjs-clerk-prisma")
+    effective_stack_id = stack_id or get_stack_id()
+    blueprint = get_blueprint(effective_stack_id)
     required_files = blueprint.get("required_files", []) if isinstance(blueprint, dict) else []
     mandatory_rag_queries = [
         "versions exactes next.js clerk prisma tailwind shadcn zod",
@@ -177,7 +185,9 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
     build_success = False
     last_build_succeeded = False  # True uniquement quand run_build() confirme un succès réel
     last_build_error = ""
+    last_build_error_full = ""
     last_test_error = ""
+    last_test_error_full = ""
     last_failed_command = ""
 
     def _extract_stderr(output: str) -> str:
@@ -289,10 +299,12 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
                             if "Build successful" in raw_output:
                                 last_build_succeeded = True  # build réel confirmé
                                 last_build_error = ""
+                                last_build_error_full = ""
                                 last_failed_command = ""
                             else:
                                 extracted_stderr = _extract_stderr(raw_output)
-                                last_build_error = extracted_stderr[:2000] if extracted_stderr else raw_output[:2000]
+                                last_build_error_full = extracted_stderr if extracted_stderr else raw_output
+                                last_build_error = last_build_error_full[:2000]
                                 failed_cmd = _extract_failed_command(raw_output)
                                 if failed_cmd:
                                     last_failed_command = failed_cmd
@@ -300,9 +312,11 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
                         if tool_name == "run_tests":
                             if "Tests passed" in raw_output:
                                 last_test_error = ""
+                                last_test_error_full = ""
                             else:
                                 extracted_stderr = _extract_stderr(raw_output)
-                                last_test_error = extracted_stderr[:2000] if extracted_stderr else raw_output[:2000]
+                                last_test_error_full = extracted_stderr if extracted_stderr else raw_output
+                                last_test_error = last_test_error_full[:2000]
 
                         shrunk_output = _shrink_tool_output(tool_name, raw_output)
                         tool_messages.append(ToolMessage(content=shrunk_output, tool_call_id=tool_call["id"]))
@@ -311,9 +325,11 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
                         raw_tool_outputs.append(error_text)
                         if tool_name == "run_build":
                             last_build_error = error_text[:2000]
+                            last_build_error_full = error_text
                             last_failed_command = "run_build"
                         if tool_name == "run_tests":
                             last_test_error = error_text[:2000]
+                            last_test_error_full = error_text
                         tool_messages.append(ToolMessage(content=error_text, tool_call_id=tool_call["id"]))
                 else:
                     if tool_name == "run_build" and current_phase == 1:
@@ -383,11 +399,13 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
                 build_success = True
                 build_attempts = 0
                 last_build_error = ""
+                last_build_error_full = ""
                 last_failed_command = ""
             else:
                 build_attempts += 1
                 extracted_stderr = _extract_stderr(forced_build_output)
-                last_build_error = extracted_stderr[:2000] if extracted_stderr else forced_build_output[:2000]
+                last_build_error_full = extracted_stderr if extracted_stderr else forced_build_output
+                last_build_error = last_build_error_full[:2000]
                 failed_cmd = _extract_failed_command(forced_build_output)
                 if failed_cmd:
                     last_failed_command = failed_cmd
@@ -478,7 +496,7 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
     try:
         meta = {
             "run_id": run_id,
-            "stack_id": "nextjs-clerk-prisma",
+            "stack_id": effective_stack_id,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "workflow_version": "sprint3",
         }
@@ -500,7 +518,9 @@ def dev_agent(spec: str, mermaid: str, project_name: str = "default-project", ru
             "build_attempted": build_attempted,
             "total_files": len(files),
             "last_build_error": last_build_error[:2000] if last_build_error else "",
+            "last_build_error_full": last_build_error_full if last_build_error_full else "",
             "last_test_error": last_test_error[:2000] if last_test_error else "",
+            "last_test_error_full": last_test_error_full if last_test_error_full else "",
             "last_failed_command": last_failed_command,
         },
     }

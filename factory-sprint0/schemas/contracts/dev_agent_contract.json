@@ -65,7 +65,9 @@
             "build_attempted": {"type": "boolean"},
             "total_files": {"type": "integer"},
             "last_build_error": {"type": "string"},
+            "last_build_error_full": {"type": "string"},
             "last_test_error": {"type": "string"},
+            "last_test_error_full": {"type": "string"},
             "last_failed_command": {"type": "string"}
           }
       }
