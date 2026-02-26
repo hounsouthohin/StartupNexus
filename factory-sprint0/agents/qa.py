@@ -1,16 +1,14 @@
 import os
-import subprocess
 from typing import TypedDict, Annotated, List
 import operator
 from dotenv import load_dotenv
 
-from langchain_core.tools import tool
-from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
-from utils.prompt_loader import load_prompt
+from utils.prompt_loader import load_prompt, load_stack_prompt
+from agents.shared_tools import get_stack_id
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,34 +18,6 @@ class Logger:
     def info(self, message): print(f"[INFO] {message}")
     def error(self, message): print(f"[ERROR] {message}")
 logger = Logger()
-
-# --- Tools ---
-class PlaywrightTestArgs(BaseModel):
-    test_file: str = Field(description="Optional: The path to a specific test file to run. If not provided, all tests will run.", default="")
-
-@tool(args_schema=PlaywrightTestArgs)
-def playwright_test(test_file: str = "") -> str:
-    """
-    Runs End-to-End tests using Playwright.
-    """
-    logger.info("Executing 'npx playwright test'...")
-    try:
-        command = ['npx', 'playwright', 'test']
-        if test_file:
-            command.append(test_file)
-            
-        result = subprocess.run(
-            command, 
-            capture_output=True, 
-            text=True, 
-            check=True, 
-            timeout=120
-        )
-        return f"Playwright tests passed: {result.stdout}"
-    except subprocess.CalledProcessError as e:
-        return f"Playwright tests failed (code {e.returncode}):\nSTDOUT:\n{e.stdout}\nSTDERR:\n{e.stderr}"
-    except Exception as e:
-        return f"An error occurred during Playwright test execution: {e}"
 
 # --- Agent State ---
 class AgentState(TypedDict):
@@ -59,10 +29,12 @@ def qa_agent_node(state: AgentState) -> dict:
     The primary node for the QA agent that generates test scenarios.
     """
     try:
-        system_prompt_content = load_prompt("qa")
+        system_prompt_content = load_stack_prompt("qa", get_stack_id())
     except FileNotFoundError:
         logger.error("prompts/qa.md not found.")
         system_prompt_content = "You are a QA Agent..."
+    except Exception:
+        system_prompt_content = load_prompt("qa")
 
     prompt = ChatPromptTemplate.from_messages([
         SystemMessage(content=system_prompt_content),
@@ -74,9 +46,7 @@ def qa_agent_node(state: AgentState) -> dict:
         temperature=0.2,
         api_key=os.getenv("OPENAI_API_KEY")
     )
-    # The agent's primary job is to generate the test file content, not run it directly.
-    # The 'playwright_test' tool would be used in a more complex graph to validate the generated tests.
-    
+    # QA est best-effort non-gating: génération de tests uniquement.
     chain = prompt | llm
     response = chain.invoke({"messages": state["messages"]})
     

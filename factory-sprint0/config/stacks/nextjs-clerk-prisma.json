@@ -3,6 +3,7 @@
   "stack_id": "nextjs-clerk-prisma",
   "display_name": "Next.js 14 + Clerk v6 + Prisma 7",
   "status": "stable",
+  "framework": "nextjs",
   "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
 
   "packages": {
@@ -54,7 +55,8 @@
     "next-auth",
     "nextauth",
     "/api/auth/register",
-    "/api/auth/login"
+    "/api/auth/login",
+    "shadcn/ui"
   ],
   "forbidden_auth_patterns": [
     "bcrypt",
@@ -67,6 +69,61 @@
     "/api/auth/login",
     "password field"
   ],
+  "prompt_rules": {
+    "package_scripts": {
+      "build": "next build",
+      "dev": "next dev",
+      "start": "next start",
+      "lint": "next lint",
+      "test": "jest"
+    },
+    "auth_rules": [
+      "Clerk exclusif pour auth (INTERDIT: bcrypt, NextAuth, JWT custom, Passport)",
+      "Implementer ClerkProvider dans app/layout.tsx",
+      "Creer middleware.ts avec clerkMiddleware() et createRouteMatcher",
+      "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes"
+    ],
+    "ui_rules": [
+      "UI avec Tailwind CSS uniquement",
+      "INTERDIT: shadcn/ui, @radix-ui, @headlessui, librairies de composants externes",
+      "INTERDIT: import depuis @/components/ui/*"
+    ],
+    "orm_rules": [
+      "Prisma pour la base de donnees (schema.prisma)",
+      "Utiliser clerkId (String) et INTERDIT: champ password",
+      "Executer prisma_migrate apres ecriture de schema.prisma"
+    ],
+    "security_rules": [
+      "Validation Zod sur toutes les entrees utilisateur",
+      "Pas de secrets en dur - utiliser .env.local"
+    ],
+    "test_rules": [
+      "Toujours mocker Clerk dans les tests React via jest.mock('@clerk/nextjs', ...)",
+      "Utiliser jest.mock('@clerk/nextjs/server') pour les tests API Routes",
+      "Utiliser node-mocks-http pour les tests de Route Handlers"
+    ],
+    "qa_rules": [
+      "Tester la navigation vers /sign-in (Clerk)",
+      "Valider la redirection post-auth vers /dashboard",
+      "URL de base: process.env.BASE_URL || 'http://localhost:3000'"
+    ]
+  },
+  "templates_folder": "config/stacks/nextjs-clerk-prisma/templates",
+  "template_files": {
+    "next.config.js": "next.config.js",
+    "tsconfig.json": "tsconfig.json",
+    "env.local": "env.local.template",
+    "middleware.ts": "middleware.ts",
+    "jest.config.js": "jest.config.js",
+    ".babelrc": "babelrc.template"
+  },
+  "technology_categories": {
+    "auth": ["clerk", "clerkprovider", "clerkmiddleware"],
+    "database": ["prisma", "schema.prisma", "prisma_migrate"],
+    "testing": ["jest", "test", "testing-library", "node-mocks-http"],
+    "framework": ["next", "middleware", "app router", "layout.tsx"],
+    "ui": ["tailwind", "shadcn", "radix"]
+  },
 
   "import_remaps": {
     "package_fixes": {
@@ -93,16 +150,25 @@
 
   "blueprint": {
     "required_files": [
+      "package.json",
       "next.config.js",
+      "tsconfig.json",
       "app/layout.tsx",
       "middleware.ts",
       "schema.prisma",
-      "app/api/auth/route.ts"
+      ".env.local"
+    ],
+    "critical_files": [
+      "package.json",
+      "next.config.js",
+      "tsconfig.json",
+      "app/layout.tsx",
+      "middleware.ts",
+      "schema.prisma",
+      ".env.local"
     ],
     "optional_files": [
       "app/page.tsx",
-      ".env.local",
-      "tsconfig.json",
       "jest.config.js"
     ]
   },
@@ -110,7 +176,10 @@
   "sanitizers": [
     "remove_pages_conflicts",
     "clerk_middleware_v5",
-    "remove_problematic_babel"
+    "remove_problematic_babel",
+    "ensure_nextconfig",
+    "ensure_tsconfig_paths",
+    "ensure_env_local"
   ],
 
   "build_hooks": {
@@ -134,6 +203,11 @@
     "allow_zero_tests_debug": false,
     "cleanup_stale_tests": "always"
   },
+  "mandatory_rag_queries": [
+    "versions exactes next.js clerk prisma tailwind zod",
+    "clerk next.js 14 app/layout ClerkProvider middleware.ts clerkMiddleware createRouteMatcher sign-in sign-up routes interdites",
+    "prisma clerkId sans password schema conventions"
+  ],
 
   "qdrant_filter": {
     "collection": "factory_standards",

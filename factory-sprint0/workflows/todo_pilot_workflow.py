@@ -134,7 +134,12 @@ class TodoPilotWorkflow:
             try:
                 qa_result: Dict[str, Any] = await workflow.execute_activity(
                     qa_activity,
-                    args=[{"specification": spec_part, "project_name": project_name, "stack_id": stack_id}, run_id],
+                    args=[{
+                        "specification": spec_part,
+                        "project_name": project_name,
+                        "stack_id": stack_id,
+                        "generated_files": dev_test_result.get("combined_files", {}),
+                    }, run_id],
                     start_to_close_timeout=timedelta(minutes=10),
                     retry_policy=common_retry_policy,
                 )

@@ -18,6 +18,7 @@ RÈGLES IMPÉRATIVES – VIOLATION = ÉCHEC TOTAL :
    - Clerk exclusif pour auth (INTERDIT: bcrypt, NextAuth, JWT custom, Passport)
    - Validation Zod sur toutes les entrées utilisateur
    - Pas de secrets en dur dans le code
+   - NE PAS générer `app/api/auth/route.ts` : Clerk gère ses propres routes via middleware.
 
 Commence par appeler rag_search pour confirmer les versions exactes et les configurations.
 Termine uniquement sur "Build successful" → "TERMINÉ : CODE PRÊT"
@@ -38,7 +39,9 @@ Termine uniquement sur "Build successful" → "TERMINÉ : CODE PRÊT"
   - Crée le fichier `middleware.ts` pour protéger les routes.
 
 - **Étape 4 : Pages et Composants**
-  - Génère les pages et les composants en utilisant `shadcn/ui`.
+  - Génère les pages et les composants avec **Tailwind CSS uniquement**.
+  - INTERDIT : `shadcn/ui`, toute librairie de composants npm externe (`@radix-ui`, `@headlessui`, etc.).
+  - Les composants UI doivent être écrits directement avec des classes Tailwind (pas d'import depuis `@/components/ui/*`).
   - **Consulte le RAG (`rag_search`) pour les standards OWASP et implémente la validation des entrées avec Zod** sur tous les formulaires et routes API.
 
 - **Étape 5 : Validation Continue**

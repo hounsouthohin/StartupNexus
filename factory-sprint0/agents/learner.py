@@ -8,6 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
+from agents.stack_config import get_blueprint, load_stack_config
 
 
 def _load_shadow_events() -> List[Dict[str, Any]]:
@@ -52,16 +53,16 @@ def _load_rag_events_for_run(run_id: str) -> List[Dict[str, Any]]:
     return events
 
 
-def _guess_category(text: str) -> str:
+def _guess_category(text: str, categories: Dict[str, List[str]] | None = None) -> str:
     t = text.lower()
-    if "clerk" in t:
-        return "clerk"
-    if "prisma" in t:
-        return "prisma"
-    if "jest" in t or "test" in t:
+    if categories:
+        for category, keywords in categories.items():
+            if not isinstance(keywords, list):
+                continue
+            if any(str(kw).lower() in t for kw in keywords):
+                return str(category)
+    if "test" in t:
         return "testing"
-    if "next" in t or "middleware" in t:
-        return "nextjs"
     return "pattern"
 
 
@@ -109,6 +110,7 @@ def _suggestion_from_patch(
     patch_payload: Dict[str, Any],
     trigger_context: str,
     confidence: float,
+    categories: Dict[str, List[str]] | None = None,
 ) -> Dict[str, Any]:
     patch_type = str(patch_payload.get("patch") or patch_payload.get("type") or "patch").lower()
     target = str(
@@ -126,7 +128,7 @@ def _suggestion_from_patch(
     return {
         "text": text,
         "metadata": {
-            "category": _guess_category(text),
+            "category": _guess_category(text, categories),
             "source": project_name,
             "outcome": "observed",
             "trigger_context": trigger_context,
@@ -168,7 +170,8 @@ def _write_suggestions_file(suggestions: List[Dict[str, Any]]) -> None:
                 existing = []
         existing.extend(suggestions)
         path.write_text(json.dumps(existing, indent=2, ensure_ascii=False), encoding="utf-8")
-    except Exception:
+    except Exception as e:
+        print(f"[WARNING] learner_suggestions_write_failed: {e}")
         return
 
 
@@ -177,6 +180,10 @@ def learner_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
     run_metrics = input_data.get("run_metrics", {}) if isinstance(input_data.get("run_metrics"), dict) else {}
     generated_files = input_data.get("generated_files", {}) if isinstance(input_data.get("generated_files"), dict) else {}
     run_id = str(input_data.get("run_id", "") or "")
+    stack_id = str(input_data.get("stack_id", "nextjs-clerk-prisma") or "nextjs-clerk-prisma")
+    stack_cfg = load_stack_config(stack_id) or {}
+    categories = stack_cfg.get("technology_categories", {}) if isinstance(stack_cfg.get("technology_categories"), dict) else {}
+    blueprint = get_blueprint(stack_id)
 
     total_files = len(generated_files)
     build_status = str(run_metrics.get("status", "PARTIAL")).upper()
@@ -200,8 +207,14 @@ def learner_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
         payload = e.get("payload", {}) if isinstance(e.get("payload", {}), dict) else {}
         trigger = _classify_trigger_context(payload, rag_events)
         pt = str(payload.get("patch") or payload.get("type") or "patch").lower()
-        confidence = 0.75 if patch_type_counts.get(pt, 0) >= 2 else 0.6
-        suggestions.append(_suggestion_from_patch(project_name, payload, trigger, confidence))
+        base_confidence = 0.75 if patch_type_counts.get(pt, 0) >= 2 else 0.6
+        if any(k in pt for k in ("version", "build", "dependency", "lockfile", "incompatible")):
+            confidence = min(0.9, base_confidence + 0.1)
+        elif any(k in pt for k in ("import", "clerk", "router")):
+            confidence = min(0.85, base_confidence + 0.05)
+        else:
+            confidence = base_confidence
+        suggestions.append(_suggestion_from_patch(project_name, payload, trigger, confidence, categories))
 
     for e in build_failures:
         payload = e.get("payload", {}) if isinstance(e.get("payload", {}), dict) else {}
@@ -210,11 +223,13 @@ def learner_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Fallback: si aucune suggestion, conserver un signal faible sans casser le schema.
     if not suggestions and total_files < 8:
+        required_files = blueprint.get("required_files", []) if isinstance(blueprint, dict) else []
+        required_text = ", ".join(required_files) if required_files else "fichiers critiques definis par la stack"
         suggestions.append(
             {
                 "text": (
                     "OBLIGATOIRE: En runs à faible nombre de fichiers, générer au minimum "
-                    "package.json, app/layout.tsx, middleware.ts, schema.prisma et un endpoint API."
+                    f"{required_text}."
                 ),
                 "metadata": {
                     "category": "pattern",

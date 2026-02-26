@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StackConfig",
+  "type": "object",
+  "required": [
+    "id",
+    "stack_id",
+    "framework",
+    "status",
+    "packages",
+    "blueprint",
+    "sanitizers",
+    "prompt_rules",
+    "templates_folder",
+    "technology_categories",
+    "commands",
+    "import_remaps",
+    "mandatory_rag_queries",
+    "qdrant_filter"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "stack_id": { "type": "string" },
+    "framework": { "type": "string" },
+    "status": { "enum": ["stable", "experimental", "deprecated"] },
+    "packages": { "type": "object" },
+    "commands": { "type": "object" },
+    "import_remaps": { "type": "object" },
+    "mandatory_rag_queries": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "qdrant_filter": { "type": "object" },
+    "sanitizers": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "prompt_rules": {
+      "type": "object",
+      "required": ["auth_rules", "ui_rules", "security_rules"],
+      "properties": {
+        "package_scripts": { "type": "object" },
+        "auth_rules": { "type": "array", "items": { "type": "string" } },
+        "ui_rules": { "type": "array", "items": { "type": "string" } },
+        "orm_rules": { "type": "array", "items": { "type": "string" } },
+        "security_rules": { "type": "array", "items": { "type": "string" } },
+        "test_rules": { "type": "array", "items": { "type": "string" } },
+        "qa_rules": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "templates_folder": { "type": "string" },
+    "template_files": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "technology_categories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "blueprint": {
+      "type": "object",
+      "required": ["required_files"],
+      "properties": {
+        "required_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "optional_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

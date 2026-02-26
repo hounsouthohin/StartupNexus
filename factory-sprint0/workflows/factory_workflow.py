@@ -129,7 +129,12 @@ class SaaSFactoryWorkflow:
             # Étape 3 : QA Activity
             qa_result: Dict = await workflow.execute_activity(
                 qa_activity,
-                args=[{"specification": spec_part, "project_name": project_name}, run_id],
+                args=[{
+                    "specification": spec_part,
+                    "project_name": project_name,
+                    "stack_id": stack_id,
+                    "generated_files": all_files,
+                }, run_id],
                 start_to_close_timeout=timedelta(minutes=10),
                 retry_policy=common_retry_policy,
             )

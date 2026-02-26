@@ -56,17 +56,24 @@ class DevTestAgent:
 
         try:
             dev_output = dev_agent(**dev_input, run_id=run_id)
-            self._validate(dev_output, self.dev_contract["output_schema"], "Dev", "output")
         except Exception as e:
             logger.exception("Échec phase Dev")
             return self._error_payload("dev", str(e))
+        try:
+            self._validate(dev_output, self.dev_contract["output_schema"], "Dev", "output")
+        except Exception as e:
+            # Ne pas jeter un run potentiellement exploitable à cause d'un écart de contrat.
+            logger.warning(f"Validation sortie Dev échouée (mode non bloquant): {e}")
 
         # ─── Phase Test ───────────────────────────────────────
         test_input = {"files": dev_output.get("files", {})}
         self._validate(test_input, self.test_contract["input_schema"], "Test", "input")
 
         try:
-            test_output = test_coverage_agent(**test_input)
+            test_output = test_coverage_agent(
+                files=test_input["files"],
+                stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
+            )
             if test_output.get("tests"):
                 self._validate(test_output, self.test_contract["output_schema"], "Test", "output")
         except Exception as e:
@@ -122,5 +129,11 @@ class DevTestAgent:
 
 
 # Wrapper pour appels simples / Temporal
+_DEV_TEST_AGENT_SINGLETON: DevTestAgent | None = None
+
+
 def dev_test_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
-    return DevTestAgent().run(input_data)
+    global _DEV_TEST_AGENT_SINGLETON
+    if _DEV_TEST_AGENT_SINGLETON is None:
+        _DEV_TEST_AGENT_SINGLETON = DevTestAgent()
+    return _DEV_TEST_AGENT_SINGLETON.run(input_data)

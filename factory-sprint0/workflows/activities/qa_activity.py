@@ -14,7 +14,9 @@ def _looks_like_typescript(content: str) -> bool:
     if not isinstance(content, str):
         return False
     lowered = content.lower()
-    return ("import " in lowered) or ("export " in lowered) or ("const " in lowered)
+    has_module_syntax = ("import " in lowered) or ("export " in lowered)
+    has_test_semantics = ("test(" in lowered) or ("it(" in lowered) or ("expect(" in lowered)
+    return has_module_syntax and has_test_semantics
 
 
 def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = "") -> None:
@@ -48,6 +50,15 @@ async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str,
 
     project_name = input_data.get("project_name", "projet-sans-nom")
     spec_summary = input_data.get("specification", "Application SaaS générique")
+    stack_id = str(input_data.get("stack_id", "nextjs-clerk-prisma"))
+    try:
+        from agents.stack_config import load_stack_config
+        stack_cfg = load_stack_config(stack_id) or {}
+    except Exception:
+        stack_cfg = {}
+    qa_rules = stack_cfg.get("prompt_rules", {}).get("qa_rules", []) if isinstance(stack_cfg.get("prompt_rules"), dict) else []
+    qa_rules_block = "\n".join(f"- {r}" for r in qa_rules if isinstance(r, str))
+    generated_files = input_data.get("generated_files", {}) if isinstance(input_data.get("generated_files"), dict) else {}
     run_metric: Dict[str, Any] = {
         "qa_e2e_coverage": False,
         "generated_tests_count": 0,
@@ -65,8 +76,15 @@ async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str,
 
     try:
         qa_agent = create_qa_agent()
+        file_hints = "\n".join(list(generated_files.keys())[:30]) if generated_files else "N/A"
         initial_message = HumanMessage(
-            content=f"Projet : {project_name}\nSpecs : {spec_summary[:500]}"
+            content=(
+                f"Projet : {project_name}\n"
+                f"Specs : {spec_summary[:1200]}\n"
+                f"Fichiers générés (aperçu):\n{file_hints}\n"
+                f"Règles QA stack:\n{qa_rules_block if qa_rules_block else 'N/A'}\n"
+                "Génère des tests E2E TypeScript cohérents avec ces fichiers."
+            )
         )
 
         final_state = await qa_agent.ainvoke({"messages": [initial_message]})

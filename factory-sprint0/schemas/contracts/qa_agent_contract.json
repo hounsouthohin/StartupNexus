@@ -22,6 +22,13 @@
         "type": "string",
         "description": "Identifiant de stack (ex: nextjs-clerk-prisma)"
       },
+      "generated_files": {
+        "type": "object",
+        "description": "Fichiers générés par DevTest pour contextualiser QA",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
       "run_id": {
         "type": "string",
         "description": "Identifiant du run (propagation observabilité)"

@@ -19,25 +19,39 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
-from utils.prompt_loader import load_prompt
+from utils.prompt_loader import load_prompt, load_stack_prompt
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-FORBIDDEN_AUTH_PATTERNS = [
+DEFAULT_FORBIDDEN_AUTH_PATTERNS = [
     r"\bbcrypt\b",
     r"\bjwt\b",
     r"\bnextauth\b",
     r"\bnext-auth\b",
     r"\bpassword_hash\b",
     r"\bhashed_password\b",
-    r"/api/auth/",
+    r"/api/auth/register",
+    r"/api/auth/login",
 ]
 
 
-def _contains_forbidden_auth(text: str) -> bool:
+def _load_forbidden_auth_patterns(stack_id: str) -> list[str]:
+    try:
+        from agents.stack_config import load_stack_config
+        stack_cfg = load_stack_config(stack_id) or {}
+        patterns = stack_cfg.get("forbidden_auth_patterns", [])
+        if isinstance(patterns, list) and patterns:
+            return [str(p) for p in patterns]
+    except Exception:
+        pass
+    return DEFAULT_FORBIDDEN_AUTH_PATTERNS
+
+
+def _contains_forbidden_auth(text: str, stack_id: str = "nextjs-clerk-prisma") -> bool:
     lowered = text.lower()
-    return any(re.search(pattern, lowered) for pattern in FORBIDDEN_AUTH_PATTERNS)
+    patterns = _load_forbidden_auth_patterns(stack_id)
+    return any(re.search(pattern, lowered) for pattern in patterns)
 
 
 def _append_architect_rag_event(query: str, docs: list, error: str | None = None, run_id: str = "") -> None:
@@ -85,7 +99,12 @@ def load_prompts():
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.messages import SystemMessage, HumanMessage
     try:
-        content = load_prompt("architect")
+        content = ""
+        try:
+            from agents.shared_tools import get_stack_id
+            content = load_stack_prompt("architect", get_stack_id())
+        except Exception:
+            content = load_prompt("architect")
         
         prompts = {}
         pattern = r'#\s*(.*?)\n(.*?)(?=\n#\s*|\Z)'
@@ -98,6 +117,18 @@ def load_prompts():
                 SystemMessage(content=prompt_content),
                 HumanMessage(content="{input}")
             ])
+        if not {"planner", "spec_writer", "diagrammer"}.issubset(set(prompts.keys())):
+            # Compatibilité ascendante si le prompt stack est incomplet.
+            content = load_prompt("architect")
+            prompts = {}
+            matches = re.findall(pattern, content, re.DOTALL)
+            for match in matches:
+                title = match[0].strip().lower().replace(' ', '_')
+                prompt_content = match[1].strip()
+                prompts[title] = ChatPromptTemplate.from_messages([
+                    SystemMessage(content=prompt_content),
+                    HumanMessage(content="{input}")
+                ])
         return prompts
     except FileNotFoundError:
         raise FileNotFoundError("prompts/architect.md not found.")
@@ -184,7 +215,7 @@ def create_architect_agent():
         llm_response = await chain.ainvoke({"input": input_text})
         specification = llm_response.content
 
-        if _contains_forbidden_auth(specification):
+        if _contains_forbidden_auth(specification, str(state.get("stack_id", "nextjs-clerk-prisma"))):
             logger.warning("Spec contains forbidden auth terms. Forcing one rewrite with strict Clerk constraints.")
             harden_input = (
                 input_text

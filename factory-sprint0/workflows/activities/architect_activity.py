@@ -94,6 +94,8 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         "plan": {},
         "specification": "",
         "mermaid_diagram": "",
+        "stack_id": str(input_data.get("stack_id", "nextjs-clerk-prisma")),
+        "run_id": run_id,
     }
 
     try:

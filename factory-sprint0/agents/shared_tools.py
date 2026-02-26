@@ -93,16 +93,39 @@ def _get_runtime_stack_rules(stack_id: str | None = None) -> dict:
     commands = stack_config.get("commands", {}) if isinstance(stack_config.get("commands"), dict) else {}
     testing = stack_config.get("testing", {}) if isinstance(stack_config.get("testing"), dict) else {}
 
+    def _rule_or_fallback(value, fallback_key: str, fallback_value):
+        if value:
+            return value
+        _warn_stack_fallback(fallback_key, effective_stack_id)
+        return fallback_value
+
     return {
-        "version_pins": stack_config.get("version_pins") or VERSION_PINS,
-        "dev_packages": stack_config.get("dev_packages") or JEST_REQUIRED_DEV_DEPS,
-        "peer_dependency_minimums": stack_config.get("peer_dependency_minimums") or PEER_DEPENDENCY_MINIMUMS,
-        "clerk_package_fixes": remaps.get("package_fixes") or CLERK_PACKAGE_FIXES,
-        "test_fixes": remaps.get("test_fixes") or CLERK_TEST_MOCK_FIXES,
-        "source_fixes": remaps.get("source_fixes") or CLERK_SOURCE_IMPORT_FIXES,
-        "router_fixes": remaps.get("router_fixes") or NEXTJS_APP_ROUTER_IMPORT_FIXES,
+        "version_pins": _rule_or_fallback(
+            stack_config.get("version_pins"), "version_pins", VERSION_PINS_DEPRECATED
+        ),
+        "dev_packages": _rule_or_fallback(
+            stack_config.get("dev_packages"), "dev_packages", JEST_REQUIRED_DEV_DEPS_DEPRECATED
+        ),
+        "peer_dependency_minimums": _rule_or_fallback(
+            stack_config.get("peer_dependency_minimums"),
+            "peer_dependency_minimums",
+            PEER_DEPENDENCY_MINIMUMS_DEPRECATED,
+        ),
+        "clerk_package_fixes": _rule_or_fallback(
+            remaps.get("package_fixes"), "import_remaps.package_fixes", CLERK_PACKAGE_FIXES_DEPRECATED
+        ),
+        "test_fixes": _rule_or_fallback(
+            remaps.get("test_fixes"), "import_remaps.test_fixes", CLERK_TEST_MOCK_FIXES_DEPRECATED
+        ),
+        "source_fixes": _rule_or_fallback(
+            remaps.get("source_fixes"), "import_remaps.source_fixes", CLERK_SOURCE_IMPORT_FIXES_DEPRECATED
+        ),
+        "router_fixes": _rule_or_fallback(
+            remaps.get("router_fixes"), "import_remaps.router_fixes", NEXTJS_APP_ROUTER_IMPORT_FIXES_DEPRECATED
+        ),
         "test_command": commands.get("test") or "npx jest --coverage",
         "testing": testing,
+        "framework": stack_config.get("framework", "nextjs"),
     }
 
 
@@ -133,7 +156,8 @@ _rag_cache: dict[str, str] = {}
 
 # Hard rule: remapping des packages Clerk hallucinés par le LLM → @clerk/nextjs.
 # La version cible vient uniquement du RAG (jamais hardcodée ici).
-CLERK_PACKAGE_FIXES: dict[str, str] = {
+# DEPRECATED fallback constants (Sprint 3 transitional mode).
+CLERK_PACKAGE_FIXES_DEPRECATED: dict[str, str] = {
     "@clerk/clerk-sdk": "@clerk/nextjs",
     "@clerk/clerk-js": "@clerk/nextjs",
     "@clerk/sdk": "@clerk/nextjs",
@@ -143,7 +167,7 @@ CLERK_PACKAGE_FIXES: dict[str, str] = {
 # Hard rule: versions minimum de dépendances peer requises par next@14+.
 # Ce sont des contraintes de compatibilité npm (faits techniques), pas des choix de stack.
 # Les versions préférées (ex: react@18.3.1) restent dans le RAG.
-PEER_DEPENDENCY_MINIMUMS: dict[str, str] = {
+PEER_DEPENDENCY_MINIMUMS_DEPRECATED: dict[str, str] = {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
 }
@@ -151,7 +175,7 @@ PEER_DEPENDENCY_MINIMUMS: dict[str, str] = {
 # Hard rule: version pinnée pour next afin d'éviter les breaking changes LLM.
 # next@15+ est incompatible avec le setup App Router Sprint 0 (Clerk V5, Prisma 7).
 # La version préférée reste dans le RAG ; ici on bloque seulement les versions hors-périmètre.
-VERSION_PINS: dict[str, str] = {
+VERSION_PINS_DEPRECATED: dict[str, str] = {
     "next": "14.2.25",
     "typescript": "^5.3.3",
 }
@@ -159,7 +183,7 @@ VERSION_PINS: dict[str, str] = {
 # Hard rule: dépendances dev requises par jest.config.js + jest.setup.js injectés.
 # Injectées dans devDependencies si absentes, pour éviter les échecs npm ci post-génération.
 # Les versions préférées (ex: @testing-library/jest-dom@6.4) restent dans le RAG.
-JEST_REQUIRED_DEV_DEPS: dict[str, str] = {
+JEST_REQUIRED_DEV_DEPS_DEPRECATED: dict[str, str] = {
     "jest-environment-jsdom": "^29.0.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
@@ -185,6 +209,22 @@ def _version_is_exact_and_below(version_str: str, minimum: str) -> bool:
         return current_parts < minimum_parts
     except (ValueError, AttributeError):
         return False
+
+
+def _warn_stack_fallback(key: str, stack_id: str) -> None:
+    message = (
+        f"[StackConfigError] Fallback actif pour '{key}' sur stack '{stack_id}'. "
+        f"Verifier config/stacks/{stack_id}.json (fallback transitoire, suppression Sprint 4)."
+    )
+    logger.error(message)
+    try:
+        _write_learner_event(
+            event_type="stack_fallback_used",
+            payload={"key": key, "stack_id": stack_id, "message": message},
+            run_id=get_run_id(),
+        )
+    except Exception:
+        pass
 
 
 def _truncate_output(output: str, max_chars: int = MAX_TOOL_OUTPUT_CHARS) -> str:
@@ -516,20 +556,38 @@ def _sanitize_package_json_content(content: str) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2) + "\n"
 
 
-# Template Clerk V5 injecté quand withClerkMiddleware (V3/V4) est détecté.
-_CLERK_V5_MIDDLEWARE_TEMPLATE = (
-    "import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';\n\n"
-    "const isProtectedRoute = createRouteMatcher(['/dashboard(.*)']);\n\n"
-    "export default clerkMiddleware((auth, req) => {\n"
-    "  if (isProtectedRoute(req)) auth().protect();\n"
-    "});\n\n"
-    "export const config = {\n"
-    "  matcher: [\n"
-    "    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',\n"
-    "    '/(api|trpc)(.*)',\n"
-    "  ],\n"
-    "};\n"
-)
+def _load_stack_template(template_name: str, stack_id: str | None = None) -> str:
+    """
+    Charge un template stack depuis templates_folder + template_files mapping.
+    Lève StackConfigError si le mapping ou le fichier est manquant.
+    """
+    from agents.stack_config import StackConfigError, load_stack_config
+
+    effective_stack_id = stack_id or get_stack_id() or DEFAULT_STACK_ID
+    stack_cfg = load_stack_config(effective_stack_id) or {}
+    templates_folder = stack_cfg.get("templates_folder")
+    if not templates_folder:
+        raise StackConfigError(
+            f"[stack_config] templates_folder manquant pour stack '{effective_stack_id}'"
+        )
+    template_files = stack_cfg.get("template_files", {})
+    if not isinstance(template_files, dict):
+        raise StackConfigError(
+            f"[stack_config] template_files invalide pour stack '{effective_stack_id}'"
+        )
+    filename = template_files.get(template_name)
+    if not filename:
+        raise StackConfigError(
+            f"[stack_config] template '{template_name}' non mappé pour stack '{effective_stack_id}'"
+        )
+
+    project_root = Path(__file__).parent.parent
+    template_path = project_root / templates_folder / filename
+    if not template_path.exists():
+        raise StackConfigError(
+            f"[stack_config] fichier template absent: {template_path}"
+        )
+    return template_path.read_text(encoding="utf-8")
 
 
 def _sanitize_middleware_content(content: str) -> str:
@@ -548,19 +606,23 @@ def _sanitize_middleware_content(content: str) -> str:
         after="clerkMiddleware",
         file="middleware.ts",
     )
-    return _CLERK_V5_MIDDLEWARE_TEMPLATE
+    try:
+        return _load_stack_template("middleware.ts")
+    except Exception as e:
+        logger.warning(f"[sanitize_middleware] template middleware.ts indisponible: {e}")
+        return content
 
 
 # Hard rule: remapping des imports Clerk invalides dans les fichiers de test.
 # Le LLM hallucine @clerk/clerk-sdk et @clerk/nextjs/middleware dans les jest.mock().
-CLERK_TEST_MOCK_FIXES: dict[str, str] = {
+CLERK_TEST_MOCK_FIXES_DEPRECATED: dict[str, str] = {
     "@clerk/clerk-sdk": "@clerk/nextjs",
     "@clerk/nextjs/api": "@clerk/nextjs/server",
     "@clerk/nextjs/middleware": "@clerk/nextjs/server",
 }
 
 # Hard rule: remapping imports Clerk legacy dans les fichiers source app.
-CLERK_SOURCE_IMPORT_FIXES: dict[str, str] = {
+CLERK_SOURCE_IMPORT_FIXES_DEPRECATED: dict[str, str] = {
     "@clerk/clerk-sdk": "@clerk/nextjs",
     "@clerk/clerk-sdk-react": "@clerk/nextjs",
     "@clerk/nextjs/api": "@clerk/nextjs/server",
@@ -569,36 +631,39 @@ CLERK_SOURCE_IMPORT_FIXES: dict[str, str] = {
 
 # Hard rule: remapping imports Next.js Pages Router → App Router.
 # next/router n'existe pas dans app/ — provoque un crash de compilation.
-NEXTJS_APP_ROUTER_IMPORT_FIXES: dict[str, str] = {
+NEXTJS_APP_ROUTER_IMPORT_FIXES_DEPRECATED: dict[str, str] = {
     "next/router": "next/navigation",
 }
 
 # Les constantes ci-dessus restent des fallbacks.
 # La config stack est désormais lue au runtime via _get_runtime_stack_rules().
 
-# Template next.config.js canonique injecté si absent ou incomplet.
-# eslint.ignoreDuringBuilds évite que les erreurs de lint LLM bloquent le build.
-_NEXTCONFIG_TEMPLATE = """\
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-}
-module.exports = nextConfig
-"""
-
-
 def _sanitize_nextconfig_content(content: str) -> str:
     """
     Garantit que next.config.js a eslint.ignoreDuringBuilds = true.
+    - Si ESM (export default sans module.exports) → remplace par template CJS canonique.
     - Si déjà présent → retourne inchangé.
     - Si bloc eslint absent → injecte après le premier { de nextConfig ou module.exports.
     - Fallback → remplace par le template canonique.
     """
+    # Normalise les escaped newlines litteraux en vrais retours ligne.
+    if "\\n" in content:
+        content = content.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "")
+
+    # ESM detection: export default sans module.exports = format invalide pour Next.js CJS
+    if re.search(r"^\s*export\s+default\s+", content, re.MULTILINE) and "module.exports" not in content:
+        _log_patch(
+            patch_type="next_config_esm_to_cjs",
+            before="export default (ESM)",
+            after="module.exports (CJS)",
+            file="next.config.js",
+        )
+        try:
+            return _load_stack_template("next.config.js")
+        except Exception as e:
+            logger.warning(f"[sanitize_nextconfig] template next.config.js indisponible: {e}")
+            return content
+
     if re.search(r"ignoreDuringBuilds\s*:\s*true", content):
         return content
     if re.search(r"ignoreDuringBuilds\s*:\s*false", content):
@@ -628,7 +693,11 @@ def _sanitize_nextconfig_content(content: str) -> str:
         after="canonical template with eslint.ignoreDuringBuilds:true",
         file="next.config.js",
     )
-    return _NEXTCONFIG_TEMPLATE
+    try:
+        return _load_stack_template("next.config.js")
+    except Exception as e:
+        logger.warning(f"[sanitize_nextconfig] fallback template indisponible: {e}")
+        return content
 
 
 def _ensure_nextconfig_eslint_ignore(project_dir: str) -> None:
@@ -636,12 +705,15 @@ def _ensure_nextconfig_eslint_ignore(project_dir: str) -> None:
     Appelle avant npm run build : s'assure que next.config.js a ignoreDuringBuilds = true.
     Crée le fichier si absent, le patche si présent.
     """
+    if _get_runtime_stack_rules().get("framework") != "nextjs":
+        return
     config_path = os.path.join(project_dir, "next.config.js")
     if os.path.isfile(config_path):
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 current = f.read()
-            if re.search(r"ignoreDuringBuilds\s*:\s*true", current):
+            # Si escaped newlines présents, patcher même si ignoreDuringBuilds existe.
+            if re.search(r"ignoreDuringBuilds\s*:\s*true", current) and "\\n" not in current:
                 return
             patched = _sanitize_nextconfig_content(current)
             with open(config_path, "w", encoding="utf-8") as f:
@@ -651,11 +723,81 @@ def _ensure_nextconfig_eslint_ignore(project_dir: str) -> None:
             logger.warning(f"[ensure_nextconfig] Impossible de patcher {config_path}: {e}")
     else:
         try:
+            template = _load_stack_template("next.config.js")
             with open(config_path, "w", encoding="utf-8") as f:
-                f.write(_NEXTCONFIG_TEMPLATE)
+                f.write(template)
             logger.info("[sanitize] next_config: eslint.ignoreDuringBuilds=true injecté")
         except Exception as e:
             logger.warning(f"[ensure_nextconfig] Impossible de créer {config_path}: {e}")
+
+def _ensure_tsconfig_paths(project_dir: str) -> None:
+    """Garantit que tsconfig.json existe et contient "@/*" dans les paths."""
+    if _get_runtime_stack_rules().get("framework") != "nextjs":
+        return
+    path = os.path.join(project_dir, "tsconfig.json")
+    if not os.path.isfile(path):
+        try:
+            template = _load_stack_template("tsconfig.json")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(template.rstrip() + "\n")
+            logger.info("[sanitize] tsconfig.json créé avec paths @/*")
+        except Exception as e:
+            logger.warning(f"[ensure_tsconfig] Impossible de créer tsconfig.json: {e}")
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        compiler = data.setdefault("compilerOptions", {})
+        paths = compiler.setdefault("paths", {})
+        if "@/*" not in paths:
+            paths["@/*"] = ["./*"]
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                f.write("\n")
+            logger.info("[sanitize] tsconfig.json: paths @/* injecté")
+    except Exception as e:
+        # Si tsconfig non JSON strict, réécrire le template stack pour stabiliser.
+        logger.warning(f"[ensure_tsconfig] Patch JSON impossible, réécriture template: {e}")
+        try:
+            template = _load_stack_template("tsconfig.json")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(template.rstrip() + "\n")
+        except Exception as rewrite_err:
+            logger.warning(f"[ensure_tsconfig] Impossible de réécrire tsconfig.json: {rewrite_err}")
+
+
+def _ensure_env_local(project_dir: str) -> None:
+    """Garantit que .env.local existe avec les variables Clerk et DB minimales."""
+    if _get_runtime_stack_rules().get("framework") != "nextjs":
+        return
+    path = os.path.join(project_dir, ".env.local")
+    try:
+        template = _load_stack_template("env.local")
+    except Exception as e:
+        logger.warning(f"[ensure_env_local] template env.local indisponible: {e}")
+        return
+    template_lines = [line for line in template.splitlines() if line.strip()]
+    if not os.path.isfile(path):
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("\n".join(template_lines) + "\n")
+            logger.info("[sanitize] .env.local créé depuis template stack")
+        except Exception as e:
+            logger.warning(f"[ensure_env_local] Impossible de créer .env.local: {e}")
+        return
+    try:
+        current = open(path, encoding="utf-8").read()
+        missing = [
+            line for line in template_lines
+            if not line.startswith("#") and line.split("=")[0] not in current
+        ]
+        if missing:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("\n# Ajouté automatiquement (clés manquantes)\n")
+                f.write("\n".join(missing) + "\n")
+            logger.info(f"[sanitize] .env.local: {len(missing)} clés manquantes injectées")
+    except Exception as e:
+        logger.warning(f"[ensure_env_local] Impossible de patcher .env.local: {e}")
 
 
 def _sanitize_test_content(content: str, path: str) -> str:
@@ -664,7 +806,7 @@ def _sanitize_test_content(content: str, path: str) -> str:
     Si aucune occurrence → retourne le contenu inchangé.
     """
     modified_content = content
-    test_fixes = _get_runtime_stack_rules().get("test_fixes", CLERK_TEST_MOCK_FIXES)
+    test_fixes = _get_runtime_stack_rules().get("test_fixes", CLERK_TEST_MOCK_FIXES_DEPRECATED)
     for old, new in test_fixes.items():
         if old in modified_content:
             _log_patch(
@@ -683,8 +825,8 @@ def _sanitize_source_content(content: str, path: str) -> str:
     les contenus one-line avec '\\n' litteraux emis par le LLM.
     """
     modified = content
-    source_fixes = _get_runtime_stack_rules().get("source_fixes", CLERK_SOURCE_IMPORT_FIXES)
-    router_fixes = _get_runtime_stack_rules().get("router_fixes", NEXTJS_APP_ROUTER_IMPORT_FIXES)
+    source_fixes = _get_runtime_stack_rules().get("source_fixes", CLERK_SOURCE_IMPORT_FIXES_DEPRECATED)
+    router_fixes = _get_runtime_stack_rules().get("router_fixes", NEXTJS_APP_ROUTER_IMPORT_FIXES_DEPRECATED)
     for old, new in source_fixes.items():
         if old in modified:
             _log_patch(
@@ -858,7 +1000,8 @@ def write_file(path: str, content: str) -> str:
         parent_dir = os.path.dirname(safe_path)
         if parent_dir:
             os.makedirs(parent_dir, exist_ok=True)
-        if path in ("next.config.js", "middleware.ts", "app/middleware.ts"):
+        _active_framework = _get_runtime_stack_rules().get("framework", "nextjs")
+        if _active_framework == "nextjs" and path in ("next.config.js", "middleware.ts", "app/middleware.ts"):
             # Logger le patch avant de l'appliquer
             if "source: '/protected/**'" in content or 'source: "/protected/**"' in content:
                 try:
@@ -890,17 +1033,21 @@ def write_file(path: str, content: str) -> str:
                 content = _sanitize_middleware_content(content)
             elif os.path.basename(path) == "next.config.js":
                 content = _sanitize_nextconfig_content(content)
-        # Clerk package fix: remplace les packages Clerk invalides avant toute écriture disque.
-        # Ceci intercepte les hallucinations LLM (@clerk/clerk-sdk, etc.) même si le LLM
-        # appelle write_file plusieurs fois au cours de la boucle ReAct.
+        # Clerk package fix: conditionnel au framework pour ne pas polluer d'autres stacks.
         filename = os.path.basename(path)
-        if filename == "package.json":
+        if filename == "package.json" and _active_framework in ("nextjs", "react"):
             content = _sanitize_package_json_content(content)
             try:
                 json.loads(content)
             except json.JSONDecodeError as e:
                 return f"Error writing file '{path}': package.json invalide généré : {e}"
-        elif path.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")):
+        elif filename == "package.json":
+            # Stack non-nextjs/react : validation JSON sans sanitisation Clerk/Jest
+            try:
+                json.loads(content)
+            except json.JSONDecodeError as e:
+                return f"Error writing file '{path}': package.json invalide généré : {e}"
+        if path.endswith((".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")):
             content = _sanitize_source_content(content, path)
         # Sanitize test files: corrige les imports Clerk invalides dans les fichiers test/spec.
         if any(x in path for x in ("test", "spec", "__tests__")):
@@ -1161,6 +1308,8 @@ def _apply_clerk_middleware_v5(project_dir: str) -> None:
     Applique le template Clerk v5 sur middleware.ts si nécessaire.
     Utilise _sanitize_middleware_content() pour détecter et corriger.
     """
+    if _get_runtime_stack_rules().get("framework") != "nextjs":
+        return
     path = os.path.join(project_dir, "middleware.ts")
     if not os.path.exists(path):
         return
@@ -1180,10 +1329,12 @@ def _apply_clerk_middleware_v5(project_dir: str) -> None:
 
 # Minimal sanitizer registry (Sprint 3 compromise)
 SANITIZER_REGISTRY = {
-    "remove_pages_conflicts": _remove_pages_router_conflicts,
-    "clerk_middleware_v5": _apply_clerk_middleware_v5,
+    "remove_pages_conflicts":  _remove_pages_router_conflicts,
+    "clerk_middleware_v5":     _apply_clerk_middleware_v5,
     "remove_problematic_babel": _remove_problematic_babel_config,
-    "ensure_nextconfig": _ensure_nextconfig_eslint_ignore,
+    "ensure_nextconfig":       _ensure_nextconfig_eslint_ignore,
+    "ensure_tsconfig_paths":   _ensure_tsconfig_paths,
+    "ensure_env_local":        _ensure_env_local,
 }
 
 
@@ -1345,7 +1496,6 @@ def run_build(project_dir: str = '.') -> str:
             apply_sanitizers(project_dir, sanitizers)
         except Exception as sanit_err:
             logger.warning(f"[sanitize] apply_sanitizers failed: {sanit_err}")
-        _ensure_nextconfig_eslint_ignore(project_dir)
         try:
             validate_blueprint(project_dir, stack_id=stack_id)
         except ValueError as e:
@@ -1576,152 +1726,33 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
                 logger.error(error_msg)
                 return error_msg
     
-    # --- Ensure critical config files exist for testing ---
-    # Grok's recommendation: Inject standard tsconfig.json and jest.setup.js if they don't exist.
-    
-    # tsconfig.json content
-    tsconfig_content = """{
-  "compilerOptions": {
-    "target": "es2020",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["./*"] }
-  },
-  "include": ["**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}"""
-    tsconfig_path = os.path.join(project_dir, 'tsconfig.json')
-    if not os.path.exists(tsconfig_path):
-        logger.info(f"Writing default tsconfig.json to '{tsconfig_path}'...")
-        try:
+    # Ensure critical config files for tests using stack-driven templates.
+    framework = str(stack_rules.get("framework", "") or "").lower()
+    test_command = str(stack_rules.get("test_command", "npx jest --coverage") or "").lower()
+    if framework == "nextjs":
+        _ensure_tsconfig_paths(project_dir)
+    if "jest" in test_command:
+        # jest.config.js from stack template when available
+        jest_config_path = os.path.join(project_dir, "jest.config.js")
+        if not os.path.exists(jest_config_path):
             try:
-                _write_learner_event(
-                    event_type="tool_patch_applied",
-                    payload={
-                        "project_name": os.path.basename(project_dir),
-                        "success": True,
-                        "file": "tsconfig.json",
-                        "patch": "config_injection",
-                        "reason": "Missing config file generated by tool",
-                    },
-                    run_id=get_run_id(),
-                )
+                template = _load_stack_template("jest.config.js")
+                with open(jest_config_path, "w", encoding="utf-8") as f:
+                    f.write(template.rstrip() + "\n")
+                logger.info(f"Successfully wrote file: {jest_config_path}")
             except Exception as e:
-                logger.warning(f"Learner logging failed: {e}")
-            with open(tsconfig_path, "w", encoding='utf-8') as f:
-                f.write(tsconfig_content)
-            logger.info(f"Successfully wrote file: {tsconfig_path}")
-        except Exception as e:
-            error_msg = f"Error writing default tsconfig.json: {e}"
-            logger.error(error_msg)
-            return error_msg
-
-    # jest.setup.js content
-    jest_setup_content = """import '@testing-library/jest-dom';"""
-    jest_setup_path = os.path.join(project_dir, 'jest.setup.js')
-    if not os.path.exists(jest_setup_path):
-        logger.info(f"Writing default jest.setup.js to '{jest_setup_path}'...")
-        try:
+                logger.warning(f"Impossible de générer jest.config.js depuis template stack: {e}")
+        # Generic jest setup file for jest-dom matchers.
+        jest_setup_path = os.path.join(project_dir, "jest.setup.js")
+        if not os.path.exists(jest_setup_path):
             try:
-                _write_learner_event(
-                    event_type="tool_patch_applied",
-                    payload={
-                        "project_name": os.path.basename(project_dir),
-                        "success": True,
-                        "file": "jest.setup.js",
-                        "patch": "config_injection",
-                        "reason": "Missing config file generated by tool",
-                    },
-                    run_id=get_run_id(),
-                )
+                with open(jest_setup_path, "w", encoding="utf-8") as f:
+                    f.write("import '@testing-library/jest-dom';\n")
+                logger.info(f"Successfully wrote file: {jest_setup_path}")
             except Exception as e:
-                logger.warning(f"Learner logging failed: {e}")
-            with open(jest_setup_path, "w", encoding='utf-8') as f:
-                f.write(jest_setup_content)
-            logger.info(f"Successfully wrote file: {jest_setup_path}")
-        except Exception as e:
-            error_msg = f"Error writing default jest.setup.js: {e}"
-            logger.error(error_msg)
-            return error_msg
-
-    # jest.config.js content
-    jest_config_content = """module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
-    '^@clerk/nextjs/middleware$': '<rootDir>/__mocks__/clerk-middleware.js',
-  },
-};"""
-    jest_config_path = os.path.join(project_dir, 'jest.config.js')
-    if not os.path.exists(jest_config_path):
-        logger.info(f"Writing default jest.config.js to '{jest_config_path}'...")
-        try:
-            try:
-                _write_learner_event(
-                    event_type="tool_patch_applied",
-                    payload={
-                        "project_name": os.path.basename(project_dir),
-                        "success": True,
-                        "file": "jest.config.js",
-                        "patch": "config_injection",
-                        "reason": "Missing config file generated by tool",
-                    },
-                    run_id=get_run_id(),
-                )
-            except Exception as e:
-                logger.warning(f"Learner logging failed: {e}")
-            with open(jest_config_path, "w", encoding='utf-8') as f:
-                f.write(jest_config_content)
-            logger.info(f"Successfully wrote file: {jest_config_path}")
-        except Exception as e:
-            error_msg = f"Error writing default jest.config.js: {e}"
-            logger.error(error_msg)
-            return error_msg
-            
-    # Clerk middleware mock content (updated per Grok's suggestion)
-    clerk_middleware_mock_content = """module.exports = {
-  withClerkMiddleware: (handler) => handler,
-  clerkMiddleware: (handler) => handler, // Added per Grok's suggestion
-};"""
-    clerk_middleware_mock_path = os.path.join(project_dir, '__mocks__', 'clerk-middleware.js')
-    os.makedirs(os.path.dirname(clerk_middleware_mock_path), exist_ok=True)
-    if not os.path.exists(clerk_middleware_mock_path):
-        logger.info(f"Writing clerk middleware mock to '{clerk_middleware_mock_path}'...")
-        try:
-            try:
-                _write_learner_event(
-                    event_type="tool_patch_applied",
-                    payload={
-                        "project_name": os.path.basename(project_dir),
-                        "success": True,
-                        "file": "clerk-middleware.js",
-                        "patch": "config_injection",
-                        "reason": "Missing config file generated by tool",
-                    },
-                    run_id=get_run_id(),
-                )
-            except Exception as e:
-                logger.warning(f"Learner logging failed: {e}")
-            with open(clerk_middleware_mock_path, "w", encoding='utf-8') as f:
-                f.write(clerk_middleware_mock_content)
-            logger.info(f"Successfully wrote file: {clerk_middleware_mock_path}")
-        except Exception as e:
-            error_msg = f"Error writing clerk middleware mock: {e}"
-            logger.error(error_msg)
-            return error_msg
+                error_msg = f"Error writing default jest.setup.js: {e}"
+                logger.error(error_msg)
+                return error_msg
     
     total_tests_count = _count_test_files(project_dir)
     if not allow_zero_tests_debug and total_tests_count < min_required_tests:
@@ -1754,15 +1785,16 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             logger.info("package.json sanitized")
         logger.info(f"package.json found in '{project_dir}'. Installing dev dependencies...")
         lock_path = os.path.join(project_dir, 'package-lock.json')
-        # Hard rule: jest@29 + ts-jest@29 + jest-environment-jsdom@29 — versions verrouillées.
-        # jest@30 (latest 2026) est INCOMPATIBLE avec ts-jest@29 → cycle d'erreur infini.
-        npm_install_fallback = [
-            'npm', 'install', '--save-dev', '--legacy-peer-deps',
-            'jest@29', '@testing-library/react', '@testing-library/jest-dom',
-            'babel-jest', '@babel/preset-env', '@babel/preset-react',
-            'ts-jest@29', 'typescript', 'zod', 'node-mocks-http',
-            'identity-obj-proxy', 'jest-environment-jsdom@29'
-        ]
+        dev_packages = stack_rules.get("dev_packages", {})
+        fallback_pkgs = []
+        if isinstance(dev_packages, dict):
+            for pkg, version in dev_packages.items():
+                if isinstance(version, str) and version.strip():
+                    fallback_pkgs.append(f"{pkg}@{version}")
+                else:
+                    fallback_pkgs.append(str(pkg))
+        npm_install_fallback = ['npm', 'install', '--save-dev', '--legacy-peer-deps']
+        npm_install_fallback.extend(fallback_pkgs)
         npm_command = ['npm', 'ci'] if os.path.exists(lock_path) else npm_install_fallback
 
         try:
@@ -1791,51 +1823,6 @@ def run_tests(project_dir: str = '.', files: dict = None) -> str:
             if not os.path.exists(jest_bin_path):
                 return _truncate_output(
                     f"Error: Jest executable not found at '{jest_bin_path}' after npm command. Installation might have failed or been incomplete. npm STDOUT:\n{install_result.stdout}\nnpm STDERR:\n{install_result.stderr}"
-                )
-
-            # Hard rule: jest-environment-jsdom@29 est requis par jest.config.js injecté
-            # (testEnvironment: 'jsdom'). npm ci n'installe que ce qui est dans package.json —
-            # si le LLM ne l'a pas inclus, on l'ajoute silencieusement.
-            jsdom_path = os.path.join(project_dir, 'node_modules', 'jest-environment-jsdom')
-            if not os.path.exists(jsdom_path):
-                logger.warning("jest-environment-jsdom absent après install → ajout forcé @29")
-                subprocess.run(
-                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', 'jest-environment-jsdom@29'],
-                    capture_output=True, text=True, check=False,
-                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=_get_node_env(),
-                )
-
-            # Hard rule: @testing-library/jest-dom requis par jest.setup.js injecté
-            # (import '@testing-library/jest-dom'). npm ci ne l'installe pas si absent du package.json.
-            jest_dom_path = os.path.join(project_dir, 'node_modules', '@testing-library', 'jest-dom')
-            if not os.path.exists(jest_dom_path):
-                logger.warning("@testing-library/jest-dom absent après install → ajout forcé")
-                subprocess.run(
-                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', '@testing-library/jest-dom'],
-                    capture_output=True, text=True, check=False,
-                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=_get_node_env(),
-                )
-
-            # Hard rule: @testing-library/react requis par les tests de composants générés.
-            testing_library_react_path = os.path.join(
-                project_dir, 'node_modules', '@testing-library', 'react'
-            )
-            if not os.path.exists(testing_library_react_path):
-                logger.warning("@testing-library/react absent après install → ajout forcé")
-                subprocess.run(
-                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', '@testing-library/react'],
-                    capture_output=True, text=True, check=False,
-                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=_get_node_env(),
-                )
-
-            # Hard rule: node-mocks-http requis par des tests API générés.
-            node_mocks_http_path = os.path.join(project_dir, 'node_modules', 'node-mocks-http')
-            if not os.path.exists(node_mocks_http_path):
-                logger.warning("node-mocks-http absent après install → ajout forcé")
-                subprocess.run(
-                    ['npm', 'install', '--save-dev', '--legacy-peer-deps', 'node-mocks-http'],
-                    capture_output=True, text=True, check=False,
-                    cwd=project_dir, timeout=SUBPROCESS_TIMEOUT_LONG, env=_get_node_env(),
                 )
 
         except subprocess.TimeoutExpired:
@@ -2007,12 +1994,10 @@ def validate_blueprint(project_dir: str, stack_id: str | None = None) -> dict:
     required = blueprint.get("required_files", [])
     missing = [f for f in required if not os.path.exists(os.path.join(project_dir, f))]
 
-    critical_files = {
-        "app/layout.tsx",
-        "middleware.ts",
-        "package.json",
-        "schema.prisma",
-    }
+    critical_cfg = blueprint.get("critical_files", required)
+    if not isinstance(critical_cfg, list) or not critical_cfg:
+        critical_cfg = required
+    critical_files = set(str(f) for f in critical_cfg)
     missing_critical = [f for f in missing if f in critical_files]
     missing_optional = [f for f in missing if f not in critical_files]
 

@@ -155,7 +155,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             f"Success: {result.get('success', False)}"
         )
 
-        return result
+        return {**result, "run_metric": run_metric}
 
     except Exception as e:
         run_metric = {

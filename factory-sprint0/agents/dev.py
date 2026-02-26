@@ -19,7 +19,7 @@ from .shared_tools import (
     get_stack_id,
 )
 from .stack_config import get_blueprint
-from utils.prompt_loader import load_prompt
+from utils.prompt_loader import load_stack_prompt
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -142,15 +142,13 @@ def dev_agent(
     summarized_spec = summarize_text(spec, MAX_SPEC_TOKENS, "Specification")
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
 
-    prompt = load_prompt("dev")
     effective_stack_id = stack_id or get_stack_id()
+    prompt = load_stack_prompt("dev", effective_stack_id)
+    from .stack_config import load_stack_config
+    stack_cfg = load_stack_config(effective_stack_id) or {}
     blueprint = get_blueprint(effective_stack_id)
     required_files = blueprint.get("required_files", []) if isinstance(blueprint, dict) else []
-    mandatory_rag_queries = [
-        "versions exactes next.js clerk prisma tailwind shadcn zod",
-        "clerk next.js 14 app/layout ClerkProvider middleware.ts clerkMiddleware createRouteMatcher sign-in sign-up routes interdites",
-        "prisma clerkId sans password schema conventions",
-    ]
+    mandatory_rag_queries = stack_cfg.get("mandatory_rag_queries", [])
     mandatory_rag_context_chunks = []
     for query in mandatory_rag_queries:
         try:
@@ -166,6 +164,14 @@ def dev_agent(
             + "\n".join(f"- {f}" for f in required_files)
             + "\n\n"
         )
+    packages = stack_cfg.get("packages", {})
+    packages_block = ""
+    if packages:
+        packages_block = (
+            "VERSIONS DE PACKAGES OBLIGATOIRES (copier exactement dans package.json, ne pas modifier) :\n"
+            + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in packages.items())
+            + "\n\n"
+        )
     messages = [
         SystemMessage(content=prompt),
         HumanMessage(content=(
@@ -173,8 +179,9 @@ def dev_agent(
             f"Spec :\n{summarized_spec}\n\n"
             f"Mermaid :\n{summarized_mermaid}\n\n"
             f"Contexte RAG obligatoire (préchargé) :\n{mandatory_rag_context}\n\n"
+            f"{packages_block}"
             f"{required_files_block}"
-            "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes next.js clerk prisma tailwind shadcn zod') puis génère package.json."
+            "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes stack framework auth orm ui') puis génère package.json."
         ))
     ]
 
@@ -226,7 +233,7 @@ def dev_agent(
         return "."
 
     stagnant_iterations = 0
-    key_files = ["package.json", "app/layout.tsx", "middleware.ts", "schema.prisma"]
+    key_files = required_files or ["package.json"]
     for iteration in range(1, MAX_ITERATIONS + 1):
         current_phase = 1 if iteration <= PHASE1_LIMIT else 2
         current_tools = tools_phase1 if current_phase == 1 else tools_phase2
@@ -413,41 +420,14 @@ def dev_agent(
                 if failed_cmd:
                     last_failed_command = failed_cmd
 
-        # Reflection renforcée – VERSION DÉFINITIVE FIXÉE (anti-400 + paires préservées)
-        safe_reflection_history = []
-        i = len(messages) - 1
-        pair_count = 0
-        max_pairs = 10
-
-        while i >= 0 and pair_count < max_pairs:
-            current = messages[i]
-            
-            if isinstance(current, ToolMessage):
-                found_parent = False
-                for j in range(i-1, max(i-10, 0), -1):
-                    prev = messages[j]
-                    if (hasattr(prev, "tool_calls") and prev.tool_calls and 
-                        any(tc["id"] == current.tool_call_id for tc in prev.tool_calls if "id" in tc)):
-                        safe_reflection_history.insert(0, prev)
-                        safe_reflection_history.insert(1, current)
-                        pair_count += 1
-                        found_parent = True
-                        i = j - 1
-                        break
-                if not found_parent:
-                    i -= 1
-            else:
-                safe_reflection_history.insert(0, current)
-                i -= 1
-
-        safe_reflection_history = safe_reflection_history[:20]
-
-        # REMPLACE tout le bloc "Reflection renforcée" par ceci :
+        # Reflection informative uniquement (ne pilote pas la sortie).
         reflection_messages = [
             SystemMessage(content=(
                 "État actuel :\n"
                 f"Fichiers générés : {list(files.keys())}\n"
                 f"Build attempts : {build_attempts}/{MAX_BUILD_ATTEMPTS}\n"
+                f"Dernière erreur build : {last_build_error[:500] if last_build_error else 'N/A'}\n"
+                f"Dernière commande en échec : {last_failed_command or 'N/A'}\n"
                 "- Si 'Build successful' dans les logs → réponds 'TERMINÉ : CODE PRÊT'\n"
                 "- Si trop d'échecs → 'ÉCHEC : ERREUR RÉCURRENTE BUILD'\n"
                 "- Sinon → continue l'étape suivante sans réécrire les fichiers existants."
