@@ -67,8 +67,11 @@ def create_qa_agent():
 
 if __name__ == '__main__':
     # Example of how to run the agent
+    from agents.stack_config import load_stack_config, _DEFAULT_STACK_ID
+    _qa_cfg = load_stack_config(_DEFAULT_STACK_ID).get("prompt_rules", {}).get("qa_rules", [])
+    _qa_context = " ".join(_qa_cfg) if _qa_cfg else "Generate E2E tests for the application."
     agent = create_qa_agent()
-    initial_message = HumanMessage(content="The application is a SaaS for task management with Clerk authentication. Please generate E2E tests for it.")
+    initial_message = HumanMessage(content=_qa_context)
     
     if not os.getenv("OPENAI_API_KEY"):
         print("Error: OPENAI_API_KEY environment variable not set.")

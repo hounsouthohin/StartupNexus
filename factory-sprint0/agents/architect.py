@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
 from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
 from utils.prompt_loader import load_prompt, load_stack_prompt
+from agents.stack_config import _DEFAULT_STACK_ID
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -48,10 +49,40 @@ def _load_forbidden_auth_patterns(stack_id: str) -> list[str]:
     return DEFAULT_FORBIDDEN_AUTH_PATTERNS
 
 
-def _contains_forbidden_auth(text: str, stack_id: str = "nextjs-clerk-prisma") -> bool:
+def _contains_forbidden_auth(text: str, stack_id: str = _DEFAULT_STACK_ID) -> bool:
     lowered = text.lower()
     patterns = _load_forbidden_auth_patterns(stack_id)
     return any(re.search(pattern, lowered) for pattern in patterns)
+
+
+def _build_hard_rewrite_instructions(stack_id: str) -> str:
+    """
+    Construit un bloc de rewrite depuis les règles stack.
+    Évite tout couplage Clerk/Next.js en dur.
+    """
+    try:
+        from agents.stack_config import load_stack_config
+        stack_cfg = load_stack_config(stack_id) or {}
+    except Exception:
+        stack_cfg = {}
+    prompt_rules = stack_cfg.get("prompt_rules", {}) if isinstance(stack_cfg.get("prompt_rules"), dict) else {}
+    auth_rules = prompt_rules.get("auth_rules", []) if isinstance(prompt_rules.get("auth_rules"), list) else []
+    orm_rules = prompt_rules.get("orm_rules", []) if isinstance(prompt_rules.get("orm_rules"), list) else []
+    security_rules = prompt_rules.get("security_rules", []) if isinstance(prompt_rules.get("security_rules"), list) else []
+
+    lines = []
+    for rule in [*auth_rules, *orm_rules, *security_rules]:
+        if isinstance(rule, str) and rule.strip():
+            lines.append(f"- {rule.strip()}")
+    if not lines:
+        lines = [
+            "- Respect strict de l'auth définie par la stack.",
+            "- Respect strict du schéma de données défini par la stack.",
+            "- Retourner uniquement le markdown corrigé.",
+        ]
+    if not any("Retourner" in ln or "return" in ln.lower() for ln in lines):
+        lines.append("- Retourner uniquement le markdown corrigé.")
+    return "\n".join(lines)
 
 
 def _append_architect_rag_event(query: str, docs: list, error: str | None = None, run_id: str = "") -> None:
@@ -215,15 +246,15 @@ def create_architect_agent():
         llm_response = await chain.ainvoke({"input": input_text})
         specification = llm_response.content
 
-        if _contains_forbidden_auth(specification, str(state.get("stack_id", "nextjs-clerk-prisma"))):
-            logger.warning("Spec contains forbidden auth terms. Forcing one rewrite with strict Clerk constraints.")
+        active_stack = str(state.get("stack_id", _DEFAULT_STACK_ID))
+        if _contains_forbidden_auth(specification, active_stack):
+            logger.warning("Spec contains forbidden auth terms. Forcing one rewrite with strict stack constraints.")
+            rewrite_rules = _build_hard_rewrite_instructions(active_stack)
             harden_input = (
                 input_text
-                + "\n\nMANDATORY REWRITE:\n"
-                  "- Replace any JWT/bcrypt/NextAuth/password-based auth with Clerk-only auth.\n"
-                  "- Prisma schema must not contain password or password_hash fields.\n"
-                  "- Keep PostgreSQL + Prisma and Next.js architecture.\n"
-                  "- Return only corrected markdown."
+                + "\n\nMANDATORY REWRITE — Règles auth stack obligatoires:\n"
+                + rewrite_rules
+                + "\n- Return only corrected markdown."
             )
             llm_response = await chain.ainvoke({"input": harden_input})
             specification = llm_response.content

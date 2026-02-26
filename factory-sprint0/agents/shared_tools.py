@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
+from agents.stack_config import _DEFAULT_STACK_ID
 
 # Import central configuration
 from config.factory_config import (
@@ -55,9 +56,8 @@ logger = Logger()
 
 
 # --- Run ID & Stack ID context (async-safe) ---
-DEFAULT_STACK_ID = "nextjs-clerk-prisma"
 _run_id_ctx: ContextVar[str] = ContextVar("run_id", default="")
-_stack_id_ctx: ContextVar[str] = ContextVar("stack_id", default=DEFAULT_STACK_ID)
+_stack_id_ctx: ContextVar[str] = ContextVar("stack_id", default=_DEFAULT_STACK_ID)
 
 
 def set_run_id(run_id: str) -> None:
@@ -69,11 +69,11 @@ def get_run_id() -> str:
 
 
 def set_stack_id(stack_id: str) -> None:
-    _stack_id_ctx.set(stack_id or DEFAULT_STACK_ID)
+    _stack_id_ctx.set(stack_id or _DEFAULT_STACK_ID)
 
 
 def get_stack_id() -> str:
-    return _stack_id_ctx.get() or DEFAULT_STACK_ID
+    return _stack_id_ctx.get() or _DEFAULT_STACK_ID
 
 
 def _get_runtime_stack_rules(stack_id: str | None = None) -> dict:
@@ -81,7 +81,7 @@ def _get_runtime_stack_rules(stack_id: str | None = None) -> dict:
     Retourne les règles stack runtime depuis Stack-as-Config, avec fallback local.
     Cela évite les divergences quand stack_id change pendant le run.
     """
-    effective_stack_id = stack_id or get_stack_id() or DEFAULT_STACK_ID
+    effective_stack_id = stack_id or get_stack_id() or _DEFAULT_STACK_ID
     try:
         from agents.stack_config import load_stack_config
         stack_config = load_stack_config(effective_stack_id) or {}
@@ -563,7 +563,7 @@ def _load_stack_template(template_name: str, stack_id: str | None = None) -> str
     """
     from agents.stack_config import StackConfigError, load_stack_config
 
-    effective_stack_id = stack_id or get_stack_id() or DEFAULT_STACK_ID
+    effective_stack_id = stack_id or get_stack_id() or _DEFAULT_STACK_ID
     stack_cfg = load_stack_config(effective_stack_id) or {}
     templates_folder = stack_cfg.get("templates_folder")
     if not templates_folder:
@@ -1985,7 +1985,7 @@ def validate_blueprint(project_dir: str, stack_id: str | None = None) -> dict:
     Mode WARNING uniquement (Sprint 3) : ne bloque jamais le build.
     Retourne {"missing_required": [...], "complete": bool}.
     """
-    effective_stack_id = stack_id or get_stack_id() or DEFAULT_STACK_ID
+    effective_stack_id = stack_id or get_stack_id() or _DEFAULT_STACK_ID
     try:
         from agents.stack_config import get_blueprint
         blueprint = get_blueprint(effective_stack_id)

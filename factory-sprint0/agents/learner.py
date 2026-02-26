@@ -8,7 +8,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
-from agents.stack_config import get_blueprint, load_stack_config
+from agents.stack_config import _DEFAULT_STACK_ID, get_blueprint, load_stack_config
 
 
 def _load_shadow_events() -> List[Dict[str, Any]]:
@@ -180,7 +180,7 @@ def learner_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
     run_metrics = input_data.get("run_metrics", {}) if isinstance(input_data.get("run_metrics"), dict) else {}
     generated_files = input_data.get("generated_files", {}) if isinstance(input_data.get("generated_files"), dict) else {}
     run_id = str(input_data.get("run_id", "") or "")
-    stack_id = str(input_data.get("stack_id", "nextjs-clerk-prisma") or "nextjs-clerk-prisma")
+    stack_id = str(input_data.get("stack_id", _DEFAULT_STACK_ID) or _DEFAULT_STACK_ID)
     stack_cfg = load_stack_config(stack_id) or {}
     categories = stack_cfg.get("technology_categories", {}) if isinstance(stack_cfg.get("technology_categories"), dict) else {}
     blueprint = get_blueprint(stack_id)
@@ -208,9 +208,18 @@ def learner_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
         trigger = _classify_trigger_context(payload, rag_events)
         pt = str(payload.get("patch") or payload.get("type") or "patch").lower()
         base_confidence = 0.75 if patch_type_counts.get(pt, 0) >= 2 else 0.6
-        if any(k in pt for k in ("version", "build", "dependency", "lockfile", "incompatible")):
+        _HIGH_CONFIDENCE_KEYS = ("version", "build", "dependency", "lockfile", "incompatible")
+        tech_boost_keys = tuple(
+            str(kw).lower()
+            for kws in categories.values()
+            if isinstance(kws, list)
+            for kw in kws
+            if isinstance(kw, str)
+        )
+
+        if any(k in pt for k in _HIGH_CONFIDENCE_KEYS):
             confidence = min(0.9, base_confidence + 0.1)
-        elif any(k in pt for k in ("import", "clerk", "router")):
+        elif any(k in pt for k in ("import",) + tech_boost_keys):
             confidence = min(0.85, base_confidence + 0.05)
         else:
             confidence = base_confidence

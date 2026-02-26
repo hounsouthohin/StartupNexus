@@ -10,6 +10,7 @@ from typing import Dict, Any
 from pathlib import Path
 
 from jsonschema import validate, ValidationError
+from agents.stack_config import _DEFAULT_STACK_ID
 
 # Agents métier existants
 from agents.dev import dev_agent
@@ -50,7 +51,7 @@ class DevTestAgent:
             "spec": input_data.get("spec"),
             "mermaid": input_data.get("mermaid"),
             "project_name": input_data.get("project_name"),
-            "stack_id": input_data.get("stack_id", "nextjs-clerk-prisma"),
+            "stack_id": input_data.get("stack_id", _DEFAULT_STACK_ID),
         }
         self._validate(dev_input, self.dev_contract["input_schema"], "Dev", "input")
 
@@ -72,7 +73,7 @@ class DevTestAgent:
         try:
             test_output = test_coverage_agent(
                 files=test_input["files"],
-                stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
+                stack_id=str(input_data.get("stack_id", _DEFAULT_STACK_ID)),
             )
             if test_output.get("tests"):
                 self._validate(test_output, self.test_contract["output_schema"], "Test", "output")
