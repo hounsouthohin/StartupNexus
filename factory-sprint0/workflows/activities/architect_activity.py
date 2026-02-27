@@ -9,6 +9,28 @@ from typing import Dict
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from scripts.validate_contracts import validate_input, validate_output
 
+def _wait_for_qdrant(timeout_seconds: int = 90) -> None:
+    """
+    Attend que Qdrant réponde sur /healthz.
+    Lève ApplicationError("QDRANT_UNAVAILABLE") si timeout atteint,
+    ce qui déclenche le architect_retry_policy (5 tentatives, backoff 15s).
+    """
+    import time
+    import urllib.request
+    qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        try:
+            urllib.request.urlopen(f"{qdrant_url}/healthz", timeout=3)
+            return
+        except Exception:
+            time.sleep(5)
+    raise ApplicationError(
+        "QDRANT_UNAVAILABLE",
+        f"Qdrant non disponible après {timeout_seconds}s à {qdrant_url}"
+    )
+
+
 DEFAULT_FORBIDDEN_PATTERNS = [
     "bcrypt",
     "jwt",
@@ -64,6 +86,9 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     # Vérification minimale de la clé API (avant même la validation contrat)
     if not os.getenv("OPENAI_API_KEY"):
         raise ApplicationError("MISSING_CONFIGURATION", "OPENAI_API_KEY manquante")
+
+    # ── 0. Health check Qdrant ────────────────────────────────────────────
+    _wait_for_qdrant()
 
     # ── 1. Validation du contrat d'entrée ────────────────────────────────
     validate_input("architect_agent", input_data)

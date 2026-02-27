@@ -1,12 +1,64 @@
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
+import re
 import sys
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 # Validation contrats
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from scripts.validate_contracts import validate_input, validate_output
+
+
+def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
+    """
+    Sauvegarde un snapshot JSON des fichiers générés avant le push GitHub.
+    Non-bloquant : un échec de persistance ne doit pas interrompre le pipeline.
+    """
+    try:
+        import json
+        snapshot_dir = os.path.join(os.path.dirname(__file__), '../../snapshots')
+        os.makedirs(snapshot_dir, exist_ok=True)
+        snap_name = f"{project_name}_{run_id[:8]}.json"
+        snap_path = os.path.normpath(os.path.join(snapshot_dir, snap_name))
+        with open(snap_path, "w", encoding="utf-8") as f:
+            json.dump(
+                {"project_name": project_name, "run_id": run_id, "files": files},
+                f, ensure_ascii=False, indent=2,
+            )
+        activity.logger.info(f"Snapshot persisté → {snap_path}")
+    except Exception as e:
+        activity.logger.warning(f"Snapshot persistence failed (non-bloquant): {e}")
+
+
+def _check_semantic_invariants(combined_files: dict) -> List[str]:
+    """
+    Vérifie les invariants sémantiques sur les fichiers générés.
+    Retourne une liste de violations ([] = tout bon).
+
+    Ces assertions remplacent les sanitizers supprimés : au lieu de corriger
+    silencieusement une erreur du LLM, on la signale explicitement pour
+    forcer la correction des prompts/RAG à la source.
+    """
+    violations = []
+
+    # 1. app/layout.tsx doit exister et contenir ClerkProvider
+    layout = combined_files.get("app/layout.tsx", "")
+    if not layout:
+        violations.append("MISSING app/layout.tsx")
+    elif "ClerkProvider" not in layout:
+        violations.append("MISSING ClerkProvider in app/layout.tsx")
+
+    # 2. middleware.ts doit exister
+    if "middleware.ts" not in combined_files:
+        violations.append("MISSING middleware.ts")
+
+    # 3. schema.prisma ne doit pas contenir de champ password
+    schema = combined_files.get("schema.prisma", "")
+    if schema and re.search(r'\bpassword\b', schema, re.IGNORECASE):
+        violations.append("FORBIDDEN field 'password' detected in schema.prisma")
+
+    return violations
 
 
 def _check_clerk_compliant(result: dict) -> bool:
@@ -98,6 +150,16 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         # ── 4. Validation sortie ──────────────────────────────────────────
         validate_output("dev_test_agent", result)
 
+        # ── 5. Assertions sémantiques ─────────────────────────────────────
+        combined_files = result.get("combined_files", {})
+        semantic_violations = _check_semantic_invariants(combined_files)
+        if semantic_violations:
+            for v in semantic_violations:
+                activity.logger.warning(f"[SEMANTIC_VIOLATION] {v}")
+
+        # ── 6. Persistance locale du snapshot ─────────────────────────────
+        _persist_snapshot(project_name, run_id, combined_files)
+
         metadata = result.get("metadata", {})
         dev_output = result.get("dev_output", {}) if isinstance(result.get("dev_output", {}), dict) else {}
         dev_meta = dev_output.get("metadata", {}) if isinstance(dev_output.get("metadata", {}), dict) else {}
@@ -148,14 +210,16 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "last_test_error": last_test_error,
             "last_test_error_full": last_test_error_full,
             "last_failed_command": last_failed_command,
+            "semantic_violations": semantic_violations,
             "error": runtime_error,
         }
         activity.logger.info(
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "
-            f"Success: {result.get('success', False)}"
+            f"Success: {result.get('success', False)} | "
+            f"Violations: {len(semantic_violations)}"
         )
 
-        return {**result, "run_metric": run_metric}
+        return {**result, "run_metric": run_metric, "semantic_violations": semantic_violations}
 
     except Exception as e:
         run_metric = {

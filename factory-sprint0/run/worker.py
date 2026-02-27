@@ -20,7 +20,6 @@ from workflows.activities.architect_activity import architect_activity
 from workflows.activities.dev_test_activity import dev_test_activity
 from workflows.activities.qa_activity import qa_activity
 from workflows.activities.github_activity import github_activity
-from workflows.activities.learner_activity import learner_activity
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -49,7 +48,6 @@ async def main():
             dev_test_activity,
             qa_activity,
             github_activity,
-            learner_activity,
         ],
     )
 
@@ -60,7 +58,7 @@ async def main():
 
     # Logging statique (pas d'accès aux attributs internes)
     logger.info(f"Workflows   : {', '.join(w.__name__ for w in [SaaSFactoryWorkflow, TodoPilotWorkflow])}")
-    logger.info(f"Activities  : {', '.join(a.__name__ for a in [architect_activity, dev_test_activity, qa_activity, github_activity, learner_activity])}")
+    logger.info(f"Activities  : {', '.join(a.__name__ for a in [architect_activity, dev_test_activity, qa_activity, github_activity])}")
 
     logger.info("Worker en écoute... (Ctrl+C pour arrêter)")
     

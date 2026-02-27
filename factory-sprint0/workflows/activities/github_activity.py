@@ -1,5 +1,6 @@
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
+import asyncio
 import os
 import sys
 from typing import Dict, Any
@@ -107,29 +108,41 @@ async def github_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
         repo.create_git_ref(f"refs/heads/{dev_branch}", main_sha)
         activity.logger.info(f"Branche '{dev_branch}' créée depuis {main_branch}")
 
-    # 7. Push des fichiers sur dev
+    # 7. Push des fichiers sur dev (avec retry exponentiel sur 429)
     for path, content in files.items():
-        try:
-            contents = repo.get_contents(path, ref=dev_branch)
-            repo.update_file(
-                path,
-                f"Update {path} (généré par Agent Factory)",
-                content,
-                contents.sha,
-                branch=dev_branch
-            )
-            activity.logger.info(f"→ Mise à jour {path}")
-        except GithubException as e:
-            if e.status == 404:
-                repo.create_file(
-                    path,
-                    f"Create {path} (généré par Agent Factory)",
-                    content,
-                    branch=dev_branch
-                )
-                activity.logger.info(f"→ Création {path}")
-            else:
-                raise ApplicationError("FILE_PUSH_FAILED", f"Échec sur {path}: {str(e)}")
+        for attempt in range(3):
+            try:
+                try:
+                    contents = repo.get_contents(path, ref=dev_branch)
+                    repo.update_file(
+                        path,
+                        f"Update {path} (généré par Agent Factory)",
+                        content,
+                        contents.sha,
+                        branch=dev_branch
+                    )
+                    activity.logger.info(f"→ Mise à jour {path}")
+                except GithubException as e:
+                    if e.status == 404:
+                        repo.create_file(
+                            path,
+                            f"Create {path} (généré par Agent Factory)",
+                            content,
+                            branch=dev_branch
+                        )
+                        activity.logger.info(f"→ Création {path}")
+                    elif e.status == 429:
+                        raise  # propagé au retry ci-dessous
+                    else:
+                        raise ApplicationError("FILE_PUSH_FAILED", f"Échec sur {path}: {str(e)}")
+                break  # succès — sortir du retry
+            except GithubException as e:
+                if e.status == 429 and attempt < 2:
+                    wait = 10 * (2 ** attempt)  # 10s, 20s
+                    activity.logger.warning(f"GitHub rate-limit (429) sur {path} – retry dans {wait}s")
+                    await asyncio.sleep(wait)
+                else:
+                    raise ApplicationError("FILE_PUSH_FAILED", f"429 non résolu sur {path}: {str(e)}")
 
     # 8. Création ou récupération PR
     try:

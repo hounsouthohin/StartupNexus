@@ -16,7 +16,7 @@ class SaaSFactoryRequest:
 @dataclass
 class SaaSFactoryOutput:
     workflow_status: str  # "COMPLETED", "FAILED_UNRECOVERABLE"
-    build_status: str     # "SUCCESS", "BUILD_FAILED", "TESTS_FAILED", "NOT_RUN"
+    build_status: str     # "SUCCESS", "BUILD_FAILED", "TESTS_FAILED", "SEMANTIC_VIOLATION", "NOT_RUN"
     project_name: str
     generated_files_count: int
     pr_url: str
@@ -26,16 +26,11 @@ class SaaSFactoryOutput:
     duration_seconds: float
     error_message: str | None = None
 
-# ✅ Bonne pratique : imports des activités (modules lourds) isolés hors sandbox
-# workflow.unsafe.imports_passed_through() indique explicitement au sandbox
-# que ces modules viennent du monde extérieur et ne sont pas soumis
-# aux restrictions de déterminisme — sans désactiver la protection globalement.
 with workflow.unsafe.imports_passed_through():
     from workflows.activities.architect_activity import architect_activity
     from workflows.activities.dev_test_activity import dev_test_activity
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
-    from workflows.activities.learner_activity import learner_activity
 
 
 @workflow.defn
@@ -105,6 +100,13 @@ class SaaSFactoryWorkflow:
                 retry_policy=common_retry_policy,
             )
 
+            semantic_violations = dev_test_result.get("semantic_violations", [])
+            if semantic_violations:
+                workflow.logger.warning(
+                    f"Violations sémantiques détectées ({len(semantic_violations)}): "
+                    + " | ".join(semantic_violations)
+                )
+
             workflow.logger.info(
                 f"DevTest terminé – "
                 f"{dev_test_result.get('metadata', {}).get('total_files', 0)} fichiers générés"
@@ -120,7 +122,9 @@ class SaaSFactoryWorkflow:
             )
             tests_phase_success = bool(test_output.get("success", False))
 
-            if dev_phase_success and tests_phase_success:
+            if semantic_violations:
+                build_status = "SEMANTIC_VIOLATION"
+            elif dev_phase_success and tests_phase_success:
                 build_status = "SUCCESS"
             elif not dev_phase_success:
                 build_status = "BUILD_FAILED"
@@ -160,29 +164,6 @@ class SaaSFactoryWorkflow:
                 retry_policy=common_retry_policy,
             )
             workflow.logger.info("GitHub terminé")
-
-            # Étape 5 : Learner Activity (shadow mode)
-            learner_input = {
-                "project_name": project_name,
-                "specification": spec_part,
-                "generated_files": all_files,
-                "run_metrics": {
-                    "total_duration_seconds": float((workflow.now() - start_time).total_seconds()),
-                    "status": "SUCCESS" if build_status == "SUCCESS" else "PARTIAL",
-                },
-                "e2e_tests": generated_e2e_tests,
-                "pr_url": github_result.get("pr_url", ""),
-                "stack_id": stack_id,
-            }
-            try:
-                await workflow.execute_activity(
-                    learner_activity,
-                    args=[learner_input, run_id],
-                    start_to_close_timeout=timedelta(minutes=5),
-                    retry_policy=common_retry_policy,
-                )
-            except Exception as learner_err:
-                workflow.logger.warning(f"Learner shadow skipped due to error: {learner_err}")
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})

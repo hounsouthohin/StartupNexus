@@ -69,54 +69,10 @@ class TestSuperviseurDraft:
 
 
 # ─────────────────────────────────────────────────────
-# BLOC 2 — Configuration Agents
+# BLOC 2 — Configuration Agents (supprimé Sprint 2)
+# agents_config.yaml et langgraph_config.yaml supprimés
+# car non lus en runtime — config vivante dans factory_config.py
 # ─────────────────────────────────────────────────────
-
-class TestAgentsConfig:
-    """Validation de la configuration agents."""
-
-    def test_agents_config_exists(self):
-        assert Path("config/agents_config.yaml").exists(), \
-            "config/agents_config.yaml manquant — Fix #10 requis"
-
-    def test_agents_config_valid_yaml(self):
-        if not Path("config/agents_config.yaml").exists():
-            pytest.skip("agents_config.yaml manquant")
-        with open("config/agents_config.yaml", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        assert config is not None and "agents" in config, \
-            "Clé 'agents' manquante dans agents_config.yaml"
-
-    def test_minimum_four_agents_configured(self):
-        if not Path("config/agents_config.yaml").exists():
-            pytest.skip("agents_config.yaml manquant")
-        with open("config/agents_config.yaml", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        agents = config.get("agents", {})
-        assert len(agents) >= 4, \
-            f"Trop peu d'agents: {list(agents.keys())} (minimum 4)"
-
-    def test_learner_agent_in_shadow_mode(self):
-        if not Path("config/agents_config.yaml").exists():
-            pytest.skip("agents_config.yaml manquant")
-        with open("config/agents_config.yaml", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        agents = config.get("agents", {})
-        learner = agents.get("learner_agent") or agents.get("learner")
-        if learner is None:
-            pytest.skip("learner_agent non configuré — Fix #10 requis")
-        mode = learner.get("mode")
-        enabled = learner.get("enabled", True)
-        assert (mode == "shadow") or (enabled is False), \
-            f"LearnerAgent doit être shadow (mode={mode}, enabled={enabled})"
-
-    def test_orchestration_block_present(self):
-        if not Path("config/agents_config.yaml").exists():
-            pytest.skip("agents_config.yaml manquant")
-        with open("config/agents_config.yaml", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        assert "orchestration" in config, \
-            "Bloc 'orchestration' manquant — Fix #10 requis"
 
     def test_superviseur_observateur_mode(self):
         if not Path("config/agents_config.yaml").exists():
@@ -327,19 +283,6 @@ class TestSprint1Structure:
         content = path.read_text(encoding="utf-8")
         for a in ["architect_activity", "dev_test_activity", "qa_activity", "github_activity"]:
             assert a in content, f"run/worker.py: '{a}' non enregistrée"
-
-    def test_langgraph_config_exists(self):
-        assert Path("config/langgraph_config.yaml").exists(), \
-            "config/langgraph_config.yaml manquant"
-
-    def test_langgraph_config_fusion_mode(self):
-        path = Path("config/langgraph_config.yaml")
-        if not path.exists():
-            pytest.skip("langgraph_config.yaml manquant")
-        with open(path, encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        mode = config.get("deployment_mode", {}).get("current")
-        assert mode == "fusion", f"LangGraph doit être en mode fusion (actuel: {mode})"
 
     def test_logs_metrics_folder_exists(self):
         assert Path("logs/metrics").exists(), \
