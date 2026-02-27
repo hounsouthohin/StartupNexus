@@ -224,10 +224,18 @@ def dev_agent(
         Hard rule (couche Code) : si le LLM a écrit sous un sous-répertoire
         (ex: 'my-saas/package.json'), retourne ce sous-répertoire ('my-saas').
         Sinon retourne '.'. Corrige le bug working-directory FORCED_RUN_BUILD.
+        Le fichier racine de référence est lu depuis la stack config (root_file),
+        ce qui rend la détection compatible avec toutes les stacks futures.
         """
+        try:
+            from agents.stack_config import get_root_file
+            root_file = get_root_file(effective_stack_id)
+        except Exception:
+            root_file = "package.json"
+        root_filename = root_file.split("/")[-1]
         for p in files_dict.keys():
             normalized = p.replace("\\", "/")
-            if normalized == "package.json" or normalized.endswith("/package.json"):
+            if normalized == root_file or normalized.endswith("/" + root_filename):
                 parent = normalized.rsplit("/", 1)[0] if "/" in normalized else ""
                 return parent if parent else "."
         return "."

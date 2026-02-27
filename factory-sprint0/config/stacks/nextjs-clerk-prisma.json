@@ -5,6 +5,7 @@
   "status": "stable",
   "framework": "nextjs",
   "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
+  "root_file": "package.json",
 
   "packages": {
     "next": "14.2.25",

@@ -7,3 +7,7 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+
+# Projets générés par le pipeline (Docker volume en prod, répertoire local en dev)
+/generated-projects/
+/snapshots/

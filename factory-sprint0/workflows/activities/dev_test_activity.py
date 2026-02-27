@@ -17,7 +17,9 @@ def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
     """
     try:
         import json
-        snapshot_dir = os.path.join(os.path.dirname(__file__), '../../snapshots')
+        # Snapshots dans FACTORY_WORKDIR/snapshots (volume Docker) ou fallback local
+        workdir = os.getenv("FACTORY_WORKDIR", os.path.join(os.path.dirname(__file__), '../..'))
+        snapshot_dir = os.path.join(workdir, 'snapshots')
         os.makedirs(snapshot_dir, exist_ok=True)
         snap_name = f"{project_name}_{run_id[:8]}.json"
         snap_path = os.path.normpath(os.path.join(snapshot_dir, snap_name))

@@ -74,6 +74,11 @@
           "items": { "type": "string" }
         }
       }
+    },
+    "root_file": {
+      "type": "string",
+      "description": "Fichier racine qui identifie le répertoire projet (ex: package.json pour Node, pyproject.toml pour Python). Utilisé par _find_project_dir pour déduire le workdir du projet généré.",
+      "examples": ["package.json", "pyproject.toml", "requirements.txt", "Cargo.toml"]
     }
   }
 }

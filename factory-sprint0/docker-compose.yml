@@ -152,13 +152,14 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - QDRANT_URL=http://qdrant:6333
       - MERMAID_TMP_DIR=/tmp/mermaid
+      - FACTORY_WORKDIR=/app/generated-projects
     command: >
       bash -c "python scripts/wait-for-it.py qdrant:6333 120 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 120 && python api/flask_api.py & python run/worker.py"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp
-      - ./logs:/app/logs       
-      - ./outputs:/app/outputs
+      - ./logs:/app/logs
+      - generated-projects:/app/generated-projects
     networks:
       - temporal-network
     depends_on:
@@ -173,6 +174,7 @@ volumes:
   elasticsearch-data:
   n8n_data:
   qdrant_data:
+  generated-projects:
 
 # Réseau
 networks:

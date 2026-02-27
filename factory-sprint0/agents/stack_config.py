@@ -93,3 +93,13 @@ def get_blueprint(stack_id: str = _DEFAULT_STACK_ID) -> dict:
 def get_compatibility_matrix(stack_id: str = _DEFAULT_STACK_ID) -> dict:
     """Retourne la matrice de compatibilité (ts-jest@29 requis, jest@30 interdit, etc.)."""
     return load_stack_config(stack_id).get("compatibility_matrix", {})
+
+
+def get_root_file(stack_id: str = _DEFAULT_STACK_ID) -> str:
+    """
+    Retourne le fichier racine qui identifie le répertoire projet.
+    Ex: 'package.json' pour Node/Next.js, 'pyproject.toml' pour Python.
+    Utilisé par _find_project_dir pour déduire le workdir du projet généré.
+    Fallback: 'package.json' (stack Node par défaut).
+    """
+    return load_stack_config(stack_id).get("root_file", "package.json")
