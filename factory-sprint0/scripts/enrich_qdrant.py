@@ -31,14 +31,16 @@ CLERK_STANDARD = {
     "category": "clerk",
     "text": (
         "Le seul package npm correct pour Clerk avec Next.js est @clerk/nextjs "
-        "version ^5.0.0. Les packages @clerk/clerk-sdk, @clerk/clerk-js, "
+        "version ^6.0.0. Les packages @clerk/clerk-sdk, @clerk/clerk-js, "
         "@clerk/sdk, @clerk/react n'existent pas ou sont obsolètes et ne doivent "
         "jamais apparaître dans package.json. "
         "Import server-side : from '@clerk/nextjs/server'. "
         "Import client-side : from '@clerk/nextjs'. "
-        "Ne jamais inventer de variante du nom du package Clerk."
+        "Ne jamais inventer de variante du nom du package Clerk. "
+        "CRITIQUE Clerk v6 : auth() retourne une Promise, toujours await. "
+        "Dans clerkMiddleware, auth est un OBJET (pas une fonction) : await auth.protect() (INTERDIT: auth().protect())."
     ),
-    "tags": ["clerk", "npm", "package", "install", "nextjs", "dependency", "version"],
+    "tags": ["clerk", "npm", "package", "install", "nextjs", "dependency", "version", "v6"],
     "priority": "HIGH",
 }
 

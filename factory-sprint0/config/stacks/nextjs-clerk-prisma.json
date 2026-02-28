@@ -114,15 +114,29 @@
       "URL de base: process.env.BASE_URL || 'http://localhost:3000'"
     ]
   },
-  "templates_folder": "config/stacks/nextjs-clerk-prisma/templates",
-  "template_files": {
-    "next.config.js": "next.config.js",
-    "tsconfig.json": "tsconfig.json",
-    "env.local": "env.local.template",
-    "middleware.ts": "middleware.ts",
-    "jest.config.js": "jest.config.js",
-    ".babelrc": "babelrc.template"
+  "spec_validation": {
+    "required_keywords": ["next.js", "clerk", "prisma"],
+    "forbidden_keywords": [
+      "oauth 2.0",
+      "oauth2",
+      "express.js",
+      "flask",
+      "mongodb",
+      "angular",
+      "react.js or",
+      "microservices"
+    ],
+    "required_sections": [
+      "## vue d'ensemble",
+      "## stack technique",
+      "## structure des pages",
+      "## schéma prisma",
+      "## authentification clerk",
+      "## api routes",
+      "## composants tailwind"
+    ]
   },
+
   "technology_categories": {
     "auth": ["clerk", "clerkprovider", "clerkmiddleware"],
     "database": ["prisma", "schema.prisma", "prisma_migrate"],
@@ -142,7 +156,9 @@
       "@clerk/clerk-sdk": "@clerk/nextjs",
       "@clerk/clerk-sdk-react": "@clerk/nextjs",
       "@clerk/nextjs/api": "@clerk/nextjs/server",
-      "@clerk/nextjs/middleware": "@clerk/nextjs/server"
+      "@clerk/nextjs/middleware": "@clerk/nextjs/server",
+      "auth().protect()": "await auth.protect()",
+      "clerkMiddleware((auth,": "clerkMiddleware(async (auth,"
     },
     "test_fixes": {
       "@clerk/clerk-sdk": "@clerk/nextjs",
@@ -159,6 +175,7 @@
       "package.json",
       "next.config.js",
       "tsconfig.json",
+      "jest.config.js",
       "app/layout.tsx",
       "middleware.ts",
       "schema.prisma",
@@ -174,26 +191,7 @@
       ".env.local"
     ],
     "optional_files": [
-      "app/page.tsx",
-      "jest.config.js"
-    ]
-  },
-
-  "sanitizers": [
-    "remove_pages_conflicts",
-    "clerk_middleware_v5",
-    "remove_problematic_babel",
-    "ensure_nextconfig",
-    "ensure_tsconfig_paths",
-    "ensure_env_local"
-  ],
-
-  "build_hooks": {
-    "pre_build": [
-      "_remove_pages_router_conflicts",
-      "_remove_problematic_babel_config",
-      "_ensure_nextconfig_eslint_ignore",
-      "validate_blueprint"
+      "app/page.tsx"
     ]
   },
 

@@ -77,20 +77,20 @@ STANDARDS = [
 
     # ── CLERK ───────────────────────────────────────────────────────────
     {
-        "text": "Clerk authentication v5+ est le système d'auth exclusif pour tous les projets factory. Installation : @clerk/nextjs@^5.0.0. ClerkProvider doit envelopper l'application dans app/layout.tsx. Ne jamais implémenter d'authentification custom (bcrypt, JWT manuel, NextAuth). Variables requises : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY et CLERK_SECRET_KEY.",
-        "metadata": {"category": "clerk", "tech": "clerk", "version": "5.0+", "source": "factory_standards_v1", "outcome": "validated"}
+        "text": "Clerk authentication v6 est le système d'auth exclusif pour tous les projets factory. Installation : @clerk/nextjs@^6.0.0. ClerkProvider doit envelopper l'application dans app/layout.tsx. Ne jamais implémenter d'authentification custom (bcrypt, JWT manuel, NextAuth). Variables requises : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY et CLERK_SECRET_KEY.",
+        "metadata": {"category": "clerk", "tech": "clerk", "version": "6.0+", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
-        "text": "Middleware Clerk (middleware.ts à la racine) : utiliser clerkMiddleware() de @clerk/nextjs/server. Protéger toutes les routes par défaut avec createRouteMatcher. Routes publiques explicites : ['/', '/sign-in(.*)', '/sign-up(.*)'. Exemple : export default clerkMiddleware((auth, req) => { if (!isPublicRoute(req)) auth().protect(); });",
-        "metadata": {"category": "clerk", "tech": "clerk", "version": "5.0+", "source": "factory_standards_v1", "outcome": "validated"}
+        "text": "Middleware Clerk v6 (middleware.ts à la racine) : utiliser clerkMiddleware() et createRouteMatcher() de @clerk/nextjs/server. CRITIQUE Clerk v6 : auth est un OBJET (pas une fonction), callback OBLIGATOIREMENT async, utiliser await auth.protect() (INTERDIT: auth().protect()). Pattern correct : import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'; const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']); export default clerkMiddleware(async (auth, req) => { if (!isPublicRoute(req)) await auth.protect(); });",
+        "metadata": {"category": "clerk", "tech": "clerk", "version": "6.0+", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
         "text": "Pages Clerk obligatoires pour App Router : app/sign-in/[[...sign-in]]/page.tsx avec composant <SignIn /> de @clerk/nextjs. app/sign-up/[[...sign-up]]/page.tsx avec composant <SignUp />. Composants UI Clerk : <UserButton afterSignOutUrl='/' /> dans le header, <SignedIn> et <SignedOut> pour affichage conditionnel. Pas de champ password dans Prisma schema quand Clerk est utilisé.",
-        "metadata": {"category": "clerk", "tech": "clerk", "version": "5.0+", "source": "factory_standards_v1", "outcome": "validated"}
+        "metadata": {"category": "clerk", "tech": "clerk", "version": "6.0+", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
-        "text": "Récupération user Clerk côté serveur : import { auth, currentUser } from '@clerk/nextjs/server'. Dans un Server Component : const { userId } = auth(); const user = await currentUser(). Pour les API routes : const { userId } = auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });",
-        "metadata": {"category": "clerk", "tech": "clerk", "version": "5.0+", "source": "factory_standards_v1", "outcome": "validated"}
+        "text": "Récupération user Clerk v6 côté serveur : import { auth, currentUser } from '@clerk/nextjs/server'. CRITIQUE Clerk v6 : auth() retourne une Promise, toujours utiliser await. Dans un Server Component async : const { userId } = await auth(); const user = await currentUser(). Pour les API routes : const { userId } = (await auth()); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }). INTERDIT : const { userId } = auth() sans await.",
+        "metadata": {"category": "clerk", "tech": "clerk", "version": "6.0+", "source": "factory_standards_v1", "outcome": "validated"}
     },
 
     # ── PRISMA ──────────────────────────────────────────────────────────
@@ -159,8 +159,8 @@ STANDARDS = [
         "metadata": {"category": "security", "tech": "zod", "version": "3.0+", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
-        "text": "Protection CSRF et auth checks factory : vérifier userId Clerk sur chaque route API protégée. Pattern standard : const { userId } = auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }). Vérifier que la ressource appartient bien à l'user : const task = await prisma.task.findFirst({ where: { id, userId } }). Si null → 404, pas 403 (évite l'énumération).",
-        "metadata": {"category": "security", "tech": "clerk", "version": "5.0+", "source": "factory_standards_v1", "outcome": "validated"}
+        "text": "Protection CSRF et auth checks factory Clerk v6 : vérifier userId Clerk sur chaque route API protégée. Pattern standard Clerk v6 : const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }). Vérifier que la ressource appartient bien à l'user : const task = await prisma.task.findFirst({ where: { id, userId } }). Si null → 404, pas 403 (évite l'énumération). INTERDIT : auth() sans await.",
+        "metadata": {"category": "security", "tech": "clerk", "version": "6.0+", "source": "factory_standards_v1", "outcome": "validated"}
     },
     {
         "text": "Toujours sanitizer les entrées utilisateur affichées (sanitize-html ou DOMPurify côté client si besoin) pour prévenir les attaques XSS même avec un bon CSP.",

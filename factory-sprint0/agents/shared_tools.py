@@ -1,0 +1,934 @@
+"""
+shared_tools.py — Tous les @tools LangChain du factory worker.
+
+Re-exporte également les helpers de context.py et observability.py
+pour compatibilité avec les imports existants dans tout le pipeline.
+"""
+
+import json
+import os
+import re
+import shutil
+import subprocess
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Optional
+
+from langchain_core.tools import tool
+from pydantic import BaseModel, Field
+
+from agents.stack_config import _DEFAULT_STACK_ID
+from config.factory_config import (
+    QDRANT_URL,
+    QDRANT_COLLECTION_NAME,
+    EMBEDDING_MODEL,
+    DEFAULT_VECTOR_SEARCH_LIMIT,
+    SUBPROCESS_TIMEOUT_SHORT,
+    SUBPROCESS_TIMEOUT_MEDIUM,
+    SUBPROCESS_TIMEOUT_LONG,
+)
+
+# ── Re-exports pour compatibilité avec tous les imports existants ──────────────
+from agents.context import set_run_id, get_run_id, set_stack_id, get_stack_id  # noqa: F401
+from agents.observability import logger, _append_rag_usage_event, _write_learner_event  # noqa: F401
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Qdrant singleton (lazy init)
+# ─────────────────────────────────────────────────────────────────────────────
+_qdrant_store = None
+_qdrant_embeddings = None
+
+
+def _get_qdrant_store():
+    global _qdrant_store, _qdrant_embeddings
+    if _qdrant_store is not None:
+        return _qdrant_store
+    try:
+        from qdrant_client import QdrantClient
+        from langchain_openai import OpenAIEmbeddings
+        from langchain_qdrant import QdrantVectorStore
+
+        _qdrant_embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+        client = QdrantClient(url=QDRANT_URL)
+        _qdrant_store = QdrantVectorStore(
+            client=client,
+            collection_name=QDRANT_COLLECTION_NAME,
+            embedding=_qdrant_embeddings,
+            content_payload_key="text",
+        )
+        logger.info(f"[qdrant] Store initialisé: {QDRANT_URL}/{QDRANT_COLLECTION_NAME}")
+        return _qdrant_store
+    except Exception as e:
+        logger.warning(f"[qdrant] Init failed: {e}")
+        return None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers internes
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _get_runtime_stack_rules() -> str:
+    """Retourne les règles de la stack active comme string (pour injection prompts)."""
+    try:
+        from agents.stack_config import load_stack_config
+        cfg = load_stack_config(get_stack_id())
+        prompt_rules = cfg.get("prompt_rules", {})
+        lines = []
+        for section, rules in prompt_rules.items():
+            if isinstance(rules, list):
+                for rule in rules:
+                    if isinstance(rule, str):
+                        lines.append(f"- [{section}] {rule}")
+            elif isinstance(rules, dict):
+                for k, v in rules.items():
+                    lines.append(f"- [{section}] {k}: {v}")
+        return "\n".join(lines)
+    except Exception as e:
+        logger.warning(f"_get_runtime_stack_rules failed: {e}")
+        return ""
+
+
+def _get_node_env() -> dict:
+    """Retourne l'environnement pour les sous-processus Node.js."""
+    env = os.environ.copy()
+    env["CI"] = "true"
+    env["NEXT_TELEMETRY_DISABLED"] = "1"
+    return env
+
+
+def _get_workdir() -> str:
+    """
+    Retourne le répertoire de travail pour les fichiers générés.
+    Lit FACTORY_WORKDIR depuis l'environnement (défaut: '.').
+    Crée le répertoire si nécessaire.
+    """
+    workdir = os.getenv("FACTORY_WORKDIR", ".")
+    if workdir != ".":
+        os.makedirs(workdir, exist_ok=True)
+    return workdir
+
+
+MAX_FILE_SIZE_BYTES = 500_000
+MAX_OUTPUT_CHARS = 4000
+
+
+def _truncate_output(text: str, max_chars: int = MAX_OUTPUT_CHARS) -> str:
+    if len(text) <= max_chars:
+        return text
+    half = max_chars // 2
+    return text[:half] + f"\n...[TRONQUÉ {len(text)} chars total]...\n" + text[-half:]
+
+
+def _resolve_safe_path(path: str, base_dir: str) -> str:
+    """
+    Résout un chemin de façon sécurisée par rapport à base_dir.
+    Empêche les path traversal (../../etc/passwd).
+    """
+    base = os.path.realpath(base_dir)
+    candidate = os.path.realpath(os.path.join(base, path))
+    if not candidate.startswith(base):
+        raise ValueError(f"Path traversal détecté: {path!r} sort de {base!r}")
+    return candidate
+
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: rag_search
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
+    """
+    Recherche les standards techniques pertinents dans la base RAG (Qdrant).
+    Utilise l'embedding pour trouver les k documents les plus similaires à la query.
+    Retourne le texte des documents trouvés avec leurs scores et catégories.
+    """
+    run_id = get_run_id()
+    store = _get_qdrant_store()
+
+    if store is None:
+        _append_rag_usage_event(
+            query=query, k=k, cache_hit=False, run_id=run_id,
+            error="Qdrant unavailable"
+        )
+        return "[RAG] Qdrant indisponible — continuer sans contexte RAG."
+
+    try:
+        docs = store.similarity_search_with_score(query, k=k)
+        if not docs:
+            _append_rag_usage_event(
+                query=query, k=k, cache_hit=False, run_id=run_id,
+                doc_ids=[], scores=[], snippet=""
+            )
+            return f"[RAG] Aucun résultat pour: {query}"
+
+        doc_ids = []
+        scores = []
+        results = []
+        for doc, score in docs:
+            doc_id = str(getattr(doc, "id", "") or "")
+            doc_ids.append(doc_id)
+            scores.append(float(score))
+            category = doc.metadata.get("category", "general")
+            results.append(f"[{category}] score={score:.3f}\n{doc.page_content}")
+
+        snippet = docs[0][0].page_content[:180] if docs else ""
+        _append_rag_usage_event(
+            query=query, k=k, cache_hit=False, run_id=run_id,
+            doc_ids=doc_ids, scores=scores, snippet=snippet
+        )
+        return "\n\n---\n\n".join(results)
+
+    except Exception as e:
+        _append_rag_usage_event(
+            query=query, k=k, cache_hit=False, run_id=run_id, error=str(e)
+        )
+        logger.error(f"[rag_search] Error: {e}")
+        return f"[RAG ERROR] {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Sanitizers (appliqués dans write_file)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_test_file_path(path: str) -> bool:
+    """Retourne True si le chemin correspond à un fichier de test."""
+    p = path.replace("\\", "/")
+    return (
+        "/tests/" in p
+        or p.startswith("tests/")
+        or ".test." in p
+        or ".spec." in p
+        or "__tests__" in p
+    )
+
+
+def _apply_import_remaps(content: str, path: str) -> str:
+    """Applique les remappings d'imports définis dans la stack config."""
+    try:
+        from agents.stack_config import get_import_remaps
+        remaps = get_import_remaps(get_stack_id())
+    except Exception:
+        return content
+
+    is_test = _is_test_file_path(path)
+    is_ts = path.endswith((".ts", ".tsx", ".js", ".jsx"))
+
+    if is_ts:
+        fixes = dict(remaps.get("source_fixes", {}))
+        if is_test:
+            fixes.update(remaps.get("test_fixes", {}))
+        for old, new in fixes.items():
+            content = content.replace(old, new)
+        for old, new in remaps.get("router_fixes", {}).items():
+            content = content.replace(old, new)
+
+    return content
+
+
+def _apply_package_fixes(content: str) -> str:
+    """Applique les remappings de packages dans package.json."""
+    try:
+        from agents.stack_config import get_import_remaps
+        remaps = get_import_remaps(get_stack_id())
+        for old, new in remaps.get("package_fixes", {}).items():
+            content = content.replace(f'"{old}"', f'"{new}"')
+    except Exception:
+        pass
+    return content
+
+
+def _fix_json_escaping(content: str) -> str:
+    """
+    Corrige le contenu JSON sur-échappé par le LLM.
+    Symptôme : le LLM passe '\\n' (deux caractères) au lieu d'un vrai saut de ligne,
+    ce qui rend le JSON invalide pour npm (EJSONPARSE position 1).
+    Stratégie : si le contenu est du JSON invalide mais devient valide après
+    décodage unicode_escape, on retourne la version corrigée formatée.
+    """
+    try:
+        json.loads(content)
+        return content  # Déjà valide, rien à faire
+    except json.JSONDecodeError:
+        pass
+    try:
+        fixed = content.encode("utf-8").decode("unicode_escape").encode("latin-1").decode("utf-8")
+        parsed = json.loads(fixed)
+        return json.dumps(parsed, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+    # Fallback minimal : remplacer les séquences littérales les plus communes
+    fixed = content.replace("\\n", "\n").replace("\\t", "\t").replace('\\"', '"')
+    return fixed
+
+
+def _ensure_tsconfig_excludes_tests(content: str) -> str:
+    """
+    Assure que le répertoire tests/ est exclu du build TypeScript (next build).
+    Jest compile les tests séparément — les inclure dans next build provoque
+    TS5070 'differs from already included file name only in casing' sur Linux.
+    """
+    try:
+        cfg = json.loads(content)
+        exclude = cfg.setdefault("exclude", [])
+        if "tests/**" not in exclude:
+            exclude.append("tests/**")
+        return json.dumps(cfg, indent=2, ensure_ascii=False)
+    except Exception:
+        return content
+
+
+def _sanitize_content(path: str, content: str) -> str:
+    """Applique tous les sanitizers sur le contenu avant écriture."""
+    if path.endswith(".json"):
+        content = _fix_json_escaping(content)
+    content = _apply_import_remaps(content, path)
+    if os.path.basename(path) == "package.json":
+        content = _apply_package_fixes(content)
+    if os.path.basename(path) == "tsconfig.json":
+        content = _ensure_tsconfig_excludes_tests(content)
+    return content
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: write_file
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def write_file(path: str, content: str) -> str:
+    """
+    Écrit un fichier dans le répertoire de travail du projet généré (FACTORY_WORKDIR).
+    Applique les sanitizers (import remaps, etc.) avant l'écriture.
+    path: chemin relatif depuis la racine du projet généré (ex: 'app/layout.tsx').
+    content: contenu complet du fichier.
+    """
+    try:
+        workdir = _get_workdir()
+
+        # Normaliser les chemins des fichiers de test en minuscules.
+        # Empêche la coexistence de Layout.test.tsx et layout.test.tsx
+        # sur un filesystem Linux case-sensitive (TypeScript lève alors
+        # TS5070 "differs from already included file name only in casing").
+        if _is_test_file_path(path):
+            path = path.lower()
+
+        abs_path = _resolve_safe_path(path, workdir)
+
+        if len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
+            return f"ERREUR: Fichier trop grand (> {MAX_FILE_SIZE_BYTES} bytes): {path}"
+
+        sanitized = _sanitize_content(path, content)
+
+        os.makedirs(os.path.dirname(abs_path) or ".", exist_ok=True)
+        with open(abs_path, "w", encoding="utf-8") as f:
+            f.write(sanitized)
+
+        logger.info(f"[write_file] ✓ {path} ({len(sanitized)} chars)")
+        return f"OK: {path} écrit ({len(sanitized)} chars)"
+
+    except ValueError as ve:
+        logger.error(f"[write_file] Path traversal: {ve}")
+        return f"ERREUR: {ve}"
+    except Exception as e:
+        logger.error(f"[write_file] Échec {path}: {e}")
+        return f"ERREUR write_file({path}): {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: validate_syntax
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def validate_syntax(path: str) -> str:
+    """
+    Valide la syntaxe d'un fichier TypeScript/JavaScript.
+    path: chemin relatif depuis la racine du projet généré.
+    """
+    try:
+        workdir = _get_workdir()
+        abs_path = _resolve_safe_path(path, workdir)
+
+        if not os.path.exists(abs_path):
+            return f"ERREUR: Fichier introuvable pour validation: {path}"
+
+        result = subprocess.run(
+            ["npx", "tsc", "--noEmit", "--skipLibCheck", abs_path],
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_SHORT,
+            env=_get_node_env(),
+            cwd=workdir,
+        )
+        if result.returncode == 0:
+            return f"OK: {path} — syntaxe valide"
+
+        output = (result.stdout + result.stderr).strip()
+        return f"ERREUR syntaxe {path}:\n{_truncate_output(output)}"
+
+    except subprocess.TimeoutExpired:
+        return f"TIMEOUT: validate_syntax({path})"
+    except Exception as e:
+        return f"ERREUR validate_syntax({path}): {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: prisma_migrate
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def prisma_migrate(project_dir: str = ".") -> str:
+    """
+    Exécute `npx prisma migrate dev --name init` dans le répertoire projet.
+    À appeler après avoir écrit schema.prisma.
+    project_dir: répertoire du projet (relatif depuis FACTORY_WORKDIR ou absolu).
+    """
+    try:
+        workdir = _get_workdir()
+        if not os.path.isabs(project_dir):
+            cwd = os.path.join(workdir, project_dir) if project_dir != "." else workdir
+        else:
+            cwd = project_dir
+
+        result = subprocess.run(
+            ["npx", "prisma", "migrate", "dev", "--name", "init", "--skip-generate"],
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_MEDIUM,
+            env=_get_node_env(),
+            cwd=cwd,
+        )
+        output = (result.stdout + result.stderr).strip()
+        if result.returncode == 0:
+            return f"OK: prisma migrate dev réussi\n{_truncate_output(output)}"
+        return f"ERREUR prisma_migrate (code {result.returncode}):\n{_truncate_output(output)}"
+
+    except subprocess.TimeoutExpired:
+        return "TIMEOUT: prisma_migrate"
+    except Exception as e:
+        return f"ERREUR prisma_migrate: {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: read_files
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def read_files(paths: list) -> str:
+    """
+    Lit un ou plusieurs fichiers depuis le répertoire de travail du projet.
+    paths: liste de chemins relatifs (ex: ['app/layout.tsx', 'package.json']).
+    Retourne le contenu de chaque fichier.
+    """
+    workdir = _get_workdir()
+    results = []
+    for path in paths:
+        try:
+            abs_path = _resolve_safe_path(path, workdir)
+            if not os.path.exists(abs_path):
+                results.append(f"--- {path} ---\nFICHIER ABSENT")
+                continue
+            content = Path(abs_path).read_text(encoding="utf-8", errors="replace")
+            results.append(f"--- {path} ---\n{_truncate_output(content, 3000)}")
+        except Exception as e:
+            results.append(f"--- {path} ---\nERREUR lecture: {e}")
+    return "\n\n".join(results) if results else "Aucun fichier lu."
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pre-build helpers (hooks appelés par run_build)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _remove_pages_tests_router_conflicts(project_path: str) -> list:
+    """
+    Supprime les fichiers pages/ et src/pages/ qui conflictuent avec App Router.
+    Retourne la liste des dossiers supprimés.
+    """
+    removed = []
+    for conflict_dir in ["pages", "src/pages"]:
+        full = os.path.join(project_path, conflict_dir)
+        if os.path.isdir(full):
+            try:
+                shutil.rmtree(full)
+                removed.append(conflict_dir)
+                logger.info(f"[pre-build] Supprimé conflit: {conflict_dir}/")
+            except Exception as e:
+                logger.warning(f"[pre-build] Impossible de supprimer {conflict_dir}/: {e}")
+    return removed
+
+
+def _remove_stale_tests(project_path: str, source_files: set) -> list:
+    """
+    Supprime les fichiers de test orphelins (sans fichier source correspondant).
+    Retourne la liste des fichiers supprimés.
+    """
+    removed = []
+    tests_dir = os.path.join(project_path, "tests")
+    if not os.path.isdir(tests_dir):
+        return removed
+    for root, _, files in os.walk(tests_dir):
+        for fname in files:
+            if fname.endswith((".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")):
+                fpath = os.path.join(root, fname)
+                base = fname.replace(".test.", ".").replace(".spec.", ".")
+                if not any(sf.endswith(base) for sf in source_files):
+                    try:
+                        os.remove(fpath)
+                        removed.append(os.path.relpath(fpath, project_path))
+                        logger.info(f"[pre-build] Test orphelin supprimé: {fpath}")
+                    except Exception as e:
+                        logger.warning(f"[pre-build] Impossible de supprimer {fpath}: {e}")
+    return removed
+
+
+def _count_test_files(project_path: str) -> int:
+    """Compte le nombre de fichiers de test dans le projet."""
+    count = 0
+    for root, _, files in os.walk(project_path):
+        if "node_modules" in root or ".next" in root:
+            continue
+        for fname in files:
+            if _is_test_file_path(os.path.join(root, fname)):
+                count += 1
+    return count
+
+
+def _ensure_layout_dynamic(project_path: str) -> None:
+    """
+    Injecte 'export const dynamic = "force-dynamic"' dans app/layout.tsx si absent.
+
+    Problème : next build pré-rend statiquement toutes les pages. ClerkProvider
+    s'initialise pendant ce prerender et lève une exception si la publishableKey
+    ne commence pas par pk_test_ ou pk_live_ (ex: placeholder 'your_publishable_key').
+    Solution : force-dynamic désactive la génération statique — Clerk n'est plus
+    initialisé pendant le build, seulement à runtime avec de vraies credentials.
+    """
+    layout_path = os.path.join(project_path, "app", "layout.tsx")
+    if not os.path.exists(layout_path):
+        return
+
+    content = Path(layout_path).read_text(encoding="utf-8")
+    if "export const dynamic" in content:
+        return  # Déjà présent
+
+    # Injecter après le dernier import (avant le premier composant/export)
+    lines = content.splitlines(keepends=True)
+    last_import_idx = -1
+    for i, line in enumerate(lines):
+        if line.strip().startswith("import "):
+            last_import_idx = i
+
+    dynamic_line = '\nexport const dynamic = "force-dynamic";\n'
+    if last_import_idx >= 0:
+        lines.insert(last_import_idx + 1, dynamic_line)
+    else:
+        lines.insert(0, dynamic_line + "\n")
+
+    with open(layout_path, "w", encoding="utf-8") as f:
+        f.writelines(lines)
+    logger.info("[pre-build] app/layout.tsx: export const dynamic = 'force-dynamic' injecté")
+
+
+def _fix_nextconfig_security_headers(project_path: str) -> None:
+    """
+    Corrige la section `headers()` de next.config.js si le LLM a généré un
+    tableau plat [{key, value}] au lieu du format Next.js valide :
+      [{ source: '/(.*)', headers: [{key, value}] }]
+
+    Next.js lève : `source` is missing / `headers` field must be an array.
+
+    NOTE DETTE TECHNIQUE : logique stack-specific hardcodée en Python.
+    À migrer vers SanitizerRegistry (Sprint 6-7).
+    """
+    nextconfig_path = os.path.join(project_path, "next.config.js")
+    if not os.path.exists(nextconfig_path):
+        return
+
+    content = Path(nextconfig_path).read_text(encoding="utf-8")
+
+    # Présence d'une fonction headers async dans le fichier
+    has_headers_func = bool(re.search(r'headers\s*\(\s*\)\s*\{', content) or
+                            re.search(r'headers\s*:\s*async\s*\(\)', content))
+    if not has_headers_func:
+        return
+
+    # Si `source:` est déjà présent → format correct, rien à faire
+    if re.search(r'["\']?source["\']?\s*:', content):
+        return
+
+    # Réécriture complète avec format valide
+    correct_config = (
+        "/** @type {import('next').NextConfig} */\n"
+        "const nextConfig = {\n"
+        "  reactStrictMode: true,\n"
+        "  eslint: { ignoreDuringBuilds: true },\n"
+        "  typescript: { ignoreBuildErrors: false },\n"
+        "  async headers() {\n"
+        "    return [\n"
+        "      {\n"
+        "        source: '/(.*)',\n"
+        "        headers: [\n"
+        "          { key: 'X-Frame-Options', value: 'DENY' },\n"
+        "          { key: 'X-Content-Type-Options', value: 'nosniff' },\n"
+        "          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },\n"
+        "        ],\n"
+        "      },\n"
+        "    ];\n"
+        "  },\n"
+        "};\n\n"
+        "module.exports = nextConfig;\n"
+    )
+    with open(nextconfig_path, "w", encoding="utf-8") as f:
+        f.write(correct_config)
+    logger.info("[pre-build] next.config.js: headers invalide (pas de source:) → format Next.js corrigé")
+
+
+def _ensure_layout_html_body(project_path: str) -> None:
+    """
+    Assure que app/layout.tsx contient les balises <html> et <body> requises
+    par Next.js 14 App Router. Le LLM génère parfois un composant React.FC
+    classique sans ces balises → Next.js lève une erreur de build.
+
+    Si les balises sont absentes, réécrit le fichier avec un layout canonique
+    (préserve ClerkProvider si présent, inclut force-dynamic).
+
+    NOTE DETTE TECHNIQUE : logique stack-specific hardcodée en Python.
+    À migrer vers SanitizerRegistry (Sprint 6-7).
+    """
+    layout_path = os.path.join(project_path, "app", "layout.tsx")
+    if not os.path.exists(layout_path):
+        return
+
+    content = Path(layout_path).read_text(encoding="utf-8")
+
+    # Si <html> et <body> sont déjà présents → rien à faire
+    if "<html" in content and "<body" in content:
+        return
+
+    has_clerk = "ClerkProvider" in content
+
+    canonical = (
+        ("import { ClerkProvider } from '@clerk/nextjs';\n" if has_clerk else "")
+        + "\nexport const dynamic = \"force-dynamic\";\n\n"
+        + "export default function RootLayout({\n"
+        + "  children,\n"
+        + "}: {\n"
+        + "  children: React.ReactNode;\n"
+        + "}) {\n"
+        + "  return (\n"
+        + '    <html lang="en">\n'
+        + "      <body>\n"
+        + ("        <ClerkProvider>\n" if has_clerk else "")
+        + "          {children}\n"
+        + ("        </ClerkProvider>\n" if has_clerk else "")
+        + "      </body>\n"
+        + "    </html>\n"
+        + "  );\n"
+        + "}\n"
+    )
+
+    with open(layout_path, "w", encoding="utf-8") as f:
+        f.write(canonical)
+    logger.info("[pre-build] app/layout.tsx: balises <html>/<body> manquantes → layout canonique App Router écrit")
+
+
+def _ensure_nextconfig_eslint_ignore(project_path: str) -> None:
+    """S'assure que next.config.js ignore les erreurs ESLint lors du build."""
+    nextconfig_path = os.path.join(project_path, "next.config.js")
+    if not os.path.exists(nextconfig_path):
+        content = (
+            "/** @type {import('next').NextConfig} */\n"
+            "const nextConfig = {\n"
+            "  reactStrictMode: true,\n"
+            "  eslint: { ignoreDuringBuilds: true },\n"
+            "  typescript: { ignoreBuildErrors: false },\n"
+            "};\n\n"
+            "module.exports = nextConfig;\n"
+        )
+        with open(nextconfig_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info("[pre-build] next.config.js créé avec eslint.ignoreDuringBuilds=true")
+        return
+
+    content = Path(nextconfig_path).read_text(encoding="utf-8")
+    if "ignoreDuringBuilds" not in content:
+        content = content.replace(
+            "const nextConfig = {",
+            "const nextConfig = {\n  eslint: { ignoreDuringBuilds: true },"
+        )
+        with open(nextconfig_path, "w", encoding="utf-8") as f:
+            f.write(content)
+        logger.info("[pre-build] next.config.js: eslint.ignoreDuringBuilds ajouté")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: run_build
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def run_build(project_dir: str = ".") -> str:
+    """
+    Lance npm install puis npm run build dans le répertoire du projet généré.
+    Applique les pre-build hooks: suppression pages/ conflicts, eslint ignore.
+    project_dir: répertoire du projet (relatif depuis FACTORY_WORKDIR ou absolu).
+    """
+    try:
+        workdir = _get_workdir()
+        if not os.path.isabs(project_dir):
+            project_path = os.path.join(workdir, project_dir) if project_dir != "." else workdir
+        else:
+            project_path = project_dir
+        project_path = os.path.normpath(project_path)
+
+        if not os.path.isdir(project_path):
+            return f"ERREUR: Répertoire projet introuvable: {project_path}"
+
+        logger.info(f"[run_build] project_path={project_path}")
+
+        # ── Pre-build hooks ─────────────────────────────────────────────────
+        removed = _remove_pages_tests_router_conflicts(project_path)
+        if removed:
+            logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
+
+        _ensure_nextconfig_eslint_ignore(project_path)
+        _fix_nextconfig_security_headers(project_path)
+        _ensure_layout_html_body(project_path)
+        _ensure_layout_dynamic(project_path)
+
+        # ── npm install ──────────────────────────────────────────────────────
+        install_result = subprocess.run(
+            ["npm", "install", "--legacy-peer-deps"],
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_LONG,
+            env=_get_node_env(),
+            cwd=project_path,
+        )
+        if install_result.returncode != 0:
+            stderr = (install_result.stdout + install_result.stderr).strip()
+            return (
+                f"Build failed at npm install (code {install_result.returncode}).\n"
+                f"Command failed (code {install_result.returncode}): ['npm', 'install', '--legacy-peer-deps']\n"
+                f"STDERR:\n{_truncate_output(stderr)}"
+            )
+
+        # ── npm run build ────────────────────────────────────────────────────
+        build_result = subprocess.run(
+            ["npm", "run", "build"],
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_LONG,
+            env=_get_node_env(),
+            cwd=project_path,
+        )
+        stdout = build_result.stdout.strip()
+        stderr = build_result.stderr.strip()
+
+        if build_result.returncode == 0:
+            logger.info(f"[run_build] Build successful: {project_path}")
+            return f"Build successful!\nSTDOUT:\n{_truncate_output(stdout)}"
+
+        return (
+            f"Build failed (code {build_result.returncode}).\n"
+            f"Command failed (code {build_result.returncode}): ['npm', 'run', 'build']\n"
+            f"STDERR:\n{_truncate_output(stderr)}"
+        )
+
+    except subprocess.TimeoutExpired:
+        return "TIMEOUT: run_build (> 600s)"
+    except Exception as e:
+        return f"ERREUR run_build: {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build error helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _extract_build_error_signature(output: str) -> str:
+    """Extrait la signature principale d'une erreur de build (première ligne clé)."""
+    for line in output.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("Error:") or stripped.startswith("⨯") or "error TS" in stripped:
+            return stripped[:200]
+    return output[:200] if output else ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: run_tests
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def run_tests(project_dir: str = ".", files: dict = {}) -> str:
+    """
+    Écrit les fichiers fournis puis lance jest dans le répertoire projet.
+    project_dir: répertoire du projet (relatif depuis FACTORY_WORKDIR ou absolu).
+    files: dict {path: content} de fichiers à écrire avant les tests (optionnel).
+    """
+    try:
+        workdir = _get_workdir()
+        if not os.path.isabs(project_dir):
+            project_path = os.path.join(workdir, project_dir) if project_dir != "." else workdir
+        else:
+            project_path = project_dir
+        project_path = os.path.normpath(project_path)
+
+        # Écrire les fichiers fournis
+        if files:
+            for path, content in files.items():
+                try:
+                    abs_path = _resolve_safe_path(path, project_path)
+                    os.makedirs(os.path.dirname(abs_path) or ".", exist_ok=True)
+                    with open(abs_path, "w", encoding="utf-8") as f:
+                        f.write(str(content))
+                except Exception as e:
+                    logger.warning(f"[run_tests] Impossible d'écrire {path}: {e}")
+
+        # Vérifier le minimum de tests requis
+        test_count = _count_test_files(project_path)
+        try:
+            from agents.stack_config import load_stack_config
+            cfg = load_stack_config(get_stack_id())
+            min_tests = cfg.get("testing", {}).get("min_required_tests", 1)
+            allow_zero = cfg.get("testing", {}).get("allow_zero_tests_debug", False)
+        except Exception:
+            min_tests = 1
+            allow_zero = False
+
+        if test_count < min_tests and not allow_zero:
+            return f"Tests skipped: aucun fichier de test trouvé dans {project_path} (requis: {min_tests})"
+
+        # Lancer jest
+        result = subprocess.run(
+            ["npx", "jest", "--coverage", "--passWithNoTests"],
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_MEDIUM,
+            env=_get_node_env(),
+            cwd=project_path,
+        )
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        combined = (stdout + "\n" + stderr).strip()
+
+        if result.returncode == 0:
+            return f"Tests passed!\n{_truncate_output(combined)}"
+
+        return (
+            f"Tests failed (code {result.returncode}).\n"
+            f"STDERR:\n{_truncate_output(stderr)}"
+        )
+
+    except subprocess.TimeoutExpired:
+        return "TIMEOUT: run_tests (> 60s)"
+    except Exception as e:
+        return f"ERREUR run_tests: {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Version management helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _major_from_version(version: str) -> Optional[int]:
+    """Extrait le numéro de version majeure depuis une chaîne semver."""
+    m = re.search(r"(\d+)", version.lstrip("^~>=<"))
+    return int(m.group(1)) if m else None
+
+
+def _collect_package_version_mismatches(package_json_content: str, stack_id: str) -> list:
+    """
+    Compare les versions dans package.json avec les version_pins et compatibility_matrix.
+    Retourne une liste de messages de mismatch.
+    """
+    try:
+        pkg = json.loads(package_json_content)
+    except Exception:
+        return []
+
+    from agents.stack_config import get_version_pins, get_compatibility_matrix
+    pins = get_version_pins(stack_id)
+    matrix = get_compatibility_matrix(stack_id)
+    all_deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+    mismatches = []
+
+    for pkg_name, required_version in pins.items():
+        actual = all_deps.get(pkg_name)
+        if actual and actual != required_version:
+            mismatches.append(f"{pkg_name}: attendu={required_version}, trouvé={actual}")
+
+    for pkg_name, compat in matrix.items():
+        actual = all_deps.get(pkg_name)
+        if not actual:
+            continue
+        actual_major = _major_from_version(actual)
+        req_major = compat.get("required_major")
+        min_major = compat.get("min_major")
+        max_major = compat.get("max_major")
+
+        if req_major and actual_major != req_major:
+            mismatches.append(
+                f"{pkg_name}: major requis={req_major}, trouvé={actual_major} "
+                f"({compat.get('reason', '')})"
+            )
+        if min_major and actual_major is not None and actual_major < min_major:
+            mismatches.append(f"{pkg_name}: major minimum={min_major}, trouvé={actual_major}")
+        if max_major and actual_major is not None and actual_major > max_major:
+            mismatches.append(f"{pkg_name}: major maximum={max_major}, trouvé={actual_major}")
+
+    return mismatches
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: log_to_learner
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def log_to_learner(event_type: str, payload: str) -> str:
+    """
+    Enregistre un événement dans le shadow log du Learner.
+    event_type: type de l'événement (ex: 'build_success', 'build_failure').
+    payload: données JSON sérialisées de l'événement.
+    """
+    try:
+        run_id = get_run_id()
+        data = json.loads(payload) if isinstance(payload, str) else payload
+        _write_learner_event(event_type=event_type, payload=data, run_id=run_id)
+        return f"OK: Événement '{event_type}' loggé"
+    except Exception as e:
+        logger.warning(f"[log_to_learner] failed: {e}")
+        return f"ERREUR log_to_learner: {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool: validate_blueprint
+# ─────────────────────────────────────────────────────────────────────────────
+
+@tool
+def validate_blueprint(files: dict) -> str:
+    """
+    Vérifie que tous les fichiers requis par le blueprint de la stack sont présents.
+    files: dict {path: content} des fichiers générés.
+    Retourne un rapport de validation (OK ou liste des manquants).
+    """
+    try:
+        from agents.stack_config import get_blueprint
+        blueprint = get_blueprint(get_stack_id())
+        required = blueprint.get("required_files", [])
+        critical = blueprint.get("critical_files", required)
+    except Exception as e:
+        return f"ERREUR validate_blueprint (impossible de charger le blueprint): {e}"
+
+    present = set(files.keys())
+    missing_critical = [f for f in critical if f not in present]
+    missing_required = [f for f in required if f not in present]
+
+    if missing_critical:
+        return (
+            f"ÉCHEC BLUEPRINT: Fichiers critiques manquants: {missing_critical}\n"
+            f"Fichiers présents: {sorted(present)}"
+        )
+    if missing_required:
+        return (
+            f"AVERTISSEMENT BLUEPRINT: Fichiers requis manquants: {missing_required}\n"
+            f"Fichiers présents: {sorted(present)}"
+        )
+    return f"OK: Blueprint validé — {len(present)} fichiers présents, tous les requis OK."

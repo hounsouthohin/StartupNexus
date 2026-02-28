@@ -25,6 +25,60 @@ EMBEDDINGS = OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
 STANDARDS = [
     {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Clerk v6 middleware.ts — pattern async auth.protect()
+RAISON: Clerk v6 change l'API — dans clerkMiddleware, auth est un OBJET (pas une fonction). auth().protect() cause TypeError car auth() retourne Promise<SessionAuthWithRedirect> et .protect() n'existe pas sur une Promise.
+DETECTION_REGEX: auth\\(\\)\\.protect\\(\\)
+ALTERNATIVE: callback async + await auth.protect() + createRouteMatcher de @clerk/nextjs/server
+EXEMPLE_INVALIDE:
+  export default clerkMiddleware((auth, req) => {
+    if (!isPublicRoute(req)) auth().protect();
+  });
+EXEMPLE_VALIDE:
+  import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+  const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);
+  export default clerkMiddleware(async (auth, req) => {
+    if (!isPublicRoute(req)) await auth.protect();
+  });
+ERREUR_ATTENDUE: Type error: Property 'protect' does not exist on type 'Promise<SessionAuthWithRedirect>'
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "status": "active",
+            "version": "1.0",
+            "category": "clerk",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Clerk v6 auth() dans Server Components et API Routes
+RAISON: Clerk v6 — auth() retourne une Promise. Appel synchrone cause TypeError ou retourne undefined silencieusement.
+DETECTION_REGEX: const\\s*\\{.*userId.*\\}\\s*=\\s*auth\\(\\)(?!\\s*;.*await|.*\\.then)
+ALTERNATIVE: const { userId } = await auth(); dans une fonction async
+EXEMPLE_INVALIDE:
+  export default function Page() {
+    const { userId } = auth();  // sync — FAUX en Clerk v6
+    return <div>{userId}</div>;
+  }
+EXEMPLE_VALIDE:
+  export default async function Page() {
+    const { userId } = await auth();  // async — correct Clerk v6
+    return <div>{userId}</div>;
+  }
+ERREUR_ATTENDUE: TypeError: Cannot destructure property 'userId' of undefined
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "status": "active",
+            "version": "1.0",
+            "category": "clerk",
+        },
+    },
+    {
         "text": """ACTION: INTERDIT
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: pages/ directory

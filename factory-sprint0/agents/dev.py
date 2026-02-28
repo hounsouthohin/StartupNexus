@@ -27,6 +27,42 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 
+# Répertoires système à préserver lors du nettoyage inter-runs
+_WORKDIR_KEEP = {"node_modules", ".npm", "logs", "config", "snapshots", "__pycache__", ".git"}
+
+
+def _clean_project_workdir(workdir: str) -> None:
+    """
+    Supprime les fichiers source du run précédent dans FACTORY_WORKDIR.
+
+    Problème : le cleanup de fin de run ne supprime que node_modules/.next/__pycache__.
+    Les fichiers source (package.json, app/, middleware.ts…) restent sur disque.
+    Au run suivant, le LLM appelle read_files, voit ces fichiers, conclut que le
+    projet est déjà généré et ne produit que jest.setup.js → SEMANTIC_VIOLATION.
+
+    Solution : supprimer tous les fichiers/dossiers non-système en début de run.
+    node_modules est déjà nettoyé en fin de run précédent → non présent ici.
+    """
+    if not workdir or not os.path.isdir(workdir):
+        return
+    try:
+        for item in os.listdir(workdir):
+            if item in _WORKDIR_KEEP:
+                continue
+            full = os.path.join(workdir, item)
+            try:
+                if os.path.isfile(full) or os.path.islink(full):
+                    os.remove(full)
+                    logger.info(f"[pre-run cleanup] Fichier supprimé : {item}")
+                elif os.path.isdir(full):
+                    shutil.rmtree(full, ignore_errors=True)
+                    logger.info(f"[pre-run cleanup] Répertoire supprimé : {item}")
+            except Exception as item_err:
+                logger.warning(f"[pre-run cleanup] Impossible de supprimer {item}: {item_err}")
+    except Exception as e:
+        logger.warning(f"[pre-run cleanup] Erreur listage workdir '{workdir}': {e}")
+
+
 # --- Dev Agent v3 Ultimate – Version 3.2 Breakthrough (Premier SaaS imminent) ---
 def dev_agent(
     spec: str,
@@ -39,6 +75,11 @@ def dev_agent(
     Dev Agent v3 Ultimate – Version finale stable.
     Correction boucle jest.config.js + détection run_build + progression forcée.
     """
+    # Nettoyage du workdir avant toute génération — évite la contamination inter-runs.
+    _workdir = os.getenv("FACTORY_WORKDIR", "")
+    if _workdir:
+        _clean_project_workdir(_workdir)
+
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
     tools_phase1 = [write_file, validate_syntax, prisma_migrate, rag_search, read_files]
@@ -160,9 +201,9 @@ def dev_agent(
     required_files_block = ""
     if required_files:
         required_files_block = (
-            "FICHIERS OBLIGATOIRES À GÉNÉRER :\n"
-            + "\n".join(f"- {f}" for f in required_files)
-            + "\n\n"
+            "ORDRE DE GÉNÉRATION OBLIGATOIRE — respecte cette séquence exacte, un fichier à la fois :\n"
+            + "\n".join(f"{i+1}. {f}" for i, f in enumerate(required_files))
+            + "\nNe génère PAS de fichiers hors de cette liste avant que tous soient créés.\n\n"
         )
     packages = stack_cfg.get("packages", {})
     packages_block = ""
@@ -170,6 +211,14 @@ def dev_agent(
         packages_block = (
             "VERSIONS DE PACKAGES OBLIGATOIRES (copier exactement dans package.json, ne pas modifier) :\n"
             + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in packages.items())
+            + "\n\n"
+        )
+    dev_packages = stack_cfg.get("dev_packages", {})
+    dev_packages_block = ""
+    if dev_packages:
+        dev_packages_block = (
+            "DEV DEPENDENCIES OBLIGATOIRES (copier exactement dans devDependencies) :\n"
+            + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in dev_packages.items())
             + "\n\n"
         )
     messages = [
@@ -180,6 +229,7 @@ def dev_agent(
             f"Mermaid :\n{summarized_mermaid}\n\n"
             f"Contexte RAG obligatoire (préchargé) :\n{mandatory_rag_context}\n\n"
             f"{packages_block}"
+            f"{dev_packages_block}"
             f"{required_files_block}"
             "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes stack framework auth orm ui') puis génère package.json."
         ))
@@ -375,7 +425,8 @@ def dev_agent(
                         # Lire le contenu réel depuis le disque après sanitize,
                         # pour que files[path] == ce que test_coverage_agent utilisera.
                         try:
-                            disk_path = os.path.abspath(path)
+                            workdir = os.getenv("FACTORY_WORKDIR", ".")
+                            disk_path = os.path.normpath(os.path.join(workdir, path))
                             with open(disk_path, "r", encoding="utf-8") as _df:
                                 files[path] = _df.read()
                         except Exception:
@@ -397,12 +448,20 @@ def dev_agent(
         if current_phase == 2 and all(any(k in p for p in files) for k in key_files) and not build_success:
             messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
 
-        # Transition Phase 1 → Phase 2 : injecter le prompt de correction build
+        # Transition Phase 1 → Phase 2 : compléter les manquants puis build
         if iteration == PHASE1_LIMIT and not build_success:
+            _missing_required = [f for f in required_files if not any(f in p for p in files)]
+            _missing_block = (
+                "FICHIERS OBLIGATOIRES MANQUANTS — génère-les EN PREMIER, avant tout run_build :\n"
+                + "\n".join(f"- {f}" for f in _missing_required)
+                + "\n\n"
+            ) if _missing_required else ""
             messages.append(HumanMessage(content=(
-                "PHASE 2 — CORRECTION BUILD\n"
-                f"Génération terminée. Fichiers présents : {list(files.keys())}\n"
-                f"Appelle run_build(project_dir='{_pdir}') et corrige toutes les erreurs retournées jusqu'au succès."
+                "PHASE 2 — COMPLÉTION + BUILD\n"
+                f"Fichiers présents : {list(files.keys())}\n\n"
+                f"{_missing_block}"
+                f"Une fois tous les fichiers obligatoires générés, appelle run_build(project_dir='{_pdir}') "
+                "et corrige toutes les erreurs retournées jusqu'au succès."
             )))
 
         # Garde-fou: si le modele stagne sans progres, forcer un run_build — Phase 2 seulement.

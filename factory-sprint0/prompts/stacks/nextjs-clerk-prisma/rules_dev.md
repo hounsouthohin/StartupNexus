@@ -6,6 +6,13 @@
 - Creer middleware.ts avec clerkMiddleware() et createRouteMatcher
 - NE PAS generer app/api/auth/route.ts
 
+### CLERK V6 — CHANGEMENTS CRITIQUES API (breaking changes vs v5)
+- Dans `clerkMiddleware` : `auth` est un OBJET (pas une fonction) — utiliser `auth.protect()` (INTERDIT: `auth().protect()`)
+- Callback `clerkMiddleware` OBLIGATOIREMENT `async` — utiliser `await auth.protect()`
+- `createRouteMatcher` OBLIGATOIRE de `@clerk/nextjs/server` (INTERDIT: fonction custom `isPublicRoute` maison)
+- Dans Server Components et API Routes : `auth()` retourne une Promise — TOUJOURS `await auth()` (INTERDIT: sans await)
+- Hooks client (`useAuth`, `useUser`) : importer de `@clerk/nextjs` (INTERDIT: de `@clerk/nextjs/server`)
+
 ### UI / COMPOSANTS
 - Tailwind CSS uniquement
 - INTERDIT: shadcn/ui, @radix-ui, @headlessui, librairies de composants externes

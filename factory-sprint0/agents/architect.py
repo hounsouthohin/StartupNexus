@@ -294,26 +294,14 @@ def create_architect_agent():
             llm_response = await chain.ainvoke({"input": harden_input})
             specification = llm_response.content
 
-        required_keywords = ["next.js", "clerk", "prisma"]
-        forbidden_keywords = [
-            "oauth 2.0",
-            "oauth2",
-            "express.js",
-            "flask",
-            "mongodb",
-            "angular",
-            "react.js or",
-            "microservices",
-        ]
-        required_sections = [
-            "## vue d'ensemble",
-            "## stack technique",
-            "## structure des pages",
-            "## schéma prisma",
-            "## authentification clerk",
-            "## api routes",
-            "## composants tailwind",
-        ]
+        try:
+            from agents.stack_config import load_stack_config
+            _spec_val = load_stack_config(active_stack).get("spec_validation", {})
+        except Exception:
+            _spec_val = {}
+        required_keywords = _spec_val.get("required_keywords", [])
+        forbidden_keywords = _spec_val.get("forbidden_keywords", [])
+        required_sections = _spec_val.get("required_sections", [])
 
         spec_lower = specification.lower()
         missing_keywords = [kw for kw in required_keywords if kw not in spec_lower]
