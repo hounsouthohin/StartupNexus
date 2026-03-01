@@ -1,5 +1,5 @@
 {
-  "total_suggestions": 18,
+  "total_suggestions": 26,
   "suggested_standards": [
     {
       "timestamp": "2026-02-27T14:34:45.562286+00:00",
@@ -325,6 +325,160 @@
     {
       "timestamp": "2026-02-28T03:11:06.068805+00:00",
       "run_id": "26939c8c-f389-4078-bc6f-199d5e137b11",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T18:44:50.727673+00:00",
+      "run_id": "f4f88005-73aa-4834-96c3-7f913d31ac0d",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 2,
+        "clerk_compliant": false,
+        "dev_files_count": 1,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "ÉCHEC : ERREUR RÉCURRENTE BUILD",
+        "last_build_error": "npm error code ENOENT\nnpm error syscall open\nnpm error path /app/generated-projects/package.json\nnpm error errno -2\nnpm error enoent Could not read package.json: Error: ENOENT: no such file or directo",
+        "last_build_error_full": "npm error code ENOENT\nnpm error syscall open\nnpm error path /app/generated-projects/package.json\nnpm error errno -2\nnpm error enoent Could not read package.json: Error: ENOENT: no such file or directory, open '/app/generated-projects/package.json'\nnpm error enoent This is related to npm not being able to find a file.\nnpm error enoent\nnpm error A complete log of this run can be found in: /root/.npm/_logs/2026-03-01T18_44_26_573Z-debug-0.log",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "npm install --legacy-peer-deps",
+        "semantic_violations": [
+          "MISSING app/layout.tsx",
+          "MISSING middleware.ts"
+        ],
+        "error": "BuildFailed: npm error code ENOENT\nnpm error syscall open\nnpm error path /app/generated-projects/package.json\nnpm error errno -2\nnpm error enoent Could not read package.json: Error: ENOENT: no such file or directo"
+      }
+    },
+    {
+      "timestamp": "2026-03-01T18:44:59.078944+00:00",
+      "run_id": "f4f88005-73aa-4834-96c3-7f913d31ac0d",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T19:18:46.042101+00:00",
+      "run_id": "47317136-b859-48d4-8ae0-459e000606a3",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 1,
+        "clerk_compliant": false,
+        "dev_files_count": 1,
+        "build_attempts": 3,
+        "iterations": 10,
+        "final_message": "ÉCHEC : ERREUR RÉCURRENTE BUILD",
+        "last_build_error": "ERREUR CRITIQUE: package.json introuvable dans le répertoire de build.\nChemin attendu: /app/generated-projects/package.json\nACTION REQUISE: générer package.json en PREMIER avec write_file avant d'appe",
+        "last_build_error_full": "ERREUR CRITIQUE: package.json introuvable dans le répertoire de build.\nChemin attendu: /app/generated-projects/package.json\nACTION REQUISE: générer package.json en PREMIER avec write_file avant d'appeler run_build.\nFichiers obligatoires manquants: package.json, app/layout.tsx, middleware.ts, next.config.js, tsconfig.json",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [
+          "MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques",
+          "MISSING app/layout.tsx",
+          "MISSING middleware.ts"
+        ],
+        "error": "BuildFailed: ERREUR CRITIQUE: package.json introuvable dans le répertoire de build.\nChemin attendu: /app/generated-projects/package.json\nACTION REQUISE: générer package.json en PREMIER avec write_file avant d'appe"
+      }
+    },
+    {
+      "timestamp": "2026-03-01T19:18:55.270030+00:00",
+      "run_id": "47317136-b859-48d4-8ae0-459e000606a3",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T19:37:05.918934+00:00",
+      "run_id": "2af5a251-5c50-4932-917d-cde524b19646",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 3,
+        "clerk_compliant": false,
+        "dev_files_count": 2,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "ÉCHEC : ERREUR RÉCURRENTE BUILD",
+        "last_build_error": "> Build error occurred\nError: > Couldn't find any `pages` or `app` directory. Please create one under the project root\n    at findPagesDir (/app/generated-projects/node_modules/next/dist/lib/find-page",
+        "last_build_error_full": "> Build error occurred\nError: > Couldn't find any `pages` or `app` directory. Please create one under the project root\n    at findPagesDir (/app/generated-projects/node_modules/next/dist/lib/find-pages-dir.js:42:15)\n    at /app/generated-projects/node_modules/next/dist/build/index.js:406:73\n    at async Span.traceAsyncFn (/app/generated-projects/node_modules/next/dist/trace/trace.js:154:20)\n    at async build (/app/generated-projects/node_modules/next/dist/build/index.js:368:9)",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "npm run build",
+        "semantic_violations": [
+          "MISSING app/layout.tsx",
+          "MISSING middleware.ts"
+        ],
+        "error": "BuildFailed: > Build error occurred\nError: > Couldn't find any `pages` or `app` directory. Please create one under the project root\n    at findPagesDir (/app/generated-projects/node_modules/next/dist/lib/find-page"
+      }
+    },
+    {
+      "timestamp": "2026-03-01T19:37:14.603859+00:00",
+      "run_id": "2af5a251-5c50-4932-917d-cde524b19646",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T19:54:31.687898+00:00",
+      "run_id": "8cddd887-79ee-4e27-b9c7-2f2c5badf0cb",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 11,
+        "build_attempts": 0,
+        "iterations": 9,
+        "final_message": "Continuons l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T19:54:38.748602+00:00",
+      "run_id": "8cddd887-79ee-4e27-b9c7-2f2c5badf0cb",
       "event_type": "qa_run",
       "payload": {
         "project_name": "todo-batch-alpha",

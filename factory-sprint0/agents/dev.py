@@ -139,7 +139,11 @@ def dev_agent(
             return messages_list
 
         kept = [messages_list[0], messages_list[1]]
-        current_chars = sum(len(str(getattr(m, "content", ""))) for m in kept)
+        # Le budget s'applique UNIQUEMENT aux tours supplémentaires (pas aux messages initiaux
+        # qui sont toujours conservés). Sinon messages[1] (spec + RAG context ≈ 16 000 chars)
+        # dépasse MAX_MAIN_HISTORY_CHARS à lui seul → aucun tour récent n'est jamais inclus
+        # → le LLM ne voit jamais son historique et boucle sur la même instruction.
+        current_chars = 0
 
         # Découpe en "turns" cohérents après les 2 messages initiaux.
         turns = []
@@ -231,7 +235,9 @@ def dev_agent(
             f"{packages_block}"
             f"{dev_packages_block}"
             f"{required_files_block}"
-            "Étape 1 OBLIGATOIRE : appelle rag_search('versions exactes stack framework auth orm ui') puis génère package.json."
+            "⚠️ RÈGLE ABSOLUE — package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE (avant jest.setup.js, avant app/layout.tsx, avant tout). "
+            "Étape 1 OBLIGATOIRE : génère IMMÉDIATEMENT package.json avec les versions exactes ci-dessus. "
+            "Ne génère AUCUN autre fichier avant que package.json soit écrit sur le disque."
         ))
     ]
 
@@ -442,6 +448,27 @@ def dev_agent(
             stagnant_iterations = 0
         else:
             stagnant_iterations += 1
+
+        # ── Guard Phase 1 : package.json DOIT être le premier fichier écrit ────────────
+        # Si le LLM écrit n'importe quel fichier AVANT package.json en Phase 1,
+        # on injecte un message de correction immédiat pour le remettre sur la bonne voie.
+        if current_phase == 1 and wrote_file_this_iter and "package.json" not in files:
+            non_pkg_files = [
+                tc["args"].get("path", "")
+                for tc in response.tool_calls
+                if tc["name"] == "write_file" and tc["args"].get("path", "") != "package.json"
+            ]
+            if non_pkg_files:
+                logger.warning(
+                    f"[PHASE1_SEQUENCE_VIOLATION] Fichier(s) écrit(s) avant package.json : {non_pkg_files}"
+                )
+                messages.append(HumanMessage(content=(
+                    f"⚠️ ERREUR DE SÉQUENCE CRITIQUE : Tu as écrit {non_pkg_files} avant package.json.\n"
+                    "RÈGLE ABSOLUE : package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE.\n"
+                    "ACTION OBLIGATOIRE IMMÉDIATE : génère package.json maintenant avec les versions exactes :\n"
+                    + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in packages.items())
+                    + "\n\nNe génère AUCUN autre fichier avant que package.json soit écrit."
+                )))
 
         # Forçage progression si fichiers clés présents — Phase 2 seulement
         _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet

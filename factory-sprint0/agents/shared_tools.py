@@ -97,6 +97,48 @@ def _get_node_env() -> dict:
     return env
 
 
+def _build_rag_filter(stack_id: str):
+    """
+    Construit le filtre Qdrant pour limiter rag_search() aux standards
+    de la stack active (ou "global") avec status=active.
+
+    Résout Config-Runtime Drift #26 : qdrant_filter déclaré dans le JSON
+    stack mais jamais consommé par rag_search().
+
+    Structure payload Qdrant : {"text": "...", "metadata": {"stack": ..., "status": ...}}
+    → Les chemins de clé sont donc "metadata.stack" et "metadata.status".
+
+    Retourne None si les modèles Qdrant ne sont pas disponibles (fallback sans filtre).
+    """
+    try:
+        from qdrant_client.http.models import Filter, FieldCondition, MatchValue
+        return Filter(
+            must=[
+                # Standard de la stack active OU standard global
+                Filter(
+                    should=[
+                        FieldCondition(
+                            key="metadata.stack",
+                            match=MatchValue(value=stack_id),
+                        ),
+                        FieldCondition(
+                            key="metadata.stack",
+                            match=MatchValue(value="global"),
+                        ),
+                    ]
+                ),
+                # Uniquement les standards actifs (pas draft, pas deprecated)
+                FieldCondition(
+                    key="metadata.status",
+                    match=MatchValue(value="active"),
+                ),
+            ]
+        )
+    except Exception as e:
+        logger.warning(f"[_build_rag_filter] Filtre Qdrant non disponible: {e}")
+        return None
+
+
 def _get_workdir() -> str:
     """
     Retourne le répertoire de travail pour les fichiers générés.
@@ -155,7 +197,18 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
         return "[RAG] Qdrant indisponible — continuer sans contexte RAG."
 
     try:
-        docs = store.similarity_search_with_score(query, k=k)
+        # Filtre sur la stack active + status=active (Config-Runtime Drift #26 résolu)
+        qdrant_filter = _build_rag_filter(get_stack_id())
+        docs = store.similarity_search_with_score(query, k=k, filter=qdrant_filter)
+
+        # Fallback sans filtre si aucun résultat (ex: collection pas encore migrée)
+        if not docs and qdrant_filter is not None:
+            logger.warning(
+                "[rag_search] Aucun résultat avec filtre stack — fallback sans filtre. "
+                "Vérifier: reset_qdrant.py + create_full_standards_v1.py ont-ils été exécutés ?"
+            )
+            docs = store.similarity_search_with_score(query, k=k)
+
         if not docs:
             _append_rag_usage_event(
                 query=query, k=k, cache_hit=False, run_id=run_id,
@@ -682,6 +735,18 @@ def run_build(project_dir: str = ".") -> str:
 
         if not os.path.isdir(project_path):
             return f"ERREUR: Répertoire projet introuvable: {project_path}"
+
+        # ── Guard ENOENT : package.json doit exister avant npm install ───────
+        pkg_json_path = os.path.join(project_path, "package.json")
+        if not os.path.isfile(pkg_json_path):
+            msg = (
+                "ERREUR CRITIQUE: package.json introuvable dans le répertoire de build.\n"
+                f"Chemin attendu: {pkg_json_path}\n"
+                "ACTION REQUISE: générer package.json en PREMIER avec write_file avant d'appeler run_build.\n"
+                "Fichiers obligatoires manquants: package.json, app/layout.tsx, middleware.ts, next.config.js, tsconfig.json"
+            )
+            logger.error(f"[run_build] {msg}")
+            return msg
 
         logger.info(f"[run_build] project_path={project_path}")
 

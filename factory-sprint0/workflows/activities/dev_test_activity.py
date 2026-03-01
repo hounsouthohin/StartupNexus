@@ -44,6 +44,10 @@ def _check_semantic_invariants(combined_files: dict) -> List[str]:
     """
     violations = []
 
+    # 0. package.json doit exister (ENOENT guard)
+    if "package.json" not in combined_files:
+        violations.append("MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques")
+
     # 1. app/layout.tsx doit exister et contenir ClerkProvider
     layout = combined_files.get("app/layout.tsx", "")
     if not layout:

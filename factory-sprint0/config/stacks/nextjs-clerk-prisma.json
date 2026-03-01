@@ -55,6 +55,7 @@
     "passport",
     "next-auth",
     "nextauth",
+    "authMiddleware",
     "/api/auth/register",
     "/api/auth/login",
     "shadcn/ui"
@@ -84,9 +85,14 @@
       "test": "jest"
     },
     "auth_rules": [
-      "Clerk exclusif pour auth (INTERDIT: bcrypt, NextAuth, JWT custom, Passport)",
-      "Implementer ClerkProvider dans app/layout.tsx",
-      "Creer middleware.ts avec clerkMiddleware() et createRouteMatcher",
+      "Clerk exclusif pour auth (INTERDIT: bcrypt, NextAuth, JWT custom, Passport, authMiddleware)",
+      "ClerkProvider dans app/layout.tsx : OBLIGATOIRE a l'EXTERIEUR de <html> — structure: <ClerkProvider><html lang='en'><body>{children}</body></html></ClerkProvider>",
+      "app/layout.tsx : ajouter 'export const dynamic = \"force-dynamic\"' apres les imports — POLICY factory (pas obligation SDK) : empeche le prerender statique qui crash ClerkProvider avec placeholder key",
+      "Creer middleware.ts a la RACINE (pas dans app/) avec clerkMiddleware(async (auth, req) => { await auth.protect(); }) UNIQUEMENT — callback DOIT etre async",
+      "INTERDIT authMiddleware (Clerk v5 supprime en v6) — utiliser clerkMiddleware depuis @clerk/nextjs/server",
+      "CONTEXTE MIDDLEWARE UNIQUEMENT : dans clerkMiddleware, auth est un OBJET injecte (pas une fonction) — CORRECT: await auth.protect() | INTERDIT: auth().protect()",
+      "CONTEXTE SERVER COMPONENTS / ROUTE HANDLERS : auth() EST une fonction async — CORRECT: const { userId } = await auth() | le remap auth().protect() NE s'applique PAS ici",
+      "Imports serveur Clerk depuis @clerk/nextjs/server UNIQUEMENT — imports client (useUser, UserButton) depuis @clerk/nextjs",
       "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes"
     ],
     "ui_rules": [
@@ -95,8 +101,9 @@
       "INTERDIT: import depuis @/components/ui/*"
     ],
     "orm_rules": [
-      "Prisma pour la base de donnees (schema.prisma)",
-      "Utiliser clerkId (String) et INTERDIT: champ password",
+      "Prisma 7 : generer DEUX fichiers — prisma/schema.prisma ET prisma.config.ts (defineConfig depuis 'prisma/config')",
+      "Utiliser clerkId String @unique — INTERDIT: champ password, password_hash, passwordHash avec Clerk",
+      "Chaque modele Prisma DOIT avoir createdAt DateTime @default(now()) et updatedAt DateTime @updatedAt",
       "Executer prisma_migrate apres ecriture de schema.prisma"
     ],
     "security_rules": [
@@ -104,7 +111,10 @@
       "Pas de secrets en dur - utiliser .env.local"
     ],
     "test_rules": [
-      "Toujours mocker Clerk dans les tests React via jest.mock('@clerk/nextjs', ...)",
+      "jest.config.js : utiliser next/jest comme preset via createJestConfig — INTERDIT preset: 'ts-jest' directement",
+      "jest.config.js : OBLIGATOIRE setupFilesAfterEnv: ['<rootDir>/jest.setup.js'] — cle EXACTE (pas setupFiles, pas setupFilesAfterFramework)",
+      "jest.setup.js : contient uniquement 'import \"@testing-library/jest-dom\"'",
+      "Toujours mocker Clerk dans les tests React : jest.mock('@clerk/nextjs', () => ({ useAuth: ..., ClerkProvider: ({children}) => children }))",
       "Utiliser jest.mock('@clerk/nextjs/server') pour les tests API Routes",
       "Utiliser node-mocks-http pour les tests de Route Handlers"
     ],
@@ -124,7 +134,12 @@
       "mongodb",
       "angular",
       "react.js or",
-      "microservices"
+      "microservices",
+      "@clerk/nextjs/api",
+      "nextapirequest",
+      "nextapiresponse",
+      "authMiddleware",
+      "pages/api/"
     ],
     "required_sections": [
       "## vue d'ensemble",
@@ -175,11 +190,14 @@
       "package.json",
       "next.config.js",
       "tsconfig.json",
-      "jest.config.js",
       "app/layout.tsx",
       "middleware.ts",
-      "schema.prisma",
-      ".env.local"
+      "prisma/schema.prisma",
+      "prisma.config.ts",
+      ".env.local",
+      "app/page.tsx",
+      "jest.config.js",
+      "jest.setup.js"
     ],
     "critical_files": [
       "package.json",
@@ -187,11 +205,12 @@
       "tsconfig.json",
       "app/layout.tsx",
       "middleware.ts",
-      "schema.prisma",
+      "prisma/schema.prisma",
       ".env.local"
     ],
     "optional_files": [
-      "app/page.tsx"
+      "app/api/*/route.ts",
+      "app/components/*.tsx"
     ]
   },
 
@@ -208,18 +227,24 @@
     "cleanup_stale_tests": "always"
   },
   "mandatory_rag_queries": [
-    "versions exactes next.js clerk prisma tailwind zod",
-    "clerk next.js 14 app/layout ClerkProvider middleware.ts clerkMiddleware createRouteMatcher sign-in sign-up routes interdites",
-    "prisma clerkId sans password schema conventions"
+    "versions exactes next.js clerk prisma jest ts-jest packages obligatoires",
+    "clerk v6 ClerkProvider layout.tsx html body force-dynamic clerkMiddleware async auth.protect middleware",
+    "jest.config.js next/jest createJestConfig setupFilesAfterEnv jest.setup.js testing-library",
+    "prisma 7 schema.prisma prisma.config.ts defineConfig clerkId sans password createdAt updatedAt",
+    "next.config.js eslint ignoreDuringBuilds headers source path tsconfig exclude tests"
   ],
 
   "qdrant_filter": {
     "collection": "factory_standards",
     "filter": {
-      "should": [
-        {"key": "stack", "match": {"value": "nextjs-clerk-prisma"}},
-        {"key": "stack", "match": {"value": "nextjs"}},
-        {"key": "stack", "match": {"value": "clerk"}}
+      "must": [
+        {
+          "should": [
+            {"key": "metadata.stack", "match": {"value": "nextjs-clerk-prisma"}},
+            {"key": "metadata.stack", "match": {"value": "global"}}
+          ]
+        },
+        {"key": "metadata.status", "match": {"value": "active"}}
       ]
     }
   },
@@ -227,7 +252,7 @@
   "compatibility_matrix": {
     "ts-jest": {
       "required_major": 29,
-      "reason": "ts-jest@27/28 incompatible avec TypeScript>=5.x",
+      "reason": "ts-jest 29.x est la seule branche supportée avec Jest 29 + TypeScript 5.x; versions 27/28 ciblent TS 4.x (warning de non-support affiché si versions incompatibles)",
       "incompatible_with": {
         "jest": ">=30"
       }
@@ -235,7 +260,7 @@
     "next": {
       "min_major": 14,
       "max_major": 14,
-      "reason": "next@15+ incompatible avec Clerk V5 App Router Sprint 0-3"
+      "reason": "Pinné à Next 14 pour validation Sprint 0-3 (POLICY factory); Next 15 + Clerk V6 est fonctionnel mais non validé par la factory — à promouvoir en matrice expérimentale v2.0"
     },
     "jest": {
       "required_major": 29,
