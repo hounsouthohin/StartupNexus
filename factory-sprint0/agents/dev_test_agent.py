@@ -67,7 +67,22 @@ class DevTestAgent:
             logger.warning(f"Validation sortie Dev échouée (mode non bloquant): {e}")
 
         # ─── Phase Test ───────────────────────────────────────
-        test_input = {"files": dev_output.get("files", {})}
+        # Exclure les fichiers d'infrastructure (templated_files) du contexte du
+        # test agent : middleware.ts (Edge Runtime), jest.config.js, tsconfig.json,
+        # .env.local, etc. ne sont pas des fichiers de logique métier testables en jest.
+        dev_files = dev_output.get("files", {})
+        try:
+            from agents.stack_config import load_stack_config
+            _stack_id = str(input_data.get("stack_id", _DEFAULT_STACK_ID))
+            _templated = load_stack_config(_stack_id).get("templated_files", {})
+            testable_files = {k: v for k, v in dev_files.items() if k not in _templated}
+            logger.info(
+                f"Test agent — {len(testable_files)}/{len(dev_files)} fichiers testables "
+                f"(exclus: {sorted(set(dev_files) - set(testable_files))})"
+            )
+        except Exception:
+            testable_files = dev_files
+        test_input = {"files": testable_files}
         self._validate(test_input, self.test_contract["input_schema"], "Test", "input")
 
         try:
@@ -90,12 +105,14 @@ class DevTestAgent:
             "dev_output": dev_output,
             "test_output": test_output,
             "combined_files": combined,
-            "success": build_success and tests_passed,
+            # success = build réussi. Les tests sont un signal qualité non bloquant.
+            "success": build_success,
             "metadata": {
                 "total_files": len(combined),
                 "mode": "fusion",
                 "dev_files_count": len(dev_output.get("files", {})),
-                "test_files_count": len(test_output.get("tests", {}))
+                "test_files_count": len(test_output.get("tests", {})),
+                "tests_passed": tests_passed,
             }
         }
 

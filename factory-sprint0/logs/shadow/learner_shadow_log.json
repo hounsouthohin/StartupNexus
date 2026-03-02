@@ -1,5 +1,5 @@
 {
-  "total_suggestions": 26,
+  "total_suggestions": 38,
   "suggested_standards": [
     {
       "timestamp": "2026-02-27T14:34:45.562286+00:00",
@@ -479,6 +479,222 @@
     {
       "timestamp": "2026-03-01T19:54:38.748602+00:00",
       "run_id": "8cddd887-79ee-4e27-b9c7-2f2c5badf0cb",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T20:13:24.314926+00:00",
+      "run_id": "f9ca6104-98fd-417a-b7ab-b3b8d3a1a300",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 11,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "ÉCHEC : ERREUR RÉCURRENTE BUILD",
+        "last_build_error": "⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Compiled with warnings\n\n./midd",
+        "last_build_error_full": "⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Compiled with warnings\n\n./middleware.ts\nAttempted import error: 'clerkMiddleware' is not exported from '@clerk/nextjs' (imported as 'clerkMiddleware').\n\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\nFailed to compile.\n\n./middleware.ts:1:10\nType error: Module '\"@clerk/nextjs\"' has no exported member 'clerkMiddleware'.\n\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { clerkMiddleware } \u001b[36mfrom\u001b[39m \u001b[32m'@clerk/nextjs'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 2 |\u001b[39m \u001b[36mimport\u001b[39m { createRouteMatcher } \u001b[36mfrom\u001b[39m \u001b[32m'@clerk/nextjs/server'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 4 |\u001b[39m \u001b[36mconst\u001b[39m isPublicRoute \u001b[33m=\u001b[39m createRouteMatcher([\u001b[32m'/sign-in(.*)'\u001b[39m\u001b[33m,\u001b[39m \u001b[32m'/sign-up(.*)'\u001b[39m])\u001b[33m;\u001b[39m\u001b[0m\nNext.js build worker exited with code: 1 and signal: null",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "npm run build",
+        "semantic_violations": [],
+        "error": "BuildFailed: ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Compiled with warnings\n\n./midd"
+      }
+    },
+    {
+      "timestamp": "2026-03-01T20:13:32.801680+00:00",
+      "run_id": "f9ca6104-98fd-417a-b7ab-b3b8d3a1a300",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T20:34:24.800097+00:00",
+      "run_id": "f2757fbb-1573-4501-b30f-a146798cc9e7",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 11,
+        "clerk_compliant": true,
+        "dev_files_count": 10,
+        "build_attempts": 0,
+        "iterations": 9,
+        "final_message": "Continuez avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": "BuildFailed: Continuez avec l'étape suivante sans réécrire les fichiers existants."
+      }
+    },
+    {
+      "timestamp": "2026-03-01T20:34:34.080194+00:00",
+      "run_id": "f2757fbb-1573-4501-b30f-a146798cc9e7",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-01T23:30:59.098463+00:00",
+      "run_id": "aa7604b7-8b94-4bbe-a48b-fd45375db952",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 13,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "ÉCHEC : ERREUR RÉCURRENTE BUILD",
+        "last_build_error": "⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dep",
+        "last_build_error_full": "⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\nFailed to compile.\n\n./prisma/seed.ts:1:10\nType error: Module '\"@prisma/client\"' has no exported member 'PrismaClient'.\n\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m { \u001b[33mPrismaClient\u001b[39m } \u001b[36mfrom\u001b[39m \u001b[32m'@prisma/client'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m          \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 2 |\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m \u001b[36mconst\u001b[39m prisma \u001b[33m=\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mPrismaClient\u001b[39m()\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 4 |\u001b[39m\u001b[0m\nNext.js build worker exited with code: 1 and signal: null",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "npm run build",
+        "semantic_violations": [],
+        "error": "BuildFailed: ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\n ⚠ Found lockfile missing swc dep"
+      }
+    },
+    {
+      "timestamp": "2026-03-01T23:31:08.117881+00:00",
+      "run_id": "aa7604b7-8b94-4bbe-a48b-fd45375db952",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T00:22:52.826139+00:00",
+      "run_id": "7d52ae22-a886-455b-90d7-f874bc32b159",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 11,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuez l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": "BuildFailed: Continuez l'étape suivante sans réécrire les fichiers existants."
+      }
+    },
+    {
+      "timestamp": "2026-03-02T00:22:57.877610+00:00",
+      "run_id": "7d52ae22-a886-455b-90d7-f874bc32b159",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T00:40:49.033077+00:00",
+      "run_id": "ec3d1073-ef6b-4ec1-9388-0d14c669ba00",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 11,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuez avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T00:40:55.675997+00:00",
+      "run_id": "ec3d1073-ef6b-4ec1-9388-0d14c669ba00",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T00:51:36.547600+00:00",
+      "run_id": "d4fdf183-1072-46d9-bdee-c46c1567fd47",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 12,
+        "clerk_compliant": true,
+        "dev_files_count": 11,
+        "build_attempts": 0,
+        "iterations": 9,
+        "final_message": "Continuez avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T00:51:43.788468+00:00",
+      "run_id": "d4fdf183-1072-46d9-bdee-c46c1567fd47",
       "event_type": "qa_run",
       "payload": {
         "project_name": "todo-batch-alpha",

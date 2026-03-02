@@ -1008,6 +1008,37 @@ VERSION: 1.0""",
         },
     },
     {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: .env.local — contenu obligatoire (Clerk + Database)
+RAISON: Sans NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, ClerkProvider crash au runtime (Missing publishableKey). Sans CLERK_SECRET_KEY, tous les appels serveur Clerk échouent (401 Unauthorized). Sans DATABASE_URL, Prisma ne peut pas se connecter à la base.
+CONTENU_OBLIGATOIRE:
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
+  CLERK_SECRET_KEY=sk_test_placeholder
+  DATABASE_URL="postgresql://user:password@localhost:5432/todo-batch-alpha"
+DETECTION_REGEX: ^NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+ALTERNATIVE: Créer .env.local à la RACINE du projet avec les 3 variables exactes
+EXEMPLE_INVALIDE:
+  DATABASE_URL="postgresql://..."
+  # Manque NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY → ClerkProvider crash runtime
+  # Manque CLERK_SECRET_KEY → auth() serveur → 401
+EXEMPLE_VALIDE:
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
+  CLERK_SECRET_KEY=sk_test_placeholder
+  DATABASE_URL="postgresql://user:password@localhost:5432/todo-batch-alpha"
+ERREUR_ATTENDUE: Error: @clerk/nextjs: Missing publishableKey
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "9-security",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "factory_standards_v2",
+        },
+    },
+    {
         "text": """ACTION: INTERDIT
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: Variables d'environnement — secrets avec préfixe NEXT_PUBLIC_

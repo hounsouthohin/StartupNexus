@@ -93,6 +93,7 @@
       "CONTEXTE MIDDLEWARE UNIQUEMENT : dans clerkMiddleware, auth est un OBJET injecte (pas une fonction) — CORRECT: await auth.protect() | INTERDIT: auth().protect()",
       "CONTEXTE SERVER COMPONENTS / ROUTE HANDLERS : auth() EST une fonction async — CORRECT: const { userId } = await auth() | le remap auth().protect() NE s'applique PAS ici",
       "Imports serveur Clerk depuis @clerk/nextjs/server UNIQUEMENT — imports client (useUser, UserButton) depuis @clerk/nextjs",
+      "INTERDIT ABSOLU: import { clerkMiddleware } from '@clerk/nextjs' — clerkMiddleware est un middleware SERVEUR, TOUJOURS importer depuis '@clerk/nextjs/server'. Écrire en UNE SEULE ligne: import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'",
       "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes"
     ],
     "ui_rules": [
@@ -108,7 +109,8 @@
     ],
     "security_rules": [
       "Validation Zod sur toutes les entrees utilisateur",
-      "Pas de secrets en dur - utiliser .env.local"
+      ".env.local DOIT contenir EXACTEMENT ces 3 variables : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder | CLERK_SECRET_KEY=sk_test_placeholder | DATABASE_URL=\"postgresql://user:password@localhost:5432/todo-batch-alpha\" — générer ce fichier lors de l'Étape 1 avec package.json",
+      "INTERDIT: NEXT_PUBLIC_CLERK_SECRET_KEY (expose le secret Clerk au bundle client)"
     ],
     "test_rules": [
       "jest.config.js : utiliser next/jest comme preset via createJestConfig — INTERDIT preset: 'ts-jest' directement",
@@ -139,7 +141,9 @@
       "nextapirequest",
       "nextapiresponse",
       "authMiddleware",
-      "pages/api/"
+      "pages/api/",
+      "clerkmiddleware } from '@clerk/nextjs'",
+      "createroutematcher } from '@clerk/nextjs'"
     ],
     "required_sections": [
       "## vue d'ensemble",
@@ -173,7 +177,11 @@
       "@clerk/nextjs/api": "@clerk/nextjs/server",
       "@clerk/nextjs/middleware": "@clerk/nextjs/server",
       "auth().protect()": "await auth.protect()",
-      "clerkMiddleware((auth,": "clerkMiddleware(async (auth,"
+      "clerkMiddleware((auth,": "clerkMiddleware(async (auth,",
+      "clerkMiddleware } from '@clerk/nextjs'": "clerkMiddleware } from '@clerk/nextjs/server'",
+      "clerkMiddleware } from \"@clerk/nextjs\"": "clerkMiddleware } from \"@clerk/nextjs/server\"",
+      "createRouteMatcher } from '@clerk/nextjs'": "createRouteMatcher } from '@clerk/nextjs/server'",
+      "createRouteMatcher } from \"@clerk/nextjs\"": "createRouteMatcher } from \"@clerk/nextjs/server\""
     },
     "test_fixes": {
       "@clerk/clerk-sdk": "@clerk/nextjs",
@@ -183,6 +191,15 @@
     "router_fixes": {
       "next/router": "next/navigation"
     }
+  },
+
+  "templated_files": {
+    "middleware.ts":   "templates/middleware.ts",
+    "jest.config.js":  "templates/jest.config.js",
+    "jest.setup.js":   "templates/jest.setup.js",
+    "next.config.js":  "templates/next.config.js",
+    "tsconfig.json":   "templates/tsconfig.json",
+    ".env.local":      "templates/env.local.template"
   },
 
   "blueprint": {

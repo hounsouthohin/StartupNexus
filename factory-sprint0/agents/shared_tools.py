@@ -357,6 +357,23 @@ def write_file(path: str, content: str) -> str:
     content: contenu complet du fichier.
     """
     try:
+        # Guard : refuser l'écrasement des fichiers gérés par templates
+        # Note: lstrip("./") est incorrect — il enlèverait le "." de ".env.local".
+        # On retire uniquement le préfixe "./" s'il est présent.
+        _norm_path = path.replace("\\", "/")
+        if _norm_path.startswith("./"):
+            _norm_path = _norm_path[2:]
+        try:
+            _templated = load_stack_config(get_stack_id()).get("templated_files", {})
+            if _norm_path in _templated:
+                logger.info(f"[write_file] ⛔ TEMPLATE_PROTÉGÉ — {path} ignoré")
+                return (
+                    f"TEMPLATE_PROTÉGÉ: '{path}' est géré par la factory (template validé). "
+                    f"Ce fichier est déjà correct sur le disque. Passe au fichier suivant de la liste."
+                )
+        except Exception:
+            pass
+
         workdir = _get_workdir()
 
         # Normaliser les chemins des fichiers de test en minuscules.

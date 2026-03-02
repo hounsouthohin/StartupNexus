@@ -63,6 +63,39 @@ def _clean_project_workdir(workdir: str) -> None:
         logger.warning(f"[pre-run cleanup] Erreur listage workdir '{workdir}': {e}")
 
 
+def _write_template_files(workdir: str, stack_cfg: dict, project_name: str, stack_id: str) -> dict:
+    """
+    Écrit les fichiers templates sur disque AVANT la boucle LLM.
+    Ces fichiers sont invariants pour la stack — le LLM ne doit pas les régénérer.
+    Retourne {nom_fichier: contenu} des fichiers écrits.
+    """
+    import pathlib
+    templated = stack_cfg.get("templated_files", {})
+    if not templated or not workdir:
+        return {}
+
+    # Répertoire base : factory-sprint0/config/stacks/{stack_id}/
+    base_dir = pathlib.Path(__file__).parent.parent / "config" / "stacks" / stack_id
+
+    written = {}
+    for dest_filename, template_rel_path in templated.items():
+        try:
+            template_path = base_dir / template_rel_path
+            if not template_path.exists():
+                logger.warning(f"[templates] Template introuvable: {template_path}")
+                continue
+            content = template_path.read_text(encoding="utf-8")
+            content = content.replace("{project_name}", project_name)
+            dest_path = pathlib.Path(workdir) / dest_filename
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            dest_path.write_text(content, encoding="utf-8")
+            written[dest_filename] = content
+            logger.info(f"[templates] ✓ {dest_filename} écrit depuis template")
+        except Exception as e:
+            logger.warning(f"[templates] Erreur écriture {dest_filename}: {e}")
+    return written
+
+
 # --- Dev Agent v3 Ultimate – Version 3.2 Breakthrough (Premier SaaS imminent) ---
 def dev_agent(
     spec: str,
@@ -191,6 +224,12 @@ def dev_agent(
     prompt = load_stack_prompt("dev", effective_stack_id)
     from .stack_config import load_stack_config
     stack_cfg = load_stack_config(effective_stack_id) or {}
+
+    # ── Écriture des fichiers templates AVANT la boucle LLM ──────────────────
+    # Ces fichiers sont invariants pour la stack. Le LLM ne doit pas les régénérer.
+    _template_written = _write_template_files(_workdir, stack_cfg, project_name, effective_stack_id)
+    _templated_names = set(_template_written.keys())
+
     blueprint = get_blueprint(effective_stack_id)
     required_files = blueprint.get("required_files", []) if isinstance(blueprint, dict) else []
     mandatory_rag_queries = stack_cfg.get("mandatory_rag_queries", [])
@@ -202,11 +241,21 @@ def dev_agent(
         except Exception as rag_err:
             mandatory_rag_context_chunks.append(f"[RAG::{query}] ERROR: {rag_err}")
     mandatory_rag_context = "\n\n".join(mandatory_rag_context_chunks)
+
+    # Exclure les fichiers templates de l'ordre de génération LLM
+    llm_required_files = [f for f in required_files if f not in _templated_names]
+    templates_block = ""
+    if _templated_names:
+        templates_block = (
+            "FICHIERS DÉJÀ ÉCRITS PAR LA FACTORY (templates validés — NE PAS RÉÉCRIRE) :\n"
+            + "\n".join(f"  ✓ {f}" for f in sorted(_templated_names))
+            + "\nCes fichiers sont corrects sur le disque. Concentre-toi sur les fichiers MÉTIER ci-dessous.\n\n"
+        )
     required_files_block = ""
-    if required_files:
+    if llm_required_files:
         required_files_block = (
             "ORDRE DE GÉNÉRATION OBLIGATOIRE — respecte cette séquence exacte, un fichier à la fois :\n"
-            + "\n".join(f"{i+1}. {f}" for i, f in enumerate(required_files))
+            + "\n".join(f"{i+1}. {f}" for i, f in enumerate(llm_required_files))
             + "\nNe génère PAS de fichiers hors de cette liste avant que tous soient créés.\n\n"
         )
     packages = stack_cfg.get("packages", {})
@@ -234,6 +283,7 @@ def dev_agent(
             f"Contexte RAG obligatoire (préchargé) :\n{mandatory_rag_context}\n\n"
             f"{packages_block}"
             f"{dev_packages_block}"
+            f"{templates_block}"
             f"{required_files_block}"
             "⚠️ RÈGLE ABSOLUE — package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE (avant jest.setup.js, avant app/layout.tsx, avant tout). "
             "Étape 1 OBLIGATOIRE : génère IMMÉDIATEMENT package.json avec les versions exactes ci-dessus. "
@@ -242,6 +292,8 @@ def dev_agent(
     ]
 
     files = {}
+    # Pré-populer files avec le contenu des templates (comptabilisés comme déjà écrits)
+    files.update(_template_written)
     final_message = ""
     build_attempts = 0
     build_attempted = False
