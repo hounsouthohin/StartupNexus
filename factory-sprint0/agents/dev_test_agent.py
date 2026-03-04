@@ -58,7 +58,7 @@ class DevTestAgent:
         try:
             dev_output = dev_agent(**dev_input, run_id=run_id)
         except Exception as e:
-            logger.exception("Échec phase Dev")
+            logger.exception("Échec phase Dev")         
             return self._error_payload("dev", str(e))
         try:
             self._validate(dev_output, self.dev_contract["output_schema"], "Dev", "output")
@@ -125,7 +125,7 @@ class DevTestAgent:
                 "files": {},
                 "final_message": msg,
                 "success": False,
-            },
+            },  
             "test_output": {
                 "tests": {},
                 "success": False,

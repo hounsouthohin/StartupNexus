@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-03-02T16:29:53.466744+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "workflow_success_count": 1,
+  "workflow_failure_count": 0,
+  "build_success_count": 1,
+  "build_failure_count": 0,
+  "build_unknown_count": 0,
+  "success_count": 1,
+  "failure_count": 0,
+  "total_duration_seconds": 199.81,
+  "total_learner_events_delta": 2,
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-todo-batch-alpha-1918b63c",
+      "run_id": "019caf5f-7157-7a0c-9585-ab1df0ab7ba7",
+      "project_name": "todo-batch-alpha",
+      "phrase": "Cree une application de blog avec Clerk, articles et commentaires",
+      "started_at": "2026-03-02T16:26:33.651418+00:00",
+      "duration_seconds": 199.81,
+      "workflow_success": true,
+      "build_success": true,
+      "workflow_status": "COMPLETED",
+      "build_status": "SUCCESS",
+      "error": null,
+      "learner_events_before": 38,
+      "learner_events_after": 40,
+      "learner_events_delta": 2,
+      "result_excerpt": "TodoPilotOutput(workflow_status='COMPLETED', build_status='SUCCESS', project_name='todo-batch-alpha', generated_files_count=14, pr_url='https://github.com/hounsouthohin/saas-todo-batch-alpha/pull/1', repo_url='https://github.com/hounsouthohin/saas-todo-batch-alpha', dev_files_count=12, test_files_count=2, duration_seconds=199.742809, error_message=None)"
+    }
+  ]
+}

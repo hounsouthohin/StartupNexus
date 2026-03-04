@@ -35,6 +35,7 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.dev_test_activity import dev_test_activity
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
+    from workflows.activities.learner_activity import learner_activity
 
 @workflow.defn
 class TodoPilotWorkflow:
@@ -174,6 +175,21 @@ class TodoPilotWorkflow:
                 workflow.logger.info("GitHub terminé")
             except Exception as github_err:
                 workflow.logger.warning(f"GitHub skipped due to error: {github_err}")
+
+            # 5. Learner — best-effort, ne bloque jamais le workflow
+            try:
+                learner_result: Dict[str, Any] = await workflow.execute_activity(
+                    learner_activity,
+                    args=[run_id],
+                    start_to_close_timeout=timedelta(minutes=5),
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                workflow.logger.info(
+                    f"Learner terminé — "
+                    f"{learner_result.get('suggestions_generated', 0)} suggestion(s)"
+                )
+            except Exception as learner_err:
+                workflow.logger.warning(f"Learner skipped due to error: {learner_err}")
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})

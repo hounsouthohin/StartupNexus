@@ -97,41 +97,60 @@ def _get_node_env() -> dict:
     return env
 
 
+def _json_filter_to_qdrant(filter_dict: dict):
+    """
+    Traduit un filtre JSON stack (qdrant_filter.filter) en Qdrant Filter model.
+    Supporte : must[], should[] imbriqués, FieldCondition key+match.value.
+    """
+    from qdrant_client.http.models import Filter, FieldCondition, MatchValue
+
+    def _parse_condition(cond: dict):
+        if "should" in cond:
+            return Filter(should=[_parse_condition(c) for c in cond["should"]])
+        if "must" in cond:
+            return Filter(must=[_parse_condition(c) for c in cond["must"]])
+        if "key" in cond:
+            return FieldCondition(
+                key=cond["key"],
+                match=MatchValue(value=cond["match"]["value"]),
+            )
+        raise ValueError(f"[_json_filter_to_qdrant] Condition non reconnue: {cond}")
+
+    must_raw = filter_dict.get("must", [])
+    if not must_raw:
+        return None
+    return Filter(must=[_parse_condition(c) for c in must_raw])
+
+
 def _build_rag_filter(stack_id: str):
     """
-    Construit le filtre Qdrant pour limiter rag_search() aux standards
-    de la stack active (ou "global") avec status=active.
-
-    Résout Config-Runtime Drift #26 : qdrant_filter déclaré dans le JSON
-    stack mais jamais consommé par rag_search().
-
-    Structure payload Qdrant : {"text": "...", "metadata": {"stack": ..., "status": ...}}
-    → Les chemins de clé sont donc "metadata.stack" et "metadata.status".
-
-    Retourne None si les modèles Qdrant ne sont pas disponibles (fallback sans filtre).
+    Construit le filtre Qdrant depuis qdrant_filter.filter du JSON stack.
+    Source de vérité : nextjs-clerk-prisma.json (résout Config-Runtime Drift).
+    Fallback programmatique si la config est absente ou invalide.
+    Retourne None si les modèles Qdrant ne sont pas disponibles.
     """
     try:
         from qdrant_client.http.models import Filter, FieldCondition, MatchValue
+        from agents.stack_config import get_qdrant_filter_cfg
+
+        filter_cfg = get_qdrant_filter_cfg(stack_id).get("filter", {})
+        if filter_cfg:
+            return _json_filter_to_qdrant(filter_cfg)
+
+        # Fallback si qdrant_filter absent du JSON
+        logger.warning(
+            f"[_build_rag_filter] qdrant_filter absent pour stack '{stack_id}' "
+            "— fallback programmatique (ajouter qdrant_filter dans le JSON stack)"
+        )
         return Filter(
             must=[
-                # Standard de la stack active OU standard global
                 Filter(
                     should=[
-                        FieldCondition(
-                            key="metadata.stack",
-                            match=MatchValue(value=stack_id),
-                        ),
-                        FieldCondition(
-                            key="metadata.stack",
-                            match=MatchValue(value="global"),
-                        ),
+                        FieldCondition(key="metadata.stack", match=MatchValue(value=stack_id)),
+                        FieldCondition(key="metadata.stack", match=MatchValue(value="global")),
                     ]
                 ),
-                # Uniquement les standards actifs (pas draft, pas deprecated)
-                FieldCondition(
-                    key="metadata.status",
-                    match=MatchValue(value="active"),
-                ),
+                FieldCondition(key="metadata.status", match=MatchValue(value="active")),
             ]
         )
     except Exception as e:
@@ -753,19 +772,27 @@ def run_build(project_dir: str = ".") -> str:
         if not os.path.isdir(project_path):
             return f"ERREUR: Répertoire projet introuvable: {project_path}"
 
-        # ── Guard ENOENT : package.json doit exister avant npm install ───────
-        pkg_json_path = os.path.join(project_path, "package.json")
-        if not os.path.isfile(pkg_json_path):
+        # ── Lire commandes depuis la stack config (résout Config-Runtime Drift) ─
+        from agents.stack_config import get_commands, get_root_file
+        stack_id = get_stack_id()
+        cmds = get_commands(stack_id)
+        root_file = get_root_file(stack_id)
+        install_cmd = cmds.get("install_legacy", "npm install --legacy-peer-deps").split()
+        build_cmd = cmds.get("build", "npm run build").split()
+
+        # ── Guard ENOENT : fichier racine doit exister avant install ────────
+        root_file_path = os.path.join(project_path, root_file)
+        if not os.path.isfile(root_file_path):
             msg = (
-                "ERREUR CRITIQUE: package.json introuvable dans le répertoire de build.\n"
-                f"Chemin attendu: {pkg_json_path}\n"
-                "ACTION REQUISE: générer package.json en PREMIER avec write_file avant d'appeler run_build.\n"
+                f"ERREUR CRITIQUE: {root_file} introuvable dans le répertoire de build.\n"
+                f"Chemin attendu: {root_file_path}\n"
+                f"ACTION REQUISE: générer {root_file} en PREMIER avec write_file avant d'appeler run_build.\n"
                 "Fichiers obligatoires manquants: package.json, app/layout.tsx, middleware.ts, next.config.js, tsconfig.json"
             )
             logger.error(f"[run_build] {msg}")
             return msg
 
-        logger.info(f"[run_build] project_path={project_path}")
+        logger.info(f"[run_build] project_path={project_path} install={install_cmd} build={build_cmd}")
 
         # ── Pre-build hooks ─────────────────────────────────────────────────
         removed = _remove_pages_tests_router_conflicts(project_path)
@@ -777,9 +804,9 @@ def run_build(project_dir: str = ".") -> str:
         _ensure_layout_html_body(project_path)
         _ensure_layout_dynamic(project_path)
 
-        # ── npm install ──────────────────────────────────────────────────────
+        # ── Install (commande lue depuis stack JSON) ─────────────────────────
         install_result = subprocess.run(
-            ["npm", "install", "--legacy-peer-deps"],
+            install_cmd,
             capture_output=True,
             text=True,
             timeout=SUBPROCESS_TIMEOUT_LONG,
@@ -789,14 +816,14 @@ def run_build(project_dir: str = ".") -> str:
         if install_result.returncode != 0:
             stderr = (install_result.stdout + install_result.stderr).strip()
             return (
-                f"Build failed at npm install (code {install_result.returncode}).\n"
-                f"Command failed (code {install_result.returncode}): ['npm', 'install', '--legacy-peer-deps']\n"
+                f"Build failed at install (code {install_result.returncode}).\n"
+                f"Command failed (code {install_result.returncode}): {install_cmd}\n"
                 f"STDERR:\n{_truncate_output(stderr)}"
             )
 
-        # ── npm run build ────────────────────────────────────────────────────
+        # ── Build (commande lue depuis stack JSON) ───────────────────────────
         build_result = subprocess.run(
-            ["npm", "run", "build"],
+            build_cmd,
             capture_output=True,
             text=True,
             timeout=SUBPROCESS_TIMEOUT_LONG,
@@ -812,7 +839,7 @@ def run_build(project_dir: str = ".") -> str:
 
         return (
             f"Build failed (code {build_result.returncode}).\n"
-            f"Command failed (code {build_result.returncode}): ['npm', 'run', 'build']\n"
+            f"Command failed (code {build_result.returncode}): {build_cmd}\n"
             f"STDERR:\n{_truncate_output(stderr)}"
         )
 
@@ -854,9 +881,21 @@ def run_tests(project_dir: str = ".", files: dict = {}) -> str:
             project_path = project_dir
         project_path = os.path.normpath(project_path)
 
-        # Écrire les fichiers fournis
+        # Charger la liste des fichiers protégés par templates (ne pas écraser)
+        try:
+            _templated_protected = load_stack_config(get_stack_id()).get("templated_files", {})
+        except Exception:
+            _templated_protected = {}
+
+        # Écrire les fichiers fournis (sauf les templates protégés déjà sur disque)
         if files:
             for path, content in files.items():
+                _norm = path.replace("\\", "/")
+                if _norm.startswith("./"):
+                    _norm = _norm[2:]
+                if _norm in _templated_protected:
+                    logger.info(f"[run_tests] ⛔ TEMPLATE_PROTÉGÉ — {path} non écrasé")
+                    continue
                 try:
                     abs_path = _resolve_safe_path(path, project_path)
                     os.makedirs(os.path.dirname(abs_path) or ".", exist_ok=True)

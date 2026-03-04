@@ -28,7 +28,15 @@ TASK_QUEUE = "factory-task-queue"
 LEARNER_LOG_PATH = os.path.join("logs", "shadow", "learner_shadow_log.json")
 
 BATCH_PROJECTS: List[Dict[str, str]] = [
-    {"project_name": "todo-batch-alpha", "phrase": "Cree une Todo app Next.js avec Clerk, priorites et tags."},
+    {
+        "project_name": "personal-blog",
+        "phrase": (
+            "Blog CMS avec Clerk (auteur unique)\n"
+            "- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n"
+            "- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n"
+            "- API Route : PUT /api/posts/[id] (toggle published, auth requise)"
+        ),
+    },
     {"project_name": "todo-batch-bravo", "phrase": "Cree une Todo app collaborative avec listes partagees et reminders."},
     {"project_name": "todo-batch-charlie", "phrase": "Cree une Todo app avec calendrier hebdo et filtres avances."},
     {"project_name": "todo-batch-delta", "phrase": "Cree une Todo app orientee equipe avec tableaux Kanban."},

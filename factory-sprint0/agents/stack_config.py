@@ -103,3 +103,20 @@ def get_root_file(stack_id: str = _DEFAULT_STACK_ID) -> str:
     Fallback: 'package.json' (stack Node par défaut).
     """
     return load_stack_config(stack_id).get("root_file", "package.json")
+
+
+def get_commands(stack_id: str = _DEFAULT_STACK_ID) -> dict[str, str]:
+    """
+    Retourne les commandes d'exécution de la stack (install, build, test, etc.).
+    Ex: {"install_legacy": "npm install --legacy-peer-deps", "build": "npm run build"}
+    Résout Config-Runtime Drift : commands déclaré dans JSON mais jamais consommé.
+    """
+    return load_stack_config(stack_id).get("commands", {})
+
+
+def get_qdrant_filter_cfg(stack_id: str = _DEFAULT_STACK_ID) -> dict:
+    """
+    Retourne la config qdrant_filter (collection + filter) pour la stack.
+    Résout Config-Runtime Drift : qdrant_filter déclaré dans JSON mais jamais consommé.
+    """
+    return load_stack_config(stack_id).get("qdrant_filter", {})

@@ -1,5 +1,5 @@
 {
-  "total_suggestions": 38,
+  "total_suggestions": 53,
   "suggested_standards": [
     {
       "timestamp": "2026-02-27T14:34:45.562286+00:00",
@@ -702,6 +702,282 @@
         "qa_e2e_coverage": true,
         "generated_tests_count": 1,
         "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T16:29:21.528757+00:00",
+      "run_id": "578623e6-0a3e-4c27-b483-4fdd61dec6f5",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 14,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuez avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T16:29:28.960563+00:00",
+      "run_id": "578623e6-0a3e-4c27-b483-4fdd61dec6f5",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T19:08:45.504794+00:00",
+      "run_id": "9129cf09-db5e-4c9c-9b38-abc70f3d8b5b",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 13,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuez l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T19:08:49.950804+00:00",
+      "run_id": "9129cf09-db5e-4c9c-9b38-abc70f3d8b5b",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "todo-batch-alpha",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T19:42:36.467962+00:00",
+      "run_id": "a0c7dc49-7ae7-4500-abe2-39ee99e282bf",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 14,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 0,
+        "iterations": 9,
+        "final_message": "Continuez avec l'étape suivante.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-02T19:42:46.612994+00:00",
+      "run_id": "a0c7dc49-7ae7-4500-abe2-39ee99e282bf",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:20:19.036037+00:00",
+      "run_id": "851660ef-a894-410f-93e7-cc0d5cf86403",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 13,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuons l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:20:26.839625+00:00",
+      "run_id": "851660ef-a894-410f-93e7-cc0d5cf86403",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:44:28.362453+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 13,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuez avec l'étape suivante sans réécrire les fichiers existants.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:44:38.194612+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:45:01.342106+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P001-63f7e3",
+        "category": "prompt",
+        "severity": "high",
+        "title": "Taux de succès global insuffisant",
+        "description": "Seulement 33% de succès sur 24 runs. Améliorer les prompts dev ou renforcer les guards de séquence.",
+        "evidence": {
+          "success_rate": 0.333,
+          "total_runs": 24,
+          "successes": 8
+        },
+        "generated_at": "2026-03-04T02:45:01.337949+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:45:01.362179+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P002-fefe75",
+        "category": "guard",
+        "severity": "medium",
+        "title": "Violation sémantique récurrente: MISSING middleware.ts",
+        "description": "'MISSING middleware.ts' observée 6× sur 24 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+        "evidence": {
+          "violation": "MISSING middleware.ts",
+          "count": 6,
+          "total_runs": 24
+        },
+        "generated_at": "2026-03-04T02:45:01.338151+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:45:01.381084+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P002-e1074a",
+        "category": "guard",
+        "severity": "medium",
+        "title": "Violation sémantique récurrente: MISSING app/layout.tsx",
+        "description": "'MISSING app/layout.tsx' observée 5× sur 24 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+        "evidence": {
+          "violation": "MISSING app/layout.tsx",
+          "count": 5,
+          "total_runs": 24
+        },
+        "generated_at": "2026-03-04T02:45:01.338162+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:45:01.401919+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P004-f753c2",
+        "category": "config",
+        "severity": "medium",
+        "title": "MAX_ITERATIONS atteint dans plus de 30% des runs",
+        "description": "11/24 runs atteignent MAX_ITERATIONS (≥10). Envisager un early-stop basé sur les fichiers générés ou des prompts plus directifs pour réduire le nombre d'itérations.",
+        "evidence": {
+          "max_iter_runs": 11,
+          "total": 24,
+          "ratio": 0.458,
+          "threshold": 0.3
+        },
+        "generated_at": "2026-03-04T02:45:01.338202+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-04T02:45:01.426736+00:00",
+      "run_id": "31deb5d1-b03a-465f-9594-3a57bdb4572c",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P005-44ff3d",
+        "category": "standard",
+        "severity": "low",
+        "title": "Amélioration du taux de succès confirmée sur les 5 derniers runs",
+        "description": "Taux de succès: 0% (5 premiers) → 100% (5 derniers). Les changements récents sont positifs — les documenter dans MEMORY.md et promouvoir les guards correspondants en standard Qdrant.",
+        "evidence": {
+          "early_success_rate": 0.0,
+          "recent_success_rate": 1.0,
+          "improvement": 1.0
+        },
+        "generated_at": "2026-03-04T02:45:01.338232+00:00",
+        "sprint": "sprint3"
       }
     }
   ]

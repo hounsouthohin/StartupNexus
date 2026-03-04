@@ -194,12 +194,13 @@
   },
 
   "templated_files": {
-    "middleware.ts":   "templates/middleware.ts",
-    "jest.config.js":  "templates/jest.config.js",
-    "jest.setup.js":   "templates/jest.setup.js",
-    "next.config.js":  "templates/next.config.js",
-    "tsconfig.json":   "templates/tsconfig.json",
-    ".env.local":      "templates/env.local.template"
+    "middleware.ts":                  "templates/middleware.ts",
+    "jest.config.js":                 "templates/jest.config.js",
+    "jest.setup.js":                  "templates/jest.setup.js",
+    "next.config.js":                 "templates/next.config.js",
+    "tsconfig.json":                  "templates/tsconfig.json",
+    ".env.local":                     "templates/env.local.template",
+    "tests/middleware.test.ts":       "templates/tests/middleware.test.ts"
   },
 
   "blueprint": {
