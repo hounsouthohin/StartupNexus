@@ -6,6 +6,9 @@
   "framework": "nextjs",
   "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
   "root_file": "package.json",
+  "primary_manifest": "package.json",
+  "cleanup_artifacts": [".next", "node_modules"],
+  "workdir_keep_extra": ["node_modules", ".npm"],
 
   "packages": {
     "next": "14.2.25",
@@ -264,6 +267,19 @@
         },
         {"key": "metadata.status", "match": {"value": "active"}}
       ]
+    }
+  },
+
+  "env_validation": {
+    "required_vars": [
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "CLERK_SECRET_KEY",
+      "DATABASE_URL"
+    ],
+    "regex": {
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "^pk_(test|live)_",
+      "CLERK_SECRET_KEY":                  "^sk_(test|live)_",
+      "DATABASE_URL":                       "^postgresql://"
     }
   },
 

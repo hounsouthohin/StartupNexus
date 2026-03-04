@@ -120,3 +120,20 @@ def get_qdrant_filter_cfg(stack_id: str = _DEFAULT_STACK_ID) -> dict:
     Résout Config-Runtime Drift : qdrant_filter déclaré dans JSON mais jamais consommé.
     """
     return load_stack_config(stack_id).get("qdrant_filter", {})
+
+
+def get_cleanup_artifacts(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
+    """
+    Répertoires à supprimer après build (build artifacts, dépendances lourdes).
+    Node.js: ['.next', 'node_modules'] | Python: ['__pycache__', '.venv']
+    Fallback: liste Node.js pour compatibilité backward.
+    """
+    return load_stack_config(stack_id).get("cleanup_artifacts", [".next", "node_modules"])
+
+
+def get_workdir_keep_extra(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
+    """
+    Répertoires supplémentaires à préserver entre les runs (cache, dépendances).
+    Fusionné avec les répertoires système (_WORKDIR_KEEP) dans dev.py.
+    """
+    return load_stack_config(stack_id).get("workdir_keep_extra", ["node_modules", ".npm"])

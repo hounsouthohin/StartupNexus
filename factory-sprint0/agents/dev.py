@@ -18,7 +18,7 @@ from .shared_tools import (
     run_build,
     get_stack_id,
 )
-from .stack_config import get_blueprint
+from .stack_config import get_blueprint, get_root_file, get_cleanup_artifacts, get_workdir_keep_extra
 from utils.prompt_loader import load_stack_prompt
 
 # Logger
@@ -27,11 +27,11 @@ if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
 
-# Répertoires système à préserver lors du nettoyage inter-runs
-_WORKDIR_KEEP = {"node_modules", ".npm", "logs", "config", "snapshots", "__pycache__", ".git"}
+# Répertoires système à préserver lors du nettoyage inter-runs (invariants multi-stack)
+_WORKDIR_KEEP_SYSTEM = {"logs", "config", "snapshots", "__pycache__", ".git"}
 
 
-def _clean_project_workdir(workdir: str) -> None:
+def _clean_project_workdir(workdir: str, extra_keep: set[str] | None = None) -> None:
     """
     Supprime les fichiers source du run précédent dans FACTORY_WORKDIR.
 
@@ -41,13 +41,14 @@ def _clean_project_workdir(workdir: str) -> None:
     projet est déjà généré et ne produit que jest.setup.js → SEMANTIC_VIOLATION.
 
     Solution : supprimer tous les fichiers/dossiers non-système en début de run.
-    node_modules est déjà nettoyé en fin de run précédent → non présent ici.
+    extra_keep : répertoires stack-spécifiques à préserver (ex: node_modules pour Node.js).
     """
+    keep = _WORKDIR_KEEP_SYSTEM | (extra_keep or set())
     if not workdir or not os.path.isdir(workdir):
         return
     try:
         for item in os.listdir(workdir):
-            if item in _WORKDIR_KEEP:
+            if item in keep:
                 continue
             full = os.path.join(workdir, item)
             try:
@@ -110,8 +111,9 @@ def dev_agent(
     """
     # Nettoyage du workdir avant toute génération — évite la contamination inter-runs.
     _workdir = os.getenv("FACTORY_WORKDIR", "")
+    _extra_keep = set(get_workdir_keep_extra(stack_id)) if stack_id else set()
     if _workdir:
-        _clean_project_workdir(_workdir)
+        _clean_project_workdir(_workdir, extra_keep=_extra_keep)
 
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
 
@@ -501,25 +503,25 @@ def dev_agent(
         else:
             stagnant_iterations += 1
 
-        # ── Guard Phase 1 : package.json DOIT être le premier fichier écrit ────────────
-        # Si le LLM écrit n'importe quel fichier AVANT package.json en Phase 1,
-        # on injecte un message de correction immédiat pour le remettre sur la bonne voie.
-        if current_phase == 1 and wrote_file_this_iter and "package.json" not in files:
+        # ── Guard Phase 1 : primary_manifest DOIT être le premier fichier écrit ──────
+        # Lecture depuis stack config (multi-stack safe) au lieu de hardcoder "package.json".
+        _primary = get_root_file(stack_id) if stack_id else "package.json"
+        if current_phase == 1 and wrote_file_this_iter and _primary not in files:
             non_pkg_files = [
                 tc["args"].get("path", "")
                 for tc in response.tool_calls
-                if tc["name"] == "write_file" and tc["args"].get("path", "") != "package.json"
+                if tc["name"] == "write_file" and tc["args"].get("path", "") != _primary
             ]
             if non_pkg_files:
                 logger.warning(
-                    f"[PHASE1_SEQUENCE_VIOLATION] Fichier(s) écrit(s) avant package.json : {non_pkg_files}"
+                    f"[PHASE1_SEQUENCE_VIOLATION] Fichier(s) écrit(s) avant {_primary} : {non_pkg_files}"
                 )
                 messages.append(HumanMessage(content=(
-                    f"⚠️ ERREUR DE SÉQUENCE CRITIQUE : Tu as écrit {non_pkg_files} avant package.json.\n"
-                    "RÈGLE ABSOLUE : package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE.\n"
-                    "ACTION OBLIGATOIRE IMMÉDIATE : génère package.json maintenant avec les versions exactes :\n"
+                    f"⚠️ ERREUR DE SÉQUENCE CRITIQUE : Tu as écrit {non_pkg_files} avant {_primary}.\n"
+                    f"RÈGLE ABSOLUE : {_primary} DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE.\n"
+                    f"ACTION OBLIGATOIRE IMMÉDIATE : génère {_primary} maintenant avec les versions exactes :\n"
                     + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in packages.items())
-                    + "\n\nNe génère AUCUN autre fichier avant que package.json soit écrit."
+                    + f"\n\nNe génère AUCUN autre fichier avant que {_primary} soit écrit."
                 )))
 
         # Forçage progression si fichiers clés présents — Phase 2 seulement
@@ -604,10 +606,10 @@ def dev_agent(
             final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
             break
 
-    # Nettoyage scopé au répertoire projet pour éviter d'impacter d'autres runs.
+    # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
     cleanup_dir = _find_project_dir(files)
-    shutil.rmtree(os.path.join(cleanup_dir, "node_modules"), ignore_errors=True)
-    shutil.rmtree(os.path.join(cleanup_dir, ".next"), ignore_errors=True)
+    for _artifact in get_cleanup_artifacts(stack_id) if stack_id else [".next", "node_modules"]:
+        shutil.rmtree(os.path.join(cleanup_dir, _artifact), ignore_errors=True)
     shutil.rmtree(os.path.join(cleanup_dir, "__pycache__"), ignore_errors=True)
 
     if not build_attempted and not build_success:

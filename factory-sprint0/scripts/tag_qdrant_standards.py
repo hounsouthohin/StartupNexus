@@ -44,20 +44,28 @@ def main() -> int:
             payload = p.payload or {}
             text = payload.get("text") or payload.get("page_content") or ""
             stack = _infer_stack(text)
+
+            # Merger dans le dict metadata imbriqué (fiable quelle que soit la version Qdrant)
+            existing_metadata = payload.get("metadata", {})
+            if not isinstance(existing_metadata, dict):
+                existing_metadata = {}
+            new_metadata = {
+                **existing_metadata,
+                "stack": stack,
+                "status": "active",
+                "version": "1.0",
+            }
             client.set_payload(
                 collection_name=COLLECTION_NAME,
-                payload={
-                    "metadata.stack": stack,
-                    "metadata.status": "active",
-                    "metadata.version": "1.0",
-                },
+                payload={"metadata": new_metadata},
                 points=[p.id],
             )
             tagged += 1
+            print(f"  [{total}] stack={stack!r} — {text[:70].strip()!r}")
         if offset is None:
             break
 
-    print(f"Tagged {tagged}/{total} standards in '{COLLECTION_NAME}'")
+    print(f"\nTagged {tagged}/{total} standards in '{COLLECTION_NAME}'")
     return 0
 
 
