@@ -76,14 +76,29 @@ async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str,
 
     try:
         qa_agent = create_qa_agent()
-        file_hints = "\n".join(list(generated_files.keys())[:30]) if generated_files else "N/A"
+
+        # Construire le contexte fichiers : noms + contenu des routes/pages business
+        _business_keys = [
+            k for k in generated_files
+            if any(pat in k for pat in ["app/api/", "app/page.", "app/dashboard", "app/blog", "route.ts", "route.tsx"])
+        ][:10]
+        file_context_parts = []
+        for k in _business_keys:
+            content_preview = str(generated_files[k])[:600]
+            file_context_parts.append(f"// {k}\n{content_preview}")
+        file_context = "\n\n".join(file_context_parts) if file_context_parts else "N/A"
+        file_list = "\n".join(list(generated_files.keys())[:30]) if generated_files else "N/A"
+
         initial_message = HumanMessage(
             content=(
                 f"Projet : {project_name}\n"
-                f"Specs : {spec_summary[:1200]}\n"
-                f"Fichiers générés (aperçu):\n{file_hints}\n"
-                f"Règles QA stack:\n{qa_rules_block if qa_rules_block else 'N/A'}\n"
-                "Génère des tests E2E TypeScript cohérents avec ces fichiers."
+                f"Specs : {spec_summary[:1200]}\n\n"
+                f"Fichiers générés (liste complète):\n{file_list}\n\n"
+                f"Contenu des routes/pages business (source de vérité pour les tests):\n"
+                f"{file_context}\n\n"
+                f"Règles QA stack:\n{qa_rules_block if qa_rules_block else 'N/A'}\n\n"
+                "IMPORTANT : génère uniquement des tests pour les routes et pages LISTÉES ci-dessus. "
+                "Ne génère PAS de tests pour des routes inexistantes."
             )
         )
 

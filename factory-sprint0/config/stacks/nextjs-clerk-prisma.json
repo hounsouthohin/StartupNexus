@@ -80,6 +80,14 @@
     "cookie-session"
   ],
   "prompt_rules": {
+    "extraction_rules": [
+      "Extraire TOUS les modèles Prisma mentionnés dans le brief avec TOUS leurs champs",
+      "Extraire TOUTES les pages (app/page.tsx, app/dashboard/page.tsx, app/blog/[slug]/page.tsx...)",
+      "Extraire TOUTES les routes API mentionnées (GET, POST, PUT, PATCH, DELETE)",
+      "Ne PAS générer de spec générique auth-only — le brief décrit une app métier spécifique",
+      "Chaque entité du brief DOIT avoir un modèle Prisma correspondant dans data_models",
+      "Le champ requirements[] DOIT être exhaustif : un item par modèle, par page, par route, par feature"
+    ],
     "package_scripts": {
       "build": "next build",
       "dev": "next dev",

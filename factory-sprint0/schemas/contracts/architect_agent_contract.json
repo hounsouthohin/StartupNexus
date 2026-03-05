@@ -49,6 +49,12 @@
         "description": "Diagramme Mermaid valide (syntaxe vérifiée)",
         "minLength": 100
       },
+      "requirements": {
+        "type": "array",
+        "description": "Liste plate exhaustive des requirements extraits du brief (modèles, pages, routes, features)",
+        "items": {"type": "string"},
+        "default": []
+      },
       "metadata": {
         "type": "object",
         "properties": {

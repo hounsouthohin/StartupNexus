@@ -1,5 +1,5 @@
 {
-  "total_suggestions": 74,
+  "total_suggestions": 81,
   "suggested_standards": [
     {
       "timestamp": "2026-02-27T14:34:45.562286+00:00",
@@ -1373,6 +1373,138 @@
           "improvement": 0.8
         },
         "generated_at": "2026-03-05T02:04:12.712663+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:23.992377+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "build_success": true,
+        "build_attempted": true,
+        "files_count": 13,
+        "clerk_compliant": true,
+        "dev_files_count": 12,
+        "build_attempts": 0,
+        "iterations": 8,
+        "final_message": "Continuons avec l'étape suivante.",
+        "last_build_error": "",
+        "last_build_error_full": "",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "",
+        "semantic_violations": [],
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:32.208120+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:55.859349+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P001-8cd29a",
+        "category": "prompt",
+        "severity": "high",
+        "title": "Taux de succès global insuffisant",
+        "description": "Seulement 39% de succès sur 28 runs. Améliorer les prompts dev ou renforcer les guards de séquence.",
+        "evidence": {
+          "success_rate": 0.393,
+          "total_runs": 28,
+          "successes": 11
+        },
+        "generated_at": "2026-03-05T19:22:55.855628+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:55.877649+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P002-1d6afe",
+        "category": "guard",
+        "severity": "medium",
+        "title": "Violation sémantique récurrente: MISSING middleware.ts",
+        "description": "'MISSING middleware.ts' observée 6× sur 28 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+        "evidence": {
+          "violation": "MISSING middleware.ts",
+          "count": 6,
+          "total_runs": 28
+        },
+        "generated_at": "2026-03-05T19:22:55.855669+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:55.894799+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P002-c3f210",
+        "category": "guard",
+        "severity": "medium",
+        "title": "Violation sémantique récurrente: MISSING app/layout.tsx",
+        "description": "'MISSING app/layout.tsx' observée 5× sur 28 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+        "evidence": {
+          "violation": "MISSING app/layout.tsx",
+          "count": 5,
+          "total_runs": 28
+        },
+        "generated_at": "2026-03-05T19:22:55.855675+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:55.912155+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P004-67661c",
+        "category": "config",
+        "severity": "medium",
+        "title": "MAX_ITERATIONS atteint dans plus de 30% des runs",
+        "description": "12/28 runs atteignent MAX_ITERATIONS (≥10). Envisager un early-stop basé sur les fichiers générés ou des prompts plus directifs pour réduire le nombre d'itérations.",
+        "evidence": {
+          "max_iter_runs": 12,
+          "total": 28,
+          "ratio": 0.429,
+          "threshold": 0.3
+        },
+        "generated_at": "2026-03-05T19:22:55.855691+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T19:22:55.929070+00:00",
+      "run_id": "872d7e0f-7bf0-430e-a9df-5b5a20b2bc37",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P005-c31f5a",
+        "category": "standard",
+        "severity": "low",
+        "title": "Amélioration du taux de succès confirmée sur les 5 derniers runs",
+        "description": "Taux de succès: 0% (5 premiers) → 80% (5 derniers). Les changements récents sont positifs — les documenter dans MEMORY.md et promouvoir les guards correspondants en standard Qdrant.",
+        "evidence": {
+          "early_success_rate": 0.0,
+          "recent_success_rate": 0.8,
+          "improvement": 0.8
+        },
+        "generated_at": "2026-03-05T19:22:55.855702+00:00",
         "sprint": "sprint3"
       }
     }

@@ -415,6 +415,25 @@ def dev_agent(
                             if computed_dir != "." and call_args.get("project_dir", ".") == ".":
                                 call_args = {**call_args, "project_dir": computed_dir}
                                 logger.info(f"[run_build] project_dir corrigé: '.' → '{computed_dir}'")
+                            # ── BLUEPRINT VALIDATOR BLOQUANT (Sprint 4) ──────────────────────
+                            _present = set(files.keys()) | _templated_names
+                            _blueprint_missing = [
+                                f for f in required_files
+                                if not any(f in p for p in _present)
+                            ]
+                            if _blueprint_missing:
+                                _block_msg = (
+                                    "BLUEPRINT VALIDATOR — BUILD BLOQUÉ\n"
+                                    f"{len(_blueprint_missing)} fichier(s) obligatoire(s) manquant(s) :\n"
+                                    + "\n".join(f"  - {f}" for f in _blueprint_missing)
+                                    + "\n\nGénère ces fichiers avec write_file() maintenant."
+                                    " run_build sera disponible une fois tous présents."
+                                )
+                                tool_messages.append(ToolMessage(content=_block_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[BlueprintValidator] BUILD BLOQUÉ — {len(_blueprint_missing)} manquant(s): {_blueprint_missing}")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
                         output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
@@ -547,26 +566,43 @@ def dev_agent(
 
         # Garde-fou: si le modele stagne sans progres, forcer un run_build — Phase 2 seulement.
         if current_phase == 2 and not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
-            forced_build_output = str(run_build.invoke({"project_dir": _pdir}))
-            build_attempted = True
-            called_build_this_iter = True
-            raw_tool_outputs.append(forced_build_output)
-            messages.append(HumanMessage(content=f"[FORCED_RUN_BUILD]\n{_shrink_tool_output('run_build', forced_build_output)}"))
-            if "Build successful" in forced_build_output:
-                last_build_succeeded = True  # build réel confirmé (chemin forcé)
-                build_success = True
-                build_attempts = 0
-                last_build_error = ""
-                last_build_error_full = ""
-                last_failed_command = ""
+            # ── BLUEPRINT VALIDATOR BLOQUANT — stagnation guard (Sprint 4) ──────
+            _stag_present = set(files.keys()) | _templated_names
+            _stag_missing = [
+                f for f in required_files
+                if not any(f in p for p in _stag_present)
+            ]
+            if _stag_missing:
+                messages.append(HumanMessage(content=(
+                    "BLUEPRINT VALIDATOR — STAGNATION DÉTECTÉE\n"
+                    f"Le build ne peut pas être lancé. {len(_stag_missing)} fichier(s) obligatoire(s) manquant(s) :\n"
+                    + "\n".join(f"  - {f}" for f in _stag_missing)
+                    + "\n\nGénère ces fichiers avec write_file() maintenant. Ne lance PAS run_build avant."
+                )))
+                logger.warning(f"[BlueprintValidator] STAGNATION — BUILD INTERDIT, manquants: {_stag_missing}")
+                stagnant_iterations = 0  # reset pour laisser l'agent corriger
             else:
-                build_attempts += 1
-                extracted_stderr = _extract_stderr(forced_build_output)
-                last_build_error_full = extracted_stderr if extracted_stderr else forced_build_output
-                last_build_error = last_build_error_full[:2000]
-                failed_cmd = _extract_failed_command(forced_build_output)
-                if failed_cmd:
-                    last_failed_command = failed_cmd
+                # ── fin Blueprint Validator — tous les fichiers présents, build autorisé ──
+                forced_build_output = str(run_build.invoke({"project_dir": _pdir}))
+                build_attempted = True
+                called_build_this_iter = True
+                raw_tool_outputs.append(forced_build_output)
+                messages.append(HumanMessage(content=f"[FORCED_RUN_BUILD]\n{_shrink_tool_output('run_build', forced_build_output)}"))
+                if "Build successful" in forced_build_output:
+                    last_build_succeeded = True  # build réel confirmé (chemin forcé)
+                    build_success = True
+                    build_attempts = 0
+                    last_build_error = ""
+                    last_build_error_full = ""
+                    last_failed_command = ""
+                else:
+                    build_attempts += 1
+                    extracted_stderr = _extract_stderr(forced_build_output)
+                    last_build_error_full = extracted_stderr if extracted_stderr else forced_build_output
+                    last_build_error = last_build_error_full[:2000]
+                    failed_cmd = _extract_failed_command(forced_build_output)
+                    if failed_cmd:
+                        last_failed_command = failed_cmd
 
         # Reflection informative uniquement (ne pilote pas la sortie).
         reflection_messages = [

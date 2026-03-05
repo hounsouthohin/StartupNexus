@@ -60,6 +60,26 @@ def _contains_forbidden_auth(text: str, stack_id: str = _DEFAULT_STACK_ID) -> bo
     return any(re.search(pattern, lowered) for pattern in patterns)
 
 
+def _extract_requirements_from_plan(plan: dict) -> list:
+    """
+    Extrait une liste plate de requirements depuis le plan Architect.
+    Priorité : champ requirements[] du plan (LLM). Fallback : dérivé des autres champs.
+    """
+    if isinstance(plan.get("requirements"), list) and plan["requirements"]:
+        return [str(r) for r in plan["requirements"] if r]
+    # Fallback dérivé si le LLM n'a pas rempli requirements[]
+    reqs = []
+    for model in plan.get("data_models", []):
+        reqs.append(f"Modèle Prisma: {model}")
+    for page in plan.get("pages", []):
+        reqs.append(f"Page: {page}")
+    for route in plan.get("api_routes", []):
+        reqs.append(f"API Route: {route}")
+    for feature in plan.get("key_features", []):
+        reqs.append(f"Feature: {feature}")
+    return reqs
+
+
 def _build_hard_rewrite_instructions(stack_id: str) -> str:
     """
     Construit un bloc de rewrite depuis les règles stack.
@@ -123,6 +143,7 @@ def _append_architect_rag_event(query: str, scored_docs: list, error: str | None
 class ArchitectOutput(BaseModel):
     specification: str = Field(description="The full technical specification in Markdown format.")
     mermaid_diagram: str = Field(description="The complete and valid Mermaid diagram syntax.")
+    requirements: list = Field(default_factory=list, description="Flat list of all business requirements extracted from the brief.")
 
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
@@ -133,6 +154,7 @@ class AgentState(TypedDict):
     architect_output: ArchitectOutput
     run_id: str
     stack_id: str
+    requirements: list
 
 # --- Prompt Loading ---
 def _parse_level1_sections(content: str) -> dict[str, str]:
@@ -225,7 +247,11 @@ def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float 
 
 
 def _build_architect_rag_filter(stack_id: str):
-    """Construit le filtre Qdrant pour le retriever architect depuis le JSON stack."""
+    """
+    Construit le filtre Qdrant pour le retriever architect.
+    Governance v1 : injecte toujours metadata.status=active pour exclure
+    les standards deprecated/archived, quelle que soit la config stack.
+    """
     try:
         from agents.stack_config import get_qdrant_filter_cfg
         from qdrant_client.http.models import Filter, FieldCondition, MatchValue
@@ -239,12 +265,17 @@ def _build_architect_rag_filter(stack_id: str):
                 return Filter(should=[_parse(c) for c in cond["should"]])
             return None
 
+        # Governance v1 — condition toujours présente
+        status_condition = FieldCondition(
+            key="metadata.status",
+            match=MatchValue(value="active"),
+        )
+
         filter_cfg = get_qdrant_filter_cfg(stack_id).get("filter", {})
         must_raw = filter_cfg.get("must", [])
-        if not must_raw:
-            return None
-        conditions = [_parse(c) for c in must_raw if c]
-        return Filter(must=conditions) if conditions else None
+        extra_conditions = [_parse(c) for c in must_raw if c]
+
+        return Filter(must=[status_condition, *extra_conditions])
     except Exception:
         return None
 
@@ -302,7 +333,9 @@ def create_architect_agent():
 
         try:
             plan = json.loads(json_content)
-            return {"plan": plan}
+            requirements = _extract_requirements_from_plan(plan)
+            logger.info(f"[planner] {len(requirements)} requirements extraits du brief")
+            return {"plan": plan, "requirements": requirements}
         except json.JSONDecodeError as e:
             raise ValueError(f"Planner failed to produce a valid JSON plan. Raw LLM response: {llm_response.content}. Error: {e}")
 
@@ -440,7 +473,8 @@ def create_architect_agent():
     def formatter_node(state: AgentState):
         architect_output = ArchitectOutput(
             specification=state['specification'],
-            mermaid_diagram=state['mermaid_diagram']
+            mermaid_diagram=state['mermaid_diagram'],
+            requirements=state.get('requirements', []),
         )
         return {"architect_output": architect_output}
 

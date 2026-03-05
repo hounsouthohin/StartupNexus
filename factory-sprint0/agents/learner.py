@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from collections import Counter
 from dataclasses import asdict, dataclass, field
@@ -94,6 +95,22 @@ def _load_dev_test_events() -> list[dict]:
     except Exception as e:
         logger.warning(f"[learner] Impossible de lire le shadow log: {e}")
         return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _normalize_build_error(error: str) -> str:
+    """
+    Normalise une erreur de build pour regrouper les signatures similaires.
+    Supprime les parties variables (chemins, numéros de ligne, identifiants).
+    """
+    e = error.lower()
+    e = re.sub(r'[./\w-]+\.(ts|tsx|js|jsx|json|prisma)', '<FILE>', e)
+    e = re.sub(r':\d+:\d+', '', e)
+    e = re.sub(r"'[^']{1,60}'", "'<ID>'", e)
+    return e[:120].strip()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -220,6 +237,37 @@ def _analyze_patterns(events: list[dict]) -> list[StandardSuggestion]:
                     "recent_success_rate": round(recent_success, 3),
                     "improvement": round(recent_success - early_success, 3),
                 },
+            ))
+
+    # ── P006 : Anti-patterns récurrents depuis les erreurs de build ───────────
+    error_counter: Counter = Counter()
+    failed_payloads = [p for p in payloads if not p.get("success", False)]
+    for p in failed_payloads:
+        raw_error = p.get("last_build_error", "") or ""
+        if raw_error:
+            sig = _normalize_build_error(raw_error)
+            if sig:
+                error_counter[sig] += 1
+
+    for sig, count in error_counter.most_common(5):
+        if count >= 2:
+            suggestions.append(StandardSuggestion(
+                suggestion_id=f"P006-{uuid.uuid4().hex[:6]}",
+                category="anti_pattern",
+                severity="high",
+                title=f"Erreur de build récurrente ({count}×): {sig[:60]}",
+                description=(
+                    f"La signature d'erreur '{sig[:80]}' est apparue {count}× "
+                    f"sur {len(failed_payloads)} builds échoués. "
+                    "Ce pattern est candidat à un standard Qdrant ZONE_14 "
+                    "(anti-pattern) pour prévenir cette erreur en amont."
+                ),
+                evidence={
+                    "error_signature": sig,
+                    "count": count,
+                    "failed_runs": len(failed_payloads),
+                },
+                sprint="sprint4",
             ))
 
     return suggestions

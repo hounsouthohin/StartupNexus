@@ -138,6 +138,11 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
             "mermaid_diagram": architect_output.mermaid_diagram
                 if hasattr(architect_output, "mermaid_diagram")
                 else architect_output.get("mermaid_diagram", ""),
+            "requirements": (
+                architect_output.requirements
+                if hasattr(architect_output, "requirements")
+                else architect_output.get("requirements", [])
+            ) or [],
         }
 
         violations = _validate_clerk_compliance(

@@ -1068,8 +1068,1001 @@ VERSION: 1.0""",
 
 
 # =============================================================================
+# ZONE 10 — SÉCURITÉ AVANCÉE (Session 1 — AI-generated, validé Claude)
+# Source: AI-generated 2026-03-05, validé par Claude Code
+# Couvre: auth patterns avancés, IDOR, userId spoofing, force-dynamic
+# =============================================================================
+
+ZONE_10_SECURITY_ADVANCED = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: @clerk/nextjs/server — auth() dans Route Handlers
+RAISON: Sans vérification auth(), n'importe quel client non authentifié peut appeler la route et accéder aux données — fuite de données garantie.
+DETECTION_REGEX: export async function (GET|POST|PUT|DELETE|PATCH)\s*\([^)]*\)\s*\{(?![^}]*auth\(\))
+ALTERNATIVE: Appeler auth() en premier et vérifier userId avant tout accès Prisma
+EXEMPLE_INVALIDE:
+  // app/api/posts/route.ts
+  import { prisma } from '@/lib/prisma';
+  import { NextResponse } from 'next/server';
+
+  export async function GET() {
+    const posts = await prisma.post.findMany();
+    return NextResponse.json(posts);
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/route.ts
+  import { auth } from '@clerk/nextjs/server';
+  import { prisma } from '@/lib/prisma';
+  import { NextResponse } from 'next/server';
+
+  export async function GET() {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const posts = await prisma.post.findMany({ where: { authorId: userId } });
+    return NextResponse.json(posts);
+  }
+ERREUR_ATTENDUE: N/A (pas d'erreur build — faille silencieuse à l'exécution)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "10-security-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "session1-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: @clerk/nextjs — useAuth() dans Route Handlers
+RAISON: useAuth() est un hook React Client-side — l'appeler dans un Route Handler (contexte serveur) lève une exception et crashe la route entière.
+DETECTION_REGEX: import\s*\{[^}]*useAuth[^}]*\}\s*from\s*['"]@clerk/nextjs['"]
+ALTERNATIVE: Utiliser auth() depuis @clerk/nextjs/server dans les Route Handlers
+EXEMPLE_INVALIDE:
+  // app/api/profile/route.ts
+  import { useAuth } from '@clerk/nextjs';
+  import { NextResponse } from 'next/server';
+
+  export async function GET() {
+    const { userId } = useAuth(); // hook dans contexte serveur
+    return NextResponse.json({ userId });
+  }
+EXEMPLE_VALIDE:
+  // app/api/profile/route.ts
+  import { auth } from '@clerk/nextjs/server';
+  import { NextResponse } from 'next/server';
+
+  export async function GET() {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ userId });
+  }
+ERREUR_ATTENDUE: Error: (0 , _clerk_nextjs__WEBPACK_IMPORTED_MODULE_0__.useAuth) is not a function — ou — Invalid hook call. Hooks can only be called inside of the body of a function component.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "10-security-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "session1-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — Route Handlers dynamiques avec auth
+RAISON: Un Route Handler avec auth() qui n'est pas marqué dynamic peut être statiquement prérendu par Next.js, rendant auth() inaccessible au build.
+DETECTION_REGEX: ^(?!.*export const dynamic).*export async function (GET|POST|PUT|DELETE).*auth\(\)
+ALTERNATIVE: Ajouter export const dynamic = "force-dynamic" dans tout Route Handler qui appelle auth()
+EXEMPLE_INVALIDE:
+  // app/api/user/route.ts
+  import { auth } from '@clerk/nextjs/server';
+  import { NextResponse } from 'next/server';
+
+  // pas de export const dynamic
+  export async function GET() {
+    const { userId } = await auth();
+    return NextResponse.json({ userId });
+  }
+EXEMPLE_VALIDE:
+  // app/api/user/route.ts
+  import { auth } from '@clerk/nextjs/server';
+  import { NextResponse } from 'next/server';
+
+  export const dynamic = 'force-dynamic';
+
+  export async function GET() {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ userId });
+  }
+ERREUR_ATTENDUE: Error: Route /api/user with dynamic = "auto" couldn't be rendered statically because it used `headers`.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "10-security-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "session1-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — ownership check Prisma (IDOR prevention)
+RAISON: Vérifier uniquement userId !== null ne suffit pas — un utilisateur authentifié peut modifier les ressources d'un autre utilisateur en passant un ID arbitraire dans l'URL (IDOR — Insecure Direct Object Reference).
+DETECTION_REGEX: prisma\.\w+\.(update|delete|findUnique)\(\s*\{[^}]*where[^}]*id[^}]*\}
+ALTERNATIVE: Toujours inclure { id: params.id, authorId: userId } dans le where de toute mutation Prisma sur ressource utilisateur
+EXEMPLE_INVALIDE:
+  // app/api/posts/[id]/route.ts
+  export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // n'importe quel user authentifié peut supprimer n'importe quel post
+    await prisma.post.delete({ where: { id: params.id } });
+    return NextResponse.json({ success: true });
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/[id]/route.ts
+  export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // double contrainte : id ET propriétaire
+    const deleted = await prisma.post.deleteMany({
+      where: { id: params.id, authorId: userId },
+    });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: 'Not found or forbidden' }, { status: 404 });
+    }
+    return NextResponse.json({ success: true });
+  }
+ERREUR_ATTENDUE: N/A (faille silencieuse — pas d'erreur build ni runtime)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "10-security-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "session1-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — lecture userId depuis le body/query params
+RAISON: Faire confiance à un userId envoyé par le client permet à n'importe qui d'usurper l'identité d'un autre utilisateur en falsifiant le paramètre.
+DETECTION_REGEX: (body|params|searchParams)\.(userId|user_id|clerkId)
+ALTERNATIVE: Toujours extraire userId depuis await auth() côté serveur, jamais depuis req.body ou les query params
+EXEMPLE_INVALIDE:
+  // app/api/profile/route.ts
+  export async function PUT(req: Request) {
+    const { userId, name } = await req.json(); // userId vient du client
+    await prisma.user.update({
+      where: { clerkId: userId },
+      data: { name },
+    });
+    return NextResponse.json({ success: true });
+  }
+EXEMPLE_VALIDE:
+  // app/api/profile/route.ts
+  export async function PUT(req: Request) {
+    const { userId } = await auth(); // userId depuis Clerk, pas le client
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { name } = await req.json(); // seules les données métier viennent du body
+    await prisma.user.update({
+      where: { clerkId: userId },
+      data: { name },
+    });
+    return NextResponse.json({ success: true });
+  }
+ERREUR_ATTENDUE: N/A (faille silencieuse de sécurité)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "10-security-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "session1-ai-validated",
+        },
+    },
+]
+
+
+# =============================================================================
 # AGRÉGATION COMPLÈTE
 # =============================================================================
+
+# =============================================================================
+# ZONE 11 — GESTION D'ERREURS PRISMA + API (Session 2 — AI-generated, validé Claude)
+# Source: AI-generated 2026-03-05, validé par Claude Code
+# Couvre: PrismaClientKnownRequestError, exposition erreurs, null check, validation Zod
+# =============================================================================
+
+ZONE_11_ERROR_HANDLING = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — gestion PrismaClientKnownRequestError
+RAISON: Sans catch Prisma typé, une violation de contrainte unique (email déjà pris) retourne une 500 non informative au lieu d'une 409 Conflict — et expose le stack trace interne au client.
+DETECTION_REGEX: prisma\.\w+\.(create|update|upsert)\((?![\s\S]*catch[\s\S]*PrismaClientKnownRequestError)
+ALTERNATIVE: Importer PrismaClientKnownRequestError et distinguer P2002 (unique constraint) des autres erreurs
+EXEMPLE_INVALIDE:
+  // app/api/users/route.ts
+  export async function POST(req: Request) {
+    const { email, clerkId } = await req.json();
+    const user = await prisma.user.create({ // pas de gestion d'erreur Prisma
+      data: { email, clerkId },
+    });
+    return NextResponse.json(user);
+  }
+EXEMPLE_VALIDE:
+  // app/api/users/route.ts
+  import { Prisma } from '@prisma/client';
+
+  export async function POST(req: Request) {
+    const { email, clerkId } = await req.json();
+    try {
+      const user = await prisma.user.create({ data: { email, clerkId } });
+      return NextResponse.json(user, { status: 201 });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          return NextResponse.json({ error: 'Email already exists' }, { status: 409 });
+        }
+      }
+      console.error('[POST /api/users]', error);
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+  }
+ERREUR_ATTENDUE: PrismaClientKnownRequestError: Unique constraint failed on the fields: (`email`)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "11-error-handling",
+            "status": "active",
+            "version": "1.0",
+            "category": "error-handling",
+            "source": "session2-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — exposition du message d'erreur Prisma brut
+RAISON: Retourner error.message directement expose le schéma de base de données, les noms de tables et les contraintes — vecteur d'attaque par énumération.
+DETECTION_REGEX: NextResponse\.json\(\{\s*error:\s*(?:error|err|e)\.message
+ALTERNATIVE: Logger l'erreur côté serveur (console.error), retourner un message générique au client
+EXEMPLE_INVALIDE:
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
+EXEMPLE_VALIDE:
+  } catch (error) {
+    console.error('[POST /api/posts]', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+ERREUR_ATTENDUE: N/A (faille silencieuse — le client reçoit le schéma DB)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "11-error-handling",
+            "status": "active",
+            "version": "1.0",
+            "category": "error-handling",
+            "source": "session2-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — findUnique avec résultat null non géré
+RAISON: findUnique retourne null si l'enregistrement n'existe pas. Accéder à une propriété sur null crashe le Route Handler avec une 500 au lieu d'une 404 sémantique.
+DETECTION_REGEX: const \w+ = await prisma\.\w+\.findUnique\(
+ALTERNATIVE: Vérifier le résultat de findUnique avant tout accès aux propriétés, retourner 404 si null
+EXEMPLE_INVALIDE:
+  // app/api/posts/[id]/route.ts
+  export async function GET(_: Request, { params }: { params: { id: string } }) {
+    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    return NextResponse.json({ title: post.title, content: post.content }); // crash si null
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/[id]/route.ts
+  export async function GET(_: Request, { params }: { params: { id: string } }) {
+    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+    return NextResponse.json({ title: post.title, content: post.content });
+  }
+ERREUR_ATTENDUE: TypeError: Cannot read properties of null (reading 'title')
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "11-error-handling",
+            "status": "active",
+            "version": "1.0",
+            "category": "error-handling",
+            "source": "session2-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — validation body avec Zod avant opération Prisma
+RAISON: Passer des champs undefined ou de mauvais type à Prisma lève une PrismaClientValidationError qui expose le schéma interne si non catchée.
+DETECTION_REGEX: const \{[^}]+\} = await req\.json\(\);
+ALTERNATIVE: Définir un schema Zod et utiliser .safeParse() avant tout appel Prisma — retourner 400 si invalide
+EXEMPLE_INVALIDE:
+  export async function POST(req: Request) {
+    const { title, content } = await req.json();
+    // title peut être undefined → PrismaClientValidationError
+    const post = await prisma.post.create({ data: { title, content, authorId: userId } });
+    return NextResponse.json(post);
+  }
+EXEMPLE_VALIDE:
+  import { z } from 'zod';
+  const CreatePostSchema = z.object({
+    title: z.string().min(1).max(255),
+    content: z.string().min(1),
+  });
+
+  export async function POST(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const body = await req.json();
+    const result = CreatePostSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error.flatten() }, { status: 400 });
+    }
+    const post = await prisma.post.create({ data: { ...result.data, authorId: userId } });
+    return NextResponse.json(post, { status: 201 });
+  }
+ERREUR_ATTENDUE: PrismaClientValidationError: Argument `title` is missing.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "11-error-handling",
+            "status": "active",
+            "version": "1.0",
+            "category": "error-handling",
+            "source": "session2-ai-validated",
+        },
+    },
+]
+
+
+# =============================================================================
+# ZONE 12 — TESTS AVANCÉS (Session 3 — AI-generated, validé Claude)
+# Source: AI-generated 2026-03-05, validé par Claude Code
+# Couvre: mock Clerk/server, mock Prisma, NextRequest jsdom, P2002 test, hoisting ESM
+# =============================================================================
+
+ZONE_12_TESTING_ADVANCED = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Jest — mock @clerk/nextjs/server dans les tests Route Handlers
+RAISON: Sans mock, auth() tente une vraie requête Clerk depuis l'environnement Jest, échoue silencieusement et retourne { userId: null }, rendant les tests d'auth non déterministes.
+DETECTION_REGEX: import.*auth.*from.*@clerk/nextjs/server
+ALTERNATIVE: Toujours jest.mock('@clerk/nextjs/server') en début de test et contrôler la valeur retournée par userId
+EXEMPLE_INVALIDE:
+  import { GET } from '@/app/api/posts/route';
+  // auth() non mocké → userId toujours null en Jest
+  test('GET /api/posts retourne 200', async () => {
+    const res = await GET();
+    expect(res.status).toBe(200); // échoue : retourne 401
+  });
+EXEMPLE_VALIDE:
+  jest.mock('@clerk/nextjs/server', () => ({
+    auth: jest.fn().mockResolvedValue({ userId: 'user_test_123' }),
+  }));
+  import { GET } from '@/app/api/posts/route';
+  test('GET /api/posts retourne 200 pour user authentifié', async () => {
+    const res = await GET();
+    expect(res.status).toBe(200);
+  });
+  test('GET /api/posts retourne 401 si non authentifié', async () => {
+    const { auth } = require('@clerk/nextjs/server');
+    auth.mockResolvedValueOnce({ userId: null });
+    const res = await GET();
+    expect(res.status).toBe(401);
+  });
+ERREUR_ATTENDUE: N/A (test passe toujours faussement ou échoue toujours selon l'env)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "12-testing-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "testing",
+            "source": "session3-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Jest — mock PrismaClient (éviter les vraies requêtes DB)
+RAISON: Sans mock Prisma, les tests unitaires tentent de se connecter à la base de données, échouent en CI (pas de DB), et sont des tests d'intégration déguisés en tests unitaires.
+DETECTION_REGEX: import.*prisma.*from.*@/lib/prisma
+ALTERNATIVE: Mocker inline via jest.mock('@/lib/prisma') avec les méthodes utilisées
+EXEMPLE_INVALIDE:
+  import { prisma } from '@/lib/prisma'; // import direct → vraie DB
+  import { POST } from '@/app/api/users/route';
+  test('crée un utilisateur', async () => {
+    const res = await POST(req); // crash si DB absente
+    expect(res.status).toBe(201);
+  });
+EXEMPLE_VALIDE:
+  jest.mock('@clerk/nextjs/server', () => ({
+    auth: jest.fn().mockResolvedValue({ userId: 'user_test_123' }),
+  }));
+  jest.mock('@/lib/prisma', () => ({
+    prisma: {
+      user: {
+        create: jest.fn().mockResolvedValue({ id: 1, email: 'test@test.com', clerkId: 'user_test_123' }),
+      },
+    },
+  }));
+  import { POST } from '@/app/api/users/route';
+  test('POST /api/users crée un utilisateur', async () => {
+    const req = new Request('http://localhost/api/users', {
+      method: 'POST',
+      body: JSON.stringify({ email: 'test@test.com' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+  });
+ERREUR_ATTENDUE: PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "12-testing-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "testing",
+            "source": "session3-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Jest — import de NextRequest/NextResponse dans tests jsdom
+RAISON: NextRequest et NextResponse utilisent l'API Web Fetch qui n'existe pas dans l'environnement jsdom Jest — les tests crashent immédiatement à l'import.
+DETECTION_REGEX: import.*NextRequest|import.*NextResponse
+ALTERNATIVE: Utiliser le constructeur natif Request/Response Web API dans les tests (disponible dans Node 18+)
+EXEMPLE_INVALIDE:
+  import { NextRequest } from 'next/server'; // crash jsdom
+  test('GET posts', async () => {
+    const req = new NextRequest('http://localhost/api/posts'); // ReferenceError
+    const res = await GET(req);
+  });
+EXEMPLE_VALIDE:
+  test('GET posts', async () => {
+    const req = new Request('http://localhost/api/posts', { method: 'GET' });
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(Array.isArray(data)).toBe(true);
+  });
+ERREUR_ATTENDUE: ReferenceError: NextRequest is not defined — ou — TypeError: (0 , next_server__WEBPACK_IMPORTED_MODULE_0__.NextRequest) is not a constructor
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "12-testing-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "testing",
+            "source": "session3-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Jest — test des erreurs Prisma avec simulation P2002
+RAISON: Un test qui vérifie uniquement le happy path ne valide pas le comportement en cas de conflit DB — les erreurs Prisma non testées restent des 500 non diagnostiquées en production.
+DETECTION_REGEX: prisma\.\w+\.create.*mockResolvedValue
+ALTERNATIVE: Toujours ajouter un test cas d'erreur avec mockRejectedValue + PrismaClientKnownRequestError P2002
+EXEMPLE_INVALIDE:
+  test('crée un user', async () => {
+    prismaMock.user.create.mockResolvedValue({ id: 1, email: 'a@b.com' });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    // aucun test d'erreur → le catch P2002 n'est jamais validé
+  });
+EXEMPLE_VALIDE:
+  import { Prisma } from '@prisma/client';
+  test('crée un user — succès', async () => {
+    prismaMock.user.create.mockResolvedValue({ id: 1, email: 'a@b.com', clerkId: 'u_1' });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+  });
+  test('retourne 409 si email déjà existant', async () => {
+    prismaMock.user.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002', clientVersion: '7.0.0', meta: { target: ['email'] },
+      })
+    );
+    const res = await POST(req);
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe('Email already exists');
+  });
+ERREUR_ATTENDUE: N/A (test manquant — la route renvoie 500 en prod)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "12-testing-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "testing",
+            "source": "session3-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Jest — jest.mock placé après les imports ES modules
+RAISON: jest.mock() est hoisté avant les imports uniquement avec Babel/ts-jest CommonJS. Avec ESM natif ou mauvaise config ts-jest, le mock n'est pas appliqué et l'import réel est utilisé.
+DETECTION_REGEX: import\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];\s*[\s\S]*?jest\.mock\(
+ALTERNATIVE: Placer jest.mock() avant tout import, ou utiliser require() pour les mocks dynamiques
+EXEMPLE_INVALIDE:
+  import { clerkMiddleware } from '@clerk/nextjs/server'; // import AVANT mock
+  jest.mock('@clerk/nextjs/server', () => ({ clerkMiddleware: jest.fn() })); // trop tard
+EXEMPLE_VALIDE:
+  // jest.mock est hoisté avant les imports par le transform Babel/ts-jest.
+  jest.mock('@clerk/nextjs/server', () => ({
+    clerkMiddleware: jest.fn((handler) => jest.fn()),
+    createRouteMatcher: jest.fn(() => jest.fn(() => false)),
+  }));
+  const mod = require('../middleware'); // require() pour éviter l'ambiguïté ESM
+ERREUR_ATTENDUE: Cannot access 'clerkMiddleware' before initialization — ou — The module factory of jest.mock() is not allowed to reference any out-of-scope variables.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "12-testing-advanced",
+            "status": "active",
+            "version": "1.0",
+            "category": "testing",
+            "source": "session3-ai-validated",
+        },
+    },
+]
+
+
+ZONE_13_BUSINESS_LOGIC = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — lier les entités utilisateur à clerkId, pas à l'id interne
+RAISON: Stocker l'id Prisma interne comme référence d'ownership crée une désynchronisation quand Clerk supprime ou recrée un utilisateur — les données orphelines ne peuvent plus être réclamées.
+DETECTION_REGEX: (authorId|userId|ownerId)\\s+Int\\s+(?!.*@relation.*User)
+ALTERNATIVE: Utiliser clerkId String comme clé de relation owner, ou stocker clerkId dans chaque entité liée à un utilisateur
+EXEMPLE_INVALIDE:
+  // schema.prisma ❌
+  model Post {
+    id       String @id @default(cuid())
+    title    String
+    authorId Int    // ❌ id interne Prisma — cassé si user recréé dans Clerk
+    author   User   @relation(fields: [authorId], references: [id])
+  }
+EXEMPLE_VALIDE:
+  // schema.prisma ✅
+  model Post {
+    id        String   @id @default(cuid())
+    title     String
+    content   String
+    published Boolean  @default(false)
+    authorId  String   // ✅ clerkId = identifiant Clerk stable
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  }
+  // Dans la route : where: { authorId: userId } où userId vient de auth()
+ERREUR_ATTENDUE: N/A (désynchronisation silencieuse à l'exécution)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "13-business-logic",
+            "status": "active",
+            "version": "1.0",
+            "category": "business-logic",
+            "source": "session4-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — champs obligatoires depuis le brief dans le schéma
+RAISON: Générer un modèle Prisma incomplet (champs manquants du brief) produit un build qui passe mais une application qui ne satisfait pas la spécification — les routes API échouent à l'exécution sur les champs inexistants.
+DETECTION_REGEX: N/A (détection sémantique — vérifier que chaque entité mentionnée dans le brief a un modèle Prisma correspondant)
+ALTERNATIVE: Extraire exhaustivement toutes les entités et leurs champs du brief avant de générer le schéma, créer un modèle par entité mentionnée
+EXEMPLE_INVALIDE:
+  // Brief : "Post avec title, content, slug unique, published Boolean"
+  // schema.prisma généré ❌
+  model Post {
+    id      String @id @default(cuid())
+    title   String
+    // ❌ content manquant, slug manquant, published manquant
+  }
+EXEMPLE_VALIDE:
+  // Brief : "Post avec title, content, slug unique, published Boolean"
+  // schema.prisma généré ✅
+  model Post {
+    id        String   @id @default(cuid())
+    title     String
+    content   String
+    slug      String   @unique
+    published Boolean  @default(false)
+    authorId  String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+  }
+ERREUR_ATTENDUE: TypeError: Cannot read properties of undefined (reading 'slug') — ou — PrismaClientValidationError: Unknown field `slug` for model `Post`.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "13-business-logic",
+            "status": "active",
+            "version": "1.0",
+            "category": "business-logic",
+            "source": "session4-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — slug unique dans les routes dynamiques
+RAISON: Utiliser l'id interne Prisma dans l'URL au lieu du slug expose l'implémentation interne et empêche les URLs lisibles SEO-friendly exigées par le brief.
+DETECTION_REGEX: prisma\\.\\w+\\.findUnique\\(\\s*\\{\\s*where:\\s*\\{\\s*id:\\s*params\\.id
+ALTERNATIVE: Utiliser findUnique({ where: { slug: params.slug } }) pour les routes publiques quand le modèle a un champ slug @unique
+EXEMPLE_INVALIDE:
+  // app/api/posts/[id]/route.ts — quand le brief dit "URL par slug"
+  export async function GET(_: Request, { params }: { params: { id: string } }) {
+    const post = await prisma.post.findUnique({
+      where: { id: params.id }, // ❌ expose l'id interne, pas le slug
+    });
+  }
+EXEMPLE_VALIDE:
+  // app/blog/[slug]/page.tsx — route publique par slug
+  export default async function PostPage({ params }: { params: { slug: string } }) {
+    const post = await prisma.post.findUnique({
+      where: { slug: params.slug }, // ✅ slug depuis l'URL
+    });
+    if (!post || !post.published) notFound();
+    return <article>{post.content}</article>;
+  }
+ERREUR_ATTENDUE: N/A (build passe — URL incorrecte à l'exécution)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "13-business-logic",
+            "status": "active",
+            "version": "1.0",
+            "category": "business-logic",
+            "source": "session4-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: PRÉFÉRÉ
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — toggle boolean via PATCH, pas PUT complet
+RAISON: Un PUT sur une ressource remplace tous ses champs — utiliser PUT pour un toggle "published" écrase les données non fournies dans le body (title, content perdus si non renvoyés). PATCH est sémantiquement correct pour une mise à jour partielle. Note: si le brief spécifie explicitement PUT, respecter la spécification.
+DETECTION_REGEX: export async function PUT.*toggle|published.*PUT
+ALTERNATIVE: Utiliser PATCH pour les mises à jour partielles (toggle de champ), réserver PUT aux remplacements complets de ressource
+EXEMPLE_INVALIDE:
+  // app/api/posts/[id]/route.ts ❌
+  export async function PUT(req: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // ❌ PUT complet pour un simple toggle — écrase title/content si non fournis
+    await prisma.post.update({
+      where: { id: params.id, authorId: userId },
+      data: { published: true },
+    });
+    return NextResponse.json({ success: true });
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/[id]/route.ts ✅
+  export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const post = await prisma.post.findUnique({
+      where: { id: params.id, authorId: userId },
+      select: { published: true },
+    });
+    if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const updated = await prisma.post.update({
+      where: { id: params.id },
+      data: { published: !post.published }, // ✅ toggle réel
+    });
+    return NextResponse.json({ published: updated.published });
+  }
+ERREUR_ATTENDUE: N/A (sémantique incorrecte — données perdues en production)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "13-business-logic",
+            "status": "active",
+            "version": "1.0",
+            "category": "business-logic",
+            "source": "session4-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — sélection des champs retournés par Prisma
+RAISON: Retourner l'entité Prisma complète depuis une API publique expose des champs internes (authorId, clerkId, metadata) qui ne doivent pas être visibles côté client.
+DETECTION_REGEX: return NextResponse\\.json\\(\\s*\\w+\\s*\\)(?!.*select|.*omit)
+ALTERNATIVE: Utiliser select ou omit dans la requête Prisma, ou destructurer explicitement les champs à exposer
+EXEMPLE_INVALIDE:
+  // app/api/posts/[id]/route.ts
+  const post = await prisma.post.findUnique({ where: { slug: params.slug } });
+  // ❌ retourne authorId (clerkId interne), tous les champs internes
+  return NextResponse.json(post);
+EXEMPLE_VALIDE:
+  // app/api/posts/[id]/route.ts
+  const post = await prisma.post.findUnique({
+    where: { slug: params.slug, published: true },
+    select: {   // ✅ uniquement les champs publics
+      id: true,
+      title: true,
+      content: true,
+      slug: true,
+      createdAt: true,
+    },
+  });
+  if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json(post);
+ERREUR_ATTENDUE: N/A (fuite de données silencieuse)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "13-business-logic",
+            "status": "active",
+            "version": "1.0",
+            "category": "business-logic",
+            "source": "session4-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — slug généré déterministement côté serveur
+RAISON: Laisser le client envoyer un slug ou le générer côté LLM sans normalisation produit des slugs avec espaces, accents ou majuscules qui cassent les URLs et violent la contrainte @unique Prisma.
+DETECTION_REGEX: slug:\\s*(body\\.slug|req\\.body\\.slug|data\\.slug)(?!.*\\.toLowerCase\\(\\)|.*\\.replace\\(|.*slugify)
+ALTERNATIVE: Générer le slug côté serveur depuis le titre avec normalisation (toLowerCase + replace espaces/accents)
+EXEMPLE_INVALIDE:
+  // app/api/posts/route.ts
+  const { title, content, slug } = await req.json();
+  // ❌ slug vient du client — peut contenir "Mon Article !" →
+  //    contrainte @unique Prisma viole avec espaces/accents
+  await prisma.post.create({ data: { title, content, slug, authorId: userId } });
+EXEMPLE_VALIDE:
+  // app/api/posts/route.ts
+  const { title, content } = await req.json();
+  // ✅ slug généré et normalisé côté serveur
+  const baseSlug = title
+    .toLowerCase()
+    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') // supprime accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  // Unicité : ajouter suffix si conflit
+  const slug = `${baseSlug}-${Date.now()}`;
+  await prisma.post.create({ data: { title, content, slug, authorId: userId } });
+ERREUR_ATTENDUE: PrismaClientKnownRequestError: Unique constraint failed on the fields: (`slug`)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "13-business-logic",
+            "status": "active",
+            "version": "1.0",
+            "category": "business-logic",
+            "source": "session4-ai-validated",
+        },
+    },
+]
+
+
+ZONE_14_ANTIPATTERNS = [
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: @clerk/nextjs — SignIn/SignUp components sans routes Catch-All
+RAISON: Créer manuellement des pages /sign-in et /sign-up sans les routes Catch-All fait que Clerk ne peut pas gérer ses propres redirections internes (/sign-in/factor-one, /sign-in/sso-callback...) — les utilisateurs se retrouvent sur une page 404 pendant l'auth.
+DETECTION_REGEX: app/sign-in/page\\.tsx|app/sign-up/page\\.tsx(?!.*\\[\\[\\.\\.\\.sign)
+ALTERNATIVE: Utiliser les routes Catch-All [[...sign-in]] et [[...sign-up]] pour que Clerk gère toutes ses sous-routes internes
+EXEMPLE_INVALIDE:
+  // app/sign-in/page.tsx ❌
+  import { SignIn } from '@clerk/nextjs';
+  export default function SignInPage() {
+    return <SignIn />;
+    // ❌ /sign-in/factor-one → 404, SSO callback → 404
+  }
+EXEMPLE_VALIDE:
+  // app/sign-in/[[...sign-in]]/page.tsx ✅
+  import { SignIn } from '@clerk/nextjs';
+  export default function SignInPage() {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <SignIn />
+      </div>
+    );
+  }
+ERREUR_ATTENDUE: 404 sur /sign-in/factor-one — ou — Clerk: signInUrl must be set to the path of your sign-in page.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "14-antipatterns",
+            "status": "active",
+            "version": "1.0",
+            "category": "antipatterns",
+            "source": "session5-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — Server Components avec useState/useEffect
+RAISON: Les Server Components Next.js App Router n'ont pas accès au runtime React côté client — utiliser des hooks React crashe immédiatement le build avec une erreur TypeScript/Next.js non ambiguë.
+DETECTION_REGEX: (useState|useEffect|useCallback|useRef)\\s*\\((dans un fichier app/**/*.tsx qui n'a pas 'use client' en première ligne)
+ALTERNATIVE: Ajouter 'use client' en première ligne si des hooks sont nécessaires, ou extraire la logique dans un sous-composant Client
+EXEMPLE_INVALIDE:
+  // app/dashboard/page.tsx ❌ (Server Component par défaut)
+  import { useState } from 'react';
+  export default function DashboardPage() {
+    const [count, setCount] = useState(0); // ❌ hook dans Server Component
+    return <button onClick={() => setCount(c => c + 1)}>{count}</button>;
+  }
+EXEMPLE_VALIDE:
+  // app/dashboard/page.tsx ✅ — Server Component pour les données
+  import { DashboardClient } from './DashboardClient';
+  import { auth } from '@clerk/nextjs/server';
+  export default async function DashboardPage() {
+    const { userId } = await auth();
+    if (!userId) redirect('/sign-in');
+    const posts = await prisma.post.findMany({ where: { authorId: userId } });
+    return <DashboardClient posts={posts} />;
+  }
+  // app/dashboard/DashboardClient.tsx
+  'use client';
+  import { useState } from 'react';
+  export function DashboardClient({ posts }) {
+    const [filter, setFilter] = useState('all');
+  }
+ERREUR_ATTENDUE: Error: useState only works in Client Components. Add the "use client" directive at the top of the file to use it.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "14-antipatterns",
+            "status": "active",
+            "version": "1.0",
+            "category": "antipatterns",
+            "source": "session5-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — redirect() dans un try/catch
+RAISON: La fonction redirect() de Next.js fonctionne en lançant une exception interne (NEXT_REDIRECT). Si elle est appelée dans un try/catch, l'exception est catchée et la redirection n'a jamais lieu — l'utilisateur reste sur la page sans redirection ni erreur visible.
+DETECTION_REGEX: try\\s*\\{[\\s\\S]*?redirect\\([\\s\\S]*?\\}\\s*catch
+ALTERNATIVE: Appeler redirect() en dehors des blocs try/catch, ou utiliser notFound() pour les 404 qui ne nécessitent pas de try/catch
+EXEMPLE_INVALIDE:
+  // app/dashboard/page.tsx
+  export default async function DashboardPage() {
+    try {
+      const { userId } = await auth();
+      if (!userId) redirect('/sign-in'); // ❌ exception catchée → redirect silencieux
+      const data = await prisma.post.findMany();
+      return <div>{data.length} posts</div>;
+    } catch (error) {
+      console.error(error); // redirect() est catchée ici → jamais exécutée
+      return <div>Erreur</div>;
+    }
+  }
+EXEMPLE_VALIDE:
+  // app/dashboard/page.tsx
+  export default async function DashboardPage() {
+    const { userId } = await auth(); // ✅ auth() en dehors du try/catch
+    if (!userId) redirect('/sign-in');
+    try {
+      const data = await prisma.post.findMany({ where: { authorId: userId } });
+      return <div>{data.length} posts</div>;
+    } catch (error) {
+      console.error('[DashboardPage]', error);
+      return <div>Une erreur est survenue</div>;
+    }
+  }
+ERREUR_ATTENDUE: N/A (redirection silencieusement ignorée — l'utilisateur reste sur la page)
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "14-antipatterns",
+            "status": "active",
+            "version": "1.0",
+            "category": "antipatterns",
+            "source": "session5-ai-validated",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — appel Prisma direct dans un Client Component
+RAISON: Les Client Components s'exécutent dans le navigateur — Prisma est une bibliothèque Node.js avec des modules natifs (pg, fs...) qui n'existent pas dans le browser. Le build échoue avec une erreur de module non trouvé.
+DETECTION_REGEX: 'use client'[\\s\\S]*?import.*@prisma/client|import.*@prisma/client[\\s\\S]*?'use client'
+ALTERNATIVE: Les appels Prisma restent dans les Server Components (page.tsx sans 'use client') ou les Route Handlers (app/api/**/route.ts)
+EXEMPLE_INVALIDE:
+  // app/dashboard/DashboardPage.tsx ❌
+  'use client';
+  import { prisma } from '@/lib/prisma'; // ❌ Prisma dans Client Component
+  import { useEffect, useState } from 'react';
+  export default function DashboardPage() {
+    const [posts, setPosts] = useState([]);
+    useEffect(() => {
+      prisma.post.findMany().then(setPosts); // ❌ crash build + runtime
+    }, []);
+    return <div>{posts.length}</div>;
+  }
+EXEMPLE_VALIDE:
+  // app/dashboard/page.tsx ✅ — Server Component
+  import { DashboardClient } from './DashboardClient';
+  export default async function DashboardPage() {
+    const { userId } = await auth();
+    if (!userId) redirect('/sign-in');
+    // ✅ Prisma dans Server Component — Node.js env
+    const posts = await prisma.post.findMany({ where: { authorId: userId } });
+    return <DashboardClient initialPosts={posts} />;
+  }
+ERREUR_ATTENDUE: Module not found: Can't resolve 'pg-native' — ou — Module not found: Can't resolve 'fs' in '.../node_modules/@prisma/client/runtime'
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "14-antipatterns",
+            "status": "active",
+            "version": "1.0",
+            "category": "antipatterns",
+            "source": "session5-ai-validated",
+        },
+    },
+]
+
 
 ALL_STANDARDS = (
     ZONE_1_REQUIRED_FILES
@@ -1081,6 +2074,11 @@ ALL_STANDARDS = (
     + ZONE_7_PRISMA
     + ZONE_8_TESTING
     + ZONE_9_SECURITY
+    + ZONE_10_SECURITY_ADVANCED
+    + ZONE_11_ERROR_HANDLING
+    + ZONE_12_TESTING_ADVANCED
+    + ZONE_13_BUSINESS_LOGIC
+    + ZONE_14_ANTIPATTERNS
 )
 
 
@@ -1106,7 +2104,7 @@ def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
 
 def main() -> int:
     print("\n" + "=" * 70)
-    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (9 zones)")
+    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (14 zones)")
     print("   Sources: Perplexity 2026-03-01 + runs empiriques + doc officielle")
     print("=" * 70 + "\n")
 

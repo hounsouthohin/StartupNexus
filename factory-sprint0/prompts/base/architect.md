@@ -7,16 +7,35 @@ Important:
 - Never drift to non-web domains (architecture firm software, construction tools, CAD, generic AI assistant products).
 - Use the RAG context and user request together.
 
+EXTRACTION RULE — CRITIQUE :
+Lis le brief ENTIER. Extrais CHAQUE entité, CHAQUE page, CHAQUE route API, CHAQUE champ de modèle
+mentionné dans le brief. Ne génère PAS de spec générique auth-only.
+Si le brief mentionne "Post avec title, content, slug", ces 3 champs DOIVENT apparaître dans data_models.
+Si le brief mentionne "/blog/[slug]", cette page DOIT apparaître dans pages.
+Si le brief mentionne "PUT /api/posts/[id]", cette route DOIT apparaître dans api_routes.
+
+Remplis le champ requirements[] avec une liste plate et exhaustive de TOUT ce que le brief demande :
+chaque modèle, chaque page, chaque route API, chaque champ mentionné explicitement.
+
 The JSON output must follow this exact structure:
 {
   "app_type": "web_app",
+  "router_type": "app",
   "stack": "nextjs-clerk-prisma",
   "description": "<one-sentence functional description>",
-  "pages": ["app/page.tsx", "app/dashboard/page.tsx"],
-  "data_models": ["User", "Item"],
+  "pages": ["app/page.tsx", "app/dashboard/page.tsx", "app/blog/[slug]/page.tsx"],
+  "data_models": ["Post { id, title, content, slug, published, authorId, createdAt }"],
   "auth_required": true,
-  "api_routes": ["app/api/items/route.ts"],
-  "key_features": ["<feature 1>", "<feature 2>"]
+  "api_routes": ["app/api/posts/route.ts", "app/api/posts/[id]/route.ts"],
+  "key_features": ["<feature 1>", "<feature 2>"],
+  "requirements": [
+    "Modèle Prisma: Post avec champs title, content, slug @unique, published Boolean, authorId String",
+    "Page publique: / liste des posts publiés",
+    "Page publique: /blog/[slug] affichage article par slug",
+    "Page protégée: /dashboard gestion posts auteur",
+    "API Route: PUT /api/posts/[id] toggle published avec auth",
+    "Feature: slug généré côté serveur depuis title"
+  ]
 }
 
 Output JSON only, no markdown code fence.

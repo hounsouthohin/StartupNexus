@@ -87,8 +87,11 @@ class TodoPilotWorkflow:
 
             spec_part = architect_result.get("specification", "")
             mermaid_part = architect_result.get("mermaid_diagram", "")
+            requirements_part = architect_result.get("requirements", [])
 
-            workflow.logger.info("Architect terminé")
+            workflow.logger.info(
+                f"Architect terminé — {len(requirements_part)} requirements extraits"
+            )
 
             # 2. DevTest fusionné
             dev_test_input = {
@@ -96,6 +99,7 @@ class TodoPilotWorkflow:
                 "mermaid": mermaid_part,
                 "project_name": project_name,
                 "stack_id": stack_id,
+                "requirements": requirements_part,
             }
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
