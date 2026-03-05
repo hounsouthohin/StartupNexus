@@ -35,7 +35,8 @@ AGENT_CONTRACT_FILES = {
     "qa_agent":        "qa_agent_contract.json",
     "github_agent":    "github_agent_contract.json",
     "dev_test_agent": "dev_test_agent_contract.json",
-    "learner_agent":  "learner_agent_contract.json",
+    # learner_agent retiré Sprint 2 — remplacé par LearnerActivity Temporal
+    # Pas de contrat JSON Schema : validé par le framework Temporal
 }
 
 # ─────────────────────────────────────────────────────
@@ -234,3 +235,4 @@ if __name__ == "__main__":
     print("\n" + "═"*70)
     print("Statut final : " + ("TOUT EST OK ✅" if all_ok else "PROBLÈMES DÉTECTÉS ⚠️"))
     print("═"*70 + "\n")
+    sys.exit(0 if all_ok else 1)

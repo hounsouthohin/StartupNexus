@@ -1,19 +1,13 @@
-import os
-import subprocess
 from typing import TypedDict, Annotated, List
 import operator
 from pydantic import BaseModel, Field
 
-# Imports for the new logic
 from agents.shared_tools import run_tests, write_file, get_stack_id
 from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from utils.prompt_loader import load_prompt, load_stack_prompt
-
-# Import central configuration (Added)
-from config.factory_config import SUBPROCESS_TIMEOUT_LONG
 
 # --- Pydantic Models for Structured Output ---
 class TestFile(BaseModel):
@@ -40,15 +34,6 @@ class Logger:
 logger = Logger()
 
 # --- Node Functions ---
-
-def write_source_files_node(state: AgentState) -> dict:
-
-    """This node is now a no-op. File writing is handled by the test_runner_node."""
-
-    logger.info("Skipping explicit file writing; will be handled by the test runner tool.")
-
-    return {}
-
 
 def generation_node(state: AgentState) -> dict:
     """Generates the test files' content based on source files and prior errors."""
@@ -95,11 +80,6 @@ def generation_node(state: AgentState) -> dict:
     logger.info(f"Generated {len(generated_tests_dict)} test files.")
     return {"tests": generated_tests_dict, "iterations": state["iterations"] + 1}
 
-def writing_node(state: AgentState) -> dict:
-    """This node is now a no-op. Test file writing is handled by the test_runner_node."""
-    logger.info("Skipping explicit test file writing; will be handled by the test runner tool.")
-    return {}
-
 def test_runner_node(state: AgentState) -> dict:
     """Runs the tests and returns the result."""
     logger.info("Running tests...")
@@ -136,16 +116,12 @@ def test_coverage_agent(files: dict, stack_id: str = "") -> dict:
     """
     graph = StateGraph(AgentState)
     
-    graph.add_node("write_source_files", write_source_files_node) # New node
     graph.add_node("generate", generation_node)
-    graph.add_node("write_tests", writing_node)
     graph.add_node("run_tests", test_runner_node)
-    
-    graph.set_entry_point("write_source_files") # New entry point
-    
-    graph.add_edge("write_source_files", "generate") # New edge
-    graph.add_edge("generate", "write_tests")
-    graph.add_edge("write_tests", "run_tests")
+
+    graph.set_entry_point("generate")
+
+    graph.add_edge("generate", "run_tests")
     
     graph.add_conditional_edges(
         "run_tests",
