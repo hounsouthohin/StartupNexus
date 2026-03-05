@@ -926,7 +926,7 @@ def run_tests(project_dir: str = ".", files: dict = {}) -> str:
             if "--passWithNoTests" not in test_cmd:
                 test_cmd.append("--passWithNoTests")
         except Exception:
-            test_cmd = ["npx", "jest", "--coverage", "--passWithNoTests"]
+            test_cmd = "npx jest --coverage --passWithNoTests".split()
 
         # Lancer les tests
         result = subprocess.run(

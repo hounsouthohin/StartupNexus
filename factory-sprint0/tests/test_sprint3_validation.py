@@ -225,10 +225,22 @@ class TestLearnerActivity:
         if not path.exists():
             pytest.skip("todo_pilot_workflow.py introuvable")
         src = path.read_text(encoding="utf-8")
-        # Vérifie que learner_activity est dans un bloc try/except
-        learner_idx = src.find("learner_activity")
-        assert learner_idx != -1, "learner_activity non trouvée dans le workflow"
-        surrounding = src[max(0, learner_idx - 300):learner_idx + 100]
+        # Chercher l'appel execute_activity(learner_activity ...) — pas la ligne d'import
+        call_idx = src.find("execute_activity(\n")
+        # Trouver le execute_activity qui précède "learner_activity"
+        search_from = 0
+        call_pos = -1
+        while True:
+            idx = src.find("execute_activity(", search_from)
+            if idx == -1:
+                break
+            snippet = src[idx:idx + 120]
+            if "learner_activity" in snippet:
+                call_pos = idx
+                break
+            search_from = idx + 1
+        assert call_pos != -1, "execute_activity(learner_activity...) non trouvé dans le workflow"
+        surrounding = src[max(0, call_pos - 200):call_pos + 50]
         assert "try:" in surrounding, \
             "learner_activity doit être dans un bloc try/except (best-effort)"
 
