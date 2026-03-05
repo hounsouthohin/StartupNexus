@@ -918,9 +918,19 @@ def run_tests(project_dir: str = ".", files: dict = {}) -> str:
         if test_count < min_tests and not allow_zero:
             return f"Tests skipped: aucun fichier de test trouvé dans {project_path} (requis: {min_tests})"
 
-        # Lancer jest
+        # Lire la commande test depuis le JSON stack (Config-Runtime Drift fix Sprint 3)
+        try:
+            from agents.stack_config import get_commands
+            test_cmd_str = get_commands(get_stack_id()).get("test", "npx jest --coverage")
+            test_cmd = test_cmd_str.split()
+            if "--passWithNoTests" not in test_cmd:
+                test_cmd.append("--passWithNoTests")
+        except Exception:
+            test_cmd = ["npx", "jest", "--coverage", "--passWithNoTests"]
+
+        # Lancer les tests
         result = subprocess.run(
-            ["npx", "jest", "--coverage", "--passWithNoTests"],
+            test_cmd,
             capture_output=True,
             text=True,
             timeout=SUBPROCESS_TIMEOUT_MEDIUM,

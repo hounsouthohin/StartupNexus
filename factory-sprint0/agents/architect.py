@@ -127,7 +127,9 @@ class AgentState(TypedDict):
     plan: dict
     specification: str
     mermaid_diagram: str
-    architect_output: ArchitectOutput 
+    architect_output: ArchitectOutput
+    run_id: str
+    stack_id: str
 
 # --- Prompt Loading ---
 def _parse_level1_sections(content: str) -> dict[str, str]:
@@ -219,6 +221,31 @@ def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float 
     )
 
 
+def _build_architect_rag_filter(stack_id: str):
+    """Construit le filtre Qdrant pour le retriever architect depuis le JSON stack."""
+    try:
+        from agents.stack_config import get_qdrant_filter_cfg
+        from qdrant_client.http.models import Filter, FieldCondition, MatchValue
+
+        def _parse(cond: dict):
+            if "key" in cond:
+                return FieldCondition(key=cond["key"], match=MatchValue(value=cond["match"]["value"]))
+            if "must" in cond:
+                return Filter(must=[_parse(c) for c in cond["must"]])
+            if "should" in cond:
+                return Filter(should=[_parse(c) for c in cond["should"]])
+            return None
+
+        filter_cfg = get_qdrant_filter_cfg(stack_id).get("filter", {})
+        must_raw = filter_cfg.get("must", [])
+        if not must_raw:
+            return None
+        conditions = [_parse(c) for c in must_raw if c]
+        return Filter(must=conditions) if conditions else None
+    except Exception:
+        return None
+
+
 # ==================== CRÉATION DU GRAPH ====================
 def create_architect_agent():
     # Imports moved inside the function to avoid Temporal sandbox issues
@@ -244,13 +271,19 @@ def create_architect_agent():
     # --- Nodes ---
     async def retrieval_node(state: AgentState):
         query = state["messages"][-1].content
+        run_id = str(state.get("run_id", ""))
+        stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
         try:
-            docs = await retriever.ainvoke(query)
-            _append_architect_rag_event(query=query, docs=docs, error=None, run_id=str(state.get("run_id", "")))
+            qdrant_filter = _build_architect_rag_filter(stack_id)
+            if qdrant_filter is not None:
+                docs = await vectorstore.asimilarity_search(query, k=10, filter=qdrant_filter)
+            else:
+                docs = await retriever.ainvoke(query)
+            _append_architect_rag_event(query=query, docs=docs, error=None, run_id=run_id)
         except Exception as e:
             logger.warning(f"RAG indisponible: {e} - continuation sans contexte")
             docs = []
-            _append_architect_rag_event(query=query, docs=[], error=str(e), run_id=str(state.get("run_id", "")))
+            _append_architect_rag_event(query=query, docs=[], error=str(e), run_id=run_id)
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
         print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
         return {"rag_context": rag_context}
