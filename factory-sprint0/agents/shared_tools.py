@@ -351,8 +351,25 @@ def _ensure_tsconfig_excludes_tests(content: str) -> str:
         return content
 
 
+_CODE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".css", ".scss")
+
+
+def _fix_literal_newlines(path: str, content: str) -> str:
+    """
+    Corrige les fichiers où le LLM a écrit \\n comme texte littéral (double-escape JSON)
+    au lieu de vraies newlines.
+    Signature du bug : le contenu n'a aucune vraie newline mais contient des \\n.
+    """
+    if not any(path.endswith(ext) for ext in _CODE_EXTENSIONS):
+        return content
+    if "\n" not in content and "\\n" in content:
+        content = content.replace("\\n", "\n").replace("\\t", "\t")
+    return content
+
+
 def _sanitize_content(path: str, content: str) -> str:
     """Applique tous les sanitizers sur le contenu avant écriture."""
+    content = _fix_literal_newlines(path, content)
     if path.endswith(".json"):
         content = _fix_json_escaping(content)
     content = _apply_import_remaps(content, path)

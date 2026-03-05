@@ -1,0 +1,35 @@
+{
+  "generated_at": "2026-03-05T01:52:57.292306+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "workflow_success_count": 1,
+  "workflow_failure_count": 0,
+  "build_success_count": 0,
+  "build_failure_count": 1,
+  "build_unknown_count": 0,
+  "success_count": 1,
+  "failure_count": 0,
+  "total_duration_seconds": 170.13,
+  "total_learner_events_delta": 7,
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-personal-blog-6c64b9f0",
+      "run_id": "019cbbb0-1d92-70ab-8dba-25a6633b3a2d",
+      "project_name": "personal-blog",
+      "phrase": "Blog CMS avec Clerk (auteur unique)\n- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n- API Route : PUT /api/posts/[id] (toggle published, auth requise)",
+      "started_at": "2026-03-05T01:50:07.158986+00:00",
+      "duration_seconds": 170.13,
+      "workflow_success": true,
+      "build_success": false,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "learner_events_before": 60,
+      "learner_events_after": 67,
+      "learner_events_delta": 7,
+      "result_excerpt": "TodoPilotOutput(workflow_status='COMPLETED', build_status='BUILD_FAILED', project_name='personal-blog', generated_files_count=15, pr_url='https://github.com/hounsouthohin/saas-personal-blog/pull/1', repo_url='https://github.com/hounsouthohin/saas-personal-blog', dev_files_count=14, test_files_count=1, duration_seconds=169.950687, error_message=None)"
+    }
+  ]
+}

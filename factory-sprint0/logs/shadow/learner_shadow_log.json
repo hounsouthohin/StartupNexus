@@ -1,5 +1,5 @@
 {
-  "total_suggestions": 60,
+  "total_suggestions": 67,
   "suggested_standards": [
     {
       "timestamp": "2026-02-27T14:34:45.562286+00:00",
@@ -1109,6 +1109,138 @@
           "improvement": 1.0
         },
         "generated_at": "2026-03-05T01:22:05.079879+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:26.190566+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "dev_test_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": false,
+        "build_success": false,
+        "build_attempted": true,
+        "files_count": 15,
+        "clerk_compliant": true,
+        "dev_files_count": 14,
+        "build_attempts": 2,
+        "iterations": 10,
+        "final_message": "ÉCHEC : ERREUR RÉCURRENTE BUILD",
+        "last_build_error": "⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\nFailed to compile.\n\n./app/layout.tsx\nError: \n  \u001b[31mx\u001b[0m Expected unicode escape\n   ,-[\u001b[36;1;4m/app/generated-proje",
+        "last_build_error_full": "⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\nFailed to compile.\n\n./app/layout.tsx\nError: \n  \u001b[31mx\u001b[0m Expected unicode escape\n   ,-[\u001b[36;1;4m/app/generated-projects/app/layout.tsx\u001b[0m:1:1]\n \u001b[2m1\u001b[0m | import { ClerkProvider } from '@clerk/nextjs';\\nexport const dynamic = \"force-dynamic\";\\n\\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\\n  return (\\n    <ClerkProvider>\\n      <html lang=\"en\">\\n        <body>{children}</body>\\n      </html>\\n    </ClerkProvider>\\n  );\\n}\n   : \u001b[31;1m                                              ^\u001b[0m\n   `----\n\nCaused by:\n    Syntax Error\n\nImport trace for requested module:\n./app/layout.tsx\n\n./app/page.tsx\nError: \n  \u001b[31mx\u001b[0m Expected unicode escape\n   ,-[\u001b[36;1;4m/app/generated-projects/app/page.tsx\u001b[0m:1:1]\n \u001b[2m1\u001b[0m | export default function Home() {\\n  return (\\n    <div>\\n      <h1>Bienvenue sur mon blog personnel</h1>\\n      <p>Cette application est construite avec Next.js, Clerk, Prisma et Tailwind CSS.</p>\\n    </div>\\n  );\\n}\n   : \u001b[31;1m                                ^\u001b[0m\n   `----\n\nCaused by:\n    Syntax Error\n\nImport trace for requested module:\n./app/page.tsx\n\n\n> Build failed because of webpack errors",
+        "last_test_error": "",
+        "last_test_error_full": "",
+        "last_failed_command": "npm run build",
+        "semantic_violations": [],
+        "error": "BuildFailed: ⚠ Found lockfile missing swc dependencies, run next locally to automatically patch\nFailed to compile.\n\n./app/layout.tsx\nError: \n  \u001b[31mx\u001b[0m Expected unicode escape\n   ,-[\u001b[36;1;4m/app/generated-proje"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:32.177837+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "qa_run",
+      "payload": {
+        "project_name": "personal-blog",
+        "success": true,
+        "qa_e2e_coverage": true,
+        "generated_tests_count": 1,
+        "error": null
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:57.143466+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P001-2baba9",
+        "category": "prompt",
+        "severity": "high",
+        "title": "Taux de succès global insuffisant",
+        "description": "Seulement 35% de succès sur 26 runs. Améliorer les prompts dev ou renforcer les guards de séquence.",
+        "evidence": {
+          "success_rate": 0.346,
+          "total_runs": 26,
+          "successes": 9
+        },
+        "generated_at": "2026-03-05T01:52:57.129756+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:57.160179+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P002-91beed",
+        "category": "guard",
+        "severity": "medium",
+        "title": "Violation sémantique récurrente: MISSING middleware.ts",
+        "description": "'MISSING middleware.ts' observée 6× sur 26 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+        "evidence": {
+          "violation": "MISSING middleware.ts",
+          "count": 6,
+          "total_runs": 26
+        },
+        "generated_at": "2026-03-05T01:52:57.129794+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:57.184290+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P002-ce4d18",
+        "category": "guard",
+        "severity": "medium",
+        "title": "Violation sémantique récurrente: MISSING app/layout.tsx",
+        "description": "'MISSING app/layout.tsx' observée 5× sur 26 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+        "evidence": {
+          "violation": "MISSING app/layout.tsx",
+          "count": 5,
+          "total_runs": 26
+        },
+        "generated_at": "2026-03-05T01:52:57.129800+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:57.206434+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P004-2518c3",
+        "category": "config",
+        "severity": "medium",
+        "title": "MAX_ITERATIONS atteint dans plus de 30% des runs",
+        "description": "12/26 runs atteignent MAX_ITERATIONS (≥10). Envisager un early-stop basé sur les fichiers générés ou des prompts plus directifs pour réduire le nombre d'itérations.",
+        "evidence": {
+          "max_iter_runs": 12,
+          "total": 26,
+          "ratio": 0.462,
+          "threshold": 0.3
+        },
+        "generated_at": "2026-03-05T01:52:57.129815+00:00",
+        "sprint": "sprint3"
+      }
+    },
+    {
+      "timestamp": "2026-03-05T01:52:57.223762+00:00",
+      "run_id": "5eea1245-1b55-41af-af99-7e810f103bee",
+      "event_type": "learner_suggestion",
+      "payload": {
+        "suggestion_id": "P005-69bf94",
+        "category": "standard",
+        "severity": "low",
+        "title": "Amélioration du taux de succès confirmée sur les 5 derniers runs",
+        "description": "Taux de succès: 0% (5 premiers) → 80% (5 derniers). Les changements récents sont positifs — les documenter dans MEMORY.md et promouvoir les guards correspondants en standard Qdrant.",
+        "evidence": {
+          "early_success_rate": 0.0,
+          "recent_success_rate": 0.8,
+          "improvement": 0.8
+        },
+        "generated_at": "2026-03-05T01:52:57.129825+00:00",
         "sprint": "sprint3"
       }
     }
