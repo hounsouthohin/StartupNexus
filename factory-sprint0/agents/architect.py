@@ -90,14 +90,17 @@ def _build_hard_rewrite_instructions(stack_id: str) -> str:
     return "\n".join(lines)
 
 
-def _append_architect_rag_event(query: str, docs: list, error: str | None = None, run_id: str = "") -> None:
+def _append_architect_rag_event(query: str, scored_docs: list, error: str | None = None, run_id: str = "") -> None:
+    """
+    scored_docs : List[Tuple[Document, float]] — retourné par asimilarity_search_with_score.
+    """
     try:
         metrics_dir = Path("logs/metrics")
         metrics_dir.mkdir(parents=True, exist_ok=True)
         path = metrics_dir / "rag_usage.jsonl"
-        doc_ids = [str(getattr(doc, "id", "")) for doc in (docs or [])]
-        scores = [float(getattr(doc, "score", 0.0) or 0.0) for doc in (docs or [])]
-        snippet = str(getattr(docs[0], "page_content", ""))[:180] if docs else ""
+        doc_ids = [str(getattr(d, "id", None) or "") for d, _ in (scored_docs or [])]
+        scores = [float(s) for _, s in (scored_docs or [])]
+        snippet = str(getattr(scored_docs[0][0], "page_content", ""))[:180] if scored_docs else ""
         event = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "agent": "architect_retrieval",
@@ -273,17 +276,19 @@ def create_architect_agent():
         query = state["messages"][-1].content
         run_id = str(state.get("run_id", ""))
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
+        scored_docs = []  # List[Tuple[Document, float]]
         try:
             qdrant_filter = _build_architect_rag_filter(stack_id)
             if qdrant_filter is not None:
-                docs = await vectorstore.asimilarity_search(query, k=10, filter=qdrant_filter)
+                scored_docs = await vectorstore.asimilarity_search_with_score(query, k=10, filter=qdrant_filter)
             else:
-                docs = await retriever.ainvoke(query)
-            _append_architect_rag_event(query=query, docs=docs, error=None, run_id=run_id)
+                plain_docs = await retriever.ainvoke(query)
+                scored_docs = [(d, 0.0) for d in plain_docs]
+            _append_architect_rag_event(query=query, scored_docs=scored_docs, error=None, run_id=run_id)
         except Exception as e:
             logger.warning(f"RAG indisponible: {e} - continuation sans contexte")
-            docs = []
-            _append_architect_rag_event(query=query, docs=[], error=str(e), run_id=run_id)
+            _append_architect_rag_event(query=query, scored_docs=[], error=str(e), run_id=run_id)
+        docs = [d for d, _ in scored_docs]
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
         print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
         return {"rag_context": rag_context}
