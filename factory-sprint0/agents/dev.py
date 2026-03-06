@@ -523,6 +523,72 @@ def dev_agent(
                                 build_attempted = True
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
+                            # ── GUARD C : @/lib/prisma import sans lib/prisma.ts (Sprint 5) ─────
+                            # Le LLM utilise correctement `import prisma from '@/lib/prisma'`
+                            # mais oublie de créer lib/prisma.ts → Module not found au build.
+                            _LIB_PRISMA_IMPORT = re.compile(
+                                r'''import\s+\w+\s+from\s+['"]@/lib/prisma['"]''',
+                                re.MULTILINE,
+                            )
+                            _files_norm = {fp.replace("\\", "/"): fc for fp, fc in files.items()}
+                            _uses_lib_prisma = any(
+                                _LIB_PRISMA_IMPORT.search(fc)
+                                for fc in _files_norm.values()
+                            )
+                            _has_lib_prisma_ts = any(
+                                fp in ("lib/prisma.ts", "src/lib/prisma.ts")
+                                for fp in _files_norm
+                            )
+                            if _uses_lib_prisma and not _has_lib_prisma_ts:
+                                _guard_c_msg = (
+                                    "GUARD C — BUILD BLOQUÉ : lib/prisma.ts manquant\n"
+                                    "Des fichiers importent `prisma` depuis '@/lib/prisma' mais lib/prisma.ts "
+                                    "n'existe pas dans le projet.\n\n"
+                                    "CORRECTION : appelle write_file('lib/prisma.ts') avec ce contenu EXACT :\n"
+                                    "  import { PrismaClient } from '@prisma/client';\n"
+                                    "  const prisma = new PrismaClient();\n"
+                                    "  export default prisma;\n\n"
+                                    "Ensuite appelle run_build."
+                                )
+                                tool_messages.append(ToolMessage(content=_guard_c_msg, tool_call_id=tool_call["id"]))
+                                logger.warning("[GuardC] BUILD BLOQUÉ — @/lib/prisma importé mais lib/prisma.ts absent")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
+                            # ── GUARD D : hooks React sans "use client" (Sprint 5) ───────────────
+                            # useState/useEffect dans un Server Component → erreur de compilation.
+                            # Détecte les fichiers app/**/*.tsx (hors app/api/**) qui utilisent
+                            # des hooks React sans la directive "use client" en tête de fichier.
+                            _HOOKS_RE = re.compile(
+                                r'\b(useState|useEffect|useRef|useCallback|useMemo|useReducer|useContext)\s*[(<]',
+                                re.MULTILINE,
+                            )
+                            _USE_CLIENT_RE = re.compile(r'''^\s*['"]use client['"]''', re.MULTILINE)
+                            _guard_d_violations = []
+                            for _fp, _fc in _files_norm.items():
+                                if not _fp.startswith("app/"):
+                                    continue
+                                if _fp.startswith("app/api/"):
+                                    continue
+                                if not _fp.endswith(".tsx") and not _fp.endswith(".jsx"):
+                                    continue
+                                if _HOOKS_RE.search(_fc) and not _USE_CLIENT_RE.search(_fc):
+                                    _guard_d_violations.append(_fp)
+                            if _guard_d_violations:
+                                _guard_d_msg = (
+                                    "GUARD D — BUILD BLOQUÉ : directive \"use client\" manquante\n"
+                                    "Les fichiers suivants utilisent des hooks React (useState, useEffect…) "
+                                    "sans la directive \"use client\" en première ligne :\n"
+                                    + "\n".join(f"  - {f}" for f in _guard_d_violations)
+                                    + "\n\nCORRECTION : ajoute '\"use client\";' comme PREMIÈRE ligne "
+                                    "(avant tous les imports) dans chaque fichier concerné, "
+                                    "puis appelle run_build."
+                                )
+                                tool_messages.append(ToolMessage(content=_guard_d_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[GuardD] BUILD BLOQUÉ — hooks sans 'use client' dans : {_guard_d_violations}")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
                         output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
