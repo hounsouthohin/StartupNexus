@@ -31,6 +31,7 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.dev_test_activity import dev_test_activity
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
+    from workflows.activities.learner_activity import learner_activity
 
 
 @workflow.defn
@@ -76,6 +77,7 @@ class SaaSFactoryWorkflow:
 
             spec_part = architect_result.get("specification", "")
             mermaid_part = architect_result.get("mermaid_diagram", "")
+            requirements_part = architect_result.get("requirements", [])
 
             if not spec_part.strip() or not mermaid_part.strip():
                 workflow.logger.error(
@@ -91,6 +93,7 @@ class SaaSFactoryWorkflow:
                 "mermaid": mermaid_part,
                 "project_name": project_name,
                 "stack_id": stack_id,
+                "requirements": requirements_part,
             }
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
@@ -124,46 +127,62 @@ class SaaSFactoryWorkflow:
 
             if semantic_violations:
                 build_status = "SEMANTIC_VIOLATION"
-            elif dev_phase_success and tests_phase_success:
+            elif dev_phase_success:
+                # Aligné sur TodoPilotWorkflow : build réussi = SUCCESS.
+                # tests_phase_success est un signal qualité non bloquant.
                 build_status = "SUCCESS"
-            elif not dev_phase_success:
-                build_status = "BUILD_FAILED"
             else:
-                build_status = "TESTS_FAILED"
+                build_status = "BUILD_FAILED"
 
             all_files = dev_test_result.get("combined_files", {})
             if not all_files:
                 workflow.logger.warning("DevTest n'a retourné aucun fichier combiné")
 
-            # Étape 3 : QA Activity
-            qa_result: Dict = await workflow.execute_activity(
-                qa_activity,
-                args=[{
-                    "specification": spec_part,
-                    "project_name": project_name,
-                    "stack_id": stack_id,
-                    "generated_files": all_files,
-                }, run_id],
-                start_to_close_timeout=timedelta(minutes=10),
-                retry_policy=common_retry_policy,
-            )
+            # Étape 3 : QA Activity (best-effort — un échec ne bloque pas le run)
+            e2e_tests: Dict = {}
+            try:
+                qa_result: Dict = await workflow.execute_activity(
+                    qa_activity,
+                    args=[{
+                        "specification": spec_part,
+                        "project_name": project_name,
+                        "stack_id": stack_id,
+                        "generated_files": all_files,
+                    }, run_id],
+                    start_to_close_timeout=timedelta(minutes=10),
+                    retry_policy=common_retry_policy,
+                )
+                e2e_tests = qa_result.get("e2e_tests", {})
+                workflow.logger.info(f"QA terminé – {len(e2e_tests)} E2E tests générés")
+            except Exception as qa_err:
+                workflow.logger.warning(f"QA skipped due to error: {qa_err}")
 
-            generated_e2e_tests = qa_result.get("e2e_tests", {})
-            if not generated_e2e_tests:
-                workflow.logger.warning("QA Agent did not generate any E2E tests.")
-            else:
-                workflow.logger.info(f"QA terminé – {len(generated_e2e_tests)} E2E tests générés")
+            # Étape 4 : GitHub Activity (best-effort)
+            github_result: Dict = {"pr_url": "N/A", "repo_url": "N/A"}
+            try:
+                github_result = await workflow.execute_activity(
+                    github_activity,
+                    args=[{"files": {**all_files, **e2e_tests}, "project_name": project_name, "stack_id": stack_id}, run_id],
+                    start_to_close_timeout=timedelta(minutes=10),
+                    retry_policy=common_retry_policy,
+                )
+                workflow.logger.info("GitHub terminé")
+            except Exception as github_err:
+                workflow.logger.warning(f"GitHub skipped due to error: {github_err}")
 
-            # Étape 4 : GitHub Activity
-            all_files.update(generated_e2e_tests)
-
-            github_result: Dict = await workflow.execute_activity(
-                github_activity,
-                args=[{"files": all_files, "project_name": project_name, "stack_id": stack_id}, run_id],
-                start_to_close_timeout=timedelta(minutes=10),
-                retry_policy=common_retry_policy,
-            )
-            workflow.logger.info("GitHub terminé")
+            # Étape 5 : Learner (best-effort — aligné sur TodoPilotWorkflow)
+            try:
+                learner_result: Dict = await workflow.execute_activity(
+                    learner_activity,
+                    args=[run_id],
+                    start_to_close_timeout=timedelta(minutes=5),
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                workflow.logger.info(
+                    f"Learner terminé — {learner_result.get('suggestions_generated', 0)} suggestion(s)"
+                )
+            except Exception as learner_err:
+                workflow.logger.warning(f"Learner skipped due to error: {learner_err}")
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})

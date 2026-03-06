@@ -47,6 +47,15 @@ Your mission is to transform the planner JSON into a detailed and actionable Mar
 The specification is consumed by a DevAgent that generates source code.
 Be concrete and file-oriented so the DevAgent can implement without guessing.
 
+EXTRACTION RULE — CRITIQUE :
+Lis le champ requirements[] du plan JSON ENTIER. Chaque item DOIT être couvert dans la spec.
+- Chaque modèle Prisma → section ## Schéma Prisma avec TOUS les champs exacts (id, title, slug, published, authorId, createdAt...).
+- Chaque page → sous-section dans ## Structure des pages avec son chemin exact et sa logique.
+- Chaque route API → sous-section dans ## API Routes avec méthode HTTP, auth requise, et corps de requête/réponse.
+- Chaque feature → documentée dans la section correspondante.
+Ne génère JAMAIS une spec générique auth-only (User model, /sign-in, /sign-up seulement) si le plan contient des modèles métier.
+Si requirements[] contient 6 items, la spec DOIT couvrir les 6 items.
+
 Output Markdown only.
 
 # Diagrammer

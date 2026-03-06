@@ -120,7 +120,7 @@
     ],
     "security_rules": [
       "Validation Zod sur toutes les entrees utilisateur",
-      ".env.local DOIT contenir EXACTEMENT ces 3 variables : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder | CLERK_SECRET_KEY=sk_test_placeholder | DATABASE_URL=\"postgresql://user:password@localhost:5432/todo-batch-alpha\" — générer ce fichier lors de l'Étape 1 avec package.json",
+      ".env.local DOIT contenir EXACTEMENT ces 3 variables : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder | CLERK_SECRET_KEY=sk_test_placeholder | DATABASE_URL=postgresql://user:password@localhost:5432/todo-batch-alpha — générer ce fichier lors de l'Étape 1 avec package.json (INTERDIT: guillemets autour de la valeur DATABASE_URL)",
       "INTERDIT: NEXT_PUBLIC_CLERK_SECRET_KEY (expose le secret Clerk au bundle client)"
     ],
     "test_rules": [

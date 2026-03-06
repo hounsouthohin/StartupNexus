@@ -160,6 +160,7 @@ services:
       - /tmp:/tmp
       - ./logs:/app/logs
       - generated-projects:/app/generated-projects
+      - factory-shadow-log:/app/logs/shadow
     networks:
       - temporal-network
     depends_on:
@@ -175,6 +176,7 @@ volumes:
   n8n_data:
   qdrant_data:
   generated-projects:
+  factory-shadow-log:
 
 # Réseau
 networks:

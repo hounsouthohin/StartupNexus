@@ -16,10 +16,12 @@ from typing import Any, Dict
 
 try:
     import jsonschema
-    from jsonschema import validate, ValidationError
+    from jsonschema import validate, ValidationError, FormatChecker
 except ImportError:
     print("❌ Module 'jsonschema' manquant. Exécute : pip install jsonschema")
     sys.exit(1)
+
+_FORMAT_CHECKER = FormatChecker()  # active la validation "format": "uri", "date-time", etc.
 
 # ─────────────────────────────────────────────────────
 # Configuration
@@ -79,13 +81,67 @@ def validate_input(
         return True
 
     try:
-        validate(instance=input_data, schema=schema)
+        validate(instance=input_data, schema=schema, format_checker=_FORMAT_CHECKER)
         print(f"✅ [{agent_id}] Input valide")
         return True
     except ValidationError as e:
         path = " → ".join(str(p) for p in e.absolute_path) or "(racine)"
         msg = (
             f"❌ [{agent_id}] Input invalide\n"
+            f"   Champ : {path}\n"
+            f"   Message : {e.message}\n"
+            f"   Valeur reçue : {repr(e.instance)[:180]}"
+        )
+        print(msg)
+        if raise_on_error:
+            raise ValidationError(msg) from e
+        return False
+
+
+def validate_error(
+    agent_id: str,
+    error_data: Any,
+    raise_on_error: bool = False
+) -> bool:
+    """Valide la structure d'une réponse d'erreur contre error_schema du contrat."""
+    contract = load_contract(agent_id)
+    schema = contract.get("error_schema") or {}
+    if not schema:
+        return True
+    try:
+        validate(instance=error_data, schema=schema, format_checker=_FORMAT_CHECKER)
+        return True
+    except ValidationError as e:
+        path = " → ".join(str(p) for p in e.absolute_path) or "(racine)"
+        msg = (
+            f"❌ [{agent_id}] Error payload invalide\n"
+            f"   Champ : {path}\n"
+            f"   Message : {e.message}\n"
+            f"   Valeur reçue : {repr(e.instance)[:180]}"
+        )
+        print(msg)
+        if raise_on_error:
+            raise ValidationError(msg) from e
+        return False
+
+
+def validate_health(
+    agent_id: str,
+    health_data: Any,
+    raise_on_error: bool = False
+) -> bool:
+    """Valide la structure d'un health check contre health_schema du contrat."""
+    contract = load_contract(agent_id)
+    schema = contract.get("health_schema") or {}
+    if not schema:
+        return True
+    try:
+        validate(instance=health_data, schema=schema, format_checker=_FORMAT_CHECKER)
+        return True
+    except ValidationError as e:
+        path = " → ".join(str(p) for p in e.absolute_path) or "(racine)"
+        msg = (
+            f"❌ [{agent_id}] Health payload invalide\n"
             f"   Champ : {path}\n"
             f"   Message : {e.message}\n"
             f"   Valeur reçue : {repr(e.instance)[:180]}"
@@ -109,7 +165,7 @@ def validate_output(
         return True
 
     try:
-        validate(instance=output_data, schema=schema)
+        validate(instance=output_data, schema=schema, format_checker=_FORMAT_CHECKER)
         print(f"✅ [{agent_id}] Output valide")
         return True
     except ValidationError as e:

@@ -51,6 +51,47 @@
       "type": "object",
       "additionalProperties": { "type": "string" }
     },
+    "templated_files": {
+      "type": "object",
+      "description": "Fichiers gérés par templates (non modifiables par le LLM) : {dest: template_rel_path}",
+      "additionalProperties": { "type": "string" }
+    },
+    "env_validation": {
+      "type": "object",
+      "description": "Validation des variables d'environnement générées",
+      "properties": {
+        "required_vars": { "type": "array", "items": { "type": "string" } },
+        "regex": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+    "spec_validation": {
+      "type": "object",
+      "description": "Règles de validation de la spec générée par l'Architect",
+      "properties": {
+        "required_keywords": { "type": "array", "items": { "type": "string" } },
+        "forbidden_keywords": { "type": "array", "items": { "type": "string" } },
+        "required_sections": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "compatibility_matrix": {
+      "type": "object",
+      "description": "Contraintes de compatibilité entre packages (ex: ts-jest@29 requis avec jest@29)",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "required_major": { "type": "integer" },
+          "min_major": { "type": "integer" },
+          "max_major": { "type": "integer" },
+          "reason": { "type": "string" },
+          "incompatible_with": { "type": "object" }
+        }
+      }
+    },
+    "forbidden_auth_patterns": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Patterns interdits dans la spec et le code générés (auth custom)"
+    },
     "technology_categories": {
       "type": "object",
       "additionalProperties": {

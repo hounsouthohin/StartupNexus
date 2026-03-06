@@ -42,8 +42,14 @@ _qdrant_embeddings = None
 
 def _get_qdrant_store():
     global _qdrant_store, _qdrant_embeddings
+    # Vérifie que le client existant est toujours joignable (détecte un restart Qdrant)
     if _qdrant_store is not None:
-        return _qdrant_store
+        try:
+            _qdrant_store.client.get_collections()
+            return _qdrant_store
+        except Exception:
+            logger.warning("[qdrant] Store stale — reconnexion forcée")
+            _qdrant_store = None
     try:
         from qdrant_client import QdrantClient
         from langchain_openai import OpenAIEmbeddings

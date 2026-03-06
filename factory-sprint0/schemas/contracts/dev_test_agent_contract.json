@@ -7,10 +7,18 @@
   "input_schema": {
     "type": "object",
     "required": ["spec", "mermaid", "project_name"],
+    "additionalProperties": false,
     "properties": {
       "spec":         { "type": "string" },
       "mermaid":      { "type": "string" },
-      "project_name": { "type": "string" }
+      "project_name": { "type": "string" },
+      "stack_id":     { "type": "string" },
+      "run_id":       { "type": "string" },
+      "requirements": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Requirements extraits par l'Architect — utilisés pour compute_spec_coverage"
+      }
     }
   },
 
@@ -38,10 +46,15 @@
       "metadata": {
         "type": "object",
         "properties": {
-          "total_files":      { "type": "integer" },
-          "mode":             { "type": "string" },
-          "dev_files_count":  { "type": "integer" },
-          "test_files_count": { "type": "integer" }
+          "total_files":          { "type": "integer" },
+          "mode":                 { "type": "string" },
+          "dev_files_count":      { "type": "integer" },
+          "test_files_count":     { "type": "integer" },
+          "tests_passed":         { "type": "boolean" },
+          "spec_coverage":        { "type": "number", "minimum": 0, "maximum": 1 },
+          "requirements_met":     { "type": "integer" },
+          "requirements_total":   { "type": "integer" },
+          "requirements_unmet":   { "type": "array", "items": { "type": "string" } }
         }
       }
     }

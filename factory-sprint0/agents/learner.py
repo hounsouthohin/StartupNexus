@@ -29,7 +29,7 @@ MIN_RUNS_FOR_ANALYSIS = 3
 class StandardSuggestion:
     """Suggestion de standard générée par le LearnerActivity."""
     suggestion_id: str
-    category: str        # "prompt" | "config" | "standard" | "guard"
+    category: str        # "prompt" | "config" | "standard" | "guard" | "anti_pattern"
     severity: str        # "low" | "medium" | "high"
     title: str
     description: str
@@ -266,6 +266,37 @@ def _analyze_patterns(events: list[dict]) -> list[StandardSuggestion]:
                     "error_signature": sig,
                     "count": count,
                     "failed_runs": len(failed_payloads),
+                },
+                sprint="sprint4",
+            ))
+
+    # ── P007 : spec_coverage bas récurrent ───────────────────────────────────
+    coverage_values = [
+        p.get("spec_coverage", None)
+        for p in payloads
+        if p.get("spec_coverage") is not None
+    ]
+    if len(coverage_values) >= 3:
+        avg_coverage = sum(coverage_values) / len(coverage_values)
+        low_coverage_runs = [c for c in coverage_values if c < 0.5]
+        if len(low_coverage_runs) / len(coverage_values) >= 0.5:
+            suggestions.append(StandardSuggestion(
+                suggestion_id=f"P007-{uuid.uuid4().hex[:6]}",
+                category="prompt",
+                severity="high",
+                title=f"spec_coverage systématiquement bas (moy. {avg_coverage:.0%})",
+                description=(
+                    f"spec_coverage < 50% sur {len(low_coverage_runs)}/{len(coverage_values)} runs "
+                    f"(moyenne: {avg_coverage:.0%}). "
+                    "Le spec_writer génère des specs génériques qui ignorent les requirements métier. "
+                    "Action : renforcer l'EXTRACTION RULE dans le prompt spec_writer ou ajouter "
+                    "un guard dans spec_writer_node qui rejette les specs sans modèles métier."
+                ),
+                evidence={
+                    "avg_coverage": round(avg_coverage, 3),
+                    "low_coverage_runs": len(low_coverage_runs),
+                    "total_with_coverage": len(coverage_values),
+                    "threshold": 0.5,
                 },
                 sprint="sprint4",
             ))

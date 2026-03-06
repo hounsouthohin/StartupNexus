@@ -119,12 +119,26 @@ def _check_clerk_compliant(result: dict) -> bool:
     return has_clerk_provider and has_middleware and no_custom_auth
 
 
-def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = "") -> None:
+def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = "", result: Any = None) -> None:
     try:
         from agents.shared_tools import _write_learner_event
+        # Enrichit le payload avec spec_coverage depuis result.metadata (sinon invisible au learner)
+        extra: Dict[str, Any] = {}
+        if isinstance(result, dict):
+            meta = result.get("metadata", {})
+            if isinstance(meta, dict):
+                extra["spec_coverage"] = meta.get("spec_coverage", 0.0)
+                extra["requirements_met"] = meta.get("requirements_met", 0)
+                extra["requirements_total"] = meta.get("requirements_total", 0)
+                extra["requirements_unmet"] = meta.get("requirements_unmet", [])
         _write_learner_event(
             event_type="dev_test_run",
-            payload={"project_name": project_name, "success": bool(payload.get("build_success", False)), **payload},
+            payload={
+                "project_name": project_name,
+                "success": bool(payload.get("build_success", False)),
+                **payload,
+                **extra,
+            },
             run_id=run_id,
         )
     except Exception as log_err:
@@ -277,4 +291,4 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             f"Erreur dans dev_test_activity : {str(e)}"
         )
     finally:
-        _log_run_metric(project_name, run_metric, run_id)
+        _log_run_metric(project_name, run_metric, run_id, result=locals().get("result"))

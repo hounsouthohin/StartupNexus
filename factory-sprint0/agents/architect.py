@@ -18,7 +18,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
-from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL
+from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL, DEFAULT_VECTOR_SEARCH_LIMIT
 from utils.prompt_loader import load_base_prompt, load_stack_rules_only
 from agents.stack_config import _DEFAULT_STACK_ID
 
@@ -58,6 +58,85 @@ def _contains_forbidden_auth(text: str, stack_id: str = _DEFAULT_STACK_ID) -> bo
     lowered = text.lower()
     patterns = _load_forbidden_auth_patterns(stack_id)
     return any(re.search(pattern, lowered) for pattern in patterns)
+
+
+def _extract_brief_entities(phrase: str) -> str:
+    """
+    Parse déterministiquement le brief pour extraire les entités explicites.
+    Injecté dans le planner input pour que le LLM ne puisse pas les ignorer.
+    Retourne une chaîne "ENTITÉS OBLIGATOIRES" ou "" si rien de détectable.
+    """
+    lines = []
+
+    # Modèles Prisma avec champs entre accolades
+    model_blocks = re.findall(
+        r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)\s*\{([^}]+)\}',
+        phrase, re.IGNORECASE
+    )
+    if model_blocks:
+        for name, fields in model_blocks:
+            field_list = re.sub(r'\s+', ' ', fields.strip())
+            lines.append(f"MODELE PRISMA: {name} {{ {field_list} }}")
+    else:
+        # Modèles sans champs détaillés
+        model_names = re.findall(
+            r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', phrase, re.IGNORECASE
+        )
+        for name in model_names:
+            lines.append(f"MODELE PRISMA: {name}")
+
+    # Méthodes HTTP explicites (GET/POST/PUT/PATCH/DELETE + chemin)
+    http_methods = re.findall(r'\b(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', phrase)
+    for method, path in http_methods:
+        lines.append(f"ENDPOINT API: {method} {path}")
+
+    # Tous les chemins /... (pages + routes API)
+    all_paths = re.findall(r'/[\w/\[\]-]{2,}', phrase)
+    pages = [p for p in all_paths if '/api/' not in p]
+    api_routes = [p for p in all_paths if '/api/' in p]
+    # Exclut les paths déjà listés via http_methods
+    already = {path for _, path in http_methods}
+    api_routes = [p for p in api_routes if p not in already]
+
+    if pages:
+        lines.append(f"PAGES: {', '.join(dict.fromkeys(pages))}")
+    if api_routes:
+        lines.append(f"ROUTES API: {', '.join(dict.fromkeys(api_routes))}")
+
+    if not lines:
+        return ""
+    return "ENTITÉS OBLIGATOIRES (extraites du brief — toutes DOIVENT apparaître dans le plan) :\n" + "\n".join(f"  - {l}" for l in lines)
+
+
+def _is_generic_plan(plan: dict, phrase: str) -> tuple[bool, str]:
+    """
+    Détecte si le plan est générique (auth-only) alors que le brief demande des entités métier.
+    Retourne (is_generic, reason).
+    """
+    data_models_str = " ".join(str(m) for m in plan.get("data_models", [])).lower()
+    pages_str = " ".join(str(p) for p in plan.get("pages", [])).lower()
+
+    # Cherche les modèles métier non-User dans le brief
+    model_names = re.findall(
+        r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', phrase, re.IGNORECASE
+    )
+    for name in model_names:
+        if name.lower() not in ("user", "") and name.lower() not in data_models_str:
+            return True, f"Modèle '{name}' mentionné dans le brief mais absent du plan"
+
+    # Cherche les chemins métier dans le brief
+    business_paths = [
+        p for p in re.findall(r'/[\w/\[\]-]{2,}', phrase)
+        if not any(auth in p for auth in ["sign-in", "sign-up", "login", "register"])
+        and len(p) > 1
+    ]
+    for path in business_paths:
+        # Normalise [slug] → matcher flexible
+        path_key = re.sub(r'\[[\w-]+\]', '', path).strip("/")
+        if path_key and path_key not in pages_str:
+            return True, f"Page/route '{path}' mentionnée dans le brief mais absente du plan"
+
+    return False, ""
 
 
 def _extract_requirements_from_plan(plan: dict) -> list:
@@ -125,9 +204,9 @@ def _append_architect_rag_event(query: str, scored_docs: list, error: str | None
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "agent": "architect_retrieval",
             "query": query,
-            "k": 10,
+            "k": DEFAULT_VECTOR_SEARCH_LIMIT,
             "cache_hit": False,
-            "result_count": len(docs or []),
+            "result_count": len(scored_docs or []),
             "doc_ids": doc_ids,
             "scores": scores,
             "snippet": snippet,
@@ -299,7 +378,7 @@ def create_architect_agent():
         embedding=embeddings,
         content_payload_key="text",
     )
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": DEFAULT_VECTOR_SEARCH_LIMIT})
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
 
     # --- Nodes ---
@@ -311,7 +390,7 @@ def create_architect_agent():
         try:
             qdrant_filter = _build_architect_rag_filter(stack_id)
             if qdrant_filter is not None:
-                scored_docs = await vectorstore.asimilarity_search_with_score(query, k=10, filter=qdrant_filter)
+                scored_docs = await vectorstore.asimilarity_search_with_score(query, k=DEFAULT_VECTOR_SEARCH_LIMIT, filter=qdrant_filter)
             else:
                 plain_docs = await retriever.ainvoke(query)
                 scored_docs = [(d, 0.0) for d in plain_docs]
@@ -324,29 +403,68 @@ def create_architect_agent():
         print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
         return {"rag_context": rag_context}
     async def planner_node(state: AgentState):
-        input_text = f"User Request: {state['messages'][-1].content}\n\nRAG Context:\n{state['rag_context']}"
+        phrase = state['messages'][-1].content
+
+        # ── Extraction déterministe des entités du brief ──────────────────────
+        brief_entities = _extract_brief_entities(phrase)
+        input_text = f"User Request: {phrase}\n\nRAG Context:\n{state['rag_context']}"
+        if brief_entities:
+            input_text += f"\n\n{brief_entities}"
+
         chain = prompts['planner'] | llm
         llm_response = await chain.ainvoke({"input": input_text})
-        
+
         match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
         json_content = match.group(1).strip() if match else llm_response.content.strip()
 
         try:
             plan = json.loads(json_content)
-            requirements = _extract_requirements_from_plan(plan)
-            logger.info(f"[planner] {len(requirements)} requirements extraits du brief")
-            return {"plan": plan, "requirements": requirements}
         except json.JSONDecodeError as e:
             raise ValueError(f"Planner failed to produce a valid JSON plan. Raw LLM response: {llm_response.content}. Error: {e}")
+
+        # ── Validation post-plan : détection plan générique ──────────────────
+        is_generic, reason = _is_generic_plan(plan, phrase)
+        if is_generic and brief_entities:
+            logger.warning(f"[planner] Plan générique détecté — retry forcé. Raison: {reason}")
+            retry_input = (
+                f"User Request: {phrase}\n\nRAG Context:\n{state['rag_context']}\n\n"
+                f"{brief_entities}\n\n"
+                f"ATTENTION — ton plan précédent était incomplet : {reason}\n"
+                f"Génère un nouveau plan JSON qui inclut TOUTES les entités listées ci-dessus.\n"
+                f"Aucune entité ne doit être omise."
+            )
+            llm_response = await chain.ainvoke({"input": retry_input})
+            match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
+            json_content = match.group(1).strip() if match else llm_response.content.strip()
+            try:
+                plan = json.loads(json_content)
+                logger.info("[planner] Plan corrigé après retry générique")
+            except json.JSONDecodeError:
+                logger.warning("[planner] Retry plan invalide JSON — on garde le plan original")
+
+        requirements = _extract_requirements_from_plan(plan)
+        logger.info(f"[planner] {len(requirements)} requirements extraits du brief")
+        return {"plan": plan, "requirements": requirements}
 
     async def spec_writer_node(state: AgentState):
         original_request = state["messages"][0].content
         plan_json = json.dumps(state['plan'], indent=2)
-        
+        requirements = state.get("requirements", [])
+
         input_text = (
             f"Original User Request: \"{original_request}\"\n\n"
             f"High-Level Plan (JSON):\n{plan_json}"
         )
+
+        # Injection explicite des requirements — le LLM DOIT les couvrir tous
+        if requirements:
+            reqs_block = "\n".join(f"  - {r}" for r in requirements)
+            input_text += (
+                f"\n\nREQUIREMENTS OBLIGATOIRES — tous doivent apparaître dans la spec :\n{reqs_block}\n"
+                f"\nATTENTION : si un requirement mentionne un modèle Prisma (ex: Post), "
+                f"ce modèle DOIT figurer dans ## Schéma Prisma avec tous ses champs. "
+                f"Ne génère PAS une spec auth-only si ces requirements métier sont présents."
+            )
         
         chain = prompts['spec_writer'] | llm
         llm_response = await chain.ainvoke({"input": input_text})

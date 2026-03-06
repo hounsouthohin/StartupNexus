@@ -233,11 +233,16 @@ class DevTestAgent:
 
 
 # Wrapper pour appels simples / Temporal
+# Recréé si le stack_id change entre deux runs sur le même worker (évite le drift multi-stack).
 _DEV_TEST_AGENT_SINGLETON: DevTestAgent | None = None
+_DEV_TEST_AGENT_STACK_ID: str = ""
 
 
 def dev_test_agent(input_data: Dict[str, Any]) -> Dict[str, Any]:
-    global _DEV_TEST_AGENT_SINGLETON
-    if _DEV_TEST_AGENT_SINGLETON is None:
+    global _DEV_TEST_AGENT_SINGLETON, _DEV_TEST_AGENT_STACK_ID
+    current_stack = str(input_data.get("stack_id", _DEFAULT_STACK_ID))
+    if _DEV_TEST_AGENT_SINGLETON is None or current_stack != _DEV_TEST_AGENT_STACK_ID:
         _DEV_TEST_AGENT_SINGLETON = DevTestAgent()
+        _DEV_TEST_AGENT_STACK_ID = current_stack
+        logger.info(f"[DevTestAgent] Singleton (re)créé pour stack_id={current_stack}")
     return _DEV_TEST_AGENT_SINGLETON.run(input_data)

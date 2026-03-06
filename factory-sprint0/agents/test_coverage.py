@@ -2,7 +2,7 @@ from typing import TypedDict, Annotated, List
 import operator
 from pydantic import BaseModel, Field
 
-from agents.shared_tools import run_tests, write_file, get_stack_id
+from agents.shared_tools import run_tests, write_file, get_stack_id, rag_search
 from langchain_core.messages import HumanMessage, BaseMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
@@ -67,10 +67,19 @@ def generation_node(state: AgentState) -> dict:
     structured_llm = llm.with_structured_output(TestSuite)
     chain = prompt | structured_llm
 
+    # Récupère les standards de test depuis Qdrant avant la génération
+    rag_context = ""
+    try:
+        rag_context = rag_search.invoke({"query": "Next.js Jest testing mock Clerk provider standards"})
+    except Exception as rag_err:
+        logger.warning(f"rag_search indisponible pour test_coverage: {rag_err}")
+
     files_content_message = "Provided source code files:\n\n"
     for path, content in state["files"].items():
         files_content_message += f"File: {path}\n```\n{content}\n```\n\n"
-    
+    if rag_context:
+        files_content_message += f"\nRAG Standards (Jest/Clerk testing):\n{rag_context[:600]}\n"
+
     # Add the source files to the message history for the LLM
     messages = state["messages"] + [HumanMessage(content=files_content_message)]
     

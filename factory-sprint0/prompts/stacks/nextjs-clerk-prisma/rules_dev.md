@@ -39,7 +39,7 @@ Créer .env.local à la RACINE du projet avec EXACTEMENT ces 3 variables :
 ```
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
 CLERK_SECRET_KEY=sk_test_placeholder
-DATABASE_URL="postgresql://user:password@localhost:5432/todo-batch-alpha"
+DATABASE_URL=postgresql://user:password@localhost:5432/todo-batch-alpha
 ```
 - INTERDIT: NEXT_PUBLIC_CLERK_SECRET_KEY (expose le secret au bundle client)
 - INTERDIT: DATABASE_URL avec préfixe NEXT_PUBLIC_
