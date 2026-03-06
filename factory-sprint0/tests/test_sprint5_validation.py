@@ -180,3 +180,33 @@ class TestSpecCoverageRouteMatching:
         assert result["spec_coverage"] == 0.0
         assert result["requirements_met"] == 0
         assert len(result["unmet"]) == 2
+
+    def test_regle2_post_ne_matche_pas_postgresql(self):
+        """Faux positif 'post' ∈ 'postgresql' — doit retourner 0 requirements_met."""
+        req = ["Modèle Prisma: Post avec champs title, content, published"]
+        # schema.prisma contient "postgresql" mais PAS de déclaration "model Post {"
+        files = {
+            "schema.prisma": (
+                'datasource db {\n  provider = "postgresql"\n  url = env("DATABASE_URL")\n}\n'
+            )
+        }
+        result = self._coverage(req, files)
+        assert result["requirements_met"] == 0, (
+            f"Faux positif détecté : 'post' dans 'postgresql' compte comme modèle satisfait "
+            f"(requirements_met={result['requirements_met']})"
+        )
+
+    def test_regle2_model_post_exact_satisfait(self):
+        """Déclaration 'model Post {' dans schema.prisma doit satisfaire le requirement."""
+        req = ["Modèle Prisma: Post avec champs title, content, published"]
+        files = {
+            "schema.prisma": (
+                'datasource db {\n  provider = "postgresql"\n  url = env("DATABASE_URL")\n}\n'
+                "model Post {\n  id Int @id\n  title String\n}"
+            )
+        }
+        result = self._coverage(req, files)
+        assert result["requirements_met"] == 1, (
+            f"La déclaration 'model Post {{' doit satisfaire le requirement "
+            f"(requirements_met={result['requirements_met']})"
+        )

@@ -9,6 +9,19 @@ importable depuis les tests sans déclencher langchain_openai / temporalio.
 import re
 
 
+def _model_in_schema(model_name: str, schema_content: str) -> bool:
+    """
+    Vérifie qu'un modèle Prisma existe dans le schema avec sa déclaration exacte.
+    Évite le faux positif "post" ∈ "postgresql".
+    Syntaxe Prisma : 'model Post {' (insensible à la casse).
+    """
+    return bool(re.search(
+        rf'\bmodel\s+{re.escape(model_name)}\s*\{{',
+        schema_content,
+        re.IGNORECASE,
+    ))
+
+
 def compute_spec_coverage(requirements: list, combined_files: dict) -> dict:
     """
     Compare requirements[] (Architect) vs combined_files (DevAgent).
@@ -47,7 +60,7 @@ def compute_spec_coverage(requirements: list, combined_files: dict) -> dict:
                 schema_content = next(
                     (v for k, v in combined_files.items() if "schema.prisma" in _norm(k)), ""
                 )
-                if model_name in schema_content.lower():
+                if _model_in_schema(model_name, schema_content):
                     satisfied = True
 
         # Règle 3 : route API (GET/POST/PUT/PATCH/DELETE /path)

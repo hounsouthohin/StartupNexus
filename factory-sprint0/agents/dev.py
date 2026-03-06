@@ -445,6 +445,33 @@ def dev_agent(
                                 build_attempted = True
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
+                            # ── USE_STATE TYPED GUARD (Sprint 5) ─────────────────────────────
+                            # useState([]) sans type → TypeScript strict infère never[]
+                            # → build échoue systématiquement sur "Property 'x' does not exist on type 'never'"
+                            # → corrige avant run_build pour ne pas gaspiller une tentative de build
+                            _BUSINESS_PREFIXES = ("app/", "components/", "src/app/", "src/components/")
+                            _usestate_violations = []
+                            for _fp, _fc in files.items():
+                                _fp_norm = _fp.replace("\\", "/")
+                                _is_business = any(_fp_norm.startswith(pfx) for pfx in _BUSINESS_PREFIXES)
+                                if not _is_business:
+                                    continue
+                                if re.search(r'\buseState\s*\(\s*\[\s*\]\s*\)', _fc) and not re.search(r'\buseState\s*<', _fc):
+                                    _usestate_violations.append(_fp_norm)
+                            if _usestate_violations:
+                                _us_msg = (
+                                    "USE_STATE TYPED GUARD — BUILD BLOQUÉ\n"
+                                    "useState([]) sans annotation de type détecté — TypeScript strict infère never[], "
+                                    "ce qui provoque 'Property does not exist on type never' au build.\n"
+                                    "Fichiers concernés :\n"
+                                    + "\n".join(f"  - {f}" for f in _usestate_violations)
+                                    + "\n\nCorrige chaque occurrence : useState<Type[]>([]) avant d'appeler run_build."
+                                )
+                                tool_messages.append(ToolMessage(content=_us_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[UseStateGuard] BUILD BLOQUÉ — useState non typé dans : {_usestate_violations}")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
                         output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
