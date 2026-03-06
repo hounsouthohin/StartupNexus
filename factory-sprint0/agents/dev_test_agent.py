@@ -66,7 +66,7 @@ def compute_spec_coverage(requirements: list, combined_files: dict) -> dict:
                 api_path = route_match.group(2).strip('/')
                 segments = api_path.split('/')
                 expected = 'app/api/' + '/'.join(segments) + '/route.ts'
-                if any(expected in fp or fp.endswith('route.ts') for fp in file_paths):
+                if any(expected in fp for fp in file_paths):
                     satisfied = True
 
         # Règle 4 : page mentionnée (Page: /path ou page publique/protégée)
@@ -121,11 +121,19 @@ class DevTestAgent:
             "mermaid": input_data.get("mermaid"),
             "project_name": input_data.get("project_name"),
             "stack_id": input_data.get("stack_id", _DEFAULT_STACK_ID),
+            "requirements": input_data.get("requirements", []),
         }
         self._validate(dev_input, self.dev_contract["input_schema"], "Dev", "input")
 
         try:
-            dev_output = dev_agent(**dev_input, run_id=run_id)
+            dev_output = dev_agent(
+                spec=dev_input["spec"],
+                mermaid=dev_input["mermaid"],
+                project_name=dev_input["project_name"],
+                stack_id=dev_input["stack_id"],
+                requirements=dev_input.get("requirements", []),
+                run_id=run_id,
+            )
         except Exception as e:
             logger.exception("Échec phase Dev")         
             return self._error_payload("dev", str(e))

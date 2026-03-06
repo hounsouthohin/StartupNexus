@@ -125,12 +125,13 @@ class SaaSFactoryWorkflow:
             )
             tests_phase_success = bool(test_output.get("success", False))
 
+            spec_coverage = dev_test_result.get("metadata", {}).get("spec_coverage", 0.0)
             if semantic_violations:
                 build_status = "SEMANTIC_VIOLATION"
             elif dev_phase_success:
                 # Aligné sur TodoPilotWorkflow : build réussi = SUCCESS.
-                # tests_phase_success est un signal qualité non bloquant.
-                build_status = "SUCCESS"
+                # Si spec_coverage < 50%, le build est fonctionnel mais incomplet.
+                build_status = "SUCCESS" if spec_coverage >= 0.5 else "PARTIAL"
             else:
                 build_status = "BUILD_FAILED"
 

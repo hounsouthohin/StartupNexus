@@ -104,6 +104,7 @@ def dev_agent(
     project_name: str = "default-project",
     run_id: str = "",
     stack_id: str = "",
+    requirements: list = None,
 ) -> dict:
     """
     Dev Agent v3 Ultimate – Version finale stable.
@@ -260,6 +261,15 @@ def dev_agent(
             + "\n".join(f"{i+1}. {f}" for i, f in enumerate(llm_required_files))
             + "\nNe génère PAS de fichiers hors de cette liste avant que tous soient créés.\n\n"
         )
+    requirements_block = ""
+    if requirements:
+        reqs_list = "\n".join(f"  - {r}" for r in requirements)
+        requirements_block = (
+            "FONCTIONNALITÉS OBLIGATOIRES — chaque item DOIT être implémenté dans les fichiers générés :\n"
+            f"{reqs_list}\n"
+            "⚠️ Tu ne peux pas déclarer le run terminé avant d'avoir créé UN fichier par page et par route API listée ci-dessus. "
+            "Vérifie cette liste avant chaque appel à run_build.\n\n"
+        )
     packages = stack_cfg.get("packages", {})
     packages_block = ""
     if packages:
@@ -287,6 +297,7 @@ def dev_agent(
             f"{dev_packages_block}"
             f"{templates_block}"
             f"{required_files_block}"
+            f"{requirements_block}"
             "⚠️ RÈGLE ABSOLUE — package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE (avant jest.setup.js, avant app/layout.tsx, avant tout). "
             "Étape 1 OBLIGATOIRE : génère IMMÉDIATEMENT package.json avec les versions exactes ci-dessus. "
             "Ne génère AUCUN autre fichier avant que package.json soit écrit sur le disque."
