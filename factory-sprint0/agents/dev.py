@@ -275,11 +275,13 @@ def dev_agent(
     if spec_unmatched:
         unmatched_list = "\n".join(f"  - {r}" for r in spec_unmatched)
         spec_degraded_block = (
-            "ALERTE SPEC DÉGRADÉE — les fonctionnalités suivantes figurent dans les requirements "
-            "mais leurs termes-clés sont ABSENTS de la spec ci-dessus (dérive spec_writer détectée).\n"
-            "Implémente-les QUOI QU'IL EN SOIT en respectant les noms EXACTS des requirements :\n"
+            "⚠️ NOMS CANONIQUES OBLIGATOIRES — PRIORITÉ ABSOLUE SUR LA SPEC\n"
+            "La spec a été générée avec des noms qui diffèrent des requirements du client.\n"
+            "Pour les éléments ci-dessous, IGNORER les noms de la spec et utiliser EXACTEMENT ceux des requirements :\n"
             f"{unmatched_list}\n"
-            "Ne renomme pas les entités, routes ou pages — utilise les noms des requirements, pas ceux de la spec.\n\n"
+            "Règle absolue : si la spec nomme un modèle 'Article', le client exige 'Post'. "
+            "Si la spec utilise '/articles', le client exige '/blog'. "
+            "Tu dois implémenter les noms des requirements MOT POUR MOT — pas leurs équivalents dans la spec.\n\n"
         )
     packages = stack_cfg.get("packages", {})
     packages_block = ""
@@ -301,6 +303,7 @@ def dev_agent(
         SystemMessage(content=prompt),
         HumanMessage(content=(
             f"Projet : {project_name}\n\n"
+            f"{spec_degraded_block}"
             f"Spec :\n{summarized_spec}\n\n"
             f"Mermaid :\n{summarized_mermaid}\n\n"
             f"Contexte RAG obligatoire (préchargé) :\n{mandatory_rag_context}\n\n"
@@ -309,7 +312,6 @@ def dev_agent(
             f"{templates_block}"
             f"{required_files_block}"
             f"{requirements_block}"
-            f"{spec_degraded_block}"
             "⚠️ RÈGLE ABSOLUE — package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE (avant jest.setup.js, avant app/layout.tsx, avant tout). "
             "Étape 1 OBLIGATOIRE : génère IMMÉDIATEMENT package.json avec les versions exactes ci-dessus. "
             "Ne génère AUCUN autre fichier avant que package.json soit écrit sur le disque."
@@ -481,6 +483,43 @@ def dev_agent(
                                 )
                                 tool_messages.append(ToolMessage(content=_us_msg, tool_call_id=tool_call["id"]))
                                 logger.warning(f"[UseStateGuard] BUILD BLOQUÉ — useState non typé dans : {_usestate_violations}")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
+                            # ── PRISMA IMPORT GUARD (Sprint 5) ───────────────────────────────
+                            # import { prisma } from '@prisma/client' est invalide en Prisma 7 :
+                            # @prisma/client exporte uniquement PrismaClient (la classe), pas un singleton.
+                            # Détection pré-build → bloc bloquant → LLM génère lib/prisma.ts et corrige les imports.
+                            _PRISMA_BAD_IMPORT = re.compile(
+                                r'import\s*\{[^}]*\bprisma\b[^}]*\}\s*from\s*[\'"]@prisma/client[\'"]',
+                                re.MULTILINE,
+                            )
+                            _SERVER_PREFIXES = ("app/", "pages/", "src/app/", "src/pages/", "lib/")
+                            _prisma_import_violations = []
+                            for _fp, _fc in files.items():
+                                _fp_norm = _fp.replace("\\", "/")
+                                if not any(_fp_norm.startswith(pfx) for pfx in _SERVER_PREFIXES):
+                                    continue
+                                if _PRISMA_BAD_IMPORT.search(_fc):
+                                    _prisma_import_violations.append(_fp_norm)
+                            if _prisma_import_violations:
+                                _prisma_msg = (
+                                    "PRISMA IMPORT GUARD — BUILD BLOQUÉ\n"
+                                    "import { prisma } from '@prisma/client' est invalide en Prisma 7.\n"
+                                    "@prisma/client exporte uniquement PrismaClient (la classe), pas un singleton 'prisma'.\n"
+                                    "Fichiers concernés :\n"
+                                    + "\n".join(f"  - {f}" for f in _prisma_import_violations)
+                                    + "\n\nCORRECTION OBLIGATOIRE EN 2 ÉTAPES :\n"
+                                    "1. Crée lib/prisma.ts avec ce contenu exact :\n"
+                                    "   import { PrismaClient } from '@prisma/client';\n"
+                                    "   const prisma = new PrismaClient();\n"
+                                    "   export default prisma;\n"
+                                    "2. Dans chaque fichier concerné, remplace l'import invalide par :\n"
+                                    "   import prisma from '@/lib/prisma';\n"
+                                    "Appelle write_file() pour ces corrections, PUIS appelle run_build."
+                                )
+                                tool_messages.append(ToolMessage(content=_prisma_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[PrismaImportGuard] BUILD BLOQUÉ — import invalide dans : {_prisma_import_violations}")
                                 build_attempted = True
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build

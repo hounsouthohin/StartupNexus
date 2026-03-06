@@ -517,6 +517,46 @@ def create_architect_agent():
             llm_response = await chain.ainvoke({"input": harden_input})
             specification = llm_response.content
 
+        # ── SPEC REQUIREMENTS GATE (Sprint 5) ────────────────────────────────
+        # Détecte les dérives de noms (Post→Article, /blog→/articles) DANS le node,
+        # avant que la spec dégradée ne se propage au DevAgent.
+        # Un seul retry ciblé sur les requirements absents — non-bloquant si encore DEGRADED.
+        try:
+            from agents.spec_validator import validate_spec_requirements
+            sv_result = validate_spec_requirements(specification, requirements)
+            if sv_result["status"] == "DEGRADED" and sv_result["unmatched_requirements"]:
+                logger.warning(
+                    f"[spec_writer_node] Spec DEGRADED — "
+                    f"{len(sv_result['unmatched_requirements'])} requirement(s) absents : "
+                    f"{sv_result['unmatched_requirements']}"
+                )
+                unmatched_list = "\n".join(f"  - {r}" for r in sv_result["unmatched_requirements"])
+                correction_input = (
+                    input_text
+                    + "\n\nCORRECTION OBLIGATOIRE — les requirements suivants sont ABSENTS de ta spec :\n"
+                    + unmatched_list
+                    + "\n\nRÈGLE ABSOLUE : utilise les noms des requirements MOT POUR MOT dans la spec. "
+                    "Si un requirement dit 'Post', écris 'Post' dans ## Schéma Prisma (jamais Article). "
+                    "Si un requirement dit '/blog/[slug]', la section ## Pages doit mentionner '/blog/[slug]'. "
+                    "Si un requirement dit 'PUT /api/posts/[id]', l'API Routes doit inclure 'PUT /api/posts/[id]'. "
+                    "Régénère uniquement la spec corrigée — retourne uniquement le markdown."
+                )
+                llm_response = await chain.ainvoke({"input": correction_input})
+                specification = llm_response.content
+                sv_final = validate_spec_requirements(specification, requirements)
+                if sv_final["status"] == "DEGRADED":
+                    logger.critical(
+                        f"[spec_writer_node] Spec encore DEGRADED après correction — "
+                        f"unmatched: {sv_final['unmatched_requirements']}"
+                    )
+                else:
+                    logger.info(
+                        f"[spec_writer_node] Spec corrigée — "
+                        f"{sv_final['matched_count']}/{sv_final['total_mappable']} requirements couverts"
+                    )
+        except Exception as sv_err:
+            logger.warning(f"[spec_writer_node] Spec gate non bloquant : {sv_err}")
+
         return {"specification": specification}
 
     async def diagrammer_node(state: AgentState):

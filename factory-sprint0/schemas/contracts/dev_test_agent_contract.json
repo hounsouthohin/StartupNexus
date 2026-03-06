@@ -18,6 +18,15 @@
         "type": "array",
         "items": { "type": "string" },
         "description": "Requirements extraits par l'Architect — utilisés pour compute_spec_coverage"
+      },
+      "spec_validation_status": {
+        "type": "string",
+        "description": "Statut de cohérence requirements↔spec : OK | DEGRADED | UNKNOWN"
+      },
+      "spec_unmatched_requirements": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Requirements dont les termes-clés sont absents de la spec (dérive spec_writer)"
       }
     }
   },
@@ -54,7 +63,10 @@
           "spec_coverage":        { "type": "number", "minimum": 0, "maximum": 1 },
           "requirements_met":     { "type": "integer" },
           "requirements_total":   { "type": "integer" },
-          "requirements_unmet":   { "type": "array", "items": { "type": "string" } }
+          "requirements_unmet":          { "type": "array", "items": { "type": "string" } },
+          "requirements_unmet_by_category": { "type": "object" },
+          "spec_validation_status":       { "type": "string" },
+          "spec_unmatched_count":         { "type": "integer" }
         }
       }
     }

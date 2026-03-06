@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-03-06T23:07:46.577762+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "workflow_success_count": 0,
+  "workflow_failure_count": 1,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 0,
+  "build_unknown_count": 0,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 0,
+  "failure_count": 1,
+  "total_duration_seconds": 84.68,
+  "total_learner_events_delta": 0,
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-personal-blog-c40add83",
+      "run_id": "019cc566-e97a-7586-ba1e-9746aba6505c",
+      "project_name": "personal-blog",
+      "phrase": "Blog CMS avec Clerk (auteur unique)\n- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n- API Route : PUT /api/posts/[id] (toggle published, auth requise)",
+      "started_at": "2026-03-06T23:06:21.899070+00:00",
+      "duration_seconds": 84.68,
+      "workflow_success": false,
+      "build_success": false,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": "FAILED_UNRECOVERABLE",
+      "build_status": "NOT_RUN",
+      "error": null,
+      "learner_events_before": 89,
+      "learner_events_after": 89,
+      "learner_events_delta": 0,
+      "result_excerpt": "TodoPilotOutput(workflow_status='FAILED_UNRECOVERABLE', build_status='NOT_RUN', project_name='personal-blog', generated_files_count=0, pr_url='N/A', repo_url='N/A', dev_files_count=0, test_files_count=0, duration_seconds=84.093504, error_message='Activity task failed')"
+    }
+  ]
+}
