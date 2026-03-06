@@ -4,6 +4,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
 from agents.stack_config import _DEFAULT_STACK_ID
+from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD
 
 
 @dataclass
@@ -131,7 +132,7 @@ class SaaSFactoryWorkflow:
             elif dev_phase_success:
                 # Aligné sur TodoPilotWorkflow : build réussi = SUCCESS.
                 # Si spec_coverage < 50%, le build est fonctionnel mais incomplet.
-                build_status = "SUCCESS" if spec_coverage >= 0.5 else "PARTIAL"
+                build_status = "SUCCESS" if spec_coverage >= SPEC_COVERAGE_SUCCESS_THRESHOLD else "PARTIAL"
             else:
                 build_status = "BUILD_FAILED"
 

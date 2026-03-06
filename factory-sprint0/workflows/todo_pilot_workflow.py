@@ -8,6 +8,7 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
+from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD
 
 
 @dataclass
@@ -129,14 +130,13 @@ class TodoPilotWorkflow:
                     + " | ".join(semantic_violations)
                 )
 
+            spec_coverage = dev_test_result.get("metadata", {}).get("spec_coverage", 0.0)
             if semantic_violations:
                 build_status = "SEMANTIC_VIOLATION"
             elif dev_phase_success:
-                # Build réussi = SUCCESS. tests_phase_success est un signal qualité
-                # séparé (tracké dans metadata.tests_passed) mais ne bloque pas.
-                # Les tests middleware Clerk v6 (Edge Runtime) ne sont pas testables
-                # de façon fiable en jest dans le sandbox Docker.
-                build_status = "SUCCESS"
+                # Build réussi mais spec_coverage < 50% → app fonctionnelle mais incomplète.
+                # Aligné sur SaaSFactoryWorkflow — vocab commun SUCCESS | PARTIAL | BUILD_FAILED | SEMANTIC_VIOLATION
+                build_status = "SUCCESS" if spec_coverage >= SPEC_COVERAGE_SUCCESS_THRESHOLD else "PARTIAL"
             else:
                 build_status = "BUILD_FAILED"
 

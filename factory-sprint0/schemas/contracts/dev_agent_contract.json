@@ -32,6 +32,11 @@
       "run_id": {
         "type": "string",
         "description": "Identifiant du run (propagation observabilité)"
+      },
+      "requirements": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Requirements extraits par l'Architect — utilisés comme contraintes de génération"
       }
     }
   },

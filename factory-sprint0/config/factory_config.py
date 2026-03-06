@@ -12,6 +12,7 @@ EMBEDDING_MODEL = "text-embedding-3-large"
 
 # --- Agent & Tool Configuration ---
 DEFAULT_VECTOR_SEARCH_LIMIT = 10  # Standards RAG retournés (architect + dev utilisent la même valeur)
+SPEC_COVERAGE_SUCCESS_THRESHOLD = 0.5  # spec_coverage >= seuil → SUCCESS, sinon PARTIAL
 SUBPROCESS_TIMEOUT_SHORT = 30
 SUBPROCESS_TIMEOUT_MEDIUM = 60
 SUBPROCESS_TIMEOUT_LONG = 600

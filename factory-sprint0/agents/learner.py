@@ -131,8 +131,20 @@ def _analyze_patterns(events: list[dict]) -> list[StandardSuggestion]:
     payloads = [e.get("payload", {}) for e in events]
     total = len(payloads)
 
+    def _is_full_success(p: dict) -> bool:
+        """
+        Retourne True uniquement pour un succès complet (spec_coverage >= seuil).
+        Priorité à delivery_status (nouveau champ) ; fallback sur success bool
+        pour les events antérieurs à F-B2 qui ne l'ont pas.
+        Un run PARTIAL (build ok mais spec_coverage < seuil) retourne False.
+        """
+        ds = p.get("delivery_status")
+        if ds is not None:
+            return ds == "success"
+        return bool(p.get("success", False))
+
     # ── P001 : Taux de succès global ─────────────────────────────────────────
-    successes = sum(1 for p in payloads if p.get("success", False))
+    successes = sum(1 for p in payloads if _is_full_success(p))
     success_rate = successes / total
     if success_rate < 0.5:
         suggestions.append(StandardSuggestion(
@@ -218,8 +230,8 @@ def _analyze_patterns(events: list[dict]) -> list[StandardSuggestion]:
 
     # ── P005 : Amélioration du taux de succès (signal positif) ───────────────
     if total >= 10:
-        early_success = sum(1 for p in payloads[:5] if p.get("success", False)) / 5
-        recent_success = sum(1 for p in payloads[-5:] if p.get("success", False)) / 5
+        early_success = sum(1 for p in payloads[:5] if _is_full_success(p)) / 5
+        recent_success = sum(1 for p in payloads[-5:] if _is_full_success(p)) / 5
         if recent_success >= early_success + 0.2:
             suggestions.append(StandardSuggestion(
                 suggestion_id=f"P005-{uuid.uuid4().hex[:6]}",

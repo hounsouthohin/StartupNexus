@@ -97,7 +97,9 @@ async def _run_one(
         if workflow_status is not None:
             workflow_success = workflow_status == "COMPLETED"
         if build_status is not None:
-            build_success = build_status == "SUCCESS"
+            # strict_success : uniquement SUCCESS (spec_coverage >= 50%)
+            # usable_success : SUCCESS ou PARTIAL (build fonctionnel, couverture partielle)
+            build_success = build_status in ("SUCCESS", "PARTIAL")
     except TimeoutError:
         result = ""
         workflow_success = False
@@ -110,6 +112,8 @@ async def _run_one(
     duration_seconds = round(time.perf_counter() - t0, 2)
     learner_after = _learner_events_count()
 
+    strict_success = build_status == "SUCCESS"
+    usable_success = build_status in ("SUCCESS", "PARTIAL")
     return {
         "workflow_id": workflow_id,
         "run_id": getattr(handle, "first_execution_run_id", None),
@@ -119,6 +123,8 @@ async def _run_one(
         "duration_seconds": duration_seconds,
         "workflow_success": workflow_success,
         "build_success": build_success,
+        "strict_success": strict_success,
+        "usable_success": usable_success,
         "workflow_status": workflow_status,
         "build_status": build_status,
         "error": error,
@@ -147,9 +153,12 @@ async def run_batch(
 
     workflow_success_count = sum(1 for r in runs if r["workflow_success"])
     workflow_failure_count = len(runs) - workflow_success_count
-    build_success_count = sum(1 for r in runs if r.get("build_success") is True)
-    build_failure_count = sum(1 for r in runs if r.get("build_success") is False)
-    build_unknown_count = sum(1 for r in runs if r.get("build_success") is None)
+    build_success_count = sum(1 for r in runs if r.get("build_status") == "SUCCESS")
+    build_partial_count = sum(1 for r in runs if r.get("build_status") == "PARTIAL")
+    build_failure_count = sum(1 for r in runs if r.get("build_status") in ("BUILD_FAILED", "SEMANTIC_VIOLATION"))
+    build_unknown_count = sum(1 for r in runs if r.get("build_status") is None)
+    strict_success_count = build_success_count
+    usable_success_count = build_success_count + build_partial_count
     total_duration = round(sum(r["duration_seconds"] for r in runs), 2)
     total_learner_delta = sum(r.get("learner_events_delta", 0) for r in runs)
 
@@ -162,8 +171,11 @@ async def run_batch(
         "workflow_success_count": workflow_success_count,
         "workflow_failure_count": workflow_failure_count,
         "build_success_count": build_success_count,
+        "build_partial_count": build_partial_count,
         "build_failure_count": build_failure_count,
         "build_unknown_count": build_unknown_count,
+        "strict_success_count": strict_success_count,
+        "usable_success_count": usable_success_count,
         # Compat legacy keys (deprecated)
         "success_count": workflow_success_count,
         "failure_count": workflow_failure_count,

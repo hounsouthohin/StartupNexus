@@ -131,11 +131,23 @@ def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = ""
                 extra["requirements_met"] = meta.get("requirements_met", 0)
                 extra["requirements_total"] = meta.get("requirements_total", 0)
                 extra["requirements_unmet"] = meta.get("requirements_unmet", [])
+        # delivery_status distingue un build fonctionnel complet (SUCCESS)
+        # d'un build fonctionnel incomplet (PARTIAL) pour le Learner.
+        # Un run PARTIAL ne doit pas être compté comme succès plein dans P001.
+        build_success = bool(payload.get("build_success", False))
+        spec_coverage = extra.get("spec_coverage", 0.0)
+        if not build_success:
+            delivery_status = "failed"
+        elif spec_coverage >= 0.5:
+            delivery_status = "success"
+        else:
+            delivery_status = "partial"
+        extra["delivery_status"] = delivery_status
         _write_learner_event(
             event_type="dev_test_run",
             payload={
                 "project_name": project_name,
-                "success": bool(payload.get("build_success", False)),
+                "success": build_success,
                 **payload,
                 **extra,
             },
