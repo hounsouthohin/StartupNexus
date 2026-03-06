@@ -210,3 +210,95 @@ class TestSpecCoverageRouteMatching:
             f"La déclaration 'model Post {{' doit satisfaire le requirement "
             f"(requirements_met={result['requirements_met']})"
         )
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 4 — Spec Validator déterministe
+# ─────────────────────────────────────────────────────────────
+
+class TestSpecValidator:
+    """Vérifie que validate_spec_requirements détecte la dérive spec_writer."""
+
+    def _validate(self, spec, requirements):
+        from agents.spec_validator import validate_spec_requirements
+        return validate_spec_requirements(spec, requirements)
+
+    def test_ok_quand_termes_presents(self):
+        """Tous les termes-clés présents dans la spec → status OK."""
+        spec = (
+            "L'application gère des articles de type Post. "
+            "Route API : POST /api/posts pour créer un post. "
+            "Page /dashboard pour l'auteur."
+        )
+        requirements = [
+            "Modèle Prisma: Post avec champs title, content",
+            "API Route: POST /api/posts créer un post",
+            "Page protégée: /dashboard",
+        ]
+        result = self._validate(spec, requirements)
+        assert result["status"] == "OK", f"Attendu OK, obtenu {result['status']}"
+        assert result["unmatched_requirements"] == []
+
+    def test_degraded_quand_entite_renommee(self):
+        """Spec renomme Post en Article → status DEGRADED."""
+        spec = (
+            "L'application gère des articles de type Article. "
+            "Route API : POST /api/articles. "
+            "Page /dashboard."
+        )
+        requirements = [
+            "Modèle Prisma: Post avec champs title, content",
+            "API Route: POST /api/posts créer un post",
+        ]
+        result = self._validate(spec, requirements)
+        assert result["status"] == "DEGRADED", (
+            f"Attendu DEGRADED (Post renommé en Article), obtenu {result['status']}"
+        )
+        assert len(result["unmatched_requirements"]) >= 1
+
+    def test_degraded_quand_route_absente(self):
+        """Route /api/posts absente de la spec → status DEGRADED."""
+        spec = "Application de blog avec modèle Post et page /dashboard."
+        requirements = ["API Route: GET /api/posts liste des posts"]
+        result = self._validate(spec, requirements)
+        assert result["status"] == "DEGRADED"
+        assert result["unmatched_requirements"] == ["API Route: GET /api/posts liste des posts"]
+
+    def test_non_mappable_ignore(self):
+        """Requirement sans terme extractible ne pénalise pas le score."""
+        spec = "Application simple."
+        requirements = ["Authentification Clerk robuste et sécurisée"]
+        result = self._validate(spec, requirements)
+        # Pas de terme extractible → total_mappable=0 → pas de DEGRADED
+        assert result["total_mappable"] == 0
+        assert result["status"] == "OK"
+
+    def test_liste_vide_retourne_ok(self):
+        """requirements=[] → status OK sans erreur."""
+        result = self._validate("spec quelconque", [])
+        assert result["status"] == "OK"
+        assert result["total_mappable"] == 0
+
+    def test_spec_vide_degraded_si_mappable(self):
+        """Spec vide avec requirements mappables → DEGRADED."""
+        requirements = ["Modèle Prisma: Post", "API Route: GET /api/posts"]
+        result = self._validate("", requirements)
+        assert result["status"] == "DEGRADED"
+        assert result["matched_count"] == 0
+
+    def test_modele_minuscule_extrait(self):
+        """'modèle prisma: post' (tout minuscule) doit être mappable et extrait."""
+        spec = "L'application gère des entités post dans la base."
+        requirements = ["modèle prisma: post avec champs title et content"]
+        result = self._validate(spec, requirements)
+        assert result["total_mappable"] == 1, "Requirement minuscule doit être mappable"
+        assert result["status"] == "OK", "post présent dans la spec → OK"
+
+    def test_modele_minuscule_absent_degraded(self):
+        """'modèle prisma: post' absent de la spec → DEGRADED même en minuscule."""
+        spec = "L'application gère des articles de type Article."
+        requirements = ["modèle prisma: post avec champs title"]
+        result = self._validate(spec, requirements)
+        assert result["status"] == "DEGRADED", (
+            "post absent de la spec (renommé Article) → DEGRADED"
+        )

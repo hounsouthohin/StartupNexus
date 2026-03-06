@@ -89,9 +89,12 @@ class TodoPilotWorkflow:
             spec_part = architect_result.get("specification", "")
             mermaid_part = architect_result.get("mermaid_diagram", "")
             requirements_part = architect_result.get("requirements", [])
+            spec_validation_status = architect_result.get("spec_validation_status", "OK")
+            spec_unmatched_requirements = architect_result.get("spec_unmatched_requirements", [])
 
             workflow.logger.info(
-                f"Architect terminé — {len(requirements_part)} requirements extraits"
+                f"Architect terminé — {len(requirements_part)} requirements extraits | "
+                f"spec_validation={spec_validation_status}"
             )
 
             # 2. DevTest fusionné
@@ -101,6 +104,8 @@ class TodoPilotWorkflow:
                 "project_name": project_name,
                 "stack_id": stack_id,
                 "requirements": requirements_part,
+                "spec_validation_status": spec_validation_status,
+                "spec_unmatched_requirements": spec_unmatched_requirements,
             }
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(

@@ -55,6 +55,15 @@
         "items": {"type": "string"},
         "default": []
       },
+      "spec_validation_status": {
+        "type": "string",
+        "description": "Statut de cohérence requirements↔spec après SpecValidator : OK | DEGRADED | UNKNOWN"
+      },
+      "spec_unmatched_requirements": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Requirements dont les termes-clés sont absents de la spec générée (dérive spec_writer détectée)"
+      },
       "metadata": {
         "type": "object",
         "properties": {

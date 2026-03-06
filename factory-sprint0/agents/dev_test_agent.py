@@ -6,7 +6,6 @@ Prépare la réversibilité vers mode split sans casser le code métier.
 
 import json
 import logging
-import re
 from typing import Dict, Any
 from pathlib import Path
 
@@ -55,6 +54,8 @@ class DevTestAgent:
             "project_name": input_data.get("project_name"),
             "stack_id": input_data.get("stack_id", _DEFAULT_STACK_ID),
             "requirements": input_data.get("requirements", []),
+            "spec_validation_status": input_data.get("spec_validation_status", "OK"),
+            "spec_unmatched_requirements": input_data.get("spec_unmatched_requirements", []),
         }
         self._validate(dev_input, self.dev_contract["input_schema"], "Dev", "input")
 
@@ -65,6 +66,7 @@ class DevTestAgent:
                 project_name=dev_input["project_name"],
                 stack_id=dev_input["stack_id"],
                 requirements=dev_input.get("requirements", []),
+                spec_unmatched=dev_input.get("spec_unmatched_requirements", []),
                 run_id=run_id,
             )
         except Exception as e:
@@ -160,6 +162,9 @@ class DevTestAgent:
                 "requirements_total": coverage_result["requirements_total"],
                 "requirements_unmet": coverage_result["unmet"],
                 "requirements_unmet_by_category": coverage_result.get("unmet_by_category", {}),
+                # Signal SpecValidator propagé pour observabilité Learner
+                "spec_validation_status": dev_input.get("spec_validation_status", "OK"),
+                "spec_unmatched_count": len(dev_input.get("spec_unmatched_requirements", [])),
             }
         }
 

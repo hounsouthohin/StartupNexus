@@ -158,7 +158,38 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
                 f"L'architect doit utiliser Clerk exclusivement."
             )
 
-        # ── 4. Validation stricte du contrat de sortie ───────────────────────
+        # ── 4. Spec Validator déterministe ───────────────────────────────────
+        # Enrichit output_dict AVANT validate_output pour que les champs soient
+        # couverts par le contrat et validés en même temps que la spec.
+        try:
+            from agents.spec_validator import validate_spec_requirements
+            spec_validation = validate_spec_requirements(
+                output_dict.get("specification", ""),
+                output_dict.get("requirements", []),
+            )
+            output_dict["spec_validation_status"] = spec_validation["status"]
+            output_dict["spec_unmatched_requirements"] = spec_validation["unmatched_requirements"]
+            if spec_validation["status"] == "DEGRADED":
+                activity.logger.critical(
+                    f"[SpecValidator] DEGRADED — "
+                    f"{len(spec_validation['unmatched_requirements'])}/{spec_validation['total_mappable']} "
+                    f"requirement(s) mappable(s) absents de la spec : "
+                    f"{spec_validation['unmatched_requirements']}"
+                )
+            else:
+                activity.logger.info(
+                    f"[SpecValidator] OK — "
+                    f"{spec_validation['matched_count']}/{spec_validation['total_mappable']} "
+                    f"requirement(s) vérifiés dans la spec"
+                )
+        except Exception as sv_err:
+            activity.logger.warning(f"[SpecValidator] Erreur non bloquante : {sv_err}")
+            output_dict["spec_validation_status"] = "UNKNOWN"
+            output_dict["spec_unmatched_requirements"] = []
+
+        # ── 5. Validation stricte du contrat de sortie (après enrichissement) ──
+        # Les champs spec_validation_status et spec_unmatched_requirements sont
+        # maintenant déclarés dans architect_agent_contract.json et validés ici.
         validate_output("architect_agent", output_dict)
 
         activity.logger.info(f"Architect terminé → {len(output_dict['specification'])} caractères de spec générés")

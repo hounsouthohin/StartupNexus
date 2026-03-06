@@ -131,6 +131,8 @@ def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = ""
                 extra["requirements_met"] = meta.get("requirements_met", 0)
                 extra["requirements_total"] = meta.get("requirements_total", 0)
                 extra["requirements_unmet"] = meta.get("requirements_unmet", [])
+                extra["spec_validation_status"] = meta.get("spec_validation_status", "OK")
+                extra["spec_unmatched_count"] = meta.get("spec_unmatched_count", 0)
         # delivery_status distingue un build fonctionnel complet (SUCCESS)
         # d'un build fonctionnel incomplet (PARTIAL) pour le Learner.
         # Un run PARTIAL ne doit pas être compté comme succès plein dans P001.

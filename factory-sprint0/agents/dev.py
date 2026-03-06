@@ -105,6 +105,7 @@ def dev_agent(
     run_id: str = "",
     stack_id: str = "",
     requirements: list = None,
+    spec_unmatched: list = None,
 ) -> dict:
     """
     Dev Agent v3 Ultimate – Version finale stable.
@@ -270,6 +271,16 @@ def dev_agent(
             "⚠️ Tu ne peux pas déclarer le run terminé avant d'avoir créé UN fichier par page et par route API listée ci-dessus. "
             "Vérifie cette liste avant chaque appel à run_build.\n\n"
         )
+    spec_degraded_block = ""
+    if spec_unmatched:
+        unmatched_list = "\n".join(f"  - {r}" for r in spec_unmatched)
+        spec_degraded_block = (
+            "ALERTE SPEC DÉGRADÉE — les fonctionnalités suivantes figurent dans les requirements "
+            "mais leurs termes-clés sont ABSENTS de la spec ci-dessus (dérive spec_writer détectée).\n"
+            "Implémente-les QUOI QU'IL EN SOIT en respectant les noms EXACTS des requirements :\n"
+            f"{unmatched_list}\n"
+            "Ne renomme pas les entités, routes ou pages — utilise les noms des requirements, pas ceux de la spec.\n\n"
+        )
     packages = stack_cfg.get("packages", {})
     packages_block = ""
     if packages:
@@ -298,6 +309,7 @@ def dev_agent(
             f"{templates_block}"
             f"{required_files_block}"
             f"{requirements_block}"
+            f"{spec_degraded_block}"
             "⚠️ RÈGLE ABSOLUE — package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE (avant jest.setup.js, avant app/layout.tsx, avant tout). "
             "Étape 1 OBLIGATOIRE : génère IMMÉDIATEMENT package.json avec les versions exactes ci-dessus. "
             "Ne génère AUCUN autre fichier avant que package.json soit écrit sur le disque."

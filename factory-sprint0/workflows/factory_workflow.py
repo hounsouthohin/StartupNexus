@@ -79,6 +79,8 @@ class SaaSFactoryWorkflow:
             spec_part = architect_result.get("specification", "")
             mermaid_part = architect_result.get("mermaid_diagram", "")
             requirements_part = architect_result.get("requirements", [])
+            spec_validation_status = architect_result.get("spec_validation_status", "OK")
+            spec_unmatched_requirements = architect_result.get("spec_unmatched_requirements", [])
 
             if not spec_part.strip() or not mermaid_part.strip():
                 workflow.logger.error(
@@ -86,7 +88,10 @@ class SaaSFactoryWorkflow:
                 )
                 raise ValueError("Architect Agent produced an invalid or incomplete specification.")
 
-            workflow.logger.info("Architecte terminé – sortie structurée OK")
+            workflow.logger.info(
+                f"Architecte terminé – sortie structurée OK | "
+                f"spec_validation={spec_validation_status}"
+            )
 
             # Étape 2 : DevTest fusionné
             dev_test_input = {
@@ -95,6 +100,8 @@ class SaaSFactoryWorkflow:
                 "project_name": project_name,
                 "stack_id": stack_id,
                 "requirements": requirements_part,
+                "spec_validation_status": spec_validation_status,
+                "spec_unmatched_requirements": spec_unmatched_requirements,
             }
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
