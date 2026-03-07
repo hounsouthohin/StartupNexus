@@ -524,10 +524,12 @@ def dev_agent(
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
                             # ── GUARD C : @/lib/prisma import sans lib/prisma.ts (Sprint 5) ─────
-                            # Le LLM utilise correctement `import prisma from '@/lib/prisma'`
-                            # mais oublie de créer lib/prisma.ts → Module not found au build.
+                            # Détecte TOUS les styles d'import depuis '@/lib/prisma' :
+                            #   - import { prisma } from '@/lib/prisma'  (named — génération typique LLM)
+                            #   - import prisma from '@/lib/prisma'       (default)
+                            # Si lib/prisma.ts absent des fichiers LLM ET absent des templates écrits → BLOC.
                             _LIB_PRISMA_IMPORT = re.compile(
-                                r'''import\s+\w+\s+from\s+['"]@/lib/prisma['"]''',
+                                r'''import\s+(?:\{[^}]*\}|\w+)\s+from\s+['"]@/lib/prisma['"]''',
                                 re.MULTILINE,
                             )
                             _files_norm = {fp.replace("\\", "/"): fc for fp, fc in files.items()}
@@ -535,18 +537,19 @@ def dev_agent(
                                 _LIB_PRISMA_IMPORT.search(fc)
                                 for fc in _files_norm.values()
                             )
-                            _has_lib_prisma_ts = any(
-                                fp in ("lib/prisma.ts", "src/lib/prisma.ts")
-                                for fp in _files_norm
+                            _has_lib_prisma_ts = (
+                                any(fp in ("lib/prisma.ts", "src/lib/prisma.ts") for fp in _files_norm)
+                                or "lib/prisma.ts" in _templated_names  # écrit par template avant la boucle
                             )
                             if _uses_lib_prisma and not _has_lib_prisma_ts:
                                 _guard_c_msg = (
                                     "GUARD C — BUILD BLOQUÉ : lib/prisma.ts manquant\n"
-                                    "Des fichiers importent `prisma` depuis '@/lib/prisma' mais lib/prisma.ts "
+                                    "Des fichiers importent depuis '@/lib/prisma' mais lib/prisma.ts "
                                     "n'existe pas dans le projet.\n\n"
                                     "CORRECTION : appelle write_file('lib/prisma.ts') avec ce contenu EXACT :\n"
                                     "  import { PrismaClient } from '@prisma/client';\n"
                                     "  const prisma = new PrismaClient();\n"
+                                    "  export { prisma };\n"
                                     "  export default prisma;\n\n"
                                     "Ensuite appelle run_build."
                                 )

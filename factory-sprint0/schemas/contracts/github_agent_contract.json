@@ -28,6 +28,18 @@
       "run_id": {
         "type": "string",
         "description": "Identifiant du run (propagation observabilité)"
+      },
+      "build_success": {
+        "type": "boolean",
+        "description": "True si le build Next.js a réussi"
+      },
+      "spec_coverage": {
+        "type": "number",
+        "description": "Couverture spec 0-1 (ex: 0.83)"
+      },
+      "spec_validation_status": {
+        "type": "string",
+        "description": "OK | DEGRADED | UNKNOWN"
       }
     }
   },

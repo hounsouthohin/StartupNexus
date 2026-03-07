@@ -10,6 +10,39 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 
 
+def _classify_root_cause(
+    last_build_error: str,
+    last_test_error: str,
+    semantic_violations: list,
+    spec_validation_status: str,
+    iterations: int,
+) -> str:
+    """
+    Catégorise la cause racine d'un run en échec ou partiel.
+    Retourne une chaîne parmi :
+      semantic_violation | missing_template | client_directive | prisma_import
+      | spec_drift | max_iterations | test_failure | unknown
+    """
+    err = (last_build_error or "").lower()
+    if semantic_violations:
+        return "semantic_violation"
+    if "module not found" in err or "can't resolve" in err or "cannot find module" in err:
+        if "lib/prisma" in err or "prisma" in err:
+            return "prisma_import"
+        return "missing_template"
+    if "use client" in err or "hooks can only be used" in err or "useclient" in err:
+        return "client_directive"
+    if "prisma" in err or "prismaClient" in (last_build_error or "").lower():
+        return "prisma_import"
+    if spec_validation_status == "DEGRADED":
+        return "spec_drift"
+    if iterations >= 10:
+        return "max_iterations"
+    if last_test_error:
+        return "test_failure"
+    return "unknown"
+
+
 def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
     """
     Sauvegarde un snapshot JSON des fichiers générés avant le push GitHub.
@@ -145,6 +178,7 @@ def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = ""
         else:
             delivery_status = "partial"
         extra["delivery_status"] = delivery_status
+        extra["root_cause_category"] = payload.get("root_cause_category", "unknown")
         _write_learner_event(
             event_type="dev_test_run",
             payload={
@@ -274,6 +308,13 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "last_failed_command": last_failed_command,
             "semantic_violations": semantic_violations,
             "error": runtime_error,
+            "root_cause_category": _classify_root_cause(
+                last_build_error=last_build_error,
+                last_test_error=last_test_error,
+                semantic_violations=semantic_violations,
+                spec_validation_status=str(result.get("metadata", {}).get("spec_validation_status", "OK")),
+                iterations=int(dev_meta.get("iterations", 0)),
+            ),
         }
         activity.logger.info(
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "

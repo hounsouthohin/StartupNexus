@@ -171,6 +171,9 @@ class TodoPilotWorkflow:
                 "files": {**dev_test_result.get("combined_files", {}), **e2e_tests},
                 "project_name": project_name,
                 "stack_id": stack_id,
+                "build_success": dev_phase_success,
+                "spec_coverage": spec_coverage,
+                "spec_validation_status": dev_test_result.get("metadata", {}).get("spec_validation_status", "UNKNOWN"),
             }
 
             github_result: Dict[str, Any] = {"pr_url": "N/A", "repo_url": "N/A"}

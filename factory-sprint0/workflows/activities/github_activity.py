@@ -31,6 +31,10 @@ async def github_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
 
     files = input_data.get("files", {})
     project_name = input_data.get("project_name", "projet-sans-nom")
+    build_success = bool(input_data.get("build_success", True))
+    spec_coverage = float(input_data.get("spec_coverage", 1.0))
+    spec_validation_status = str(input_data.get("spec_validation_status", "OK"))
+    _SPEC_COVERAGE_THRESHOLD = 0.5  # même seuil que SPEC_COVERAGE_SUCCESS_THRESHOLD workflow
 
     if not files:
         raise ApplicationError("INVALID_INPUT", "Aucun fichier fourni pour le push GitHub")
@@ -160,6 +164,30 @@ async def github_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
             )
             activity.logger.info(f"PR créée : {pr.html_url}")
             output = {"pr_url": pr.html_url, "repo_url": repo_url}
+
+        # 8b. Label needs-spec-alignment si build échoué ou spec insuffisante
+        _needs_label = (
+            not build_success
+            or spec_coverage < _SPEC_COVERAGE_THRESHOLD
+            or spec_validation_status == "DEGRADED"
+        )
+        if _needs_label:
+            try:
+                _label_name = "needs-spec-alignment"
+                # Créer le label s'il n'existe pas
+                try:
+                    repo.get_label(_label_name)
+                except GithubException:
+                    repo.create_label(_label_name, "e11d48", "Build échoué ou spec DEGRADED — non mergeable")
+                pr.add_to_labels(_label_name)
+                activity.logger.warning(
+                    f"Label '{_label_name}' appliqué — "
+                    f"build_success={build_success}, "
+                    f"spec_coverage={spec_coverage:.0%}, "
+                    f"spec_status={spec_validation_status}"
+                )
+            except Exception as _label_err:
+                activity.logger.warning(f"Label non appliqué (non bloquant): {_label_err}")
 
         # 9. Validation sortie
         validate_output("github_agent", output)
