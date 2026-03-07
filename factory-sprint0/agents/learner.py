@@ -49,6 +49,24 @@ def run_learner_activity(run_id: str = "") -> dict:
     try:
         events = _load_dev_test_events()
 
+        # ── SPRINT5 GATE : mise à jour rolling au plus tôt (avant check MIN_RUNS) ──
+        # Le gate doit être alimenté dès le run #1, même si le learner skippe l'analyse.
+        try:
+            from scripts.sprint5_gate import update_gate as _update_gate
+            if events:
+                latest = events[-1]
+                _gate_result = _update_gate(
+                    build_success=bool(latest.get("build_success", False)),
+                    spec_validation_status=str(latest.get("spec_validation_status", "UNKNOWN")),
+                )
+                if _gate_result.get("enforce"):
+                    logger.warning(
+                        "[learner] Architect Gate en mode ENFORCE — "
+                        "spec DEGRADED persistante détectée sur la fenêtre glissante."
+                    )
+        except Exception as _gate_err:
+            logger.warning(f"[learner] sprint5_gate non bloquant : {_gate_err}")
+
         if len(events) < MIN_RUNS_FOR_ANALYSIS:
             logger.info(
                 f"[learner] Seulement {len(events)} run(s) — "
