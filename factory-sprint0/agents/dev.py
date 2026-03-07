@@ -592,6 +592,66 @@ def dev_agent(
                                 build_attempted = True
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
+                            # ── GUARD E : mauvais nom de fichier route dynamique App Router ────────
+                            # Next.js App Router exige app/blog/[slug]/page.tsx
+                            # Le LLM génère app/blog/[slug].tsx → fichier ignoré, page inexistante.
+                            _WRONG_DYNAMIC_RE = re.compile(r'app/.+\[[^\]]+\]\.(tsx|jsx|ts|js)$')
+                            _guard_e_violations = [
+                                fp for fp in _files_norm
+                                if _WRONG_DYNAMIC_RE.search(fp)
+                            ]
+                            if _guard_e_violations:
+                                _examples = "\n".join(
+                                    f"  ✗ {f}  →  {'/'.join(f.rsplit('.', 1)[0].split('/'))}/page.{f.rsplit('.', 1)[1]}"
+                                    for f in _guard_e_violations
+                                )
+                                _guard_e_msg = (
+                                    "GUARD E — BUILD BLOQUÉ : mauvais emplacement de page dynamique\n"
+                                    "Dans Next.js App Router, les routes dynamiques doivent être dans un DOSSIER "
+                                    "nommé [param], avec 'page.tsx' à l'intérieur — PAS un fichier [param].tsx.\n\n"
+                                    "Fichiers incorrects → emplacements corrects :\n"
+                                    + _examples
+                                    + "\n\nCORRECTION :\n"
+                                    "1. Crée le fichier au bon emplacement : write_file('app/blog/[slug]/page.tsx', ...)\n"
+                                    "2. Ne PAS créer app/blog/[slug].tsx (ignoré par Next.js)\n"
+                                    "3. Le contenu du composant est identique, seul le chemin change\n"
+                                    "Puis appelle run_build."
+                                )
+                                tool_messages.append(ToolMessage(content=_guard_e_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[GuardE] BUILD BLOQUÉ — fichiers route dynamique mal nommés : {_guard_e_violations}")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
+                            # ── GUARD F : params non typés dans pages App Router (TypeScript strict) ─
+                            # `({ params })` sans annotation → erreur TS strict : implicit any.
+                            # Détecte le pattern dans les fichiers app/**/*.tsx uniquement.
+                            _UNTYPED_PARAMS_RE = re.compile(
+                                r'\(\s*\{\s*(?:params|searchParams)\s*\}(?!\s*:)',
+                                re.MULTILINE,
+                            )
+                            _guard_f_violations = [
+                                fp for fp, fc in _files_norm.items()
+                                if fp.startswith("app/") and (fp.endswith(".tsx") or fp.endswith(".ts"))
+                                and _UNTYPED_PARAMS_RE.search(fc)
+                            ]
+                            if _guard_f_violations:
+                                _guard_f_msg = (
+                                    "GUARD F — BUILD BLOQUÉ : paramètres de page non typés (TypeScript strict)\n"
+                                    "Les fichiers suivants destructurent `params` ou `searchParams` sans annotation "
+                                    "de type — TypeScript strict interdit les types implicites `any` :\n"
+                                    + "\n".join(f"  - {f}" for f in _guard_f_violations)
+                                    + "\n\nCORRECTION — ajoute le type explicite :\n"
+                                    "  ✗ const Page = ({ params }) => ...\n"
+                                    "  ✓ const Page = ({ params }: { params: { slug: string } }) => ...\n\n"
+                                    "Pour searchParams :\n"
+                                    "  ✓ const Page = ({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) => ...\n"
+                                    "\nPuis appelle run_build."
+                                )
+                                tool_messages.append(ToolMessage(content=_guard_f_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[GuardF] BUILD BLOQUÉ — params non typés dans : {_guard_f_violations}")
+                                build_attempted = True
+                                called_build_this_iter = True
+                                continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
                         output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
