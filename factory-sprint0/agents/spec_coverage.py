@@ -77,12 +77,19 @@ def compute_spec_coverage(requirements: list, combined_files: dict) -> dict:
                     satisfied = True
 
         # Règle 4 : page mentionnée (Page: /path ou page publique/protégée)
+        # Le regex capture aussi la racine "/" (ex : "Page: /")
         if not satisfied and ("page" in req_lower):
-            page_match = re.search(r'/[\w/\[\]-]+', req)
+            page_match = re.search(r'/(?:[\w\[\]/-]+)?', req)
             if page_match:
-                page_path = _norm(page_match.group(0).strip('/'))
-                if any(page_path in fp for fp in file_paths_norm):
-                    satisfied = True
+                raw = page_match.group(0)
+                if raw == "/":
+                    # Racine → app/page.tsx
+                    if "app/page.tsx" in file_paths_norm:
+                        satisfied = True
+                else:
+                    page_path = _norm(raw.strip('/'))
+                    if any(page_path in fp for fp in file_paths_norm):
+                        satisfied = True
 
         (met if satisfied else unmet).append(req)
 

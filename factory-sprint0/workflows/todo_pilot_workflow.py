@@ -8,7 +8,7 @@ from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
-from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD
+from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD, SPEC_COVERAGE_PARTIAL_THRESHOLD
 
 
 @dataclass
@@ -97,6 +97,26 @@ class TodoPilotWorkflow:
                 f"spec_validation={spec_validation_status}"
             )
 
+            # ── SPEC GATE — arrêt dur avant Dev si spec DEGRADED ─────────────
+            if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
+                workflow.logger.error(
+                    f"[SPEC_GATE] STOP — spec DEGRADED, {len(spec_unmatched_requirements)} "
+                    f"requirement(s) absents : {spec_unmatched_requirements}"
+                )
+                total_time = (workflow.now() - start_time).total_seconds()
+                return TodoPilotOutput(
+                    workflow_status="FAILED_UNRECOVERABLE",
+                    build_status="NOT_RUN",
+                    project_name=project_name,
+                    generated_files_count=0,
+                    pr_url="N/A",
+                    repo_url="N/A",
+                    dev_files_count=0,
+                    test_files_count=0,
+                    duration_seconds=float(total_time),
+                    error_message=f"SPEC_INVALID: {spec_unmatched_requirements}",
+                )
+
             # 2. DevTest fusionné
             dev_test_input = {
                 "spec": spec_part,
@@ -139,9 +159,19 @@ class TodoPilotWorkflow:
             if semantic_violations:
                 build_status = "SEMANTIC_VIOLATION"
             elif dev_phase_success:
-                # Build réussi mais spec_coverage < 50% → app fonctionnelle mais incomplète.
-                # Aligné sur SaaSFactoryWorkflow — vocab commun SUCCESS | PARTIAL | BUILD_FAILED | SEMANTIC_VIOLATION
-                build_status = "SUCCESS" if spec_coverage >= SPEC_COVERAGE_SUCCESS_THRESHOLD else "PARTIAL"
+                if spec_coverage >= SPEC_COVERAGE_SUCCESS_THRESHOLD:
+                    build_status = "SUCCESS"
+                elif spec_coverage >= SPEC_COVERAGE_PARTIAL_THRESHOLD:
+                    # App fonctionnelle mais incomplète — au moins 25% des requirements couverts
+                    build_status = "PARTIAL"
+                else:
+                    # Build passe mais trop peu de fonctionnalités générées (< 25%) — non-utilisable
+                    workflow.logger.warning(
+                        f"[requirements_gate] DOWNGRADE BUILD_FAILED — "
+                        f"spec_coverage={spec_coverage:.0%} < {SPEC_COVERAGE_PARTIAL_THRESHOLD:.0%} "
+                        f"(seuil PARTIAL minimum)"
+                    )
+                    build_status = "BUILD_FAILED"
             else:
                 build_status = "BUILD_FAILED"
 

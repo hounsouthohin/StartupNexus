@@ -605,7 +605,7 @@ def _count_test_files(project_path: str) -> int:
     return count
 
 
-def _ensure_layout_dynamic(project_path: str) -> None:
+def _ensure_layout_dynamic(project_path: str) -> bool:
     """
     Injecte 'export const dynamic = "force-dynamic"' dans app/layout.tsx si absent.
 
@@ -617,11 +617,11 @@ def _ensure_layout_dynamic(project_path: str) -> None:
     """
     layout_path = os.path.join(project_path, "app", "layout.tsx")
     if not os.path.exists(layout_path):
-        return
+        return False
 
     content = Path(layout_path).read_text(encoding="utf-8")
     if "export const dynamic" in content:
-        return  # Déjà présent
+        return False  # Déjà présent — pas de mutation
 
     # Injecter après le dernier import (avant le premier composant/export)
     lines = content.splitlines(keepends=True)
@@ -639,9 +639,10 @@ def _ensure_layout_dynamic(project_path: str) -> None:
     with open(layout_path, "w", encoding="utf-8") as f:
         f.writelines(lines)
     logger.info("[pre-build] app/layout.tsx: export const dynamic = 'force-dynamic' injecté")
+    return True
 
 
-def _fix_nextconfig_security_headers(project_path: str) -> None:
+def _fix_nextconfig_security_headers(project_path: str) -> bool:
     """
     Corrige la section `headers()` de next.config.js si le LLM a généré un
     tableau plat [{key, value}] au lieu du format Next.js valide :
@@ -654,7 +655,7 @@ def _fix_nextconfig_security_headers(project_path: str) -> None:
     """
     nextconfig_path = os.path.join(project_path, "next.config.js")
     if not os.path.exists(nextconfig_path):
-        return
+        return False
 
     content = Path(nextconfig_path).read_text(encoding="utf-8")
 
@@ -662,11 +663,11 @@ def _fix_nextconfig_security_headers(project_path: str) -> None:
     has_headers_func = bool(re.search(r'headers\s*\(\s*\)\s*\{', content) or
                             re.search(r'headers\s*:\s*async\s*\(\)', content))
     if not has_headers_func:
-        return
+        return False
 
     # Si `source:` est déjà présent → format correct, rien à faire
     if re.search(r'["\']?source["\']?\s*:', content):
-        return
+        return False
 
     # Réécriture complète avec format valide
     correct_config = (
@@ -693,9 +694,10 @@ def _fix_nextconfig_security_headers(project_path: str) -> None:
     with open(nextconfig_path, "w", encoding="utf-8") as f:
         f.write(correct_config)
     logger.info("[pre-build] next.config.js: headers invalide (pas de source:) → format Next.js corrigé")
+    return True
 
 
-def _ensure_layout_html_body(project_path: str) -> None:
+def _ensure_layout_html_body(project_path: str) -> bool:
     """
     Assure que app/layout.tsx contient les balises <html> et <body> requises
     par Next.js 14 App Router. Le LLM génère parfois un composant React.FC
@@ -709,13 +711,13 @@ def _ensure_layout_html_body(project_path: str) -> None:
     """
     layout_path = os.path.join(project_path, "app", "layout.tsx")
     if not os.path.exists(layout_path):
-        return
+        return False
 
     content = Path(layout_path).read_text(encoding="utf-8")
 
     # Si <html> et <body> sont déjà présents → rien à faire
     if "<html" in content and "<body" in content:
-        return
+        return False
 
     has_clerk = "ClerkProvider" in content
 
@@ -742,9 +744,10 @@ def _ensure_layout_html_body(project_path: str) -> None:
     with open(layout_path, "w", encoding="utf-8") as f:
         f.write(canonical)
     logger.info("[pre-build] app/layout.tsx: balises <html>/<body> manquantes → layout canonique App Router écrit")
+    return True
 
 
-def _ensure_nextconfig_eslint_ignore(project_path: str) -> None:
+def _ensure_nextconfig_eslint_ignore(project_path: str) -> bool:
     """S'assure que next.config.js ignore les erreurs ESLint lors du build."""
     nextconfig_path = os.path.join(project_path, "next.config.js")
     if not os.path.exists(nextconfig_path):
@@ -760,7 +763,7 @@ def _ensure_nextconfig_eslint_ignore(project_path: str) -> None:
         with open(nextconfig_path, "w", encoding="utf-8") as f:
             f.write(content)
         logger.info("[pre-build] next.config.js créé avec eslint.ignoreDuringBuilds=true")
-        return
+        return True
 
     content = Path(nextconfig_path).read_text(encoding="utf-8")
     if "ignoreDuringBuilds" not in content:
@@ -771,6 +774,8 @@ def _ensure_nextconfig_eslint_ignore(project_path: str) -> None:
         with open(nextconfig_path, "w", encoding="utf-8") as f:
             f.write(content)
         logger.info("[pre-build] next.config.js: eslint.ignoreDuringBuilds ajouté")
+        return True
+    return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -822,10 +827,21 @@ def run_build(project_dir: str = ".") -> str:
         if removed:
             logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
 
-        _ensure_nextconfig_eslint_ignore(project_path)
-        _fix_nextconfig_security_headers(project_path)
-        _ensure_layout_html_body(project_path)
-        _ensure_layout_dynamic(project_path)
+        # FACTORY_STRICT_PREBUILD="1" → valider sans réécrire (métriques honnêtes).
+        # FACTORY_STRICT_PREBUILD="0" (défaut) → mutations actives comme filet de sécurité.
+        _strict = os.getenv("FACTORY_STRICT_PREBUILD", "0") == "1"
+        _mutations = []
+        if not _strict:
+            if _ensure_nextconfig_eslint_ignore(project_path):
+                _mutations.append("next.config.js: eslint.ignoreDuringBuilds injecté")
+            if _fix_nextconfig_security_headers(project_path):
+                _mutations.append("next.config.js: headers format corrigé")
+            if _ensure_layout_html_body(project_path):
+                _mutations.append("app/layout.tsx: balises html/body réécrites")
+            if _ensure_layout_dynamic(project_path):
+                _mutations.append("app/layout.tsx: force-dynamic injecté")
+            if _mutations:
+                logger.warning(f"[pre-build mutations] LLM output corrigé automatiquement : {_mutations}")
 
         # ── Install (commande lue depuis stack JSON) ─────────────────────────
         install_result = subprocess.run(

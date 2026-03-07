@@ -302,3 +302,105 @@ class TestSpecValidator:
         assert result["status"] == "DEGRADED", (
             "post absent de la spec (renommé Article) → DEGRADED"
         )
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 5 — Gate SPEC_DEGRADED bloque le workflow (Commit 1)
+# ─────────────────────────────────────────────────────────────
+
+class TestSpecDegradedGate:
+    """Vérifie que la logique SPEC_GATE stoppe le workflow sur spec DEGRADED."""
+
+    def _simulate_gate(self, spec_validation_status: str, unmatched: list) -> str:
+        """Simule la condition SPEC_GATE du workflow — retourne 'BLOCKED' ou 'CONTINUE'."""
+        if spec_validation_status == "DEGRADED" and unmatched:
+            return "BLOCKED"
+        return "CONTINUE"
+
+    def test_gate_bloque_sur_degraded(self):
+        """DEGRADED + unmatched non vide → workflow bloqué."""
+        result = self._simulate_gate("DEGRADED", ["Modèle Prisma: Post"])
+        assert result == "BLOCKED"
+
+    def test_gate_laisse_passer_ok(self):
+        """Spec OK → workflow continue."""
+        result = self._simulate_gate("OK", [])
+        assert result == "CONTINUE"
+
+    def test_gate_laisse_passer_degraded_sans_unmatched(self):
+        """DEGRADED sans unmatched (cas limite) → workflow continue."""
+        result = self._simulate_gate("DEGRADED", [])
+        assert result == "CONTINUE"
+
+    def test_gate_laisse_passer_warning(self):
+        """Status WARNING → workflow continue (seul DEGRADED bloque)."""
+        result = self._simulate_gate("WARNING", ["Modèle Prisma: Post"])
+        assert result == "CONTINUE"
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 6 — spec_coverage compte Page: / (Commit 5)
+# ─────────────────────────────────────────────────────────────
+
+class TestSpecCoverageRootPage:
+    """Vérifie que compute_spec_coverage gère la racine '/' correctement."""
+
+    def _coverage(self, requirements, files):
+        from agents.spec_coverage import compute_spec_coverage
+        return compute_spec_coverage(requirements, files)
+
+    def test_page_racine_satisfaite_par_app_page_tsx(self):
+        """'Page: /' doit être satisfaite par app/page.tsx."""
+        req = ["Page: / (page d'accueil publique)"]
+        files = {"app/page.tsx": "export default function Home() { return <div/>; }"}
+        result = self._coverage(req, files)
+        assert result["requirements_met"] == 1, (
+            f"Page: / doit être satisfaite par app/page.tsx "
+            f"(requirements_met={result['requirements_met']})"
+        )
+
+    def test_page_racine_non_satisfaite_sans_app_page_tsx(self):
+        """'Page: /' sans app/page.tsx → non satisfait."""
+        req = ["Page: / (page d'accueil publique)"]
+        files = {"app/dashboard/page.tsx": "export default function Dashboard() {}"}
+        result = self._coverage(req, files)
+        assert result["requirements_met"] == 0, (
+            "Page: / ne doit pas être satisfaite par dashboard/page.tsx"
+        )
+
+    def test_page_sous_chemin_non_affecte(self):
+        """La correction racine ne casse pas les pages /dashboard."""
+        req = ["Page protégée: /dashboard gestion des articles"]
+        files = {"app/dashboard/page.tsx": "export default function Dashboard() {}"}
+        result = self._coverage(req, files)
+        assert result["requirements_met"] == 1, (
+            "Page /dashboard doit toujours être satisfaite par app/dashboard/page.tsx"
+        )
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 7 — FACTORY_LOG_DIR absolu (Commit 7)
+# ─────────────────────────────────────────────────────────────
+
+class TestAbsoluteLogPaths:
+    """Vérifie que les modules utilisent FACTORY_LOG_DIR pour leurs chemins de log."""
+
+    def test_sprint5_gate_path_utilise_env(self, tmp_path, monkeypatch):
+        """GATE_PATH doit respecter FACTORY_LOG_DIR si défini avant import."""
+        import importlib
+        monkeypatch.setenv("FACTORY_LOG_DIR", str(tmp_path))
+        import scripts.sprint5_gate as gate_mod
+        importlib.reload(gate_mod)
+        assert str(tmp_path) in str(gate_mod.GATE_PATH), (
+            f"GATE_PATH ({gate_mod.GATE_PATH}) ne commence pas par FACTORY_LOG_DIR ({tmp_path})"
+        )
+
+    def test_learner_shadow_log_path_utilise_env(self, tmp_path, monkeypatch):
+        """SHADOW_LOG_PATH doit respecter FACTORY_LOG_DIR si défini avant import."""
+        import importlib
+        monkeypatch.setenv("FACTORY_LOG_DIR", str(tmp_path))
+        import agents.learner as learner_mod
+        importlib.reload(learner_mod)
+        assert str(tmp_path) in str(learner_mod.SHADOW_LOG_PATH), (
+            f"SHADOW_LOG_PATH ({learner_mod.SHADOW_LOG_PATH}) ne commence pas par FACTORY_LOG_DIR ({tmp_path})"
+        )

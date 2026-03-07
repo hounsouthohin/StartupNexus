@@ -93,6 +93,26 @@ class SaaSFactoryWorkflow:
                 f"spec_validation={spec_validation_status}"
             )
 
+            # ── SPEC GATE — arrêt dur avant Dev si spec DEGRADED ─────────────
+            if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
+                workflow.logger.error(
+                    f"[SPEC_GATE] STOP — spec DEGRADED, {len(spec_unmatched_requirements)} "
+                    f"requirement(s) absents : {spec_unmatched_requirements}"
+                )
+                total_time = (workflow.now() - start_time).total_seconds()
+                return SaaSFactoryOutput(
+                    workflow_status="FAILED_UNRECOVERABLE",
+                    build_status="NOT_RUN",
+                    project_name=project_name,
+                    generated_files_count=0,
+                    pr_url="N/A",
+                    repo_url="N/A",
+                    dev_files_count=0,
+                    test_files_count=0,
+                    duration_seconds=float(total_time),
+                    error_message=f"SPEC_INVALID: {spec_unmatched_requirements}",
+                )
+
             # Étape 2 : DevTest fusionné
             dev_test_input = {
                 "spec": spec_part,

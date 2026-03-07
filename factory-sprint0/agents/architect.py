@@ -13,6 +13,7 @@ import logging
 import time
 from datetime import datetime
 from typing import List, TypedDict, Annotated
+from temporalio.exceptions import ApplicationError
 import operator
 from pathlib import Path
 from dotenv import load_dotenv
@@ -549,11 +550,31 @@ def create_architect_agent():
                         f"[spec_writer_node] Spec encore DEGRADED après correction — "
                         f"unmatched: {sv_final['unmatched_requirements']}"
                     )
+                    # Enforce mode : bloquer si le gate l'exige (non-retryable)
+                    try:
+                        from scripts.sprint5_gate import load_gate as _load_gate
+                        _gate = _load_gate()
+                        if _gate.get("enforce", False):
+                            from temporalio.exceptions import ApplicationError as _AE
+                            raise _AE(
+                                "SPEC_GATE_ENFORCE",
+                                f"Spec DEGRADED après 2 tentatives — gate en mode enforce. "
+                                f"Requirements manquants : {sv_final['unmatched_requirements']}",
+                                non_retryable=True,
+                            )
+                    except (SystemExit, KeyboardInterrupt):
+                        raise
+                    except Exception as _ge:
+                        if "SPEC_GATE_ENFORCE" in str(_ge):
+                            raise
+                        logger.warning(f"[spec_writer_node] Gate enforce check non bloquant : {_ge}")
                 else:
                     logger.info(
                         f"[spec_writer_node] Spec corrigée — "
                         f"{sv_final['matched_count']}/{sv_final['total_mappable']} requirements couverts"
                     )
+        except ApplicationError:
+            raise  # ne jamais avaler un gate enforce non-retryable
         except Exception as sv_err:
             logger.warning(f"[spec_writer_node] Spec gate non bloquant : {sv_err}")
 

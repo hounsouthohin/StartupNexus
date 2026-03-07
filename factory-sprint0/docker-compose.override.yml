@@ -1,0 +1,19 @@
+# docker-compose.override.yml — profil DEV uniquement
+# Chargé automatiquement par docker-compose en local.
+# NE PAS committer en prod (ajouter à .gitignore si nécessaire).
+#
+# Bind-mounts granulaires : seul le code source Python/config est monté.
+# Les artefacts runtime (generated-projects, logs, venv) restent dans des volumes Docker.
+
+services:
+  factory-worker:
+    volumes:
+      - ./agents:/app/agents
+      - ./workflows:/app/workflows
+      - ./config:/app/config
+      - ./schemas:/app/schemas
+      - ./scripts:/app/scripts
+      - ./run:/app/run
+      - ./api:/app/api
+      - ./prompts:/app/prompts
+      - ./init_qdrant.py:/app/init_qdrant.py

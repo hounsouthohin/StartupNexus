@@ -20,8 +20,8 @@ def _classify_root_cause(
     """
     Catégorise la cause racine d'un run en échec ou partiel.
     Retourne une chaîne parmi :
-      semantic_violation | missing_template | client_directive | prisma_import
-      | spec_drift | max_iterations | test_failure | unknown
+      semantic_violation | missing_template | client_directive
+      | prisma_import | spec_drift | max_iterations | test_failure | unknown
     """
     err = (last_build_error or "").lower()
     if semantic_violations:
@@ -32,7 +32,7 @@ def _classify_root_cause(
         return "missing_template"
     if "use client" in err or "hooks can only be used" in err or "useclient" in err:
         return "client_directive"
-    if "prisma" in err or "prismaClient" in (last_build_error or "").lower():
+    if "prisma" in err:
         return "prisma_import"
     if spec_validation_status == "DEGRADED":
         return "spec_drift"
@@ -276,7 +276,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
         last_test_error_full = str(dev_meta.get("last_test_error_full", "") or "")
         last_failed_command = str(dev_meta.get("last_failed_command", "") or "")
-        build_success = bool(result.get("success", False))
+        # Fix cohérence : build_success ne peut être True que si run_build() a réellement été exécuté.
+        # build_attempts=0 signifie que le DevAgent n'a pas appelé run_build (ou qu'un guard a tout bloqué).
+        build_success = bool(result.get("success", False)) and int(dev_meta.get("build_attempts", 0)) > 0
 
         # Capture explicite de la cause d'echec métier si pas d'exception levée.
         runtime_error = None

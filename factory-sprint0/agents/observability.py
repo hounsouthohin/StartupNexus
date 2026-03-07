@@ -2,8 +2,12 @@
 Observability helpers: logger, RAG usage metrics, learner shadow log.
 """
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
+
+LOG_ROOT = Path(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
+SHADOW_DIR = LOG_ROOT / "shadow"
 
 
 # --- Logger ---
@@ -66,7 +70,7 @@ def _append_rag_usage_event(
 # --- Learner shadow log ---
 
 def _write_learner_event(event_type: str, payload: dict, run_id: str = "") -> None:
-    log_path = Path("logs/shadow/learner_shadow_log.json")
+    log_path = SHADOW_DIR / "learner_shadow_log.json"
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:

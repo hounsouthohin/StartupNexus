@@ -211,7 +211,8 @@
     "next.config.js":                 "templates/next.config.js",
     "tsconfig.json":                  "templates/tsconfig.json",
     ".env.local":                     "templates/env.local.template",
-    "tests/middleware.test.ts":       "templates/tests/middleware.test.ts"
+    "tests/middleware.test.ts":       "templates/tests/middleware.test.ts",
+    "lib/prisma.ts":                  "templates/lib_prisma.ts"
   },
 
   "blueprint": {
@@ -224,6 +225,7 @@
       "prisma/schema.prisma",
       "prisma.config.ts",
       ".env.local",
+      "lib/prisma.ts",
       "app/page.tsx",
       "jest.config.js",
       "jest.setup.js"
@@ -235,7 +237,8 @@
       "app/layout.tsx",
       "middleware.ts",
       "prisma/schema.prisma",
-      ".env.local"
+      ".env.local",
+      "lib/prisma.ts"
     ],
     "optional_files": [
       "app/api/*/route.ts",

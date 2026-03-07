@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import uuid
 from collections import Counter
@@ -21,7 +22,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-SHADOW_LOG_PATH = Path("logs/shadow/learner_shadow_log.json")
+_LOG_ROOT = Path(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
+SHADOW_LOG_PATH = _LOG_ROOT / "shadow" / "learner_shadow_log.json"
 MIN_RUNS_FOR_ANALYSIS = 3
 
 

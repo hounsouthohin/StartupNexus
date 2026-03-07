@@ -117,15 +117,18 @@ def dev_agent(
     if _workdir:
         _clean_project_workdir(_workdir, extra_keep=_extra_keep)
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
 
-    tools_phase1 = [write_file, validate_syntax, prisma_migrate, rag_search, read_files]
-    tools_phase2 = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
-    tool_map = {tool.name: tool for tool in tools_phase2}
+    # Tous les outils disponibles dès l'itération 1 — le Blueprint Validator bloque
+    # run_build si des fichiers obligatoires manquent (gate suffisant).
+    # Supprimer le split Phase1/Phase2 qui causait 55% des runs à atteindre MAX_ITERATIONS.
+    tools_phase1 = [write_file, validate_syntax, prisma_migrate, rag_search, read_files, run_build]
+    tools_phase2 = tools_phase1
+    tool_map = {tool.name: tool for tool in tools_phase1}
 
-    MAX_ITERATIONS = 10
+    MAX_ITERATIONS = 14
     MAX_BUILD_ATTEMPTS = 8
-    PHASE1_LIMIT = 7  # iterations 1-7 : génération ; iterations 8-10 : correction build
+    PHASE1_LIMIT = 14  # identique à MAX_ITERATIONS — plus de split de phase
     # Budgets ramenés à des tailles réalistes pour limiter la pression TPM
     MAX_SPEC_TOKENS = 4000
     MAX_MERMAID_TOKENS = 1200
@@ -375,6 +378,72 @@ def dev_agent(
                 return parent if parent else "."
         return "."
 
+    def _prebuild_gates(files_dict: dict) -> tuple:
+        """
+        Vérifie les conditions pré-build (Blueprint + UseState + Prisma import).
+        Retourne (bloqué: bool, message: str).
+        Utilisé sur DEUX chemins : tool_call run_build ET forced build.
+        """
+        # 1. Blueprint Validator
+        _present = set(files_dict.keys()) | _templated_names
+        _missing = [f for f in required_files if not any(f in p for p in _present)]
+        if _missing:
+            return True, (
+                "BLUEPRINT VALIDATOR — BUILD BLOQUÉ\n"
+                f"{len(_missing)} fichier(s) obligatoire(s) manquant(s) :\n"
+                + "\n".join(f"  - {f}" for f in _missing)
+                + "\n\nGénère ces fichiers avec write_file() maintenant."
+                " run_build sera disponible une fois tous présents."
+            )
+        # 2. USE_STATE TYPED GUARD
+        _BUSINESS_PREFIXES = ("app/", "components/", "src/app/", "src/components/")
+        _usestate_violations = []
+        for _fp, _fc in files_dict.items():
+            _fp_norm = _fp.replace("\\", "/")
+            if not any(_fp_norm.startswith(pfx) for pfx in _BUSINESS_PREFIXES):
+                continue
+            if re.search(r'\buseState\s*\(\s*\[\s*\]\s*\)', _fc) and not re.search(r'\buseState\s*<', _fc):
+                _usestate_violations.append(_fp_norm)
+        if _usestate_violations:
+            return True, (
+                "USE_STATE TYPED GUARD — BUILD BLOQUÉ\n"
+                "useState([]) sans annotation de type détecté — TypeScript strict infère never[], "
+                "ce qui provoque 'Property does not exist on type never' au build.\n"
+                "Fichiers concernés :\n"
+                + "\n".join(f"  - {f}" for f in _usestate_violations)
+                + "\n\nCorrige chaque occurrence : useState<Type[]>([]) avant d'appeler run_build."
+            )
+        # 3. PRISMA IMPORT GUARD
+        _PRISMA_BAD_IMPORT = re.compile(
+            r'import\s*\{[^}]*\bprisma\b[^}]*\}\s*from\s*[\'"]@prisma/client[\'"]',
+            re.MULTILINE,
+        )
+        _SERVER_PREFIXES = ("app/", "pages/", "src/app/", "src/pages/", "lib/")
+        _prisma_violations = []
+        for _fp, _fc in files_dict.items():
+            _fp_norm = _fp.replace("\\", "/")
+            if not any(_fp_norm.startswith(pfx) for pfx in _SERVER_PREFIXES):
+                continue
+            if _PRISMA_BAD_IMPORT.search(_fc):
+                _prisma_violations.append(_fp_norm)
+        if _prisma_violations:
+            return True, (
+                "PRISMA IMPORT GUARD — BUILD BLOQUÉ\n"
+                "import { prisma } from '@prisma/client' est invalide en Prisma 7.\n"
+                "@prisma/client exporte uniquement PrismaClient (la classe), pas un singleton 'prisma'.\n"
+                "Fichiers concernés :\n"
+                + "\n".join(f"  - {f}" for f in _prisma_violations)
+                + "\n\nCORRECTION OBLIGATOIRE EN 2 ÉTAPES :\n"
+                "1. Crée lib/prisma.ts avec ce contenu exact :\n"
+                "   import { PrismaClient } from '@prisma/client';\n"
+                "   const prisma = new PrismaClient();\n"
+                "   export default prisma;\n"
+                "2. Dans chaque fichier concerné, remplace l'import invalide par :\n"
+                "   import prisma from '@/lib/prisma';\n"
+                "Appelle write_file() pour ces corrections, PUIS appelle run_build."
+            )
+        return False, ""
+
     stagnant_iterations = 0
     key_files = required_files or ["package.json"]
     for iteration in range(1, MAX_ITERATIONS + 1):
@@ -440,215 +509,11 @@ def dev_agent(
                             if computed_dir != "." and call_args.get("project_dir", ".") == ".":
                                 call_args = {**call_args, "project_dir": computed_dir}
                                 logger.info(f"[run_build] project_dir corrigé: '.' → '{computed_dir}'")
-                            # ── BLUEPRINT VALIDATOR BLOQUANT (Sprint 4) ──────────────────────
-                            _present = set(files.keys()) | _templated_names
-                            _blueprint_missing = [
-                                f for f in required_files
-                                if not any(f in p for p in _present)
-                            ]
-                            if _blueprint_missing:
-                                _block_msg = (
-                                    "BLUEPRINT VALIDATOR — BUILD BLOQUÉ\n"
-                                    f"{len(_blueprint_missing)} fichier(s) obligatoire(s) manquant(s) :\n"
-                                    + "\n".join(f"  - {f}" for f in _blueprint_missing)
-                                    + "\n\nGénère ces fichiers avec write_file() maintenant."
-                                    " run_build sera disponible une fois tous présents."
-                                )
-                                tool_messages.append(ToolMessage(content=_block_msg, tool_call_id=tool_call["id"]))
-                                logger.warning(f"[BlueprintValidator] BUILD BLOQUÉ — {len(_blueprint_missing)} manquant(s): {_blueprint_missing}")
-                                build_attempted = True
-                                called_build_this_iter = True
-                                continue  # ne pas exécuter run_build
-                            # ── USE_STATE TYPED GUARD (Sprint 5) ─────────────────────────────
-                            # useState([]) sans type → TypeScript strict infère never[]
-                            # → build échoue systématiquement sur "Property 'x' does not exist on type 'never'"
-                            # → corrige avant run_build pour ne pas gaspiller une tentative de build
-                            _BUSINESS_PREFIXES = ("app/", "components/", "src/app/", "src/components/")
-                            _usestate_violations = []
-                            for _fp, _fc in files.items():
-                                _fp_norm = _fp.replace("\\", "/")
-                                _is_business = any(_fp_norm.startswith(pfx) for pfx in _BUSINESS_PREFIXES)
-                                if not _is_business:
-                                    continue
-                                if re.search(r'\buseState\s*\(\s*\[\s*\]\s*\)', _fc) and not re.search(r'\buseState\s*<', _fc):
-                                    _usestate_violations.append(_fp_norm)
-                            if _usestate_violations:
-                                _us_msg = (
-                                    "USE_STATE TYPED GUARD — BUILD BLOQUÉ\n"
-                                    "useState([]) sans annotation de type détecté — TypeScript strict infère never[], "
-                                    "ce qui provoque 'Property does not exist on type never' au build.\n"
-                                    "Fichiers concernés :\n"
-                                    + "\n".join(f"  - {f}" for f in _usestate_violations)
-                                    + "\n\nCorrige chaque occurrence : useState<Type[]>([]) avant d'appeler run_build."
-                                )
-                                tool_messages.append(ToolMessage(content=_us_msg, tool_call_id=tool_call["id"]))
-                                logger.warning(f"[UseStateGuard] BUILD BLOQUÉ — useState non typé dans : {_usestate_violations}")
-                                build_attempted = True
-                                called_build_this_iter = True
-                                continue  # ne pas exécuter run_build
-                            # ── PRISMA IMPORT GUARD (Sprint 5) ───────────────────────────────
-                            # import { prisma } from '@prisma/client' est invalide en Prisma 7 :
-                            # @prisma/client exporte uniquement PrismaClient (la classe), pas un singleton.
-                            # Détection pré-build → bloc bloquant → LLM génère lib/prisma.ts et corrige les imports.
-                            _PRISMA_BAD_IMPORT = re.compile(
-                                r'import\s*\{[^}]*\bprisma\b[^}]*\}\s*from\s*[\'"]@prisma/client[\'"]',
-                                re.MULTILINE,
-                            )
-                            _SERVER_PREFIXES = ("app/", "pages/", "src/app/", "src/pages/", "lib/")
-                            _prisma_import_violations = []
-                            for _fp, _fc in files.items():
-                                _fp_norm = _fp.replace("\\", "/")
-                                if not any(_fp_norm.startswith(pfx) for pfx in _SERVER_PREFIXES):
-                                    continue
-                                if _PRISMA_BAD_IMPORT.search(_fc):
-                                    _prisma_import_violations.append(_fp_norm)
-                            if _prisma_import_violations:
-                                _prisma_msg = (
-                                    "PRISMA IMPORT GUARD — BUILD BLOQUÉ\n"
-                                    "import { prisma } from '@prisma/client' est invalide en Prisma 7.\n"
-                                    "@prisma/client exporte uniquement PrismaClient (la classe), pas un singleton 'prisma'.\n"
-                                    "Fichiers concernés :\n"
-                                    + "\n".join(f"  - {f}" for f in _prisma_import_violations)
-                                    + "\n\nCORRECTION OBLIGATOIRE EN 2 ÉTAPES :\n"
-                                    "1. Crée lib/prisma.ts avec ce contenu exact :\n"
-                                    "   import { PrismaClient } from '@prisma/client';\n"
-                                    "   const prisma = new PrismaClient();\n"
-                                    "   export default prisma;\n"
-                                    "2. Dans chaque fichier concerné, remplace l'import invalide par :\n"
-                                    "   import prisma from '@/lib/prisma';\n"
-                                    "Appelle write_file() pour ces corrections, PUIS appelle run_build."
-                                )
-                                tool_messages.append(ToolMessage(content=_prisma_msg, tool_call_id=tool_call["id"]))
-                                logger.warning(f"[PrismaImportGuard] BUILD BLOQUÉ — import invalide dans : {_prisma_import_violations}")
-                                build_attempted = True
-                                called_build_this_iter = True
-                                continue  # ne pas exécuter run_build
-                            # ── GUARD C : @/lib/prisma import sans lib/prisma.ts (Sprint 5) ─────
-                            # Détecte TOUS les styles d'import depuis '@/lib/prisma' :
-                            #   - import { prisma } from '@/lib/prisma'  (named — génération typique LLM)
-                            #   - import prisma from '@/lib/prisma'       (default)
-                            # Si lib/prisma.ts absent des fichiers LLM ET absent des templates écrits → BLOC.
-                            _LIB_PRISMA_IMPORT = re.compile(
-                                r'''import\s+(?:\{[^}]*\}|\w+)\s+from\s+['"]@/lib/prisma['"]''',
-                                re.MULTILINE,
-                            )
-                            _files_norm = {fp.replace("\\", "/"): fc for fp, fc in files.items()}
-                            _uses_lib_prisma = any(
-                                _LIB_PRISMA_IMPORT.search(fc)
-                                for fc in _files_norm.values()
-                            )
-                            _has_lib_prisma_ts = (
-                                any(fp in ("lib/prisma.ts", "src/lib/prisma.ts") for fp in _files_norm)
-                                or "lib/prisma.ts" in _templated_names  # écrit par template avant la boucle
-                            )
-                            if _uses_lib_prisma and not _has_lib_prisma_ts:
-                                _guard_c_msg = (
-                                    "GUARD C — BUILD BLOQUÉ : lib/prisma.ts manquant\n"
-                                    "Des fichiers importent depuis '@/lib/prisma' mais lib/prisma.ts "
-                                    "n'existe pas dans le projet.\n\n"
-                                    "CORRECTION : appelle write_file('lib/prisma.ts') avec ce contenu EXACT :\n"
-                                    "  import { PrismaClient } from '@prisma/client';\n"
-                                    "  const prisma = new PrismaClient();\n"
-                                    "  export { prisma };\n"
-                                    "  export default prisma;\n\n"
-                                    "Ensuite appelle run_build."
-                                )
-                                tool_messages.append(ToolMessage(content=_guard_c_msg, tool_call_id=tool_call["id"]))
-                                logger.warning("[GuardC] BUILD BLOQUÉ — @/lib/prisma importé mais lib/prisma.ts absent")
-                                build_attempted = True
-                                called_build_this_iter = True
-                                continue  # ne pas exécuter run_build
-                            # ── GUARD D : hooks React sans "use client" (Sprint 5) ───────────────
-                            # useState/useEffect dans un Server Component → erreur de compilation.
-                            # Détecte les fichiers app/**/*.tsx (hors app/api/**) qui utilisent
-                            # des hooks React sans la directive "use client" en tête de fichier.
-                            _HOOKS_RE = re.compile(
-                                r'\b(useState|useEffect|useRef|useCallback|useMemo|useReducer|useContext)\s*[(<]',
-                                re.MULTILINE,
-                            )
-                            _USE_CLIENT_RE = re.compile(r'''^\s*['"]use client['"]''', re.MULTILINE)
-                            _guard_d_violations = []
-                            for _fp, _fc in _files_norm.items():
-                                if not _fp.startswith("app/"):
-                                    continue
-                                if _fp.startswith("app/api/"):
-                                    continue
-                                if not _fp.endswith(".tsx") and not _fp.endswith(".jsx"):
-                                    continue
-                                if _HOOKS_RE.search(_fc) and not _USE_CLIENT_RE.search(_fc):
-                                    _guard_d_violations.append(_fp)
-                            if _guard_d_violations:
-                                _guard_d_msg = (
-                                    "GUARD D — BUILD BLOQUÉ : directive \"use client\" manquante\n"
-                                    "Les fichiers suivants utilisent des hooks React (useState, useEffect…) "
-                                    "sans la directive \"use client\" en première ligne :\n"
-                                    + "\n".join(f"  - {f}" for f in _guard_d_violations)
-                                    + "\n\nCORRECTION : ajoute '\"use client\";' comme PREMIÈRE ligne "
-                                    "(avant tous les imports) dans chaque fichier concerné, "
-                                    "puis appelle run_build."
-                                )
-                                tool_messages.append(ToolMessage(content=_guard_d_msg, tool_call_id=tool_call["id"]))
-                                logger.warning(f"[GuardD] BUILD BLOQUÉ — hooks sans 'use client' dans : {_guard_d_violations}")
-                                build_attempted = True
-                                called_build_this_iter = True
-                                continue  # ne pas exécuter run_build
-                            # ── GUARD E : mauvais nom de fichier route dynamique App Router ────────
-                            # Next.js App Router exige app/blog/[slug]/page.tsx
-                            # Le LLM génère app/blog/[slug].tsx → fichier ignoré, page inexistante.
-                            _WRONG_DYNAMIC_RE = re.compile(r'app/.+\[[^\]]+\]\.(tsx|jsx|ts|js)$')
-                            _guard_e_violations = [
-                                fp for fp in _files_norm
-                                if _WRONG_DYNAMIC_RE.search(fp)
-                            ]
-                            if _guard_e_violations:
-                                _examples = "\n".join(
-                                    f"  ✗ {f}  →  {'/'.join(f.rsplit('.', 1)[0].split('/'))}/page.{f.rsplit('.', 1)[1]}"
-                                    for f in _guard_e_violations
-                                )
-                                _guard_e_msg = (
-                                    "GUARD E — BUILD BLOQUÉ : mauvais emplacement de page dynamique\n"
-                                    "Dans Next.js App Router, les routes dynamiques doivent être dans un DOSSIER "
-                                    "nommé [param], avec 'page.tsx' à l'intérieur — PAS un fichier [param].tsx.\n\n"
-                                    "Fichiers incorrects → emplacements corrects :\n"
-                                    + _examples
-                                    + "\n\nCORRECTION :\n"
-                                    "1. Crée le fichier au bon emplacement : write_file('app/blog/[slug]/page.tsx', ...)\n"
-                                    "2. Ne PAS créer app/blog/[slug].tsx (ignoré par Next.js)\n"
-                                    "3. Le contenu du composant est identique, seul le chemin change\n"
-                                    "Puis appelle run_build."
-                                )
-                                tool_messages.append(ToolMessage(content=_guard_e_msg, tool_call_id=tool_call["id"]))
-                                logger.warning(f"[GuardE] BUILD BLOQUÉ — fichiers route dynamique mal nommés : {_guard_e_violations}")
-                                build_attempted = True
-                                called_build_this_iter = True
-                                continue  # ne pas exécuter run_build
-                            # ── GUARD F : params non typés dans pages App Router (TypeScript strict) ─
-                            # `({ params })` sans annotation → erreur TS strict : implicit any.
-                            # Détecte le pattern dans les fichiers app/**/*.tsx uniquement.
-                            _UNTYPED_PARAMS_RE = re.compile(
-                                r'\(\s*\{\s*(?:params|searchParams)\s*\}(?!\s*:)',
-                                re.MULTILINE,
-                            )
-                            _guard_f_violations = [
-                                fp for fp, fc in _files_norm.items()
-                                if fp.startswith("app/") and (fp.endswith(".tsx") or fp.endswith(".ts"))
-                                and _UNTYPED_PARAMS_RE.search(fc)
-                            ]
-                            if _guard_f_violations:
-                                _guard_f_msg = (
-                                    "GUARD F — BUILD BLOQUÉ : paramètres de page non typés (TypeScript strict)\n"
-                                    "Les fichiers suivants destructurent `params` ou `searchParams` sans annotation "
-                                    "de type — TypeScript strict interdit les types implicites `any` :\n"
-                                    + "\n".join(f"  - {f}" for f in _guard_f_violations)
-                                    + "\n\nCORRECTION — ajoute le type explicite :\n"
-                                    "  ✗ const Page = ({ params }) => ...\n"
-                                    "  ✓ const Page = ({ params }: { params: { slug: string } }) => ...\n\n"
-                                    "Pour searchParams :\n"
-                                    "  ✓ const Page = ({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) => ...\n"
-                                    "\nPuis appelle run_build."
-                                )
-                                tool_messages.append(ToolMessage(content=_guard_f_msg, tool_call_id=tool_call["id"]))
-                                logger.warning(f"[GuardF] BUILD BLOQUÉ — params non typés dans : {_guard_f_violations}")
+                            # ── PRE-BUILD GATES (Blueprint + UseState + Prisma) ──────────────
+                            _gate_blocked, _gate_msg = _prebuild_gates(files)
+                            if _gate_blocked:
+                                tool_messages.append(ToolMessage(content=_gate_msg, tool_call_id=tool_call["id"]))
+                                logger.warning(f"[PreBuildGate] BUILD BLOQUÉ (tool_call path)")
                                 build_attempted = True
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
@@ -761,46 +626,20 @@ def dev_agent(
                     + f"\n\nNe génère AUCUN autre fichier avant que {_primary} soit écrit."
                 )))
 
-        # Forçage progression si fichiers clés présents — Phase 2 seulement
+        # Forçage progression si fichiers clés présents
         _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet
-        if current_phase == 2 and all(any(k in p for p in files) for k in key_files) and not build_success:
+        if all(any(k in p for p in files) for k in key_files) and not build_success:
             messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
 
-        # Transition Phase 1 → Phase 2 : compléter les manquants puis build
-        if iteration == PHASE1_LIMIT and not build_success:
-            _missing_required = [f for f in required_files if not any(f in p for p in files)]
-            _missing_block = (
-                "FICHIERS OBLIGATOIRES MANQUANTS — génère-les EN PREMIER, avant tout run_build :\n"
-                + "\n".join(f"- {f}" for f in _missing_required)
-                + "\n\n"
-            ) if _missing_required else ""
-            messages.append(HumanMessage(content=(
-                "PHASE 2 — COMPLÉTION + BUILD\n"
-                f"Fichiers présents : {list(files.keys())}\n\n"
-                f"{_missing_block}"
-                f"Une fois tous les fichiers obligatoires générés, appelle run_build(project_dir='{_pdir}') "
-                "et corrige toutes les erreurs retournées jusqu'au succès."
-            )))
-
-        # Garde-fou: si le modele stagne sans progres, forcer un run_build — Phase 2 seulement.
-        if current_phase == 2 and not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
-            # ── BLUEPRINT VALIDATOR BLOQUANT — stagnation guard (Sprint 4) ──────
-            _stag_present = set(files.keys()) | _templated_names
-            _stag_missing = [
-                f for f in required_files
-                if not any(f in p for p in _stag_present)
-            ]
-            if _stag_missing:
-                messages.append(HumanMessage(content=(
-                    "BLUEPRINT VALIDATOR — STAGNATION DÉTECTÉE\n"
-                    f"Le build ne peut pas être lancé. {len(_stag_missing)} fichier(s) obligatoire(s) manquant(s) :\n"
-                    + "\n".join(f"  - {f}" for f in _stag_missing)
-                    + "\n\nGénère ces fichiers avec write_file() maintenant. Ne lance PAS run_build avant."
-                )))
-                logger.warning(f"[BlueprintValidator] STAGNATION — BUILD INTERDIT, manquants: {_stag_missing}")
+        # Garde-fou: si le modele stagne sans progres, forcer un run_build.
+        if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
+            # ── Même gates pré-build que le chemin tool_call ──────────────────
+            _forced_blocked, _forced_msg = _prebuild_gates(files)
+            if _forced_blocked:
+                messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_forced_msg}"))
+                logger.warning(f"[PreBuildGate] FORCED BUILD BLOQUÉ — fichiers manquants ou violations")
                 stagnant_iterations = 0  # reset pour laisser l'agent corriger
             else:
-                # ── fin Blueprint Validator — tous les fichiers présents, build autorisé ──
                 forced_build_output = str(run_build.invoke({"project_dir": _pdir}))
                 build_attempted = True
                 called_build_this_iter = True

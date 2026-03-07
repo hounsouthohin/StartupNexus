@@ -11,13 +11,15 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-GATE_PATH = Path("logs/shadow/architect_gate.json")
+_LOG_ROOT = Path(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
+GATE_PATH = _LOG_ROOT / "shadow" / "architect_gate.json"
 
 _DEFAULT_GATE: dict[str, Any] = {
     "version": "1.1",
