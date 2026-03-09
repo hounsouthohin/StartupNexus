@@ -34,17 +34,21 @@
   "output_schema": {
     "type": "object",
     "required": ["dev_output", "combined_files", "success"],
+    "additionalProperties": false,
     "properties": {
       "dev_output": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "files":         { "type": "object" },
           "final_message": { "type": "string" },
-          "success":       { "type": "boolean" }
+          "success":       { "type": "boolean" },
+          "metadata":      { "type": "object" }
         }
       },
       "test_output": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "tests":   { "type": "object" },
           "success": { "type": "boolean" }
@@ -52,8 +56,10 @@
       },
       "combined_files": { "type": "object" },
       "success":        { "type": "boolean" },
+      "semantic_violations": { "type": "array", "items": { "type": "string" } },
       "metadata": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "total_files":          { "type": "integer" },
           "mode":                 { "type": "string" },
@@ -75,10 +81,12 @@
   "error_schema": {
     "type": "object",
     "required": ["success", "error"],
+    "additionalProperties": false,
     "properties": {
       "success": { "type": "boolean", "enum": [false] },
       "error": {
         "type": "object",
+        "additionalProperties": false,
         "properties": {
           "phase":   { "type": "string", "enum": ["dev", "test"] },
           "message": { "type": "string" }
@@ -90,6 +98,7 @@
 
   "health_schema": {
     "type": "object",
+    "additionalProperties": false,
     "properties": {
       "status": { "type": "string", "enum": ["healthy", "degraded"] },
       "mode":   { "type": "string", "enum": ["fusion", "split"] },

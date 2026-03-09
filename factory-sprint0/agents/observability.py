@@ -44,7 +44,7 @@ def _append_rag_usage_event(
     Inclut les IDs Qdrant réels, les scores et un snippet du premier résultat.
     """
     try:
-        metrics_dir = Path("logs/metrics")
+        metrics_dir = LOG_ROOT / "metrics"
         metrics_dir.mkdir(parents=True, exist_ok=True)
         path = metrics_dir / "rag_usage.jsonl"
 

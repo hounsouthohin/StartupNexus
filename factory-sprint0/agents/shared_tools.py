@@ -827,9 +827,9 @@ def run_build(project_dir: str = ".") -> str:
         if removed:
             logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
 
-        # FACTORY_STRICT_PREBUILD="1" → valider sans réécrire (métriques honnêtes).
-        # FACTORY_STRICT_PREBUILD="0" (défaut) → mutations actives comme filet de sécurité.
-        _strict = os.getenv("FACTORY_STRICT_PREBUILD", "0") == "1"
+        # FACTORY_STRICT_PREBUILD="1" (défaut) → valider sans réécrire (métriques honnêtes).
+        # FACTORY_STRICT_PREBUILD="0" → mutations actives (mode dégradé explicite).
+        _strict = os.getenv("FACTORY_STRICT_PREBUILD", "1") == "1"
         _mutations = []
         if not _strict:
             if _ensure_nextconfig_eslint_ignore(project_path):

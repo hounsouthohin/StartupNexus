@@ -131,6 +131,11 @@ def get_cleanup_artifacts(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
     return load_stack_config(stack_id).get("cleanup_artifacts", [".next", "node_modules"])
 
 
+def get_forbidden_paths(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
+    """Retourne les chemins de répertoires interdits (ex: pages/, src/pages/)."""
+    return load_stack_config(stack_id).get("forbidden_paths", ["pages/", "src/pages/"])
+
+
 def get_workdir_keep_extra(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
     """
     Répertoires supplémentaires à préserver entre les runs (cache, dépendances).

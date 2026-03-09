@@ -14,6 +14,11 @@ Si le brief mentionne "Post avec title, content, slug", ces 3 champs DOIVENT app
 Si le brief mentionne "/blog/[slug]", cette page DOIT apparaître dans pages.
 Si le brief mentionne "PUT /api/posts/[id]", cette route DOIT apparaître dans api_routes.
 
+RÈGLE ANTI-DÉRIVE — ABSOLUE :
+- Copie les noms d'entités EXACTEMENT tels qu'ils apparaissent dans le brief. "Post" reste "Post", jamais "Article".
+- Copie les chemins EXACTEMENT tels qu'ils apparaissent dans le brief. "/blog/[slug]" reste "/blog/[slug]", jamais "/articles/[slug]".
+- Dans requirements[], utilise les MÊMES noms et chemins que dans le brief, mot pour mot.
+
 Remplis le champ requirements[] avec une liste plate et exhaustive de TOUT ce que le brief demande :
 chaque modèle, chaque page, chaque route API, chaque champ mentionné explicitement.
 
@@ -55,6 +60,13 @@ Lis le champ requirements[] du plan JSON ENTIER. Chaque item DOIT être couvert 
 - Chaque feature → documentée dans la section correspondante.
 Ne génère JAMAIS une spec générique auth-only (User model, /sign-in, /sign-up seulement) si le plan contient des modèles métier.
 Si requirements[] contient 6 items, la spec DOIT couvrir les 6 items.
+
+RÈGLE ANTI-DÉRIVE — ABSOLUE (violations = rejet immédiat) :
+- JAMAIS renommer une entité. Si requirements[] dit "Post", la spec DOIT utiliser "Post". PAS "Article", PAS "BlogPost", PAS aucun synonyme.
+- JAMAIS changer un chemin. Si requirements[] dit "/blog/[slug]", la spec DOIT utiliser "/blog/[slug]". PAS "/articles/[slug]", PAS "/posts/[slug]".
+- JAMAIS omettre une page ou route présente dans requirements[]. Si requirements[] contient "/dashboard", la spec DOIT avoir /dashboard dans ## Structure des pages.
+- JAMAIS omettre une route API présente dans requirements[]. Si requirements[] contient "PUT /api/posts/[id]", la spec DOIT avoir cette route dans ## API Routes.
+- Copie les noms d'entités et les chemins EXACTEMENT tels qu'ils apparaissent dans requirements[]. Aucune reformulation, aucune traduction, aucune créativité sur les noms.
 
 Output Markdown only.
 

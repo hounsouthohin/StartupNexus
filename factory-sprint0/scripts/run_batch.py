@@ -25,7 +25,8 @@ from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
 
 TASK_QUEUE = "factory-task-queue"
-LEARNER_LOG_PATH = os.path.join("logs", "shadow", "learner_shadow_log.json")
+_LOG_ROOT = os.path.join(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
+LEARNER_LOG_PATH = os.path.join(_LOG_ROOT, "shadow", "learner_shadow_log.json")
 
 BATCH_PROJECTS: List[Dict[str, str]] = [
     {
@@ -80,6 +81,7 @@ async def _run_one(
     workflow_status: str | None = None
     build_status: str | None = None
     build_success: bool | None = None
+    workflow_error_message: str | None = None
 
     try:
         if result_timeout_seconds and result_timeout_seconds > 0:
@@ -91,9 +93,11 @@ async def _run_one(
         if isinstance(result, dict):
             workflow_status = result.get("workflow_status")
             build_status = result.get("build_status")
+            workflow_error_message = result.get("error_message")
         else:
             workflow_status = getattr(result, "workflow_status", None)
             build_status = getattr(result, "build_status", None)
+            workflow_error_message = getattr(result, "error_message", None)
         if workflow_status is not None:
             workflow_success = workflow_status == "COMPLETED"
         if build_status is not None:
@@ -128,6 +132,7 @@ async def _run_one(
         "workflow_status": workflow_status,
         "build_status": build_status,
         "error": error,
+        "workflow_error_message": workflow_error_message,
         "learner_events_before": learner_before,
         "learner_events_after": learner_after,
         "learner_events_delta": learner_after - learner_before,
@@ -162,6 +167,32 @@ async def run_batch(
     total_duration = round(sum(r["duration_seconds"] for r in runs), 2)
     total_learner_delta = sum(r.get("learner_events_delta", 0) for r in runs)
 
+    # ── Quality Dashboard (métriques stables par batch) ────────────────────
+    # spec_validation_status : extrait du build_status proxy
+    # (SEMANTIC_VIOLATION → spec dégradée détectée à l'exécution)
+    semantic_violation_count = sum(1 for r in runs if r.get("build_status") == "SEMANTIC_VIOLATION")
+    degraded_spec_count = sum(
+        1 for r in runs
+        if r.get("workflow_status") == "FAILED_UNRECOVERABLE"
+        and "SPEC_INVALID" in str(r.get("workflow_error_message") or "")
+    )
+    # build_mutation_count : approximé par NOT_RUN vs réel (mutation strictement bloquée depuis Phase 1)
+    not_run_count = sum(1 for r in runs if r.get("build_status") == "NOT_RUN")
+    # usable_ratio : proxy requirements_mappable_met_ratio (avant ajout spec_coverage dans output)
+    usable_ratio = round(usable_success_count / len(runs), 3) if runs else 0.0
+
+    quality_dashboard = {
+        "spec_validation_status_counts": {
+            "degraded_spec_gate_blocked": degraded_spec_count,
+            "semantic_violation_at_dev": semantic_violation_count,
+            "ok_or_partial": len(runs) - degraded_spec_count - semantic_violation_count,
+        },
+        "requirements_mappable_met_ratio": usable_ratio,
+        "build_not_run_count": not_run_count,
+        "strict_success_rate": round(strict_success_count / len(runs), 3) if runs else 0.0,
+        "usable_success_rate": usable_ratio,
+    }
+
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "temporal_address": TEMPORAL_ADDRESS,
@@ -181,10 +212,11 @@ async def run_batch(
         "failure_count": workflow_failure_count,
         "total_duration_seconds": total_duration,
         "total_learner_events_delta": total_learner_delta,
+        "quality_dashboard": quality_dashboard,
         "runs": runs,
     }
 
-    metrics_dir = os.path.join("logs", "metrics")
+    metrics_dir = os.path.join(_LOG_ROOT, "metrics")
     os.makedirs(metrics_dir, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_path = os.path.join(metrics_dir, f"todo_pilot_batch_{ts}.json")

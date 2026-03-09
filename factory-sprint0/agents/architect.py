@@ -148,15 +148,21 @@ def _extract_requirements_from_plan(plan: dict) -> list:
     if isinstance(plan.get("requirements"), list) and plan["requirements"]:
         return [str(r) for r in plan["requirements"] if r]
     # Fallback dérivé si le LLM n'a pas rempli requirements[]
+    # Supporte nouveau format (data_models/pages/api_routes) et legacy (schema/auth_flow)
     reqs = []
     for model in plan.get("data_models", []):
         reqs.append(f"Modèle Prisma: {model}")
+    # Clé "schema" = format legacy (ex: "User model with clerkId")
+    schema = plan.get("schema", "")
+    if schema and not plan.get("data_models"):
+        reqs.append(f"Modèle Prisma: {schema}")
     for page in plan.get("pages", []):
         reqs.append(f"Page: {page}")
     for route in plan.get("api_routes", []):
         reqs.append(f"API Route: {route}")
     for feature in plan.get("key_features", []):
         reqs.append(f"Feature: {feature}")
+    # "auth_flow" et "security_measures" ne sont pas mappables en fichier → ignorés
     return reqs
 
 
@@ -195,7 +201,8 @@ def _append_architect_rag_event(query: str, scored_docs: list, error: str | None
     scored_docs : List[Tuple[Document, float]] — retourné par asimilarity_search_with_score.
     """
     try:
-        metrics_dir = Path("logs/metrics")
+        _log_root = Path(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
+        metrics_dir = _log_root / "metrics"
         metrics_dir.mkdir(parents=True, exist_ok=True)
         path = metrics_dir / "rag_usage.jsonl"
         doc_ids = [str(getattr(d, "id", None) or "") for d, _ in (scored_docs or [])]

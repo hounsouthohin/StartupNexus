@@ -146,7 +146,12 @@ class DevTestAgent:
             coverage_result["unmet_by_category"] = unmet_by_category
 
         result = {
-            "dev_output": dev_output,
+            "dev_output": {
+                "files": dev_output.get("files", {}),
+                "final_message": dev_output.get("final_message", ""),
+                "success": dev_output.get("success", False),
+                "metadata": dev_output.get("metadata", {}),  # propagé pour run_metric downstream
+            },
             "test_output": test_output,
             "combined_files": combined,
             # success = build réussi. Les tests sont un signal qualité non bloquant.
@@ -175,19 +180,21 @@ class DevTestAgent:
         return result
 
     def _error_payload(self, failed_phase: str, msg: str) -> Dict:
+        # Pas de clé 'error' à la racine — output_schema a additionalProperties:false.
+        # L'erreur est portée par final_message + success:False.
         return {
             "dev_output": {
                 "files": {},
-                "final_message": msg,
+                "final_message": f"[{failed_phase.upper()}_ERROR] {msg}",
                 "success": False,
-            },  
+                "metadata": {},
+            },
             "test_output": {
                 "tests": {},
                 "success": False,
             },
             "combined_files": {},
             "success": False,
-            "error": {"phase": failed_phase, "message": msg}
         }
 
     def health_check(self) -> Dict:

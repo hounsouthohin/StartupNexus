@@ -4,6 +4,7 @@ import logging
 import shutil
 import re
 import ast
+from pathlib import PurePosixPath
 from datetime import datetime, timezone
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
@@ -18,7 +19,7 @@ from .shared_tools import (
     run_build,
     get_stack_id,
 )
-from .stack_config import get_blueprint, get_root_file, get_cleanup_artifacts, get_workdir_keep_extra
+from .stack_config import get_blueprint, get_root_file, get_cleanup_artifacts, get_workdir_keep_extra, get_forbidden_paths
 from utils.prompt_loader import load_stack_prompt
 
 # Logger
@@ -117,7 +118,7 @@ def dev_agent(
     if _workdir:
         _clean_project_workdir(_workdir, extra_keep=_extra_keep)
 
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
     # Tous les outils disponibles dès l'itération 1 — le Blueprint Validator bloque
     # run_build si des fichiers obligatoires manquent (gate suffisant).
@@ -413,7 +414,35 @@ def dev_agent(
                 + "\n".join(f"  - {f}" for f in _usestate_violations)
                 + "\n\nCorrige chaque occurrence : useState<Type[]>([]) avant d'appeler run_build."
             )
-        # 3. PRISMA IMPORT GUARD
+        # 3. APP ROUTER CONVENTION GUARD
+        # app/dashboard.tsx → invalide. Doit être app/dashboard/page.tsx.
+        # app/blog/[slug].tsx → invalide. Doit être app/blog/[slug]/page.tsx.
+        # Profondeur illimitée — exclut les répertoires non-route (components, lib, utils...).
+        _VALID_ROUTE_NAMES = {"layout", "page", "error", "loading", "not-found", "template", "default"}
+        _NON_ROUTE_DIRS = {"components", "lib", "utils", "hooks", "styles", "types", "context", "providers", "helpers"}
+        _app_router_violations = []
+        for _fp in files_dict.keys():
+            _p = PurePosixPath(_fp.replace("\\", "/"))
+            if _p.parts[0] != "app" or _p.suffix != ".tsx":
+                continue
+            # Exclure les répertoires non-route (le 2e segment identifie le dossier direct sous app/)
+            if len(_p.parts) >= 3 and _p.parts[1] in _NON_ROUTE_DIRS:
+                continue
+            if _p.stem not in _VALID_ROUTE_NAMES:
+                _app_router_violations.append(str(_p))
+        if _app_router_violations:
+            def _suggest_fix(fp_str: str) -> str:
+                _p = PurePosixPath(fp_str)
+                return str(_p.parent / _p.stem / "page.tsx")
+            return True, (
+                "APP ROUTER CONVENTION GUARD — BUILD BLOQUÉ\n"
+                "Fichiers .tsx invalides dans app/ — chaque route doit être <segment>/page.tsx.\n"
+                "Fichiers concernés :\n"
+                + "\n".join(f"  - {f}  →  {_suggest_fix(f)}" for f in _app_router_violations)
+                + "\n\nEn App Router, CHAQUE route doit être app/<segment>/page.tsx, PAS app/<segment>.tsx.\n"
+                "Crée les fichiers corrects avec write_file() avant d'appeler run_build."
+            )
+        # 4. PRISMA IMPORT GUARD
         _PRISMA_BAD_IMPORT = re.compile(
             r'import\s*\{[^}]*\bprisma\b[^}]*\}\s*from\s*[\'"]@prisma/client[\'"]',
             re.MULTILINE,
@@ -441,6 +470,133 @@ def dev_agent(
                 "2. Dans chaque fichier concerné, remplace l'import invalide par :\n"
                 "   import prisma from '@/lib/prisma';\n"
                 "Appelle write_file() pour ces corrections, PUIS appelle run_build."
+            )
+        # 5. APP ROUTER API NAMING GUARD
+        # En App Router, les routes API doivent être dans des fichiers nommés route.ts.
+        # app/api/posts/index.ts ou app/api/posts/[id].ts → invalides.
+        _api_naming_violations = []
+        for _fp in files_dict.keys():
+            _p = PurePosixPath(_fp.replace("\\", "/"))
+            if (
+                len(_p.parts) >= 3
+                and _p.parts[0] == "app"
+                and _p.parts[1] == "api"
+                and _p.suffix in (".ts", ".tsx")
+                and _p.stem != "route"
+            ):
+                _api_naming_violations.append(str(_p))
+        if _api_naming_violations:
+            def _suggest_api_fix(fp_str: str) -> str:
+                _p = PurePosixPath(fp_str)
+                if _p.stem == "index":
+                    return str(_p.parent / "route.ts")
+                return str(_p.parent / _p.stem / "route.ts")
+            return True, (
+                "APP ROUTER API NAMING GUARD — BUILD BLOQUÉ\n"
+                "Les routes API App Router doivent être dans des fichiers nommés route.ts.\n"
+                "Fichiers invalides détectés :\n"
+                + "\n".join(f"  - {f}  →  {_suggest_api_fix(f)}" for f in _api_naming_violations)
+                + "\n\nStructure correcte App Router API :\n"
+                "  app/api/posts/route.ts          → export async function GET() / POST()\n"
+                "  app/api/posts/[id]/route.ts     → export async function PUT() / DELETE()\n"
+                "  Signature : export async function PUT(req: Request, { params }: { params: { id: string } })\n"
+                "Supprime les fichiers invalides et crée les route.ts corrects avec write_file()."
+            )
+        # 6. FORBIDDEN PATHS GUARD (depuis stack config)
+        _forbidden = get_forbidden_paths(stack_id) if stack_id else ["pages/", "src/pages/"]
+        _forbidden_violations = [
+            fp.replace("\\", "/")
+            for fp in files_dict.keys()
+            if any(fp.replace("\\", "/").startswith(f) for f in _forbidden)
+        ]
+        if _forbidden_violations:
+            return True, (
+                "FORBIDDEN PATHS GUARD — BUILD BLOQUÉ\n"
+                "Fichiers détectés dans un chemin interdit (Pages Router au lieu de App Router) :\n"
+                + "\n".join(f"  - {f}" for f in _forbidden_violations)
+                + "\n\nCORRECTION OBLIGATOIRE — App Router UNIQUEMENT :\n"
+                "INTERDIT: pages/api/posts/index.ts      →  CORRECT: app/api/posts/route.ts\n"
+                "INTERDIT: pages/api/posts/[id].ts       →  CORRECT: app/api/posts/[id]/route.ts\n"
+                "Structure App Router API :\n"
+                "  app/api/<resource>/route.ts            → export async function GET() / POST()\n"
+                "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
+                "Crée les fichiers App Router corrects avec write_file(), puis rappelle run_build."
+            )
+        return False, ""
+
+    def _requirements_gate(reqs: list, files_dict: dict) -> tuple:
+        """
+        Gate déterministe : vérifie que les requirements métier mappables sont couverts
+        par les fichiers générés avant d'autoriser un SUCCESS final.
+        Miroir léger de compute_spec_coverage — aucune dépendance externe.
+        Retourne (bloqué: bool, message: str).
+        """
+        if not reqs:
+            return False, ""
+
+        def _norm(p: str) -> str:
+            return p.replace("\\", "/").lower()
+
+        file_paths_norm = {_norm(fp) for fp in files_dict.keys()}
+        missing = []
+
+        import re as _re
+        for req in reqs:
+            req_lower = req.lower()
+            is_mappable = False
+            satisfied = False
+
+            # Règle A : modèle Prisma → vérifier schema.prisma
+            if "modèle prisma" in req_lower or "model prisma" in req_lower or "prisma:" in req_lower:
+                model_match = _re.search(r':\s*(\w+)', req)
+                if model_match:
+                    is_mappable = True
+                    model_name = model_match.group(1).lower()
+                    schema_content = next(
+                        (v for k, v in files_dict.items() if "schema.prisma" in _norm(k)), ""
+                    )
+                    if _re.search(
+                        rf'\bmodel\s+{_re.escape(model_name)}\s*\{{',
+                        schema_content, _re.IGNORECASE
+                    ):
+                        satisfied = True
+
+            # Règle B : route API (GET/POST/PUT/PATCH/DELETE /path)
+            if not satisfied:
+                route_match = _re.search(
+                    r'(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', req, _re.IGNORECASE
+                )
+                if route_match:
+                    is_mappable = True
+                    api_path = route_match.group(2).strip('/')
+                    expected = _norm('app/' + api_path + '/route.ts')
+                    if expected in file_paths_norm:
+                        satisfied = True
+
+            # Règle C : page mentionnée avec chemin (Page: /path)
+            if not satisfied and "page" in req_lower:
+                page_match = _re.search(r'/(?:[\w\[\]/-]+)?', req)
+                if page_match:
+                    is_mappable = True
+                    raw = page_match.group(0)
+                    if raw == "/":
+                        if "app/page.tsx" in file_paths_norm:
+                            satisfied = True
+                    else:
+                        page_path = _norm(raw.strip('/'))
+                        if _norm(f"app/{page_path}/page.tsx") in file_paths_norm:
+                            satisfied = True
+
+            # Ignorer les requirements non-mappables (ex: "Authentification Clerk robuste")
+            if is_mappable and not satisfied:
+                missing.append(req)
+
+        if missing:
+            return True, (
+                "REQUIREMENTS GATE — BUILD BLOQUÉ\n"
+                f"{len(missing)} requirement(s) métier mappable(s) non couverts :\n"
+                + "\n".join(f"  - {r}" for r in missing)
+                + "\n\nGénère les fichiers manquants avant d'appeler run_build."
             )
         return False, ""
 
@@ -511,10 +667,14 @@ def dev_agent(
                                 logger.info(f"[run_build] project_dir corrigé: '.' → '{computed_dir}'")
                             # ── PRE-BUILD GATES (Blueprint + UseState + Prisma) ──────────────
                             _gate_blocked, _gate_msg = _prebuild_gates(files)
+                            if not _gate_blocked:
+                                # ── REQUIREMENTS GATE ─────────────────────────────────────────
+                                _gate_blocked, _gate_msg = _requirements_gate(requirements, files)
                             if _gate_blocked:
                                 tool_messages.append(ToolMessage(content=_gate_msg, tool_call_id=tool_call["id"]))
                                 logger.warning(f"[PreBuildGate] BUILD BLOQUÉ (tool_call path)")
-                                build_attempted = True
+                                # build_attempted reste False : run_build n'a PAS été exécuté.
+                                # called_build_this_iter = True pour reset stagnant_iterations seulement.
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
@@ -595,6 +755,42 @@ def dev_agent(
                             files[path] = content  # fallback si lecture échoue
                         wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
+                        # Auto-clean App Router pages: si le LLM écrit app/X/page.tsx
+                        # ou app/X/Y/page.tsx, supprimer le fichier .tsx invalide
+                        # au chemin parent (ex: app/X.tsx, app/X/Y.tsx).
+                        _written_p = PurePosixPath(path.replace("\\", "/"))
+                        if _written_p.parts[0:1] == ("app",) and _written_p.name == "page.tsx":
+                            _stale_str = str(_written_p.parent.with_suffix(".tsx"))
+                            _ar_workdir = os.getenv("FACTORY_WORKDIR")
+                            for _k in list(files.keys()):
+                                if _k.replace("\\", "/") == _stale_str:
+                                    del files[_k]
+                                    if _ar_workdir:
+                                        _stale_disk = os.path.normpath(os.path.join(_ar_workdir, _k))
+                                        try:
+                                            os.remove(_stale_disk)
+                                            logger.info(f"[app_router_cleanup] {_k} supprimé dict + disque")
+                                        except FileNotFoundError:
+                                            logger.info(f"[app_router_cleanup] {_k} supprimé dict (absent du disque)")
+                                    else:
+                                        logger.info(f"[app_router_cleanup] {_k} supprimé dict (FACTORY_WORKDIR non défini)")
+                        # Auto-clean Pages Router API: si le LLM écrit app/api/...,
+                        # supprimer TOUS les fichiers pages/api/ du dict (conversion App Router).
+                        if str(_written_p).startswith("app/api/"):
+                            _pages_stale = [k for k in list(files.keys()) if k.replace("\\", "/").startswith("pages/api/")]
+                            for _ps in _pages_stale:
+                                del files[_ps]
+                                # Supprimer aussi du disque : run_build lit le FS, pas le dict.
+                                _factory_workdir = os.getenv("FACTORY_WORKDIR")
+                                if _factory_workdir:
+                                    _stale_disk = os.path.normpath(os.path.join(_factory_workdir, _ps))
+                                    try:
+                                        os.remove(_stale_disk)
+                                        logger.info(f"[pages_api_cleanup] {_ps} supprimé dict + disque")
+                                    except FileNotFoundError:
+                                        logger.info(f"[pages_api_cleanup] {_ps} supprimé dict (absent du disque)")
+                                else:
+                                    logger.warning(f"[pages_api_cleanup] {_ps} supprimé dict uniquement (FACTORY_WORKDIR non défini)")
 
         # Détection build succès/échec déterministe: uniquement depuis run_build.
         if build_failed_this_iter:
@@ -629,12 +825,24 @@ def dev_agent(
         # Forçage progression si fichiers clés présents
         _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet
         if all(any(k in p for p in files) for k in key_files) and not build_success:
-            messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
+            # Ordre: d'abord les gates structurelles (_prebuild_gates), puis requirements.
+            # Garantit que le LLM reçoit le feedback le plus proche du blocage réel.
+            _early_gates_blocked, _early_gates_msg = _prebuild_gates(files)
+            if _early_gates_blocked:
+                messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_early_gates_msg}"))
+            else:
+                _rg_early_blocked, _rg_early_msg = _requirements_gate(requirements, files)
+                if _rg_early_blocked:
+                    messages.append(HumanMessage(content=f"[REQUIREMENTS CHECK]\n{_rg_early_msg}"))
+                else:
+                    messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
 
         # Garde-fou: si le modele stagne sans progres, forcer un run_build.
         if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
             # ── Même gates pré-build que le chemin tool_call ──────────────────
             _forced_blocked, _forced_msg = _prebuild_gates(files)
+            if not _forced_blocked:
+                _forced_blocked, _forced_msg = _requirements_gate(requirements, files)
             if _forced_blocked:
                 messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_forced_msg}"))
                 logger.warning(f"[PreBuildGate] FORCED BUILD BLOQUÉ — fichiers manquants ou violations")
@@ -699,14 +907,47 @@ def dev_agent(
             final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
             break
 
-    # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
-    cleanup_dir = _find_project_dir(files)
-    for _artifact in get_cleanup_artifacts(stack_id) if stack_id else [".next", "node_modules"]:
-        shutil.rmtree(os.path.join(cleanup_dir, _artifact), ignore_errors=True)
-    shutil.rmtree(os.path.join(cleanup_dir, "__pycache__"), ignore_errors=True)
+    # Terminal guard: un run ne doit jamais sortir sans tentative de build.
+    _terminal_guard_handled = False
+    if not build_attempted and files:
+        _terminal_guard_handled = True
+        _tg_dir = _find_project_dir(files)
+        _tg_blocked, _tg_msg = _prebuild_gates(files)
+        if not _tg_blocked:
+            _tg_blocked, _tg_msg = _requirements_gate(requirements, files)
+        if _tg_blocked:
+            final_message = f"BuildNotAttempted: pre-build gate bloque. {_tg_msg[:800]}"
+            logger.warning("[terminal_guard] build non tente: gate bloque")
+        else:
+            forced_build_output = str(run_build.invoke({"project_dir": _tg_dir}))
+            build_attempted = True
+            logger.info("[terminal_guard] run_build force hors boucle LLM")
+            if "Build successful" in forced_build_output:
+                last_build_succeeded = True
+                build_success = True
+                final_message = "TERMINÉ : CODE PRÊT (terminal forced build)."
+                last_build_error = ""
+                last_build_error_full = ""
+                last_failed_command = ""
+            else:
+                _tg_stderr = _extract_stderr(forced_build_output)
+                last_build_error_full = _tg_stderr if _tg_stderr else forced_build_output
+                last_build_error = last_build_error_full[:2000]
+                _tg_cmd = _extract_failed_command(forced_build_output)
+                if _tg_cmd:
+                    last_failed_command = _tg_cmd
+                final_message = "ÉCHEC : BUILD TERMINAL FORCÉ EN ÉCHEC"
 
-    if not build_attempted and not build_success:
+    if not _terminal_guard_handled and not build_attempted and not build_success:
         final_message = "BuildNotAttempted: run_build n'a pas ete execute."
+
+    # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
+    _rel_dir = _find_project_dir(files)
+    _base = _workdir if _workdir else os.getcwd()
+    project_abs = os.path.normpath(os.path.join(_base, _rel_dir))
+    for _artifact in get_cleanup_artifacts(stack_id) if stack_id else [".next", "node_modules"]:
+        shutil.rmtree(os.path.join(project_abs, _artifact), ignore_errors=True)
+    shutil.rmtree(os.path.join(project_abs, "__pycache__"), ignore_errors=True)
 
     # Création du fichier de méta-données du run dans le répertoire projet.
     try:
@@ -716,7 +957,7 @@ def dev_agent(
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "workflow_version": "sprint3",
         }
-        meta_path = os.path.join(cleanup_dir, ".factory-meta.json")
+        meta_path = os.path.join(project_abs, ".factory-meta.json")
         with open(meta_path, "w", encoding="utf-8") as _mf:
             json.dump(meta, _mf, indent=2)
         logger.info(f"[meta] .factory-meta.json créé : run_id={run_id}")

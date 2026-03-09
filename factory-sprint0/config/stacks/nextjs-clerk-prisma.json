@@ -8,7 +8,7 @@
   "root_file": "package.json",
   "primary_manifest": "package.json",
   "cleanup_artifacts": [".next", "node_modules"],
-  "workdir_keep_extra": ["node_modules", ".npm"],
+  "workdir_keep_extra": [".npm"],
 
   "packages": {
     "next": "14.2.25",
