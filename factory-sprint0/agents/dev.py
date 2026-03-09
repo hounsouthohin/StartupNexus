@@ -119,7 +119,10 @@ def dev_agent(
     if _workdir:
         _clean_project_workdir(_workdir, extra_keep=_extra_keep)
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    # max_retries=3 couvre les 429 transitoires avec backoff LangChain.
+    # with_fallbacks non applicable ici : bind_tools n'est pas disponible
+    # sur RunnableWithFallbacks — fallback model pour dev différé (T007.5).
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, max_retries=3)
 
     # Tous les outils disponibles dès l'itération 1 — le Blueprint Validator bloque
     # run_build si des fichiers obligatoires manquent (gate suffisant).
@@ -329,6 +332,7 @@ def dev_agent(
     # Pré-populer files avec le contenu des templates (comptabilisés comme déjà écrits)
     files.update(_template_written)
     final_message = ""
+    _final_gate_source = ""  # "content_guard" | "requirements" | "no_files" — renseigné si NOT_BUILT_BY_GATE
     build_attempts = 0
     build_attempted = False
     build_success = False
@@ -1057,11 +1061,13 @@ def dev_agent(
         _terminal_guard_handled = True
         _tg_dir = _find_project_dir(files)
         _tg_blocked, _tg_msg = _prebuild_gates(files)
+        _tg_is_structural = _tg_blocked
         if not _tg_blocked:
             _tg_blocked, _tg_msg = _requirements_gate(requirements, files)
         if _tg_blocked:
             # T005 — final_message canonique. Détail dans les logs.
             final_message = "NOT_BUILT_BY_GATE"
+            _final_gate_source = "content_guard" if _tg_is_structural else "requirements"
             logger.warning(f"[terminal_guard] build non tente: gate bloque. detail={_tg_msg[:400]}")
         else:
             forced_build_output = str(run_build.invoke({"project_dir": _tg_dir}))
@@ -1086,6 +1092,7 @@ def dev_agent(
     if not _terminal_guard_handled and not build_attempted and not build_success:
         _state = _SM_FINAL
         final_message = "NOT_BUILT_BY_GATE"
+        _final_gate_source = "no_files"
         logger.info(f"[STATE] → {_state} | NOT_BUILT_BY_GATE (aucun fichier généré)")
 
     # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
@@ -1126,5 +1133,6 @@ def dev_agent(
             "last_test_error": last_test_error[:2000] if last_test_error else "",
             "last_test_error_full": last_test_error_full if last_test_error_full else "",
             "last_failed_command": last_failed_command,
+            "gate_source": _final_gate_source,
         },
     }

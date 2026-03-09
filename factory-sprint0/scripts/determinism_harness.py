@@ -24,7 +24,8 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from scripts.run_batch import run_batch, BATCH_PROJECTS  # noqa: E402
+# run_batch importé en lazy dans _build_projects / run_harness pour éviter
+# de tirer temporalio au niveau module (empêche l'import des fonctions pures en tests).
 
 
 def _check_final_status_coherence(run_metric: dict[str, Any], workflow_build_status: str | None) -> bool:
@@ -54,7 +55,13 @@ def _is_legitimate_gate(run: dict[str, Any]) -> bool:
     build_attempted = bool(metric.get("build_attempted", False))
     final_message = str(metric.get("final_message", ""))
     iterations = int(metric.get("iterations", 0) or 0)
-    requirements_unmet = metric.get("requirements_unmet") or []
+    # Même source de vérité que _compute_metrics : metadata > run_metric
+    _meta = (run.get("activity_results") or {}).get("dev_test", {}).get("metadata") or {}
+    requirements_unmet = (
+        _meta.get("requirements_unmet")
+        or metric.get("requirements_unmet")
+        or []
+    )
 
     if build_attempted:
         return False
@@ -84,7 +91,22 @@ def _compute_metrics(runs: list[dict[str, Any]]) -> dict[str, Any]:
         build_success = bool(metric.get("build_success", False))
         iterations = int(metric.get("iterations", 0) or 0)
         spec_coverage = float(metric.get("spec_coverage", 0.0) or 0.0)
-        requirements_unmet = metric.get("requirements_unmet") or []
+        # Source de vérité : activity_results.dev_test.metadata (champs non exposés dans run_metric top-level).
+        # Fallback run_metric pour rétrocompatibilité avec les anciens logs.
+        _meta = (run.get("activity_results") or {}).get("dev_test", {}).get("metadata") or {}
+        requirements_unmet = (
+            _meta.get("requirements_unmet")
+            or metric.get("requirements_unmet")
+            or []
+        )
+        # gate_source : "content_guard" | "requirements" | "no_files" | ""
+        # Tracé dans dev.py à chaque émission de NOT_BUILT_BY_GATE. Plus fiable que final_message
+        # qui ne contient que l'enum, pas l'identité du gate.
+        gate_source = (
+            _meta.get("gate_source")
+            or metric.get("gate_source")
+            or ""
+        )
         final_message = str(metric.get("final_message", ""))
 
         if _check_final_status_coherence(metric, run.get("build_status")):
@@ -100,10 +122,14 @@ def _compute_metrics(runs: list[dict[str, Any]]) -> dict[str, Any]:
         if not _is_legitimate_gate(run):
             adj_n += 1
 
-        # Proxy divergence: gate bloque mais requirements_unmet vide alors que coverage > 0
+        # Divergence requirements : gate bloque (NOT_BUILT_BY_GATE) sans que ce soit un gate
+        # structurel (content_guard) ni un gate requirements justifié (requirements_unmet non vide).
+        # gate_source == "content_guard" ou "no_files" → gate légitime, pas une divergence.
+        _is_structural_gate = gate_source in ("content_guard", "no_files")
         if (
             not build_attempted
             and "NOT_BUILT_BY_GATE" in final_message
+            and not _is_structural_gate
             and (not isinstance(requirements_unmet, list) or len(requirements_unmet) == 0)
             and spec_coverage > 0.0
         ):
@@ -129,6 +155,20 @@ def _load_baseline(path: Path) -> dict[str, Any]:
             return json.load(f)
     except Exception:
         return {}
+
+
+def _to_host_metrics_path(raw_path: str | None) -> str | None:
+    """
+    Convertit un chemin de métriques potentiellement conteneur (/app/...) vers
+    un chemin host lisible depuis PROJECT_ROOT.
+    """
+    if not raw_path:
+        return None
+    normalized = str(raw_path).replace("\\", "/")
+    if normalized.startswith("/app/"):
+        rel = normalized[len("/app/") :]
+        return str((PROJECT_ROOT / rel).resolve())
+    return str(Path(raw_path).resolve())
 
 
 def _evaluate_thresholds(metrics: dict[str, Any], baseline_agg: dict[str, Any]) -> tuple[bool, list[str], dict[str, Any]]:
@@ -178,6 +218,7 @@ def _evaluate_thresholds(metrics: dict[str, Any], baseline_agg: dict[str, Any]) 
 
 
 def _build_projects(runs: int) -> list[dict[str, str]]:
+    from scripts.run_batch import BATCH_PROJECTS  # lazy — évite temporalio hors conteneur
     reference = BATCH_PROJECTS[0]
     return [
         {
@@ -189,6 +230,7 @@ def _build_projects(runs: int) -> list[dict[str, str]]:
 
 
 async def run_harness(runs: int, timeout_seconds: float | None) -> dict[str, Any]:
+    from scripts.run_batch import run_batch  # lazy — évite temporalio hors conteneur
     projects = _build_projects(runs)
     batch = await run_batch(projects=projects, result_timeout_seconds=timeout_seconds)
     runs_data = batch.get("runs", [])
@@ -199,6 +241,7 @@ async def run_harness(runs: int, timeout_seconds: float | None) -> dict[str, Any
     baseline_agg = baseline.get("aggregated", {}) if isinstance(baseline, dict) else {}
 
     ok, failures, deltas = _evaluate_thresholds(metrics, baseline_agg)
+    _batch_metrics_log_path = batch.get("metrics_log_path")
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "harness": {
@@ -211,7 +254,8 @@ async def run_harness(runs: int, timeout_seconds: float | None) -> dict[str, Any
         "deltas_vs_baseline": deltas,
         "pass": ok,
         "failures": failures,
-        "batch_metrics_log_path": batch.get("metrics_log_path"),
+        "batch_metrics_log_path": _batch_metrics_log_path,
+        "batch_metrics_log_path_host": _to_host_metrics_path(_batch_metrics_log_path),
     }
 
     out_dir = PROJECT_ROOT / "logs" / "metrics"

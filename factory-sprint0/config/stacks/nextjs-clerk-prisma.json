@@ -107,7 +107,8 @@
       "Creer middleware.ts a la RACINE (pas dans app/) avec clerkMiddleware(async (auth, req) => { await auth.protect(); }) UNIQUEMENT — callback DOIT etre async",
       "INTERDIT authMiddleware (Clerk v5 supprime en v6) — utiliser clerkMiddleware depuis @clerk/nextjs/server",
       "CONTEXTE MIDDLEWARE UNIQUEMENT : dans clerkMiddleware, auth est un OBJET injecte (pas une fonction) — CORRECT: await auth.protect() | INTERDIT: auth().protect()",
-      "CONTEXTE SERVER COMPONENTS / ROUTE HANDLERS : auth() EST une fonction async — CORRECT: const { userId } = await auth() | le remap auth().protect() NE s'applique PAS ici",
+      "CONTEXTE SERVER COMPONENTS / ROUTE HANDLERS : auth() EST une fonction async — CORRECT: const { userId } = await auth() | INTERDIT: auth().userId sans await (retourne Promise, pas l'objet) | le remap auth().protect() NE s'applique PAS ici",
+      "INTERDIT: useAuth().user — useAuth() retourne { userId, sessionId, isLoaded, isSignedIn }, PAS l'objet user. CORRECT: const { user } = useUser() depuis @clerk/nextjs pour les Client Components",
       "Imports serveur Clerk depuis @clerk/nextjs/server UNIQUEMENT — imports client (useUser, UserButton) depuis @clerk/nextjs",
       "INTERDIT ABSOLU: import { clerkMiddleware } from '@clerk/nextjs' — clerkMiddleware est un middleware SERVEUR, TOUJOURS importer depuis '@clerk/nextjs/server'. Écrire en UNE SEULE ligne: import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'",
       "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes"
@@ -268,7 +269,10 @@
     "clerk v6 ClerkProvider layout.tsx html body force-dynamic clerkMiddleware async auth.protect middleware",
     "jest.config.js next/jest createJestConfig setupFilesAfterEnv jest.setup.js testing-library",
     "prisma 7 schema.prisma prisma.config.ts defineConfig clerkId sans password createdAt updatedAt",
-    "next.config.js eslint ignoreDuringBuilds headers source path tsconfig exclude tests"
+    "next.config.js eslint ignoreDuringBuilds headers source path tsconfig exclude tests",
+    "await auth userId server component route handler clerk async interdit auth().userId",
+    "useAuth useUser user object client component clerk interdit useAuth().user",
+    "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe"
   ],
 
   "qdrant_filter": {
@@ -378,6 +382,77 @@
         "{details}",
         "",
         "Remplace tous les chemins relatifs Prisma par '@/lib/prisma', puis appelle run_build."
+      ]
+    },
+    {
+      "id": "auth_missing_await",
+      "description": "auth().userId sans await — auth() est async en App Router",
+      "file_prefix": "app/",
+      "file_extensions": [".ts", ".tsx"],
+      "trigger_contains": ["auth().userId", "auth().sessionId", "auth().orgId"],
+      "requires_first_directive": null,
+      "message_lines": [
+        "AUTH MISSING AWAIT GUARD — BUILD BLOQUÉ",
+        "Appel auth() sans await détecté — auth() est une fonction async en App Router.",
+        "",
+        "  ❌ const userId = auth().userId",
+        "     auth() retourne une Promise — .userId sur une Promise = undefined.",
+        "     TypeScript: 'Property userId does not exist on type Promise<...'",
+        "",
+        "  ✅ const { userId } = await auth()  // dans un Server Component ou Route Handler async",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Ajoute 'await' devant auth() et assure-toi que la fonction parente est async, puis appelle run_build."
+      ]
+    },
+    {
+      "id": "prisma_direct_instantiation",
+      "description": "new PrismaClient() ou import { PrismaClient } direct — utiliser le singleton @/lib/prisma",
+      "file_prefix": "",
+      "file_extensions": [".ts", ".tsx"],
+      "trigger_contains": ["new PrismaClient()", "new PrismaClient({"],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA DIRECT INSTANTIATION GUARD — BUILD BLOQUÉ",
+        "Instanciation directe de PrismaClient détectée.",
+        "",
+        "  ❌ const prisma = new PrismaClient()",
+        "     Crée une nouvelle connexion DB à chaque requête — épuise le pool.",
+        "     En dev Next.js avec HMR, génère des dizaines de connexions simultanées.",
+        "",
+        "  ✅ import prisma from '@/lib/prisma'",
+        "     Le singleton lib/prisma.ts réutilise la connexion existante.",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Remplace par 'import prisma from \"@/lib/prisma\"', puis appelle run_build."
+      ]
+    },
+    {
+      "id": "useauth_user_property",
+      "description": "useAuth().user interdit — useAuth() ne retourne pas l'objet user",
+      "file_prefix": "app/",
+      "file_extensions": [".tsx", ".ts"],
+      "trigger_contains": ["useAuth().user", "const { user } = useAuth(", "{ user, "],
+      "requires_first_directive": null,
+      "message_lines": [
+        "USE AUTH USER GUARD — BUILD BLOQUÉ",
+        "Accès à .user via useAuth() détecté — cette propriété n'existe pas.",
+        "",
+        "  ❌ const { user } = useAuth()",
+        "     useAuth() retourne { userId, sessionId, isLoaded, isSignedIn }",
+        "     PAS l'objet user complet — provoque 'Property user does not exist'.",
+        "",
+        "  ✅ const { user } = useUser()  // depuis @clerk/nextjs",
+        "     useUser() retourne l'objet user complet avec emailAddresses, etc.",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Remplace useAuth() par useUser() pour accéder à l'objet user, puis appelle run_build."
       ]
     }
   ]

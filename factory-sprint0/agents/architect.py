@@ -387,7 +387,13 @@ def create_architect_agent():
         content_payload_key="text",
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": DEFAULT_VECTOR_SEARCH_LIMIT})
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.1)
+    _llm_base = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=3)
+    if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
+        llm = _llm_base.with_fallbacks(
+            [ChatOpenAI(model="gpt-4o", temperature=0.1, max_retries=1)]
+        )
+    else:
+        llm = _llm_base
 
     # --- Nodes ---
     async def retrieval_node(state: AgentState):

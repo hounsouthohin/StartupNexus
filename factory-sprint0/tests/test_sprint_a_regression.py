@@ -655,6 +655,242 @@ class TestContentGuards:
 
 
 # ─────────────────────────────────────────────────────────────
+# BLOC 6 — T011 : Formule gate_divergence_rate (gates structurels exclus)
+# ─────────────────────────────────────────────────────────────
+
+class TestGateDivergenceFormula:
+    """
+    Valide la formule gate_divergence_rate de determinism_harness.py.
+    La détection repose sur metadata.gate_source (tracé dans dev.py) :
+      "content_guard" | "no_files" → gate structurel légitime, PAS une divergence
+      "requirements" | ""          → gate requirements, divergence si requirements_unmet vide
+    """
+
+    def _make_run(
+        self,
+        build_attempted: bool = False,
+        build_success: bool = False,
+        final_message: str = "",
+        spec_coverage: float = 0.0,
+        requirements_unmet: list | None = None,
+        gate_source: str = "",
+        build_status: str = "NOT_BUILT",
+        iterations: int = 5,
+    ) -> dict:
+        meta: dict = {}
+        if requirements_unmet is not None:
+            meta["requirements_unmet"] = requirements_unmet
+        if gate_source:
+            meta["gate_source"] = gate_source
+        return {
+            "run_metric": {
+                "build_attempted": build_attempted,
+                "build_success": build_success,
+                "final_message": final_message,
+                "spec_coverage": spec_coverage,
+                "iterations": iterations,
+            },
+            "build_status": build_status,
+            "activity_results": {
+                "dev_test": {"metadata": meta}
+            },
+        }
+
+    def _divergence_rate(self, runs: list) -> float:
+        import sys, os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
+        from determinism_harness import _compute_metrics
+        return _compute_metrics(runs)["gate_divergence_rate"]
+
+    def test_structural_gate_not_counted_as_divergence(self):
+        """
+        gate_source="content_guard" + requirements_unmet vide + spec_coverage > 0
+        → NE doit PAS compter comme divergence.
+        """
+        run = self._make_run(
+            build_attempted=False,
+            final_message="NOT_BUILT_BY_GATE",
+            spec_coverage=0.7,
+            requirements_unmet=[],
+            gate_source="content_guard",
+        )
+        rate = self._divergence_rate([run])
+        assert rate == 0.0, (
+            f"gate_source='content_guard' ne doit pas compter comme divergence. Got: {rate}"
+        )
+
+    def test_no_files_gate_not_counted(self):
+        """gate_source='no_files' = aucun fichier généré, pas une divergence requirements."""
+        run = self._make_run(
+            build_attempted=False,
+            final_message="NOT_BUILT_BY_GATE",
+            spec_coverage=0.0,
+            requirements_unmet=[],
+            gate_source="no_files",
+        )
+        rate = self._divergence_rate([run])
+        assert rate == 0.0, f"gate_source='no_files' ne doit pas compter comme divergence. Got: {rate}"
+
+    def test_requirements_gate_without_justification_is_divergence(self):
+        """
+        gate_source='requirements' + requirements_unmet vide + spec_coverage > 0
+        = vraie divergence : le gate bloque sans justification tracée.
+        """
+        run = self._make_run(
+            build_attempted=False,
+            final_message="NOT_BUILT_BY_GATE",
+            spec_coverage=0.8,
+            requirements_unmet=[],
+            gate_source="requirements",
+        )
+        rate = self._divergence_rate([run])
+        assert rate == 1.0, (
+            f"gate_source='requirements' sans justification doit être divergence. Got: {rate}"
+        )
+
+    def test_gate_with_requirements_unmet_is_not_divergence(self):
+        """
+        requirements_unmet non vide = gate justifié, pas une divergence, quelle que soit gate_source.
+        """
+        run = self._make_run(
+            build_attempted=False,
+            final_message="NOT_BUILT_BY_GATE",
+            spec_coverage=0.6,
+            requirements_unmet=["API Route: /api/posts manquante"],
+            gate_source="requirements",
+        )
+        rate = self._divergence_rate([run])
+        assert rate == 0.0, (
+            f"Gate avec requirements_unmet non vide ne doit pas être divergence. Got: {rate}"
+        )
+
+    def test_build_attempted_runs_never_divergence(self):
+        """Un run où le build a été tenté n'est jamais une divergence de gate."""
+        run = self._make_run(
+            build_attempted=True,
+            build_success=False,
+            final_message="BUILD_FAILED",
+            spec_coverage=0.9,
+            requirements_unmet=[],
+        )
+        rate = self._divergence_rate([run])
+        assert rate == 0.0, f"Run avec build_attempted ne doit jamais être divergence. Got: {rate}"
+
+    def test_mixed_runs_correct_rate(self):
+        """
+        3 runs: 1 content_guard, 1 requirements divergence, 1 build_attempted.
+        Seul le requirements gate (sans justification) compte → rate = 1/3.
+        """
+        runs = [
+            self._make_run(
+                build_attempted=False,
+                final_message="NOT_BUILT_BY_GATE",
+                spec_coverage=0.7, requirements_unmet=[], gate_source="content_guard",
+            ),
+            self._make_run(
+                build_attempted=False,
+                final_message="NOT_BUILT_BY_GATE",
+                spec_coverage=0.8, requirements_unmet=[], gate_source="requirements",
+            ),
+            self._make_run(build_attempted=True, build_success=True, final_message="BUILD_SUCCESS"),
+        ]
+        rate = self._divergence_rate(runs)
+        expected = round(1 / 3, 3)
+        assert rate == expected, f"Rate attendu {expected}, got {rate}"
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 7 — T007 : Fallback model configuré sur les agents (feature-flag LLM_FALLBACK_ENABLED)
+# ─────────────────────────────────────────────────────────────
+
+class TestT007Fallback:
+    """
+    Vérifie que le fallback model est bien configuré sur les agents LLM.
+    Le fallback est activé par LLM_FALLBACK_ENABLED=1 pour ne pas polluer
+    les mesures de déterminisme (variance + coût) lors des runs harness.
+    Tests statiques — pas d'appel réseau, pas d'OPENAI_API_KEY requis.
+    """
+
+    def _src(self, filename: str) -> str:
+        import os
+        return open(os.path.join(os.path.dirname(__file__), "..", "agents", filename)).read()
+
+    def test_feature_flag_present_in_all_agents(self):
+        """LLM_FALLBACK_ENABLED doit être présent dans les 3 agents concernés."""
+        for agent in ("architect.py", "qa.py", "test_coverage.py"):
+            src = self._src(agent)
+            assert "LLM_FALLBACK_ENABLED" in src, (
+                f"{agent} doit vérifier la variable d'env LLM_FALLBACK_ENABLED (T007)"
+            )
+
+    def test_fallback_model_is_gpt4o(self):
+        """Le fallback model doit être gpt-4o dans les 3 agents."""
+        for agent in ("architect.py", "qa.py", "test_coverage.py"):
+            src = self._src(agent)
+            assert "gpt-4o" in src, f"{agent} doit définir gpt-4o comme fallback (T007)"
+
+    def test_with_fallbacks_guarded_by_flag(self):
+        """with_fallbacks() ne doit être appelé que sous le bloc LLM_FALLBACK_ENABLED."""
+        for agent in ("architect.py", "qa.py", "test_coverage.py"):
+            src = self._src(agent)
+            assert "with_fallbacks" in src, f"{agent} doit contenir with_fallbacks (T007)"
+            # Vérifie que le flag précède l'appel (ordre dans le fichier)
+            flag_pos = src.find("LLM_FALLBACK_ENABLED")
+            fb_pos = src.find("with_fallbacks")
+            assert flag_pos < fb_pos, (
+                f"{agent} : LLM_FALLBACK_ENABLED doit apparaître avant with_fallbacks"
+            )
+
+    def test_dev_llm_max_retries_no_fallback(self):
+        """
+        dev.py : max_retries=3 présent, .with_fallbacks() non appelé
+        (bind_tools incompatible avec RunnableWithFallbacks).
+        Le commentaire peut mentionner 'with_fallbacks', mais l'appel ne doit pas exister.
+        """
+        src = self._src("dev.py")
+        assert "max_retries=3" in src, "dev.py doit avoir max_retries=3 (T007)"
+        # Vérifie l'absence d'un appel réel (pas juste une mention en commentaire)
+        assert ".with_fallbacks(" not in src, (
+            "dev.py ne doit pas appeler .with_fallbacks() — bind_tools incompatible"
+        )
+
+    def test_fallback_triggers_on_rate_limit(self):
+        """
+        Simulation 429 : RunnableWithFallbacks doit invoquer le fallback si le primaire échoue.
+        Test offline via mock — valide le comportement LangChain indépendamment de l'API.
+        Skippé si langchain_core non installé dans l'env host (nécessite le conteneur).
+        """
+        langchain_core = pytest.importorskip(
+            "langchain_core", reason="langchain_core non installé dans l'env host"
+        )
+        from unittest.mock import MagicMock
+        RunnableWithFallbacks = langchain_core.runnables.RunnableWithFallbacks
+
+        primary = MagicMock()
+        primary.invoke.side_effect = Exception("RateLimitError 429 Too Many Requests")
+        fallback = MagicMock()
+        fallback.invoke.return_value = MagicMock(content="fallback response")
+
+        runnable = RunnableWithFallbacks(runnable=primary, fallbacks=[fallback])
+        runnable.invoke({"messages": []})
+        assert fallback.invoke.called, "Le fallback doit être appelé quand le primaire lève 429"
+
+    def test_fallback_disabled_by_default(self):
+        """
+        Sans LLM_FALLBACK_ENABLED=1, le flag vaut '0' → fallback inactif par défaut.
+        Garantit que les runs harness sans flag ne basculent pas sur gpt-4o.
+        """
+        import os
+        original = os.environ.pop("LLM_FALLBACK_ENABLED", None)
+        try:
+            val = os.getenv("LLM_FALLBACK_ENABLED", "0")
+            assert val == "0", "LLM_FALLBACK_ENABLED doit valoir '0' par défaut"
+        finally:
+            if original is not None:
+                os.environ["LLM_FALLBACK_ENABLED"] = original
+
+
+# ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import subprocess

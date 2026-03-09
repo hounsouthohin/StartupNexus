@@ -271,6 +271,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         elif top_error:
             top_error_message = str(top_error)
         final_message = str(dev_output.get("final_message", ""))[:200]
+        gate_source = str(dev_meta.get("gate_source", "") or "")
         last_build_error = str(dev_meta.get("last_build_error", "") or "")[:200]
         last_build_error_full = str(dev_meta.get("last_build_error_full", "") or "")
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
@@ -314,6 +315,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "requirements_unmet": metadata.get("requirements_unmet", []),
             "tests_passed": bool(metadata.get("tests_passed", False)),
             "final_message": final_message,
+            "gate_source": gate_source,
             "last_build_error": last_build_error,
             "last_build_error_full": last_build_error_full,
             "last_test_error": last_test_error,

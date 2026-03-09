@@ -1,3 +1,4 @@
+import os
 from typing import TypedDict, Annotated, List
 import operator
 from pydantic import BaseModel, Field
@@ -63,8 +64,14 @@ def generation_node(state: AgentState) -> dict:
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
-    structured_llm = llm.with_structured_output(TestSuite)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2, max_retries=3)
+    if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
+        _llm_fallback = ChatOpenAI(model="gpt-4o", temperature=0.2, max_retries=1)
+        structured_llm = llm.with_structured_output(TestSuite).with_fallbacks(
+            [_llm_fallback.with_structured_output(TestSuite)]
+        )
+    else:
+        structured_llm = llm.with_structured_output(TestSuite)
     chain = prompt | structured_llm
 
     # Récupère les standards de test depuis Qdrant avant la génération

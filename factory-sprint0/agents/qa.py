@@ -41,11 +41,18 @@ def qa_agent_node(state: AgentState) -> dict:
         MessagesPlaceholder(variable_name="messages"),
     ])
     
-    llm = ChatOpenAI(
+    _llm_base = ChatOpenAI(
         model="gpt-4o-mini",
         temperature=0.2,
-        api_key=os.getenv("OPENAI_API_KEY")
+        api_key=os.getenv("OPENAI_API_KEY"),
+        max_retries=3
     )
+    if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
+        llm = _llm_base.with_fallbacks(
+            [ChatOpenAI(model="gpt-4o", temperature=0.2, max_retries=1)]
+        )
+    else:
+        llm = _llm_base
     # QA est best-effort non-gating: génération de tests uniquement.
     chain = prompt | llm
     response = chain.invoke({"messages": state["messages"]})
