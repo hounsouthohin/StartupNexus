@@ -1,0 +1,217 @@
+{
+  "generated_at": "2026-03-09T18:00:00+00:00",
+  "note": "Rapport reconstitué manuellement depuis sorties.md (harness interrompu avant génération automatique). Runs 08-10 : données partielles (github_activity complétée, run_metric non lisible car lignes > 25k tokens). Runs 03-04 : infra failures (timeout/workflow error).",
+  "harness": {
+    "runs_requested": 14,
+    "runs_observed": 14,
+    "runs_with_full_metrics": 11,
+    "runs_with_partial_metrics": 3,
+    "timeout_seconds": null,
+    "data_source": "sorties.md (lignes 1-73)",
+    "batch_range": "determinism-01 à determinism-14"
+  },
+  "runs_detail": [
+    {
+      "run_number": 1, "project_name": "determinism-01", "workflow_id": "todo-pilot-determinism-01-50ad3ac7",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 3, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "max_iterations", "semantic_violations": [],
+      "last_build_error_summary": "Cannot find module '@/types'"
+    },
+    {
+      "run_number": 2, "project_name": "determinism-02", "workflow_id": "todo-pilot-determinism-02-28121273",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 3, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "client_directive", "semantic_violations": [],
+      "last_build_error_summary": "useEffect/useState sans 'use client' dans app/page.tsx"
+    },
+    {
+      "run_number": 3, "project_name": "determinism-03", "workflow_id": "todo-pilot-determinism-03-cec40ca0",
+      "workflow_status": null, "build_status": null,
+      "build_attempted": null, "build_success": null, "iterations": null,
+      "final_message": null, "spec_coverage": null,
+      "error": "Timeout expired", "infra_failure": true,
+      "note": "Run non comptabilisé dans les métriques code (infra)"
+    },
+    {
+      "run_number": 4, "project_name": "determinism-04", "workflow_id": "todo-pilot-determinism-04-3c833c6b",
+      "workflow_status": null, "build_status": null,
+      "build_attempted": null, "build_success": null, "iterations": null,
+      "final_message": null, "spec_coverage": null,
+      "error": "Workflow execution failed", "infra_failure": true,
+      "note": "Run non comptabilisé dans les métriques code (infra)"
+    },
+    {
+      "run_number": 5, "project_name": "determinism-05", "workflow_id": "todo-pilot-determinism-05-fac749ff",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 2, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "client_directive", "semantic_violations": [],
+      "last_build_error_summary": "useEffect/useState sans 'use client'"
+    },
+    {
+      "run_number": 6, "project_name": "determinism-06", "workflow_id": "todo-pilot-determinism-06-2cee81d8",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 2, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "client_directive", "semantic_violations": [],
+      "last_build_error_summary": "useEffect/useState sans 'use client'"
+    },
+    {
+      "run_number": 7, "project_name": "determinism-07", "workflow_id": "todo-pilot-determinism-07-b75f9836",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 3, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "max_iterations", "semantic_violations": [],
+      "last_build_error_summary": "Cannot find module '@/types'"
+    },
+    {
+      "run_number": 8, "project_name": "determinism-08", "workflow_id": "todo-pilot-determinism-08-ab7e1bfe",
+      "workflow_status": "COMPLETED", "github_activity_completed": true,
+      "build_attempted": null, "build_success": null, "iterations": null,
+      "final_message": null, "note": "Données partielles — ligne run_metric non lisible (> 25k tokens)"
+    },
+    {
+      "run_number": 9, "project_name": "determinism-09", "workflow_id": "todo-pilot-determinism-09-856d1f31",
+      "workflow_status": "COMPLETED", "github_activity_completed": true,
+      "build_attempted": null, "build_success": null, "iterations": null,
+      "final_message": null, "note": "Données partielles — ligne run_metric non lisible (> 25k tokens)"
+    },
+    {
+      "run_number": 10, "project_name": "determinism-10", "workflow_id": "todo-pilot-determinism-10-c14f9c5f",
+      "workflow_status": "COMPLETED", "github_activity_completed": true,
+      "build_attempted": null, "build_success": null, "iterations": null,
+      "final_message": null, "note": "Données partielles — ligne run_metric non lisible (> 25k tokens)"
+    },
+    {
+      "run_number": 11, "project_name": "determinism-11", "workflow_id": "todo-pilot-determinism-11-3aeca89b",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": false, "build_attempts": 0, "build_success": false, "iterations": 14,
+      "final_message": "NOT_BUILT_BY_GATE", "spec_coverage": 0.833,
+      "requirements_met": 5, "requirements_total": 6,
+      "requirements_unmet": ["API Route: PUT /api/posts/[id] toggle published avec auth"],
+      "root_cause_category": "max_iterations", "semantic_violations": [],
+      "legitimate_gate": true,
+      "note": "Gate légitime — route manquante, 14 itérations, message constructif"
+    },
+    {
+      "run_number": 12, "project_name": "determinism-12", "workflow_id": "todo-pilot-determinism-12-1f13d475",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": false, "build_attempts": 0, "build_success": false, "iterations": 14,
+      "final_message": "NOT_BUILT_BY_GATE", "spec_coverage": 0.833,
+      "requirements_met": 5, "requirements_total": 6,
+      "requirements_unmet": ["API Route: PUT /api/posts/[id] toggle published avec auth"],
+      "root_cause_category": "max_iterations", "semantic_violations": [],
+      "legitimate_gate": true,
+      "note": "Gate légitime — route manquante, 14 itérations, message constructif"
+    },
+    {
+      "run_number": 13, "project_name": "determinism-13", "workflow_id": "todo-pilot-determinism-13-2dbfa2f6",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 4, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "prisma_import", "semantic_violations": [],
+      "last_build_error_summary": "Module not found: Can't resolve '../../../../lib/prisma' + useEffect sans 'use client'"
+    },
+    {
+      "run_number": 14, "project_name": "determinism-14", "workflow_id": "todo-pilot-determinism-14-a7401ab4",
+      "workflow_status": "COMPLETED", "build_status": "BUILD_FAILED",
+      "build_attempted": true, "build_attempts": 3, "build_success": false, "iterations": 14,
+      "final_message": "MAX_ITER_REACHED", "spec_coverage": 1.0,
+      "requirements_met": 6, "requirements_total": 6, "requirements_unmet": [],
+      "root_cause_category": "client_directive", "semantic_violations": [],
+      "last_build_error_summary": "useEffect/useState sans 'use client' dans app/page.tsx"
+    }
+  ],
+  "metrics": {
+    "_scope": "11 runs avec métriques complètes (01-02, 05-07, 11-14) — exclut 03/04 (infra) et 08-10 (données partielles)",
+    "runs_count": 11,
+    "build_attempted_rate_raw": 0.636,
+    "build_attempted_rate_adjusted": 0.778,
+    "build_success_rate": 0.0,
+    "avg_iterations": 14.0,
+    "final_status_coherence_rate": 0.818,
+    "gate_divergence_rate": 0.0,
+    "excluded_legitimate_gates": 2,
+    "_coherence_note": "2 incohérences dues aux runs infra (03, 04) avec run_metric vide — coherence = 100% sur runs code",
+    "_adjusted_scope": {
+      "_scope": "9 runs code uniquement (hors infra 03/04)",
+      "build_attempted_rate_raw": 0.778,
+      "build_attempted_rate_adjusted": 1.0,
+      "final_status_coherence_rate": 1.0,
+      "gate_divergence_rate": 0.0
+    }
+  },
+  "baseline_path": "logs/metrics/baseline_kpis.json",
+  "baseline_aggregated": {
+    "runs_count": 5,
+    "build_attempted_rate": 0.8,
+    "build_success_rate": 0.0,
+    "avg_iterations": 14.0,
+    "final_status_coherence_rate": 1.0
+  },
+  "deltas_vs_baseline": {
+    "_note": "Deltas calculés sur métriques brutes (11 runs) — inclut infra failures dans le dénominateur",
+    "build_attempted_rate_delta": -0.164,
+    "final_status_coherence_rate_delta": -0.182,
+    "avg_iterations_delta": 0.0,
+    "_adjusted_deltas": {
+      "_note": "Deltas sur 9 runs code uniquement (hors infra 03/04)",
+      "build_attempted_rate_delta": -0.022,
+      "final_status_coherence_rate_delta": 0.0,
+      "avg_iterations_delta": 0.0
+    }
+  },
+  "pass": false,
+  "failures": [
+    "build_attempted_rate_adjusted < 0.95 (0.778 — inclut infra failures)",
+    "final_status_coherence_rate < 1.0 (0.818 — 2 runs infra avec run_metric vide)",
+    "delta build_attempted_rate <= 0 vs baseline (-0.164 brut, -0.022 hors infra)",
+    "delta final_status_coherence_rate <= 0 vs baseline (-0.182 brut, 0.0 hors infra)",
+    "delta avg_iterations <= 0 vs baseline (0.0 — tous les runs atteignent MAX_ITER)"
+  ],
+  "analysis": {
+    "verdict": "HARNESS FAIL sur métriques formelles — MAIS résultats structurellement cohérents",
+    "root_causes_distribution": {
+      "client_directive": 4,
+      "max_iterations": 2,
+      "NOT_BUILT_BY_GATE_legitimate": 2,
+      "prisma_import": 1,
+      "infra_timeout": 1,
+      "infra_workflow_error": 1
+    },
+    "dominant_failure": "useEffect/useState utilisé sans 'use client' dans app/page.tsx et app/dashboard/page.tsx",
+    "dominant_failure_ticket": "T-QA2 (Sprint D) — semantic content guard sur useEffect/useState sans 'use client'",
+    "key_observations": [
+      "build_success_rate = 0% sur tous les runs — aucun build Next.js réussi",
+      "spec_coverage = 1.0 sur 9/11 runs — requirements_engine (T002/T003) fonctionne correctement",
+      "gate_divergence_rate = 0% — T002 et T003 sont cohérents (invariant T013 respecté)",
+      "final_status_coherence = 100% sur runs code — T005 fonctionne (NOT_BUILT_BY_GATE vs MAX_ITER_REACHED vs BUILD_FAILED)",
+      "NOT_BUILT_BY_GATE émis correctement sur runs 11-12 (gate légitime, route absente, 14 itérations)",
+      "Runs 03-04 sont des failures Temporal (timeout/workflow error), pas des régressions code",
+      "Runs 08-10 : workflow complété (github PR créée) — pattern probablement identique aux autres (MAX_ITER_REACHED + client_directive)"
+    ],
+    "sprint_a_assessment": {
+      "T002_requirements_engine": "OK — spec_coverage et gate_check cohérents, gate_divergence=0%",
+      "T003_spec_coverage": "OK — aligned avec requirements_engine",
+      "T005_final_status": "OK — valeurs canoniques respectées sur tous les runs code",
+      "T006_contracts": "OK — aucune ValidationError sur chemins succès/échec",
+      "T010_constructive_guards": "PARTIEL — auth_wrapping guard éliminé (run précédent), 'use client' guard T-QA2 non implémenté",
+      "T013_regression_tests": "OK — invariants vérifiés (gate_divergence=0, coherence=100% code, contrats validés)"
+    },
+    "next_actions": [
+      "PRIORITÉ 1 — T-QA2 (Sprint D): Implémenter semantic guard 'use client' dans _prebuild_gates(). Bloquera le pattern dominant (client_directive) dès la détection, avant le build.",
+      "PRIORITÉ 2 — Enquête runs 08-10: Lire les lignes run_metric manuellement ou via backfill_baseline_metrics.py pour compléter les données.",
+      "PRIORITÉ 3 — Investiguer infra (runs 03, 04): Timeout et workflow_execution_failed non expliqués — vérifier logs Temporal.",
+      "DÉCISION 20 RUNS: Inutile avant T-QA2. Le problème dominant est connu (client_directive). Relancer 10 runs APRES implémentation du guard 'use client' pour mesurer l'impact."
+    ]
+  }
+}

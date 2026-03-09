@@ -118,6 +118,39 @@
       "type": "string",
       "description": "Fichier racine qui identifie le répertoire projet (ex: package.json pour Node, pyproject.toml pour Python). Utilisé par _find_project_dir pour déduire le workdir du projet généré.",
       "examples": ["package.json", "pyproject.toml", "requirements.txt", "Cargo.toml"]
+    },
+    "content_guards": {
+      "type": "array",
+      "description": "Guards de contenu fichier config-driven — lus par _prebuild_gates(). Aucune logique framework dans dev.py (T008/T009).",
+      "items": {
+        "type": "object",
+        "required": ["id", "trigger_contains", "message_lines"],
+        "properties": {
+          "id": { "type": "string" },
+          "description": { "type": "string" },
+          "file_prefix": { "type": "string" },
+          "file_extensions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "trigger_contains": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          },
+          "requires_first_directive": {
+            "type": ["string", "null"],
+            "description": "Chaîne sémantique dont la présence en 1ère ligne non-vide annule le déclenchement (ex: 'use client'). null = pas de vérification."
+          },
+          "message_lines": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "Lignes du message constructif. '{details}' est remplacé par la liste des fichiers en violation."
+          }
+        },
+        "additionalProperties": false
+      }
     }
   }
 }

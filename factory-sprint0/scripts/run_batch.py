@@ -30,6 +30,7 @@ TASK_QUEUE = "factory-task-queue"
 _LOG_ROOT = os.path.join(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
 LEARNER_LOG_PATH = os.path.join(_LOG_ROOT, "shadow", "learner_shadow_log.json")
 SORTIES_PATH = Path(PROJECT_ROOT).parent / "sorties.md"
+MAX_SORTIES_STR_LEN = 1200
 
 BATCH_PROJECTS: List[Dict[str, str]] = [
     {
@@ -73,6 +74,100 @@ def _append_to_sorties(entry: Dict[str, Any]) -> None:
     except Exception as exc:
         # Non-bloquant: ne jamais casser le batch pour une erreur de log local.
         print(f"[WARN] Impossible d'écrire dans {SORTIES_PATH}: {exc}")
+
+
+def _truncate_str(value: Any, max_len: int = MAX_SORTIES_STR_LEN) -> Any:
+    if not isinstance(value, str):
+        return value
+    if len(value) <= max_len:
+        return value
+    return value[:max_len] + f"... [truncated {len(value) - max_len} chars]"
+
+
+def _compact_run_metric(metric: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(metric, dict):
+        return {}
+    compact = {
+        "build_attempted": metric.get("build_attempted"),
+        "build_attempts": metric.get("build_attempts"),
+        "build_success": metric.get("build_success"),
+        "iterations": metric.get("iterations"),
+        "final_message": metric.get("final_message"),
+        "root_cause_category": metric.get("root_cause_category"),
+        "spec_coverage": metric.get("spec_coverage"),
+        "requirements_met": metric.get("requirements_met"),
+        "requirements_total": metric.get("requirements_total"),
+        "tests_passed": metric.get("tests_passed"),
+        "semantic_violations": metric.get("semantic_violations", []),
+        "last_failed_command": metric.get("last_failed_command", ""),
+        "last_build_error": _truncate_str(metric.get("last_build_error", "")),
+        "error": _truncate_str(metric.get("error", "")),
+    }
+    return compact
+
+
+def _compact_activity_result(activity_name: str, result: Any) -> Any:
+    if not isinstance(result, dict):
+        return _truncate_str(result)
+
+    if activity_name == "architect_activity":
+        return {
+            "spec_validation_status": result.get("spec_validation_status"),
+            "requirements_count": len(result.get("requirements", []) or []),
+            "spec_unmatched_requirements": result.get("spec_unmatched_requirements", []),
+        }
+
+    if activity_name == "dev_test_activity":
+        metadata = result.get("metadata", {}) if isinstance(result.get("metadata", {}), dict) else {}
+        return {
+            "success": result.get("success"),
+            "final_message": result.get("final_message")
+            or (result.get("dev_output", {}) if isinstance(result.get("dev_output", {}), dict) else {}).get("final_message"),
+            "run_metric": _compact_run_metric(result.get("run_metric", {}) if isinstance(result.get("run_metric", {}), dict) else {}),
+            "metadata": {
+                "total_files": metadata.get("total_files"),
+                "dev_files_count": metadata.get("dev_files_count"),
+                "test_files_count": metadata.get("test_files_count"),
+                "spec_coverage": metadata.get("spec_coverage"),
+                "requirements_met": metadata.get("requirements_met"),
+                "requirements_total": metadata.get("requirements_total"),
+                "tests_passed": metadata.get("tests_passed"),
+            },
+            "semantic_violations_count": len(result.get("semantic_violations", []) or []),
+        }
+
+    if activity_name == "qa_activity":
+        e2e = result.get("e2e_tests", {}) if isinstance(result.get("e2e_tests", {}), dict) else {}
+        return {"tests_count": len(e2e)}
+
+    if activity_name == "github_activity":
+        return {"repo_url": result.get("repo_url", "N/A"), "pr_url": result.get("pr_url", "N/A")}
+
+    if activity_name == "learner_activity":
+        if "suggestions_generated" in result:
+            return {"suggestions_generated": result.get("suggestions_generated", 0)}
+        suggestions = result.get("suggestions", [])
+        return {"suggestions_generated": len(suggestions) if isinstance(suggestions, list) else 0}
+
+    # Fallback générique: trim des strings profondes.
+    compact: Dict[str, Any] = {}
+    for k, v in result.items():
+        if isinstance(v, str):
+            compact[k] = _truncate_str(v)
+        elif isinstance(v, list):
+            compact[k] = v[:10]
+        else:
+            compact[k] = v
+    return compact
+
+
+def _compact_activity_results_map(activity_results: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(activity_results, dict):
+        return {}
+    out: Dict[str, Any] = {}
+    for name, payload in activity_results.items():
+        out[name] = _compact_activity_result(name, payload)
+    return out
 
 
 def _event_time_to_iso(event: Any) -> str:
@@ -133,6 +228,7 @@ async def _stream_activity_events_to_sorties(
                     scheduled_id = int(getattr(attrs, "scheduled_event_id", 0))
                     activity_name = scheduled_event_to_activity.get(scheduled_id, f"scheduled_event_{scheduled_id}")
                     result = await _decode_payloads(client, getattr(attrs, "result", None))
+                    compact_result = _compact_activity_result(activity_name, result)
                     _append_to_sorties(
                         {
                             "logged_at": datetime.now(timezone.utc).isoformat(),
@@ -143,7 +239,7 @@ async def _stream_activity_events_to_sorties(
                             "project_name": project_name,
                             "activity_name": activity_name,
                             "scheduled_event_id": scheduled_id,
-                            "activity_result": result,
+                            "activity_result": compact_result,
                         }
                     )
                     continue
@@ -289,6 +385,7 @@ async def _run_one(
             build_success = build_status in ("SUCCESS", "PARTIAL")
         if isinstance(activity_results, dict):
             run_metric = activity_results.get("dev_test", {}).get("run_metric", {}) or {}
+            run_metric = _compact_run_metric(run_metric)
     except TimeoutError:
         result = ""
         workflow_success = False
@@ -340,7 +437,7 @@ async def _run_one(
         "build_status": run_record["build_status"],
         "error": run_record["error"],
         "workflow_error_message": run_record["workflow_error_message"],
-        "activity_results": activity_results,
+        "activity_results": _compact_activity_results_map(activity_results),
         "run_metric": run_metric,
     }
     _append_to_sorties(sorties_entry)

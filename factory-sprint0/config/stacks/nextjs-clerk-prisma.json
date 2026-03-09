@@ -321,5 +321,64 @@
   "test_import_rules": {
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"
-  }
+  },
+
+  "content_guards": [
+    {
+      "id": "use_client",
+      "description": "Hooks React dans un fichier App Router sans directive 'use client'",
+      "file_prefix": "app/",
+      "file_extensions": [".tsx"],
+      "trigger_contains": ["useEffect", "useState", "useRef", "useCallback", "useMemo", "useReducer"],
+      "requires_first_directive": "use client",
+      "message_lines": [
+        "USE CLIENT GUARD — BUILD BLOQUÉ",
+        "Des hooks React sont utilisés dans des fichiers App Router SANS '\"use client\"' en première ligne.",
+        "",
+        "ERREUR NEXT.JS RÉSULTANTE :",
+        "  ✗ You're importing a component that needs useEffect.",
+        "    It only works in a Client Component but none of its parents",
+        "    are marked with 'use client', so they're Server Components by default.",
+        "",
+        "RÈGLE ABSOLUE App Router :",
+        "  • Tout composant utilisant useEffect, useState, useRef, useCallback…",
+        "    DOIT avoir '\"use client\"' comme PREMIÈRE ligne du fichier.",
+        "  • Alternative : convertir en Server Component (async function, pas de hooks).",
+        "",
+        "CORRECTION REQUISE :",
+        "  Pour chaque fichier listé, ajouter EN PREMIÈRE LIGNE :",
+        "    '\"use client\";'",
+        "  OU réécrire le composant en Server Component sans hooks.",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Corrige avec write_file() puis appelle run_build."
+      ]
+    },
+    {
+      "id": "prisma_import_path",
+      "description": "Import Prisma avec chemin relatif — utiliser l'alias @/lib/prisma",
+      "file_prefix": "",
+      "file_extensions": [".ts", ".tsx"],
+      "trigger_contains": ["../lib/prisma", "../../lib/prisma"],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA IMPORT PATH GUARD — BUILD BLOQUÉ",
+        "Import Prisma avec chemin relatif détecté.",
+        "",
+        "  ❌ import prisma from '../../../../lib/prisma'",
+        "     Les chemins relatifs échouent à la résolution de modules Next.js",
+        "     selon la position du fichier dans l'arborescence.",
+        "",
+        "  ✅ import prisma from '@/lib/prisma'",
+        "     L'alias @ pointe toujours vers la racine du projet (tsconfig.json paths).",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Remplace tous les chemins relatifs Prisma par '@/lib/prisma', puis appelle run_build."
+      ]
+    }
+  ]
 }

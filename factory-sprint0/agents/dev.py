@@ -611,6 +611,56 @@ def dev_agent(
                 + "\nCorrige avec write_file() (préférer page serveur avec params props), puis appelle run_build."
             )
 
+        # 9+. CONTENT GUARDS — config-driven (T008/T009 multi-stack)
+        # Toutes les règles de contenu fichier sont déclarées dans la section
+        # "content_guards" du JSON de stack. dev.py ne contient aucune logique
+        # spécifique à un framework — il lit et applique ces règles génériquement.
+        #
+        # Schéma d'une entrée content_guard :
+        #   id                     : identifiant lisible (pour les logs)
+        #   file_prefix            : filtrer les fichiers commençant par ce préfixe (ex: "app/")
+        #   file_extensions        : filtrer par extension (ex: [".tsx", ".ts"])
+        #   trigger_contains       : liste de sous-chaînes — déclenche si l'une est présente
+        #   requires_first_directive: chaîne sémantique dont la présence en 1ère ligne annule
+        #                            le déclenchement (ex: "use client"). None = pas de check.
+        #   message_lines          : lignes du message constructif, "{details}" = liste fichiers.
+        for _guard in stack_cfg.get("content_guards", []):
+            _gid = _guard.get("id", "unknown")
+            _file_prefix = _guard.get("file_prefix", "")
+            _file_exts = _guard.get("file_extensions", [])
+            _triggers = _guard.get("trigger_contains", [])
+            _directive = _guard.get("requires_first_directive")  # None = pas de vérification
+            _msg_lines = _guard.get("message_lines", [f"{_gid} GUARD — BUILD BLOQUÉ", "{details}"])
+
+            _violations = []
+            for _fp, _fc in files_dict.items():
+                _fp_norm = _fp.replace("\\", "/")
+                if _file_prefix and not _fp_norm.startswith(_file_prefix):
+                    continue
+                if _file_exts and not any(_fp_norm.endswith(ext) for ext in _file_exts):
+                    continue
+                # Déclenchement : au moins un trigger présent dans le contenu (substring, pas regex)
+                _found = [t for t in _triggers if t in _fc]
+                if not _found:
+                    continue
+                # Si une directive est requise, vérifier la première ligne non-vide
+                # Normalisation : on retire les guillemets et le ';' terminal pour comparer
+                # le contenu sémantique ('use client', "use client", 'use client'; → même chose)
+                if _directive is not None:
+                    _first = next((ln.strip() for ln in _fc.splitlines() if ln.strip()), "")
+                    _first_norm = _first.replace("'", "").replace('"', "").rstrip(";").strip()
+                    if _directive in _first_norm:
+                        continue  # directive présente — pas de violation
+                _violations.append((_fp_norm, _found))
+
+            if _violations:
+                _details = "\n".join(
+                    f"  - {fp}  [{', '.join(found)}]"
+                    for fp, found in _violations
+                )
+                _msg = "\n".join(_msg_lines).replace("{details}", _details)
+                return True, _msg
+
         return False, ""
 
     def _requirements_gate(reqs: list, files_dict: dict) -> tuple:

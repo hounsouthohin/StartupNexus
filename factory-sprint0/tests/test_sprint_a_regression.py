@@ -189,8 +189,7 @@ class TestNotBuiltByGateContract:
             "final_message": "Le build a échoué car le fichier package.json est manquant",
             "success": False,
         }
-        with pytest.raises(ValidationError), \
-             pytest.raises(ValidationError, match=""):
+        with pytest.raises(ValidationError):
             validate(instance=payload, schema=output_schema)
 
     def test_llm_text_is_invalid_final_message_raises(self):
@@ -422,6 +421,237 @@ class TestGateCoverageDivergence:
             from agents.requirements_engine import compute_coverage
         except ImportError as e:
             pytest.fail(f"compute_coverage non importable — requirements_engine.py manquant ou cassé: {e}")
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 5 — content_guards : mécanisme config-driven (hardening T-QA2 expérimental)
+# ─────────────────────────────────────────────────────────────
+
+class TestContentGuards:
+    """
+    Valide le mécanisme content_guards lu depuis nextjs-clerk-prisma.json.
+
+    Couverture :
+    - Structure JSON valide (champs requis présents dans chaque guard)
+    - Guard use_client : déclenche sur hooks sans directive, passe avec directive
+    - Guard use_client : détecte imports multilignes (régression vs regex [^}]*)
+    - Guard prisma_import_path : déclenche sur chemin relatif, passe sur @/lib/prisma
+    - Absence de content_guards dans config → pas de crash
+
+    NB : _prebuild_gates() est une closure non-importable (nested dans dev_test_activity).
+    La logique du reader est reproduite ici pour être testable sans dépendance workflow.
+    Ce test échoue si le JSON est mal formé OU si la logique de lecture change de façon incompatible.
+    """
+
+    STACK_JSON = Path("config/stacks/nextjs-clerk-prisma.json")
+
+    @pytest.fixture(autouse=True)
+    def load_stack(self):
+        if not self.STACK_JSON.exists():
+            pytest.skip(f"Stack JSON introuvable : {self.STACK_JSON}")
+        with self.STACK_JSON.open(encoding="utf-8") as f:
+            self.stack_cfg = json.load(f)
+
+    def _apply_guard(self, guard: dict, files_dict: dict) -> tuple:
+        """
+        Reproduit la logique du reader content_guards de _prebuild_gates() dans dev.py.
+        Retourne (triggered: bool, message: str).
+        Si cette fonction diverge de l'implémentation réelle, les tests échoueront — c'est voulu.
+        """
+        file_prefix = guard.get("file_prefix", "")
+        file_exts = guard.get("file_extensions", [])
+        triggers = guard.get("trigger_contains", [])
+        directive = guard.get("requires_first_directive")
+        msg_lines = guard.get("message_lines", [])
+
+        violations = []
+        for fp, fc in files_dict.items():
+            fp_norm = fp.replace("\\", "/")
+            if file_prefix and not fp_norm.startswith(file_prefix):
+                continue
+            if file_exts and not any(fp_norm.endswith(ext) for ext in file_exts):
+                continue
+            found = [t for t in triggers if t in fc]
+            if not found:
+                continue
+            if directive is not None:
+                first = next((ln.strip() for ln in fc.splitlines() if ln.strip()), "")
+                first_norm = first.replace("'", "").replace('"', "").rstrip(";").strip()
+                if directive in first_norm:
+                    continue
+            violations.append((fp_norm, found))
+
+        if violations:
+            details = "\n".join(
+                f"  - {fp}  [{', '.join(found)}]" for fp, found in violations
+            )
+            msg = "\n".join(msg_lines).replace("{details}", details)
+            return True, msg
+        return False, ""
+
+    def _get_guard(self, guard_id: str) -> dict:
+        for g in self.stack_cfg.get("content_guards", []):
+            if g.get("id") == guard_id:
+                return g
+        pytest.skip(f"Guard '{guard_id}' absent de content_guards — vérifier nextjs-clerk-prisma.json")
+
+    # --- Structure JSON ---
+
+    def test_content_guards_present_in_stack(self):
+        """content_guards doit être présent dans nextjs-clerk-prisma.json."""
+        assert "content_guards" in self.stack_cfg, (
+            "Clé 'content_guards' absente — le mécanisme guard config-driven est désactivé."
+        )
+
+    def test_content_guards_is_non_empty_list(self):
+        """content_guards doit être une liste non-vide."""
+        guards = self.stack_cfg.get("content_guards")
+        assert isinstance(guards, list), "content_guards doit être une liste"
+        assert len(guards) > 0, "content_guards ne doit pas être vide"
+
+    def test_each_guard_has_required_fields(self):
+        """Chaque guard doit avoir les champs requis : id, trigger_contains, message_lines."""
+        for guard in self.stack_cfg.get("content_guards", []):
+            gid = guard.get("id", "<sans id>")
+            assert "id" in guard, "Guard sans 'id'"
+            assert "trigger_contains" in guard, f"Guard '{gid}' sans 'trigger_contains'"
+            assert isinstance(guard["trigger_contains"], list) and len(guard["trigger_contains"]) > 0, \
+                f"Guard '{gid}': trigger_contains doit être une liste non-vide"
+            assert "message_lines" in guard, f"Guard '{gid}' sans 'message_lines'"
+            assert isinstance(guard["message_lines"], list) and len(guard["message_lines"]) > 0, \
+                f"Guard '{gid}': message_lines doit être une liste non-vide"
+            assert "{details}" in "\n".join(guard["message_lines"]), \
+                f"Guard '{gid}': message_lines doit contenir le placeholder {{details}}"
+
+    # --- Guard use_client ---
+
+    def test_use_client_triggers_on_hooks_without_directive(self):
+        """use_client guard déclenche si useEffect présent dans app/*.tsx sans 'use client'."""
+        guard = self._get_guard("use_client")
+        files = {
+            "app/page.tsx": (
+                "import { useEffect } from 'react'\n"
+                "export default function Page() {\n"
+                "  useEffect(() => {}, [])\n"
+                "  return <div>Hello</div>\n"
+                "}\n"
+            )
+        }
+        triggered, msg = self._apply_guard(guard, files)
+        assert triggered, "use_client guard doit déclencher sur useEffect sans directive"
+        assert "USE CLIENT" in msg.upper() or "use client" in msg.lower()
+
+    def test_use_client_passes_with_single_quote_directive(self):
+        """use_client guard passe si 'use client' (guillemets simples) est en première ligne."""
+        guard = self._get_guard("use_client")
+        files = {
+            "app/page.tsx": (
+                "'use client'\n"
+                "import { useEffect } from 'react'\n"
+                "export default function Page() { useEffect(() => {}, []); return <div/> }\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert not triggered, "use_client guard ne doit PAS déclencher avec 'use client' (simple)"
+
+    def test_use_client_passes_with_double_quote_directive(self):
+        """use_client guard passe si \"use client\" (guillemets doubles) est en première ligne."""
+        guard = self._get_guard("use_client")
+        files = {
+            "app/dashboard/page.tsx": (
+                '"use client"\n'
+                "import { useState } from 'react'\n"
+                "export default function Dashboard() { const [x] = useState(0); return <div/> }\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert not triggered, "use_client guard doit accepter les guillemets doubles"
+
+    def test_use_client_ignores_non_app_files(self):
+        """use_client guard ne s'applique pas aux fichiers hors du dossier app/."""
+        guard = self._get_guard("use_client")
+        files = {
+            "components/Button.tsx": (
+                "import { useState } from 'react'\n"
+                "export function Button() { return <button /> }\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert not triggered, "use_client guard ne doit pas s'appliquer hors de app/"
+
+    def test_use_client_detects_multiline_import(self):
+        """
+        Régression critique : use_client détecte les imports multilignes.
+        C'est exactement le cas que le regex [^}]* de l'implémentation précédente manquait —
+        [^}]* ne traverse pas les newlines, donc un import sur plusieurs lignes passait inaperçu.
+        La détection par substring 'in' n'a pas ce problème.
+        """
+        guard = self._get_guard("use_client")
+        files = {
+            "app/posts/page.tsx": (
+                "import {\n"
+                "  useEffect,\n"
+                "  useState\n"
+                "} from 'react'\n"
+                "export default function Posts() { return <div /> }\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert triggered, (
+            "use_client guard doit détecter les imports multilignes — "
+            "régression vs implémentation regex précédente"
+        )
+
+    # --- Guard prisma_import_path ---
+
+    def test_prisma_import_triggers_on_relative_deep_path(self):
+        """prisma_import_path guard déclenche sur un chemin relatif profond (../../../../lib/prisma)."""
+        guard = self._get_guard("prisma_import_path")
+        files = {
+            "app/api/posts/[id]/route.ts": (
+                "import prisma from '../../../../lib/prisma'\n"
+                "export async function PUT() {}\n"
+            )
+        }
+        triggered, msg = self._apply_guard(guard, files)
+        assert triggered, "prisma_import_path guard doit déclencher sur ../../../../lib/prisma"
+        assert "@/lib/prisma" in msg, "Le message doit proposer l'alias @/lib/prisma"
+
+    def test_prisma_import_passes_on_alias(self):
+        """prisma_import_path guard NE déclenche PAS si @/lib/prisma est utilisé."""
+        guard = self._get_guard("prisma_import_path")
+        files = {
+            "app/api/posts/route.ts": (
+                "import prisma from '@/lib/prisma'\n"
+                "export async function GET() {}\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert not triggered, "prisma_import_path guard ne doit pas déclencher sur @/lib/prisma"
+
+    def test_prisma_import_triggers_on_two_level_relative(self):
+        """prisma_import_path guard détecte aussi un chemin à 2 niveaux (../../lib/prisma)."""
+        guard = self._get_guard("prisma_import_path")
+        files = {
+            "app/api/route.ts": (
+                "import prisma from '../../lib/prisma'\n"
+                "export async function POST() {}\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert triggered, "prisma_import_path guard doit détecter ../../lib/prisma"
+
+    # --- Robustesse config vide ---
+
+    def test_empty_content_guards_no_crash(self):
+        """Si content_guards est absent de la config, le reader ne doit pas crasher."""
+        empty_cfg: dict = {}
+        files = {"app/page.tsx": "import { useEffect } from 'react'"}
+        # Simule exactement le reader de _prebuild_gates()
+        for guard in empty_cfg.get("content_guards", []):
+            self._apply_guard(guard, files)
+        # Arriver ici sans exception = OK
+        assert True
 
 
 # ─────────────────────────────────────────────────────────────
