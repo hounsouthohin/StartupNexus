@@ -30,6 +30,7 @@ class TodoPilotOutput:
     test_files_count: int
     duration_seconds: float
     error_message: str | None = None
+    activity_results: Dict[str, Any] | None = None
 
 with workflow.unsafe.imports_passed_through():
     from workflows.activities.architect_activity import architect_activity
@@ -78,6 +79,8 @@ class TodoPilotWorkflow:
         )
 
         try:
+            activity_results: Dict[str, Any] = {}
+
             # 1. Architect
             architect_result: Dict[str, Any] = await workflow.execute_activity(
                 architect_activity,
@@ -96,6 +99,12 @@ class TodoPilotWorkflow:
                 f"Architect terminé — {len(requirements_part)} requirements extraits | "
                 f"spec_validation={spec_validation_status}"
             )
+            activity_results["architect"] = {
+                "status": "COMPLETED",
+                "spec_validation_status": spec_validation_status,
+                "requirements_count": len(requirements_part),
+                "spec_unmatched_requirements": spec_unmatched_requirements,
+            }
 
             # ── SPEC GATE — arrêt dur avant Dev si spec DEGRADED ─────────────
             if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
@@ -115,6 +124,7 @@ class TodoPilotWorkflow:
                     test_files_count=0,
                     duration_seconds=float(total_time),
                     error_message=f"SPEC_INVALID: {spec_unmatched_requirements}",
+                    activity_results=activity_results,
                 )
 
             # 2. DevTest fusionné
@@ -139,6 +149,18 @@ class TodoPilotWorkflow:
                 f"DevTest terminé – Fichiers: {dev_test_result.get('metadata', {}).get('total_files', 0)}, "
                 f"Success: {dev_test_result.get('success', False)}"
             )
+            activity_results["dev_test"] = {
+                "status": "COMPLETED",
+                "success": bool(dev_test_result.get("success", False)),
+                "run_metric": dev_test_result.get("run_metric", {}),
+                "semantic_violations": dev_test_result.get("semantic_violations", []),
+                "metadata": dev_test_result.get("metadata", {}),
+                "final_message": (
+                    dev_test_result.get("dev_output", {}).get("final_message", "")
+                    if isinstance(dev_test_result.get("dev_output", {}), dict)
+                    else ""
+                ),
+            }
 
             test_output = dev_test_result.get("test_output", {})
             if not isinstance(test_output, dict):
@@ -193,9 +215,18 @@ class TodoPilotWorkflow:
                 )
                 e2e_tests = qa_result.get("e2e_tests", {})
                 workflow.logger.info(f"QA terminé – {len(e2e_tests)} tests générés")
+                activity_results["qa"] = {
+                    "status": "COMPLETED",
+                    "tests_count": len(e2e_tests),
+                }
             except Exception as qa_err:
                 workflow.logger.warning(f"QA skipped due to error: {qa_err}")
                 e2e_tests = {}
+                activity_results["qa"] = {
+                    "status": "FAILED",
+                    "error": str(qa_err),
+                    "tests_count": 0,
+                }
 
             github_input = {
                 "files": {**dev_test_result.get("combined_files", {}), **e2e_tests},
@@ -215,8 +246,19 @@ class TodoPilotWorkflow:
                     retry_policy=common_retry_policy,
                 )
                 workflow.logger.info("GitHub terminé")
+                activity_results["github"] = {
+                    "status": "COMPLETED",
+                    "repo_url": github_result.get("repo_url", "N/A"),
+                    "pr_url": github_result.get("pr_url", "N/A"),
+                }
             except Exception as github_err:
                 workflow.logger.warning(f"GitHub skipped due to error: {github_err}")
+                activity_results["github"] = {
+                    "status": "FAILED",
+                    "error": str(github_err),
+                    "repo_url": "N/A",
+                    "pr_url": "N/A",
+                }
 
             # 5. Learner — best-effort, ne bloque jamais le workflow
             try:
@@ -230,8 +272,16 @@ class TodoPilotWorkflow:
                     f"Learner terminé — "
                     f"{learner_result.get('suggestions_generated', 0)} suggestion(s)"
                 )
+                activity_results["learner"] = {
+                    "status": "COMPLETED",
+                    "suggestions_generated": learner_result.get("suggestions_generated", 0),
+                }
             except Exception as learner_err:
                 workflow.logger.warning(f"Learner skipped due to error: {learner_err}")
+                activity_results["learner"] = {
+                    "status": "FAILED",
+                    "error": str(learner_err),
+                }
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})
@@ -247,6 +297,7 @@ class TodoPilotWorkflow:
                 test_files_count=int(metadata.get("test_files_count", 0)),
                 duration_seconds=float(total_time),
                 error_message=None,
+                activity_results=activity_results,
             )
         except Exception as exc:
             total_time = (workflow.now() - start_time).total_seconds()
@@ -262,4 +313,5 @@ class TodoPilotWorkflow:
                 test_files_count=0,
                 duration_seconds=float(total_time),
                 error_message=str(exc),
+                activity_results={"workflow": {"status": "FAILED", "error": str(exc)}},
             )

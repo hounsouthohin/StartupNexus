@@ -1,8 +1,8 @@
 {
   "agent_name": "dev_test_agent",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "mode": "fusion",
-  "description": "Contrat fusionné Dev+Test (Sprints 0.5-3)",
+  "description": "Contrat fusionné Dev+Test (Sprints 0.5-3) — T006: run_metric ajouté, final_message canonique T005",
 
   "input_schema": {
     "type": "object",
@@ -57,6 +57,28 @@
       "combined_files": { "type": "object" },
       "success":        { "type": "boolean" },
       "semantic_violations": { "type": "array", "items": { "type": "string" } },
+      "run_metric": {
+        "type": "object",
+        "description": "Métriques runtime calculées par dev_test_activity (T006)",
+        "properties": {
+          "build_success":        { "type": "boolean" },
+          "build_attempted":      { "type": "boolean" },
+          "files_count":          { "type": "integer" },
+          "clerk_compliant":      { "type": "boolean" },
+          "dev_files_count":      { "type": "integer" },
+          "build_attempts":       { "type": "integer" },
+          "iterations":           { "type": "integer" },
+          "final_message":        { "type": "string" },
+          "last_build_error":     { "type": "string" },
+          "last_build_error_full":{ "type": "string" },
+          "last_test_error":      { "type": "string" },
+          "last_test_error_full": { "type": "string" },
+          "last_failed_command":  { "type": "string" },
+          "semantic_violations":  { "type": "array", "items": { "type": "string" } },
+          "error":                { "type": ["string", "null"] },
+          "root_cause_category":  { "type": "string" }
+        }
+      },
       "metadata": {
         "type": "object",
         "additionalProperties": false,

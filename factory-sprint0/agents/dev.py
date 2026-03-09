@@ -21,6 +21,7 @@ from .shared_tools import (
 )
 from .stack_config import get_blueprint, get_root_file, get_cleanup_artifacts, get_workdir_keep_extra, get_forbidden_paths
 from utils.prompt_loader import load_stack_prompt
+from .requirements_engine import gate_check as _engine_gate_check
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -171,10 +172,12 @@ def dev_agent(
             f"head: {compact[:head]} ... tail: {compact[-tail:]}"
         )
 
-    def _main_context(messages_list):
+    def _main_context(messages_list, max_chars: int = MAX_MAIN_HISTORY_CHARS):
         """
         Construit le contexte sous budget en conservant l'intégrité des couples
         AI(tool_calls) + ToolMessage(s). Évite l'erreur OpenAI 400 sur tool_call_id.
+
+        T004 — max_chars paramétrable par phase (phase 1 : 6000 tokens, phase 2 : 14000 tokens).
         """
         if len(messages_list) <= 2:
             return messages_list
@@ -182,7 +185,7 @@ def dev_agent(
         kept = [messages_list[0], messages_list[1]]
         # Le budget s'applique UNIQUEMENT aux tours supplémentaires (pas aux messages initiaux
         # qui sont toujours conservés). Sinon messages[1] (spec + RAG context ≈ 16 000 chars)
-        # dépasse MAX_MAIN_HISTORY_CHARS à lui seul → aucun tour récent n'est jamais inclus
+        # dépasse max_chars à lui seul → aucun tour récent n'est jamais inclus
         # → le LLM ne voit jamais son historique et boucle sur la même instruction.
         current_chars = 0
 
@@ -216,7 +219,7 @@ def dev_agent(
         selected = []
         for turn in reversed(turns):
             turn_chars = sum(len(str(getattr(m, "content", ""))) for m in turn)
-            if current_chars + turn_chars > MAX_MAIN_HISTORY_CHARS:
+            if current_chars + turn_chars > max_chars:
                 break
             selected.append(turn)
             current_chars += turn_chars
@@ -522,90 +525,156 @@ def dev_agent(
                 "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
                 "Crée les fichiers App Router corrects avec write_file(), puis rappelle run_build."
             )
+        # 7. AUTH WRAPPING ROUTE GUARD — constructif (T010)
+        # Détecte: export const METHOD = auth(async (...) => { ... })
+        # Ce pattern Clerk v4 / Pages Router est INCOMPATIBLE avec App Router Next.js 14.
+        _AUTH_WRAP_RE = re.compile(
+            r'export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=\s*auth\s*\(',
+            re.MULTILINE,
+        )
+        _auth_violations = []
+        for _fp, _fc in files_dict.items():
+            _fp_norm = _fp.replace("\\", "/")
+            if _fp_norm.startswith("app/api/") and _fp_norm.endswith(".ts"):
+                if _AUTH_WRAP_RE.search(_fc):
+                    _auth_violations.append(_fp_norm)
+        if _auth_violations:
+            for _afp in _auth_violations:
+                _key = (_afp, "auth_wrapping_route")
+                _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
+                if _constructive_guard_failures[_key] >= 2:
+                    # AUTO-WRITE après 2 blocages : corriger le fichier directement
+                    _orig_fc = files_dict.get(_afp) or files_dict.get(_afp.replace("/", "\\"), "")
+                    if _orig_fc:
+                        _fixed_fc = _fix_auth_wrap_content(_orig_fc)
+                        try:
+                            write_file.invoke({"file_path": _afp, "content": _fixed_fc})
+                            files[_afp] = _fixed_fc
+                            logger.info(f"[T010 AUTO-WRITE] {_afp} corrigé (auth_wrapping × {_constructive_guard_failures[_key]})")
+                            messages.append(HumanMessage(content=(
+                                f"[T010 AUTO-CORRECTION] Le fichier '{_afp}' a été corrigé automatiquement "
+                                f"après {_constructive_guard_failures[_key]} blocages sur 'auth_wrapping_route'.\n"
+                                "La signature 'export const METHOD = auth(async ...)' a été remplacée par "
+                                "'export async function METHOD(request, context)' avec auth() interne.\n"
+                                "Vérifie que la logique métier est préservée, puis appelle run_build."
+                            )))
+                        except Exception as _aw_err:
+                            logger.error(f"[T010 AUTO-WRITE] Erreur écriture {_afp}: {_aw_err}")
+            return True, (
+                "AUTH WRAPPING ROUTE GUARD — BUILD BLOQUÉ\n"
+                "PATTERN INVALIDE détecté dans les route handlers :\n"
+                "  ❌ export const PUT = auth(async (req, { params }) => { ... });\n"
+                "     Ce pattern est la syntaxe Clerk v4 / Pages Router.\n"
+                "     Il est INCOMPATIBLE avec App Router Next.js 14 — provoque 'Invalid configuration' au build.\n\n"
+                "PATTERN ATTENDU (App Router + Clerk v6) :\n"
+                "  ✅ export async function PUT(request: Request, context: { params: { id: string } }) {\n"
+                "       const { userId } = auth();  // auth() est appelé DANS le handler, jamais wrapper\n"
+                "       if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n"
+                "       const { id } = context.params;\n"
+                "       const body = await request.json();  // request, pas req\n"
+                "       // ... logique métier\n"
+                "     }\n\n"
+                "Fichiers à corriger :\n"
+                + "\n".join(f"  - {f}" for f in _auth_violations)
+                + "\n\n⚠️ RÈGLE ABSOLUE : 'auth()' n'est JAMAIS un wrapper de route handler en App Router.\n"
+                "Il est appelé à l'INTÉRIEUR du handler pour obtenir userId/sessionClaims.\n"
+                "Corrige chaque fichier avec write_file(), puis appelle run_build."
+            )
+
+        # 8. ROUTER QUERY APP ROUTER GUARD — constructif (T010)
+        # Détecte: router.query dans app/**/*.tsx
+        # router.query n'existe PAS sur AppRouterInstance (useRouter de next/navigation).
+        _ROUTER_QUERY_RE = re.compile(r'\brouter\.query\b')
+        _rq_violations = []
+        for _fp, _fc in files_dict.items():
+            _fp_norm = _fp.replace("\\", "/")
+            if _fp_norm.startswith("app/") and _fp_norm.endswith(".tsx"):
+                if _ROUTER_QUERY_RE.search(_fc):
+                    _rq_violations.append(_fp_norm)
+        if _rq_violations:
+            return True, (
+                "ROUTER QUERY APP ROUTER GUARD — BUILD BLOQUÉ\n"
+                "PATTERN INVALIDE détecté : router.query\n"
+                "  ❌ const { slug } = router.query\n"
+                "     useRouter() de 'next/navigation' ne possède PAS de propriété .query.\n"
+                "     Ce pattern appartient à Pages Router (next/router).\n\n"
+                "CORRECTIONS SELON LE CONTEXTE :\n"
+                "  • Page App Router SERVEUR (par défaut, sans 'use client') :\n"
+                "    ✅ export default async function Page({ params }: { params: { slug: string } }) {\n"
+                "         const { slug } = params;  // params vient des props, pas du router\n"
+                "       }\n"
+                "  • Client component ('use client' obligatoire) :\n"
+                "    ✅ import { useParams } from 'next/navigation';\n"
+                "       const { slug } = useParams<{ slug: string }>();\n\n"
+                "Fichiers à corriger :\n"
+                + "\n".join(f"  - {f}" for f in _rq_violations)
+                + "\nCorrige avec write_file() (préférer page serveur avec params props), puis appelle run_build."
+            )
+
         return False, ""
 
     def _requirements_gate(reqs: list, files_dict: dict) -> tuple:
         """
-        Gate déterministe : vérifie que les requirements métier mappables sont couverts
-        par les fichiers générés avant d'autoriser un SUCCESS final.
-        Miroir léger de compute_spec_coverage — aucune dépendance externe.
+        Gate déterministe : vérifie que les requirements métier mappables sont couverts.
+        Délègue à requirements_engine.gate_check — source de vérité unique (T002).
         Retourne (bloqué: bool, message: str).
         """
-        if not reqs:
-            return False, ""
+        return _engine_gate_check(reqs, files_dict)
 
-        def _norm(p: str) -> str:
-            return p.replace("\\", "/").lower()
+    # ── T010 : Guards Constructifs — suivi des violations pour auto-write ───────
+    # Compte les fois où la même violation est détectée dans le même fichier.
+    # Après 2 blocages : auto-write du fichier corrigé (bypass LLM).
+    _constructive_guard_failures: dict = {}  # {(file_path, guard_id): int}
 
-        file_paths_norm = {_norm(fp) for fp in files_dict.keys()}
-        missing = []
+    def _fix_auth_wrap_content(content: str) -> str:
+        """
+        Auto-fix : remplace chaque 'export const METHOD = auth(async (...) => {'
+        par 'export async function METHOD(request, context) {' avec auth() interne.
+        Le body de la fonction est conservé (approche best-effort).
+        """
+        _SIG_RE = re.compile(
+            r'export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=\s*auth\s*\(\s*async\s*\([^)]*\)\s*=>\s*\{[ \t]*\n?',
+            re.MULTILINE,
+        )
 
-        import re as _re
-        for req in reqs:
-            req_lower = req.lower()
-            is_mappable = False
-            satisfied = False
-
-            # Règle A : modèle Prisma → vérifier schema.prisma
-            if "modèle prisma" in req_lower or "model prisma" in req_lower or "prisma:" in req_lower:
-                model_match = _re.search(r':\s*(\w+)', req)
-                if model_match:
-                    is_mappable = True
-                    model_name = model_match.group(1).lower()
-                    schema_content = next(
-                        (v for k, v in files_dict.items() if "schema.prisma" in _norm(k)), ""
-                    )
-                    if _re.search(
-                        rf'\bmodel\s+{_re.escape(model_name)}\s*\{{',
-                        schema_content, _re.IGNORECASE
-                    ):
-                        satisfied = True
-
-            # Règle B : route API (GET/POST/PUT/PATCH/DELETE /path)
-            if not satisfied:
-                route_match = _re.search(
-                    r'(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', req, _re.IGNORECASE
-                )
-                if route_match:
-                    is_mappable = True
-                    api_path = route_match.group(2).strip('/')
-                    expected = _norm('app/' + api_path + '/route.ts')
-                    if expected in file_paths_norm:
-                        satisfied = True
-
-            # Règle C : page mentionnée avec chemin (Page: /path)
-            if not satisfied and "page" in req_lower:
-                page_match = _re.search(r'/(?:[\w\[\]/-]+)?', req)
-                if page_match:
-                    is_mappable = True
-                    raw = page_match.group(0)
-                    if raw == "/":
-                        if "app/page.tsx" in file_paths_norm:
-                            satisfied = True
-                    else:
-                        page_path = _norm(raw.strip('/'))
-                        if _norm(f"app/{page_path}/page.tsx") in file_paths_norm:
-                            satisfied = True
-
-            # Ignorer les requirements non-mappables (ex: "Authentification Clerk robuste")
-            if is_mappable and not satisfied:
-                missing.append(req)
-
-        if missing:
-            return True, (
-                "REQUIREMENTS GATE — BUILD BLOQUÉ\n"
-                f"{len(missing)} requirement(s) métier mappable(s) non couverts :\n"
-                + "\n".join(f"  - {r}" for r in missing)
-                + "\n\nGénère les fichiers manquants avant d'appeler run_build."
+        def _replace_sig(m: re.Match) -> str:
+            method = m.group(1)
+            return (
+                f'export async function {method}(request: Request, context: any) {{\n'
+                f'  const {{ userId }} = auth();\n'
+                f'  if (!userId) return NextResponse.json({{ error: "Unauthorized" }}, {{ status: 401 }});\n'
+                f'  const params = context.params;\n'
             )
-        return False, ""
+
+        fixed = _SIG_RE.sub(_replace_sig, content)
+        # Fermeture: }); → } (auth() wrapper closing pattern)
+        fixed = re.sub(r'\n\}\);\n', '\n}\n', fixed)
+        return fixed
 
     stagnant_iterations = 0
     key_files = required_files or ["package.json"]
+
+    # ── T004 : State Machine Déterministe ───────────────────────────────────────
+    # États formels : GEN → STRUCT_GATES → REQ_GATES → BUILD → FINAL
+    _SM_GEN = "GEN"
+    _SM_STRUCT_GATES = "STRUCT_GATES"
+    _SM_REQ_GATES = "REQ_GATES"
+    _SM_BUILD = "BUILD"
+    _SM_FINAL = "FINAL"
+    _state = _SM_GEN
+    logger.info(f"[STATE] initial → {_state}")
+
+    # Budget token par phase depuis config (T004) — 1 token ≈ 4 chars
+    _token_budgets = stack_cfg.get("token_budgets", {})
+    _PHASE1_MAX_CHARS = int(_token_budgets.get("phase1_tokens", 6000) * 4)   # GEN
+    _PHASE2_MAX_CHARS = int(_token_budgets.get("phase2_tokens", 14000) * 4)  # BUILD+
+    logger.info(f"[STATE] token budgets — phase1={_PHASE1_MAX_CHARS} chars, phase2={_PHASE2_MAX_CHARS} chars")
+    # ────────────────────────────────────────────────────────────────────────────
+
     for iteration in range(1, MAX_ITERATIONS + 1):
         current_phase = 1 if iteration <= PHASE1_LIMIT else 2
         current_tools = tools_phase1 if current_phase == 1 else tools_phase2
-        logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Phase {current_phase} | Build attempts: {build_attempts}")
+        logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Phase {current_phase} | State {_state} | Build attempts: {build_attempts}")
 
         # Truncation ultra-safe V3 – Chronologique garantie (build from newest, reverse)
         if len(messages) > 28:
@@ -642,7 +711,9 @@ def dev_agent(
             messages = retained + recent
             logger.info(f"Historique truncaté à {len(messages)} messages (chronologique sécurisé).")
 
-        main_messages = _main_context(messages)
+        # T004 — budget contexte par phase
+        _ctx_budget = _PHASE1_MAX_CHARS if _state == _SM_GEN else _PHASE2_MAX_CHARS
+        main_messages = _main_context(messages, max_chars=_ctx_budget)
         response = llm.bind_tools(current_tools).invoke(main_messages)
         messages.append(response)
 
@@ -666,9 +737,16 @@ def dev_agent(
                                 call_args = {**call_args, "project_dir": computed_dir}
                                 logger.info(f"[run_build] project_dir corrigé: '.' → '{computed_dir}'")
                             # ── PRE-BUILD GATES (Blueprint + UseState + Prisma) ──────────────
+                            # T004 — transition d'état explicite
+                            _prev_state = _state
+                            _state = _SM_STRUCT_GATES
+                            logger.info(f"[STATE] {_prev_state} → {_state}")
                             _gate_blocked, _gate_msg = _prebuild_gates(files)
                             if not _gate_blocked:
                                 # ── REQUIREMENTS GATE ─────────────────────────────────────────
+                                _prev_state = _state
+                                _state = _SM_REQ_GATES
+                                logger.info(f"[STATE] {_prev_state} → {_state}")
                                 _gate_blocked, _gate_msg = _requirements_gate(requirements, files)
                             if _gate_blocked:
                                 tool_messages.append(ToolMessage(content=_gate_msg, tool_call_id=tool_call["id"]))
@@ -678,6 +756,11 @@ def dev_agent(
                                 called_build_this_iter = True
                                 continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
+                        # T004 — transition vers BUILD avant exécution réelle de run_build
+                        if tool_name == "run_build":
+                            _prev_state = _state
+                            _state = _SM_BUILD
+                            logger.info(f"[STATE] {_prev_state} → {_state}")
                         output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
                         raw_tool_outputs.append(raw_output)
@@ -895,17 +978,28 @@ def dev_agent(
             # This was the source of the persistent BadRequestError.
 
         messages.append(HumanMessage(content=reflection))
-        final_message = reflection
+        # T004 — final_message calculé par état (jamais depuis texte LLM).
+        # La reflection guide le LLM dans le tour suivant, elle n'est PAS final_message.
 
         # Sortie déterministe: uniquement sur résultat build confirmé.
         if last_build_succeeded:
-            logger.info("SUCCESS TOTAL : build confirmé, sortie de boucle.")
+            _state = _SM_FINAL
+            logger.info(f"[STATE] BUILD → {_state} | BUILD_SUCCESS")
             build_success = True
+            final_message = "BUILD_SUCCESS"
             break
 
         if build_attempts >= MAX_BUILD_ATTEMPTS:
-            final_message = "ÉCHEC : ERREUR RÉCURRENTE BUILD"
+            _state = _SM_FINAL
+            logger.info(f"[STATE] {_state} → FINAL | BUILD_FAILED (max attempts)")
+            final_message = "BUILD_FAILED"
             break
+
+    # T004 — MAX_ITER_REACHED si la boucle s'est terminée sans break explicite
+    if not build_success and _state != _SM_FINAL:
+        _state = _SM_FINAL
+        logger.info(f"[STATE] → {_state} | MAX_ITER_REACHED")
+        final_message = "MAX_ITER_REACHED"
 
     # Terminal guard: un run ne doit jamais sortir sans tentative de build.
     _terminal_guard_handled = False
@@ -916,8 +1010,9 @@ def dev_agent(
         if not _tg_blocked:
             _tg_blocked, _tg_msg = _requirements_gate(requirements, files)
         if _tg_blocked:
-            final_message = f"BuildNotAttempted: pre-build gate bloque. {_tg_msg[:800]}"
-            logger.warning("[terminal_guard] build non tente: gate bloque")
+            # T005 — final_message canonique. Détail dans les logs.
+            final_message = "NOT_BUILT_BY_GATE"
+            logger.warning(f"[terminal_guard] build non tente: gate bloque. detail={_tg_msg[:400]}")
         else:
             forced_build_output = str(run_build.invoke({"project_dir": _tg_dir}))
             build_attempted = True
@@ -925,7 +1020,7 @@ def dev_agent(
             if "Build successful" in forced_build_output:
                 last_build_succeeded = True
                 build_success = True
-                final_message = "TERMINÉ : CODE PRÊT (terminal forced build)."
+                final_message = "BUILD_SUCCESS"  # T005
                 last_build_error = ""
                 last_build_error_full = ""
                 last_failed_command = ""
@@ -936,10 +1031,12 @@ def dev_agent(
                 _tg_cmd = _extract_failed_command(forced_build_output)
                 if _tg_cmd:
                     last_failed_command = _tg_cmd
-                final_message = "ÉCHEC : BUILD TERMINAL FORCÉ EN ÉCHEC"
+                final_message = "BUILD_FAILED"  # T005
 
     if not _terminal_guard_handled and not build_attempted and not build_success:
-        final_message = "BuildNotAttempted: run_build n'a pas ete execute."
+        _state = _SM_FINAL
+        final_message = "NOT_BUILT_BY_GATE"
+        logger.info(f"[STATE] → {_state} | NOT_BUILT_BY_GATE (aucun fichier généré)")
 
     # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
     _rel_dir = _find_project_dir(files)

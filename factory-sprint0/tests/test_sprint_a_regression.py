@@ -1,0 +1,434 @@
+"""
+tests/test_sprint_a_regression.py
+Regression Test Pack Sprint A — Software Agent Factory
+
+Valide les 4 invariants critiques introduits durant Sprint A (T000-B, T002, T003, T005, T006).
+Ne nécessite pas Qdrant ni OPENAI_API_KEY (tests statiques uniquement).
+
+DoD T013 :
+  Cas 1 — prisma/schema.prisma double-encodé → normalize_file_content() → gate passe (T000-B)
+  Cas 2 — build_attempted=false → final_message = NOT_BUILT_BY_GATE jamais texte LLM (T005)
+  Cas 3 — payload sortie avec champ inattendu → ValidationError levée, jamais silencieuse (T006)
+  Cas 4 — requirements_gate bloque + spec_coverage non-nul → divergence détectée (T002/T003)
+
+Usage:
+    cd factory-sprint0
+    pytest tests/test_sprint_a_regression.py -v
+"""
+
+import json
+from pathlib import Path
+
+import pytest
+from jsonschema import validate, ValidationError
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 1 — T000-B : Normalisation double-encodage Prisma
+# ─────────────────────────────────────────────────────────────
+
+class TestPrismaDoubleEncoding:
+    """
+    Cas 1 : schema.prisma double-encodé (\\n littéraux) → normalize_file_content()
+    décode → gate_check peut matcher le modèle Prisma.
+
+    Régression : sans la normalisation, les regex Prisma échouent silencieusement
+    et gate_check retourne toujours (True, "manquant") même quand le modèle existe.
+    """
+
+    def test_normalize_file_content_importable(self):
+        """normalize_file_content() doit être importable depuis agents.requirements_engine."""
+        try:
+            from agents.requirements_engine import normalize_file_content
+        except ImportError as e:
+            pytest.fail(f"Import échoué: {e}")
+
+    def test_normalize_skips_json_files(self):
+        """Les fichiers .json ne doivent jamais être normalisés (risque de corruption)."""
+        from agents.requirements_engine import normalize_file_content
+        content_with_literal_n = r'{"key": "line1\nline2"}'
+        result = normalize_file_content("package.json", content_with_literal_n)
+        assert result == content_with_literal_n, \
+            "normalize_file_content ne doit PAS toucher les fichiers .json"
+
+    def test_normalize_detects_double_encoded_prisma(self):
+        """Un schema.prisma avec \\n littéraux doit être normalisé vers de vrais sauts."""
+        from agents.requirements_engine import normalize_file_content
+        # Simuler le double-encodage LLM : \\n à la place de vrais newlines
+        raw = r"model User {\n  id String @id\n  name String\n}"
+        assert "\n" not in raw, "Précondition : pas de vrai newline"
+        assert r"\n" in raw, "Précondition : \\n littéraux présents"
+
+        normalized = normalize_file_content("prisma/schema.prisma", raw)
+        assert "\n" in normalized, \
+            "normalize_file_content doit remplacer \\n littéraux par de vrais sauts de ligne"
+        assert r"\n" not in normalized, \
+            "Après normalisation, aucun \\n littéral ne doit subsister"
+
+    def test_normalize_preserves_already_correct_content(self):
+        """Un contenu avec de vrais newlines ne doit pas être modifié."""
+        from agents.requirements_engine import normalize_file_content
+        correct = "model User {\n  id String @id\n  name String\n}"
+        result = normalize_file_content("prisma/schema.prisma", correct)
+        assert result == correct, \
+            "normalize_file_content ne doit pas modifier un contenu déjà correct"
+
+    def test_gate_passes_after_normalization(self):
+        """
+        Invariant T000-B : après normalisation, gate_check trouve le modèle Prisma.
+
+        Sans normalisation : schema double-encodé → regex model\\s+User\\s*{ ne matche pas
+        → gate retourne (True, "User manquant") → build bloqué à tort.
+
+        Avec normalisation intégrée dans _model_in_schema : gate passe correctement.
+        """
+        from agents.requirements_engine import gate_check
+
+        # Schema double-encodé comme un LLM pourrait le produire
+        double_encoded_schema = r"model User {\n  id String @id\n  name String\n}"
+
+        files = {
+            "prisma/schema.prisma": double_encoded_schema,
+            "app/page.tsx": "export default function Home() { return <div/>; }",
+        }
+        requirements = ["Modèle Prisma: User avec id et name"]
+
+        blocked, msg = gate_check(requirements, files)
+        assert not blocked, (
+            f"gate_check bloque à tort sur schema double-encodé — "
+            f"la normalisation T000-B n'est pas appliquée dans _model_in_schema.\n"
+            f"Message gate : {msg[:300]}"
+        )
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 2 — T005 : NOT_BUILT_BY_GATE canonique dans le contrat
+# ─────────────────────────────────────────────────────────────
+
+class TestNotBuiltByGateContract:
+    """
+    Cas 2 : build_attempted=false → final_message doit être NOT_BUILT_BY_GATE.
+    Invariant : jamais un texte LLM libre — toujours une valeur de l'enum contractualisée.
+    """
+
+    CONTRACT_PATH = Path("schemas/contracts/dev_agent_contract.json")
+
+    @pytest.fixture(autouse=True)
+    def load_contract(self):
+        if not self.CONTRACT_PATH.exists():
+            pytest.skip(f"Contrat introuvable : {self.CONTRACT_PATH}")
+        with self.CONTRACT_PATH.open(encoding="utf-8") as f:
+            self.contract = json.load(f)
+
+    def test_final_message_enum_exists(self):
+        """Le champ final_message de output_schema doit avoir un enum défini."""
+        output_props = self.contract.get("output_schema", {}).get("properties", {})
+        assert "final_message" in output_props, \
+            "output_schema.properties.final_message manquant dans dev_agent_contract.json"
+        fm = output_props["final_message"]
+        assert "enum" in fm, \
+            "final_message doit avoir une enum — texte LLM libre interdit (T005)"
+
+    def test_not_built_by_gate_in_enum(self):
+        """NOT_BUILT_BY_GATE doit être dans l'enum de final_message."""
+        enum_values = (
+            self.contract
+            .get("output_schema", {})
+            .get("properties", {})
+            .get("final_message", {})
+            .get("enum", [])
+        )
+        assert "NOT_BUILT_BY_GATE" in enum_values, (
+            "NOT_BUILT_BY_GATE absent de l'enum final_message — "
+            "la valeur canonique T005 n'est pas contractualisée.\n"
+            f"Enum actuel : {enum_values}"
+        )
+
+    def test_final_message_enum_contains_all_canonical_values(self):
+        """Les 4 valeurs canoniques T005 doivent toutes être dans l'enum."""
+        expected = {"BUILD_SUCCESS", "BUILD_FAILED", "MAX_ITER_REACHED", "NOT_BUILT_BY_GATE"}
+        enum_values = set(
+            self.contract
+            .get("output_schema", {})
+            .get("properties", {})
+            .get("final_message", {})
+            .get("enum", [])
+        )
+        missing = expected - enum_values
+        assert not missing, (
+            f"Valeurs canoniques T005 manquantes dans final_message.enum : {missing}"
+        )
+
+    def test_output_schema_requires_final_message(self):
+        """final_message doit être dans required de output_schema."""
+        required = self.contract.get("output_schema", {}).get("required", [])
+        assert "final_message" in required, \
+            "final_message absent de output_schema.required — champ optionnel = dérive silencieuse"
+
+    def test_not_built_by_gate_is_valid_enum_output(self):
+        """Un payload avec final_message=NOT_BUILT_BY_GATE doit valider le contrat output."""
+        output_schema = self.contract.get("output_schema", {})
+        payload = {
+            "files": {},
+            "final_message": "NOT_BUILT_BY_GATE",
+            "success": False,
+        }
+        try:
+            validate(instance=payload, schema=output_schema)
+        except ValidationError as e:
+            pytest.fail(
+                f"NOT_BUILT_BY_GATE est une valeur contractualisée — "
+                f"la validation ne doit pas lever : {e.message}"
+            )
+
+    def test_llm_text_is_invalid_final_message(self):
+        """Un texte LLM libre dans final_message doit lever ValidationError."""
+        output_schema = self.contract.get("output_schema", {})
+        payload = {
+            "files": {},
+            "final_message": "Le build a échoué car le fichier package.json est manquant",
+            "success": False,
+        }
+        with pytest.raises(ValidationError), \
+             pytest.raises(ValidationError, match=""):
+            validate(instance=payload, schema=output_schema)
+
+    def test_llm_text_is_invalid_final_message_raises(self):
+        """Reformulation explicite : texte LLM libre → ValidationError levée (T006)."""
+        output_schema = self.contract.get("output_schema", {})
+        payload = {
+            "files": {},
+            "final_message": "J'ai tenté le build mais package.json est absent.",
+            "success": False,
+        }
+        raised = False
+        try:
+            validate(instance=payload, schema=output_schema)
+        except ValidationError:
+            raised = True
+        assert raised, (
+            "Un texte LLM dans final_message doit lever ValidationError — "
+            "le contrat T006 ne bloque pas les valeurs hors enum"
+        )
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 3 — T006 : Payload inattendu → ValidationError explicite
+# ─────────────────────────────────────────────────────────────
+
+class TestUnexpectedPayloadValidationError:
+    """
+    Cas 3 : un payload output avec un champ non contractualisé doit lever ValidationError.
+    Invariant : additionalProperties=false dans output_schema → dérive silencieuse impossible.
+    """
+
+    CONTRACT_PATH = Path("schemas/contracts/dev_agent_contract.json")
+
+    @pytest.fixture(autouse=True)
+    def load_contract(self):
+        if not self.CONTRACT_PATH.exists():
+            pytest.skip(f"Contrat introuvable : {self.CONTRACT_PATH}")
+        with self.CONTRACT_PATH.open(encoding="utf-8") as f:
+            self.contract = json.load(f)
+
+    def test_output_schema_has_additional_properties_false(self):
+        """output_schema doit avoir additionalProperties=false pour bloquer les dérives."""
+        output_schema = self.contract.get("output_schema", {})
+        assert output_schema.get("additionalProperties") is False, \
+            "output_schema.additionalProperties doit être false — T006 exige le blocage strict"
+
+    def test_unexpected_field_raises_validation_error(self):
+        """Un champ inattendu dans le payload output doit lever ValidationError."""
+        output_schema = self.contract.get("output_schema", {})
+        payload_with_unexpected = {
+            "files": {"app/page.tsx": "export default function Home() {}"},
+            "final_message": "BUILD_SUCCESS",
+            "success": True,
+            "unexpected_internal_state": "oops",   # champ non contractualisé
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=payload_with_unexpected, schema=output_schema)
+
+    def test_extra_debug_field_raises_validation_error(self):
+        """Un champ debug_ ajouté par erreur doit lever ValidationError, jamais passer."""
+        output_schema = self.contract.get("output_schema", {})
+        payload_with_debug = {
+            "files": {},
+            "final_message": "NOT_BUILT_BY_GATE",
+            "success": False,
+            "debug_llm_trace": "some internal trace",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=payload_with_debug, schema=output_schema)
+
+    def test_valid_payload_does_not_raise(self):
+        """Un payload strictement conforme au contrat ne doit pas lever ValidationError."""
+        output_schema = self.contract.get("output_schema", {})
+        valid_payload = {
+            "files": {"app/page.tsx": "export default function Home() {}"},
+            "final_message": "BUILD_SUCCESS",
+            "success": True,
+        }
+        try:
+            validate(instance=valid_payload, schema=output_schema)
+        except ValidationError as e:
+            pytest.fail(f"Payload conforme ne doit pas lever ValidationError: {e.message}")
+
+    def test_missing_required_field_raises(self):
+        """Un payload sans 'success' (champ required) doit lever ValidationError."""
+        output_schema = self.contract.get("output_schema", {})
+        incomplete_payload = {
+            "files": {},
+            "final_message": "BUILD_FAILED",
+            # 'success' manquant
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=incomplete_payload, schema=output_schema)
+
+
+# ─────────────────────────────────────────────────────────────
+# BLOC 4 — T002/T003 : requirements_gate vs spec_coverage divergence
+# ─────────────────────────────────────────────────────────────
+
+class TestGateCoverageDivergence:
+    """
+    Cas 4 : requirements_gate bloque ET spec_coverage est non-nul → divergence détectée.
+
+    Contexte architectural :
+    - gate_check() (T002) bloque si un requirement MAPPABLE est non-couvert.
+    - compute_coverage() (T003) retourne un ratio : requirements couverts / total.
+    - Les requirements NON-MAPPABLES sont assumés satisfaits dans les deux fonctions.
+
+    Divergence à tester :
+    Un mix requirements mappables-manquants + non-mappables → gate bloque (T002),
+    mais spec_coverage > 0.0 (T003). Le système doit détecter que build bloqué ≠ "tout va bien".
+    """
+
+    def _gate(self, requirements, files):
+        from agents.requirements_engine import gate_check
+        return gate_check(requirements, files)
+
+    def _coverage(self, requirements, files):
+        from agents.requirements_engine import compute_coverage
+        return compute_coverage(requirements, files)
+
+    def test_gate_blocks_on_missing_mappable_requirement(self):
+        """gate_check bloque si une route API mappable est absente."""
+        requirements = ["API Route: POST /api/posts créer un article"]
+        files = {"app/page.tsx": "export default function Home() {}"}  # route manquante
+
+        blocked, msg = self._gate(requirements, files)
+        assert blocked, (
+            "gate_check devrait bloquer : POST /api/posts/route.ts est absent.\n"
+            f"Message: {msg[:200]}"
+        )
+
+    def test_coverage_nonzero_with_non_mappable_plus_missing(self):
+        """
+        Divergence T002/T003 :
+        1 requirement mappable manquant + 1 requirement non-mappable (satisfait par défaut)
+        → gate bloque (mappable manquant)
+        → spec_coverage = 0.5 (non-mappable compte comme satisfait)
+        """
+        requirements = [
+            "API Route: POST /api/posts créer un article",   # mappable — fichier absent
+            "Authentification Clerk robuste avec session",   # non-mappable — assumé satisfait
+        ]
+        files = {"app/page.tsx": "export default function Home() {}"}
+
+        blocked, _msg = self._gate(requirements, files)
+        coverage_result = self._coverage(requirements, files)
+
+        # gate bloque (requirement mappable absent)
+        assert blocked, "gate_check doit bloquer sur le requirement mappable manquant"
+
+        # coverage > 0 (non-mappable compte comme satisfait)
+        assert coverage_result["spec_coverage"] > 0.0, (
+            "spec_coverage devrait être > 0 grâce au non-mappable satisfait par défaut.\n"
+            f"Result: {coverage_result}"
+        )
+
+        # divergence : gate dit "bloqué" mais coverage n'est pas 0
+        assert blocked and coverage_result["spec_coverage"] > 0.0, (
+            "DIVERGENCE T002/T003 non détectée : gate bloque (mappable manquant) "
+            "mais spec_coverage > 0 (non-mappable satisfait). "
+            "Le monitoring doit détecter que build_attempted=False ≠ spec_coverage=0."
+        )
+
+    def test_gate_passes_when_all_mappable_covered(self):
+        """gate_check passe si tous les requirements mappables sont couverts."""
+        requirements = [
+            "API Route: POST /api/posts créer un article",
+            "Page: /dashboard tableau de bord",
+        ]
+        files = {
+            "app/api/posts/route.ts": "export async function POST() {}",
+            "app/dashboard/page.tsx": "export default function Dashboard() {}",
+        }
+
+        blocked, msg = self._gate(requirements, files)
+        assert not blocked, (
+            f"gate_check bloque à tort alors que tous les fichiers sont présents.\n"
+            f"Message: {msg[:300]}"
+        )
+
+    def test_coverage_100_when_all_covered(self):
+        """compute_coverage retourne 1.0 quand tous les requirements sont couverts."""
+        requirements = [
+            "API Route: GET /api/posts liste des articles",
+            "Page: /dashboard tableau de bord",
+        ]
+        files = {
+            "app/api/posts/route.ts": "export async function GET() {}",
+            "app/dashboard/page.tsx": "export default function Dashboard() {}",
+        }
+
+        result = self._coverage(requirements, files)
+        assert result["spec_coverage"] == 1.0, (
+            f"Tous les requirements sont couverts → spec_coverage doit être 1.0.\n"
+            f"Result: {result}"
+        )
+
+    def test_gate_and_coverage_consistent_when_all_missing(self):
+        """
+        Cohérence totale : aucun fichier → gate bloque ET spec_coverage = 0
+        (tous les requirements mappables sont non-couverts).
+        """
+        requirements = [
+            "API Route: DELETE /api/posts/[id] supprimer un article",
+            "Page: /profile page profil utilisateur",
+        ]
+        files = {}
+
+        blocked, _msg = self._gate(requirements, files)
+        coverage_result = self._coverage(requirements, files)
+
+        assert blocked, "gate_check doit bloquer si aucun fichier n'est généré"
+        assert coverage_result["spec_coverage"] == 0.0, (
+            f"spec_coverage doit être 0.0 si aucun requirement n'est couvert.\n"
+            f"Result: {coverage_result}"
+        )
+
+    def test_requirements_engine_gate_check_importable(self):
+        """gate_check doit être importable depuis agents.requirements_engine (T002)."""
+        try:
+            from agents.requirements_engine import gate_check
+        except ImportError as e:
+            pytest.fail(f"gate_check non importable — requirements_engine.py manquant ou cassé: {e}")
+
+    def test_requirements_engine_compute_coverage_importable(self):
+        """compute_coverage doit être importable depuis agents.requirements_engine (T003)."""
+        try:
+            from agents.requirements_engine import compute_coverage
+        except ImportError as e:
+            pytest.fail(f"compute_coverage non importable — requirements_engine.py manquant ou cassé: {e}")
+
+
+# ─────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import subprocess
+    import sys
+    sys.exit(subprocess.run(
+        [sys.executable, "-m", "pytest", __file__, "-v", "--tb=short"],
+    ).returncode)

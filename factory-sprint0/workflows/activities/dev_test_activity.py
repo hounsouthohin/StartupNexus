@@ -281,12 +281,18 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         build_success = bool(result.get("success", False)) and int(dev_meta.get("build_attempts", 0)) > 0
 
         # Capture explicite de la cause d'echec métier si pas d'exception levée.
+        # T005 — préfixe cohérent avec l'état réel : pas de "BuildFailed" si build non tenté.
+        _build_attempted = bool(dev_meta.get("build_attempted", False))
+        _GATE_STATUSES = {"NOT_BUILT_BY_GATE", "MAX_ITER_REACHED"}
         runtime_error = None
         if not build_success:
             if last_build_error:
                 runtime_error = f"BuildFailed: {last_build_error}"
             elif last_test_error:
                 runtime_error = f"TestsFailed: {last_test_error}"
+            elif final_message in _GATE_STATUSES or not _build_attempted:
+                # Gate a bloqué ou build non tenté — pas un BuildFailed
+                runtime_error = f"GateBlocked: {final_message}" if final_message else "GateBlocked: build not attempted"
             elif final_message:
                 runtime_error = f"BuildFailed: {final_message}"
             elif top_error_message:

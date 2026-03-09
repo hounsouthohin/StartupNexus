@@ -7,12 +7,14 @@ from __future__ import annotations
 
 import asyncio
 import argparse
+import contextlib
 import json
 import os
 import sys
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List
 
 from temporalio.client import Client
@@ -27,6 +29,7 @@ from workflows.todo_pilot_workflow import TodoPilotWorkflow
 TASK_QUEUE = "factory-task-queue"
 _LOG_ROOT = os.path.join(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
 LEARNER_LOG_PATH = os.path.join(_LOG_ROOT, "shadow", "learner_shadow_log.json")
+SORTIES_PATH = Path(PROJECT_ROOT).parent / "sorties.md"
 
 BATCH_PROJECTS: List[Dict[str, str]] = [
     {
@@ -60,6 +63,172 @@ def _learner_events_count() -> int:
         return 0
 
 
+def _append_to_sorties(entry: Dict[str, Any]) -> None:
+    """Append one JSONL record to sorties.md (best-effort)."""
+    try:
+        SORTIES_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with open(SORTIES_PATH, "a", encoding="utf-8") as f:
+            # default=str évite qu'un objet non JSON-native bloque l'append.
+            f.write(json.dumps(entry, ensure_ascii=False, default=str) + "\n")
+    except Exception as exc:
+        # Non-bloquant: ne jamais casser le batch pour une erreur de log local.
+        print(f"[WARN] Impossible d'écrire dans {SORTIES_PATH}: {exc}")
+
+
+def _event_time_to_iso(event: Any) -> str:
+    try:
+        return event.event_time.ToDatetime().isoformat()
+    except Exception:
+        return datetime.now(timezone.utc).isoformat()
+
+
+async def _decode_payloads(client: Client, payloads: Any) -> Any:
+    if payloads is None:
+        return None
+    try:
+        decoded = await client.data_converter.decode_wrapper(payloads)
+        if len(decoded) == 1:
+            return decoded[0]
+        return decoded
+    except Exception:
+        return None
+
+
+async def _stream_activity_events_to_sorties(
+    *,
+    client: Client,
+    handle: Any,
+    workflow_id: str,
+    project_name: str,
+    stop_event: asyncio.Event,
+) -> None:
+    """
+    Stream des événements d'activités depuis l'historique Temporal.
+    Écrit une ligne JSONL dans sorties.md à chaque fin d'activité.
+    """
+    last_seen_event_id = 0
+    scheduled_event_to_activity: Dict[int, str] = {}
+
+    while True:
+        try:
+            history = await handle.fetch_history()
+            events = list(getattr(history, "events", []))
+
+            workflow_terminal = False
+            for event in events:
+                event_id = int(getattr(event, "event_id", 0))
+                if event_id <= last_seen_event_id:
+                    continue
+                last_seen_event_id = event_id
+
+                if event.HasField("activity_task_scheduled_event_attributes"):
+                    attrs = event.activity_task_scheduled_event_attributes
+                    activity_name = getattr(getattr(attrs, "activity_type", None), "name", "") or getattr(attrs, "activity_id", "")
+                    if activity_name:
+                        scheduled_event_to_activity[event_id] = activity_name
+                    continue
+
+                if event.HasField("activity_task_completed_event_attributes"):
+                    attrs = event.activity_task_completed_event_attributes
+                    scheduled_id = int(getattr(attrs, "scheduled_event_id", 0))
+                    activity_name = scheduled_event_to_activity.get(scheduled_id, f"scheduled_event_{scheduled_id}")
+                    result = await _decode_payloads(client, getattr(attrs, "result", None))
+                    _append_to_sorties(
+                        {
+                            "logged_at": datetime.now(timezone.utc).isoformat(),
+                            "event_time": _event_time_to_iso(event),
+                            "source": "scripts/run_batch.py",
+                            "event_type": "activity_completed",
+                            "workflow_id": workflow_id,
+                            "project_name": project_name,
+                            "activity_name": activity_name,
+                            "scheduled_event_id": scheduled_id,
+                            "activity_result": result,
+                        }
+                    )
+                    continue
+
+                if event.HasField("activity_task_failed_event_attributes"):
+                    attrs = event.activity_task_failed_event_attributes
+                    scheduled_id = int(getattr(attrs, "scheduled_event_id", 0))
+                    activity_name = scheduled_event_to_activity.get(scheduled_id, f"scheduled_event_{scheduled_id}")
+                    _append_to_sorties(
+                        {
+                            "logged_at": datetime.now(timezone.utc).isoformat(),
+                            "event_time": _event_time_to_iso(event),
+                            "source": "scripts/run_batch.py",
+                            "event_type": "activity_failed",
+                            "workflow_id": workflow_id,
+                            "project_name": project_name,
+                            "activity_name": activity_name,
+                            "scheduled_event_id": scheduled_id,
+                            "failure": str(getattr(attrs, "failure", "")),
+                        }
+                    )
+                    continue
+
+                if event.HasField("activity_task_timed_out_event_attributes"):
+                    attrs = event.activity_task_timed_out_event_attributes
+                    scheduled_id = int(getattr(attrs, "scheduled_event_id", 0))
+                    activity_name = scheduled_event_to_activity.get(scheduled_id, f"scheduled_event_{scheduled_id}")
+                    _append_to_sorties(
+                        {
+                            "logged_at": datetime.now(timezone.utc).isoformat(),
+                            "event_time": _event_time_to_iso(event),
+                            "source": "scripts/run_batch.py",
+                            "event_type": "activity_timed_out",
+                            "workflow_id": workflow_id,
+                            "project_name": project_name,
+                            "activity_name": activity_name,
+                            "scheduled_event_id": scheduled_id,
+                            "failure": str(getattr(attrs, "failure", "")),
+                        }
+                    )
+                    continue
+
+                if event.HasField("activity_task_canceled_event_attributes"):
+                    attrs = event.activity_task_canceled_event_attributes
+                    scheduled_id = int(getattr(attrs, "scheduled_event_id", 0))
+                    activity_name = scheduled_event_to_activity.get(scheduled_id, f"scheduled_event_{scheduled_id}")
+                    details = await _decode_payloads(client, getattr(attrs, "details", None))
+                    _append_to_sorties(
+                        {
+                            "logged_at": datetime.now(timezone.utc).isoformat(),
+                            "event_time": _event_time_to_iso(event),
+                            "source": "scripts/run_batch.py",
+                            "event_type": "activity_canceled",
+                            "workflow_id": workflow_id,
+                            "project_name": project_name,
+                            "activity_name": activity_name,
+                            "scheduled_event_id": scheduled_id,
+                            "details": details,
+                        }
+                    )
+                    continue
+
+                # Terminal workflow event: on peut arrêter le streaming.
+                if (
+                    event.HasField("workflow_execution_completed_event_attributes")
+                    or event.HasField("workflow_execution_failed_event_attributes")
+                    or event.HasField("workflow_execution_timed_out_event_attributes")
+                    or event.HasField("workflow_execution_terminated_event_attributes")
+                    or event.HasField("workflow_execution_canceled_event_attributes")
+                ):
+                    workflow_terminal = True
+
+            if workflow_terminal:
+                break
+            if stop_event.is_set():
+                # Un dernier sweep a déjà été fait dans cette itération.
+                break
+            await asyncio.sleep(1.0)
+        except Exception as exc:
+            print(f"[WARN] Streaming activity events failed for {workflow_id}: {exc}")
+            if stop_event.is_set():
+                break
+            await asyncio.sleep(1.0)
+
+
 async def _run_one(
     client: Client,
     phrase: str,
@@ -77,11 +246,23 @@ async def _run_one(
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
+    stream_stop_event = asyncio.Event()
+    stream_task = asyncio.create_task(
+        _stream_activity_events_to_sorties(
+            client=client,
+            handle=handle,
+            workflow_id=workflow_id,
+            project_name=project_name,
+            stop_event=stream_stop_event,
+        )
+    )
 
     workflow_status: str | None = None
     build_status: str | None = None
     build_success: bool | None = None
     workflow_error_message: str | None = None
+    activity_results: Dict[str, Any] = {}
+    run_metric: Dict[str, Any] = {}
 
     try:
         if result_timeout_seconds and result_timeout_seconds > 0:
@@ -94,16 +275,20 @@ async def _run_one(
             workflow_status = result.get("workflow_status")
             build_status = result.get("build_status")
             workflow_error_message = result.get("error_message")
+            activity_results = result.get("activity_results") or {}
         else:
             workflow_status = getattr(result, "workflow_status", None)
             build_status = getattr(result, "build_status", None)
             workflow_error_message = getattr(result, "error_message", None)
+            activity_results = getattr(result, "activity_results", {}) or {}
         if workflow_status is not None:
             workflow_success = workflow_status == "COMPLETED"
         if build_status is not None:
             # strict_success : uniquement SUCCESS (spec_coverage >= 50%)
             # usable_success : SUCCESS ou PARTIAL (build fonctionnel, couverture partielle)
             build_success = build_status in ("SUCCESS", "PARTIAL")
+        if isinstance(activity_results, dict):
+            run_metric = activity_results.get("dev_test", {}).get("run_metric", {}) or {}
     except TimeoutError:
         result = ""
         workflow_success = False
@@ -112,13 +297,17 @@ async def _run_one(
         result = ""
         workflow_success = False
         error = str(exc)
+    finally:
+        stream_stop_event.set()
+        with contextlib.suppress(Exception):
+            await asyncio.wait_for(stream_task, timeout=10.0)
 
     duration_seconds = round(time.perf_counter() - t0, 2)
     learner_after = _learner_events_count()
 
     strict_success = build_status == "SUCCESS"
     usable_success = build_status in ("SUCCESS", "PARTIAL")
-    return {
+    run_record = {
         "workflow_id": workflow_id,
         "run_id": getattr(handle, "first_execution_run_id", None),
         "project_name": project_name,
@@ -137,7 +326,25 @@ async def _run_one(
         "learner_events_after": learner_after,
         "learner_events_delta": learner_after - learner_before,
         "result_excerpt": str(result)[:400],
+        "activity_results": activity_results,
+        "run_metric": run_metric,
     }
+
+    sorties_entry = {
+        "logged_at": datetime.now(timezone.utc).isoformat(),
+        "source": "scripts/run_batch.py",
+        "workflow_id": run_record["workflow_id"],
+        "run_id": run_record["run_id"],
+        "project_name": run_record["project_name"],
+        "workflow_status": run_record["workflow_status"],
+        "build_status": run_record["build_status"],
+        "error": run_record["error"],
+        "workflow_error_message": run_record["workflow_error_message"],
+        "activity_results": activity_results,
+        "run_metric": run_metric,
+    }
+    _append_to_sorties(sorties_entry)
+    return run_record
 
 
 async def run_batch(

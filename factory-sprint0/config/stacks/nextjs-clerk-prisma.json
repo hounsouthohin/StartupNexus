@@ -10,6 +10,11 @@
   "cleanup_artifacts": [".next", "node_modules"],
   "workdir_keep_extra": [".npm"],
 
+  "token_budgets": {
+    "phase1_tokens": 6000,
+    "phase2_tokens": 14000
+  },
+
   "packages": {
     "next": "14.2.25",
     "react": "^18.2.0",

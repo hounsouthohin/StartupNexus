@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-03-09T12:40:33.779673+00:00",
+  "sprint_context": "baseline_avant_sprint_a",
+  "brief": "personal-blog",
+  "phrase": "Blog CMS avec Clerk (auteur unique)\n- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n- API Route : PUT /api/posts/[id] (toggle published, auth requise)",
+  "temporal_address": "localhost:7233",
+  "aggregated": {
+    "runs_count": 5,
+    "build_attempted_rate": null,
+    "build_success_rate": null,
+    "avg_iterations": null,
+    "final_status_coherence_rate": 0.0,
+    "root_cause_distribution": {
+      "unknown": 5
+    },
+    "avg_duration_seconds": 247.0,
+    "avg_semantic_violations": 0.0,
+    "targets_sprint_b": {
+      "build_attempted_rate": 0.95,
+      "build_success_rate": null,
+      "final_status_coherence_rate": 1.0,
+      "gate_divergence_rate": 0.0
+    }
+  },
+  "runs": [
+    {
+      "run_number": 1,
+      "workflow_id": "baseline-run-01-5c0ed7",
+      "started_at": "2026-03-09T12:19:58.686400+00:00",
+      "duration_seconds": 178.75,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "build_attempted": null,
+      "build_success": null,
+      "iterations": null,
+      "root_cause_category": null,
+      "semantic_violations_count": 0,
+      "final_status_coherent": false
+    },
+    {
+      "run_number": 2,
+      "workflow_id": "baseline-run-02-b0bd45",
+      "started_at": "2026-03-09T12:22:57.444971+00:00",
+      "duration_seconds": 164.81,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "build_attempted": null,
+      "build_success": null,
+      "iterations": null,
+      "root_cause_category": null,
+      "semantic_violations_count": 0,
+      "final_status_coherent": false
+    },
+    {
+      "run_number": 3,
+      "workflow_id": "baseline-run-03-a84b04",
+      "started_at": "2026-03-09T12:25:42.255600+00:00",
+      "duration_seconds": 331.36,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "build_attempted": null,
+      "build_success": null,
+      "iterations": null,
+      "root_cause_category": null,
+      "semantic_violations_count": 0,
+      "final_status_coherent": false
+    },
+    {
+      "run_number": 4,
+      "workflow_id": "baseline-run-04-22af00",
+      "started_at": "2026-03-09T12:31:13.614279+00:00",
+      "duration_seconds": 247.24,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "build_attempted": null,
+      "build_success": null,
+      "iterations": null,
+      "root_cause_category": null,
+      "semantic_violations_count": 0,
+      "final_status_coherent": false
+    },
+    {
+      "run_number": 5,
+      "workflow_id": "baseline-run-05-ca3041",
+      "started_at": "2026-03-09T12:35:20.858091+00:00",
+      "duration_seconds": 312.92,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "build_attempted": null,
+      "build_success": null,
+      "iterations": null,
+      "root_cause_category": null,
+      "semantic_violations_count": 0,
+      "final_status_coherent": false
+    }
+  ]
+}
