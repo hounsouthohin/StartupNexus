@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Optional
 
 try:
@@ -210,6 +210,22 @@ def _resolve_safe_path(path: str, base_dir: str) -> str:
     if not candidate.startswith(base):
         raise ValueError(f"Path traversal détecté: {path!r} sort de {base!r}")
     return candidate
+
+
+def _normalize_guard_path(path: str) -> str:
+    """
+    Normalise un chemin relatif pour comparaisons de guards (templates, etc.).
+    Exemple: './lib//prisma.ts' -> 'lib/prisma.ts'
+    """
+    p = (path or "").replace("\\", "/").strip()
+    while p.startswith("./"):
+        p = p[2:]
+    p = str(PurePosixPath(p))
+    if p.startswith("/"):
+        p = p[1:]
+    if p == ".":
+        return ""
+    return p
 
 
 
@@ -478,11 +494,7 @@ def write_file(path: str, content: str) -> str:
     """
     try:
         # Guard : refuser l'écrasement des fichiers gérés par templates
-        # Note: lstrip("./") est incorrect — il enlèverait le "." de ".env.local".
-        # On retire uniquement le préfixe "./" s'il est présent.
-        _norm_path = path.replace("\\", "/")
-        if _norm_path.startswith("./"):
-            _norm_path = _norm_path[2:]
+        _norm_path = _normalize_guard_path(path)
         try:
             _templated = load_stack_config(get_stack_id()).get("templated_files", {})
             if _norm_path in _templated:
@@ -988,6 +1000,42 @@ def _fix_route_prisma_client_usage(project_path: str) -> list[str]:
     return fixed_files
 
 
+def _fix_global_prisma_client_usage(project_path: str) -> list[str]:
+    """
+    Normalise Prisma sur tous les fichiers app/**/*.ts(x) hors template lib/prisma.ts.
+    Objectif: éliminer les instanciations directes résiduelles non couvertes par route.ts.
+    """
+    fixed_files: list[str] = []
+    app_root = os.path.join(project_path, "app")
+    if not os.path.isdir(app_root):
+        return fixed_files
+
+    for root, dirs, files in os.walk(app_root):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            if rel == "lib/prisma.ts":
+                continue
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_route_prisma_client_usage(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de normaliser Prisma global dans {full_path}: {e}")
+
+    if fixed_files:
+        logger.info(f"[pre-build] Prisma global normalisé: {fixed_files}")
+    return fixed_files
+
+
 def _remove_clerk_auth_routes(project_path: str) -> list[str]:
     """
     Stack Clerk: supprime les routes auth générées par erreur (next-auth/route custom),
@@ -1277,6 +1325,11 @@ def run_build(project_dir: str = ".") -> str:
             logger.warning(
                 f"[pre-build deterministic fix] route prisma client usage normalized: {route_prisma_fixes}"
             )
+        global_prisma_fixes = _fix_global_prisma_client_usage(project_path)
+        if global_prisma_fixes:
+            logger.warning(
+                f"[pre-build deterministic fix] global prisma client usage normalized: {global_prisma_fixes}"
+            )
         route_handler_fixes = _fix_untyped_route_handlers(project_path)
         if route_handler_fixes:
             logger.warning(
@@ -1290,6 +1343,12 @@ def run_build(project_dir: str = ".") -> str:
         _prisma_provider_fixed = _fix_prisma_generator_provider(project_path)
         if _prisma_provider_fixed:
             logger.warning("[pre-build deterministic fix] prisma schema provider normalized")
+        # Clerk + Next.js: éviter le prerender build-time avec clé publishable placeholder.
+        # On force le layout en dynamic pour ne pas invalider le run sur un secret runtime absent.
+        if stack_id == "nextjs-clerk-prisma":
+            _layout_dynamic_fixed = _ensure_layout_dynamic(project_path)
+            if _layout_dynamic_fixed:
+                logger.warning("[pre-build deterministic fix] app/layout.tsx force-dynamic ensured for Clerk stack")
 
         # FACTORY_STRICT_PREBUILD="1" (défaut) → valider sans réécrire (métriques honnêtes).
         # FACTORY_STRICT_PREBUILD="0" → mutations actives (mode dégradé explicite).

@@ -1274,6 +1274,33 @@ class TestPrismaSanitizer:
         set_stack_id("nextjs-clerk-prisma")
         shutil.rmtree(tmp_path, ignore_errors=True)
 
+    def test_fix_global_prisma_client_usage(self):
+        from agents.shared_tools import _fix_global_prisma_client_usage
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_global_prisma_fix")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        route_dir = tmp_path / "app" / "api" / "users"
+        route_dir.mkdir(parents=True, exist_ok=True)
+        route_path = route_dir / "route.ts"
+        route_path.write_text(
+            "import { PrismaClient } from '@prisma/client';\n"
+            "const db = new PrismaClient({ datasources: { db: { url: '' } } });\n"
+            "export async function GET(request: Request) {\n"
+            "  return Response.json(await db.user.findMany());\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        fixed = _fix_global_prisma_client_usage(str(tmp_path))
+        assert "app/api/users/route.ts" in fixed
+        updated = route_path.read_text(encoding="utf-8")
+        assert "new PrismaClient(" not in updated
+        assert "import prisma from '@/lib/prisma';" in updated
+        assert "await prisma.user.findMany()" in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
     def test_prisma_generator_provider_fix(self):
         from agents.shared_tools import _fix_prisma_generator_provider
         import shutil
@@ -1391,6 +1418,45 @@ class TestJsxEscapedQuotesSanitizer:
         )
         fixed = _sanitize_content("app/dashboard/create/page.tsx", content)
         assert fixed == content
+
+
+class TestLayoutDynamicFix:
+    """Valide l'injection force-dynamic pour éviter le prerender Clerk au build."""
+
+    def test_ensure_layout_dynamic_injects_export(self):
+        from agents.shared_tools import _ensure_layout_dynamic
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_layout_dynamic")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        app_dir = tmp_path / "app"
+        app_dir.mkdir(parents=True, exist_ok=True)
+        layout_path = app_dir / "layout.tsx"
+        layout_path.write_text(
+            "import { ClerkProvider } from '@clerk/nextjs';\n"
+            "export default function RootLayout({ children }: { children: React.ReactNode }) {\n"
+            "  return <html><body><ClerkProvider>{children}</ClerkProvider></body></html>;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        changed = _ensure_layout_dynamic(str(tmp_path))
+        updated = layout_path.read_text(encoding="utf-8")
+        assert changed is True
+        assert 'export const dynamic = "force-dynamic";' in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+class TestTemplatePathNormalization:
+    """Évite le contournement de la protection template via chemins mal normalisés."""
+
+    def test_normalize_guard_path(self):
+        from agents.shared_tools import _normalize_guard_path
+
+        assert _normalize_guard_path("./lib//prisma.ts") == "lib/prisma.ts"
+        assert _normalize_guard_path("lib\\prisma.ts") == "lib/prisma.ts"
+        assert _normalize_guard_path("/lib/prisma.ts") == "lib/prisma.ts"
 
 
 # ─────────────────────────────────────────────────────────────
