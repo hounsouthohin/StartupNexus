@@ -271,7 +271,12 @@ if __name__ == "__main__":
             "    style User fill:#f9f,stroke:#333\n"
             "    style Clerk fill:#a8d,stroke:#333\n"
             "    style PostgreSQL fill:#ff9,stroke:#333"
-        )
+        ),
+        "requirements": [
+            "Modèle Prisma: Task",
+            "Page: /dashboard",
+            "API Route: PUT /api/tasks/[id]"
+        ]
     })
 
     # ── Output qa_agent valide (exemple dict) ───────────────────────

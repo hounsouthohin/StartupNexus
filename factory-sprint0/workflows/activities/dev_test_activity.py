@@ -24,6 +24,12 @@ def _classify_root_cause(
       | prisma_import | spec_drift | max_iterations | test_failure | unknown
     """
     err = (last_build_error or "").lower()
+    if "error code: p1012" in err and "datasource property `url`" in err:
+        return "prisma_schema_config"
+    if "cannot resolve environment variable: database_url" in err:
+        return "prisma_env"
+    if "no exported member 'prismaclient'" in err:
+        return "prisma_client_api"
     if semantic_violations:
         return "semantic_violation"
     if "module not found" in err or "can't resolve" in err or "cannot find module" in err:
@@ -272,6 +278,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             top_error_message = str(top_error)
         final_message = str(dev_output.get("final_message", ""))[:200]
         gate_source = str(dev_meta.get("gate_source", "") or "")
+        blocking_guard_id = str(dev_meta.get("blocking_guard_id", "") or "")
         last_build_error = str(dev_meta.get("last_build_error", "") or "")[:200]
         last_build_error_full = str(dev_meta.get("last_build_error_full", "") or "")
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
@@ -316,6 +323,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "tests_passed": bool(metadata.get("tests_passed", False)),
             "final_message": final_message,
             "gate_source": gate_source,
+            "blocking_guard_id": blocking_guard_id,
             "last_build_error": last_build_error,
             "last_build_error_full": last_build_error_full,
             "last_test_error": last_test_error,

@@ -333,6 +333,7 @@ def dev_agent(
     files.update(_template_written)
     final_message = ""
     _final_gate_source = ""  # "content_guard" | "requirements" | "no_files" — renseigné si NOT_BUILT_BY_GATE
+    _final_blocking_guard_id = ""  # id du guard qui a bloqué (ex: "use_client", "blueprint")
     build_attempts = 0
     build_attempted = False
     build_success = False
@@ -402,7 +403,7 @@ def dev_agent(
                 + "\n".join(f"  - {f}" for f in _missing)
                 + "\n\nGénère ces fichiers avec write_file() maintenant."
                 " run_build sera disponible une fois tous présents."
-            )
+            ), "blueprint"
         # 2. USE_STATE TYPED GUARD
         _BUSINESS_PREFIXES = ("app/", "components/", "src/app/", "src/components/")
         _usestate_violations = []
@@ -420,7 +421,7 @@ def dev_agent(
                 "Fichiers concernés :\n"
                 + "\n".join(f"  - {f}" for f in _usestate_violations)
                 + "\n\nCorrige chaque occurrence : useState<Type[]>([]) avant d'appeler run_build."
-            )
+            ), "use_state_typed"
         # 3. APP ROUTER CONVENTION GUARD
         # app/dashboard.tsx → invalide. Doit être app/dashboard/page.tsx.
         # app/blog/[slug].tsx → invalide. Doit être app/blog/[slug]/page.tsx.
@@ -448,7 +449,7 @@ def dev_agent(
                 + "\n".join(f"  - {f}  →  {_suggest_fix(f)}" for f in _app_router_violations)
                 + "\n\nEn App Router, CHAQUE route doit être app/<segment>/page.tsx, PAS app/<segment>.tsx.\n"
                 "Crée les fichiers corrects avec write_file() avant d'appeler run_build."
-            )
+            ), "app_router_convention"
         # 4. PRISMA IMPORT GUARD
         _PRISMA_BAD_IMPORT = re.compile(
             r'import\s*\{[^}]*\bprisma\b[^}]*\}\s*from\s*[\'"]@prisma/client[\'"]',
@@ -477,7 +478,7 @@ def dev_agent(
                 "2. Dans chaque fichier concerné, remplace l'import invalide par :\n"
                 "   import prisma from '@/lib/prisma';\n"
                 "Appelle write_file() pour ces corrections, PUIS appelle run_build."
-            )
+            ), "prisma_import"
         # 5. APP ROUTER API NAMING GUARD
         # En App Router, les routes API doivent être dans des fichiers nommés route.ts.
         # app/api/posts/index.ts ou app/api/posts/[id].ts → invalides.
@@ -508,7 +509,7 @@ def dev_agent(
                 "  app/api/posts/[id]/route.ts     → export async function PUT() / DELETE()\n"
                 "  Signature : export async function PUT(req: Request, { params }: { params: { id: string } })\n"
                 "Supprime les fichiers invalides et crée les route.ts corrects avec write_file()."
-            )
+            ), "app_router_api_naming"
         # 6. FORBIDDEN PATHS GUARD (depuis stack config)
         _forbidden = get_forbidden_paths(stack_id) if stack_id else ["pages/", "src/pages/"]
         _forbidden_violations = [
@@ -528,7 +529,7 @@ def dev_agent(
                 "  app/api/<resource>/route.ts            → export async function GET() / POST()\n"
                 "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
                 "Crée les fichiers App Router corrects avec write_file(), puis rappelle run_build."
-            )
+            ), "forbidden_paths"
         # 7. AUTH WRAPPING ROUTE GUARD — constructif (T010)
         # Détecte: export const METHOD = auth(async (...) => { ... })
         # Ce pattern Clerk v4 / Pages Router est INCOMPATIBLE avec App Router Next.js 14.
@@ -583,7 +584,7 @@ def dev_agent(
                 + "\n\n⚠️ RÈGLE ABSOLUE : 'auth()' n'est JAMAIS un wrapper de route handler en App Router.\n"
                 "Il est appelé à l'INTÉRIEUR du handler pour obtenir userId/sessionClaims.\n"
                 "Corrige chaque fichier avec write_file(), puis appelle run_build."
-            )
+            ), "auth_wrapping_route"
 
         # 8. ROUTER QUERY APP ROUTER GUARD — constructif (T010)
         # Détecte: router.query dans app/**/*.tsx
@@ -613,7 +614,7 @@ def dev_agent(
                 "Fichiers à corriger :\n"
                 + "\n".join(f"  - {f}" for f in _rq_violations)
                 + "\nCorrige avec write_file() (préférer page serveur avec params props), puis appelle run_build."
-            )
+            ), "router_query"
 
         # 9+. CONTENT GUARDS — config-driven (T008/T009 multi-stack)
         # Toutes les règles de contenu fichier sont déclarées dans la section
@@ -633,12 +634,18 @@ def dev_agent(
             _file_prefix = _guard.get("file_prefix", "")
             _file_exts = _guard.get("file_extensions", [])
             _triggers = _guard.get("trigger_contains", [])
-            _directive = _guard.get("requires_first_directive")  # None = pas de vérification
+            _directive = _guard.get("requires_first_directive")    # None = pas de vérif ; fire si ABSENTE
+            _conflicts = _guard.get("conflicts_with_directive")    # None = pas de vérif ; fire si PRÉSENTE
             _msg_lines = _guard.get("message_lines", [f"{_gid} GUARD — BUILD BLOQUÉ", "{details}"])
 
             _violations = []
             for _fp, _fc in files_dict.items():
                 _fp_norm = _fp.replace("\\", "/")
+                # Exclure les fichiers templates — leur contenu est validé en amont,
+                # ils peuvent légitimement contenir des patterns que les guards détectent
+                # (ex: lib/prisma.ts contient new PrismaClient() dans le singleton).
+                if _fp_norm in _templated_names:
+                    continue
                 if _file_prefix and not _fp_norm.startswith(_file_prefix):
                     continue
                 if _file_exts and not any(_fp_norm.endswith(ext) for ext in _file_exts):
@@ -650,22 +657,56 @@ def dev_agent(
                 # Si une directive est requise, vérifier la première ligne non-vide
                 # Normalisation : on retire les guillemets et le ';' terminal pour comparer
                 # le contenu sémantique ('use client', "use client", 'use client'; → même chose)
-                if _directive is not None:
+                if _directive is not None or _conflicts is not None:
                     _first = next((ln.strip() for ln in _fc.splitlines() if ln.strip()), "")
                     _first_norm = _first.replace("'", "").replace('"', "").rstrip(";").strip()
-                    if _directive in _first_norm:
-                        continue  # directive présente — pas de violation
+                    if _directive is not None and _directive in _first_norm:
+                        continue  # directive requise présente — pas de violation
+                    if _conflicts is not None and _conflicts not in _first_norm:
+                        continue  # directive conflictuelle absente — pas de violation
                 _violations.append((_fp_norm, _found))
 
             if _violations:
-                _details = "\n".join(
-                    f"  - {fp}  [{', '.join(found)}]"
-                    for fp, found in _violations
-                )
-                _msg = "\n".join(_msg_lines).replace("{details}", _details)
-                return True, _msg
+                # Auto-fix pour guards avec requires_first_directive (ex: use_client).
+                # Après 2 blocages consécutifs sur le même fichier, on injecte la directive
+                # déterministement — bypass LLM (même mécanique que T010 auth_wrapping_route).
+                if _directive is not None:
+                    _remaining = []
+                    for _vfp, _vfound in _violations:
+                        _key = (_vfp, _gid)
+                        _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
+                        if _constructive_guard_failures[_key] >= 2:
+                            _orig_fc = files_dict.get(_vfp) or files_dict.get(_vfp.replace("/", "\\"), "")
+                            if _orig_fc:
+                                _fixed_fc = f'"{_directive}";\n' + _orig_fc
+                                try:
+                                    write_file.invoke({"file_path": _vfp, "content": _fixed_fc})
+                                    files_dict[_vfp] = _fixed_fc
+                                    logger.info(f"[AUTO-FIX {_gid}] {_vfp} corrigé (× {_constructive_guard_failures[_key]})")
+                                    messages.append(HumanMessage(content=(
+                                        f"[AUTO-FIX {_gid.upper()}] '{_vfp}' corrigé automatiquement "
+                                        f"après {_constructive_guard_failures[_key]} blocages : "
+                                        f"'\"{_directive}\";' ajouté en première ligne.\n"
+                                        "Vérifie que le fichier est correct, puis appelle run_build."
+                                    )))
+                                except Exception as _af_err:
+                                    logger.error(f"[AUTO-FIX {_gid}] Erreur écriture {_vfp}: {_af_err}")
+                                    _remaining.append((_vfp, _vfound))
+                            else:
+                                _remaining.append((_vfp, _vfound))
+                        else:
+                            _remaining.append((_vfp, _vfound))
+                    _violations = _remaining
 
-        return False, ""
+                if _violations:
+                    _details = "\n".join(
+                        f"  - {fp}  [{', '.join(found)}]"
+                        for fp, found in _violations
+                    )
+                    _msg = "\n".join(_msg_lines).replace("{details}", _details)
+                    return True, _msg, _gid
+
+        return False, "", ""
 
     def _requirements_gate(reqs: list, files_dict: dict) -> tuple:
         """
@@ -795,7 +836,7 @@ def dev_agent(
                             _prev_state = _state
                             _state = _SM_STRUCT_GATES
                             logger.info(f"[STATE] {_prev_state} → {_state}")
-                            _gate_blocked, _gate_msg = _prebuild_gates(files)
+                            _gate_blocked, _gate_msg, _ = _prebuild_gates(files)
                             if not _gate_blocked:
                                 # ── REQUIREMENTS GATE ─────────────────────────────────────────
                                 _prev_state = _state
@@ -964,7 +1005,7 @@ def dev_agent(
         if all(any(k in p for p in files) for k in key_files) and not build_success:
             # Ordre: d'abord les gates structurelles (_prebuild_gates), puis requirements.
             # Garantit que le LLM reçoit le feedback le plus proche du blocage réel.
-            _early_gates_blocked, _early_gates_msg = _prebuild_gates(files)
+            _early_gates_blocked, _early_gates_msg, _ = _prebuild_gates(files)
             if _early_gates_blocked:
                 messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_early_gates_msg}"))
             else:
@@ -977,7 +1018,7 @@ def dev_agent(
         # Garde-fou: si le modele stagne sans progres, forcer un run_build.
         if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
             # ── Même gates pré-build que le chemin tool_call ──────────────────
-            _forced_blocked, _forced_msg = _prebuild_gates(files)
+            _forced_blocked, _forced_msg, _ = _prebuild_gates(files)
             if not _forced_blocked:
                 _forced_blocked, _forced_msg = _requirements_gate(requirements, files)
             if _forced_blocked:
@@ -1060,15 +1101,17 @@ def dev_agent(
     if not build_attempted and files:
         _terminal_guard_handled = True
         _tg_dir = _find_project_dir(files)
-        _tg_blocked, _tg_msg = _prebuild_gates(files)
+        _tg_blocked, _tg_msg, _tg_gid = _prebuild_gates(files)
         _tg_is_structural = _tg_blocked
         if not _tg_blocked:
             _tg_blocked, _tg_msg = _requirements_gate(requirements, files)
+            _tg_gid = "requirements" if _tg_blocked else ""
         if _tg_blocked:
             # T005 — final_message canonique. Détail dans les logs.
             final_message = "NOT_BUILT_BY_GATE"
             _final_gate_source = "content_guard" if _tg_is_structural else "requirements"
-            logger.warning(f"[terminal_guard] build non tente: gate bloque. detail={_tg_msg[:400]}")
+            _final_blocking_guard_id = _tg_gid
+            logger.warning(f"[terminal_guard] build non tente: gate bloque. guard={_tg_gid} detail={_tg_msg[:400]}")
         else:
             forced_build_output = str(run_build.invoke({"project_dir": _tg_dir}))
             build_attempted = True
@@ -1134,5 +1177,6 @@ def dev_agent(
             "last_test_error_full": last_test_error_full if last_test_error_full else "",
             "last_failed_command": last_failed_command,
             "gate_source": _final_gate_source,
+            "blocking_guard_id": _final_blocking_guard_id,
         },
     }

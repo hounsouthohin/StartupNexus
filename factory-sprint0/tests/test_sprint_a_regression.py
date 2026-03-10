@@ -641,6 +641,44 @@ class TestContentGuards:
         triggered, _ = self._apply_guard(guard, files)
         assert triggered, "prisma_import_path guard doit détecter ../../lib/prisma"
 
+    # --- Guard prisma_schema_datasource_url ---
+
+    def test_prisma_schema_datasource_url_triggers(self):
+        """Prisma 7: guard doit bloquer datasource.url dans schema.prisma (P1012)."""
+        guard = self._get_guard("prisma_schema_datasource_url")
+        files = {
+            "prisma/schema.prisma": (
+                "datasource db {\n"
+                "  provider = \"postgresql\"\n"
+                "  url      = env(\"DATABASE_URL\")\n"
+                "}\n\n"
+                "generator client {\n"
+                "  provider = \"prisma-client-js\"\n"
+                "}\n"
+            )
+        }
+        triggered, msg = self._apply_guard(guard, files)
+        assert triggered, "prisma_schema_datasource_url doit déclencher sur datasource.url"
+        assert "P1012" in msg or "datasource.url" in msg, (
+            "Le message doit expliquer explicitement la contrainte Prisma 7 (P1012)"
+        )
+
+    def test_prisma_schema_datasource_url_passes_without_url(self):
+        """Prisma 7: pas de blocage si schema.prisma ne contient pas datasource.url."""
+        guard = self._get_guard("prisma_schema_datasource_url")
+        files = {
+            "prisma/schema.prisma": (
+                "datasource db {\n"
+                "  provider = \"postgresql\"\n"
+                "}\n\n"
+                "generator client {\n"
+                "  provider = \"prisma-client-js\"\n"
+                "}\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert not triggered, "Le guard ne doit pas bloquer un schema Prisma 7 valide"
+
     # --- Robustesse config vide ---
 
     def test_empty_content_guards_no_crash(self):
@@ -717,6 +755,33 @@ class TestGateDivergenceFormula:
         rate = self._divergence_rate([run])
         assert rate == 0.0, (
             f"gate_source='content_guard' ne doit pas compter comme divergence. Got: {rate}"
+        )
+
+    def test_structural_gate_from_nested_run_metric_not_counted(self):
+        """
+        Régression T011 : certains logs exposent gate_source uniquement dans
+        activity_results.dev_test.run_metric (pas en top-level/metadata).
+        Ce cas doit rester NON-divergent pour content_guard.
+        """
+        run = {
+            "run_metric": {
+                "build_attempted": False,
+                "build_success": False,
+                "final_message": "NOT_BUILT_BY_GATE",
+                "spec_coverage": 0.8,
+                "iterations": 14,
+            },
+            "build_status": "BUILD_FAILED",
+            "activity_results": {
+                "dev_test": {
+                    "metadata": {"requirements_unmet": []},
+                    "run_metric": {"gate_source": "content_guard"},
+                }
+            },
+        }
+        rate = self._divergence_rate([run])
+        assert rate == 0.0, (
+            "gate_source dans activity_results.dev_test.run_metric doit exclure la divergence"
         )
 
     def test_no_files_gate_not_counted(self):
@@ -860,20 +925,21 @@ class TestT007Fallback:
         Test offline via mock — valide le comportement LangChain indépendamment de l'API.
         Skippé si langchain_core non installé dans l'env host (nécessite le conteneur).
         """
-        langchain_core = pytest.importorskip(
-            "langchain_core", reason="langchain_core non installé dans l'env host"
-        )
         from unittest.mock import MagicMock
-        RunnableWithFallbacks = langchain_core.runnables.RunnableWithFallbacks
+        try:
+            from langchain_core.runnables.fallbacks import RunnableWithFallbacks
+            from langchain_core.runnables import RunnableLambda
+        except Exception:
+            pytest.skip("RunnableWithFallbacks indisponible dans cette version de langchain_core")
 
-        primary = MagicMock()
-        primary.invoke.side_effect = Exception("RateLimitError 429 Too Many Requests")
-        fallback = MagicMock()
-        fallback.invoke.return_value = MagicMock(content="fallback response")
+        primary = RunnableLambda(lambda _: (_ for _ in ()).throw(Exception("RateLimitError 429 Too Many Requests")))
+        fallback_mock = MagicMock(side_effect=lambda _: {"content": "fallback response"})
+        fallback = RunnableLambda(fallback_mock)
 
         runnable = RunnableWithFallbacks(runnable=primary, fallbacks=[fallback])
-        runnable.invoke({"messages": []})
-        assert fallback.invoke.called, "Le fallback doit être appelé quand le primaire lève 429"
+        result = runnable.invoke({"messages": []})
+        assert fallback_mock.called, "Le fallback doit être appelé quand le primaire lève 429"
+        assert isinstance(result, dict) and result.get("content") == "fallback response"
 
     def test_fallback_disabled_by_default(self):
         """

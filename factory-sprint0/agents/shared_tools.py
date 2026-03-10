@@ -100,6 +100,9 @@ def _get_node_env() -> dict:
     env = os.environ.copy()
     env["CI"] = "true"
     env["NEXT_TELEMETRY_DISABLED"] = "1"
+    # Build deterministe: prisma generate nécessite DATABASE_URL même sans DB accessible.
+    # Fallback local pour éviter les échecs de config Prisma quand seul .env.local est présent.
+    env.setdefault("DATABASE_URL", "postgresql://user:password@localhost:5432/postgres")
     return env
 
 
@@ -357,7 +360,7 @@ def _ensure_tsconfig_excludes_tests(content: str) -> str:
         return content
 
 
-_CODE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".css", ".scss")
+_CODE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".css", ".scss", ".prisma")
 
 
 def _fix_literal_newlines(path: str, content: str) -> str:
@@ -859,6 +862,30 @@ def run_build(project_dir: str = ".") -> str:
                 f"Command failed (code {install_result.returncode}): {install_cmd}\n"
                 f"STDERR:\n{_truncate_output(stderr)}"
             )
+
+        # ── Prisma generate (Prisma 7 : postinstall ne génère plus le client auto) ──
+        # Si prisma/schema.prisma est présent, on génère le client AVANT le build.
+        # prisma generate ne nécessite pas de connexion DB — génère uniquement les types TS.
+        _schema_path = os.path.join(project_path, "prisma", "schema.prisma")
+        if os.path.isfile(_schema_path):
+            _gen_result = subprocess.run(
+                ["npx", "prisma", "generate"],
+                capture_output=True,
+                text=True,
+                timeout=SUBPROCESS_TIMEOUT_LONG,
+                env=_get_node_env(),
+                cwd=project_path,
+            )
+            if _gen_result.returncode != 0:
+                _gen_out = ((_gen_result.stdout or "") + "\n" + (_gen_result.stderr or "")).strip()
+                logger.warning(f"[run_build] prisma generate échoué (code {_gen_result.returncode})")
+                return (
+                    f"Build failed at prisma generate (code {_gen_result.returncode}).\n"
+                    f"Command failed (code {_gen_result.returncode}): npx prisma generate\n"
+                    f"STDERR:\n{_truncate_output(_gen_out)}"
+                )
+            else:
+                logger.info("[run_build] prisma generate OK — client TS généré")
 
         # ── Build (commande lue depuis stack JSON) ───────────────────────────
         build_result = subprocess.run(

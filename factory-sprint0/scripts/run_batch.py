@@ -543,15 +543,35 @@ def _parse_args() -> argparse.Namespace:
         "--batch-size",
         type=int,
         default=5,
-        help="Number of runs to execute (max 5 based on predefined project set).",
+        help="Number of runs to execute.",
     )
     return parser.parse_args()
 
 
+def _build_cli_projects(batch_size: int) -> List[Dict[str, str]]:
+    """
+    Construit une liste de projets de taille arbitraire à partir du set de référence.
+    Si batch_size > len(BATCH_PROJECTS), on recycle les briefs en suffixant les noms.
+    """
+    if batch_size <= len(BATCH_PROJECTS):
+        return BATCH_PROJECTS[:batch_size]
+
+    out: List[Dict[str, str]] = []
+    for i in range(batch_size):
+        base = BATCH_PROJECTS[i % len(BATCH_PROJECTS)]
+        out.append(
+            {
+                "project_name": f"{base['project_name']}-{i + 1:02d}",
+                "phrase": base["phrase"],
+            }
+        )
+    return out
+
+
 if __name__ == "__main__":
     args = _parse_args()
-    batch_size = max(1, min(5, int(args.batch_size)))
-    projects = BATCH_PROJECTS[:batch_size]
+    batch_size = max(1, int(args.batch_size))
+    projects = _build_cli_projects(batch_size)
     result = asyncio.run(
         run_batch(
             projects=projects,

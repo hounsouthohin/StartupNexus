@@ -111,15 +111,20 @@
       "INTERDIT: useAuth().user — useAuth() retourne { userId, sessionId, isLoaded, isSignedIn }, PAS l'objet user. CORRECT: const { user } = useUser() depuis @clerk/nextjs pour les Client Components",
       "Imports serveur Clerk depuis @clerk/nextjs/server UNIQUEMENT — imports client (useUser, UserButton) depuis @clerk/nextjs",
       "INTERDIT ABSOLU: import { clerkMiddleware } from '@clerk/nextjs' — clerkMiddleware est un middleware SERVEUR, TOUJOURS importer depuis '@clerk/nextjs/server'. Écrire en UNE SEULE ligne: import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'",
-      "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes"
+      "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes",
+      "INTERDIT ABSOLU dans les Client Components ('use client') : import depuis '@clerk/nextjs/server' (auth, currentUser, clerkClient…) — ces exports sont SERVER ONLY et crashent le build. Dans les Client Components : utiliser UNIQUEMENT useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'",
+      "app/page.tsx DOIT être un Server Component par défaut (PAS de 'use client') — utiliser auth() depuis @clerk/nextjs/server pour obtenir userId. Si des hooks React sont nécessaires, créer un sous-composant client séparé dans app/components/"
     ],
     "ui_rules": [
       "UI avec Tailwind CSS uniquement",
       "INTERDIT: shadcn/ui, @radix-ui, @headlessui, librairies de composants externes",
-      "INTERDIT: import depuis @/components/ui/*"
+      "INTERDIT: import depuis @/components/ui/*",
+      "INTERDIT: import depuis '@/types' — définir les types inline dans le fichier qui les utilise, ou dans un fichier types.ts adjacent (ex: app/types.ts). Ne pas créer de dossier types/ global."
     ],
     "orm_rules": [
-      "Prisma 7 : generer DEUX fichiers — prisma/schema.prisma ET prisma.config.ts (defineConfig depuis 'prisma/config')",
+      "Prisma 7 : generer prisma/schema.prisma UNIQUEMENT — prisma.config.ts est fourni automatiquement par la factory (TEMPLATE_PROTÉGÉ, ne pas réécrire)",
+      "Prisma 7 : dans prisma/schema.prisma, datasource db ne doit PAS contenir url = env(...) ; la connection URL est définie dans prisma.config.ts",
+      "Dans prisma/schema.prisma, le generator client DOIT utiliser provider = \"prisma-client-js\" (interdit: \"prisma-client\") pour compatibilité avec import PrismaClient depuis @prisma/client",
       "Utiliser clerkId String @unique — INTERDIT: champ password, password_hash, passwordHash avec Clerk",
       "Chaque modele Prisma DOIT avoir createdAt DateTime @default(now()) et updatedAt DateTime @updatedAt",
       "Executer prisma_migrate apres ecriture de schema.prisma"
@@ -218,7 +223,8 @@
     "tsconfig.json":                  "templates/tsconfig.json",
     ".env.local":                     "templates/env.local.template",
     "tests/middleware.test.ts":       "templates/tests/middleware.test.ts",
-    "lib/prisma.ts":                  "templates/lib_prisma.ts"
+    "lib/prisma.ts":                  "templates/lib_prisma.ts",
+    "prisma.config.ts":               "templates/prisma_config.ts"
   },
 
   "blueprint": {
@@ -349,15 +355,16 @@
         "    DOIT avoir '\"use client\"' comme PREMIÈRE ligne du fichier.",
         "  • Alternative : convertir en Server Component (async function, pas de hooks).",
         "",
-        "CORRECTION REQUISE :",
-        "  Pour chaque fichier listé, ajouter EN PREMIÈRE LIGNE :",
-        "    '\"use client\";'",
-        "  OU réécrire le composant en Server Component sans hooks.",
+        "⚠️ CORRECTION OBLIGATOIRE — TOUS LES FICHIERS EN UNE SEULE PASSE :",
+        "  1. Appelle write_file() pour CHACUN des fichiers listés ci-dessous.",
+        "  2. La PREMIÈRE LIGNE de chaque fichier DOIT être exactement : '\"use client\";'",
+        "  3. Corrige TOUS les fichiers listés dans CE tour — NE PAS en corriger un seul puis rappeler run_build.",
+        "  4. Une fois TOUS les write_file() effectués, appelle run_build UNE SEULE fois.",
         "",
-        "Fichiers à corriger :",
+        "Fichiers à corriger (TOUS en un seul tour) :",
         "{details}",
         "",
-        "Corrige avec write_file() puis appelle run_build."
+        "→ write_file() × N fichiers → run_build() — dans cet ordre, sans intermédiaire."
       ]
     },
     {
@@ -408,6 +415,59 @@
       ]
     },
     {
+      "id": "prisma_schema_datasource_url",
+      "description": "Prisma 7 interdit datasource.url dans schema.prisma",
+      "file_prefix": "prisma/",
+      "file_extensions": [".prisma"],
+      "trigger_contains": ["url      = env(\"DATABASE_URL\")", "url = env(\"DATABASE_URL\")", "url = env('DATABASE_URL')"],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA DATASOURCE URL GUARD — BUILD BLOQUÉ",
+        "Prisma 7 n'accepte plus `datasource.url` dans `schema.prisma`.",
+        "",
+        "ERREUR TYPOQUE :",
+        "  Error code: P1012",
+        "  The datasource property `url` is no longer supported in schema files.",
+        "",
+        "CORRECTION OBLIGATOIRE :",
+        "  1. Dans prisma/schema.prisma, SUPPRIMER la ligne `url = env(...)` du bloc datasource.",
+        "  2. Garder uniquement:",
+        "       datasource db {",
+        "         provider = \"postgresql\"",
+        "       }",
+        "  3. Laisser l'URL dans prisma.config.ts (datasource.url).",
+        "",
+        "Fichier à corriger :",
+        "{details}",
+        "",
+        "Corrige avec write_file(), puis appelle run_build."
+      ]
+    },
+    {
+      "id": "prisma_generator_provider",
+      "description": "Generator Prisma incompatible avec import @prisma/client",
+      "file_prefix": "prisma/",
+      "file_extensions": [".prisma"],
+      "trigger_contains": ["provider = \"prisma-client\"", "provider = 'prisma-client'"],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA GENERATOR PROVIDER GUARD — BUILD BLOQUÉ",
+        "Le schema Prisma utilise provider = \"prisma-client\", incompatible avec cette stack.",
+        "",
+        "RÈGLE STACK:",
+        "  ✅ generator client { provider = \"prisma-client-js\" }",
+        "  ❌ generator client { provider = \"prisma-client\" }",
+        "",
+        "Raison : cette factory importe PrismaClient depuis '@prisma/client' (lib/prisma.ts).",
+        "Avec provider = \"prisma-client\", PrismaClient n'est pas exporté comme attendu et le build casse.",
+        "",
+        "Fichier à corriger :",
+        "{details}",
+        "",
+        "Corrige le provider en \"prisma-client-js\", puis appelle run_build."
+      ]
+    },
+    {
       "id": "prisma_direct_instantiation",
       "description": "new PrismaClient() ou import { PrismaClient } direct — utiliser le singleton @/lib/prisma",
       "file_prefix": "",
@@ -453,6 +513,36 @@
         "{details}",
         "",
         "Remplace useAuth() par useUser() pour accéder à l'objet user, puis appelle run_build."
+      ]
+    },
+    {
+      "id": "clerk_server_in_client",
+      "description": "Import @clerk/nextjs/server dans un Client Component — BUILD BLOQUÉ",
+      "file_prefix": "app/",
+      "file_extensions": [".tsx", ".ts"],
+      "trigger_contains": ["from '@clerk/nextjs/server'", "from \"@clerk/nextjs/server\""],
+      "requires_first_directive": null,
+      "conflicts_with_directive": "use client",
+      "message_lines": [
+        "CLERK SERVER IN CLIENT GUARD — BUILD BLOQUÉ",
+        "'@clerk/nextjs/server' est SERVER ONLY et ne peut pas être importé depuis un Client Component.",
+        "",
+        "ERREUR NEXT.JS RÉSULTANTE :",
+        "  ✗ 'server-only' cannot be imported from a Client Component module.",
+        "    The error was caused by importing '@clerk/nextjs/dist/esm/server/index.js'",
+        "",
+        "RÈGLE ABSOLUE :",
+        "  • Client Component ('use client') : utiliser useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'",
+        "  • Server Component / Route Handler : utiliser auth(), currentUser() depuis '@clerk/nextjs/server'",
+        "",
+        "CORRECTIONS POSSIBLES pour chaque fichier listé :",
+        "  Option A — Convertir en Server Component (supprimer 'use client', garder auth() serveur)",
+        "  Option B — Remplacer les imports serveur par useAuth()/useUser() client",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Choisis l'option adaptée, corrige avec write_file(), puis appelle run_build."
       ]
     }
   ]

@@ -47,11 +47,27 @@ def _check_final_status_coherence(run_metric: dict[str, Any], workflow_build_sta
     return workflow_build_status in ("BUILD_FAILED", "FAILED", "SEMANTIC_VIOLATION", None)
 
 
+def _get_effective_metric(run: dict[str, Any]) -> dict[str, Any]:
+    """
+    Source de vérité métriques:
+    1) run_metric top-level (historique ancien),
+    2) activity_results.dev_test.run_metric (payload activity complet).
+    On fusionne en priorité sur le top-level pour préserver la rétro-compat.
+    """
+    top_metric = run.get("run_metric") or {}
+    nested_metric = ((run.get("activity_results") or {}).get("dev_test") or {}).get("run_metric") or {}
+    if not isinstance(top_metric, dict):
+        top_metric = {}
+    if not isinstance(nested_metric, dict):
+        nested_metric = {}
+    return {**nested_metric, **top_metric}
+
+
 def _is_legitimate_gate(run: dict[str, Any]) -> bool:
     """
     Approximation opérationnelle de "gate légitime" (plan.md) avec les données runtime.
     """
-    metric = run.get("run_metric") or {}
+    metric = _get_effective_metric(run)
     build_attempted = bool(metric.get("build_attempted", False))
     final_message = str(metric.get("final_message", ""))
     iterations = int(metric.get("iterations", 0) or 0)
@@ -84,9 +100,10 @@ def _compute_metrics(runs: list[dict[str, Any]]) -> dict[str, Any]:
     divergences = 0
     successes = 0
     iter_values: list[int] = []
+    blocking_guard_counts: dict[str, int] = {}
 
     for run in runs:
-        metric = run.get("run_metric") or {}
+        metric = _get_effective_metric(run)
         build_attempted = bool(metric.get("build_attempted", False))
         build_success = bool(metric.get("build_success", False))
         iterations = int(metric.get("iterations", 0) or 0)
@@ -107,6 +124,13 @@ def _compute_metrics(runs: list[dict[str, Any]]) -> dict[str, Any]:
             or metric.get("gate_source")
             or ""
         )
+        blocking_guard_id = (
+            _meta.get("blocking_guard_id")
+            or metric.get("blocking_guard_id")
+            or ""
+        )
+        if blocking_guard_id:
+            blocking_guard_counts[blocking_guard_id] = blocking_guard_counts.get(blocking_guard_id, 0) + 1
         final_message = str(metric.get("final_message", ""))
 
         if _check_final_status_coherence(metric, run.get("build_status")):
@@ -144,6 +168,7 @@ def _compute_metrics(runs: list[dict[str, Any]]) -> dict[str, Any]:
         "final_status_coherence_rate": round(coherent / n, 3),
         "gate_divergence_rate": round(divergences / n, 3),
         "excluded_legitimate_gates": n - adj_n,
+        "blocking_guard_counts": blocking_guard_counts,
     }
 
 
@@ -197,10 +222,16 @@ def _evaluate_thresholds(metrics: dict[str, Any], baseline_agg: dict[str, Any]) 
         failures.append("baseline build_attempted_rate manquant (null)")
 
     if baseline_coherence is not None:
+        baseline_coherence_f = float(baseline_coherence)
         deltas["final_status_coherence_rate_delta"] = round(
-            metrics["final_status_coherence_rate"] - float(baseline_coherence), 3
+            metrics["final_status_coherence_rate"] - baseline_coherence_f, 3
         )
-        if deltas["final_status_coherence_rate_delta"] <= 0:
+        # Si la baseline est déjà parfaite (1.0), un delta strictement positif est impossible.
+        # On exige alors "pas de régression" au lieu de "amélioration stricte".
+        if baseline_coherence_f >= 1.0:
+            if metrics["final_status_coherence_rate"] < 1.0:
+                failures.append("final_status_coherence_rate regressed below 1.0")
+        elif deltas["final_status_coherence_rate_delta"] <= 0:
             failures.append("delta final_status_coherence_rate <= 0 vs baseline")
     else:
         failures.append("baseline final_status_coherence_rate manquant (null)")

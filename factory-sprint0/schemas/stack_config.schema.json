@@ -142,6 +142,10 @@
             "type": ["string", "null"],
             "description": "Chaîne sémantique dont la présence en 1ère ligne non-vide annule le déclenchement (ex: 'use client'). null = pas de vérification."
           },
+          "conflicts_with_directive": {
+            "type": ["string", "null"],
+            "description": "Chaîne sémantique dont la présence en 1ère ligne non-vide déclenche le guard quand trigger_contains est trouvé (ex: import server-only dans un fichier 'use client'). null = pas de vérification."
+          },
           "message_lines": {
             "type": "array",
             "items": { "type": "string" },
