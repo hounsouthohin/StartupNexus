@@ -16,6 +16,7 @@ class TodoPilotRequest:
     phrase: str
     project_name: str
     stack_id: str = "nextjs-clerk-prisma"
+    sanity_mode: bool = False
 
 
 @dataclass
@@ -50,11 +51,13 @@ class TodoPilotWorkflow:
                 phrase=request.get("phrase", "Crée une ToDo app Next.js avec Clerk auth"),
                 project_name=request.get("project_name", "todo-pilot-sprint05"),
                 stack_id=request.get("stack_id", "nextjs-clerk-prisma"),
+                sanity_mode=bool(request.get("sanity_mode", False)),
             )
 
         phrase = request.phrase
         project_name = request.project_name
         stack_id = request.stack_id or "nextjs-clerk-prisma"
+        sanity_mode = bool(request.sanity_mode)
 
         workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase} | Stack: {stack_id}")
 
@@ -196,6 +199,27 @@ class TodoPilotWorkflow:
                     build_status = "BUILD_FAILED"
             else:
                 build_status = "BUILD_FAILED"
+
+            # Mode sanity: arrêt court après DevTest pour réduire coût/latence.
+            # On garde les métriques essentielles (build_status + metadata + run_metric)
+            # sans lancer QA/GitHub/Learner.
+            if sanity_mode:
+                total_time = (workflow.now() - start_time).total_seconds()
+                metadata = dev_test_result.get("metadata", {})
+                workflow.logger.info("[SANITY_MODE] Early return after dev_test_activity")
+                return TodoPilotOutput(
+                    workflow_status="COMPLETED",
+                    build_status=build_status,
+                    project_name=project_name,
+                    generated_files_count=int(metadata.get("total_files", 0)),
+                    pr_url="N/A",
+                    repo_url="N/A",
+                    dev_files_count=int(metadata.get("dev_files_count", 0)),
+                    test_files_count=int(metadata.get("test_files_count", 0)),
+                    duration_seconds=float(total_time),
+                    error_message=None,
+                    activity_results=activity_results,
+                )
 
             # Le workflow continue même si build échoue.
             # QA est en mode "best-effort": un echec QA (ex: quota fournisseur LLM)

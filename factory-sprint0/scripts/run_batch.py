@@ -347,6 +347,7 @@ async def _run_one(
     phrase: str,
     project_name: str,
     result_timeout_seconds: float | None = None,
+    sanity_mode: bool = False,
 ) -> Dict[str, Any]:
     workflow_id = f"todo-pilot-{project_name}-{uuid.uuid4().hex[:8]}"
     started_at = datetime.now(timezone.utc).isoformat()
@@ -355,7 +356,7 @@ async def _run_one(
 
     handle = await client.start_workflow(
         TodoPilotWorkflow.run,
-        {"phrase": phrase, "project_name": project_name},
+        {"phrase": phrase, "project_name": project_name, "sanity_mode": bool(sanity_mode)},
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
@@ -464,6 +465,7 @@ async def _run_one(
 async def run_batch(
     projects: List[Dict[str, str]],
     result_timeout_seconds: float | None = None,
+    sanity_mode: bool = False,
 ) -> Dict[str, Any]:
     client = await Client.connect(TEMPORAL_ADDRESS)
     runs: List[Dict[str, Any]] = []
@@ -474,6 +476,7 @@ async def run_batch(
             phrase=item["phrase"],
             project_name=item["project_name"],
             result_timeout_seconds=result_timeout_seconds,
+            sanity_mode=sanity_mode,
         )
         runs.append(run_data)
 
@@ -520,6 +523,7 @@ async def run_batch(
         "task_queue": TASK_QUEUE,
         "batch_size": len(projects),
         "result_timeout_seconds": result_timeout_seconds,
+        "sanity_mode": bool(sanity_mode),
         "workflow_success_count": workflow_success_count,
         "workflow_failure_count": workflow_failure_count,
         "build_success_count": build_success_count,
@@ -560,6 +564,11 @@ def _parse_args() -> argparse.Namespace:
         default=5,
         help="Number of runs to execute.",
     )
+    parser.add_argument(
+        "--sanity-mode",
+        action="store_true",
+        help="Active le mode sanity: arrêt du workflow après dev_test_activity (skip QA/GitHub/Learner).",
+    )
     return parser.parse_args()
 
 
@@ -591,6 +600,7 @@ if __name__ == "__main__":
         run_batch(
             projects=projects,
             result_timeout_seconds=args.result_timeout_seconds,
+            sanity_mode=bool(args.sanity_mode),
         )
     )
     print(json.dumps(result, ensure_ascii=True))

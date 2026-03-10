@@ -418,9 +418,41 @@ def _fix_escaped_jsx_attr_quotes(path: str, content: str) -> str:
     return content
 
 
+def _fix_overescaped_tsx_source(path: str, content: str) -> str:
+    """
+    Corrige les fichiers TSX/JSX entièrement sur-échappés par le LLM, par exemple:
+      \"use client\";\
+      import { useState } from 'react';\
+    qui provoquent "Expected unicode escape" au build.
+    """
+    if not path.endswith((".tsx", ".jsx")):
+        return content
+
+    if '\\"' not in content and "\\'" not in content:
+        return content
+
+    lines = content.splitlines()
+    first_non_empty = next((ln.strip() for ln in lines if ln.strip()), "")
+    suspicious = 0
+    if re.match(r'^\\["\']use client\\["\'];?\\?$', first_non_empty):
+        suspicious += 1
+    if len(re.findall(r";\\\s*$", content, flags=re.MULTILINE)) >= 2:
+        suspicious += 1
+    if content.count('\\"') >= 3:
+        suspicious += 1
+
+    if suspicious == 0:
+        return content
+
+    fixed = content.replace('\\"', '"').replace("\\'", "'").replace("\\`", "`")
+    fixed = re.sub(r"\\\s*$", "", fixed, flags=re.MULTILINE)
+    return fixed
+
+
 def _sanitize_content(path: str, content: str) -> str:
     """Applique tous les sanitizers sur le contenu avant écriture."""
     content = _fix_literal_newlines(path, content)
+    content = _fix_overescaped_tsx_source(path, content)
     content = _fix_escaped_jsx_attr_quotes(path, content)
     if path.endswith(".json"):
         content = _fix_json_escaping(content)
@@ -862,6 +894,121 @@ def _rewrite_prisma_named_import(content: str) -> tuple[str, int]:
     return pattern.subn("import prisma from '@/lib/prisma'", content)
 
 
+def _rewrite_route_prisma_client_usage(content: str) -> tuple[str, int]:
+    """
+    Normalise l'usage Prisma dans les route handlers App Router:
+    - supprime import PrismaClient depuis @prisma/client
+    - supprime instantiation locale new PrismaClient(...)
+    - garantit import default prisma depuis @/lib/prisma
+    """
+    updated = content
+    replacements = 0
+
+    # Supprimer import PrismaClient (named/default/combiné) depuis @prisma/client.
+    updated, count = re.subn(
+        r"^\s*import\s+PrismaClient\s+from\s+['\"]@prisma/client['\"]\s*;?\s*\n",
+        "",
+        updated,
+        flags=re.MULTILINE,
+    )
+    replacements += count
+
+    def _strip_prismaclient_from_named_import(m: re.Match) -> str:
+        nonlocal replacements
+        names = [n.strip() for n in m.group(1).split(",") if n.strip()]
+        filtered = [n for n in names if n.split(" as ")[0].strip() != "PrismaClient"]
+        if len(filtered) != len(names):
+            replacements += 1
+        if not filtered:
+            return ""
+        return f"import {{ {', '.join(filtered)} }} from '@prisma/client';\n"
+
+    updated = re.sub(
+        r"^\s*import\s*\{([^}]*)\}\s*from\s*['\"]@prisma/client['\"]\s*;?\s*\n",
+        _strip_prismaclient_from_named_import,
+        updated,
+        flags=re.MULTILINE,
+    )
+
+    # Supprimer instanciations locales de PrismaClient et normaliser vers `prisma`.
+    # Supporte les alias (ex: `const db = new PrismaClient(...)`).
+    _alias_pat = re.compile(
+        r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)"
+        r"(?:\s*:\s*[^=]+)?\s*=\s*new\s+PrismaClient\s*\((?:.|\n)*?\)\s*;?\s*$",
+        re.MULTILINE,
+    )
+    aliases = [m.group(1) for m in _alias_pat.finditer(updated)]
+    updated, count = _alias_pat.subn("", updated)
+    replacements += count
+    for _alias in aliases:
+        if _alias != "prisma":
+            updated, alias_count = re.subn(rf"\b{re.escape(_alias)}\b", "prisma", updated)
+            replacements += alias_count
+
+    # Si on a supprimé un pattern PrismaClient, injecter import canonical prisma si absent.
+    if replacements > 0 and "from '@/lib/prisma'" not in updated:
+        updated = "import prisma from '@/lib/prisma';\n" + updated.lstrip("\n")
+        replacements += 1
+
+    # Garde-fou: si des appels bruts `new PrismaClient(...)` subsistent, les remplacer.
+    updated, count = re.subn(r"new\s+PrismaClient\s*\((?:.|\n)*?\)", "prisma", updated)
+    replacements += count
+
+    return updated, replacements
+
+
+def _fix_route_prisma_client_usage(project_path: str) -> list[str]:
+    """Applique _rewrite_route_prisma_client_usage à app/api/**/route.ts."""
+    fixed_files: list[str] = []
+    api_root = os.path.join(project_path, "app", "api")
+    if not os.path.isdir(api_root):
+        return fixed_files
+
+    for root, dirs, files in os.walk(api_root):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if filename != "route.ts":
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_route_prisma_client_usage(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger PrismaClient local dans {full_path}: {e}")
+
+    if fixed_files:
+        logger.info(f"[pre-build] Route handlers Prisma normalisés: {fixed_files}")
+    return fixed_files
+
+
+def _remove_clerk_auth_routes(project_path: str) -> list[str]:
+    """
+    Stack Clerk: supprime les routes auth générées par erreur (next-auth/route custom),
+    non requises et fréquemment invalides (`auth.signIn` etc.).
+    """
+    removed: list[str] = []
+    if get_stack_id() != "nextjs-clerk-prisma":
+        return removed
+
+    auth_dir = os.path.join(project_path, "app", "api", "auth")
+    if os.path.isdir(auth_dir):
+        try:
+            shutil.rmtree(auth_dir)
+            removed.append("app/api/auth/")
+            logger.info("[pre-build] app/api/auth/ supprimé (stack Clerk)")
+        except Exception as e:
+            logger.warning(f"[pre-build] Impossible de supprimer app/api/auth/: {e}")
+
+    return removed
+
+
 def _route_dynamic_param_keys(rel_path: str) -> list[str]:
     """
     Extrait les clés dynamiques d'un chemin route.ts App Router.
@@ -1117,10 +1264,18 @@ def run_build(project_dir: str = ".") -> str:
         removed = _remove_pages_tests_router_conflicts(project_path)
         if removed:
             logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
+        removed_auth = _remove_clerk_auth_routes(project_path)
+        if removed_auth:
+            logger.warning(f"[pre-build deterministic fix] routes auth non-Clerk supprimées: {removed_auth}")
         prisma_import_fixes = _fix_prisma_named_import(project_path)
         if prisma_import_fixes:
             logger.warning(
                 f"[pre-build deterministic fix] prisma named import -> default import: {prisma_import_fixes}"
+            )
+        route_prisma_fixes = _fix_route_prisma_client_usage(project_path)
+        if route_prisma_fixes:
+            logger.warning(
+                f"[pre-build deterministic fix] route prisma client usage normalized: {route_prisma_fixes}"
             )
         route_handler_fixes = _fix_untyped_route_handlers(project_path)
         if route_handler_fixes:

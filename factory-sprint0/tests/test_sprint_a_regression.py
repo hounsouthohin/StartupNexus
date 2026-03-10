@@ -1187,6 +1187,93 @@ class TestPrismaSanitizer:
         assert "import prisma from '@/lib/prisma'" in fixed
         assert "import { prisma } from '@/lib/prisma'" not in fixed
 
+    def test_rewrite_route_prisma_client_usage(self):
+        from agents.shared_tools import _rewrite_route_prisma_client_usage
+
+        content = (
+            "import { PrismaClient } from '@prisma/client';\n"
+            "import { NextResponse } from 'next/server';\n"
+            "const prisma = new PrismaClient({ datasources: { db: { url: '' } } });\n"
+            "export async function GET(request: Request) {\n"
+            "  const posts = await prisma.post.findMany();\n"
+            "  return NextResponse.json(posts);\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_route_prisma_client_usage(content)
+        assert count >= 2
+        assert "from '@prisma/client'" not in fixed
+        assert "new PrismaClient(" not in fixed
+        assert "import prisma from '@/lib/prisma';" in fixed
+
+    def test_keep_existing_prisma_singleton_import(self):
+        from agents.shared_tools import _rewrite_route_prisma_client_usage
+
+        content = (
+            "import prisma from '@/lib/prisma';\n"
+            "export async function GET(request: Request) {\n"
+            "  return Response.json(await prisma.post.findMany());\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_route_prisma_client_usage(content)
+        assert count == 0
+        assert fixed == content
+
+    def test_rewrite_route_prisma_client_alias(self):
+        from agents.shared_tools import _rewrite_route_prisma_client_usage
+
+        content = (
+            "import { PrismaClient } from '@prisma/client';\n"
+            "const db = new PrismaClient({ datasources: { db: { url: '' } } });\n"
+            "export async function GET(request: Request) {\n"
+            "  const posts = await db.post.findMany();\n"
+            "  return Response.json(posts);\n"
+            "}\n"
+        )
+        fixed, _ = _rewrite_route_prisma_client_usage(content)
+        assert "new PrismaClient(" not in fixed
+        assert "from '@prisma/client'" not in fixed
+        assert "import prisma from '@/lib/prisma';" in fixed
+        assert "await prisma.post.findMany()" in fixed
+
+    def test_rewrite_route_prisma_client_typed_alias_and_combined_import(self):
+        from agents.shared_tools import _rewrite_route_prisma_client_usage
+
+        content = (
+            "import { PrismaClient, Prisma } from '@prisma/client';\n"
+            "const db: PrismaClient = new PrismaClient({\n"
+            "  datasources: { db: { url: '' } }\n"
+            "});\n"
+            "export async function GET(request: Request) {\n"
+            "  const posts = await db.post.findMany();\n"
+            "  return Response.json(posts as Prisma.JsonValue);\n"
+            "}\n"
+        )
+        fixed, _ = _rewrite_route_prisma_client_usage(content)
+        assert "PrismaClient" not in fixed
+        assert "new PrismaClient(" not in fixed
+        assert "import { Prisma } from '@prisma/client';" in fixed
+        assert "import prisma from '@/lib/prisma';" in fixed
+        assert "await prisma.post.findMany()" in fixed
+
+    def test_remove_clerk_auth_routes(self):
+        from agents.shared_tools import _remove_clerk_auth_routes
+        from agents.context import set_stack_id
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_clerk_auth_cleanup")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        auth_dir = tmp_path / "app" / "api" / "auth" / "[...nextauth]"
+        auth_dir.mkdir(parents=True, exist_ok=True)
+        (auth_dir / "route.ts").write_text("export async function POST(){}", encoding="utf-8")
+
+        set_stack_id("")
+        removed = _remove_clerk_auth_routes(str(tmp_path))
+        assert "app/api/auth/" in removed
+        assert not (tmp_path / "app" / "api" / "auth").exists()
+        set_stack_id("nextjs-clerk-prisma")
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
     def test_prisma_generator_provider_fix(self):
         from agents.shared_tools import _fix_prisma_generator_provider
         import shutil
@@ -1275,6 +1362,35 @@ class TestJsxEscapedQuotesSanitizer:
         fixed = _sanitize_content("app/page.tsx", content)
         assert 'className="p-4"' in fixed
         assert '\\"' not in fixed
+
+    def test_fix_overescaped_tsx_source(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "\\\"use client\\\";\\\n"
+            "import { useState } from 'react';\\\n"
+            "export default function Page() {\\\n"
+            "  return <div className=\\\"p-4\\\">Hello</div>;\\\n"
+            "}\\\n"
+        )
+        fixed = _sanitize_content("app/dashboard/create/page.tsx", content)
+        assert fixed.startswith('"use client";\n')
+        assert "import { useState } from 'react';\n" in fixed
+        assert "\\\"" not in fixed
+        assert ";\\" not in fixed
+
+    def test_do_not_touch_normal_tsx_source(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            '"use client";\n'
+            "import { useState } from 'react';\n"
+            "export default function Page() {\n"
+            '  return <div className="p-4">Hello</div>;\n'
+            "}\n"
+        )
+        fixed = _sanitize_content("app/dashboard/create/page.tsx", content)
+        assert fixed == content
 
 
 # ─────────────────────────────────────────────────────────────
