@@ -334,6 +334,7 @@ def dev_agent(
     final_message = ""
     _final_gate_source = ""  # "content_guard" | "requirements" | "no_files" — renseigné si NOT_BUILT_BY_GATE
     _final_blocking_guard_id = ""  # id du guard qui a bloqué (ex: "use_client", "blueprint")
+    _guard_warning_hits: dict[str, int] = {}  # observabilité faux positifs potentiels (guards en mode warn)
     build_attempts = 0
     build_attempted = False
     build_success = False
@@ -636,6 +637,11 @@ def dev_agent(
             _triggers = _guard.get("trigger_contains", [])
             _directive = _guard.get("requires_first_directive")    # None = pas de vérif ; fire si ABSENTE
             _conflicts = _guard.get("conflicts_with_directive")    # None = pas de vérif ; fire si PRÉSENTE
+            _mode = str(_guard.get("mode", "block")).strip().lower()
+            if _mode not in ("block", "warn"):
+                _mode = "block"
+            _exclude_paths = [str(p).replace("\\", "/") for p in (_guard.get("exclude_paths", []) or [])]
+            _exclude_when_contains = [str(s) for s in (_guard.get("exclude_when_contains", []) or [])]
             _msg_lines = _guard.get("message_lines", [f"{_gid} GUARD — BUILD BLOQUÉ", "{details}"])
 
             _violations = []
@@ -646,9 +652,13 @@ def dev_agent(
                 # (ex: lib/prisma.ts contient new PrismaClient() dans le singleton).
                 if _fp_norm in _templated_names:
                     continue
+                if any(_fp_norm.startswith(_xp) for _xp in _exclude_paths):
+                    continue
                 if _file_prefix and not _fp_norm.startswith(_file_prefix):
                     continue
                 if _file_exts and not any(_fp_norm.endswith(ext) for ext in _file_exts):
+                    continue
+                if _exclude_when_contains and any(_needle in _fc for _needle in _exclude_when_contains):
                     continue
                 # Déclenchement : au moins un trigger présent dans le contenu (substring, pas regex)
                 _found = [t for t in _triggers if t in _fc]
@@ -670,7 +680,7 @@ def dev_agent(
                 # Auto-fix pour guards avec requires_first_directive (ex: use_client).
                 # Après 2 blocages consécutifs sur le même fichier, on injecte la directive
                 # déterministement — bypass LLM (même mécanique que T010 auth_wrapping_route).
-                if _directive is not None:
+                if _mode == "block" and _directive is not None:
                     _remaining = []
                     for _vfp, _vfound in _violations:
                         _key = (_vfp, _gid)
@@ -704,6 +714,11 @@ def dev_agent(
                         for fp, found in _violations
                     )
                     _msg = "\n".join(_msg_lines).replace("{details}", _details)
+                    if _mode == "warn":
+                        _guard_warning_hits[_gid] = _guard_warning_hits.get(_gid, 0) + len(_violations)
+                        logger.warning(f"[CONTENT_GUARD WARN {_gid}] {len(_violations)} violation(s) — non bloquant")
+                        messages.append(HumanMessage(content=f"[CONTENT_GUARD WARNING:{_gid}]\n{_msg}"))
+                        continue
                     return True, _msg, _gid
 
         return False, "", ""
@@ -1178,5 +1193,7 @@ def dev_agent(
             "last_failed_command": last_failed_command,
             "gate_source": _final_gate_source,
             "blocking_guard_id": _final_blocking_guard_id,
+            "guard_warning_hits": _guard_warning_hits,
+            "guard_warning_count": sum(_guard_warning_hits.values()),
         },
     }

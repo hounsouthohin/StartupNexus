@@ -392,6 +392,29 @@
       ]
     },
     {
+      "id": "prisma_named_import",
+      "description": "Import Prisma nommé invalide depuis @/lib/prisma — utiliser default import",
+      "file_prefix": "",
+      "file_extensions": [".ts", ".tsx"],
+      "trigger_contains": ["import { prisma } from '@/lib/prisma'", "import { prisma } from \"@/lib/prisma\""],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA NAMED IMPORT GUARD — BUILD BLOQUÉ",
+        "Import nommé invalide détecté depuis '@/lib/prisma'.",
+        "",
+        "  ❌ import { prisma } from '@/lib/prisma'",
+        "  ✅ import prisma from '@/lib/prisma'",
+        "",
+        "Raison : lib/prisma.ts exporte Prisma en export DEFAULT.",
+        "L'import nommé provoque l'erreur TypeScript 'has no exported member prisma'.",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Remplace tous les imports nommés Prisma par un default import, puis appelle run_build."
+      ]
+    },
+    {
       "id": "auth_missing_await",
       "description": "auth().userId sans await — auth() est async en App Router",
       "file_prefix": "app/",
@@ -496,7 +519,8 @@
       "description": "useAuth().user interdit — useAuth() ne retourne pas l'objet user",
       "file_prefix": "app/",
       "file_extensions": [".tsx", ".ts"],
-      "trigger_contains": ["useAuth().user", "const { user } = useAuth(", "{ user, "],
+      "trigger_contains": ["useAuth().user", "const { user } = useAuth("],
+      "mode": "block",
       "requires_first_directive": null,
       "message_lines": [
         "USE AUTH USER GUARD — BUILD BLOQUÉ",

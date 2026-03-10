@@ -781,6 +781,44 @@ def _ensure_nextconfig_eslint_ignore(project_path: str) -> bool:
     return False
 
 
+def _fix_prisma_named_import(project_path: str) -> list[str]:
+    """
+    Auto-fix déterministe Prisma:
+    Corrige `import { prisma } from '@/lib/prisma'` vers
+    `import prisma from '@/lib/prisma'` dans les fichiers .ts/.tsx.
+    """
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_prisma_named_import(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(os.path.relpath(full_path, project_path).replace("\\", "/"))
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger import Prisma dans {full_path}: {e}")
+    if fixed_files:
+        logger.info(f"[pre-build] Prisma named import corrigé: {fixed_files}")
+    return fixed_files
+
+
+def _rewrite_prisma_named_import(content: str) -> tuple[str, int]:
+    """
+    Transforme le contenu en corrigeant l'import nommé Prisma vers import default.
+    Retourne (new_content, replacement_count).
+    """
+    pattern = re.compile(r'import\s*\{\s*prisma\s*\}\s*from\s*([\'"])@/lib/prisma\1')
+    return pattern.subn("import prisma from '@/lib/prisma'", content)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_build
 # ─────────────────────────────────────────────────────────────────────────────
@@ -829,6 +867,11 @@ def run_build(project_dir: str = ".") -> str:
         removed = _remove_pages_tests_router_conflicts(project_path)
         if removed:
             logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
+        prisma_import_fixes = _fix_prisma_named_import(project_path)
+        if prisma_import_fixes:
+            logger.warning(
+                f"[pre-build deterministic fix] prisma named import -> default import: {prisma_import_fixes}"
+            )
 
         # FACTORY_STRICT_PREBUILD="1" (défaut) → valider sans réécrire (métriques honnêtes).
         # FACTORY_STRICT_PREBUILD="0" → mutations actives (mode dégradé explicite).

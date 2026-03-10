@@ -455,33 +455,47 @@ class TestContentGuards:
     def _apply_guard(self, guard: dict, files_dict: dict) -> tuple:
         """
         Reproduit la logique du reader content_guards de _prebuild_gates() dans dev.py.
-        Retourne (triggered: bool, message: str).
+        Retourne (blocked: bool, message: str).
         Si cette fonction diverge de l'implémentation réelle, les tests échoueront — c'est voulu.
         """
         file_prefix = guard.get("file_prefix", "")
         file_exts = guard.get("file_extensions", [])
         triggers = guard.get("trigger_contains", [])
         directive = guard.get("requires_first_directive")
+        conflicts = guard.get("conflicts_with_directive")
+        mode = str(guard.get("mode", "block")).strip().lower()
+        if mode not in ("block", "warn"):
+            mode = "block"
+        exclude_paths = [str(p).replace("\\", "/") for p in (guard.get("exclude_paths", []) or [])]
+        exclude_when_contains = [str(s) for s in (guard.get("exclude_when_contains", []) or [])]
         msg_lines = guard.get("message_lines", [])
 
         violations = []
         for fp, fc in files_dict.items():
             fp_norm = fp.replace("\\", "/")
+            if any(fp_norm.startswith(xp) for xp in exclude_paths):
+                continue
             if file_prefix and not fp_norm.startswith(file_prefix):
                 continue
             if file_exts and not any(fp_norm.endswith(ext) for ext in file_exts):
                 continue
+            if exclude_when_contains and any(needle in fc for needle in exclude_when_contains):
+                continue
             found = [t for t in triggers if t in fc]
             if not found:
                 continue
-            if directive is not None:
+            if directive is not None or conflicts is not None:
                 first = next((ln.strip() for ln in fc.splitlines() if ln.strip()), "")
                 first_norm = first.replace("'", "").replace('"', "").rstrip(";").strip()
-                if directive in first_norm:
+                if directive is not None and directive in first_norm:
+                    continue
+                if conflicts is not None and conflicts not in first_norm:
                     continue
             violations.append((fp_norm, found))
 
         if violations:
+            if mode == "warn":
+                return False, ""
             details = "\n".join(
                 f"  - {fp}  [{', '.join(found)}]" for fp, found in violations
             )
@@ -629,6 +643,32 @@ class TestContentGuards:
         triggered, _ = self._apply_guard(guard, files)
         assert not triggered, "prisma_import_path guard ne doit pas déclencher sur @/lib/prisma"
 
+    def test_content_guard_warn_mode_does_not_block(self):
+        """Un guard en mode warn ne doit jamais bloquer le build."""
+        guard = dict(self._get_guard("use_client"))
+        guard["mode"] = "warn"
+        files = {
+            "app/page.tsx": (
+                "import { useEffect } from 'react'\n"
+                "export default function Page() { useEffect(() => {}, []); return <div/> }\n"
+            )
+        }
+        blocked, _ = self._apply_guard(guard, files)
+        assert not blocked, "mode=warn doit journaliser sans bloquer"
+
+    def test_content_guard_exclude_paths_prevents_false_positive(self):
+        """exclude_paths doit empêcher un blocage sur chemins explicitement exclus."""
+        guard = dict(self._get_guard("use_client"))
+        guard["exclude_paths"] = ["app/legacy/"]
+        files = {
+            "app/legacy/page.tsx": (
+                "import { useEffect } from 'react'\n"
+                "export default function Legacy() { useEffect(() => {}, []); return <div/> }\n"
+            )
+        }
+        blocked, _ = self._apply_guard(guard, files)
+        assert not blocked, "exclude_paths doit neutraliser le guard sur le chemin ciblé"
+
     def test_prisma_import_triggers_on_two_level_relative(self):
         """prisma_import_path guard détecte aussi un chemin à 2 niveaux (../../lib/prisma)."""
         guard = self._get_guard("prisma_import_path")
@@ -640,6 +680,31 @@ class TestContentGuards:
         }
         triggered, _ = self._apply_guard(guard, files)
         assert triggered, "prisma_import_path guard doit détecter ../../lib/prisma"
+
+    def test_prisma_named_import_triggers(self):
+        """prisma_named_import doit bloquer import { prisma } from '@/lib/prisma'."""
+        guard = self._get_guard("prisma_named_import")
+        files = {
+            "app/api/posts/route.ts": (
+                "import { prisma } from '@/lib/prisma'\n"
+                "export async function GET() { return Response.json([]) }\n"
+            )
+        }
+        triggered, msg = self._apply_guard(guard, files)
+        assert triggered, "prisma_named_import doit déclencher sur import nommé Prisma"
+        assert "import prisma from '@/lib/prisma'" in msg
+
+    def test_prisma_named_import_passes_on_default(self):
+        """prisma_named_import ne doit pas bloquer le default import Prisma."""
+        guard = self._get_guard("prisma_named_import")
+        files = {
+            "app/api/posts/route.ts": (
+                "import prisma from '@/lib/prisma'\n"
+                "export async function GET() { return Response.json([]) }\n"
+            )
+        }
+        triggered, _ = self._apply_guard(guard, files)
+        assert not triggered
 
     # --- Guard prisma_schema_datasource_url ---
 
@@ -954,6 +1019,22 @@ class TestT007Fallback:
         finally:
             if original is not None:
                 os.environ["LLM_FALLBACK_ENABLED"] = original
+
+
+class TestPrismaSanitizer:
+    """Valide l'auto-fix déterministe des imports Prisma nommés dans shared_tools.run_build."""
+
+    def test_rewrite_prisma_named_import_content(self):
+        from agents.shared_tools import _rewrite_prisma_named_import
+
+        content = (
+            "import { prisma } from '@/lib/prisma'\n"
+            "export async function GET() { return Response.json([]) }\n"
+        )
+        fixed, count = _rewrite_prisma_named_import(content)
+        assert count == 1
+        assert "import prisma from '@/lib/prisma'" in fixed
+        assert "import { prisma } from '@/lib/prisma'" not in fixed
 
 
 # ─────────────────────────────────────────────────────────────

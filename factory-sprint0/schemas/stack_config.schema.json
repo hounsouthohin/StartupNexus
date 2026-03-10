@@ -146,6 +146,21 @@
             "type": ["string", "null"],
             "description": "Chaîne sémantique dont la présence en 1ère ligne non-vide déclenche le guard quand trigger_contains est trouvé (ex: import server-only dans un fichier 'use client'). null = pas de vérification."
           },
+          "mode": {
+            "type": "string",
+            "enum": ["block", "warn"],
+            "description": "Mode du guard: block (bloquant) ou warn (journalise sans bloquer)."
+          },
+          "exclude_paths": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Préfixes de chemins à exclure de ce guard."
+          },
+          "exclude_when_contains": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Sous-chaînes dont la présence dans le contenu exclut ce guard."
+          },
           "message_lines": {
             "type": "array",
             "items": { "type": "string" },
