@@ -86,6 +86,96 @@ def _model_in_schema(model_name: str, schema_content: str) -> bool:
     ))
 
 
+def _extract_model_block(model_name: str, schema_content: str) -> str:
+    """Retourne le bloc `model <Name> { ... }` (sans accolades) ou chaîne vide."""
+    schema_content = normalize_file_content("schema.prisma", schema_content)
+    m = re.search(
+        rf"\bmodel\s+{re.escape(model_name)}\s*\{{(.*?)\}}",
+        schema_content,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if not m:
+        return ""
+    return m.group(1)
+
+
+def _extract_required_model_fields(req: str, model_name: str) -> tuple[set[str], set[str]]:
+    """
+    Extrait les champs requis d'un requirement Prisma et les champs marqués @unique.
+    Retourne (required_fields, unique_required_fields).
+    """
+    req_lower = req.lower()
+    m = re.search(r"avec\s+champs?\s+(.+)$", req_lower)
+    if not m:
+        return set(), set()
+
+    raw_fields = m.group(1)
+    chunks = re.split(r",|\bet\b", raw_fields)
+    stopwords = {
+        "avec", "champ", "champs", "model", "modèle", "prisma", "string",
+        "boolean", "datetime", "int", "float", "json", "optional", "required",
+        "unique", "slug", "id", "default", "now", "updatedat", "createdat",
+    }
+    # slug/id doivent rester autorisés comme noms de champs, on ne les retire pas ici.
+    stopwords.discard("slug")
+    stopwords.discard("id")
+    stopwords.discard("createdat")
+    stopwords.discard("updatedat")
+
+    required_fields: set[str] = set()
+    unique_required_fields: set[str] = set()
+    for chunk in chunks:
+        part = chunk.strip()
+        if not part:
+            continue
+        tokens = re.findall(r"\b[a-z_][a-z0-9_]*\b", part)
+        if not tokens:
+            continue
+        # Premier token non-stopword = nom de champ attendu.
+        field = ""
+        for t in tokens:
+            if t not in stopwords and t != model_name.lower():
+                field = t
+                break
+        if not field:
+            continue
+        required_fields.add(field)
+        if "@unique" in part or " unique" in part:
+            unique_required_fields.add(field)
+
+    return required_fields, unique_required_fields
+
+
+def _model_fields_satisfied(req: str, model_name: str, schema_content: str) -> bool:
+    """
+    Vérifie les champs critiques explicitement demandés dans le requirement.
+    Si aucun champ n'est extractible, on se limite à l'existence du modèle.
+    """
+    model_block = _extract_model_block(model_name, schema_content)
+    if not model_block:
+        return False
+
+    required_fields, unique_required_fields = _extract_required_model_fields(req, model_name)
+    if not required_fields and not unique_required_fields:
+        return True
+
+    block_lower = model_block.lower()
+    for field in required_fields:
+        if not re.search(rf"\b{re.escape(field)}\b", block_lower):
+            return False
+    for field in unique_required_fields:
+        line_match = re.search(
+            rf"^\s*{re.escape(field)}\b[^\n]*$",
+            model_block,
+            re.IGNORECASE | re.MULTILINE,
+        )
+        if not line_match:
+            return False
+        if "@unique" not in line_match.group(0).lower():
+            return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Moteur de mapping (règles A→D)
 # ---------------------------------------------------------------------------
@@ -116,7 +206,9 @@ def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
                 (v for k, v in files_dict.items() if "schema.prisma" in _norm_path(k)),
                 "",
             )
-            return True, _model_in_schema(model_name, schema_content)
+            if not _model_in_schema(model_name, schema_content):
+                return True, False
+            return True, _model_fields_satisfied(req, model_name, schema_content)
 
     # -- Règle B : route API (METHOD /path) --------------------------------
     route_match = re.search(
@@ -129,14 +221,17 @@ def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
 
     # -- Règle C : page mentionnée avec chemin (/path) ---------------------
     if "page" in req_lower:
-        page_match = re.search(r'/(?:[\w\[\]/-]+)?', req)
+        # Exige au moins un caractère après "/" pour éviter de matcher
+        # systématiquement la racine quand le requirement vise /dashboard, /blog/[slug], etc.
+        page_match = re.search(r'/[\w\[\]/\-]+', req)
         if page_match:
             raw = page_match.group(0)
-            if raw == "/":
-                return True, ("app/page.tsx" in file_set)
             page_path = _norm_path(raw.strip("/"))
             expected = _norm_path(f"app/{page_path}/page.tsx")
             return True, (expected in file_set)
+        # Cas racine explicite: "Page: /"
+        if re.search(r'(^|[\s:(])/(?=$|[\s),.:;])', req):
+            return True, ("app/page.tsx" in file_set)
 
     # -- Règle D : chemin explicite dans le texte du requirement -----------
     path_match = re.search(

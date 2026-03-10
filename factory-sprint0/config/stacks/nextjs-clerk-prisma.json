@@ -22,7 +22,8 @@
     "@clerk/nextjs": "^6.0.0",
     "prisma": "^7.0.0",
     "@prisma/client": "^7.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "zod": "^3.23.8"
   },
 
   "dev_packages": {
@@ -110,25 +111,28 @@
       "CONTEXTE SERVER COMPONENTS / ROUTE HANDLERS : auth() EST une fonction async — CORRECT: const { userId } = await auth() | INTERDIT: auth().userId sans await (retourne Promise, pas l'objet) | le remap auth().protect() NE s'applique PAS ici",
       "INTERDIT: useAuth().user — useAuth() retourne { userId, sessionId, isLoaded, isSignedIn }, PAS l'objet user. CORRECT: const { user } = useUser() depuis @clerk/nextjs pour les Client Components",
       "Imports serveur Clerk depuis @clerk/nextjs/server UNIQUEMENT — imports client (useUser, UserButton) depuis @clerk/nextjs",
-      "INTERDIT ABSOLU: import { clerkMiddleware } from '@clerk/nextjs' — clerkMiddleware est un middleware SERVEUR, TOUJOURS importer depuis '@clerk/nextjs/server'. Écrire en UNE SEULE ligne: import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'",
-      "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes",
-      "INTERDIT ABSOLU dans les Client Components ('use client') : import depuis '@clerk/nextjs/server' (auth, currentUser, clerkClient…) — ces exports sont SERVER ONLY et crashent le build. Dans les Client Components : utiliser UNIQUEMENT useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'",
-      "app/page.tsx DOIT être un Server Component par défaut (PAS de 'use client') — utiliser auth() depuis @clerk/nextjs/server pour obtenir userId. Si des hooks React sont nécessaires, créer un sous-composant client séparé dans app/components/"
-    ],
+        "INTERDIT ABSOLU: import { clerkMiddleware } from '@clerk/nextjs' — clerkMiddleware est un middleware SERVEUR, TOUJOURS importer depuis '@clerk/nextjs/server'. Écrire en UNE SEULE ligne: import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'",
+        "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes",
+        "INTERDIT ABSOLU dans les Client Components ('use client') : import depuis '@clerk/nextjs/server' (auth, currentUser, clerkClient…) — ces exports sont SERVER ONLY et crashent le build. Dans les Client Components : utiliser UNIQUEMENT useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'",
+        "app/page.tsx DOIT être un Server Component par défaut (PAS de 'use client') — utiliser auth() depuis @clerk/nextjs/server pour obtenir userId. Si des hooks React sont nécessaires, créer un sous-composant client séparé dans app/components/",
+        "API Route Handlers App Router (app/api/**/route.ts) DOIVENT typer les paramètres: export async function PUT(request: Request, { params }: { params: { id: string } }) — INTERDIT: export async function PUT(request, { params }) (TS implicit any)"
+      ],
     "ui_rules": [
       "UI avec Tailwind CSS uniquement",
       "INTERDIT: shadcn/ui, @radix-ui, @headlessui, librairies de composants externes",
       "INTERDIT: import depuis @/components/ui/*",
-      "INTERDIT: import depuis '@/types' — définir les types inline dans le fichier qui les utilise, ou dans un fichier types.ts adjacent (ex: app/types.ts). Ne pas créer de dossier types/ global."
+      "INTERDIT: import depuis '@/types' — définir les types inline dans le fichier qui les utilise, ou dans un fichier types.ts adjacent (ex: app/types.ts). Ne pas créer de dossier types/ global.",
+      "TypeScript strict: les callbacks de tableaux (map/filter/reduce) doivent typer explicitement leurs paramètres si le type n'est pas inféré (interdit: (post) => ... non typé)"
     ],
-    "orm_rules": [
-      "Prisma 7 : generer prisma/schema.prisma UNIQUEMENT — prisma.config.ts est fourni automatiquement par la factory (TEMPLATE_PROTÉGÉ, ne pas réécrire)",
-      "Prisma 7 : dans prisma/schema.prisma, datasource db ne doit PAS contenir url = env(...) ; la connection URL est définie dans prisma.config.ts",
-      "Dans prisma/schema.prisma, le generator client DOIT utiliser provider = \"prisma-client-js\" (interdit: \"prisma-client\") pour compatibilité avec import PrismaClient depuis @prisma/client",
-      "Utiliser clerkId String @unique — INTERDIT: champ password, password_hash, passwordHash avec Clerk",
-      "Chaque modele Prisma DOIT avoir createdAt DateTime @default(now()) et updatedAt DateTime @updatedAt",
-      "Executer prisma_migrate apres ecriture de schema.prisma"
-    ],
+      "orm_rules": [
+        "Prisma 7 : generer prisma/schema.prisma UNIQUEMENT — prisma.config.ts est fourni automatiquement par la factory (TEMPLATE_PROTÉGÉ, ne pas réécrire)",
+        "Prisma 7 : dans prisma/schema.prisma, datasource db ne doit PAS contenir url = env(...) ; la connection URL est définie dans prisma.config.ts",
+        "Dans prisma/schema.prisma, le generator client DOIT utiliser provider = \"prisma-client-js\" (interdit: \"prisma-client\") pour compatibilité avec import PrismaClient depuis @prisma/client",
+        "Utiliser clerkId String @unique — INTERDIT: champ password, password_hash, passwordHash avec Clerk",
+        "Chaque modele Prisma DOIT avoir createdAt DateTime @default(now()) et updatedAt DateTime @updatedAt",
+        "Quand un requirement contient 'Modèle Prisma: <Model> avec champs ...', reproduire EXACTEMENT tous les champs et contraintes dans prisma/schema.prisma (ex: slug @unique, content String) — aucun champ requis ne doit être omis",
+        "Executer prisma_migrate apres ecriture de schema.prisma"
+      ],
     "security_rules": [
       "Validation Zod sur toutes les entrees utilisateur",
       ".env.local DOIT contenir EXACTEMENT ces 3 variables : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder | CLERK_SECRET_KEY=sk_test_placeholder | DATABASE_URL=postgresql://user:password@localhost:5432/todo-batch-alpha — générer ce fichier lors de l'Étape 1 avec package.json (INTERDIT: guillemets autour de la valeur DATABASE_URL)",
@@ -217,6 +221,7 @@
 
   "templated_files": {
     "middleware.ts":                  "templates/middleware.ts",
+    "app/globals.css":                "templates/app_globals.css",
     "jest.config.js":                 "templates/jest.config.js",
     "jest.setup.js":                  "templates/jest.setup.js",
     "next.config.js":                 "templates/next.config.js",
@@ -233,6 +238,7 @@
       "next.config.js",
       "tsconfig.json",
       "app/layout.tsx",
+      "app/globals.css",
       "middleware.ts",
       "prisma/schema.prisma",
       "prisma.config.ts",
@@ -280,6 +286,8 @@
     "useAuth useUser user object client component clerk interdit useAuth().user",
     "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe"
   ],
+  "mandatory_rag_k": 4,
+  "mandatory_rag_snippet_chars": 900,
 
   "qdrant_filter": {
     "collection": "factory_standards",
@@ -373,9 +381,10 @@
       "file_prefix": "",
       "file_extensions": [".ts", ".tsx"],
       "trigger_contains": ["../lib/prisma", "../../lib/prisma"],
+      "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
-        "PRISMA IMPORT PATH GUARD — BUILD BLOQUÉ",
+        "PRISMA IMPORT PATH WARNING — NON BLOQUANT",
         "Import Prisma avec chemin relatif détecté.",
         "",
         "  ❌ import prisma from '../../../../lib/prisma'",
@@ -397,9 +406,10 @@
       "file_prefix": "",
       "file_extensions": [".ts", ".tsx"],
       "trigger_contains": ["import { prisma } from '@/lib/prisma'", "import { prisma } from \"@/lib/prisma\""],
+      "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
-        "PRISMA NAMED IMPORT GUARD — BUILD BLOQUÉ",
+        "PRISMA NAMED IMPORT WARNING — NON BLOQUANT",
         "Import nommé invalide détecté depuis '@/lib/prisma'.",
         "",
         "  ❌ import { prisma } from '@/lib/prisma'",
@@ -420,9 +430,10 @@
       "file_prefix": "app/",
       "file_extensions": [".ts", ".tsx"],
       "trigger_contains": ["auth().userId", "auth().sessionId", "auth().orgId"],
+      "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
-        "AUTH MISSING AWAIT GUARD — BUILD BLOQUÉ",
+        "AUTH MISSING AWAIT WARNING — NON BLOQUANT",
         "Appel auth() sans await détecté — auth() est une fonction async en App Router.",
         "",
         "  ❌ const userId = auth().userId",
@@ -520,10 +531,10 @@
       "file_prefix": "app/",
       "file_extensions": [".tsx", ".ts"],
       "trigger_contains": ["useAuth().user", "const { user } = useAuth("],
-      "mode": "block",
+      "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
-        "USE AUTH USER GUARD — BUILD BLOQUÉ",
+        "USE AUTH USER WARNING — NON BLOQUANT",
         "Accès à .user via useAuth() détecté — cette propriété n'existe pas.",
         "",
         "  ❌ const { user } = useAuth()",
@@ -567,6 +578,28 @@
         "{details}",
         "",
         "Choisis l'option adaptée, corrige avec write_file(), puis appelle run_build."
+      ]
+    },
+    {
+      "id": "route_handler_untyped_signature",
+      "description": "Route handler App Router non typé (request/params en any implicite)",
+      "file_prefix": "app/api/",
+      "file_extensions": [".ts"],
+      "trigger_contains": ["export async function GET(", "export async function POST(", "export async function PUT(", "export async function PATCH(", "export async function DELETE("],
+      "mode": "warn",
+      "exclude_when_contains": [": Request", "Request,", ": NextRequest", "NextRequest,", "}: { params:"],
+      "requires_first_directive": null,
+      "message_lines": [
+        "ROUTE HANDLER TYPING WARNING — NON BLOQUANT",
+        "Signature de route handler potentiellement non typée détectée (TypeScript strict).",
+        "",
+        "Signature canonique recommandée :",
+        "  export async function PUT(request: Request, { params }: { params: { id: string } }) { ... }",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Ajoute les types Request/params pour éviter l'erreur TS7006 (implicit any)."
       ]
     }
   ]

@@ -371,6 +371,75 @@ class TestGateCoverageDivergence:
             f"Message: {msg[:300]}"
         )
 
+    def test_page_requirement_does_not_fallback_to_root_path(self):
+        """
+        Régression Priorité 1:
+        "Page: /dashboard" ne doit pas matcher "/" par défaut.
+        """
+        requirements = ["Page: /dashboard tableau de bord"]
+        files = {
+            "app/page.tsx": "export default function Home() {}",
+        }
+        blocked, _ = self._gate(requirements, files)
+        assert blocked, (
+            "Le requirement /dashboard ne doit pas être considéré couvert par app/page.tsx."
+        )
+
+    def test_root_page_requirement_still_maps_to_app_page(self):
+        """Le requirement explicite 'Page: /' doit matcher app/page.tsx."""
+        requirements = ["Page: /"]
+        files = {"app/page.tsx": "export default function Home() {}"}
+        blocked, _ = self._gate(requirements, files)
+        assert not blocked, "Le requirement racine '/' doit matcher app/page.tsx."
+
+    def test_model_requirement_blocks_when_critical_field_missing(self):
+        """
+        Le requirement Prisma doit vérifier les champs critiques explicitement demandés.
+        Régression visée: modèle présent mais champ `content` absent.
+        """
+        requirements = [
+            "Modèle Prisma: Post avec champs title, content, slug @unique, published Boolean, authorId String"
+        ]
+        files = {
+            "prisma/schema.prisma": (
+                "model Post {\n"
+                "  id String @id @default(cuid())\n"
+                "  title String\n"
+                "  slug String @unique\n"
+                "  published Boolean @default(false)\n"
+                "  authorId String\n"
+                "  createdAt DateTime @default(now())\n"
+                "}\n"
+            )
+        }
+
+        blocked, _ = self._gate(requirements, files)
+        coverage = self._coverage(requirements, files)
+        assert blocked, "gate_check doit bloquer si un champ Prisma requis manque"
+        assert coverage["spec_coverage"] == 0.0
+
+    def test_model_requirement_blocks_when_unique_constraint_missing(self):
+        """Le requirement `slug @unique` doit échouer si @unique est absent dans le modèle."""
+        requirements = [
+            "Modèle Prisma: Post avec champs title, content, slug @unique, published Boolean, authorId String"
+        ]
+        files = {
+            "prisma/schema.prisma": (
+                "model Post {\n"
+                "  id String @id @default(cuid())\n"
+                "  title String\n"
+                "  content String\n"
+                "  slug String\n"
+                "  published Boolean @default(false)\n"
+                "  authorId String\n"
+                "  createdAt DateTime @default(now())\n"
+                "}\n"
+            )
+        }
+
+        blocked, _ = self._gate(requirements, files)
+        assert blocked, "gate_check doit bloquer si une contrainte @unique requise est absente"
+
     def test_coverage_100_when_all_covered(self):
         """compute_coverage retourne 1.0 quand tous les requirements sont couverts."""
         requirements = [
@@ -517,6 +586,22 @@ class TestContentGuards:
             "Clé 'content_guards' absente — le mécanisme guard config-driven est désactivé."
         )
 
+    def test_templated_globals_css_present(self):
+        """app/globals.css doit être templated (layout.tsx l'importe systématiquement)."""
+        templated = self.stack_cfg.get("templated_files", {})
+        assert "app/globals.css" in templated, (
+            "app/globals.css manquant dans templated_files — risque de build fail "
+            "sur \"Can't resolve './globals.css'\" depuis app/layout.tsx."
+        )
+
+    def test_route_handler_untyped_signature_guard_present(self):
+        """Le guard d'observabilité des signatures route.ts non typées doit être présent."""
+        guard_ids = [g.get("id") for g in self.stack_cfg.get("content_guards", [])]
+        assert "route_handler_untyped_signature" in guard_ids, (
+            "Guard route_handler_untyped_signature manquant — "
+            "les TS implicit-any sur app/api/**/route.ts deviennent invisibles."
+        )
+
     def test_content_guards_is_non_empty_list(self):
         """content_guards doit être une liste non-vide."""
         guards = self.stack_cfg.get("content_guards")
@@ -620,7 +705,8 @@ class TestContentGuards:
 
     def test_prisma_import_triggers_on_relative_deep_path(self):
         """prisma_import_path guard déclenche sur un chemin relatif profond (../../../../lib/prisma)."""
-        guard = self._get_guard("prisma_import_path")
+        guard = dict(self._get_guard("prisma_import_path"))
+        guard["mode"] = "block"
         files = {
             "app/api/posts/[id]/route.ts": (
                 "import prisma from '../../../../lib/prisma'\n"
@@ -671,7 +757,8 @@ class TestContentGuards:
 
     def test_prisma_import_triggers_on_two_level_relative(self):
         """prisma_import_path guard détecte aussi un chemin à 2 niveaux (../../lib/prisma)."""
-        guard = self._get_guard("prisma_import_path")
+        guard = dict(self._get_guard("prisma_import_path"))
+        guard["mode"] = "block"
         files = {
             "app/api/route.ts": (
                 "import prisma from '../../lib/prisma'\n"
@@ -683,7 +770,8 @@ class TestContentGuards:
 
     def test_prisma_named_import_triggers(self):
         """prisma_named_import doit bloquer import { prisma } from '@/lib/prisma'."""
-        guard = self._get_guard("prisma_named_import")
+        guard = dict(self._get_guard("prisma_named_import"))
+        guard["mode"] = "block"
         files = {
             "app/api/posts/route.ts": (
                 "import { prisma } from '@/lib/prisma'\n"
@@ -755,6 +843,21 @@ class TestContentGuards:
             self._apply_guard(guard, files)
         # Arriver ici sans exception = OK
         assert True
+
+
+class TestDevAutofixSourceGuardrails:
+    """
+    Guardrails source pour éviter la régression camelCase dans l'autofix Prisma.
+    """
+
+    def test_prisma_autofix_does_not_lowercase_requirement_fields(self):
+        dev_py = (Path(__file__).resolve().parents[1] / "agents" / "dev.py").read_text(encoding="utf-8")
+        assert "m_fields = re.search(r\"avec\\s+champs?\\s+(.+)$\", lower" not in dev_py, (
+            "Régression: parser Prisma basé sur texte lowercased (perte camelCase)."
+        )
+        assert "case_hints" in dev_py, (
+            "Régression: indices de casse absents pour préserver authorId/camelCase."
+        )
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1021,6 +1124,54 @@ class TestT007Fallback:
                 os.environ["LLM_FALLBACK_ENABLED"] = original
 
 
+class TestRouteHandlerTypingSanitizer:
+    """Valide le sanitizer pré-build qui type les signatures route.ts non typées."""
+
+    def test_rewrite_untyped_route_handler_signature(self):
+        from agents.shared_tools import _rewrite_untyped_route_handler_signatures
+
+        src = (
+            "import { NextResponse } from 'next/server';\n"
+            "export async function PUT(request, { params }) {\n"
+            "  return NextResponse.json({ ok: true });\n"
+            "}\n"
+        )
+        out, count = _rewrite_untyped_route_handler_signatures(
+            src, "app/api/posts/[id]/route.ts"
+        )
+        assert count == 1
+        assert "request: Request" in out
+        assert "{ params }: { params: { id: string } }" in out
+
+    def test_keep_typed_signature_unchanged(self):
+        from agents.shared_tools import _rewrite_untyped_route_handler_signatures
+
+        src = (
+            "export async function PUT(request: Request, { params }: { params: { id: string } }) {\n"
+            "  return Response.json({ id: params.id });\n"
+            "}\n"
+        )
+        out, count = _rewrite_untyped_route_handler_signatures(
+            src, "app/api/posts/[id]/route.ts"
+        )
+        assert count == 0
+        assert out == src
+
+    def test_rewrite_destructured_params_as_first_argument(self):
+        from agents.shared_tools import _rewrite_untyped_route_handler_signatures
+
+        src = (
+            "export async function GET({ params }) {\n"
+            "  return Response.json({ id: params.id });\n"
+            "}\n"
+        )
+        out, count = _rewrite_untyped_route_handler_signatures(
+            src, "app/api/users/[id]/route.ts"
+        )
+        assert count == 1
+        assert "export async function GET(request: Request, { params }: { params: { id: string } })" in out
+
+
 class TestPrismaSanitizer:
     """Valide l'auto-fix déterministe des imports Prisma nommés dans shared_tools.run_build."""
 
@@ -1035,6 +1186,95 @@ class TestPrismaSanitizer:
         assert count == 1
         assert "import prisma from '@/lib/prisma'" in fixed
         assert "import { prisma } from '@/lib/prisma'" not in fixed
+
+    def test_prisma_generator_provider_fix(self):
+        from agents.shared_tools import _fix_prisma_generator_provider
+        import shutil
+
+        schema = (
+            "generator client {\n"
+            "  provider   =   \"prisma-client\"\n"
+            "}\n"
+            "datasource db {\n"
+            "  provider = \"postgresql\"\n"
+            "}\n"
+        )
+        tmp_path = Path("run/_pytest_tmp_prisma_fix")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        prisma_dir = tmp_path / "prisma"
+        prisma_dir.mkdir(parents=True, exist_ok=True)
+        schema_path = prisma_dir / "schema.prisma"
+        schema_path.write_text(schema, encoding="utf-8")
+
+        changed = _fix_prisma_generator_provider(str(tmp_path))
+        assert changed is True
+        updated = schema_path.read_text(encoding="utf-8")
+        assert 'provider = "prisma-client-js"' in updated or 'provider   =   "prisma-client-js"' in updated
+        assert '"prisma-client"' not in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+class TestMapCallbackTypingSanitizer:
+    """Valide l'auto-fix déterministe des callbacks map non typés."""
+
+    def test_rewrite_untyped_map_callback(self):
+        from agents.shared_tools import _rewrite_untyped_map_callback_params
+
+        content = (
+            "export default function Page() {\n"
+            "  return posts.map((post) => <div key={post.id}>{post.title}</div>);\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_untyped_map_callback_params(content)
+        assert count >= 1
+        assert ".map((post: any) =>" in fixed
+
+    def test_keep_typed_map_callback_unchanged(self):
+        from agents.shared_tools import _rewrite_untyped_map_callback_params
+
+        content = (
+            "export default function Page() {\n"
+            "  return posts.map((post: Post) => <div key={post.id}>{post.title}</div>);\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_untyped_map_callback_params(content)
+        assert count == 0
+        assert fixed == content
+
+    def test_rewrite_untyped_filter_callback(self):
+        from agents.shared_tools import _rewrite_untyped_map_callback_params
+
+        content = "const published = posts.filter((post) => post.published);\n"
+        fixed, count = _rewrite_untyped_map_callback_params(content)
+        assert count >= 1
+        assert "filter((post: any) =>" in fixed
+
+    def test_rewrite_untyped_reduce_callback(self):
+        from agents.shared_tools import _rewrite_untyped_map_callback_params
+
+        content = "const total = items.reduce((acc, item) => acc + item.value, 0);\n"
+        fixed, count = _rewrite_untyped_map_callback_params(content)
+        assert count >= 1
+        assert "reduce((acc: any, item: any) =>" in fixed
+
+
+class TestJsxEscapedQuotesSanitizer:
+    """Valide la correction des attributs JSX sur-échappés (className=\\\"...\")."""
+
+    def test_fix_escaped_jsx_attr_quotes(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "export default function Page() {\n"
+            "  return (\n"
+            "    <div className=\\\"p-4\\\">Hello</div>\n"
+            "  );\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert 'className="p-4"' in fixed
+        assert '\\"' not in fixed
 
 
 # ─────────────────────────────────────────────────────────────

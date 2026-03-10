@@ -21,7 +21,10 @@ from .shared_tools import (
 )
 from .stack_config import get_blueprint, get_root_file, get_cleanup_artifacts, get_workdir_keep_extra, get_forbidden_paths
 from utils.prompt_loader import load_stack_prompt
-from .requirements_engine import gate_check as _engine_gate_check
+from .requirements_engine import (
+    gate_check as _engine_gate_check,
+    _extract_required_model_fields as _engine_extract_required_model_fields,
+)
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -247,11 +250,21 @@ def dev_agent(
     blueprint = get_blueprint(effective_stack_id)
     required_files = blueprint.get("required_files", []) if isinstance(blueprint, dict) else []
     mandatory_rag_queries = stack_cfg.get("mandatory_rag_queries", [])
+    try:
+        mandatory_rag_k = int(stack_cfg.get("mandatory_rag_k", 4))
+    except Exception:
+        mandatory_rag_k = 4
+    try:
+        mandatory_rag_snippet_chars = int(stack_cfg.get("mandatory_rag_snippet_chars", 900))
+    except Exception:
+        mandatory_rag_snippet_chars = 900
     mandatory_rag_context_chunks = []
     for query in mandatory_rag_queries:
         try:
-            rag_result = rag_search.invoke({"query": query})
-            mandatory_rag_context_chunks.append(f"[RAG::{query}]\n{str(rag_result)[:2500]}")
+            rag_result = rag_search.invoke({"query": query, "k": mandatory_rag_k})
+            mandatory_rag_context_chunks.append(
+                f"[RAG::{query}]\n{str(rag_result)[:mandatory_rag_snippet_chars]}"
+            )
         except Exception as rag_err:
             mandatory_rag_context_chunks.append(f"[RAG::{query}] ERROR: {rag_err}")
     mandatory_rag_context = "\n\n".join(mandatory_rag_context_chunks)
@@ -443,6 +456,61 @@ def dev_agent(
             def _suggest_fix(fp_str: str) -> str:
                 _p = PurePosixPath(fp_str)
                 return str(_p.parent / _p.stem / "page.tsx")
+            _remaining = []
+            for _bad_fp in _app_router_violations:
+                _key = (_bad_fp, "app_router_convention")
+                _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
+                # Cette violation est purement structurelle et déterministe:
+                # on migre dès la 1re détection pour casser les boucles MAX_ITERATIONS.
+                if _constructive_guard_failures[_key] >= 1:
+                    _target_fp = _suggest_fix(_bad_fp)
+                    _orig_fc = files_dict.get(_bad_fp) or files_dict.get(_bad_fp.replace("/", "\\"), "")
+                    if _orig_fc:
+                        try:
+                            write_file.invoke({"file_path": _target_fp, "content": _orig_fc})
+                            files[_target_fp] = _orig_fc
+                            # Retirer le fichier invalide du dict ET du disque pour casser
+                            # définitivement la boucle de guard + éviter conflit au build.
+                            for _k in list(files.keys()):
+                                if _k.replace("\\", "/") == _bad_fp:
+                                    del files[_k]
+                            _factory_workdir = os.getenv("FACTORY_WORKDIR")
+                            if _factory_workdir:
+                                _bad_disk = os.path.normpath(os.path.join(_factory_workdir, _bad_fp))
+                                try:
+                                    os.remove(_bad_disk)
+                                    logger.info(
+                                        f"[AUTO-FIX app_router_convention] {_bad_fp} -> {_target_fp} (dict + disque)"
+                                    )
+                                except FileNotFoundError:
+                                    logger.info(
+                                        f"[AUTO-FIX app_router_convention] {_bad_fp} -> {_target_fp} (dict, disque absent)"
+                                    )
+                            else:
+                                logger.warning(
+                                    "[AUTO-FIX app_router_convention] FACTORY_WORKDIR non défini — suppression disque impossible"
+                                )
+                            messages.append(
+                                HumanMessage(
+                                    content=(
+                                        f"[AUTO-FIX APP_ROUTER_CONVENTION] '{_bad_fp}' migré automatiquement vers "
+                                        f"'{_target_fp}' après {_constructive_guard_failures[_key]} blocages.\n"
+                                        "Le fichier invalide a été supprimé. Continue la génération, puis appelle run_build."
+                                    )
+                                )
+                            )
+                        except Exception as _af_err:
+                            logger.error(f"[AUTO-FIX app_router_convention] Erreur migration {_bad_fp}: {_af_err}")
+                            _remaining.append(_bad_fp)
+                    else:
+                        _remaining.append(_bad_fp)
+                else:
+                    _remaining.append(_bad_fp)
+            _app_router_violations = _remaining
+        if _app_router_violations:
+            def _suggest_fix(fp_str: str) -> str:
+                _p = PurePosixPath(fp_str)
+                return str(_p.parent / _p.stem / "page.tsx")
             return True, (
                 "APP ROUTER CONVENTION GUARD — BUILD BLOQUÉ\n"
                 "Fichiers .tsx invalides dans app/ — chaque route doit être <segment>/page.tsx.\n"
@@ -574,7 +642,7 @@ def dev_agent(
                 "     Il est INCOMPATIBLE avec App Router Next.js 14 — provoque 'Invalid configuration' au build.\n\n"
                 "PATTERN ATTENDU (App Router + Clerk v6) :\n"
                 "  ✅ export async function PUT(request: Request, context: { params: { id: string } }) {\n"
-                "       const { userId } = auth();  // auth() est appelé DANS le handler, jamais wrapper\n"
+                "       const { userId } = await auth();  // auth() est appelé DANS le handler, jamais wrapper\n"
                 "       if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n"
                 "       const { id } = context.params;\n"
                 "       const body = await request.json();  // request, pas req\n"
@@ -729,7 +797,308 @@ def dev_agent(
         Délègue à requirements_engine.gate_check — source de vérité unique (T002).
         Retourne (bloqué: bool, message: str).
         """
-        return _engine_gate_check(reqs, files_dict)
+        blocked, msg = _engine_gate_check(reqs, files_dict)
+        if not blocked:
+            return False, msg
+
+        # Auto-fix constructif requirements Prisma après 2 blocages identiques.
+        # Objectif: casser la boucle quand le LLM oublie des champs demandés.
+        unmet_reqs = []
+        for line in (msg or "").splitlines():
+            line = line.strip()
+            if line.startswith("- "):
+                unmet_reqs.append(line[2:].strip())
+
+        def _autofix_prisma_requirement(req_text: str, files_map: dict) -> bool:
+            if "modèle prisma" not in req_text.lower() and "model prisma" not in req_text.lower():
+                return False
+            model_match = re.search(r":\s*(\w+)", req_text)
+            if not model_match:
+                return False
+            model_name = model_match.group(1)
+            req_fields, req_unique = _engine_extract_required_model_fields(req_text, model_name)
+            if not req_fields and not req_unique:
+                return False
+
+            def _parse_field_specs_from_req(text: str) -> dict:
+                """
+                Extrait des specs de champs depuis:
+                '... avec champs title, content, slug @unique, published Boolean, authorId String'
+                """
+                out: dict = {}
+                # Indices de casse depuis le texte requirement brut.
+                # Permet de reconstruire authorId (camelCase) même si req_fields vient en lowercase.
+                case_hints: dict = {}
+                for _tok in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", text):
+                    _low = _tok.lower()
+                    if _low not in case_hints and any(ch.isupper() for ch in _tok):
+                        case_hints[_low] = _tok
+                m_fields = re.search(r"avec\s+champs?\s+(.+)$", text, re.IGNORECASE)
+                if not m_fields:
+                    # Fallback minimal depuis req_fields
+                    for _f in req_fields:
+                        _canon = case_hints.get(_f.lower(), _f)
+                        out[_canon] = {
+                            "type": "String",
+                            "unique": (_f in req_unique),
+                            "default": None,
+                        }
+                    return out
+
+                raw = m_fields.group(1)
+                chunks = [c.strip() for c in re.split(r",|\bet\b", raw, flags=re.IGNORECASE) if c.strip()]
+                valid_types = {"string": "String", "boolean": "Boolean", "datetime": "DateTime", "int": "Int", "float": "Float", "json": "Json"}
+
+                for chunk in chunks:
+                    tokens = re.findall(r"@[a-z_]+|[A-Za-z_][A-Za-z0-9_]*", chunk)
+                    if not tokens:
+                        continue
+                    field_name = tokens[0]
+                    field_type = "String"
+                    chunk_lower = chunk.lower()
+                    unique = "@unique" in chunk_lower or " unique" in chunk_lower
+                    default = None
+
+                    for t in tokens[1:]:
+                        t_lower = t.lower()
+                        if t_lower in valid_types:
+                            field_type = valid_types[t_lower]
+                            break
+                    # Heuristique utile pour cette stack/blog: published bool par défaut false.
+                    if field_name.lower() == "published" and field_type == "Boolean":
+                        default = "@default(false)"
+
+                    out[field_name] = {"type": field_type, "unique": unique, "default": default}
+
+                # Garantir couverture des champs déjà extraits par l'engine.
+                for _f in req_fields:
+                    # Respecte la casse issue du requirement si disponible.
+                    existing_key = next(
+                        (k for k in out.keys() if k.lower() == _f.lower()),
+                        case_hints.get(_f.lower(), _f),
+                    )
+                    out.setdefault(existing_key, {"type": "String", "unique": (_f in req_unique), "default": None})
+                    if _f in req_unique:
+                        out[existing_key]["unique"] = True
+                return out
+
+            def _render_field_line(fname: str, spec: dict) -> str:
+                parts = [f"  {fname}", spec.get("type", "String")]
+                if spec.get("unique"):
+                    parts.append("@unique")
+                if spec.get("default"):
+                    parts.append(spec["default"])
+                return " ".join(parts)
+
+            schema_key = next(
+                (k for k in files_map.keys() if "schema.prisma" in k.replace("\\", "/").lower()),
+                "prisma/schema.prisma",
+            )
+            schema_content = files_map.get(schema_key, "")
+            if not schema_content:
+                schema_content = f"model {model_name} {{\n}}\n"
+            field_specs = _parse_field_specs_from_req(req_text)
+
+            model_re = re.compile(
+                rf"\bmodel\s+{re.escape(model_name)}\s*\{{(.*?)\}}",
+                re.IGNORECASE | re.DOTALL,
+            )
+            m = model_re.search(schema_content)
+            # Mapping case-insensitive pour préserver camelCase du requirement.
+            field_specs_by_lower = {k.lower(): (k, v) for k, v in field_specs.items()}
+
+            # Champs structurels minimaux Prisma (stables pour cette stack).
+            base_structural_fields = {
+                "id": {"type": "String", "unique": False, "default": "@id @default(cuid())"},
+                "createdAt": {"type": "DateTime", "unique": False, "default": "@default(now())"},
+                "updatedAt": {"type": "DateTime", "unique": False, "default": "@updatedAt"},
+            }
+            if not m:
+                block_lines = []
+                # id en premier pour éviter les modèles sans PK.
+                block_lines.append(_render_field_line("id", base_structural_fields["id"]))
+                for f in sorted(req_fields):
+                    canonical_name, spec = field_specs_by_lower.get(
+                        f.lower(),
+                        (f, {"type": "String", "unique": (f in req_unique), "default": None}),
+                    )
+                    block_lines.append(_render_field_line(canonical_name, spec))
+                # Champs temporels obligatoires selon orm_rules.
+                block_lines.append(_render_field_line("createdAt", base_structural_fields["createdAt"]))
+                block_lines.append(_render_field_line("updatedAt", base_structural_fields["updatedAt"]))
+                model_block = f"model {model_name} {{\n" + "\n".join(block_lines) + "\n}\n"
+                new_schema = schema_content.rstrip() + "\n\n" + model_block
+            else:
+                block = m.group(1)
+                block_lines = [ln for ln in block.splitlines()]
+                block_lower = block.lower()
+                # Ajoute/normalise les champs requis
+                for f in sorted(req_fields):
+                    canonical_name, spec = field_specs_by_lower.get(
+                        f.lower(),
+                        (f, {"type": "String", "unique": (f in req_unique), "default": None}),
+                    )
+                    if not re.search(rf"\b{re.escape(canonical_name)}\b", block, re.IGNORECASE):
+                        block_lines.append(_render_field_line(canonical_name, spec))
+                        continue
+                    # Champ présent: normaliser type + contraintes minimales
+                    updated = False
+                    for idx, ln in enumerate(block_lines):
+                        m_line = re.search(rf"^(\s*)({re.escape(canonical_name)})\s+([A-Za-z][A-Za-z0-9_]*)\b(.*)$", ln, re.IGNORECASE)
+                        if m_line:
+                            indent, fname, _old_type, tail = m_line.groups()
+                            new_tail = tail or ""
+                            if spec.get("unique") and "@unique" not in new_tail:
+                                new_tail = (new_tail.rstrip() + " @unique").rstrip()
+                            if spec.get("default") and spec["default"] not in new_tail:
+                                new_tail = (new_tail.rstrip() + f" {spec['default']}").rstrip()
+                            block_lines[idx] = f"{indent}{fname} {spec.get('type', 'String')}{(' ' + new_tail.strip()) if new_tail.strip() else ''}"
+                            updated = True
+                            break
+                    if not updated:
+                        block_lines.append(_render_field_line(canonical_name, spec))
+
+                # Garantit les champs structurels même si le LLM les a omis.
+                for base_name in ("id", "createdAt", "updatedAt"):
+                    base_spec = base_structural_fields[base_name]
+                    if not re.search(rf"^\s*{re.escape(base_name)}\b", "\n".join(block_lines), re.IGNORECASE | re.MULTILINE):
+                        block_lines.append(_render_field_line(base_name, base_spec))
+
+                new_block = "\n".join(block_lines)
+                new_schema = schema_content[:m.start(1)] + new_block + schema_content[m.end(1):]
+
+            if new_schema == schema_content:
+                return False
+            try:
+                write_file.invoke({"file_path": schema_key, "content": new_schema})
+                files[schema_key] = new_schema
+                files_map[schema_key] = new_schema
+                logger.info(f"[AUTO-FIX requirements_prisma] {schema_key} enrichi depuis requirement: {req_text}")
+                messages.append(
+                    HumanMessage(
+                        content=(
+                            "[AUTO-FIX REQUIREMENTS_PRISMA] schema.prisma corrigé automatiquement "
+                            "à partir du requirement manquant (champs/contraintes Prisma ajoutés)."
+                        )
+                    )
+                )
+                return True
+            except Exception as _af_err:
+                # Fallback déterministe: on met à jour l'état en mémoire pour
+                # casser le blocage gate, même si l'écriture disque échoue.
+                files[schema_key] = new_schema
+                files_map[schema_key] = new_schema
+                logger.error(
+                    f"[AUTO-FIX requirements_prisma] écriture disque échouée, fallback mémoire actif: {_af_err}"
+                )
+                return True
+
+        def _autofix_path_requirement(req_text: str, files_map: dict) -> bool:
+            req_lower = req_text.lower()
+            # API Route: METHOD /path
+            m_route = re.search(r"(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)", req_text, re.IGNORECASE)
+            if m_route:
+                method = m_route.group(1).upper()
+                api_path = m_route.group(2).strip("/")
+                target = f"app/{api_path}/route.ts"
+                target_norm = target.replace("\\", "/").lower()
+                exists = any(fp.replace("\\", "/").lower() == target_norm for fp in files_map.keys())
+                if exists:
+                    return False
+                content = (
+                    "import { NextResponse } from 'next/server';\n\n"
+                    f"export async function {method}(request: Request) {{\n"
+                    "  return NextResponse.json({ ok: true });\n"
+                    "}\n"
+                )
+                try:
+                    write_file.invoke({"file_path": target, "content": content})
+                    files[target] = content
+                    files_map[target] = content
+                    messages.append(
+                        HumanMessage(
+                            content=(
+                                f"[AUTO-FIX REQUIREMENTS_PATH] Route manquante créée: '{target}'. "
+                                "Relance run_build."
+                            )
+                        )
+                    )
+                    logger.info(f"[AUTO-FIX requirements_path] créé {target} depuis requirement: {req_text}")
+                    return True
+                except Exception as _af_err:
+                    files[target] = content
+                    files_map[target] = content
+                    logger.error(
+                        f"[AUTO-FIX requirements_path] écriture route {target} échouée, fallback mémoire actif: {_af_err}"
+                    )
+                    return True
+
+            # Page: /path
+            if "page" in req_lower:
+                m_page = re.search(r"/[\w\[\]/\-]+", req_text)
+                if m_page:
+                    raw = m_page.group(0)
+                    page_path = raw.strip("/")
+                    target = f"app/{page_path}/page.tsx"
+                elif re.search(r"(^|[\s:(])/(?=$|[\s),.:;])", req_text):
+                    target = "app/page.tsx"
+                else:
+                    return False
+                target_norm = target.replace("\\", "/").lower()
+                exists = any(fp.replace("\\", "/").lower() == target_norm for fp in files_map.keys())
+                if exists:
+                    return False
+                content = (
+                    "export default function Page() {\n"
+                    "  return <main>Loading...</main>;\n"
+                    "}\n"
+                )
+                try:
+                    write_file.invoke({"file_path": target, "content": content})
+                    files[target] = content
+                    files_map[target] = content
+                    messages.append(
+                        HumanMessage(
+                            content=(
+                                f"[AUTO-FIX REQUIREMENTS_PATH] Page manquante créée: '{target}'. "
+                                "Relance run_build."
+                            )
+                        )
+                    )
+                    logger.info(f"[AUTO-FIX requirements_path] créé {target} depuis requirement: {req_text}")
+                    return True
+                except Exception as _af_err:
+                    files[target] = content
+                    files_map[target] = content
+                    logger.error(
+                        f"[AUTO-FIX requirements_path] écriture page {target} échouée, fallback mémoire actif: {_af_err}"
+                    )
+                    return True
+
+            return False
+
+        fixed_any = False
+        for req in unmet_reqs:
+            req_lower = req.lower()
+            if (
+                "modèle prisma" not in req_lower
+                and "model prisma" not in req_lower
+                and "page" not in req_lower
+                and not re.search(r"(GET|POST|PUT|PATCH|DELETE)\s+/", req, re.IGNORECASE)
+            ):
+                continue
+            _key = ("requirements_autofix", req)
+            _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
+            if _constructive_guard_failures[_key] >= 1:
+                if "modèle prisma" in req_lower or "model prisma" in req_lower:
+                    fixed_any = _autofix_prisma_requirement(req, files_dict) or fixed_any
+                else:
+                    fixed_any = _autofix_path_requirement(req, files_dict) or fixed_any
+
+        if fixed_any:
+            blocked2, msg2 = _engine_gate_check(reqs, files_dict)
+            return blocked2, msg2
+        return blocked, msg
 
     # ── T010 : Guards Constructifs — suivi des violations pour auto-write ───────
     # Compte les fois où la même violation est détectée dans le même fichier.
@@ -751,7 +1120,7 @@ def dev_agent(
             method = m.group(1)
             return (
                 f'export async function {method}(request: Request, context: any) {{\n'
-                f'  const {{ userId }} = auth();\n'
+                f'  const {{ userId }} = await auth();\n'
                 f'  if (!userId) return NextResponse.json({{ error: "Unauthorized" }}, {{ status: 401 }});\n'
                 f'  const params = context.params;\n'
             )

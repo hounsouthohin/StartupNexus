@@ -15,7 +15,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from langchain_core.tools import tool
+try:
+    from langchain_core.tools import tool
+except ModuleNotFoundError:
+    # Permet l'import de ce module dans des environnements de test allégés
+    # où langchain_core n'est pas installé.
+    def tool(func=None, *args, **kwargs):
+        if func is None:
+            def _decorator(f):
+                return f
+            return _decorator
+        return func
 from pydantic import BaseModel, Field
 
 from agents.stack_config import _DEFAULT_STACK_ID
@@ -225,6 +235,8 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
         return "[RAG] Qdrant indisponible — continuer sans contexte RAG."
 
     try:
+        max_docs = max(1, min(k, int(os.getenv("RAG_MAX_RETURN_DOCS", "4"))))
+        max_doc_chars = max(120, int(os.getenv("RAG_DOC_MAX_CHARS", "700")))
         # Filtre sur la stack active + status=active (Config-Runtime Drift #26 résolu)
         qdrant_filter = _build_rag_filter(get_stack_id())
         docs = store.similarity_search_with_score(query, k=k, filter=qdrant_filter)
@@ -244,17 +256,33 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
             )
             return f"[RAG] Aucun résultat pour: {query}"
 
+        # Déduplication sémantique légère pour réduire le bruit contexte.
+        # Même document (ou quasi-identique) peut remonter plusieurs fois.
+        deduped = []
+        seen_keys = set()
+        for doc, score in docs:
+            key = re.sub(r"\s+", " ", (doc.page_content or "").strip().lower())
+            if not key:
+                continue
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduped.append((doc, score))
+            if len(deduped) >= max_docs:
+                break
+
         doc_ids = []
         scores = []
         results = []
-        for doc, score in docs:
+        for doc, score in deduped:
             doc_id = str(getattr(doc, "id", "") or "")
             doc_ids.append(doc_id)
             scores.append(float(score))
             category = doc.metadata.get("category", "general")
-            results.append(f"[{category}] score={score:.3f}\n{doc.page_content}")
+            content = (doc.page_content or "")[:max_doc_chars]
+            results.append(f"[{category}] score={score:.3f}\n{content}")
 
-        snippet = docs[0][0].page_content[:180] if docs else ""
+        snippet = deduped[0][0].page_content[:180] if deduped else ""
         _append_rag_usage_event(
             query=query, k=k, cache_hit=False, run_id=run_id,
             doc_ids=doc_ids, scores=scores, snippet=snippet
@@ -376,9 +404,24 @@ def _fix_literal_newlines(path: str, content: str) -> str:
     return content
 
 
+def _fix_escaped_jsx_attr_quotes(path: str, content: str) -> str:
+    """
+    Corrige un artefact LLM fréquent en JSX/TSX:
+      className=\\"...\\"
+    qui provoque des erreurs de parsing "Unexpected token `div`".
+    """
+    if not path.endswith((".tsx", ".jsx")):
+        return content
+    # Ne corrige que les séquences d'attribut JSX, pas les chaînes arbitraires.
+    content = re.sub(r"(\b[A-Za-z_:][A-Za-z0-9_:\-]*=)\\+\"", r'\1"', content)
+    content = re.sub(r"\\+\"([>\s])", r'"\1', content)
+    return content
+
+
 def _sanitize_content(path: str, content: str) -> str:
     """Applique tous les sanitizers sur le contenu avant écriture."""
     content = _fix_literal_newlines(path, content)
+    content = _fix_escaped_jsx_attr_quotes(path, content)
     if path.endswith(".json"):
         content = _fix_json_escaping(content)
     content = _apply_import_remaps(content, path)
@@ -819,6 +862,213 @@ def _rewrite_prisma_named_import(content: str) -> tuple[str, int]:
     return pattern.subn("import prisma from '@/lib/prisma'", content)
 
 
+def _route_dynamic_param_keys(rel_path: str) -> list[str]:
+    """
+    Extrait les clés dynamiques d'un chemin route.ts App Router.
+    Exemple: app/api/posts/[id]/route.ts -> ["id"]
+    """
+    keys = re.findall(r"\[([a-zA-Z_][a-zA-Z0-9_]*)\]", rel_path.replace("\\", "/"))
+    return [k for k in keys if k]
+
+
+def _rewrite_untyped_route_handler_signatures(content: str, rel_path: str) -> tuple[str, int]:
+    """
+    Corrige les signatures TypeScript non typées des route handlers App Router.
+    Ex:
+      export async function PUT(request, { params }) {
+    ->
+      export async function PUT(request: Request, { params }: { params: { id: string } }) {
+    """
+    dynamic_keys = _route_dynamic_param_keys(rel_path)
+    if dynamic_keys:
+        params_shape = "; ".join(f"{k}: string" for k in dynamic_keys)
+        context_type = f"{{ params: {{ {params_shape} }} }}"
+    else:
+        context_type = "{ params: Record<string, string> }"
+
+    sig_re = re.compile(
+        r"export\s+async\s+function\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*\(([^)]*)\)",
+        re.MULTILINE,
+    )
+    replacements = 0
+
+    def _repl(m: re.Match) -> str:
+        nonlocal replacements
+        method = m.group(1)
+        args_raw = m.group(2).strip()
+        if not args_raw:
+            return m.group(0)
+
+        parts = [p.strip() for p in args_raw.split(",", 1)]
+        changed = False
+
+        # Cas invalide fréquent:
+        # export async function GET({ params }) { ... }
+        # -> le 1er arg DOIT être Request/NextRequest.
+        first = parts[0]
+        if first.startswith("{") and "params" in first:
+            if len(parts) == 1:
+                parts = ["request: Request", f"{first}: {context_type}"]
+            else:
+                parts[0] = "request: Request"
+            changed = True
+
+        # 1er argument: request/req non typé
+        first = parts[0]
+        if first and ":" not in first:
+            first_name = first or "request"
+            parts[0] = f"{first_name}: Request"
+            changed = True
+
+        # 2e argument: { params } non typé
+        if len(parts) > 1:
+            second = parts[1]
+            if "params" in second and ":" not in second:
+                # Garde le destructuring d'origine si possible, sinon canonical.
+                destructuring = second if second.startswith("{") else "{ params }"
+                parts[1] = f"{destructuring}: {context_type}"
+                changed = True
+
+        if not changed:
+            return m.group(0)
+
+        replacements += 1
+        return f"export async function {method}({', '.join(parts)})"
+
+    updated = sig_re.sub(_repl, content)
+    return updated, replacements
+
+
+def _fix_untyped_route_handlers(project_path: str) -> list[str]:
+    """
+    Auto-fix déterministe:
+    type les signatures de route handlers dans app/api/**/route.ts.
+    """
+    fixed_files: list[str] = []
+    api_root = os.path.join(project_path, "app", "api")
+    if not os.path.isdir(api_root):
+        return fixed_files
+
+    for root, dirs, files in os.walk(api_root):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if filename != "route.ts":
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_untyped_route_handler_signatures(original, rel)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de typer route handler {full_path}: {e}")
+    if fixed_files:
+        logger.info(f"[pre-build] Route handlers typés automatiquement: {fixed_files}")
+    return fixed_files
+
+
+def _rewrite_untyped_map_callback_params(content: str) -> tuple[str, int]:
+    """
+    Ajoute un type explicite `any` aux callbacks map non typés.
+    Exemple:
+      posts.map((post) => ...)
+    ->
+      posts.map((post: any) => ...)
+    Objectif: éliminer TS7006 (implicit any) de façon déterministe.
+    """
+    methods = r"(map|filter|find|some|every|forEach|flatMap)"
+
+    # Cas courant : arr.map((item) => ...)
+    pattern_paren = re.compile(
+        rf"\.{methods}\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*=>"
+    )
+    updated, count1 = pattern_paren.subn(r".\1((\2: any) =>", content)
+
+    # Variante : arr.map(item => ...)
+    pattern_plain = re.compile(
+        rf"\.{methods}\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=>"
+    )
+    updated, count2 = pattern_plain.subn(r".\1(\2: any =>", updated)
+
+    # reduce((acc, item) => ...)
+    reduce_paren = re.compile(
+        r"\.reduce\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*=>"
+    )
+    updated, count3 = reduce_paren.subn(r".reduce((\1: any, \2: any) =>", updated)
+
+    # reduce(acc, item => ...) forme rare mais tolérée
+    reduce_plain = re.compile(
+        r"\.reduce\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,\s*([A-Za-z_][A-Za-z0-9_]*)\s*=>"
+    )
+    updated, count4 = reduce_plain.subn(r".reduce((\1: any, \2: any) =>", updated)
+
+    return updated, (count1 + count2 + count3 + count4)
+
+
+def _fix_untyped_map_callbacks(project_path: str) -> list[str]:
+    """
+    Auto-fix déterministe:
+    type les callbacks map non typés dans les composants TS/TSX.
+    """
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_untyped_map_callback_params(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(os.path.relpath(full_path, project_path).replace("\\", "/"))
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de typer callbacks map dans {full_path}: {e}")
+    if fixed_files:
+        logger.info(f"[pre-build] Map callbacks typés automatiquement: {fixed_files}")
+    return fixed_files
+
+
+def _fix_prisma_generator_provider(project_path: str) -> bool:
+    """
+    Garantit la compatibilité Prisma de la stack:
+      generator client { provider = "prisma-client-js" }
+    Le LLM produit parfois "prisma-client", ce qui casse le runtime client.
+    """
+    schema_path = os.path.join(project_path, "prisma", "schema.prisma")
+    if not os.path.isfile(schema_path):
+        return False
+    try:
+        original = Path(schema_path).read_text(encoding="utf-8")
+    except Exception:
+        return False
+
+    fixed = re.sub(
+        r"(generator\s+client\s*\{[^}]*?\bprovider\s*=\s*)[\"']prisma-client[\"']",
+        r'\1"prisma-client-js"',
+        original,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if fixed == original:
+        return False
+    try:
+        Path(schema_path).write_text(fixed, encoding="utf-8")
+        logger.warning("[pre-build deterministic fix] prisma generator provider -> prisma-client-js")
+        return True
+    except Exception as e:
+        logger.warning(f"[pre-build] Impossible de corriger prisma generator provider: {e}")
+        return False
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Tool: run_build
 # ─────────────────────────────────────────────────────────────────────────────
@@ -872,6 +1122,19 @@ def run_build(project_dir: str = ".") -> str:
             logger.warning(
                 f"[pre-build deterministic fix] prisma named import -> default import: {prisma_import_fixes}"
             )
+        route_handler_fixes = _fix_untyped_route_handlers(project_path)
+        if route_handler_fixes:
+            logger.warning(
+                f"[pre-build deterministic fix] route handler signatures typed: {route_handler_fixes}"
+            )
+        map_callback_fixes = _fix_untyped_map_callbacks(project_path)
+        if map_callback_fixes:
+            logger.warning(
+                f"[pre-build deterministic fix] map callbacks typed: {map_callback_fixes}"
+            )
+        _prisma_provider_fixed = _fix_prisma_generator_provider(project_path)
+        if _prisma_provider_fixed:
+            logger.warning("[pre-build deterministic fix] prisma schema provider normalized")
 
         # FACTORY_STRICT_PREBUILD="1" (défaut) → valider sans réécrire (métriques honnêtes).
         # FACTORY_STRICT_PREBUILD="0" → mutations actives (mode dégradé explicite).

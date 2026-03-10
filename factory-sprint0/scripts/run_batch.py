@@ -76,6 +76,23 @@ def _append_to_sorties(entry: Dict[str, Any]) -> None:
         print(f"[WARN] Impossible d'écrire dans {SORTIES_PATH}: {exc}")
 
 
+def _safe_metrics_output_path(ts: str) -> str:
+    """
+    Retourne un chemin de log metrics inscriptible.
+    Priorité:
+      1) FACTORY_LOG_DIR (ou /app/logs par défaut) si inscriptible
+      2) fallback local PROJECT_ROOT/logs
+    """
+    primary_dir = os.path.join(_LOG_ROOT, "metrics")
+    try:
+        os.makedirs(primary_dir, exist_ok=True)
+        return os.path.join(primary_dir, f"todo_pilot_batch_{ts}.json")
+    except Exception:
+        fallback_dir = os.path.join(PROJECT_ROOT, "logs", "metrics")
+        os.makedirs(fallback_dir, exist_ok=True)
+        return os.path.join(fallback_dir, f"todo_pilot_batch_{ts}.json")
+
+
 def _truncate_str(value: Any, max_len: int = MAX_SORTIES_STR_LEN) -> Any:
     if not isinstance(value, str):
         return value
@@ -520,10 +537,8 @@ async def run_batch(
         "runs": runs,
     }
 
-    metrics_dir = os.path.join(_LOG_ROOT, "metrics")
-    os.makedirs(metrics_dir, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    output_path = os.path.join(metrics_dir, f"todo_pilot_batch_{ts}.json")
+    output_path = _safe_metrics_output_path(ts)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=True, indent=2)
 

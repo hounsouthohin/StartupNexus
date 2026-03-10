@@ -12,16 +12,21 @@
 - `createRouteMatcher` OBLIGATOIRE de `@clerk/nextjs/server` (INTERDIT: fonction custom `isPublicRoute` maison)
 - Dans Server Components et API Routes : `auth()` retourne une Promise — TOUJOURS `await auth()` (INTERDIT: sans await)
 - Hooks client (`useAuth`, `useUser`) : importer de `@clerk/nextjs` (INTERDIT: de `@clerk/nextjs/server`)
+- API Route Handlers App Router (`app/api/**/route.ts`) DOIVENT typer les paramètres:
+  `export async function PUT(request: Request, { params }: { params: { id: string } })`
+  (INTERDIT: `export async function PUT(request, { params })` qui déclenche TS implicit any)
 
 ### UI / COMPOSANTS
 - Tailwind CSS uniquement
 - INTERDIT: shadcn/ui, @radix-ui, @headlessui, librairies de composants externes
 - INTERDIT: import depuis @/components/ui/*
+- TypeScript strict: les callbacks de tableaux (`map`, `filter`, etc.) doivent avoir des paramètres typés explicitement si le type n'est pas inféré (INTERDIT: `(post) => ...` non typé).
 
 ### BASE DE DONNEES
 - Prisma (schema.prisma) avec clerkId
 - INTERDIT: champ password/password_hash
 - Executer prisma_migrate apres ecriture schema.prisma
+- Quand un requirement contient `Modèle Prisma: <Model> avec champs ...`, reproduire EXACTEMENT tous les champs et contraintes dans `prisma/schema.prisma` (ex: `slug @unique`, `content String`) — aucun champ requis ne doit être omis.
 
 ### SCRIPTS package.json OBLIGATOIRES
 - "build": "next build"

@@ -194,6 +194,7 @@ class DevTestAgent:
                 "success": False,
             },
             "combined_files": {},
+            "metadata": {},
             "success": False,
         }
 
