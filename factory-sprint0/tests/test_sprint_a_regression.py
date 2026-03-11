@@ -1344,6 +1344,35 @@ class TestPrismaSanitizer:
         assert "await prisma.post.findMany()" in updated
         shutil.rmtree(tmp_path, ignore_errors=True)
 
+    def test_fix_global_prisma_client_usage_src_app_file(self):
+        from agents.shared_tools import _fix_global_prisma_client_usage
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_global_prisma_fix_src_app")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        file_dir = tmp_path / "src" / "app" / "blog"
+        file_dir.mkdir(parents=True, exist_ok=True)
+        file_path = file_dir / "page.tsx"
+        file_path.write_text(
+            "import { PrismaClient as PC } from '@prisma/client';\n"
+            "const db = new PC({ datasources: { db: { url: '' } } });\n"
+            "export default async function Page(){\n"
+            "  const posts = await db.post.findMany();\n"
+            "  return <div>{posts.length}</div>;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        fixed = _fix_global_prisma_client_usage(str(tmp_path))
+        assert "src/app/blog/page.tsx" in fixed
+        updated = file_path.read_text(encoding="utf-8")
+        assert "new PC(" not in updated
+        assert "from '@prisma/client'" not in updated
+        assert "import prisma from '@/lib/prisma';" in updated
+        assert "await prisma.post.findMany()" in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
     def test_rewrite_route_prisma_client_usage_injects_import_after_fallback(self):
         from agents.shared_tools import _rewrite_route_prisma_client_usage
 

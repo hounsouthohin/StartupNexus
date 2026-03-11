@@ -1127,22 +1127,37 @@ def _fix_route_prisma_client_usage(project_path: str) -> list[str]:
 
 def _fix_global_prisma_client_usage(project_path: str) -> list[str]:
     """
-    Normalise Prisma sur tous les fichiers app/**/*.ts(x|j|jsx) hors template lib/prisma.ts.
-    Objectif: éliminer les instanciations directes résiduelles non couvertes par route.ts.
+    Normalise Prisma sur tous les fichiers code du projet (pas seulement app/api),
+    en excluant strictement les fichiers templated de la stack.
+    Objectif: éliminer les instanciations directes résiduelles dans pages/components/etc.
     """
     fixed_files: list[str] = []
-    app_root = os.path.join(project_path, "app")
-    if not os.path.isdir(app_root):
-        return fixed_files
+    try:
+        _templated = load_stack_config(get_stack_id()).get("templated_files", {})
+        _templated_names = {_normalize_guard_path(k) for k in _templated.keys()}
+    except Exception:
+        _templated_names = {"lib/prisma.ts"}
 
-    for root, dirs, files in os.walk(app_root):
+    for root, dirs, files in os.walk(project_path):
         dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
         for filename in files:
             if not filename.endswith((".ts", ".tsx", ".js", ".jsx")):
                 continue
             full_path = os.path.join(root, filename)
             rel = os.path.relpath(full_path, project_path).replace("\\", "/")
-            if rel == "lib/prisma.ts":
+            rel_norm = _normalize_guard_path(rel)
+            # Ne jamais muter les templates source de vérité de la stack.
+            if rel_norm in _templated_names:
+                continue
+            # Limiter aux zones de code app pour éviter de toucher outillage/scripts.
+            if not (
+                rel_norm.startswith("app/")
+                or rel_norm.startswith("src/app/")
+                or rel_norm.startswith("pages/")
+                or rel_norm.startswith("src/pages/")
+                or rel_norm.startswith("components/")
+                or rel_norm.startswith("src/components/")
+            ):
                 continue
             try:
                 original = Path(full_path).read_text(encoding="utf-8")
