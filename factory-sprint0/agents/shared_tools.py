@@ -465,10 +465,30 @@ def _fix_overescaped_tsx_source(path: str, content: str) -> str:
     return fixed
 
 
+def _fix_overescaped_prisma_schema(path: str, content: str) -> str:
+    """
+    Corrige les artefacts d'échappement dans prisma/schema.prisma:
+      provider = \\"postgresql\\";\\
+      provider = \\
+    qui provoquent P1012 au `prisma generate`.
+    """
+    p = path.replace("\\", "/").lower()
+    if not p.endswith("prisma/schema.prisma"):
+        return content
+
+    fixed = content
+    fixed = fixed.replace('\\"', '"').replace("\\'", "'")
+    fixed = re.sub(r"\\\s*$", "", fixed, flags=re.MULTILINE)
+    fixed = fixed.replace("provider = \\\n", 'provider = "postgresql"\n')
+    fixed = re.sub(r"^(\s*provider\s*=\s*)$", r'\1"postgresql"', fixed, flags=re.MULTILINE)
+    return fixed
+
+
 def _sanitize_content(path: str, content: str) -> str:
     """Applique tous les sanitizers sur le contenu avant écriture."""
     content = _fix_literal_newlines(path, content)
     content = _fix_overescaped_tsx_source(path, content)
+    content = _fix_overescaped_prisma_schema(path, content)
     content = _fix_escaped_jsx_attr_quotes(path, content)
     if path.endswith(".json"):
         content = _fix_json_escaping(content)
@@ -732,6 +752,63 @@ def _ensure_layout_dynamic(project_path: str) -> bool:
     return True
 
 
+def _rewrite_layout_children_typing(content: str) -> tuple[str, int]:
+    """
+    Corrige le layout App Router non typé:
+      export default function Layout({ children }) { ... }
+    vers une signature TypeScript explicite.
+    """
+    updated = content
+    replacements = 0
+
+    pat_fn = re.compile(
+        r"export\s+default\s+function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*\{\s*children\s*\}\s*\)\s*\{"
+    )
+    if pat_fn.search(updated):
+        updated, c1 = pat_fn.subn(
+            r"export default function \1({ children }: { children: React.ReactNode }) {",
+            updated,
+            count=1,
+        )
+        replacements += c1
+
+    pat_arrow = re.compile(
+        r"const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(\s*\{\s*children\s*\}\s*\)\s*=>\s*\{"
+    )
+    if pat_arrow.search(updated):
+        updated, c2 = pat_arrow.subn(
+            r"const \1 = ({ children }: { children: React.ReactNode }) => {",
+            updated,
+            count=1,
+        )
+        replacements += c2
+
+    return updated, replacements
+
+
+def _fix_layout_children_typing(project_path: str) -> bool:
+    """
+    Typage déterministe de app/layout.tsx pour éviter TS7031 (children implicit any).
+    """
+    layout_path = os.path.join(project_path, "app", "layout.tsx")
+    if not os.path.isfile(layout_path):
+        return False
+    try:
+        original = Path(layout_path).read_text(encoding="utf-8")
+    except Exception:
+        return False
+    fixed, count = _rewrite_layout_children_typing(original)
+    if count <= 0 or fixed == original:
+        return False
+    try:
+        Path(layout_path).write_text(fixed, encoding="utf-8")
+        logger.info("[pre-build] app/layout.tsx children typing corrigé")
+        return True
+    except Exception as e:
+        logger.warning(f"[pre-build] Impossible de corriger le typage children de layout.tsx: {e}")
+        return False
+
+
 def _fix_nextconfig_security_headers(project_path: str) -> bool:
     """
     Corrige la section `headers()` de next.config.js si le LLM a généré un
@@ -878,7 +955,7 @@ def _fix_prisma_named_import(project_path: str) -> list[str]:
     for root, dirs, files in os.walk(project_path):
         dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
         for filename in files:
-            if not filename.endswith((".ts", ".tsx")):
+            if not filename.endswith((".ts", ".tsx", ".js", ".jsx")):
                 continue
             full_path = os.path.join(root, filename)
             try:
@@ -915,62 +992,80 @@ def _rewrite_route_prisma_client_usage(content: str) -> tuple[str, int]:
     """
     updated = content
     replacements = 0
+    prisma_ctor_symbols: set[str] = {"PrismaClient"}
 
-    # Supprimer import PrismaClient (named/default/combiné) depuis @prisma/client.
-    updated, count = re.subn(
-        r"^\s*import\s+PrismaClient\s+from\s+['\"]@prisma/client['\"]\s*;?\s*\n",
-        "",
+    # Import default: import PrismaClient from '@prisma/client'
+    for m in re.finditer(
+        r"^\s*import\s+([A-Za-z_][A-Za-z0-9_]*)\s+from\s+['\"]@prisma/client['\"]\s*;?\s*$",
         updated,
         flags=re.MULTILINE,
-    )
-    replacements += count
+    ):
+        prisma_ctor_symbols.add(m.group(1))
 
     def _strip_prismaclient_from_named_import(m: re.Match) -> str:
         nonlocal replacements
         names = [n.strip() for n in m.group(1).split(",") if n.strip()]
-        filtered = [n for n in names if n.split(" as ")[0].strip() != "PrismaClient"]
-        if len(filtered) != len(names):
-            replacements += 1
+        filtered = []
+        for n in names:
+            parts = re.split(r"\s+as\s+", n)
+            base = parts[0].strip()
+            alias = parts[1].strip() if len(parts) > 1 else ""
+            if base == "PrismaClient":
+                prisma_ctor_symbols.add(alias or "PrismaClient")
+                replacements += 1
+                continue
+            filtered.append(n)
         if not filtered:
             return ""
         return f"import {{ {', '.join(filtered)} }} from '@prisma/client';\n"
 
+    # Supprimer import PrismaClient named/aliased depuis @prisma/client.
     updated = re.sub(
         r"^\s*import\s*\{([^}]*)\}\s*from\s*['\"]@prisma/client['\"]\s*;?\s*\n",
         _strip_prismaclient_from_named_import,
         updated,
         flags=re.MULTILINE,
     )
-
-    # Supprimer instanciations locales de PrismaClient et normaliser vers `prisma`.
-    # Supporte les alias (ex: `const db = new PrismaClient(...)`).
-    _alias_pat = re.compile(
-        r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)"
-        r"(?:\s*:\s*[^=]+)?\s*=\s*new\s+PrismaClient\s*\((?:.|\n)*?\)\s*;?\s*$",
-        re.MULTILINE,
+    # Supprimer import default @prisma/client (non utilisé dans cette stack).
+    updated, count = re.subn(
+        r"^\s*import\s+[A-Za-z_][A-Za-z0-9_]*\s+from\s+['\"]@prisma/client['\"]\s*;?\s*\n",
+        "",
+        updated,
+        flags=re.MULTILINE,
     )
-    aliases = [m.group(1) for m in _alias_pat.finditer(updated)]
-    updated, count = _alias_pat.subn("", updated)
     replacements += count
+
+    # Supprimer instanciations locales de PrismaClient (et alias), normaliser vers `prisma`.
+    aliases: list[str] = []
+    for sym in sorted(prisma_ctor_symbols):
+        _alias_pat = re.compile(
+            rf"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)"
+            rf"(?:\s*:\s*[^=]+)?\s*=\s*new\s+{re.escape(sym)}\s*\((?:.|\n)*?\)\s*;?\s*$",
+            re.MULTILINE,
+        )
+        aliases.extend([m.group(1) for m in _alias_pat.finditer(updated)])
+        updated, count = _alias_pat.subn("", updated)
+        replacements += count
     for _alias in aliases:
         if _alias != "prisma":
             updated, alias_count = re.subn(rf"\b{re.escape(_alias)}\b", "prisma", updated)
             replacements += alias_count
 
-    # Si on a supprimé un pattern PrismaClient, injecter import canonical prisma si absent.
-    if replacements > 0 and "from '@/lib/prisma'" not in updated:
+    # Garde-fou: remplacer tout `new <PrismaCtor>(...)` résiduel.
+    for sym in sorted(prisma_ctor_symbols):
+        updated, count = re.subn(rf"new\s+{re.escape(sym)}\s*\((?:.|\n)*?\)", "prisma", updated)
+        replacements += count
+
+    # Injecter import canonical prisma APRÈS toutes les réécritures.
+    if replacements > 0 and "from '@/lib/prisma'" not in updated and 'from "@/lib/prisma"' not in updated:
         updated = "import prisma from '@/lib/prisma';\n" + updated.lstrip("\n")
         replacements += 1
-
-    # Garde-fou: si des appels bruts `new PrismaClient(...)` subsistent, les remplacer.
-    updated, count = re.subn(r"new\s+PrismaClient\s*\((?:.|\n)*?\)", "prisma", updated)
-    replacements += count
 
     return updated, replacements
 
 
 def _fix_route_prisma_client_usage(project_path: str) -> list[str]:
-    """Applique _rewrite_route_prisma_client_usage à app/api/**/route.ts."""
+    """Applique _rewrite_route_prisma_client_usage à app/api/**/route.ts|route.js."""
     fixed_files: list[str] = []
     api_root = os.path.join(project_path, "app", "api")
     if not os.path.isdir(api_root):
@@ -979,7 +1074,7 @@ def _fix_route_prisma_client_usage(project_path: str) -> list[str]:
     for root, dirs, files in os.walk(api_root):
         dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
         for filename in files:
-            if filename != "route.ts":
+            if filename not in ("route.ts", "route.js"):
                 continue
             full_path = os.path.join(root, filename)
             rel = os.path.relpath(full_path, project_path).replace("\\", "/")
@@ -1002,7 +1097,7 @@ def _fix_route_prisma_client_usage(project_path: str) -> list[str]:
 
 def _fix_global_prisma_client_usage(project_path: str) -> list[str]:
     """
-    Normalise Prisma sur tous les fichiers app/**/*.ts(x) hors template lib/prisma.ts.
+    Normalise Prisma sur tous les fichiers app/**/*.ts(x|j|jsx) hors template lib/prisma.ts.
     Objectif: éliminer les instanciations directes résiduelles non couvertes par route.ts.
     """
     fixed_files: list[str] = []
@@ -1013,7 +1108,7 @@ def _fix_global_prisma_client_usage(project_path: str) -> list[str]:
     for root, dirs, files in os.walk(app_root):
         dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
         for filename in files:
-            if not filename.endswith((".ts", ".tsx")):
+            if not filename.endswith((".ts", ".tsx", ".js", ".jsx")):
                 continue
             full_path = os.path.join(root, filename)
             rel = os.path.relpath(full_path, project_path).replace("\\", "/")
@@ -1033,6 +1128,68 @@ def _fix_global_prisma_client_usage(project_path: str) -> list[str]:
 
     if fixed_files:
         logger.info(f"[pre-build] Prisma global normalisé: {fixed_files}")
+    return fixed_files
+
+
+def _rewrite_post_create_requires_authorid(content: str) -> tuple[str, int]:
+    """
+    Route posts: garantit authorId lors de prisma.post.create({ data: postData }).
+    """
+    updated = content
+    replacements = 0
+
+    updated, count = re.subn(
+        r"prisma\.post\.create\(\s*\{\s*data\s*:\s*postData\s*\}\s*\)",
+        "prisma.post.create({ data: { ...postData, authorId: userId } })",
+        updated,
+        flags=re.DOTALL,
+    )
+    replacements += count
+
+    if count > 0 and "const { userId } = await auth()" not in updated:
+        updated, count2 = re.subn(
+            r"(export\s+async\s+function\s+POST\s*\([^)]*\)\s*\{)",
+            r"\1\n  const { userId } = await auth();\n  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });",
+            updated,
+            count=1,
+        )
+        replacements += count2
+
+    if replacements > 0 and "from '@clerk/nextjs/server'" not in updated and 'from "@clerk/nextjs/server"' not in updated:
+        updated = "import { auth } from '@clerk/nextjs/server';\n" + updated.lstrip("\n")
+        replacements += 1
+
+    return updated, replacements
+
+
+def _fix_post_create_requires_authorid(project_path: str) -> list[str]:
+    """Applique la réécriture authorId sur app/api/posts/**/route.ts|route.js."""
+    fixed_files: list[str] = []
+    api_root = os.path.join(project_path, "app", "api", "posts")
+    if not os.path.isdir(api_root):
+        return fixed_files
+
+    for root, dirs, files in os.walk(api_root):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if filename not in ("route.ts", "route.js"):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_post_create_requires_authorid(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger authorId dans {full_path}: {e}")
+
+    if fixed_files:
+        logger.info(f"[pre-build] post.create authorId normalisé: {fixed_files}")
     return fixed_files
 
 
@@ -1188,7 +1345,7 @@ def _rewrite_untyped_map_callback_params(content: str) -> tuple[str, int]:
     pattern_plain = re.compile(
         rf"\.{methods}\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=>"
     )
-    updated, count2 = pattern_plain.subn(r".\1(\2: any =>", updated)
+    updated, count2 = pattern_plain.subn(r".\1((\2: any) =>", updated)
 
     # reduce((acc, item) => ...)
     reduce_paren = re.compile(
@@ -1330,6 +1487,11 @@ def run_build(project_dir: str = ".") -> str:
             logger.warning(
                 f"[pre-build deterministic fix] global prisma client usage normalized: {global_prisma_fixes}"
             )
+        post_authorid_fixes = _fix_post_create_requires_authorid(project_path)
+        if post_authorid_fixes:
+            logger.warning(
+                f"[pre-build deterministic fix] post.create authorId normalized: {post_authorid_fixes}"
+            )
         route_handler_fixes = _fix_untyped_route_handlers(project_path)
         if route_handler_fixes:
             logger.warning(
@@ -1349,6 +1511,9 @@ def run_build(project_dir: str = ".") -> str:
             _layout_dynamic_fixed = _ensure_layout_dynamic(project_path)
             if _layout_dynamic_fixed:
                 logger.warning("[pre-build deterministic fix] app/layout.tsx force-dynamic ensured for Clerk stack")
+            _layout_typing_fixed = _fix_layout_children_typing(project_path)
+            if _layout_typing_fixed:
+                logger.warning("[pre-build deterministic fix] app/layout.tsx children typing ensured")
 
         # FACTORY_STRICT_PREBUILD="1" (défaut) → valider sans réécrire (métriques honnêtes).
         # FACTORY_STRICT_PREBUILD="0" → mutations actives (mode dégradé explicite).

@@ -1255,6 +1255,22 @@ class TestPrismaSanitizer:
         assert "import prisma from '@/lib/prisma';" in fixed
         assert "await prisma.post.findMany()" in fixed
 
+    def test_rewrite_route_prisma_client_named_alias_symbol(self):
+        from agents.shared_tools import _rewrite_route_prisma_client_usage
+
+        content = (
+            "import { PrismaClient as PC } from '@prisma/client';\n"
+            "const db = new PC({ datasources: { db: { url: '' } } });\n"
+            "export async function GET(request: Request) {\n"
+            "  return Response.json(await db.post.findMany());\n"
+            "}\n"
+        )
+        fixed, _ = _rewrite_route_prisma_client_usage(content)
+        assert "new PC(" not in fixed
+        assert "from '@prisma/client'" not in fixed
+        assert "import prisma from '@/lib/prisma';" in fixed
+        assert "await prisma.post.findMany()" in fixed
+
     def test_remove_clerk_auth_routes(self):
         from agents.shared_tools import _remove_clerk_auth_routes
         from agents.context import set_stack_id
@@ -1300,6 +1316,82 @@ class TestPrismaSanitizer:
         assert "import prisma from '@/lib/prisma';" in updated
         assert "await prisma.user.findMany()" in updated
         shutil.rmtree(tmp_path, ignore_errors=True)
+
+    def test_fix_global_prisma_client_usage_js_route(self):
+        from agents.shared_tools import _fix_global_prisma_client_usage
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_global_prisma_fix_js")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        route_dir = tmp_path / "app" / "api" / "posts"
+        route_dir.mkdir(parents=True, exist_ok=True)
+        route_path = route_dir / "route.js"
+        route_path.write_text(
+            "import { PrismaClient } from '@prisma/client';\n"
+            "const prismaClient = new PrismaClient({ datasources: { db: { url: '' } } });\n"
+            "export async function GET(request) {\n"
+            "  return Response.json(await prismaClient.post.findMany());\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        fixed = _fix_global_prisma_client_usage(str(tmp_path))
+        assert "app/api/posts/route.js" in fixed
+        updated = route_path.read_text(encoding="utf-8")
+        assert "new PrismaClient(" not in updated
+        assert "import prisma from '@/lib/prisma';" in updated
+        assert "await prisma.post.findMany()" in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    def test_rewrite_route_prisma_client_usage_injects_import_after_fallback(self):
+        from agents.shared_tools import _rewrite_route_prisma_client_usage
+
+        content = (
+            "export async function GET(request: Request) {\n"
+            "  const x = new PrismaClient({ datasources: { db: { url: '' } } });\n"
+            "  return Response.json(x);\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_route_prisma_client_usage(content)
+        assert count >= 1
+        assert "new PrismaClient(" not in fixed
+        assert "import prisma from '@/lib/prisma';" in fixed
+
+    def test_rewrite_post_create_requires_authorid(self):
+        from agents.shared_tools import _rewrite_post_create_requires_authorid
+
+        content = (
+            "import { NextResponse } from 'next/server';\n"
+            "import prisma from '@/lib/prisma';\n"
+            "export async function POST(request: Request) {\n"
+            "  const body = await request.json();\n"
+            "  const postData = PostSchema.parse(body);\n"
+            "  const post = await prisma.post.create({ data: postData });\n"
+            "  return NextResponse.json(post);\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_post_create_requires_authorid(content)
+        assert count >= 1
+        assert "authorId: userId" in fixed
+        assert "const { userId } = await auth();" in fixed
+        assert "from '@clerk/nextjs/server'" in fixed
+
+    def test_fix_overescaped_prisma_schema(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "datasource db {\\\n"
+            "  provider = \\\n"
+            "}\\\n"
+            "generator client {\\\n"
+            "  provider = \\\"prisma-client-js\\\"\\\n"
+            "}\\\n"
+        )
+        fixed = _sanitize_content("prisma/schema.prisma", content)
+        assert 'provider = "postgresql"' in fixed
+        assert '\\"' not in fixed
+        assert "provider = \\\n" not in fixed
 
     def test_prisma_generator_provider_fix(self):
         from agents.shared_tools import _fix_prisma_generator_provider
@@ -1371,6 +1463,15 @@ class TestMapCallbackTypingSanitizer:
         fixed, count = _rewrite_untyped_map_callback_params(content)
         assert count >= 1
         assert "reduce((acc: any, item: any) =>" in fixed
+
+    def test_rewrite_untyped_plain_map_callback_keeps_valid_syntax(self):
+        from agents.shared_tools import _rewrite_untyped_map_callback_params
+
+        content = "const rows = users.map(user => UserSchema.parse(user));\n"
+        fixed, count = _rewrite_untyped_map_callback_params(content)
+        assert count >= 1
+        assert "map((user: any) =>" in fixed
+        assert "map(user: any =>" not in fixed
 
 
 class TestJsxEscapedQuotesSanitizer:
@@ -1447,6 +1548,41 @@ class TestLayoutDynamicFix:
         assert 'export const dynamic = "force-dynamic";' in updated
         shutil.rmtree(tmp_path, ignore_errors=True)
 
+    def test_rewrite_layout_children_typing(self):
+        from agents.shared_tools import _rewrite_layout_children_typing
+
+        content = (
+            "export default function Layout({ children }) {\n"
+            "  return <html><body>{children}</body></html>;\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_layout_children_typing(content)
+        assert count == 1
+        assert "children: React.ReactNode" in fixed
+
+    def test_fix_layout_children_typing_file(self):
+        from agents.shared_tools import _fix_layout_children_typing
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_layout_typing")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        app_dir = tmp_path / "app"
+        app_dir.mkdir(parents=True, exist_ok=True)
+        layout_path = app_dir / "layout.tsx"
+        layout_path.write_text(
+            "export default function Layout({ children }) {\n"
+            "  return <html><body>{children}</body></html>;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        changed = _fix_layout_children_typing(str(tmp_path))
+        updated = layout_path.read_text(encoding="utf-8")
+        assert changed is True
+        assert "children: React.ReactNode" in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
 
 class TestTemplatePathNormalization:
     """Évite le contournement de la protection template via chemins mal normalisés."""
@@ -1457,6 +1593,34 @@ class TestTemplatePathNormalization:
         assert _normalize_guard_path("./lib//prisma.ts") == "lib/prisma.ts"
         assert _normalize_guard_path("lib\\prisma.ts") == "lib/prisma.ts"
         assert _normalize_guard_path("/lib/prisma.ts") == "lib/prisma.ts"
+
+
+class TestBuildOutcomeCoherence:
+    """Empêche l'incohérence BUILD_SUCCESS + build_success=false dans run_metric."""
+
+    def test_build_success_message_wins(self):
+        from workflows.activities.dev_test_activity import _compute_build_outcome
+
+        success, attempts, attempted = _compute_build_outcome(
+            result_success=True,
+            final_message="BUILD_SUCCESS",
+            dev_meta={"build_attempted": True, "build_attempts": 0},
+        )
+        assert success is True
+        assert attempted is True
+        assert attempts == 1
+
+    def test_result_success_without_attempt_is_not_success(self):
+        from workflows.activities.dev_test_activity import _compute_build_outcome
+
+        success, attempts, attempted = _compute_build_outcome(
+            result_success=True,
+            final_message="MAX_ITER_REACHED",
+            dev_meta={"build_attempted": False, "build_attempts": 0},
+        )
+        assert success is False
+        assert attempted is False
+        assert attempts == 0
 
 
 # ─────────────────────────────────────────────────────────────

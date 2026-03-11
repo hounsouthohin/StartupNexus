@@ -199,6 +199,20 @@ def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = ""
         activity.logger.warning(f"Impossible de logger dev_test_run vers Learner: {log_err}")
 
 
+def _compute_build_outcome(result_success: bool, final_message: str, dev_meta: Dict[str, Any]) -> tuple[bool, int, bool]:
+    """
+    Calcule un triplet cohérent (build_success, build_attempts, build_attempted).
+    Règle importante: BUILD_SUCCESS est autoritaire même si build_attempts est mal remonté (0).
+    """
+    build_attempted = bool(dev_meta.get("build_attempted", False))
+    build_attempts = int(dev_meta.get("build_attempts", 0) or 0)
+    if final_message == "BUILD_SUCCESS":
+        return True, (build_attempts if build_attempts > 0 else (1 if build_attempted else 0)), build_attempted
+    if bool(result_success) and (build_attempted or build_attempts > 0):
+        return True, (build_attempts if build_attempts > 0 else 1), build_attempted
+    return False, build_attempts, build_attempted
+
+
 @activity.defn(name="dev_test_activity")
 async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, Any]:
     """
@@ -284,13 +298,14 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
         last_test_error_full = str(dev_meta.get("last_test_error_full", "") or "")
         last_failed_command = str(dev_meta.get("last_failed_command", "") or "")
-        # Fix cohérence : build_success ne peut être True que si run_build() a réellement été exécuté.
-        # build_attempts=0 signifie que le DevAgent n'a pas appelé run_build (ou qu'un guard a tout bloqué).
-        build_success = bool(result.get("success", False)) and int(dev_meta.get("build_attempts", 0)) > 0
+        build_success, build_attempts, _build_attempted = _compute_build_outcome(
+            bool(result.get("success", False)),
+            final_message,
+            dev_meta,
+        )
 
         # Capture explicite de la cause d'echec métier si pas d'exception levée.
         # T005 — préfixe cohérent avec l'état réel : pas de "BuildFailed" si build non tenté.
-        _build_attempted = bool(dev_meta.get("build_attempted", False))
         _GATE_STATUSES = {"NOT_BUILT_BY_GATE", "MAX_ITER_REACHED"}
         runtime_error = None
         if not build_success:
@@ -314,7 +329,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "files_count": int(metadata.get("total_files", 0)),
             "clerk_compliant": _check_clerk_compliant(result),
             "dev_files_count": int(metadata.get("dev_files_count", 0)),
-            "build_attempts": int(dev_meta.get("build_attempts", 0)),
+            "build_attempts": build_attempts,
             "iterations": int(dev_meta.get("iterations", 0)),
             "spec_coverage": float(metadata.get("spec_coverage", 0.0)),
             "requirements_met": int(metadata.get("requirements_met", 0)),
