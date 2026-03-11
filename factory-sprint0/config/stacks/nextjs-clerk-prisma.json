@@ -337,6 +337,19 @@
     }
   }
   ,
+  "prebuild_policies": {
+    "remove_pages_router_conflicts": true,
+    "remove_clerk_auth_routes": true,
+    "normalize_prisma_named_import": true,
+    "normalize_route_prisma_client_usage": true,
+    "normalize_global_prisma_client_usage": true,
+    "normalize_post_authorid": true,
+    "normalize_route_handler_typing": true,
+    "normalize_map_callback_typing": true,
+    "normalize_prisma_generator_provider": true,
+    "ensure_layout_dynamic": true,
+    "ensure_layout_children_typing": true
+  },
   "test_import_rules": {
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"

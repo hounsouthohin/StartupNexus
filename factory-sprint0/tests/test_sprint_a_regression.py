@@ -1623,6 +1623,47 @@ class TestBuildOutcomeCoherence:
         assert attempts == 0
 
 
+class TestForbiddenImportsRuntime:
+    """Valide le bridge runtime des forbidden_imports stack -> dev.py."""
+
+    def test_collect_forbidden_import_violations_detects_token(self):
+        from agents.dev import _collect_forbidden_import_violations
+
+        files = {
+            "app/api/auth/route.ts": "import NextAuth from 'next-auth';\nexport async function GET(){}",
+            "app/page.tsx": "export default function Page(){ return <div/>; }",
+        }
+        violations = _collect_forbidden_import_violations(files, ["next-auth"])
+        assert violations
+        assert violations[0][0] == "app/api/auth/route.ts"
+        assert violations[0][1] == "next-auth"
+
+    def test_collect_forbidden_import_violations_ignores_templated_files(self):
+        from agents.dev import _collect_forbidden_import_violations
+
+        files = {
+            "lib/prisma.ts": "import { PrismaClient } from '@prisma/client';\nexport default new PrismaClient();",
+        }
+        violations = _collect_forbidden_import_violations(
+            files,
+            ["@prisma/client"],
+            templated_names={"lib/prisma.ts"},
+        )
+        assert violations == []
+
+
+class TestPrebuildPoliciesConfig:
+    """Valide que les politiques pre-build sont bien lues depuis la stack config."""
+
+    def test_get_prebuild_policies_contains_expected_keys(self):
+        from agents.shared_tools import _get_prebuild_policies
+
+        policies = _get_prebuild_policies("nextjs-clerk-prisma")
+        assert policies.get("remove_clerk_auth_routes") is True
+        assert policies.get("normalize_route_prisma_client_usage") is True
+        assert policies.get("ensure_layout_dynamic") is True
+
+
 # ─────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":

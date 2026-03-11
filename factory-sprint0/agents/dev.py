@@ -19,7 +19,14 @@ from .shared_tools import (
     run_build,
     get_stack_id,
 )
-from .stack_config import get_blueprint, get_root_file, get_cleanup_artifacts, get_workdir_keep_extra, get_forbidden_paths
+from .stack_config import (
+    get_blueprint,
+    get_root_file,
+    get_cleanup_artifacts,
+    get_workdir_keep_extra,
+    get_forbidden_paths,
+    get_forbidden_imports,
+)
 from utils.prompt_loader import load_stack_prompt
 from .requirements_engine import (
     gate_check as _engine_gate_check,
@@ -30,6 +37,31 @@ from .requirements_engine import (
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+
+
+def _collect_forbidden_import_violations(
+    files_dict: dict,
+    forbidden_tokens: list[str],
+    templated_names: set[str] | None = None,
+) -> list[tuple[str, str]]:
+    """Retourne les violations (path, token) pour les imports/patterns interdits."""
+    templated = templated_names or set()
+    tokens = [str(t).strip() for t in (forbidden_tokens or []) if str(t).strip()]
+    if not tokens:
+        return []
+    violations: list[tuple[str, str]] = []
+    for fp, fc in files_dict.items():
+        fp_norm = fp.replace("\\", "/")
+        if fp_norm in templated:
+            continue
+        if not fp_norm.endswith((".ts", ".tsx", ".js", ".jsx")):
+            continue
+        content_lower = (fc or "").lower()
+        for tok in tokens:
+            if tok.lower() in content_lower:
+                violations.append((fp_norm, tok))
+                break
+    return violations
 
 
 # Répertoires système à préserver lors du nettoyage inter-runs (invariants multi-stack)
@@ -599,6 +631,23 @@ def dev_agent(
                 "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
                 "Crée les fichiers App Router corrects avec write_file(), puis rappelle run_build."
             ), "forbidden_paths"
+        # 6bis. FORBIDDEN IMPORTS GUARD (depuis stack config)
+        _forbidden_import_tokens = get_forbidden_imports(stack_id) if stack_id else []
+        _forbidden_import_violations = _collect_forbidden_import_violations(
+            files_dict,
+            _forbidden_import_tokens,
+            templated_names=_templated_names,
+        )
+        if _forbidden_import_violations:
+            _details = "\n".join(
+                f"  - {fp}  (token: {tok})" for fp, tok in _forbidden_import_violations
+            )
+            return True, (
+                "FORBIDDEN IMPORTS GUARD — BUILD BLOQUÉ\n"
+                "Des imports/patterns interdits par la stack ont été détectés :\n"
+                f"{_details}\n\n"
+                "Corrige les imports selon les règles stack (auth/ORM/UI), puis rappelle run_build."
+            ), "forbidden_imports"
         # 7. AUTH WRAPPING ROUTE GUARD — constructif (T010)
         # Détecte: export const METHOD = auth(async (...) => { ... })
         # Ce pattern Clerk v4 / Pages Router est INCOMPATIBLE avec App Router Next.js 14.

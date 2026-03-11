@@ -105,6 +105,36 @@ def _get_runtime_stack_rules() -> str:
         return ""
 
 
+def _get_prebuild_policies(stack_id: str) -> dict:
+    """
+    Retourne les politiques pre-build pour la stack active.
+    Les defaults préservent le comportement historique.
+    """
+    defaults = {
+        "remove_pages_router_conflicts": True,
+        "remove_clerk_auth_routes": stack_id == "nextjs-clerk-prisma",
+        "normalize_prisma_named_import": True,
+        "normalize_route_prisma_client_usage": True,
+        "normalize_global_prisma_client_usage": True,
+        "normalize_post_authorid": True,
+        "normalize_route_handler_typing": True,
+        "normalize_map_callback_typing": True,
+        "normalize_prisma_generator_provider": True,
+        "ensure_layout_dynamic": stack_id == "nextjs-clerk-prisma",
+        "ensure_layout_children_typing": stack_id == "nextjs-clerk-prisma",
+    }
+    try:
+        from agents.stack_config import load_stack_config
+        cfg = load_stack_config(stack_id)
+        raw = cfg.get("prebuild_policies", {})
+        if isinstance(raw, dict):
+            for k, v in raw.items():
+                defaults[str(k)] = bool(v)
+    except Exception as e:
+        logger.warning(f"[_get_prebuild_policies] fallback defaults ({e})")
+    return defaults
+
+
 def _get_node_env() -> dict:
     """Retourne l'environnement pour les sous-processus Node.js."""
     env = os.environ.copy()
@@ -1464,53 +1494,62 @@ def run_build(project_dir: str = ".") -> str:
             return msg
 
         logger.info(f"[run_build] project_path={project_path} install={install_cmd} build={build_cmd}")
+        _policies = _get_prebuild_policies(stack_id)
 
         # ── Pre-build hooks ─────────────────────────────────────────────────
-        removed = _remove_pages_tests_router_conflicts(project_path)
-        if removed:
-            logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
-        removed_auth = _remove_clerk_auth_routes(project_path)
-        if removed_auth:
-            logger.warning(f"[pre-build deterministic fix] routes auth non-Clerk supprimées: {removed_auth}")
-        prisma_import_fixes = _fix_prisma_named_import(project_path)
-        if prisma_import_fixes:
-            logger.warning(
-                f"[pre-build deterministic fix] prisma named import -> default import: {prisma_import_fixes}"
-            )
-        route_prisma_fixes = _fix_route_prisma_client_usage(project_path)
-        if route_prisma_fixes:
-            logger.warning(
-                f"[pre-build deterministic fix] route prisma client usage normalized: {route_prisma_fixes}"
-            )
-        global_prisma_fixes = _fix_global_prisma_client_usage(project_path)
-        if global_prisma_fixes:
-            logger.warning(
-                f"[pre-build deterministic fix] global prisma client usage normalized: {global_prisma_fixes}"
-            )
-        post_authorid_fixes = _fix_post_create_requires_authorid(project_path)
-        if post_authorid_fixes:
-            logger.warning(
-                f"[pre-build deterministic fix] post.create authorId normalized: {post_authorid_fixes}"
-            )
-        route_handler_fixes = _fix_untyped_route_handlers(project_path)
-        if route_handler_fixes:
-            logger.warning(
-                f"[pre-build deterministic fix] route handler signatures typed: {route_handler_fixes}"
-            )
-        map_callback_fixes = _fix_untyped_map_callbacks(project_path)
-        if map_callback_fixes:
-            logger.warning(
-                f"[pre-build deterministic fix] map callbacks typed: {map_callback_fixes}"
-            )
-        _prisma_provider_fixed = _fix_prisma_generator_provider(project_path)
-        if _prisma_provider_fixed:
-            logger.warning("[pre-build deterministic fix] prisma schema provider normalized")
-        # Clerk + Next.js: éviter le prerender build-time avec clé publishable placeholder.
-        # On force le layout en dynamic pour ne pas invalider le run sur un secret runtime absent.
-        if stack_id == "nextjs-clerk-prisma":
+        if _policies.get("remove_pages_router_conflicts", True):
+            removed = _remove_pages_tests_router_conflicts(project_path)
+            if removed:
+                logger.info(f"[run_build] Conflits App/Pages Router supprimés: {removed}")
+        if _policies.get("remove_clerk_auth_routes", False):
+            removed_auth = _remove_clerk_auth_routes(project_path)
+            if removed_auth:
+                logger.warning(f"[pre-build deterministic fix] routes auth non-Clerk supprimées: {removed_auth}")
+        if _policies.get("normalize_prisma_named_import", True):
+            prisma_import_fixes = _fix_prisma_named_import(project_path)
+            if prisma_import_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] prisma named import -> default import: {prisma_import_fixes}"
+                )
+        if _policies.get("normalize_route_prisma_client_usage", True):
+            route_prisma_fixes = _fix_route_prisma_client_usage(project_path)
+            if route_prisma_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] route prisma client usage normalized: {route_prisma_fixes}"
+                )
+        if _policies.get("normalize_global_prisma_client_usage", True):
+            global_prisma_fixes = _fix_global_prisma_client_usage(project_path)
+            if global_prisma_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] global prisma client usage normalized: {global_prisma_fixes}"
+                )
+        if _policies.get("normalize_post_authorid", True):
+            post_authorid_fixes = _fix_post_create_requires_authorid(project_path)
+            if post_authorid_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] post.create authorId normalized: {post_authorid_fixes}"
+                )
+        if _policies.get("normalize_route_handler_typing", True):
+            route_handler_fixes = _fix_untyped_route_handlers(project_path)
+            if route_handler_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] route handler signatures typed: {route_handler_fixes}"
+                )
+        if _policies.get("normalize_map_callback_typing", True):
+            map_callback_fixes = _fix_untyped_map_callbacks(project_path)
+            if map_callback_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] map callbacks typed: {map_callback_fixes}"
+                )
+        if _policies.get("normalize_prisma_generator_provider", True):
+            _prisma_provider_fixed = _fix_prisma_generator_provider(project_path)
+            if _prisma_provider_fixed:
+                logger.warning("[pre-build deterministic fix] prisma schema provider normalized")
+        if _policies.get("ensure_layout_dynamic", False):
             _layout_dynamic_fixed = _ensure_layout_dynamic(project_path)
             if _layout_dynamic_fixed:
-                logger.warning("[pre-build deterministic fix] app/layout.tsx force-dynamic ensured for Clerk stack")
+                logger.warning("[pre-build deterministic fix] app/layout.tsx force-dynamic ensured")
+        if _policies.get("ensure_layout_children_typing", False):
             _layout_typing_fixed = _fix_layout_children_typing(project_path)
             if _layout_typing_fixed:
                 logger.warning("[pre-build deterministic fix] app/layout.tsx children typing ensured")
