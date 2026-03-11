@@ -25,5 +25,95 @@
       "version": "1.0",
       "category": "testing"
     }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: TypeScript type aliases Prisma\nRAISON: Annoter explicitement `Post`/`User` sans declaration ou import provoque `Cannot find name` et casse le build.\nDETECTION_REGEX: :\\s*(Post|User)\\s*(\\||\\[|=)\nALTERNATIVE: Laisser TypeScript inferer le type depuis `await prisma.<model>.findUnique(...)` ou importer un type explicite depuis `@prisma/client`.\nEXEMPLE_INVALIDE: const post: Post | null = await prisma.post.findUnique(...)\nEXEMPLE_VALIDE: const post = await prisma.post.findUnique(...)\nERREUR_ATTENDUE: Type error: Cannot find name 'Post'\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "typescript"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router\nRAISON: `router.query` appartient au Pages Router et n'existe pas sur AppRouterInstance; cela casse le build TypeScript.\nDETECTION_REGEX: router\\.query\nALTERNATIVE: Server page dynamique: utiliser `{ params }` dans la signature de page; Client component: utiliser `useParams()` depuis `next/navigation`.\nEXEMPLE_INVALIDE: const { slug } = router.query\nEXEMPLE_VALIDE: const { slug } = params\nERREUR_ATTENDUE: Property 'query' does not exist on type 'AppRouterInstance'\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "nextjs"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js routing libraries\nRAISON: Dans Next App Router, `react-router-dom` et `next/router` ne sont pas les APIs attendues et provoquent des erreurs d'usage/runtime.\nDETECTION_REGEX: from\\s+['\"](react-router-dom|next/router)['\"]\nALTERNATIVE: Utiliser `next/navigation` (useRouter/useParams/useSearchParams) et `next/link`.\nEXEMPLE_INVALIDE: import { useParams } from 'react-router-dom'\nEXEMPLE_VALIDE: import { useParams } from 'next/navigation'\nERREUR_ATTENDUE: Pattern de routing incompatible App Router\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "nextjs"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk hooks client\nRAISON: `useAuth()` ne retourne pas l'objet `user`; l'accès à `useAuth().user` casse le typage.\nDETECTION_REGEX: useAuth\\(\\)\\.user|const\\s*\\{\\s*user\\s*\\}\\s*=\\s*useAuth\\(\nALTERNATIVE: Utiliser `useUser()` depuis `@clerk/nextjs` pour obtenir l'objet user complet.\nEXEMPLE_INVALIDE: const { user } = useAuth()\nEXEMPLE_VALIDE: const { user } = useUser()\nERREUR_ATTENDUE: Property 'user' does not exist on type 'UseAuthReturn'\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "clerk"
+    }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk auth() server-side\nRAISON: `auth()` est asynchrone en Server Components/Route Handlers; accéder directement à `auth().userId` lit une Promise.\nDETECTION_REGEX: auth\\(\\)\\.(userId|sessionId|orgId)\nALTERNATIVE: `const { userId } = await auth()` dans une fonction `async`.\nEXEMPLE_INVALIDE: const userId = auth().userId\nEXEMPLE_VALIDE: const { userId } = await auth()\nERREUR_ATTENDUE: Property 'userId' does not exist on type 'Promise<...>'\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "clerk"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk auth() server-side signature\nRAISON: En Next.js App Router, `auth(req)` / `auth(request)` est un mauvais pattern pour cette stack et mène à des objets de retour incompatibles avec l'accès direct à userId.\nDETECTION_REGEX: auth\\((req|request)\\)\nALTERNATIVE: Utiliser `const { userId } = await auth()` sans argument dans les Server Components / Route Handlers.\nEXEMPLE_INVALIDE: const { userId } = await auth(req)\nEXEMPLE_VALIDE: const { userId } = await auth()\nERREUR_ATTENDUE: Property 'userId' does not exist on type ...\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "clerk"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Custom auth wrapper\nRAISON: Créer `lib/auth.ts` pour encapsuler Clerk auth introduit des signatures ambiguës et des dérives de contexte middleware/server. Utiliser les APIs Clerk officielles directement par contexte.\nDETECTION_REGEX: (^|/)lib/auth\\.ts$|export\\s+const\\s+clerkMiddleware\\s*=\\s*async|await\\s+auth\\((req|request)\\)\nALTERNATIVE: `middleware.ts` officiel + `await auth()` server/API + `useAuth/useUser` client.\nEXEMPLE_INVALIDE: lib/auth.ts avec const { userId } = await auth(req)\nEXEMPLE_VALIDE: app/api/.../route.ts avec const { userId } = await auth()\nERREUR_ATTENDUE: Type errors auth object / userId ou incohérences runtime\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "clerk"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router data fetching\nRAISON: `getServerSideProps` est une API Pages Router et n'est pas supportée dans `app/**`.\nDETECTION_REGEX: getServerSideProps\nALTERNATIVE: Utiliser des Server Components async + fetch/Prisma directement dans la page App Router.\nEXEMPLE_INVALIDE: export const getServerSideProps = async () => ... dans app/page.tsx\nEXEMPLE_VALIDE: export default async function Page() { const data = await prisma.post.findMany(); ... }\nERREUR_ATTENDUE: \"getServerSideProps\" is not supported in app/\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "nextjs"
+    }
+  },
+  {
+    "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: App Router route handler typing\nRAISON: La double annotation de params (`... }: { ... }: { ... }`) produit une erreur de syntaxe TypeScript et casse le build.\nDETECTION_REGEX: \\}:\\s*\\{\\s*params\\s*:\\s*\\{[^}]+\\}\\s*\\}\\s*:\\s*\\{\\s*params\nALTERNATIVE: Garder une seule annotation de params.\nEXEMPLE_INVALIDE: export async function GET(request: Request, { params }: { params: { id: string } }: { params: Record<string, string> })\nEXEMPLE_VALIDE: export async function GET(request: Request, { params }: { params: { id: string } })\nERREUR_ATTENDUE: Expected ',', got ':'\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "typescript"
+    }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma select fields\nRAISON: Si le code lit `post.content`, le champ `content` doit être présent dans la projection Prisma; sinon TypeScript signale que la propriété n'existe pas.\nDETECTION_REGEX: post\\.content\nALTERNATIVE: Inclure `content: true` dans `select` ou supprimer `select` pour récupérer le modèle complet.\nEXEMPLE_INVALIDE: const post = await prisma.post.findUnique({ select: { id: true, title: true, slug: true } }); // puis post.content\nEXEMPLE_VALIDE: const post = await prisma.post.findUnique({ select: { id: true, title: true, slug: true, content: true } });\nERREUR_ATTENDUE: Property 'content' does not exist on type '{ ... }'\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "status": "active",
+      "version": "1.0",
+      "category": "prisma"
+    }
   }
 ]

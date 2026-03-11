@@ -450,168 +450,97 @@ def dev_agent(
                 + "\n\nGénère ces fichiers avec write_file() maintenant."
                 " run_build sera disponible une fois tous présents."
             ), "blueprint"
-        # 2. USE_STATE TYPED GUARD
-        _BUSINESS_PREFIXES = ("app/", "components/", "src/app/", "src/components/")
-        _usestate_violations = []
-        for _fp, _fc in files_dict.items():
-            _fp_norm = _fp.replace("\\", "/")
-            if not any(_fp_norm.startswith(pfx) for pfx in _BUSINESS_PREFIXES):
-                continue
-            if re.search(r'\buseState\s*\(\s*\[\s*\]\s*\)', _fc) and not re.search(r'\buseState\s*<', _fc):
-                _usestate_violations.append(_fp_norm)
-        if _usestate_violations:
-            return True, (
-                "USE_STATE TYPED GUARD — BUILD BLOQUÉ\n"
-                "useState([]) sans annotation de type détecté — TypeScript strict infère never[], "
-                "ce qui provoque 'Property does not exist on type never' au build.\n"
-                "Fichiers concernés :\n"
-                + "\n".join(f"  - {f}" for f in _usestate_violations)
-                + "\n\nCorrige chaque occurrence : useState<Type[]>([]) avant d'appeler run_build."
-            ), "use_state_typed"
-        # 3. APP ROUTER CONVENTION GUARD
-        # app/dashboard.tsx → invalide. Doit être app/dashboard/page.tsx.
-        # app/blog/[slug].tsx → invalide. Doit être app/blog/[slug]/page.tsx.
-        # Profondeur illimitée — exclut les répertoires non-route (components, lib, utils...).
-        _VALID_ROUTE_NAMES = {"layout", "page", "error", "loading", "not-found", "template", "default"}
-        _NON_ROUTE_DIRS = {"components", "lib", "utils", "hooks", "styles", "types", "context", "providers", "helpers"}
-        _app_router_violations = []
-        for _fp in files_dict.keys():
-            _p = PurePosixPath(_fp.replace("\\", "/"))
-            if _p.parts[0] != "app" or _p.suffix != ".tsx":
-                continue
-            # Exclure les répertoires non-route (le 2e segment identifie le dossier direct sous app/)
-            if len(_p.parts) >= 3 and _p.parts[1] in _NON_ROUTE_DIRS:
-                continue
-            if _p.stem not in _VALID_ROUTE_NAMES:
-                _app_router_violations.append(str(_p))
-        if _app_router_violations:
-            def _suggest_fix(fp_str: str) -> str:
-                _p = PurePosixPath(fp_str)
-                return str(_p.parent / _p.stem / "page.tsx")
-            _remaining = []
-            for _bad_fp in _app_router_violations:
-                _key = (_bad_fp, "app_router_convention")
-                _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
-                # Cette violation est purement structurelle et déterministe:
-                # on migre dès la 1re détection pour casser les boucles MAX_ITERATIONS.
-                if _constructive_guard_failures[_key] >= 1:
-                    _target_fp = _suggest_fix(_bad_fp)
-                    _orig_fc = files_dict.get(_bad_fp) or files_dict.get(_bad_fp.replace("/", "\\"), "")
-                    if _orig_fc:
-                        try:
-                            write_file.invoke({"file_path": _target_fp, "content": _orig_fc})
-                            files[_target_fp] = _orig_fc
-                            # Retirer le fichier invalide du dict ET du disque pour casser
-                            # définitivement la boucle de guard + éviter conflit au build.
-                            for _k in list(files.keys()):
-                                if _k.replace("\\", "/") == _bad_fp:
-                                    del files[_k]
-                            _factory_workdir = os.getenv("FACTORY_WORKDIR")
-                            if _factory_workdir:
-                                _bad_disk = os.path.normpath(os.path.join(_factory_workdir, _bad_fp))
+        # 2. PATH GUARDS — config-driven (naming conventions de fichiers/chemins)
+        for _pg in stack_cfg.get("path_guards", []):
+            _pg_id = str(_pg.get("id", "unknown"))
+            _pg_kind = str(_pg.get("kind", "")).strip()
+            _pg_mode = str(_pg.get("mode", "warn")).strip().lower()
+            if _pg_mode not in ("warn", "block"):
+                _pg_mode = "warn"
+            _pg_msg_lines = _pg.get("message_lines", [f"{_pg_id} PATH GUARD", "{details}"])
+
+            _violations: list[tuple[str, str]] = []  # (file_path, suggested_fix)
+
+            if _pg_kind == "app_router_convention":
+                _root = str(_pg.get("route_root", "app/"))
+                _exts = tuple(_pg.get("file_extensions", [".tsx"]))
+                _valid_route_names = set(_pg.get("valid_route_names", ["layout", "page", "error", "loading", "not-found", "template", "default"]))
+                _excluded_dirs = set(_pg.get("excluded_directories", ["components", "lib", "utils", "hooks", "styles", "types", "context", "providers", "helpers"]))
+                for _fp in files_dict.keys():
+                    _p = PurePosixPath(_fp.replace("\\", "/"))
+                    _fp_norm = str(_p)
+                    if not _fp_norm.startswith(_root):
+                        continue
+                    if _p.suffix not in _exts:
+                        continue
+                    if len(_p.parts) >= 3 and _p.parts[1] in _excluded_dirs:
+                        continue
+                    if _p.stem in _valid_route_names:
+                        continue
+                    _suggested = str(_p.parent / _p.stem / "page.tsx")
+                    _violations.append((_fp_norm, _suggested))
+
+                if _violations and bool(_pg.get("auto_fix", False)):
+                    _remaining: list[tuple[str, str]] = []
+                    for _bad_fp, _target_fp in _violations:
+                        _key = (_bad_fp, _pg_id)
+                        _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
+                        if _constructive_guard_failures[_key] >= 1:
+                            _orig_fc = files_dict.get(_bad_fp) or files_dict.get(_bad_fp.replace("/", "\\"), "")
+                            if _orig_fc:
                                 try:
-                                    os.remove(_bad_disk)
-                                    logger.info(
-                                        f"[AUTO-FIX app_router_convention] {_bad_fp} -> {_target_fp} (dict + disque)"
-                                    )
-                                except FileNotFoundError:
-                                    logger.info(
-                                        f"[AUTO-FIX app_router_convention] {_bad_fp} -> {_target_fp} (dict, disque absent)"
-                                    )
+                                    write_file.invoke({"file_path": _target_fp, "content": _orig_fc})
+                                    files[_target_fp] = _orig_fc
+                                    for _k in list(files.keys()):
+                                        if _k.replace("\\", "/") == _bad_fp:
+                                            del files[_k]
+                                    _factory_workdir = os.getenv("FACTORY_WORKDIR")
+                                    if _factory_workdir:
+                                        _bad_disk = os.path.normpath(os.path.join(_factory_workdir, _bad_fp))
+                                        try:
+                                            os.remove(_bad_disk)
+                                        except FileNotFoundError:
+                                            pass
+                                    messages.append(HumanMessage(content=(
+                                        f"[AUTO-FIX {_pg_id.upper()}] '{_bad_fp}' migré vers '{_target_fp}'.\n"
+                                        "Continue la génération, puis appelle run_build."
+                                    )))
+                                except Exception as _af_err:
+                                    logger.error(f"[AUTO-FIX {_pg_id}] Erreur migration {_bad_fp}: {_af_err}")
+                                    _remaining.append((_bad_fp, _target_fp))
                             else:
-                                logger.warning(
-                                    "[AUTO-FIX app_router_convention] FACTORY_WORKDIR non défini — suppression disque impossible"
-                                )
-                            messages.append(
-                                HumanMessage(
-                                    content=(
-                                        f"[AUTO-FIX APP_ROUTER_CONVENTION] '{_bad_fp}' migré automatiquement vers "
-                                        f"'{_target_fp}' après {_constructive_guard_failures[_key]} blocages.\n"
-                                        "Le fichier invalide a été supprimé. Continue la génération, puis appelle run_build."
-                                    )
-                                )
-                            )
-                        except Exception as _af_err:
-                            logger.error(f"[AUTO-FIX app_router_convention] Erreur migration {_bad_fp}: {_af_err}")
-                            _remaining.append(_bad_fp)
-                    else:
-                        _remaining.append(_bad_fp)
+                                _remaining.append((_bad_fp, _target_fp))
+                        else:
+                            _remaining.append((_bad_fp, _target_fp))
+                    _violations = _remaining
+
+            elif _pg_kind == "app_router_api_naming":
+                _api_root = str(_pg.get("api_root", "app/api/"))
+                _exts = tuple(_pg.get("file_extensions", [".ts", ".tsx"]))
+                _valid_stem = str(_pg.get("api_valid_stem", "route"))
+                for _fp in files_dict.keys():
+                    _p = PurePosixPath(_fp.replace("\\", "/"))
+                    _fp_norm = str(_p)
+                    if not _fp_norm.startswith(_api_root):
+                        continue
+                    if _p.suffix not in _exts:
+                        continue
+                    if _p.stem == _valid_stem:
+                        continue
+                    _suggested = str(_p.parent / "route.ts") if _p.stem == "index" else str(_p.parent / _p.stem / "route.ts")
+                    _violations.append((_fp_norm, _suggested))
+
+            if _violations:
+                _details = "\n".join(f"  - {fp}  →  {suggested}" for fp, suggested in _violations)
+                _msg = "\n".join(_pg_msg_lines).replace("{details}", _details)
+                if _pg_mode == "warn":
+                    _guard_warning_hits[_pg_id] = _guard_warning_hits.get(_pg_id, 0) + len(_violations)
+                    logger.warning(f"[PATH_GUARD WARN {_pg_id}] {len(_violations)} violation(s)")
+                    messages.append(HumanMessage(content=f"[PATH_GUARD WARNING:{_pg_id}]\n{_msg}"))
                 else:
-                    _remaining.append(_bad_fp)
-            _app_router_violations = _remaining
-        if _app_router_violations:
-            def _suggest_fix(fp_str: str) -> str:
-                _p = PurePosixPath(fp_str)
-                return str(_p.parent / _p.stem / "page.tsx")
-            return True, (
-                "APP ROUTER CONVENTION GUARD — BUILD BLOQUÉ\n"
-                "Fichiers .tsx invalides dans app/ — chaque route doit être <segment>/page.tsx.\n"
-                "Fichiers concernés :\n"
-                + "\n".join(f"  - {f}  →  {_suggest_fix(f)}" for f in _app_router_violations)
-                + "\n\nEn App Router, CHAQUE route doit être app/<segment>/page.tsx, PAS app/<segment>.tsx.\n"
-                "Crée les fichiers corrects avec write_file() avant d'appeler run_build."
-            ), "app_router_convention"
-        # 4. PRISMA IMPORT GUARD
-        _PRISMA_BAD_IMPORT = re.compile(
-            r'import\s*\{[^}]*\bprisma\b[^}]*\}\s*from\s*[\'"]@prisma/client[\'"]',
-            re.MULTILINE,
-        )
-        _SERVER_PREFIXES = ("app/", "pages/", "src/app/", "src/pages/", "lib/")
-        _prisma_violations = []
-        for _fp, _fc in files_dict.items():
-            _fp_norm = _fp.replace("\\", "/")
-            if not any(_fp_norm.startswith(pfx) for pfx in _SERVER_PREFIXES):
-                continue
-            if _PRISMA_BAD_IMPORT.search(_fc):
-                _prisma_violations.append(_fp_norm)
-        if _prisma_violations:
-            return True, (
-                "PRISMA IMPORT GUARD — BUILD BLOQUÉ\n"
-                "import { prisma } from '@prisma/client' est invalide en Prisma 7.\n"
-                "@prisma/client exporte uniquement PrismaClient (la classe), pas un singleton 'prisma'.\n"
-                "Fichiers concernés :\n"
-                + "\n".join(f"  - {f}" for f in _prisma_violations)
-                + "\n\nCORRECTION OBLIGATOIRE EN 2 ÉTAPES :\n"
-                "1. Crée lib/prisma.ts avec ce contenu exact :\n"
-                "   import { PrismaClient } from '@prisma/client';\n"
-                "   const prisma = new PrismaClient();\n"
-                "   export default prisma;\n"
-                "2. Dans chaque fichier concerné, remplace l'import invalide par :\n"
-                "   import prisma from '@/lib/prisma';\n"
-                "Appelle write_file() pour ces corrections, PUIS appelle run_build."
-            ), "prisma_import"
-        # 5. APP ROUTER API NAMING GUARD
-        # En App Router, les routes API doivent être dans des fichiers nommés route.ts.
-        # app/api/posts/index.ts ou app/api/posts/[id].ts → invalides.
-        _api_naming_violations = []
-        for _fp in files_dict.keys():
-            _p = PurePosixPath(_fp.replace("\\", "/"))
-            if (
-                len(_p.parts) >= 3
-                and _p.parts[0] == "app"
-                and _p.parts[1] == "api"
-                and _p.suffix in (".ts", ".tsx")
-                and _p.stem != "route"
-            ):
-                _api_naming_violations.append(str(_p))
-        if _api_naming_violations:
-            def _suggest_api_fix(fp_str: str) -> str:
-                _p = PurePosixPath(fp_str)
-                if _p.stem == "index":
-                    return str(_p.parent / "route.ts")
-                return str(_p.parent / _p.stem / "route.ts")
-            return True, (
-                "APP ROUTER API NAMING GUARD — BUILD BLOQUÉ\n"
-                "Les routes API App Router doivent être dans des fichiers nommés route.ts.\n"
-                "Fichiers invalides détectés :\n"
-                + "\n".join(f"  - {f}  →  {_suggest_api_fix(f)}" for f in _api_naming_violations)
-                + "\n\nStructure correcte App Router API :\n"
-                "  app/api/posts/route.ts          → export async function GET() / POST()\n"
-                "  app/api/posts/[id]/route.ts     → export async function PUT() / DELETE()\n"
-                "  Signature : export async function PUT(req: Request, { params }: { params: { id: string } })\n"
-                "Supprime les fichiers invalides et crée les route.ts corrects avec write_file()."
-            ), "app_router_api_naming"
-        # 6. FORBIDDEN PATHS GUARD (depuis stack config)
+                    return True, _msg, _pg_id
+
+        # 3. FORBIDDEN PATHS GUARD (depuis stack config)
         _forbidden = get_forbidden_paths(stack_id) if stack_id else ["pages/", "src/pages/"]
         _forbidden_violations = [
             fp.replace("\\", "/")
@@ -642,99 +571,15 @@ def dev_agent(
             _details = "\n".join(
                 f"  - {fp}  (token: {tok})" for fp, tok in _forbidden_import_violations
             )
-            return True, (
-                "FORBIDDEN IMPORTS GUARD — BUILD BLOQUÉ\n"
+            _warn_msg = (
+                "FORBIDDEN IMPORTS WARNING — NON BLOQUANT\n"
                 "Des imports/patterns interdits par la stack ont été détectés :\n"
                 f"{_details}\n\n"
                 "Corrige les imports selon les règles stack (auth/ORM/UI), puis rappelle run_build."
-            ), "forbidden_imports"
-        # 7. AUTH WRAPPING ROUTE GUARD — constructif (T010)
-        # Détecte: export const METHOD = auth(async (...) => { ... })
-        # Ce pattern Clerk v4 / Pages Router est INCOMPATIBLE avec App Router Next.js 14.
-        _AUTH_WRAP_RE = re.compile(
-            r'export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=\s*auth\s*\(',
-            re.MULTILINE,
-        )
-        _auth_violations = []
-        for _fp, _fc in files_dict.items():
-            _fp_norm = _fp.replace("\\", "/")
-            if _fp_norm.startswith("app/api/") and _fp_norm.endswith(".ts"):
-                if _AUTH_WRAP_RE.search(_fc):
-                    _auth_violations.append(_fp_norm)
-        if _auth_violations:
-            for _afp in _auth_violations:
-                _key = (_afp, "auth_wrapping_route")
-                _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
-                if _constructive_guard_failures[_key] >= 2:
-                    # AUTO-WRITE après 2 blocages : corriger le fichier directement
-                    _orig_fc = files_dict.get(_afp) or files_dict.get(_afp.replace("/", "\\"), "")
-                    if _orig_fc:
-                        _fixed_fc = _fix_auth_wrap_content(_orig_fc)
-                        try:
-                            write_file.invoke({"file_path": _afp, "content": _fixed_fc})
-                            files[_afp] = _fixed_fc
-                            logger.info(f"[T010 AUTO-WRITE] {_afp} corrigé (auth_wrapping × {_constructive_guard_failures[_key]})")
-                            messages.append(HumanMessage(content=(
-                                f"[T010 AUTO-CORRECTION] Le fichier '{_afp}' a été corrigé automatiquement "
-                                f"après {_constructive_guard_failures[_key]} blocages sur 'auth_wrapping_route'.\n"
-                                "La signature 'export const METHOD = auth(async ...)' a été remplacée par "
-                                "'export async function METHOD(request, context)' avec auth() interne.\n"
-                                "Vérifie que la logique métier est préservée, puis appelle run_build."
-                            )))
-                        except Exception as _aw_err:
-                            logger.error(f"[T010 AUTO-WRITE] Erreur écriture {_afp}: {_aw_err}")
-            return True, (
-                "AUTH WRAPPING ROUTE GUARD — BUILD BLOQUÉ\n"
-                "PATTERN INVALIDE détecté dans les route handlers :\n"
-                "  ❌ export const PUT = auth(async (req, { params }) => { ... });\n"
-                "     Ce pattern est la syntaxe Clerk v4 / Pages Router.\n"
-                "     Il est INCOMPATIBLE avec App Router Next.js 14 — provoque 'Invalid configuration' au build.\n\n"
-                "PATTERN ATTENDU (App Router + Clerk v6) :\n"
-                "  ✅ export async function PUT(request: Request, context: { params: { id: string } }) {\n"
-                "       const { userId } = await auth();  // auth() est appelé DANS le handler, jamais wrapper\n"
-                "       if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n"
-                "       const { id } = context.params;\n"
-                "       const body = await request.json();  // request, pas req\n"
-                "       // ... logique métier\n"
-                "     }\n\n"
-                "Fichiers à corriger :\n"
-                + "\n".join(f"  - {f}" for f in _auth_violations)
-                + "\n\n⚠️ RÈGLE ABSOLUE : 'auth()' n'est JAMAIS un wrapper de route handler en App Router.\n"
-                "Il est appelé à l'INTÉRIEUR du handler pour obtenir userId/sessionClaims.\n"
-                "Corrige chaque fichier avec write_file(), puis appelle run_build."
-            ), "auth_wrapping_route"
-
-        # 8. ROUTER QUERY APP ROUTER GUARD — constructif (T010)
-        # Détecte: router.query dans app/**/*.tsx
-        # router.query n'existe PAS sur AppRouterInstance (useRouter de next/navigation).
-        _ROUTER_QUERY_RE = re.compile(r'\brouter\.query\b')
-        _rq_violations = []
-        for _fp, _fc in files_dict.items():
-            _fp_norm = _fp.replace("\\", "/")
-            if _fp_norm.startswith("app/") and _fp_norm.endswith(".tsx"):
-                if _ROUTER_QUERY_RE.search(_fc):
-                    _rq_violations.append(_fp_norm)
-        if _rq_violations:
-            return True, (
-                "ROUTER QUERY APP ROUTER GUARD — BUILD BLOQUÉ\n"
-                "PATTERN INVALIDE détecté : router.query\n"
-                "  ❌ const { slug } = router.query\n"
-                "     useRouter() de 'next/navigation' ne possède PAS de propriété .query.\n"
-                "     Ce pattern appartient à Pages Router (next/router).\n\n"
-                "CORRECTIONS SELON LE CONTEXTE :\n"
-                "  • Page App Router SERVEUR (par défaut, sans 'use client') :\n"
-                "    ✅ export default async function Page({ params }: { params: { slug: string } }) {\n"
-                "         const { slug } = params;  // params vient des props, pas du router\n"
-                "       }\n"
-                "  • Client component ('use client' obligatoire) :\n"
-                "    ✅ import { useParams } from 'next/navigation';\n"
-                "       const { slug } = useParams<{ slug: string }>();\n\n"
-                "Fichiers à corriger :\n"
-                + "\n".join(f"  - {f}" for f in _rq_violations)
-                + "\nCorrige avec write_file() (préférer page serveur avec params props), puis appelle run_build."
-            ), "router_query"
-
-        # 9+. CONTENT GUARDS — config-driven (T008/T009 multi-stack)
+            )
+            logger.warning(f"[PREBUILD WARN forbidden_imports] {len(_forbidden_import_violations)} violation(s)")
+            messages.append(HumanMessage(content=f"[PREBUILD WARNING:forbidden_imports]\n{_warn_msg}"))
+        # 8+. CONTENT GUARDS — config-driven (T008/T009 multi-stack)
         # Toutes les règles de contenu fichier sont déclarées dans la section
         # "content_guards" du JSON de stack. dev.py ne contient aucune logique
         # spécifique à un framework — il lit et applique ces règles génériquement.

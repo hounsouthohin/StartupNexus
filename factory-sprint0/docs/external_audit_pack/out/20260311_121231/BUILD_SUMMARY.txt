@@ -1,0 +1,6 @@
+﻿External audit pack generated
+Timestamp: 20260311_121231
+ProjectRoot: c:\Users\BAMBARA Arthur\Desktop\StartupNexus\factory-sprint0
+Copied files: 30
+Missing files: 0
+Qdrant export: ok

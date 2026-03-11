@@ -1,0 +1,649 @@
+{
+  "generated_at": "2026-03-11T16:12:35.436898+00:00",
+  "qdrant_url": "http://localhost:6333",
+  "collection": "factory_standards",
+  "stack": "nextjs-clerk-prisma",
+  "include_global": true,
+  "count": 53,
+  "standards": [
+    {
+      "id": "051bf315-ded3-f7e1-46c5-7c8eaa065c98",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: jest.config.js — preset next/jest (officiel Next.js 14)\nRAISON: (Perplexity + doc Next.js officielle) Le preset recommandé pour Next.js 14 est next/jest via createJestConfig, pas ts-jest directement comme preset. next/jest supporte nativement App Router, aliases @/, et la résolution des imports Next.\nFORMAT_OBLIGATOIRE:\n  const nextJest = require('next/jest');\n  const createJestConfig = nextJest({ dir: './' });\n  const config = {\n    testEnvironment: 'jsdom',\n    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],\n    moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },\n  };\n  module.exports = createJestConfig(config);\nDETECTION_REGEX: preset:\\s*['\"]ts-jest['\"](?![\\s\\S]{0,200}createJestConfig)\nALTERNATIVE: Utiliser next/jest comme wrapper, ts-jest reste en devDependency mais pas comme preset\nEXEMPLE_INVALIDE:\n  module.exports = {\n    preset: 'ts-jest',\n    testEnvironment: 'jsdom',\n  };\nEXEMPLE_VALIDE:\n  const nextJest = require('next/jest');\n  const createJestConfig = nextJest({ dir: './' });\n  module.exports = createJestConfig({\n    testEnvironment: 'jsdom',\n    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],\n    moduleNameMapper: { '^@/(.*)$': '<rootDir>/$1' },\n  });\nERREUR_ATTENDUE: Cannot find module '@/' ou erreurs de résolution App Router\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "8-testing",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "06f70925-a719-e4dd-8706-dc9216ef9e0f",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma — findUnique avec résultat null non géré\nRAISON: findUnique retourne null si l'enregistrement n'existe pas. Accéder à une propriété sur null crashe le Route Handler avec une 500 au lieu d'une 404 sémantique.\nDETECTION_REGEX: const \\w+ = await prisma\\.\\w+\\.findUnique\\(\nALTERNATIVE: Vérifier le résultat de findUnique avant tout accès aux propriétés, retourner 404 si null\nEXEMPLE_INVALIDE:\n  // app/api/posts/[id]/route.ts\n  export async function GET(_: Request, { params }: { params: { id: string } }) {\n    const post = await prisma.post.findUnique({ where: { id: params.id } });\n    return NextResponse.json({ title: post.title, content: post.content }); // crash si null\n  }\nEXEMPLE_VALIDE:\n  // app/api/posts/[id]/route.ts\n  export async function GET(_: Request, { params }: { params: { id: string } }) {\n    const post = await prisma.post.findUnique({ where: { id: params.id } });\n    if (!post) {\n      return NextResponse.json({ error: 'Post not found' }, { status: 404 });\n    }\n    return NextResponse.json({ title: post.title, content: post.content });\n  }\nERREUR_ATTENDUE: TypeError: Cannot read properties of null (reading 'title')\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "11-error-handling",
+        "status": "active",
+        "version": "1.0",
+        "category": "error-handling",
+        "source": "session2-ai-validated"
+      }
+    },
+    {
+      "id": "1681aced-caf3-a65f-101e-0307c157c440",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: app/layout.tsx — structure canonique App Router avec Clerk v6\nRAISON: (Perplexity + doc Next.js) Le Root Layout DOIT retourner un arbre HTML complet. ClerkProvider DOIT wrapper l'extérieur de <html> pour couvrir toutes les routes. Sans html+body, comportements inattendus (styles, metadata, scripts). Sans ClerkProvider au root, les composants Clerk lancent des erreurs runtime sur les routes non couvertes.\nPLACEMENT_CLERKPROVIDER: À l'extérieur de <html> (wrapping tout le document)\nDETECTION_REGEX: export default function.*Layout(?![\\s\\S]{0,500}<ClerkProvider)\nALTERNATIVE: ClerkProvider → html lang=\"en\" → body → {children}\nEXEMPLE_INVALIDE:\n  export default function RootLayout({ children }) {\n    return (\n      <html lang=\"en\">\n        <body>{children}</body>\n      </html>\n    );\n    // Manque ClerkProvider → useUser/useAuth échouent\n  }\nEXEMPLE_VALIDE:\n  import { ClerkProvider } from '@clerk/nextjs';\n  export const dynamic = \"force-dynamic\";\n\n  export default function RootLayout({ children }: { children: React.ReactNode }) {\n    return (\n      <ClerkProvider>\n        <html lang=\"en\">\n          <body>{children}</body>\n        </html>\n      </ClerkProvider>\n    );\n  }\nERREUR_ATTENDUE: Error: <Clerk> is not a valid component or ClerkProvider missing\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "5-layout",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "type": "policy",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "1a5f89be-52d9-dbf5-2ea0-65010117d21f",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk v6 — imports server depuis @clerk/nextjs (sans /server)\nRAISON: (Perplexity confirmé) Clerk v6 sépare clairement : @clerk/nextjs pour les client components (UserButton, SignIn, useUser), @clerk/nextjs/server pour le code serveur (auth, currentUser, clerkMiddleware). Mélanger cause des erreurs de module ou des fuites server→client.\nDETECTION_REGEX: import\\s*\\{.*\b(auth|currentUser|clerkMiddleware|createRouteMatcher)\b.*\\}\\s*from\\s*['\"]@clerk\\/nextjs['\"](?!\\/server)\nALTERNATIVE:\n  Client: import { useUser, UserButton, ClerkProvider } from '@clerk/nextjs'\n  Serveur: import { auth, currentUser, clerkMiddleware } from '@clerk/nextjs/server'\nEXEMPLE_INVALIDE: import { auth } from '@clerk/nextjs'  // server fn depuis le mauvais path\nEXEMPLE_VALIDE: import { auth } from '@clerk/nextjs/server'\nERREUR_ATTENDUE: Module not found ou erreur \"server-only\" boundary violation\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "6-clerk",
+        "status": "active",
+        "version": "1.0",
+        "category": "clerk",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "1aab7499-9eff-bf2d-d191-48c9323fd5ec",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk v6 — authMiddleware déprécié\nRAISON: (Perplexity confirmé) authMiddleware importé de @clerk/nextjs est supprimé en v6. Cause Module Not Found ou comportement incorrect au runtime.\nDETECTION_REGEX: authMiddleware|from\\s+['\"]@clerk\\/nextjs['\"].*authMiddleware\nALTERNATIVE: clerkMiddleware + createRouteMatcher depuis @clerk/nextjs/server\nEXEMPLE_INVALIDE:\n  import { authMiddleware } from '@clerk/nextjs';\n  export default authMiddleware({\n    publicRoutes: ['/', '/sign-in', '/sign-up'],\n  });\nEXEMPLE_VALIDE:\n  import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';\n  const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)']);\n  export default clerkMiddleware(async (auth, request) => {\n    if (!isPublicRoute(request)) await auth.protect();\n  });\nERREUR_ATTENDUE: Error: authMiddleware is not exported from @clerk/nextjs (v6)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "6-clerk",
+        "status": "active",
+        "version": "1.0",
+        "category": "clerk",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "1c1c2b3c-ae2b-4d3a-435b-214b8cc356d8",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — Route Handlers dynamiques avec auth\nRAISON: Un Route Handler avec auth() qui n'est pas marqué dynamic peut être statiquement prérendu par Next.js, rendant auth() inaccessible au build.\nDETECTION_REGEX: ^(?!.*export const dynamic).*export async function (GET|POST|PUT|DELETE).*auth\\(\\)\nALTERNATIVE: Ajouter export const dynamic = \"force-dynamic\" dans tout Route Handler qui appelle auth()\nEXEMPLE_INVALIDE:\n  // app/api/user/route.ts\n  import { auth } from '@clerk/nextjs/server';\n  import { NextResponse } from 'next/server';\n\n  // pas de export const dynamic\n  export async function GET() {\n    const { userId } = await auth();\n    return NextResponse.json({ userId });\n  }\nEXEMPLE_VALIDE:\n  // app/api/user/route.ts\n  import { auth } from '@clerk/nextjs/server';\n  import { NextResponse } from 'next/server';\n\n  export const dynamic = 'force-dynamic';\n\n  export async function GET() {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n    return NextResponse.json({ userId });\n  }\nERREUR_ATTENDUE: Error: Route /api/user with dynamic = \"auto\" couldn't be rendered statically because it used `headers`.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "10-security-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "session1-ai-validated"
+      }
+    },
+    {
+      "id": "1f0cd17d-dbf8-1d44-ee40-3cf857b8de6e",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Jest — import de NextRequest/NextResponse dans tests jsdom\nRAISON: NextRequest et NextResponse utilisent l'API Web Fetch qui n'existe pas dans l'environnement jsdom Jest — les tests crashent immédiatement à l'import.\nDETECTION_REGEX: import.*NextRequest|import.*NextResponse\nALTERNATIVE: Utiliser le constructeur natif Request/Response Web API dans les tests (disponible dans Node 18+)\nEXEMPLE_INVALIDE:\n  import { NextRequest } from 'next/server'; // crash jsdom\n  test('GET posts', async () => {\n    const req = new NextRequest('http://localhost/api/posts'); // ReferenceError\n    const res = await GET(req);\n  });\nEXEMPLE_VALIDE:\n  test('GET posts', async () => {\n    const req = new Request('http://localhost/api/posts', { method: 'GET' });\n    const res = await GET(req);\n    expect(res.status).toBe(200);\n    const data = await res.json();\n    expect(Array.isArray(data)).toBe(true);\n  });\nERREUR_ATTENDUE: ReferenceError: NextRequest is not defined — ou — TypeError: (0 , next_server__WEBPACK_IMPORTED_MODULE_0__.NextRequest) is not a constructor\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "12-testing-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "session3-ai-validated"
+      }
+    },
+    {
+      "id": "25eaf657-9bf9-590d-5650-240ea94ffc6d",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: @clerk/nextjs — SignIn/SignUp components sans routes Catch-All\nRAISON: Créer manuellement des pages /sign-in et /sign-up sans les routes Catch-All fait que Clerk ne peut pas gérer ses propres redirections internes (/sign-in/factor-one, /sign-in/sso-callback...) — les utilisateurs se retrouvent sur une page 404 pendant l'auth.\nDETECTION_REGEX: app/sign-in/page\\.tsx|app/sign-up/page\\.tsx(?!.*\\[\\[\\.\\.\\.sign)\nALTERNATIVE: Utiliser les routes Catch-All [[...sign-in]] et [[...sign-up]] pour que Clerk gère toutes ses sous-routes internes\nEXEMPLE_INVALIDE:\n  // app/sign-in/page.tsx ❌\n  import { SignIn } from '@clerk/nextjs';\n  export default function SignInPage() {\n    return <SignIn />;\n    // ❌ /sign-in/factor-one → 404, SSO callback → 404\n  }\nEXEMPLE_VALIDE:\n  // app/sign-in/[[...sign-in]]/page.tsx ✅\n  import { SignIn } from '@clerk/nextjs';\n  export default function SignInPage() {\n    return (\n      <div className=\"flex justify-center items-center min-h-screen\">\n        <SignIn />\n      </div>\n    );\n  }\nERREUR_ATTENDUE: 404 sur /sign-in/factor-one — ou — Clerk: signInUrl must be set to the path of your sign-in page.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "14-antipatterns",
+        "status": "active",
+        "version": "1.0",
+        "category": "antipatterns",
+        "source": "session5-ai-validated"
+      }
+    },
+    {
+      "id": "260b6367-4cac-bac1-c27e-eefcfa2c1428",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: next.config.js — eslint.ignoreDuringBuilds pour build en génération automatique\nRAISON: Sans eslint.ignoreDuringBuilds: true, le build Next.js échoue sur les erreurs ESLint générées par le LLM. Dans un contexte de génération automatique, c'est obligatoire.\nCONFIGURATION_OBLIGATOIRE:\n  /** @type {import('next').NextConfig} */\n  const nextConfig = {\n    reactStrictMode: true,\n    eslint: { ignoreDuringBuilds: true },\n    typescript: { ignoreBuildErrors: false },\n  };\n  module.exports = nextConfig;\nDETECTION_REGEX: ignoreDuringBuilds\nALTERNATIVE: Ajouter eslint: { ignoreDuringBuilds: true } dans nextConfig\nEXEMPLE_INVALIDE:\n  const nextConfig = { reactStrictMode: true };\n  module.exports = nextConfig;\nEXEMPLE_VALIDE:\n  const nextConfig = {\n    reactStrictMode: true,\n    eslint: { ignoreDuringBuilds: true },\n  };\n  module.exports = nextConfig;\nERREUR_ATTENDUE: Build failed due to ESLint errors (erreurs ESLint bloquant next build)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "4-nextconfig",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "2e6fb641-711f-b717-3da3-10728e7824f1",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — validation body avec Zod avant opération Prisma\nRAISON: Passer des champs undefined ou de mauvais type à Prisma lève une PrismaClientValidationError qui expose le schéma interne si non catchée.\nDETECTION_REGEX: const \\{[^}]+\\} = await req\\.json\\(\\);\nALTERNATIVE: Définir un schema Zod et utiliser .safeParse() avant tout appel Prisma — retourner 400 si invalide\nEXEMPLE_INVALIDE:\n  export async function POST(req: Request) {\n    const { title, content } = await req.json();\n    // title peut être undefined → PrismaClientValidationError\n    const post = await prisma.post.create({ data: { title, content, authorId: userId } });\n    return NextResponse.json(post);\n  }\nEXEMPLE_VALIDE:\n  import { z } from 'zod';\n  const CreatePostSchema = z.object({\n    title: z.string().min(1).max(255),\n    content: z.string().min(1),\n  });\n\n  export async function POST(req: Request) {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n\n    const body = await req.json();\n    const result = CreatePostSchema.safeParse(body);\n    if (!result.success) {\n      return NextResponse.json({ error: result.error.flatten() }, { status: 400 });\n    }\n    const post = await prisma.post.create({ data: { ...result.data, authorId: userId } });\n    return NextResponse.json(post, { status: 201 });\n  }\nERREUR_ATTENDUE: PrismaClientValidationError: Argument `title` is missing.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "11-error-handling",
+        "status": "active",
+        "version": "1.0",
+        "category": "error-handling",
+        "source": "session2-ai-validated"
+      }
+    },
+    {
+      "id": "30db10e5-bc81-eae0-9ac6-245bfd03bf18",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — appel Prisma direct dans un Client Component\nRAISON: Les Client Components s'exécutent dans le navigateur — Prisma est une bibliothèque Node.js avec des modules natifs (pg, fs...) qui n'existent pas dans le browser. Le build échoue avec une erreur de module non trouvé.\nDETECTION_REGEX: 'use client'[\\s\\S]*?import.*@prisma/client|import.*@prisma/client[\\s\\S]*?'use client'\nALTERNATIVE: Les appels Prisma restent dans les Server Components (page.tsx sans 'use client') ou les Route Handlers (app/api/**/route.ts)\nEXEMPLE_INVALIDE:\n  // app/dashboard/DashboardPage.tsx ❌\n  'use client';\n  import { prisma } from '@/lib/prisma'; // ❌ Prisma dans Client Component\n  import { useEffect, useState } from 'react';\n  export default function DashboardPage() {\n    const [posts, setPosts] = useState([]);\n    useEffect(() => {\n      prisma.post.findMany().then(setPosts); // ❌ crash build + runtime\n    }, []);\n    return <div>{posts.length}</div>;\n  }\nEXEMPLE_VALIDE:\n  // app/dashboard/page.tsx ✅ — Server Component\n  import { DashboardClient } from './DashboardClient';\n  export default async function DashboardPage() {\n    const { userId } = await auth();\n    if (!userId) redirect('/sign-in');\n    // ✅ Prisma dans Server Component — Node.js env\n    const posts = await prisma.post.findMany({ where: { authorId: userId } });\n    return <DashboardClient initialPosts={posts} />;\n  }\nERREUR_ATTENDUE: Module not found: Can't resolve 'pg-native' — ou — Module not found: Can't resolve 'fs' in '.../node_modules/@prisma/client/runtime'\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "14-antipatterns",
+        "status": "active",
+        "version": "1.0",
+        "category": "antipatterns",
+        "source": "session5-ai-validated"
+      }
+    },
+    {
+      "id": "31a3a26e-37ca-587c-91ed-e45a43ff5f87",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Jest — mock PrismaClient (éviter les vraies requêtes DB)\nRAISON: Sans mock Prisma, les tests unitaires tentent de se connecter à la base de données, échouent en CI (pas de DB), et sont des tests d'intégration déguisés en tests unitaires.\nDETECTION_REGEX: import.*prisma.*from.*@/lib/prisma\nALTERNATIVE: Mocker inline via jest.mock('@/lib/prisma') avec les méthodes utilisées\nEXEMPLE_INVALIDE:\n  import { prisma } from '@/lib/prisma'; // import direct → vraie DB\n  import { POST } from '@/app/api/users/route';\n  test('crée un utilisateur', async () => {\n    const res = await POST(req); // crash si DB absente\n    expect(res.status).toBe(201);\n  });\nEXEMPLE_VALIDE:\n  jest.mock('@clerk/nextjs/server', () => ({\n    auth: jest.fn().mockResolvedValue({ userId: 'user_test_123' }),\n  }));\n  jest.mock('@/lib/prisma', () => ({\n    prisma: {\n      user: {\n        create: jest.fn().mockResolvedValue({ id: 1, email: 'test@test.com', clerkId: 'user_test_123' }),\n      },\n    },\n  }));\n  import { POST } from '@/app/api/users/route';\n  test('POST /api/users crée un utilisateur', async () => {\n    const req = new Request('http://localhost/api/users', {\n      method: 'POST',\n      body: JSON.stringify({ email: 'test@test.com' }),\n      headers: { 'Content-Type': 'application/json' },\n    });\n    const res = await POST(req);\n    expect(res.status).toBe(201);\n  });\nERREUR_ATTENDUE: PrismaClientInitializationError: Can't reach database server at `localhost:5432`\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "12-testing-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "session3-ai-validated"
+      }
+    },
+    {
+      "id": "32eae7b2-7871-e8f1-1112-8740275b28d0",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — Server Components avec useState/useEffect\nRAISON: Les Server Components Next.js App Router n'ont pas accès au runtime React côté client — utiliser des hooks React crashe immédiatement le build avec une erreur TypeScript/Next.js non ambiguë.\nDETECTION_REGEX: (useState|useEffect|useCallback|useRef)\\s*\\((dans un fichier app/**/*.tsx qui n'a pas 'use client' en première ligne)\nALTERNATIVE: Ajouter 'use client' en première ligne si des hooks sont nécessaires, ou extraire la logique dans un sous-composant Client\nEXEMPLE_INVALIDE:\n  // app/dashboard/page.tsx ❌ (Server Component par défaut)\n  import { useState } from 'react';\n  export default function DashboardPage() {\n    const [count, setCount] = useState(0); // ❌ hook dans Server Component\n    return <button onClick={() => setCount(c => c + 1)}>{count}</button>;\n  }\nEXEMPLE_VALIDE:\n  // app/dashboard/page.tsx ✅ — Server Component pour les données\n  import { DashboardClient } from './DashboardClient';\n  import { auth } from '@clerk/nextjs/server';\n  export default async function DashboardPage() {\n    const { userId } = await auth();\n    if (!userId) redirect('/sign-in');\n    const posts = await prisma.post.findMany({ where: { authorId: userId } });\n    return <DashboardClient posts={posts} />;\n  }\n  // app/dashboard/DashboardClient.tsx\n  'use client';\n  import { useState } from 'react';\n  export function DashboardClient({ posts }) {\n    const [filter, setFilter] = useState('all');\n  }\nERREUR_ATTENDUE: Error: useState only works in Client Components. Add the \"use client\" directive at the top of the file to use it.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "14-antipatterns",
+        "status": "active",
+        "version": "1.0",
+        "category": "antipatterns",
+        "source": "session5-ai-validated"
+      }
+    },
+    {
+      "id": "3413d919-e9af-c766-5048-ea0a492644f6",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — ownership check Prisma (IDOR prevention)\nRAISON: Vérifier uniquement userId !== null ne suffit pas — un utilisateur authentifié peut modifier les ressources d'un autre utilisateur en passant un ID arbitraire dans l'URL (IDOR — Insecure Direct Object Reference).\nDETECTION_REGEX: prisma\\.\\w+\\.(update|delete|findUnique)\\(\\s*\\{[^}]*where[^}]*id[^}]*\\}\nALTERNATIVE: Toujours inclure { id: params.id, authorId: userId } dans le where de toute mutation Prisma sur ressource utilisateur\nEXEMPLE_INVALIDE:\n  // app/api/posts/[id]/route.ts\n  export async function DELETE(req: Request, { params }: { params: { id: string } }) {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n\n    // n'importe quel user authentifié peut supprimer n'importe quel post\n    await prisma.post.delete({ where: { id: params.id } });\n    return NextResponse.json({ success: true });\n  }\nEXEMPLE_VALIDE:\n  // app/api/posts/[id]/route.ts\n  export async function DELETE(req: Request, { params }: { params: { id: string } }) {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n\n    // double contrainte : id ET propriétaire\n    const deleted = await prisma.post.deleteMany({\n      where: { id: params.id, authorId: userId },\n    });\n    if (deleted.count === 0) {\n      return NextResponse.json({ error: 'Not found or forbidden' }, { status: 404 });\n    }\n    return NextResponse.json({ success: true });\n  }\nERREUR_ATTENDUE: N/A (faille silencieuse — pas d'erreur build ni runtime)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "10-security-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "session1-ai-validated"
+      }
+    },
+    {
+      "id": "36a5e40a-4d24-2bd0-2128-da029c559454",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: schema.prisma — champs createdAt/updatedAt sur chaque modèle\nRAISON: Sans createdAt/updatedAt, il est impossible de trier, auditer ou paginer les données. Convention obligatoire dans tous les projets factory.\nDETECTION_REGEX: ^model \\w+ \\{(?![\\s\\S]{0,400}createdAt)\nALTERNATIVE: Ajouter createdAt DateTime @default(now()) et updatedAt DateTime @updatedAt\nEXEMPLE_INVALIDE:\n  model Task {\n    id    String @id @default(cuid())\n    title String\n  }\nEXEMPLE_VALIDE:\n  model Task {\n    id        String   @id @default(cuid())\n    title     String\n    userId    String\n    createdAt DateTime @default(now())\n    updatedAt DateTime @updatedAt\n  }\nERREUR_ATTENDUE: Données sans traçabilité temporelle (pas d'erreur de build, mais violation architecture)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "7-prisma",
+        "status": "active",
+        "version": "1.0",
+        "category": "prisma",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "38f3a214-efca-03aa-f9d7-390975a36238",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Jest — mock @clerk/nextjs/server dans les tests Route Handlers\nRAISON: Sans mock, auth() tente une vraie requête Clerk depuis l'environnement Jest, échoue silencieusement et retourne { userId: null }, rendant les tests d'auth non déterministes.\nDETECTION_REGEX: import.*auth.*from.*@clerk/nextjs/server\nALTERNATIVE: Toujours jest.mock('@clerk/nextjs/server') en début de test et contrôler la valeur retournée par userId\nEXEMPLE_INVALIDE:\n  import { GET } from '@/app/api/posts/route';\n  // auth() non mocké → userId toujours null en Jest\n  test('GET /api/posts retourne 200', async () => {\n    const res = await GET();\n    expect(res.status).toBe(200); // échoue : retourne 401\n  });\nEXEMPLE_VALIDE:\n  jest.mock('@clerk/nextjs/server', () => ({\n    auth: jest.fn().mockResolvedValue({ userId: 'user_test_123' }),\n  }));\n  import { GET } from '@/app/api/posts/route';\n  test('GET /api/posts retourne 200 pour user authentifié', async () => {\n    const res = await GET();\n    expect(res.status).toBe(200);\n  });\n  test('GET /api/posts retourne 401 si non authentifié', async () => {\n    const { auth } = require('@clerk/nextjs/server');\n    auth.mockResolvedValueOnce({ userId: null });\n    const res = await GET();\n    expect(res.status).toBe(401);\n  });\nERREUR_ATTENDUE: N/A (test passe toujours faussement ou échoue toujours selon l'env)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "12-testing-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "session3-ai-validated"
+      }
+    },
+    {
+      "id": "3aa57741-ebd7-106b-caa9-1cf93903b2d6",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Tests API Routes — node-mocks-http dans devDependencies\nRAISON: Tester les Route Handlers Next.js nécessite des objets Request/Response mockés. node-mocks-http fournit ces mocks compatibles.\nDETECTION_REGEX: devDependencies(?![\\s\\S]{0,800}node-mocks-http)\nALTERNATIVE: \"node-mocks-http\": \"^1.14.0\" dans devDependencies\nEXEMPLE_INVALIDE: package.json sans node-mocks-http\nEXEMPLE_VALIDE: \"node-mocks-http\": \"^1.14.0\" dans devDependencies\nERREUR_ATTENDUE: ReferenceError: Request is not defined dans les tests API\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "8-testing",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "3deecb3c-a6fd-7ea4-3c42-577e3f6280aa",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — redirect() dans un try/catch\nRAISON: La fonction redirect() de Next.js fonctionne en lançant une exception interne (NEXT_REDIRECT). Si elle est appelée dans un try/catch, l'exception est catchée et la redirection n'a jamais lieu — l'utilisateur reste sur la page sans redirection ni erreur visible.\nDETECTION_REGEX: try\\s*\\{[\\s\\S]*?redirect\\([\\s\\S]*?\\}\\s*catch\nALTERNATIVE: Appeler redirect() en dehors des blocs try/catch, ou utiliser notFound() pour les 404 qui ne nécessitent pas de try/catch\nEXEMPLE_INVALIDE:\n  // app/dashboard/page.tsx\n  export default async function DashboardPage() {\n    try {\n      const { userId } = await auth();\n      if (!userId) redirect('/sign-in'); // ❌ exception catchée → redirect silencieux\n      const data = await prisma.post.findMany();\n      return <div>{data.length} posts</div>;\n    } catch (error) {\n      console.error(error); // redirect() est catchée ici → jamais exécutée\n      return <div>Erreur</div>;\n    }\n  }\nEXEMPLE_VALIDE:\n  // app/dashboard/page.tsx\n  export default async function DashboardPage() {\n    const { userId } = await auth(); // ✅ auth() en dehors du try/catch\n    if (!userId) redirect('/sign-in');\n    try {\n      const data = await prisma.post.findMany({ where: { authorId: userId } });\n      return <div>{data.length} posts</div>;\n    } catch (error) {\n      console.error('[DashboardPage]', error);\n      return <div>Une erreur est survenue</div>;\n    }\n  }\nERREUR_ATTENDUE: N/A (redirection silencieusement ignorée — l'utilisateur reste sur la page)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "14-antipatterns",
+        "status": "active",
+        "version": "1.0",
+        "category": "antipatterns",
+        "source": "session5-ai-validated"
+      }
+    },
+    {
+      "id": "42db72d0-938d-3fb9-ea1c-7c56f6693170",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Jest — jest.mock placé après les imports ES modules\nRAISON: jest.mock() est hoisté avant les imports uniquement avec Babel/ts-jest CommonJS. Avec ESM natif ou mauvaise config ts-jest, le mock n'est pas appliqué et l'import réel est utilisé.\nDETECTION_REGEX: import\\s+\\{[^}]+\\}\\s+from\\s+['\"][^'\"]+['\"];\\s*[\\s\\S]*?jest\\.mock\\(\nALTERNATIVE: Placer jest.mock() avant tout import, ou utiliser require() pour les mocks dynamiques\nEXEMPLE_INVALIDE:\n  import { clerkMiddleware } from '@clerk/nextjs/server'; // import AVANT mock\n  jest.mock('@clerk/nextjs/server', () => ({ clerkMiddleware: jest.fn() })); // trop tard\nEXEMPLE_VALIDE:\n  // jest.mock est hoisté avant les imports par le transform Babel/ts-jest.\n  jest.mock('@clerk/nextjs/server', () => ({\n    clerkMiddleware: jest.fn((handler) => jest.fn()),\n    createRouteMatcher: jest.fn(() => jest.fn(() => false)),\n  }));\n  const mod = require('../middleware'); // require() pour éviter l'ambiguïté ESM\nERREUR_ATTENDUE: Cannot access 'clerkMiddleware' before initialization — ou — The module factory of jest.mock() is not allowed to reference any out-of-scope variables.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "12-testing-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "session3-ai-validated"
+      }
+    },
+    {
+      "id": "4b28f434-04f6-14c2-0233-d534aa9a9fc2",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — sélection des champs retournés par Prisma\nRAISON: Retourner l'entité Prisma complète depuis une API publique expose des champs internes (authorId, clerkId, metadata) qui ne doivent pas être visibles côté client.\nDETECTION_REGEX: return NextResponse\\.json\\(\\s*\\w+\\s*\\)(?!.*select|.*omit)\nALTERNATIVE: Utiliser select ou omit dans la requête Prisma, ou destructurer explicitement les champs à exposer\nEXEMPLE_INVALIDE:\n  // app/api/posts/[id]/route.ts\n  const post = await prisma.post.findUnique({ where: { slug: params.slug } });\n  // ❌ retourne authorId (clerkId interne), tous les champs internes\n  return NextResponse.json(post);\nEXEMPLE_VALIDE:\n  // app/api/posts/[id]/route.ts\n  const post = await prisma.post.findUnique({\n    where: { slug: params.slug, published: true },\n    select: {   // ✅ uniquement les champs publics\n      id: true,\n      title: true,\n      content: true,\n      slug: true,\n      createdAt: true,\n    },\n  });\n  if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 });\n  return NextResponse.json(post);\nERREUR_ATTENDUE: N/A (fuite de données silencieuse)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "13-business-logic",
+        "status": "active",
+        "version": "1.0",
+        "category": "business-logic",
+        "source": "session4-ai-validated"
+      }
+    },
+    {
+      "id": "5258c7ff-815e-579d-5513-d2670e5d027c",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk v6 middleware.ts — clerkMiddleware async + auth.protect()\nRAISON: (Perplexity confirmé) Clerk v6 : dans clerkMiddleware, auth est un OBJET injecté (pas une fonction). auth().protect() est invalide. Le callback DOIT être async pour utiliser await auth.protect().\nDETECTION_REGEX: auth\\(\\)\\.protect\\(\\)|clerkMiddleware\\(\\s*\\(auth,\\s*req\\)\\s*=>(?!\\s*async)\nALTERNATIVE: clerkMiddleware(async (auth, request) => { await auth.protect(); })\nEXEMPLE_INVALIDE:\n  export default clerkMiddleware((auth, req) => {\n    if (!isPublicRoute(req)) auth().protect();  // DOUBLE erreur: sync + auth()\n  });\nEXEMPLE_VALIDE:\n  import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';\n  const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)']);\n  export default clerkMiddleware(async (auth, request) => {\n    if (!isPublicRoute(request)) await auth.protect();\n  });\nERREUR_ATTENDUE: TypeError: auth is not a function | SyntaxError: await only valid in async\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "6-clerk",
+        "status": "active",
+        "version": "1.0",
+        "category": "clerk",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "5d65a953-9f3d-d858-0eec-1640587e5c0e",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Variables d'environnement — secrets avec préfixe NEXT_PUBLIC_\nRAISON: Les variables avec NEXT_PUBLIC_ sont exposées dans le bundle JavaScript client. CLERK_SECRET_KEY et DATABASE_URL exposés = faille critique.\nDETECTION_REGEX: NEXT_PUBLIC_CLERK_SECRET_KEY|NEXT_PUBLIC_DATABASE_URL\nALTERNATIVE: CLERK_SECRET_KEY et DATABASE_URL sans préfixe (serveur uniquement)\nEXEMPLE_INVALIDE:\n  NEXT_PUBLIC_CLERK_SECRET_KEY=sk_test_xxx    <- exposé au client\n  NEXT_PUBLIC_DATABASE_URL=postgresql://...   <- exposé au client\nEXEMPLE_VALIDE:\n  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx  <- public OK\n  CLERK_SECRET_KEY=sk_test_xxx                   <- privé OK\n  DATABASE_URL=postgresql://...                  <- privé OK\nERREUR_ATTENDUE: Fuite de secrets dans le bundle JavaScript client\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "9-security",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "5fbd97eb-6d59-2bef-fcd8-99a01222ae72",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: jest.setup.js — import @testing-library/jest-dom\nRAISON: (Perplexity confirmé) jest.setup.js doit importer @testing-library/jest-dom pour enregistrer les matchers (toBeInTheDocument, toHaveTextContent, etc.) avant chaque test.\nDETECTION_REGEX: ^(?!.*@testing-library\\/jest-dom)\nALTERNATIVE: Créer jest.setup.js avec une seule ligne d'import\nEXEMPLE_INVALIDE: jest.setup.js vide ou absent\nEXEMPLE_VALIDE:\n  import '@testing-library/jest-dom';\nERREUR_ATTENDUE: TypeError: expect(...).toBeInTheDocument is not a function\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "8-testing",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "63050820-37bf-53ed-d629-bee613933309",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma — champs obligatoires depuis le brief dans le schéma\nRAISON: Générer un modèle Prisma incomplet (champs manquants du brief) produit un build qui passe mais une application qui ne satisfait pas la spécification — les routes API échouent à l'exécution sur les champs inexistants.\nDETECTION_REGEX: N/A (détection sémantique — vérifier que chaque entité mentionnée dans le brief a un modèle Prisma correspondant)\nALTERNATIVE: Extraire exhaustivement toutes les entités et leurs champs du brief avant de générer le schéma, créer un modèle par entité mentionnée\nEXEMPLE_INVALIDE:\n  // Brief : \"Post avec title, content, slug unique, published Boolean\"\n  // schema.prisma généré ❌\n  model Post {\n    id      String @id @default(cuid())\n    title   String\n    // ❌ content manquant, slug manquant, published manquant\n  }\nEXEMPLE_VALIDE:\n  // Brief : \"Post avec title, content, slug unique, published Boolean\"\n  // schema.prisma généré ✅\n  model Post {\n    id        String   @id @default(cuid())\n    title     String\n    content   String\n    slug      String   @unique\n    published Boolean  @default(false)\n    authorId  String\n    createdAt DateTime @default(now())\n    updatedAt DateTime @updatedAt\n  }\nERREUR_ATTENDUE: TypeError: Cannot read properties of undefined (reading 'slug') — ou — PrismaClientValidationError: Unknown field `slug` for model `Post`.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "13-business-logic",
+        "status": "active",
+        "version": "1.0",
+        "category": "business-logic",
+        "source": "session4-ai-validated"
+      }
+    },
+    {
+      "id": "66aeea4a-821b-2188-db5c-968cea9bc90e",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js 14 middleware matcher — pattern glob **\nRAISON: Le pattern ** dans le matcher cause 'Unexpected MODIFIER'. Next.js middleware utilise la syntaxe regex, pas glob.\nDETECTION_REGEX: matcher.*\\/\\w+\\/\\*\\*\nALTERNATIVE: '/protected/(.*)' au lieu de '/protected/**'\nEXEMPLE_INVALIDE:\n  export const config = { matcher: ['/protected/**'] }\nEXEMPLE_VALIDE:\n  export const config = { matcher: ['/protected/(.*)'] }\nERREUR_ATTENDUE: SyntaxError: Unexpected MODIFIER at position X\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "4-nextconfig",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "6a9caa7c-99d0-4279-b0e4-db09062ac4d1",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: package.json — format JSON strict\nRAISON: npm (EJSONPARSE) rejette tout JSON invalide : commentaires JS, backticks, virgules trailing, texte hors accolades.\nDETECTION_REGEX: \\/\\/.*|`[^`]*`|,\\s*\\}|\\s*,\\s*\\]\nALTERNATIVE: JSON pur, validé par json.loads() avant écriture\nEXEMPLE_INVALIDE:\n  {\n    // commentaire interdit\n    \"name\": \"my-app\",\n    \"version\": \"1.0.0\",   <- virgule trailing\n  }\nEXEMPLE_VALIDE:\n  {\n    \"name\": \"my-app\",\n    \"version\": \"1.0.0\"\n  }\nERREUR_ATTENDUE: npm ERR! EJSONPARSE position 1\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "2-packages",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "6acaa376-f657-51b8-cb40-9cdf5bf34b94",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: app/layout.tsx — export const dynamic = 'force-dynamic'\nRAISON: Next.js 14 pré-rend statiquement toutes les pages au build. ClerkProvider s'initialise pendant ce prerender et lève une exception si NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY est un placeholder (valeur de dev). force-dynamic désactive la génération statique — Clerk n'est initialisé qu'à runtime avec de vraies credentials.\nDETECTION_REGEX: ClerkProvider(?![\\s\\S]{0,400}export const dynamic)\nALTERNATIVE: Ajouter 'export const dynamic = \"force-dynamic\"' après les imports\nEXEMPLE_INVALIDE:\n  import { ClerkProvider } from '@clerk/nextjs';\n  export default function RootLayout({ children }) {\n    return (<ClerkProvider><html lang=\"en\"><body>{children}</body></html></ClerkProvider>);\n  }\n  // Manque force-dynamic → ClerkProvider crash au build avec placeholder key\nEXEMPLE_VALIDE:\n  import { ClerkProvider } from '@clerk/nextjs';\n  export const dynamic = \"force-dynamic\";\n  export default function RootLayout({ children }) {\n    return (<ClerkProvider><html lang=\"en\"><body>{children}</body></html></ClerkProvider>);\n  }\nERREUR_ATTENDUE: Error: @clerk/nextjs: Missing or invalid publishableKey during static prerender\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "5-layout",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "type": "policy",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "75850631-f402-1cfd-3b5f-6ccfe642dd9f",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js 14 — pages/ directory avec App Router\nRAISON: La coexistence de pages/ et app/ provoque une erreur de build fatale. Next.js 14 App Router utilise exclusivement app/.\nDETECTION_REGEX: ^pages\\/.*\\.(tsx?|jsx?)$\nALTERNATIVE: app/ uniquement pour toutes les routes\nEXEMPLE_INVALIDE: pages/index.tsx coexiste avec app/page.tsx\nEXEMPLE_VALIDE: app/page.tsx uniquement — aucun fichier dans pages/\nERREUR_ATTENDUE: Error: Conflicting app and page file was found\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "4-nextconfig",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "8531bb28-5cfe-57ca-f868-847fb8009a09",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: tsconfig.json — \"tests/**\" dans exclude\nRAISON: Sans \"tests/**\" dans exclude, Next.js compile les fichiers de test dans le build TypeScript. Sur filesystem Linux case-sensitive (Docker), deux fichiers de test différant uniquement par la casse coexistent → TS5070 fatal.\nCONFIGURATION_MINIMALE:\n  {\n    \"compilerOptions\": {\n      \"target\": \"ES2017\",\n      \"lib\": [\"dom\", \"dom.iterable\", \"esnext\"],\n      \"allowJs\": true,\n      \"skipLibCheck\": true,\n      \"strict\": true,\n      \"noEmit\": true,\n      \"esModuleInterop\": true,\n      \"module\": \"esnext\",\n      \"moduleResolution\": \"bundler\",\n      \"resolveJsonModule\": true,\n      \"isolatedModules\": true,\n      \"jsx\": \"preserve\",\n      \"incremental\": true,\n      \"plugins\": [{ \"name\": \"next\" }],\n      \"paths\": { \"@/*\": [\"./*\"] }\n    },\n    \"include\": [\"next-env.d.ts\", \"**/*.ts\", \"**/*.tsx\", \".next/types/**/*.ts\"],\n    \"exclude\": [\"node_modules\", \"tests/**\"]\n  }\nDETECTION_REGEX: \"exclude\":\\s*\\[\"node_modules\"\\](?!\\s*,\\s*\"tests)\nALTERNATIVE: Ajouter \"tests/**\" dans le tableau exclude\nEXEMPLE_INVALIDE: \"exclude\": [\"node_modules\"]\nEXEMPLE_VALIDE: \"exclude\": [\"node_modules\", \"tests/**\"]\nERREUR_ATTENDUE: TS5070 File name 'Layout.test.tsx' differs from already included file name 'layout.test.tsx' only in casing\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "3-typescript",
+        "status": "active",
+        "version": "1.0",
+        "category": "typescript",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "88da4dad-a359-f9d1-1d73-d88bfe6f3f4a",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js 14 App Router — liste des fichiers critiques obligatoires\nRAISON: L'absence d'un de ces fichiers cause des erreurs de build fatales ou un fonctionnement incorrect de l'authentification et des tests.\nFICHIERS_OBLIGATOIRES:\n  app/layout.tsx      — RootLayout (ClerkProvider + html + body obligatoires)\n  app/page.tsx        — page d'accueil\n  middleware.ts       — à la RACINE du projet (pas dans app/), gestion Clerk\n  next.config.js      — configuration Next.js avec eslint.ignoreDuringBuilds\n  tsconfig.json       — avec \"tests/**\" dans exclude\n  jest.config.js      — avec next/jest + setupFilesAfterEnv\n  jest.setup.js       — import '@testing-library/jest-dom'\n  package.json        — JSON valide, versions épinglées\n  prisma/schema.prisma — datasource + generator + modèles\n  prisma.config.ts    — config Prisma 7 (defineConfig depuis prisma/config)\n  .env.local          — NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY + CLERK_SECRET_KEY + DATABASE_URL\nFICHIERS_INTERDITS:\n  pages/              — conflit fatal avec App Router\n  src/pages/          — conflit fatal avec App Router\nDETECTION_REGEX: ^pages\\/.*\\.(tsx?|jsx?)$\nALTERNATIVE: Utiliser uniquement app/ pour les routes.\nEXEMPLE_INVALIDE: pages/index.tsx + app/page.tsx coexistent\nEXEMPLE_VALIDE: app/page.tsx uniquement, jamais pages/\nERREUR_ATTENDUE: Error: Conflicting app and page file was found\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "1-required-files",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "8c6a0585-579b-1e9c-d16c-905fa19234f4",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: API Routes POST/PUT/PATCH — validation Zod obligatoire\nRAISON: Sans validation Zod, les entrées non validées provoquent des erreurs Prisma, des injections ou des crashs non gérés.\nDETECTION_REGEX: export async function (POST|PUT|PATCH)(?![\\s\\S]{0,600}z\\.(object|string|number|array))\nALTERNATIVE: Définir un schema Zod et utiliser .safeParse() avant toute opération Prisma\nEXEMPLE_INVALIDE:\n  export async function POST(req: Request) {\n    const body = await req.json();\n    await prisma.task.create({ data: body });  // Non validé\n  }\nEXEMPLE_VALIDE:\n  const CreateTaskSchema = z.object({ title: z.string().min(1).max(255) });\n  export async function POST(req: Request) {\n    const body = await req.json();\n    const result = CreateTaskSchema.safeParse(body);\n    if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });\n    await prisma.task.create({ data: result.data });\n  }\nERREUR_ATTENDUE: PrismaClientValidationError ou données corrompues\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "9-security",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "91bf5a56-2fb4-a03c-367d-ee0f209a09ea",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk v6 — distinction auth() selon le contexte d'exécution\nRAISON: (Perplexity confirmé) auth() est utilisé DIFFÉREMMENT selon le contexte. Dans middleware.ts, auth est un OBJET injecté par clerkMiddleware — appeler auth() est INTERDIT. Dans les Server Components et Route Handlers, auth() est une FONCTION async à appeler avec await. Confondre les deux contextes provoque TypeError runtime.\nCONTEXTE_MIDDLEWARE:\n  auth = OBJET injecté par clerkMiddleware\n  CORRECT: await auth.protect()\n  INTERDIT: auth().protect() → TypeError: auth is not a function\nCONTEXTE_SERVER_COMPONENTS_ET_ROUTE_HANDLERS:\n  auth() = FONCTION async importée depuis @clerk/nextjs/server\n  CORRECT: const { userId } = await auth()\n  INCORRECT: const { userId } = auth() → retourne Promise non résolue\nDETECTION_REGEX: auth\\(\\)\\.protect\\(\\)\nALTERNATIVE:\n  middleware.ts → await auth.protect()\n  server components/routes → const { userId } = await auth()\nEXEMPLE_INVALIDE:\n  // Dans middleware.ts (auth est un objet, pas une fonction)\n  export default clerkMiddleware((auth, req) => {\n    auth().protect();  // ERREUR: auth is not a function\n  });\nEXEMPLE_VALIDE:\n  // Dans middleware.ts\n  export default clerkMiddleware(async (auth, req) => {\n    await auth.protect();  // CORRECT\n  });\n  // Dans un Server Component ou Route Handler\n  import { auth } from '@clerk/nextjs/server';\n  export async function GET() {\n    const { userId } = await auth();  // CORRECT\n    if (!userId) return new Response('Unauthorized', { status: 401 });\n  }\nERREUR_ATTENDUE: TypeError: auth is not a function (middleware) | Promise<...> retourné au lieu de userId (server)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "6-clerk",
+        "status": "active",
+        "version": "1.0",
+        "category": "clerk",
+        "type": "technical",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "9712ed8c-ead2-f9b6-433f-018918023e68",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — slug unique dans les routes dynamiques\nRAISON: Utiliser l'id interne Prisma dans l'URL au lieu du slug expose l'implémentation interne et empêche les URLs lisibles SEO-friendly exigées par le brief.\nDETECTION_REGEX: prisma\\.\\w+\\.findUnique\\(\\s*\\{\\s*where:\\s*\\{\\s*id:\\s*params\\.id\nALTERNATIVE: Utiliser findUnique({ where: { slug: params.slug } }) pour les routes publiques quand le modèle a un champ slug @unique\nEXEMPLE_INVALIDE:\n  // app/api/posts/[id]/route.ts — quand le brief dit \"URL par slug\"\n  export async function GET(_: Request, { params }: { params: { id: string } }) {\n    const post = await prisma.post.findUnique({\n      where: { id: params.id }, // ❌ expose l'id interne, pas le slug\n    });\n  }\nEXEMPLE_VALIDE:\n  // app/blog/[slug]/page.tsx — route publique par slug\n  export default async function PostPage({ params }: { params: { slug: string } }) {\n    const post = await prisma.post.findUnique({\n      where: { slug: params.slug }, // ✅ slug depuis l'URL\n    });\n    if (!post || !post.published) notFound();\n    return <article>{post.content}</article>;\n  }\nERREUR_ATTENDUE: N/A (build passe — URL incorrecte à l'exécution)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "13-business-logic",
+        "status": "active",
+        "version": "1.0",
+        "category": "business-logic",
+        "source": "session4-ai-validated"
+      }
+    },
+    {
+      "id": "99b653c2-f021-fa12-1db9-4a9d65be4eb2",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma — slug généré déterministement côté serveur\nRAISON: Laisser le client envoyer un slug ou le générer côté LLM sans normalisation produit des slugs avec espaces, accents ou majuscules qui cassent les URLs et violent la contrainte @unique Prisma.\nDETECTION_REGEX: slug:\\s*(body\\.slug|req\\.body\\.slug|data\\.slug)(?!.*\\.toLowerCase\\(\\)|.*\\.replace\\(|.*slugify)\nALTERNATIVE: Générer le slug côté serveur depuis le titre avec normalisation (toLowerCase + replace espaces/accents)\nEXEMPLE_INVALIDE:\n  // app/api/posts/route.ts\n  const { title, content, slug } = await req.json();\n  // ❌ slug vient du client — peut contenir \"Mon Article !\" →\n  //    contrainte @unique Prisma viole avec espaces/accents\n  await prisma.post.create({ data: { title, content, slug, authorId: userId } });\nEXEMPLE_VALIDE:\n  // app/api/posts/route.ts\n  const { title, content } = await req.json();\n  // ✅ slug généré et normalisé côté serveur\n  const baseSlug = title\n    .toLowerCase()\n    .normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') // supprime accents\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '');\n  // Unicité : ajouter suffix si conflit\n  const slug = `${baseSlug}-${Date.now()}`;\n  await prisma.post.create({ data: { title, content, slug, authorId: userId } });\nERREUR_ATTENDUE: PrismaClientKnownRequestError: Unique constraint failed on the fields: (`slug`)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "13-business-logic",
+        "status": "active",
+        "version": "1.0",
+        "category": "business-logic",
+        "source": "session4-ai-validated"
+      }
+    },
+    {
+      "id": "a291dc68-f753-6171-c300-201e563d6483",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: @clerk/nextjs/api — sous-path supprimé\nRAISON: Le sous-path @clerk/nextjs/api est supprimé depuis Clerk v5. Tous les imports serveur doivent venir de @clerk/nextjs/server.\nDETECTION_REGEX: from\\s+['\"]@clerk\\/nextjs\\/api['\"]\nALTERNATIVE: import { auth, currentUser } from '@clerk/nextjs/server'\nEXEMPLE_INVALIDE: import { auth } from '@clerk/nextjs/api'\nEXEMPLE_VALIDE: import { auth } from '@clerk/nextjs/server'\nERREUR_ATTENDUE: Module not found: Can't resolve '@clerk/nextjs/api'\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "6-clerk",
+        "status": "active",
+        "version": "1.0",
+        "category": "clerk",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "ab3d0546-6e8c-dca5-dcc9-290d3a61a250",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: @clerk/nextjs — useAuth() dans Route Handlers\nRAISON: useAuth() est un hook React Client-side — l'appeler dans un Route Handler (contexte serveur) lève une exception et crashe la route entière.\nDETECTION_REGEX: import\\s*\\{[^}]*useAuth[^}]*\\}\\s*from\\s*['\"]@clerk/nextjs['\"]\nALTERNATIVE: Utiliser auth() depuis @clerk/nextjs/server dans les Route Handlers\nEXEMPLE_INVALIDE:\n  // app/api/profile/route.ts\n  import { useAuth } from '@clerk/nextjs';\n  import { NextResponse } from 'next/server';\n\n  export async function GET() {\n    const { userId } = useAuth(); // hook dans contexte serveur\n    return NextResponse.json({ userId });\n  }\nEXEMPLE_VALIDE:\n  // app/api/profile/route.ts\n  import { auth } from '@clerk/nextjs/server';\n  import { NextResponse } from 'next/server';\n\n  export async function GET() {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n    return NextResponse.json({ userId });\n  }\nERREUR_ATTENDUE: Error: (0 , _clerk_nextjs__WEBPACK_IMPORTED_MODULE_0__.useAuth) is not a function — ou — Invalid hook call. Hooks can only be called inside of the body of a function component.\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "10-security-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "session1-ai-validated"
+      }
+    },
+    {
+      "id": "ab928ac6-fdea-fb3d-f40e-b4e20620c4d5",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma 7 — générer schema.prisma ET prisma.config.ts\nRAISON: (Perplexity confirmé) Prisma 7 introduit prisma.config.ts. Générer les deux garantit la compatibilité ascendante et la conformité à la voie officielle Prisma 7. url = env(\"DATABASE_URL\") dans schema.prisma reste valide mais prisma.config.ts est désormais recommandé.\nFICHIERS_OBLIGATOIRES:\n  prisma/schema.prisma  — datasource + generator + modèles\n  prisma.config.ts      — defineConfig depuis 'prisma/config'\nCONFIGURATION_SCHEMA_PRISMA:\n  datasource db {\n    provider = \"postgresql\"\n    url      = env(\"DATABASE_URL\")\n  }\n  generator client {\n    provider = \"prisma-client-js\"\n  }\nCONFIGURATION_PRISMA_CONFIG_TS:\n  import 'dotenv/config';\n  import { defineConfig, env } from 'prisma/config';\n  export default defineConfig({\n    schema: 'prisma/schema.prisma',\n    datasource: { url: env('DATABASE_URL') },\n  });\nDETECTION_REGEX: prisma\\.config\\.ts\nALTERNATIVE: Générer les deux fichiers systématiquement\nEXEMPLE_INVALIDE: schema.prisma seul sans prisma.config.ts\nEXEMPLE_VALIDE: prisma/schema.prisma + prisma.config.ts à la racine\nERREUR_ATTENDUE: Warning Prisma 7 ou comportement déprécié\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "7-prisma",
+        "status": "active",
+        "version": "1.0",
+        "category": "prisma",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "b24b372e-725e-fc97-446b-5b47202b2479",
+      "text": "ACTION: PRÉFÉRÉ\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — toggle boolean via PATCH, pas PUT complet\nRAISON: Un PUT sur une ressource remplace tous ses champs — utiliser PUT pour un toggle \"published\" écrase les données non fournies dans le body (title, content perdus si non renvoyés). PATCH est sémantiquement correct pour une mise à jour partielle. Note: si le brief spécifie explicitement PUT, respecter la spécification.\nDETECTION_REGEX: export async function PUT.*toggle|published.*PUT\nALTERNATIVE: Utiliser PATCH pour les mises à jour partielles (toggle de champ), réserver PUT aux remplacements complets de ressource\nEXEMPLE_INVALIDE:\n  // app/api/posts/[id]/route.ts ❌\n  export async function PUT(req: Request, { params }: { params: { id: string } }) {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n    // ❌ PUT complet pour un simple toggle — écrase title/content si non fournis\n    await prisma.post.update({\n      where: { id: params.id, authorId: userId },\n      data: { published: true },\n    });\n    return NextResponse.json({ success: true });\n  }\nEXEMPLE_VALIDE:\n  // app/api/posts/[id]/route.ts ✅\n  export async function PATCH(req: Request, { params }: { params: { id: string } }) {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n    const post = await prisma.post.findUnique({\n      where: { id: params.id, authorId: userId },\n      select: { published: true },\n    });\n    if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 });\n    const updated = await prisma.post.update({\n      where: { id: params.id },\n      data: { published: !post.published }, // ✅ toggle réel\n    });\n    return NextResponse.json({ published: updated.published });\n  }\nERREUR_ATTENDUE: N/A (sémantique incorrecte — données perdues en production)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "13-business-logic",
+        "status": "active",
+        "version": "1.0",
+        "category": "business-logic",
+        "source": "session4-ai-validated"
+      }
+    },
+    {
+      "id": "b727b0d3-cb93-7ea6-4404-b2ee28a2d329",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: .env.local — contenu obligatoire (Clerk + Database)\nRAISON: Sans NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, ClerkProvider crash au runtime (Missing publishableKey). Sans CLERK_SECRET_KEY, tous les appels serveur Clerk échouent (401 Unauthorized). Sans DATABASE_URL, Prisma ne peut pas se connecter à la base.\nCONTENU_OBLIGATOIRE:\n  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder\n  CLERK_SECRET_KEY=sk_test_placeholder\n  DATABASE_URL=\"postgresql://user:password@localhost:5432/todo-batch-alpha\"\nDETECTION_REGEX: ^NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=\nALTERNATIVE: Créer .env.local à la RACINE du projet avec les 3 variables exactes\nEXEMPLE_INVALIDE:\n  DATABASE_URL=\"postgresql://...\"\n  # Manque NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY → ClerkProvider crash runtime\n  # Manque CLERK_SECRET_KEY → auth() serveur → 401\nEXEMPLE_VALIDE:\n  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder\n  CLERK_SECRET_KEY=sk_test_placeholder\n  DATABASE_URL=\"postgresql://user:password@localhost:5432/todo-batch-alpha\"\nERREUR_ATTENDUE: Error: @clerk/nextjs: Missing publishableKey\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "9-security",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "b7de9c90-083f-1e2a-1df7-3bdb8095c982",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: package.json — packages invalides ou incompatibles avec la stack\nRAISON: Ces packages provoquent des erreurs npm, des conflits d'authentification ou violent l'architecture Clerk-exclusive.\nPACKAGES_INTERDITS:\n  shadcn/ui    — pas un package npm (EINVALIDPACKAGENAME). CLI seulement: npx shadcn@latest init\n  @shadcn/ui   — même raison\n  next-auth    — conflit direct avec Clerk (auth dupliquée)\n  @clerk/clerk-sdk — package Clerk v3, déprécié\n  bcrypt       — auth custom INTERDIT (Clerk est exclusif)\n  jsonwebtoken — JWT custom INTERDIT (Clerk gère les tokens)\n  passport     — auth custom INTERDIT\n  express      — incompatible Next.js App Router\nDETECTION_REGEX: \"shadcn\\/ui\"|\"@shadcn\\/ui\"|\"next-auth\"|\"bcrypt\"|\"jsonwebtoken\"|\"passport\"\nALTERNATIVE:\n  shadcn/ui → Tailwind CSS pur pour le style\n  next-auth → @clerk/nextjs\n  bcrypt/jwt/passport → Clerk (zéro auth custom)\nEXEMPLE_INVALIDE: \"dependencies\": { \"shadcn/ui\": \"latest\", \"bcrypt\": \"^5.0.0\" }\nEXEMPLE_VALIDE: Aucun de ces packages dans dependencies ou devDependencies\nERREUR_ATTENDUE: npm ERR! EINVALIDPACKAGENAME ou conflits d'authentification runtime\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "2-packages",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "bf41a5e9-0503-f0e4-f6ac-17180b6a20a2",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: jest.config.js — setupFilesAfterEnv (clé correcte)\nRAISON: (Perplexity confirmé) setupFilesAfterEnv est la clé correcte Jest 29 pour charger @testing-library/jest-dom après l'environnement de test. setupFiles (sans AfterEnv) s'exécute avant l'environnement → matchers non disponibles. setupFilesAfterFramework n'existe pas dans Jest 29.\nDETECTION_REGEX: setupFiles(?!AfterEnv)|setupFilesAfterFramework\nALTERNATIVE: setupFilesAfterEnv: ['<rootDir>/jest.setup.js']\nEXEMPLE_INVALIDE:\n  setupFiles: ['<rootDir>/jest.setup.js']           // trop tôt\n  setupFilesAfterFramework: ['<rootDir>/jest.setup.js'] // clé inexistante\nEXEMPLE_VALIDE:\n  setupFilesAfterEnv: ['<rootDir>/jest.setup.js']\nERREUR_ATTENDUE: TypeError: expect(...).toBeInTheDocument is not a function\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "8-testing",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "c16266ff-2a40-7aa3-f9e4-04e89f7fde9a",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — lecture userId depuis le body/query params\nRAISON: Faire confiance à un userId envoyé par le client permet à n'importe qui d'usurper l'identité d'un autre utilisateur en falsifiant le paramètre.\nDETECTION_REGEX: (body|params|searchParams)\\.(userId|user_id|clerkId)\nALTERNATIVE: Toujours extraire userId depuis await auth() côté serveur, jamais depuis req.body ou les query params\nEXEMPLE_INVALIDE:\n  // app/api/profile/route.ts\n  export async function PUT(req: Request) {\n    const { userId, name } = await req.json(); // userId vient du client\n    await prisma.user.update({\n      where: { clerkId: userId },\n      data: { name },\n    });\n    return NextResponse.json({ success: true });\n  }\nEXEMPLE_VALIDE:\n  // app/api/profile/route.ts\n  export async function PUT(req: Request) {\n    const { userId } = await auth(); // userId depuis Clerk, pas le client\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n\n    const { name } = await req.json(); // seules les données métier viennent du body\n    await prisma.user.update({\n      where: { clerkId: userId },\n      data: { name },\n    });\n    return NextResponse.json({ success: true });\n  }\nERREUR_ATTENDUE: N/A (faille silencieuse de sécurité)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "10-security-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "session1-ai-validated"
+      }
+    },
+    {
+      "id": "c94c4adb-75fa-1d37-60d1-4a824b84f1ea",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — exposition du message d'erreur Prisma brut\nRAISON: Retourner error.message directement expose le schéma de base de données, les noms de tables et les contraintes — vecteur d'attaque par énumération.\nDETECTION_REGEX: NextResponse\\.json\\(\\{\\s*error:\\s*(?:error|err|e)\\.message\nALTERNATIVE: Logger l'erreur côté serveur (console.error), retourner un message générique au client\nEXEMPLE_INVALIDE:\n  } catch (error) {\n    return NextResponse.json({ error: (error as Error).message }, { status: 500 });\n  }\nEXEMPLE_VALIDE:\n  } catch (error) {\n    console.error('[POST /api/posts]', error);\n    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });\n  }\nERREUR_ATTENDUE: N/A (faille silencieuse — le client reçoit le schéma DB)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "11-error-handling",
+        "status": "active",
+        "version": "1.0",
+        "category": "error-handling",
+        "source": "session2-ai-validated"
+      }
+    },
+    {
+      "id": "c9db1d71-e74b-611f-eb7b-31dbc5bfbeca",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Clerk v6 — auth() async dans Server Components et API Routes\nRAISON: (Perplexity confirmé) Clerk v6 : auth() retourne une Promise. Un appel synchrone cause TypeError ou retourne undefined silencieusement, exposant des données sans auth.\nDETECTION_REGEX: const\\s*\\{.*userId.*\\}\\s*=\\s*auth\\(\\)(?!\\s*;.*await|.*\\.then)\nALTERNATIVE: const { userId } = await auth(); dans une fonction async\nEXEMPLE_INVALIDE:\n  export default function Page() {\n    const { userId } = auth();  // sync → INTERDIT Clerk v6\n    return <div>{userId}</div>;\n  }\nEXEMPLE_VALIDE:\n  import { auth } from '@clerk/nextjs/server';\n  export default async function Page() {\n    const { userId } = await auth();  // async → correct Clerk v6\n    return <div>{userId}</div>;\n  }\nERREUR_ATTENDUE: TypeError: Cannot destructure property 'userId' of undefined\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "6-clerk",
+        "status": "active",
+        "version": "1.0",
+        "category": "clerk",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "caee6838-6d4f-f821-0706-6229caea1268",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma — gestion PrismaClientKnownRequestError\nRAISON: Sans catch Prisma typé, une violation de contrainte unique (email déjà pris) retourne une 500 non informative au lieu d'une 409 Conflict — et expose le stack trace interne au client.\nDETECTION_REGEX: prisma\\.\\w+\\.(create|update|upsert)\\((?![\\s\\S]*catch[\\s\\S]*PrismaClientKnownRequestError)\nALTERNATIVE: Importer PrismaClientKnownRequestError et distinguer P2002 (unique constraint) des autres erreurs\nEXEMPLE_INVALIDE:\n  // app/api/users/route.ts\n  export async function POST(req: Request) {\n    const { email, clerkId } = await req.json();\n    const user = await prisma.user.create({ // pas de gestion d'erreur Prisma\n      data: { email, clerkId },\n    });\n    return NextResponse.json(user);\n  }\nEXEMPLE_VALIDE:\n  // app/api/users/route.ts\n  import { Prisma } from '@prisma/client';\n\n  export async function POST(req: Request) {\n    const { email, clerkId } = await req.json();\n    try {\n      const user = await prisma.user.create({ data: { email, clerkId } });\n      return NextResponse.json(user, { status: 201 });\n    } catch (error) {\n      if (error instanceof Prisma.PrismaClientKnownRequestError) {\n        if (error.code === 'P2002') {\n          return NextResponse.json({ error: 'Email already exists' }, { status: 409 });\n        }\n      }\n      console.error('[POST /api/users]', error);\n      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });\n    }\n  }\nERREUR_ATTENDUE: PrismaClientKnownRequestError: Unique constraint failed on the fields: (`email`)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "11-error-handling",
+        "status": "active",
+        "version": "1.0",
+        "category": "error-handling",
+        "source": "session2-ai-validated"
+      }
+    },
+    {
+      "id": "d0bee4a6-a919-6820-fce5-103413d1f6a0",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: API Routes — vérification userId Clerk sur chaque route protégée\nRAISON: Sans vérification userId, les routes API sont accessibles sans authentification.\nDETECTION_REGEX: export async function (GET|POST|PUT|DELETE|PATCH)(?![\\s\\S]{0,400}await auth\\(\\))\nALTERNATIVE: const { userId } = await auth(); if (!userId) return 401; au début de chaque handler\nEXEMPLE_INVALIDE:\n  export async function GET(req: Request) {\n    const data = await prisma.task.findMany();\n    return NextResponse.json(data);  // Pas d'auth check\n  }\nEXEMPLE_VALIDE:\n  export async function GET(req: Request) {\n    const { userId } = await auth();\n    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n    const data = await prisma.task.findMany({ where: { userId } });\n    return NextResponse.json(data);\n  }\nERREUR_ATTENDUE: Données exposées sans authentification\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "9-security",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "d130a9ca-c99f-5ff5-6e4b-b01de99eb990",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Tests React — mock @clerk/nextjs obligatoire\nRAISON: Les composants utilisant useAuth, useUser, ClerkProvider échouent sans mock car Clerk tente de s'initialiser avec de vraies credentials absentes en test.\nDETECTION_REGEX: (useAuth|useUser|ClerkProvider)(?![\\s\\S]{0,500}jest\\.mock.*@clerk)\nALTERNATIVE: jest.mock('@clerk/nextjs', ...) au début de chaque fichier de test React\nEXEMPLE_INVALIDE:\n  import { useAuth } from '@clerk/nextjs';\n  // Pas de jest.mock → Error: Missing publishableKey\nEXEMPLE_VALIDE:\n  jest.mock('@clerk/nextjs', () => ({\n    useAuth: () => ({ userId: 'test-user-id', isLoaded: true, isSignedIn: true }),\n    useUser: () => ({ user: { id: 'test-user-id', emailAddresses: [{ emailAddress: 'test@test.com' }] } }),\n    ClerkProvider: ({ children }: any) => children,\n  }));\nERREUR_ATTENDUE: Error: @clerk/nextjs: Missing publishableKey\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "8-testing",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "dc705674-9f82-2533-5792-a25f647389da",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: next.config.js — format correct de la fonction headers()\nRAISON: (Perplexity confirmé) Next.js exige que chaque objet dans le tableau retourné par headers() possède un champ `source`. Un tableau plat [{key, value}] sans `source` est invalide.\nPATTERN_SOURCE_OFFICIEL: '/:path*' (doc officielle Next.js)\nDETECTION_REGEX: headers\\s*\\(\\s*\\)\\s*\\{[\\s\\S]{0,300}\\{\\s*key:(?![\\s\\S]{0,100}source\\s*:)\nALTERNATIVE: Wrapper chaque groupe de headers dans un objet { source: '/:path*', headers: [...] }\nEXEMPLE_INVALIDE:\n  async headers() {\n    return [\n      { key: 'X-Frame-Options', value: 'DENY' },\n    ];\n  }\nEXEMPLE_VALIDE:\n  async headers() {\n    return [\n      {\n        source: '/:path*',\n        headers: [\n          { key: 'X-Frame-Options', value: 'DENY' },\n          { key: 'X-Content-Type-Options', value: 'nosniff' },\n          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },\n        ],\n      },\n    ];\n  }\nERREUR_ATTENDUE: Error: Route headers[0] is missing the 'source' field\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "4-nextconfig",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "e2547f98-9fe0-bac6-8e21-0504809170e3",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Jest — test des erreurs Prisma avec simulation P2002\nRAISON: Un test qui vérifie uniquement le happy path ne valide pas le comportement en cas de conflit DB — les erreurs Prisma non testées restent des 500 non diagnostiquées en production.\nDETECTION_REGEX: prisma\\.\\w+\\.create.*mockResolvedValue\nALTERNATIVE: Toujours ajouter un test cas d'erreur avec mockRejectedValue + PrismaClientKnownRequestError P2002\nEXEMPLE_INVALIDE:\n  test('crée un user', async () => {\n    prismaMock.user.create.mockResolvedValue({ id: 1, email: 'a@b.com' });\n    const res = await POST(req);\n    expect(res.status).toBe(201);\n    // aucun test d'erreur → le catch P2002 n'est jamais validé\n  });\nEXEMPLE_VALIDE:\n  import { Prisma } from '@prisma/client';\n  test('crée un user — succès', async () => {\n    prismaMock.user.create.mockResolvedValue({ id: 1, email: 'a@b.com', clerkId: 'u_1' });\n    const res = await POST(req);\n    expect(res.status).toBe(201);\n  });\n  test('retourne 409 si email déjà existant', async () => {\n    prismaMock.user.create.mockRejectedValue(\n      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {\n        code: 'P2002', clientVersion: '7.0.0', meta: { target: ['email'] },\n      })\n    );\n    const res = await POST(req);\n    expect(res.status).toBe(409);\n    const body = await res.json();\n    expect(body.error).toBe('Email already exists');\n  });\nERREUR_ATTENDUE: N/A (test manquant — la route renvoie 500 en prod)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "12-testing-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "testing",
+        "source": "session3-ai-validated"
+      }
+    },
+    {
+      "id": "e98a76a4-88a9-2832-7b9d-65be28fb2a94",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: package.json — versions épinglées et scripts obligatoires\nRAISON: Les versions non épinglées provoquent des incompatibilités entre next/clerk/prisma/ts-jest lors du npm install. ts-jest@29.2+ est incompatible avec ts-jest@29.1.2, d'où l'épinglage exact.\nDEPENDENCIES_OBLIGATOIRES:\n  \"next\": \"14.2.25\"\n  \"react\": \"^18.2.0\"\n  \"react-dom\": \"^18.2.0\"\n  \"@clerk/nextjs\": \"^6.0.0\"\n  \"prisma\": \"^7.0.0\"\n  \"@prisma/client\": \"^7.0.0\"\n  \"typescript\": \"^5.3.3\"\nDEV_DEPENDENCIES_OBLIGATOIRES:\n  \"ts-jest\": \"29.1.2\"         <- version EXACTE, pas de ^\n  \"jest\": \"^29.0.0\"\n  \"jest-environment-jsdom\": \"^29.0.0\"\n  \"@testing-library/jest-dom\": \"^6.0.0\"\n  \"@testing-library/react\": \"^14.0.0\"\n  \"node-mocks-http\": \"^1.14.0\"\n  \"@types/react\": \"^18.2.0\"\n  \"@types/node\": \"^20.0.0\"\nSCRIPTS_OBLIGATOIRES:\n  \"build\": \"next build\"\n  \"dev\": \"next dev\"\n  \"start\": \"next start\"\n  \"lint\": \"next lint\"\n  \"test\": \"jest\"\nDETECTION_REGEX: \"ts-jest\":\\s*\"\\^29\nALTERNATIVE: Épingler ts-jest à \"29.1.2\" sans le préfixe ^\nEXEMPLE_INVALIDE: \"ts-jest\": \"^29.0.0\"\nEXEMPLE_VALIDE: \"ts-jest\": \"29.1.2\"\nERREUR_ATTENDUE: TypeError ou incompatibilité silencieuse ts-jest lors des tests\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "2-packages",
+        "status": "active",
+        "version": "1.0",
+        "category": "nextjs",
+        "source": "factory_standards_v2"
+      }
+    },
+    {
+      "id": "f08e8d3c-da9d-54a1-1e07-a68dc3889f07",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: @clerk/nextjs/server — auth() dans Route Handlers\nRAISON: Sans vérification auth(), n'importe quel client non authentifié peut appeler la route et accéder aux données — fuite de données garantie.\nDETECTION_REGEX: export async function (GET|POST|PUT|DELETE|PATCH)\\s*\\([^)]*\\)\\s*\\{(?![^}]*auth\\(\\))\nALTERNATIVE: Appeler auth() en premier et vérifier userId avant tout accès Prisma\nEXEMPLE_INVALIDE:\n  // app/api/posts/route.ts\n  import { prisma } from '@/lib/prisma';\n  import { NextResponse } from 'next/server';\n\n  export async function GET() {\n    const posts = await prisma.post.findMany();\n    return NextResponse.json(posts);\n  }\nEXEMPLE_VALIDE:\n  // app/api/posts/route.ts\n  import { auth } from '@clerk/nextjs/server';\n  import { prisma } from '@/lib/prisma';\n  import { NextResponse } from 'next/server';\n\n  export async function GET() {\n    const { userId } = await auth();\n    if (!userId) {\n      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });\n    }\n    const posts = await prisma.post.findMany({ where: { authorId: userId } });\n    return NextResponse.json(posts);\n  }\nERREUR_ATTENDUE: N/A (pas d'erreur build — faille silencieuse à l'exécution)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "10-security-advanced",
+        "status": "active",
+        "version": "1.0",
+        "category": "security",
+        "source": "session1-ai-validated"
+      }
+    },
+    {
+      "id": "f522016f-6239-0e30-2135-7cf5e1a6e969",
+      "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma — lier les entités utilisateur à clerkId, pas à l'id interne\nRAISON: Stocker l'id Prisma interne comme référence d'ownership crée une désynchronisation quand Clerk supprime ou recrée un utilisateur — les données orphelines ne peuvent plus être réclamées.\nDETECTION_REGEX: (authorId|userId|ownerId)\\s+Int\\s+(?!.*@relation.*User)\nALTERNATIVE: Utiliser clerkId String comme clé de relation owner, ou stocker clerkId dans chaque entité liée à un utilisateur\nEXEMPLE_INVALIDE:\n  // schema.prisma ❌\n  model Post {\n    id       String @id @default(cuid())\n    title    String\n    authorId Int    // ❌ id interne Prisma — cassé si user recréé dans Clerk\n    author   User   @relation(fields: [authorId], references: [id])\n  }\nEXEMPLE_VALIDE:\n  // schema.prisma ✅\n  model Post {\n    id        String   @id @default(cuid())\n    title     String\n    content   String\n    published Boolean  @default(false)\n    authorId  String   // ✅ clerkId = identifiant Clerk stable\n    createdAt DateTime @default(now())\n    updatedAt DateTime @updatedAt\n  }\n  // Dans la route : where: { authorId: userId } où userId vient de auth()\nERREUR_ATTENDUE: N/A (désynchronisation silencieuse à l'exécution)\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "13-business-logic",
+        "status": "active",
+        "version": "1.0",
+        "category": "business-logic",
+        "source": "session4-ai-validated"
+      }
+    },
+    {
+      "id": "fa0e9a6f-894a-2e52-76fb-ed548b482b8d",
+      "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: schema.prisma — champ password avec Clerk\nRAISON: Clerk gère l'authentification entièrement. Un champ password dans Prisma est redondant, dangereux, et architecturalement incorrect avec Clerk.\nDETECTION_REGEX: \bpassword\\s+String|\bpassword_hash\\s+String|\bpasswordHash\\s+String\nALTERNATIVE: clerkId String @unique comme seul lien d'auth\nEXEMPLE_INVALIDE:\n  model User {\n    id       String @id @default(cuid())\n    password String                        <- INTERDIT avec Clerk\n    clerkId  String @unique\n  }\nEXEMPLE_VALIDE:\n  model User {\n    id        String   @id @default(cuid())\n    clerkId   String   @unique\n    email     String   @unique\n    createdAt DateTime @default(now())\n    updatedAt DateTime @updatedAt\n  }\nERREUR_ATTENDUE: Faille sécurité — champ password inutilisé ou non chiffré\nSTATUS: active\nVERSION: 1.0",
+      "metadata": {
+        "stack": "nextjs-clerk-prisma",
+        "zone": "7-prisma",
+        "status": "active",
+        "version": "1.0",
+        "category": "prisma",
+        "source": "factory_standards_v2"
+      }
+    }
+  ]
+}

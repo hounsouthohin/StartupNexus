@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "QA Agent Contract v1.0",
+  "description": "Contract d'interface pour le QA Agent (E2E Playwright)",
+  "version": "1.0.0",
+  "agent_id": "qa_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["specification", "project_name"],
+    "additionalProperties": false,
+    "properties": {
+      "specification": {
+        "type": "string",
+        "description": "Spécification technique pour générer les tests E2E"
+      },
+      "project_name": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack (ex: nextjs-clerk-prisma)"
+      },
+      "generated_files": {
+        "type": "object",
+        "description": "Fichiers générés par DevTest pour contextualiser QA",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (propagation observabilité)"
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["e2e_tests"],
+    "additionalProperties": false,
+    "properties": {
+      "e2e_tests": {
+        "type": "object",
+        "description": "Tests E2E générés {path: content}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["code", "message"],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string",
+        "enum": ["VALIDATION_ERROR", "GENERATION_ERROR", "TIMEOUT_ERROR"]
+      },
+      "message": {"type": "string"},
+      "details": {"type": "object", "additionalProperties": false}
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {"type": "string", "enum": ["healthy", "degraded", "unhealthy"]},
+      "checks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "playwright_available": {"type": "boolean"}
+        }
+      },
+      "last_check": {"type": "string", "format": "date-time"}
+    }
+  }
+}

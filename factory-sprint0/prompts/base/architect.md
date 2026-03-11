@@ -22,11 +22,11 @@ RÈGLE ANTI-DÉRIVE — ABSOLUE :
 Remplis le champ requirements[] avec une liste plate et exhaustive de TOUT ce que le brief demande :
 chaque modèle, chaque page, chaque route API, chaque champ mentionné explicitement.
 
-The JSON output must follow this exact structure:
+The JSON output must follow this exact structure (example shape; values must be adapted to the active stack and brief):
 {
   "app_type": "web_app",
   "router_type": "app",
-  "stack": "nextjs-clerk-prisma",
+  "stack": "<stack_id_from_context>",
   "description": "<one-sentence functional description>",
   "pages": ["app/page.tsx", "app/dashboard/page.tsx", "app/blog/[slug]/page.tsx"],
   "data_models": ["Post { id, title, content, slug, published, authorId, createdAt }"],

@@ -119,6 +119,11 @@ def _get_prebuild_policies(stack_id: str) -> dict:
         "normalize_post_authorid": True,
         "normalize_route_handler_typing": True,
         "normalize_map_callback_typing": True,
+        "normalize_zod_state_schema_typing": stack_id == "nextjs-clerk-prisma",
+        "normalize_app_router_query_usage": stack_id == "nextjs-clerk-prisma",
+        "normalize_react_router_dom_usage": stack_id == "nextjs-clerk-prisma",
+        "normalize_post_content_select": stack_id == "nextjs-clerk-prisma",
+        "normalize_unknown_state_type_aliases": stack_id == "nextjs-clerk-prisma",
         "normalize_prisma_generator_provider": True,
         "ensure_layout_dynamic": stack_id == "nextjs-clerk-prisma",
         "ensure_layout_children_typing": stack_id == "nextjs-clerk-prisma",
@@ -1023,6 +1028,7 @@ def _rewrite_route_prisma_client_usage(content: str) -> tuple[str, int]:
     updated = content
     replacements = 0
     prisma_ctor_symbols: set[str] = {"PrismaClient"}
+    prisma_ns_symbols: set[str] = set()
 
     # Import default: import PrismaClient from '@prisma/client'
     for m in re.finditer(
@@ -1031,6 +1037,13 @@ def _rewrite_route_prisma_client_usage(content: str) -> tuple[str, int]:
         flags=re.MULTILINE,
     ):
         prisma_ctor_symbols.add(m.group(1))
+    # Import namespace: import * as Prisma from '@prisma/client'
+    for m in re.finditer(
+        r"^\s*import\s+\*\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\s+from\s+['\"]@prisma/client['\"]\s*;?\s*$",
+        updated,
+        flags=re.MULTILINE,
+    ):
+        prisma_ns_symbols.add(m.group(1))
 
     def _strip_prismaclient_from_named_import(m: re.Match) -> str:
         nonlocal replacements
@@ -1064,6 +1077,21 @@ def _rewrite_route_prisma_client_usage(content: str) -> tuple[str, int]:
         flags=re.MULTILINE,
     )
     replacements += count
+    updated, count = re.subn(
+        r"^\s*import\s+\*\s+as\s+[A-Za-z_][A-Za-z0-9_]*\s+from\s+['\"]@prisma/client['\"]\s*;?\s*\n",
+        "",
+        updated,
+        flags=re.MULTILINE,
+    )
+    replacements += count
+    # Fallback large: supprime toute forme d'import @prisma/client restante.
+    updated, count = re.subn(
+        r"import\s+[\s\S]*?\s+from\s*['\"]@prisma/client['\"]\s*;?",
+        "",
+        updated,
+        flags=re.MULTILINE,
+    )
+    replacements += count
 
     # Supprimer instanciations locales de PrismaClient (et alias), normaliser vers `prisma`.
     aliases: list[str] = []
@@ -1085,6 +1113,16 @@ def _rewrite_route_prisma_client_usage(content: str) -> tuple[str, int]:
     for sym in sorted(prisma_ctor_symbols):
         updated, count = re.subn(rf"new\s+{re.escape(sym)}\s*\((?:.|\n)*?\)", "prisma", updated)
         replacements += count
+    for ns in sorted(prisma_ns_symbols):
+        updated, count = re.subn(rf"new\s+{re.escape(ns)}\.PrismaClient\s*\((?:.|\n)*?\)", "prisma", updated)
+        replacements += count
+    # Fallback large: toute instanciation résiduelle *PrismaClient(...) devient `prisma`.
+    updated, count = re.subn(
+        r"new\s+[A-Za-z_$][A-Za-z0-9_$\.]*PrismaClient\s*\((?:.|\n)*?\)",
+        "prisma",
+        updated,
+    )
+    replacements += count
 
     # Injecter import canonical prisma APRÈS toutes les réécritures.
     if replacements > 0 and "from '@/lib/prisma'" not in updated and 'from "@/lib/prisma"' not in updated:
@@ -1435,6 +1473,313 @@ def _fix_untyped_map_callbacks(project_path: str) -> list[str]:
     return fixed_files
 
 
+def _rewrite_zod_schema_state_types(content: str) -> tuple[str, int]:
+    """
+    Corrige les états React typés avec un symbole *Schema* au lieu du type inféré.
+    Exemple:
+      useState<CommentSchema[]>([])
+    ->
+      useState<ReturnType<typeof CommentSchema.parse>[]>([])
+    """
+    state_re = re.compile(r"useState<\s*([^>]*Schema[^>]*)\s*>\s*\(")
+    schema_token_re = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*Schema)\b")
+    replacements = 0
+
+    def _repl(m: re.Match) -> str:
+        nonlocal replacements
+        type_expr = m.group(1)
+
+        def _schema_repl(sm: re.Match) -> str:
+            return f"ReturnType<typeof {sm.group(1)}.parse>"
+
+        new_type_expr, count = schema_token_re.subn(_schema_repl, type_expr)
+        if count > 0:
+            replacements += count
+        return f"useState<{new_type_expr}>("
+
+    updated = state_re.sub(_repl, content)
+    return updated, replacements
+
+
+def _fix_zod_schema_state_types(project_path: str) -> list[str]:
+    """
+    Applique la réécriture des types d'état React basés sur des schémas Zod
+    dans les fichiers TS/TSX du projet.
+    """
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_zod_schema_state_types(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(os.path.relpath(full_path, project_path).replace("\\", "/"))
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger types Zod state dans {full_path}: {e}")
+    if fixed_files:
+        logger.info(f"[pre-build] Zod schema state typing normalized: {fixed_files}")
+    return fixed_files
+
+
+def _ensure_next_navigation_import(content: str, hook_name: str) -> tuple[str, int]:
+    """Assure `hook_name` dans l'import depuis `next/navigation`."""
+    updated = content
+    replacements = 0
+    imp_re = re.compile(
+        r"^\s*import\s*\{([^}]*)\}\s*from\s*['\"]next/navigation['\"]\s*;?\s*$",
+        flags=re.MULTILINE,
+    )
+    m = imp_re.search(updated)
+    if m:
+        names = [n.strip() for n in m.group(1).split(",") if n.strip()]
+        if hook_name not in names:
+            names.append(hook_name)
+            names = sorted(set(names))
+            old = m.group(0)
+            new = f"import {{ {', '.join(names)} }} from 'next/navigation';"
+            updated = updated.replace(old, new, 1)
+            replacements += 1
+        return updated, replacements
+
+    # Aucun import next/navigation: on injecte en tête.
+    updated = f"import {{ {hook_name} }} from 'next/navigation';\n" + updated.lstrip("\n")
+    replacements += 1
+    return updated, replacements
+
+
+def _rewrite_router_query_app_router(content: str) -> tuple[str, int]:
+    """
+    Corrige `router.query` (Pages Router) vers `useParams()` (App Router).
+    Conversion minimale déterministe pour éviter l'erreur:
+      Property 'query' does not exist on type 'AppRouterInstance'
+    """
+    updated = content
+    replacements = 0
+
+    if "router.query" not in updated:
+        return updated, 0
+
+    updated, count = _ensure_next_navigation_import(updated, "useParams")
+    replacements += count
+
+    updated, count = re.subn(
+        r"router\.query",
+        "(useParams() as Record<string, string | string[] | undefined>)",
+        updated,
+    )
+    replacements += count
+
+    return updated, replacements
+
+
+def _rewrite_react_router_dom_usage(content: str) -> tuple[str, int]:
+    """
+    Remplace les usages React Router DOM incompatibles Next.js App Router:
+    - imports depuis react-router-dom
+    - useNavigate -> useRouter + router.push
+    - Link to= -> Link href=
+    """
+    updated = content
+    replacements = 0
+
+    rr_import_re = re.compile(
+        r"^\s*import\s*\{([^}]*)\}\s*from\s*['\"]react-router-dom['\"]\s*;?\s*$",
+        flags=re.MULTILINE,
+    )
+    match = rr_import_re.search(updated)
+    if match:
+        imported = [x.strip() for x in match.group(1).split(",") if x.strip()]
+        updated = updated.replace(match.group(0), "", 1)
+        replacements += 1
+
+        if "useParams" in imported:
+            updated, c = _ensure_next_navigation_import(updated, "useParams")
+            replacements += c
+        if "useNavigate" in imported:
+            updated, c = _ensure_next_navigation_import(updated, "useRouter")
+            replacements += c
+            updated, c = re.subn(r"\bconst\s+navigate\s*=\s*useNavigate\(\)\s*;?", "const router = useRouter();", updated)
+            replacements += c
+            updated, c = re.subn(r"\bnavigate\(", "router.push(", updated)
+            replacements += c
+        if "Link" in imported:
+            if "from 'next/link'" not in updated and 'from "next/link"' not in updated:
+                updated = "import Link from 'next/link';\n" + updated.lstrip("\n")
+                replacements += 1
+            updated, c = re.subn(r"<Link([^>]*)\sto=", r"<Link\1 href=", updated)
+            replacements += c
+
+    return updated, replacements
+
+
+def _rewrite_post_select_content(content: str) -> tuple[str, int]:
+    """
+    Garantit `content: true` dans les `select` Prisma Post quand `post.content`
+    est utilisé dans le fichier.
+    """
+    if "post.content" not in content:
+        return content, 0
+
+    updated = content
+    replacements = 0
+
+    def _inject_content(m: re.Match) -> str:
+        nonlocal replacements
+        block = m.group(1)
+        if "content:" in block:
+            return m.group(0)
+        replacements += 1
+        return f"select: {{{block} content: true, }}"
+
+    updated = re.sub(
+        r"select\s*:\s*\{([^{}]*)\}",
+        _inject_content,
+        updated,
+        flags=re.DOTALL,
+    )
+    return updated, replacements
+
+
+def _fix_next_app_router_query_usage(project_path: str) -> list[str]:
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx", ".js", ".jsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            if not (rel.startswith("app/") or rel.startswith("src/app/")):
+                continue
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_router_query_app_router(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger router.query dans {full_path}: {e}")
+    return fixed_files
+
+
+def _fix_react_router_dom_usage(project_path: str) -> list[str]:
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx", ".js", ".jsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            if not (rel.startswith("app/") or rel.startswith("src/app/")):
+                continue
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_react_router_dom_usage(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger react-router-dom dans {full_path}: {e}")
+    return fixed_files
+
+
+def _fix_post_content_select(project_path: str) -> list[str]:
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx", ".js", ".jsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            if not (rel.startswith("app/") or rel.startswith("src/app/")):
+                continue
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_post_select_content(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger select Post content dans {full_path}: {e}")
+    return fixed_files
+
+
+def _rewrite_unknown_state_type_aliases(content: str) -> tuple[str, int]:
+    """
+    Corrige les cas fréquents où un alias de type n'est pas défini dans le fichier
+    (ex: useState<Post[]>([])) en le remplaçant par un type inline safe.
+    """
+    updated = content
+    replacements = 0
+
+    # Cas ciblé observé: Post[] sans déclaration/import de Post.
+    has_post_usage = bool(re.search(r"useState<\s*Post(\[\]|[\s|>])", updated))
+    has_post_decl = bool(
+        re.search(r"\b(type|interface)\s+Post\b", updated)
+        or re.search(r"\bimport\s+type\s+\{\s*Post\s*\}", updated)
+        or re.search(r"\bimport\s+\{\s*Post\s*\}", updated)
+    )
+    if has_post_usage and not has_post_decl:
+        updated, count = re.subn(
+            r"useState<\s*Post\[\]\s*>",
+            "useState<Array<{ id: string; title: string; slug: string; content?: string; published?: boolean }>>",
+            updated,
+        )
+        replacements += count
+        updated, count = re.subn(
+            r"useState<\s*Post\s*\|\s*null\s*>",
+            "useState<{ id: string; title: string; slug: string; content?: string; published?: boolean } | null>",
+            updated,
+        )
+        replacements += count
+
+    return updated, replacements
+
+
+def _fix_unknown_state_type_aliases(project_path: str) -> list[str]:
+    fixed_files: list[str] = []
+    for root, dirs, files in os.walk(project_path):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if not filename.endswith((".ts", ".tsx")):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            if not (rel.startswith("app/") or rel.startswith("src/app/") or rel.startswith("components/")):
+                continue
+            try:
+                original = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+            fixed, count = _rewrite_unknown_state_type_aliases(original)
+            if count > 0 and fixed != original:
+                try:
+                    Path(full_path).write_text(fixed, encoding="utf-8")
+                    fixed_files.append(rel)
+                except Exception as e:
+                    logger.warning(f"[pre-build] Impossible de corriger alias state types dans {full_path}: {e}")
+    return fixed_files
+
+
 def _fix_prisma_generator_provider(project_path: str) -> bool:
     """
     Garantit la compatibilité Prisma de la stack:
@@ -1555,6 +1900,36 @@ def run_build(project_dir: str = ".") -> str:
             if map_callback_fixes:
                 logger.warning(
                     f"[pre-build deterministic fix] map callbacks typed: {map_callback_fixes}"
+                )
+        if _policies.get("normalize_zod_state_schema_typing", False):
+            zod_state_fixes = _fix_zod_schema_state_types(project_path)
+            if zod_state_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] zod schema state typing normalized: {zod_state_fixes}"
+                )
+        if _policies.get("normalize_app_router_query_usage", False):
+            router_query_fixes = _fix_next_app_router_query_usage(project_path)
+            if router_query_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] app router query usage normalized: {router_query_fixes}"
+                )
+        if _policies.get("normalize_react_router_dom_usage", False):
+            react_router_fixes = _fix_react_router_dom_usage(project_path)
+            if react_router_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] react-router-dom usage normalized: {react_router_fixes}"
+                )
+        if _policies.get("normalize_post_content_select", False):
+            post_content_fixes = _fix_post_content_select(project_path)
+            if post_content_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] post content select normalized: {post_content_fixes}"
+                )
+        if _policies.get("normalize_unknown_state_type_aliases", False):
+            state_alias_fixes = _fix_unknown_state_type_aliases(project_path)
+            if state_alias_fixes:
+                logger.warning(
+                    f"[pre-build deterministic fix] unknown state type aliases normalized: {state_alias_fixes}"
                 )
         if _policies.get("normalize_prisma_generator_provider", True):
             _prisma_provider_fixed = _fix_prisma_generator_provider(project_path)

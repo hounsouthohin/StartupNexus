@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dev Agent Contract v1.0",
+  "description": "Contract d'interface pour le Dev Agent (génération code Next.js)",
+  "version": "1.1.0",
+  "agent_id": "dev_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["spec", "mermaid", "project_name"],
+    "additionalProperties": false,
+    "properties": {
+      "spec": {
+        "type": "string",
+        "description": "Spécification technique Markdown de l'Architect Agent",
+        "minLength": 100
+      },
+      "mermaid": {
+        "type": "string",
+        "description": "Diagramme Mermaid de l'Architect Agent",
+        "minLength": 50
+      },
+      "project_name": {
+        "type": "string",
+        "description": "Nom du projet",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack (ex: nextjs-clerk-prisma)"
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (propagation observabilité)"
+      },
+      "requirements": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Requirements extraits par l'Architect — utilisés comme contraintes de génération"
+      },
+      "spec_validation_status": {
+        "type": "string",
+        "description": "Statut de cohérence requirements↔spec : OK | DEGRADED | UNKNOWN"
+      },
+      "spec_unmatched_requirements": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Requirements dont les termes-clés sont absents de la spec générée (dérive spec_writer)"
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["files", "final_message", "success"],
+    "additionalProperties": false,
+    "properties": {
+      "files": {
+        "type": "object",
+        "description": "Dictionnaire des fichiers générés {path: content}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
+      "final_message": {
+        "type": "string",
+        "description": "Statut final canonique T005 — jamais texte LLM",
+        "enum": ["BUILD_SUCCESS", "BUILD_FAILED", "MAX_ITER_REACHED", "NOT_BUILT_BY_GATE"]
+      },
+      "success": {
+        "type": "boolean",
+        "description": "True si build Next.js réussi"
+      },
+      "metadata": {
+        "type": "object",
+        "additionalProperties": false,
+          "properties": {
+            "iterations": {"type": "integer"},
+            "build_attempts": {"type": "integer"},
+            "build_attempted": {"type": "boolean"},
+            "total_files": {"type": "integer"},
+            "last_build_error": {"type": "string"},
+            "last_build_error_full": {"type": "string"},
+            "last_test_error": {"type": "string"},
+            "last_test_error_full": {"type": "string"},
+            "last_failed_command": {"type": "string"}
+          }
+      }
+    }
+  },
+
+  "error_schema": {
+    "type": "object",
+    "required": ["code", "message"],
+    "additionalProperties": false,
+    "properties": {
+      "code": {
+        "type": "string",
+        "enum": [
+          "VALIDATION_ERROR",
+          "BUILD_ERROR",
+          "SYNTAX_ERROR",
+          "DEPENDENCY_ERROR",
+          "TIMEOUT_ERROR"
+        ]
+      },
+      "message": {"type": "string"},
+      "details": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "failed_files": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "build_logs": {"type": "string"}
+        }
+      }
+    }
+  },
+
+  "health_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["healthy", "degraded", "unhealthy"]
+      },
+      "checks": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tools_available": {"type": "boolean"},
+          "rag_connection": {"type": "boolean"}
+        }
+      },
+      "last_check": {"type": "string", "format": "date-time"}
+    }
+  }
+}

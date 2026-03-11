@@ -690,14 +690,13 @@ ZONE_7_PRISMA = [
         "text": """ACTION: OBLIGATOIRE
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: Prisma 7 — générer schema.prisma ET prisma.config.ts
-RAISON: (Perplexity confirmé) Prisma 7 introduit prisma.config.ts. Générer les deux garantit la compatibilité ascendante et la conformité à la voie officielle Prisma 7. url = env("DATABASE_URL") dans schema.prisma reste valide mais prisma.config.ts est désormais recommandé.
+RAISON: (Perplexity confirmé) Prisma 7 introduit prisma.config.ts. La datasource URL doit être portée par prisma.config.ts ; `url = env("DATABASE_URL")` dans schema.prisma doit être évité/retiré pour rester aligné avec la config moderne de la stack.
 FICHIERS_OBLIGATOIRES:
   prisma/schema.prisma  — datasource + generator + modèles
   prisma.config.ts      — defineConfig depuis 'prisma/config'
 CONFIGURATION_SCHEMA_PRISMA:
   datasource db {
     provider = "postgresql"
-    url      = env("DATABASE_URL")
   }
   generator client {
     provider = "prisma-client-js"
@@ -713,7 +712,7 @@ DETECTION_REGEX: prisma\.config\.ts
 ALTERNATIVE: Générer les deux fichiers systématiquement
 EXEMPLE_INVALIDE: schema.prisma seul sans prisma.config.ts
 EXEMPLE_VALIDE: prisma/schema.prisma + prisma.config.ts à la racine
-ERREUR_ATTENDUE: Warning Prisma 7 ou comportement déprécié
+ERREUR_ATTENDUE: Écart de configuration Prisma 7 (datasource URL au mauvais endroit)
 STATUS: active
 VERSION: 1.0""",
         "metadata": {

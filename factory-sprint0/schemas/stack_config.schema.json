@@ -170,6 +170,35 @@
         },
         "additionalProperties": false
       }
+    },
+    "path_guards": {
+      "type": "array",
+      "description": "Guards de structure de chemins/fichiers config-driven (naming conventions, routing layout).",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "message_lines"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["app_router_convention", "app_router_api_naming"]
+          },
+          "mode": { "type": "string", "enum": ["block", "warn"] },
+          "auto_fix": { "type": "boolean" },
+          "route_root": { "type": "string" },
+          "file_extensions": { "type": "array", "items": { "type": "string" } },
+          "valid_route_names": { "type": "array", "items": { "type": "string" } },
+          "excluded_directories": { "type": "array", "items": { "type": "string" } },
+          "api_root": { "type": "string" },
+          "api_valid_stem": { "type": "string" },
+          "message_lines": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
     }
   }
 }
