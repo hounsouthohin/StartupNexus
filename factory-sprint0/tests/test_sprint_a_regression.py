@@ -1449,6 +1449,31 @@ class TestPrismaSanitizer:
         assert '"prisma-client"' not in updated
         shutil.rmtree(tmp_path, ignore_errors=True)
 
+    def test_prisma_generator_provider_injected_when_missing(self):
+        from agents.shared_tools import _fix_prisma_generator_provider
+        import shutil
+
+        schema = (
+            "generator client {\n"
+            "}\n"
+            "datasource db {\n"
+            "  provider = \"postgresql\"\n"
+            "}\n"
+        )
+        tmp_path = Path("run/_pytest_tmp_prisma_fix_missing_provider")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        prisma_dir = tmp_path / "prisma"
+        prisma_dir.mkdir(parents=True, exist_ok=True)
+        schema_path = prisma_dir / "schema.prisma"
+        schema_path.write_text(schema, encoding="utf-8")
+
+        changed = _fix_prisma_generator_provider(str(tmp_path))
+        assert changed is True
+        updated = schema_path.read_text(encoding="utf-8")
+        assert 'provider = "prisma-client-js"' in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
 
 class TestMapCallbackTypingSanitizer:
     """Valide l'auto-fix déterministe des callbacks map non typés."""
@@ -1501,6 +1526,35 @@ class TestMapCallbackTypingSanitizer:
         assert count >= 1
         assert "map((user: any) =>" in fixed
         assert "map(user: any =>" not in fixed
+
+
+class TestNextNavigationClientDirectiveSanitizer:
+    def test_inject_use_client_when_useparams_used_in_app_page(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "import { useParams } from 'next/navigation';\n"
+            "export default function UserPage() {\n"
+            "  const params = useParams();\n"
+            "  return <div>{String(params?.id)}</div>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/users/[id]/page.tsx", content)
+        assert fixed.startswith('"use client";\n')
+
+    def test_keep_existing_use_client_for_navigation_hooks(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            '"use client";\n'
+            "import { useRouter } from 'next/navigation';\n"
+            "export default function Page() {\n"
+            "  const router = useRouter();\n"
+            "  return <button onClick={() => router.push('/')}>Go</button>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert fixed == content
 
 
 class TestJsxEscapedQuotesSanitizer:
@@ -1575,6 +1629,77 @@ class TestLayoutDynamicFix:
         updated = layout_path.read_text(encoding="utf-8")
         assert changed is True
         assert 'export const dynamic = "force-dynamic";' in updated
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+
+class TestAuthorIdNullableGuardSanitizer:
+    def test_inject_userid_guard_when_authorid_uses_userid(self):
+        from agents.shared_tools import _rewrite_post_create_requires_authorid
+
+        content = (
+            "import { auth } from '@clerk/nextjs/server';\n"
+            "import prisma from '@/lib/prisma';\n"
+            "export async function PUT(request: Request) {\n"
+            "  const { userId } = await auth();\n"
+            "  const body = await request.json();\n"
+            "  const post = await prisma.post.create({ data: { title: body.title, authorId: userId } });\n"
+            "  return Response.json(post);\n"
+            "}\n"
+        )
+        fixed, count = _rewrite_post_create_requires_authorid(content)
+        assert count >= 1
+        assert "if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });" in fixed
+
+
+class TestLibPrismaConstructorSanitizer:
+    def test_rewrite_lib_prisma_constructor_injects_datasource_url(self):
+        from agents.shared_tools import _rewrite_lib_prisma_constructor
+
+        content = (
+            "import { PrismaClient } from '@prisma/client';\n"
+            "const globalForPrisma = globalThis as unknown as { prisma?: any };\n"
+            "const prisma = globalForPrisma.prisma ?? new PrismaClient();\n"
+            "export default prisma;\n"
+        )
+        fixed, count = _rewrite_lib_prisma_constructor(content)
+        assert count >= 1
+        assert "const datasourceUrl =" in fixed
+        assert "new PrismaClient({ datasourceUrl })" in fixed
+
+
+class TestUnknownPrismaModelRouteCleanup:
+    def test_remove_unknown_prisma_model_routes(self):
+        from agents.shared_tools import _remove_unknown_prisma_model_routes
+        import shutil
+
+        tmp_path = Path("run/_pytest_tmp_unknown_prisma_routes")
+        if tmp_path.exists():
+            shutil.rmtree(tmp_path, ignore_errors=True)
+        (tmp_path / "prisma").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "app" / "api" / "comments" / "[id]").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "app" / "api" / "posts" / "[id]").mkdir(parents=True, exist_ok=True)
+
+        (tmp_path / "prisma" / "schema.prisma").write_text(
+            "model Post {\n  id String @id\n}\n",
+            encoding="utf-8",
+        )
+        comments_route = tmp_path / "app" / "api" / "comments" / "[id]" / "route.ts"
+        comments_route.write_text(
+            "import prisma from '@/lib/prisma';\n"
+            "export async function GET() { return Response.json(await prisma.comment.findMany()); }\n",
+            encoding="utf-8",
+        )
+        posts_route = tmp_path / "app" / "api" / "posts" / "[id]" / "route.ts"
+        posts_route.write_text(
+            "import prisma from '@/lib/prisma';\n"
+            "export async function GET() { return Response.json(await prisma.post.findMany()); }\n",
+            encoding="utf-8",
+        )
+
+        removed = _remove_unknown_prisma_model_routes(str(tmp_path))
+        assert "app/api/comments/[id]/route.ts" in removed
+        assert not comments_route.exists()
+        assert posts_route.exists()
         shutil.rmtree(tmp_path, ignore_errors=True)
 
     def test_rewrite_layout_children_typing(self):

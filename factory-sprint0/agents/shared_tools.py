@@ -125,6 +125,8 @@ def _get_prebuild_policies(stack_id: str) -> dict:
         "normalize_post_content_select": stack_id == "nextjs-clerk-prisma",
         "normalize_unknown_state_type_aliases": stack_id == "nextjs-clerk-prisma",
         "normalize_prisma_generator_provider": True,
+        "normalize_lib_prisma_constructor": stack_id == "nextjs-clerk-prisma",
+        "remove_unknown_prisma_model_routes": stack_id == "nextjs-clerk-prisma",
         "ensure_layout_dynamic": stack_id == "nextjs-clerk-prisma",
         "ensure_layout_children_typing": stack_id == "nextjs-clerk-prisma",
     }
@@ -521,10 +523,16 @@ def _fix_overescaped_prisma_schema(path: str, content: str) -> str:
 
 def _sanitize_content(path: str, content: str) -> str:
     """Applique tous les sanitizers sur le contenu avant écriture."""
+    norm_path = path.replace("\\", "/")
     content = _fix_literal_newlines(path, content)
     content = _fix_overescaped_tsx_source(path, content)
     content = _fix_overescaped_prisma_schema(path, content)
     content = _fix_escaped_jsx_attr_quotes(path, content)
+    # App Router: useParams/useRouter/useSearchParams impliquent un Client Component.
+    content = _ensure_use_client_for_next_navigation_hooks(norm_path, content)
+    # Prisma authorId: garantit un guard userId non-null sur les route handlers.
+    if norm_path.startswith(("app/api/", "src/app/api/")) and os.path.basename(norm_path) in ("route.ts", "route.js"):
+        content, _ = _rewrite_post_create_requires_authorid(content)
     if path.endswith(".json"):
         content = _fix_json_escaping(content)
     content = _apply_import_remaps(content, path)
@@ -1238,11 +1246,62 @@ def _rewrite_post_create_requires_authorid(content: str) -> tuple[str, int]:
         )
         replacements += count2
 
+    # Cas général: authorId: userId explicite sans guard de nullabilité.
+    if "authorId: userId" in updated and "if (!userId)" not in updated:
+        updated, guard_after_auth_count = re.subn(
+            r"(const\s*\{\s*userId\s*\}\s*=\s*await\s+auth\(\s*\)\s*;)",
+            r"\1\n  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });",
+            updated,
+            count=1,
+        )
+        replacements += guard_after_auth_count
+        if guard_after_auth_count == 0:
+            # Fallback: injecte auth + guard au début d'un handler async.
+            updated, inject_count = re.subn(
+                r"(export\s+async\s+function\s+(POST|PUT|PATCH|DELETE)\s*\([^)]*\)\s*\{)",
+                r"\1\n  const { userId } = await auth();\n  if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });",
+                updated,
+                count=1,
+            )
+            replacements += inject_count
+
     if replacements > 0 and "from '@clerk/nextjs/server'" not in updated and 'from "@clerk/nextjs/server"' not in updated:
         updated = "import { auth } from '@clerk/nextjs/server';\n" + updated.lstrip("\n")
         replacements += 1
 
     return updated, replacements
+
+
+def _ensure_use_client_for_next_navigation_hooks(path: str, content: str) -> str:
+    """
+    Next App Router: si un fichier app/*.tsx utilise useParams/useRouter/useSearchParams,
+    il doit être un Client Component ('use client' en première ligne non vide).
+    """
+    if not path.endswith((".tsx", ".jsx")):
+        return content
+    if not (path.startswith("app/") or path.startswith("src/app/")):
+        return content
+
+    needs_client = any(
+        hook in content
+        for hook in ("useParams(", "useRouter(", "useSearchParams(")
+    )
+    if not needs_client:
+        return content
+
+    first_non_empty = ""
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped:
+            first_non_empty = stripped
+            break
+
+    if first_non_empty:
+        normalized = first_non_empty.rstrip(";").strip().strip('"').strip("'").strip()
+        if normalized == "use client":
+            return content
+
+    return '"use client";\n' + content.lstrip("\n")
 
 
 def _fix_post_create_requires_authorid(project_path: str) -> list[str]:
@@ -1274,6 +1333,61 @@ def _fix_post_create_requires_authorid(project_path: str) -> list[str]:
     if fixed_files:
         logger.info(f"[pre-build] post.create authorId normalisé: {fixed_files}")
     return fixed_files
+
+
+def _rewrite_lib_prisma_constructor(content: str) -> tuple[str, int]:
+    """
+    Prisma 7: garantit un constructeur PrismaClient avec datasourceUrl explicite
+    pour éviter les erreurs d'initialisation runtime.
+    """
+    updated = content
+    replacements = 0
+
+    if "new PrismaClient(" not in updated:
+        return updated, 0
+
+    if "const datasourceUrl" not in updated:
+        marker = "const globalForPrisma ="
+        idx = updated.find(marker)
+        insert_block = (
+            "const datasourceUrl =\n"
+            "  process.env.DATABASE_URL ||\n"
+            "  'postgresql://user:password@localhost:5432/postgres';\n\n"
+        )
+        if idx >= 0:
+            updated = updated[:idx] + insert_block + updated[idx:]
+            replacements += 1
+        else:
+            updated = insert_block + updated
+            replacements += 1
+
+    updated, ctor_count = re.subn(
+        r"new\s+PrismaClient\s*\((?:\s*)\)",
+        "new PrismaClient({ datasourceUrl })",
+        updated,
+    )
+    replacements += ctor_count
+
+    return updated, replacements
+
+
+def _fix_lib_prisma_constructor(project_path: str) -> bool:
+    lib_path = os.path.join(project_path, "lib", "prisma.ts")
+    if not os.path.isfile(lib_path):
+        return False
+    try:
+        original = Path(lib_path).read_text(encoding="utf-8")
+    except Exception:
+        return False
+    fixed, count = _rewrite_lib_prisma_constructor(original)
+    if count > 0 and fixed != original:
+        try:
+            Path(lib_path).write_text(fixed, encoding="utf-8")
+            logger.info("[pre-build] lib/prisma.ts constructor normalized")
+            return True
+        except Exception as e:
+            logger.warning(f"[pre-build] Impossible de corriger lib/prisma.ts: {e}")
+    return False
 
 
 def _remove_clerk_auth_routes(project_path: str) -> list[str]:
@@ -1794,12 +1908,34 @@ def _fix_prisma_generator_provider(project_path: str) -> bool:
     except Exception:
         return False
 
-    fixed = re.sub(
-        r"(generator\s+client\s*\{[^}]*?\bprovider\s*=\s*)[\"']prisma-client[\"']",
-        r'\1"prisma-client-js"',
-        original,
-        flags=re.IGNORECASE | re.DOTALL,
-    )
+    fixed = original
+
+    block_re = re.compile(r"generator\s+client\s*\{[\s\S]*?\}", flags=re.IGNORECASE)
+    block_m = block_re.search(fixed)
+    if block_m:
+        block = block_m.group(0)
+        if re.search(r"\bprovider\s*=", block, flags=re.IGNORECASE):
+            new_block = re.sub(
+                r"(\bprovider\s*=\s*)[\"'][^\"']+[\"']",
+                r'\1"prisma-client-js"',
+                block,
+                flags=re.IGNORECASE,
+            )
+        else:
+            new_block = re.sub(
+                r"\{",
+                '{\n  provider = "prisma-client-js"',
+                block,
+                count=1,
+            )
+        fixed = fixed[:block_m.start()] + new_block + fixed[block_m.end():]
+    else:
+        fixed = (
+            'generator client {\n'
+            '  provider = "prisma-client-js"\n'
+            '}\n\n'
+            + fixed.lstrip("\n")
+        )
     if fixed == original:
         return False
     try:
@@ -1809,6 +1945,77 @@ def _fix_prisma_generator_provider(project_path: str) -> bool:
     except Exception as e:
         logger.warning(f"[pre-build] Impossible de corriger prisma generator provider: {e}")
         return False
+
+
+def _extract_prisma_model_names(schema_content: str) -> set[str]:
+    names = set(re.findall(r"^\s*model\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{", schema_content, flags=re.MULTILINE))
+    return {n.lower() for n in names}
+
+
+def _remove_unknown_prisma_model_routes(project_path: str) -> list[str]:
+    """
+    Supprime les routes app/api/**/route.ts|js qui référencent `prisma.<model>`
+    où `<model>` n'existe pas dans prisma/schema.prisma.
+    Limité aux API routes pour réduire le risque de suppression excessive.
+    """
+    removed: list[str] = []
+    schema_path = os.path.join(project_path, "prisma", "schema.prisma")
+    api_root = os.path.join(project_path, "app", "api")
+    if not os.path.isfile(schema_path) or not os.path.isdir(api_root):
+        return removed
+
+    try:
+        schema_content = Path(schema_path).read_text(encoding="utf-8")
+    except Exception:
+        return removed
+
+    known_models = _extract_prisma_model_names(schema_content)
+    if not known_models:
+        return removed
+
+    for root, dirs, files in os.walk(api_root):
+        dirs[:] = [d for d in dirs if d not in ("node_modules", ".next", ".git")]
+        for filename in files:
+            if filename not in ("route.ts", "route.js"):
+                continue
+            full_path = os.path.join(root, filename)
+            rel = os.path.relpath(full_path, project_path).replace("\\", "/")
+            try:
+                content = Path(full_path).read_text(encoding="utf-8")
+            except Exception:
+                continue
+
+            refs = {m.lower() for m in re.findall(r"\bprisma\.([A-Za-z_][A-Za-z0-9_]*)\b", content)}
+            refs.discard("$transaction")
+            refs.discard("$extends")
+            refs.discard("$connect")
+            refs.discard("$disconnect")
+            refs.discard("$on")
+            refs.discard("$use")
+
+            unknown = sorted(r for r in refs if r not in known_models)
+            if not unknown:
+                continue
+
+            try:
+                Path(full_path).unlink(missing_ok=True)
+                removed.append(rel)
+                logger.warning(f"[pre-build] route supprimée (models Prisma inconnus: {unknown}) -> {rel}")
+                # Nettoyage des dossiers vides jusqu'à app/api
+                parent = os.path.dirname(full_path)
+                stop = os.path.normpath(api_root)
+                while parent and os.path.normpath(parent).startswith(stop):
+                    if os.path.normpath(parent) == stop:
+                        break
+                    if os.path.isdir(parent) and not os.listdir(parent):
+                        os.rmdir(parent)
+                        parent = os.path.dirname(parent)
+                        continue
+                    break
+            except Exception as e:
+                logger.warning(f"[pre-build] Impossible de supprimer {rel}: {e}")
+
+    return removed
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1935,6 +2142,16 @@ def run_build(project_dir: str = ".") -> str:
             _prisma_provider_fixed = _fix_prisma_generator_provider(project_path)
             if _prisma_provider_fixed:
                 logger.warning("[pre-build deterministic fix] prisma schema provider normalized")
+        if _policies.get("normalize_lib_prisma_constructor", False):
+            _lib_prisma_fixed = _fix_lib_prisma_constructor(project_path)
+            if _lib_prisma_fixed:
+                logger.warning("[pre-build deterministic fix] lib/prisma.ts constructor normalized")
+        if _policies.get("remove_unknown_prisma_model_routes", False):
+            removed_unknown_model_routes = _remove_unknown_prisma_model_routes(project_path)
+            if removed_unknown_model_routes:
+                logger.warning(
+                    f"[pre-build deterministic fix] routes API supprimées (models Prisma inconnus): {removed_unknown_model_routes}"
+                )
         if _policies.get("ensure_layout_dynamic", False):
             _layout_dynamic_fixed = _ensure_layout_dynamic(project_path)
             if _layout_dynamic_fixed:

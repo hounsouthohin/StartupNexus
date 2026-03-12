@@ -543,8 +543,16 @@ async def run_batch(
 
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output_path = _safe_metrics_output_path(ts)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=True, indent=2)
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=True, indent=2)
+    except PermissionError:
+        # Cas fréquent en exécution host Windows: /app/logs non inscriptible.
+        fallback_dir = os.path.join(PROJECT_ROOT, "logs", "metrics")
+        os.makedirs(fallback_dir, exist_ok=True)
+        output_path = os.path.join(fallback_dir, f"todo_pilot_batch_{ts}.json")
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=True, indent=2)
 
     payload["metrics_log_path"] = output_path
     return payload

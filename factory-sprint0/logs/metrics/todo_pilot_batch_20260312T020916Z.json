@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-03-12T02:09:16.948717+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "sanity_mode": true,
+  "workflow_success_count": 1,
+  "workflow_failure_count": 0,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 1,
+  "build_unknown_count": 0,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 1,
+  "failure_count": 0,
+  "total_duration_seconds": 207.07,
+  "total_learner_events_delta": 0,
+  "quality_dashboard": {
+    "spec_validation_status_counts": {
+      "degraded_spec_gate_blocked": 0,
+      "semantic_violation_at_dev": 0,
+      "ok_or_partial": 1
+    },
+    "requirements_mappable_met_ratio": 0.0,
+    "build_not_run_count": 0,
+    "strict_success_rate": 0.0,
+    "usable_success_rate": 0.0
+  },
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-personal-blog-bb57d7a9",
+      "run_id": "019cdfcb-03df-7301-8a60-1b1473e442a3",
+      "project_name": "personal-blog",
+      "phrase": "Blog CMS avec Clerk (auteur unique)\n- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n- API Route : PUT /api/posts/[id] (toggle published, auth requise)",
+      "started_at": "2026-03-12T02:05:49.876261+00:00",
+      "duration_seconds": 207.07,
+      "workflow_success": true,
+      "build_success": false,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "workflow_error_message": null,
+      "learner_events_before": 0,
+      "learner_events_after": 0,
+      "learner_events_delta": 0,
+      "result_excerpt": "TodoPilotOutput(workflow_status='COMPLETED', build_status='BUILD_FAILED', project_name='personal-blog', generated_files_count=27, pr_url='N/A', repo_url='N/A', dev_files_count=23, test_files_count=4, duration_seconds=206.827357, error_message=None, activity_results={'architect': {'requirements_count': 6, 'spec_unmatched_requirements': [], 'spec_validation_status': 'OK', 'status': 'COMPLETED'}, 'de",
+      "activity_results": {
+        "architect": {
+          "requirements_count": 6,
+          "spec_unmatched_requirements": [],
+          "spec_validation_status": "OK",
+          "status": "COMPLETED"
+        },
+        "dev_test": {
+          "final_message": "NOT_BUILT_BY_GATE",
+          "metadata": {
+            "dev_files_count": 23,
+            "mode": "fusion",
+            "requirements_met": 6,
+            "requirements_total": 6,
+            "requirements_unmet": [],
+            "requirements_unmet_by_category": {},
+            "spec_coverage": 1.0,
+            "spec_unmatched_count": 0,
+            "spec_validation_status": "OK",
+            "test_files_count": 4,
+            "tests_passed": false,
+            "total_files": 27
+          },
+          "run_metric": {
+            "blocking_guard_id": "prisma_direct_instantiation",
+            "build_attempted": false,
+            "build_attempts": 0,
+            "build_success": false,
+            "clerk_compliant": true,
+            "dev_files_count": 23,
+            "error": "GateBlocked: NOT_BUILT_BY_GATE",
+            "files_count": 27,
+            "final_message": "NOT_BUILT_BY_GATE",
+            "gate_source": "content_guard",
+            "iterations": 14,
+            "last_build_error": "",
+            "last_build_error_full": "",
+            "last_failed_command": "",
+            "last_test_error": "",
+            "last_test_error_full": "",
+            "requirements_met": 6,
+            "requirements_total": 6,
+            "requirements_unmet": [],
+            "root_cause_category": "max_iterations",
+            "semantic_violations": [],
+            "spec_coverage": 1.0,
+            "tests_passed": false
+          },
+          "semantic_violations": [],
+          "status": "COMPLETED",
+          "success": false
+        }
+      },
+      "run_metric": {
+        "build_attempted": false,
+        "build_attempts": 0,
+        "build_success": false,
+        "iterations": 14,
+        "final_message": "NOT_BUILT_BY_GATE",
+        "root_cause_category": "max_iterations",
+        "spec_coverage": 1.0,
+        "requirements_met": 6,
+        "requirements_total": 6,
+        "tests_passed": false,
+        "semantic_violations": [],
+        "last_failed_command": "",
+        "last_build_error": "",
+        "error": "GateBlocked: NOT_BUILT_BY_GATE"
+      }
+    }
+  ]
+}

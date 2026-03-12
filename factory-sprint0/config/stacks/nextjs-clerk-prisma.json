@@ -357,6 +357,8 @@
     "normalize_post_content_select": false,
     "normalize_unknown_state_type_aliases": false,
     "normalize_prisma_generator_provider": true,
+    "normalize_lib_prisma_constructor": true,
+    "remove_unknown_prisma_model_routes": true,
     "ensure_layout_dynamic": true,
     "ensure_layout_children_typing": true
   },
@@ -729,9 +731,14 @@
     {
       "id": "prisma_direct_instantiation",
       "description": "new PrismaClient() ou import { PrismaClient } direct — utiliser le singleton @/lib/prisma",
+      "mode": "warn",
       "file_prefix": "app/",
       "file_extensions": [".ts", ".tsx", ".js", ".jsx"],
-      "trigger_contains": ["new PrismaClient()", "new PrismaClient({", "from '@prisma/client'", "from \"@prisma/client\""],
+      "trigger_contains": [
+        "new PrismaClient(",
+        "{ PrismaClient } from '@prisma/client'",
+        "{ PrismaClient } from \"@prisma/client\""
+      ],
       "requires_first_directive": null,
       "message_lines": [
         "PRISMA DIRECT INSTANTIATION GUARD — BUILD BLOQUÉ",

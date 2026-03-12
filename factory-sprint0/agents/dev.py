@@ -251,6 +251,13 @@ def dev_agent(
                 else:
                     logger.warning("Turn incomplet tool_calls ignoré dans _main_context")
             else:
+                # Évite d'envoyer des ToolMessage orphelins à l'API OpenAI.
+                # Un ToolMessage doit toujours suivre immédiatement un AIMessage
+                # qui contient un tool_call correspondant.
+                if isinstance(msg, ToolMessage):
+                    logger.warning("ToolMessage orphelin ignoré dans _main_context")
+                    i += 1
+                    continue
                 turns.append([msg])
                 i += 1
 
