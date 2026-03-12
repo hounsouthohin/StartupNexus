@@ -528,6 +528,9 @@ def _sanitize_content(path: str, content: str) -> str:
     content = _fix_overescaped_tsx_source(path, content)
     content = _fix_overescaped_prisma_schema(path, content)
     content = _fix_escaped_jsx_attr_quotes(path, content)
+    content = _ensure_react_hooks_imports(path, content)
+    content = _sanitize_app_router_nextpage_type(path, content)
+    content = _sanitize_undeclared_prisma_post_type(path, content)
     # App Router: useParams/useRouter/useSearchParams impliquent un Client Component.
     content = _ensure_use_client_for_next_navigation_hooks(norm_path, content)
     # Prisma authorId: garantit un guard userId non-null sur les route handlers.
@@ -541,6 +544,149 @@ def _sanitize_content(path: str, content: str) -> str:
     if os.path.basename(path) == "tsconfig.json":
         content = _ensure_tsconfig_excludes_tests(content)
     return content
+
+
+def _ensure_react_hooks_imports(path: str, content: str) -> str:
+    """
+    Injecte/complète l'import React hooks quand des hooks sont utilisés en
+    appel direct (ex: useState(...), useEffect(...)).
+    """
+    if not path.endswith((".tsx", ".jsx")):
+        return content
+
+    hook_names = ["useState", "useEffect", "useMemo", "useCallback", "useRef", "useReducer"]
+    needed = []
+    for hook in hook_names:
+        if re.search(rf"(?<!\.)\b{hook}\s*\(", content):
+            needed.append(hook)
+    if not needed:
+        return content
+
+    updated = content
+    needed_set = set(needed)
+
+    # Cas 1: import nommé existant depuis react -> fusion.
+    named_re = re.compile(
+        r"^\s*import\s*(?:type\s*)?\{\s*([^}]*)\}\s*from\s*['\"]react['\"]\s*;?\s*$",
+        flags=re.MULTILINE,
+    )
+    m_named = named_re.search(updated)
+    if m_named:
+        names = [n.strip() for n in m_named.group(1).split(",") if n.strip()]
+        merged = sorted(set(names) | needed_set)
+        old = m_named.group(0)
+        new = f"import {{ {', '.join(merged)} }} from 'react';"
+        return updated.replace(old, new, 1)
+
+    # Cas 2: import default React depuis react -> ajouter named imports.
+    default_re = re.compile(
+        r"^\s*import\s+([A-Za-z_][A-Za-z0-9_]*)\s+from\s*['\"]react['\"]\s*;?\s*$",
+        flags=re.MULTILINE,
+    )
+    m_default = default_re.search(updated)
+    if m_default:
+        old = m_default.group(0)
+        default_name = m_default.group(1)
+        new = f"import {default_name}, {{ {', '.join(sorted(needed_set))} }} from 'react';"
+        return updated.replace(old, new, 1)
+
+    # Cas 3: aucun import react -> injecter en tête (après 'use client' si présent).
+    import_line = f"import {{ {', '.join(sorted(needed_set))} }} from 'react';\n"
+    lines = updated.splitlines(keepends=True)
+    insert_at = 0
+    for i, ln in enumerate(lines):
+        if ln.strip():
+            first_norm = ln.strip().rstrip(";").strip().strip('"').strip("'").strip()
+            if first_norm == "use client":
+                insert_at = i + 1
+            break
+    lines.insert(insert_at, import_line)
+    return "".join(lines)
+
+
+def _sanitize_undeclared_prisma_post_type(path: str, content: str) -> str:
+    """
+    Si `Post` est utilisé comme annotation TS sans être importé/déclaré,
+    supprime l'annotation explicite pour laisser l'inférence TypeScript.
+    """
+    if not path.endswith((".ts", ".tsx")):
+        return content
+    if "Post" not in content:
+        return content
+
+    has_post_decl = bool(
+        re.search(r"\b(type|interface)\s+Post\b", content)
+        or re.search(r"\bimport\s+type\s+\{\s*Post\s*\}\s+from\s+['\"]@prisma/client['\"]", content)
+        or re.search(r"\bimport\s+\{\s*Post\s*\}\s+from\s+['\"]@prisma/client['\"]", content)
+    )
+    if has_post_decl:
+        return content
+
+    updated = content
+    # const posts: Post[] = ...  -> const posts = ...
+    updated = re.sub(
+        r"(\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*):\s*Post(?:\[\]|\s*\|\s*null)?(\s*=)",
+        r"\1\2",
+        updated,
+    )
+    # Paramètres de callbacks simples: (post: Post) -> (post)
+    updated = re.sub(r"(\(\s*[A-Za-z_][A-Za-z0-9_]*\s*):\s*Post(\s*[\),])", r"\1\2", updated)
+    # Cas PrismaPost/PrismaUser/... non déclarés.
+    prisma_type_candidates = sorted(set(re.findall(r"\bPrisma[A-Z][A-Za-z0-9_]*\b", updated)))
+    for tname in prisma_type_candidates:
+        has_decl = bool(
+            re.search(rf"\b(type|interface)\s+{re.escape(tname)}\b", updated)
+            or re.search(rf"\bimport\s+type\s+\{{[^}}]*\b{re.escape(tname)}\b[^}}]*\}}\s+from\s+['\"]@prisma/client['\"]", updated)
+            or re.search(rf"\bimport\s+\{{[^}}]*\b{re.escape(tname)}\b[^}}]*\}}\s+from\s+['\"]@prisma/client['\"]", updated)
+        )
+        if has_decl:
+            continue
+        updated = re.sub(
+            rf"(\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*\s*):\s*{re.escape(tname)}(?:\[\]|\s*\|\s*null)?(\s*=)",
+            r"\1\2",
+            updated,
+        )
+        updated = re.sub(
+            rf"(\(\s*[A-Za-z_][A-Za-z0-9_]*\s*):\s*{re.escape(tname)}(\s*[\),])",
+            r"\1\2",
+            updated,
+        )
+    return updated
+
+
+def _sanitize_app_router_nextpage_type(path: str, content: str) -> str:
+    """
+    App Router (app/**): NextPage est un pattern Pages Router.
+    On retire les annotations `: NextPage` pour laisser l'inférence.
+    """
+    norm = path.replace("\\", "/")
+    if not norm.endswith((".ts", ".tsx")):
+        return content
+    if not (norm.startswith("app/") or norm.startswith("src/app/")):
+        return content
+    if "NextPage" not in content:
+        return content
+
+    updated = content
+    updated = re.sub(
+        r"(\b(?:const|let|var)\s+[A-Za-z_][A-Za-z0-9_]*)\s*:\s*NextPage(?:<[^>]+>)?\s*=",
+        r"\1 =",
+        updated,
+    )
+    # Nettoie aussi les imports NextPage devenus inutiles.
+    updated = re.sub(
+        r"^\s*import\s+type\s+\{\s*NextPage\s*\}\s+from\s+['\"]next['\"]\s*;?\s*$\n?",
+        "",
+        updated,
+        flags=re.MULTILINE,
+    )
+    updated = re.sub(
+        r"^\s*import\s+\{\s*NextPage\s*\}\s+from\s+['\"]next['\"]\s*;?\s*$\n?",
+        "",
+        updated,
+        flags=re.MULTILINE,
+    )
+    return updated
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1337,8 +1483,8 @@ def _fix_post_create_requires_authorid(project_path: str) -> list[str]:
 
 def _rewrite_lib_prisma_constructor(content: str) -> tuple[str, int]:
     """
-    Prisma 7: garantit un constructeur PrismaClient avec datasourceUrl explicite
-    pour éviter les erreurs d'initialisation runtime.
+    Garantit le constructeur canonique Prisma singleton:
+      new PrismaClient()
     """
     updated = content
     replacements = 0
@@ -1346,27 +1492,23 @@ def _rewrite_lib_prisma_constructor(content: str) -> tuple[str, int]:
     if "new PrismaClient(" not in updated:
         return updated, 0
 
-    if "const datasourceUrl" not in updated:
-        marker = "const globalForPrisma ="
-        idx = updated.find(marker)
-        insert_block = (
-            "const datasourceUrl =\n"
-            "  process.env.DATABASE_URL ||\n"
-            "  'postgresql://user:password@localhost:5432/postgres';\n\n"
-        )
-        if idx >= 0:
-            updated = updated[:idx] + insert_block + updated[idx:]
-            replacements += 1
-        else:
-            updated = insert_block + updated
-            replacements += 1
-
     updated, ctor_count = re.subn(
-        r"new\s+PrismaClient\s*\((?:\s*)\)",
-        "new PrismaClient({ datasourceUrl })",
+        r"new\s+PrismaClient\s*\((?:[\s\S]*?)\)",
+        "new PrismaClient()",
         updated,
+        count=1,
     )
     replacements += ctor_count
+
+    # Retire un éventuel bloc datasourceUrl injecté par un ancien fix.
+    updated, removed_count = re.subn(
+        r"^\s*const\s+datasourceUrl\s*=\s*.*?;\s*$\n?",
+        "",
+        updated,
+        count=1,
+        flags=re.MULTILINE,
+    )
+    replacements += removed_count
 
     return updated, replacements
 

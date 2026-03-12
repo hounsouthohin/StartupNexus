@@ -1557,6 +1557,99 @@ class TestNextNavigationClientDirectiveSanitizer:
         assert fixed == content
 
 
+class TestReactHooksImportSanitizer:
+    def test_inject_react_hooks_import_when_missing(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            '"use client";\n'
+            "export default function Home() {\n"
+            "  const [posts, setPosts] = useState([]);\n"
+            "  useEffect(() => {}, []);\n"
+            "  return <div>{posts.length}</div>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert "import { useEffect, useState } from 'react';" in fixed
+
+    def test_merge_hooks_into_existing_react_named_import(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            '"use client";\n'
+            "import { useState } from 'react';\n"
+            "export default function Home() {\n"
+            "  const [posts, setPosts] = useState([]);\n"
+            "  useEffect(() => {}, []);\n"
+            "  return <div>{posts.length}</div>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert "import { useEffect, useState } from 'react';" in fixed
+
+
+class TestUndeclaredPrismaPostTypeSanitizer:
+    def test_strip_post_annotation_when_not_imported(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "import prisma from '@/lib/prisma';\n"
+            "export default async function Home() {\n"
+            "  const posts: Post[] = await prisma.post.findMany();\n"
+            "  return <div>{posts.length}</div>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert "const posts = await prisma.post.findMany();" in fixed
+        assert "const posts: Post[]" not in fixed
+
+    def test_keep_post_annotation_when_imported(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "import type { Post } from '@prisma/client';\n"
+            "import prisma from '@/lib/prisma';\n"
+            "export default async function Home() {\n"
+            "  const posts: Post[] = await prisma.post.findMany();\n"
+            "  return <div>{posts.length}</div>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert fixed == content
+
+    def test_strip_prisma_post_annotation_when_not_imported(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "import prisma from '@/lib/prisma';\n"
+            "export default async function Home() {\n"
+            "  const posts: PrismaPost[] = await prisma.post.findMany();\n"
+            "  return <div>{posts.length}</div>;\n"
+            "}\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert "const posts = await prisma.post.findMany();" in fixed
+        assert "PrismaPost" not in fixed
+
+
+class TestAppRouterNextPageSanitizer:
+    def test_strip_nextpage_annotation_in_app_router(self):
+        from agents.shared_tools import _sanitize_content
+
+        content = (
+            "import type { NextPage } from 'next';\n"
+            "import prisma from '@/lib/prisma';\n"
+            "const HomePage: NextPage = async () => {\n"
+            "  const posts = await prisma.post.findMany();\n"
+            "  return <div>{posts.length}</div>;\n"
+            "};\n"
+            "export default HomePage;\n"
+        )
+        fixed = _sanitize_content("app/page.tsx", content)
+        assert "const HomePage = async () =>" in fixed
+        assert "NextPage" not in fixed
+
+
 class TestJsxEscapedQuotesSanitizer:
     """Valide la correction des attributs JSX sur-échappés (className=\\\"...\")."""
 
@@ -1652,19 +1745,20 @@ class TestAuthorIdNullableGuardSanitizer:
 
 
 class TestLibPrismaConstructorSanitizer:
-    def test_rewrite_lib_prisma_constructor_injects_datasource_url(self):
+    def test_rewrite_lib_prisma_constructor_normalizes_to_empty_ctor(self):
         from agents.shared_tools import _rewrite_lib_prisma_constructor
 
         content = (
             "import { PrismaClient } from '@prisma/client';\n"
+            "const datasourceUrl = process.env.DATABASE_URL || 'postgresql://localhost:5432/db';\n"
             "const globalForPrisma = globalThis as unknown as { prisma?: any };\n"
-            "const prisma = globalForPrisma.prisma ?? new PrismaClient();\n"
+            "const prisma = globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl });\n"
             "export default prisma;\n"
         )
         fixed, count = _rewrite_lib_prisma_constructor(content)
         assert count >= 1
-        assert "const datasourceUrl =" in fixed
-        assert "new PrismaClient({ datasourceUrl })" in fixed
+        assert "const datasourceUrl =" not in fixed
+        assert "new PrismaClient()" in fixed
 
 
 class TestUnknownPrismaModelRouteCleanup:

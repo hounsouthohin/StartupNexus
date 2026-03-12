@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-03-12T13:18:39.476135+00:00",
+  "temporal_address": "localhost:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "sanity_mode": true,
+  "workflow_success_count": 1,
+  "workflow_failure_count": 0,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 1,
+  "build_unknown_count": 0,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 1,
+  "failure_count": 0,
+  "total_duration_seconds": 252.55,
+  "total_learner_events_delta": 0,
+  "quality_dashboard": {
+    "spec_validation_status_counts": {
+      "degraded_spec_gate_blocked": 0,
+      "semantic_violation_at_dev": 0,
+      "ok_or_partial": 1
+    },
+    "requirements_mappable_met_ratio": 0.0,
+    "build_not_run_count": 0,
+    "strict_success_rate": 0.0,
+    "usable_success_rate": 0.0
+  },
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-personal-blog-6db49acb",
+      "run_id": "019ce22f-2717-73e8-afe5-3d19db2fde61",
+      "project_name": "personal-blog",
+      "phrase": "Blog CMS avec Clerk (auteur unique)\n- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n- API Route : PUT /api/posts/[id] (toggle published, auth requise)",
+      "started_at": "2026-03-12T13:14:26.924366+00:00",
+      "duration_seconds": 252.55,
+      "workflow_success": true,
+      "build_success": false,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "workflow_error_message": null,
+      "learner_events_before": 0,
+      "learner_events_after": 0,
+      "learner_events_delta": 0,
+      "result_excerpt": "TodoPilotOutput(workflow_status='COMPLETED', build_status='BUILD_FAILED', project_name='personal-blog', generated_files_count=21, pr_url='N/A', repo_url='N/A', dev_files_count=18, test_files_count=3, duration_seconds=252.119079, error_message=None, activity_results={'architect': {'requirements_count': 6, 'spec_unmatched_requirements': [], 'spec_validation_status': 'OK', 'status': 'COMPLETED'}, 'de",
+      "activity_results": {
+        "architect": {
+          "requirements_count": 6,
+          "spec_unmatched_requirements": [],
+          "spec_validation_status": "OK",
+          "status": "COMPLETED"
+        },
+        "dev_test": {
+          "final_message": "MAX_ITER_REACHED",
+          "metadata": {
+            "dev_files_count": 18,
+            "mode": "fusion",
+            "requirements_met": 6,
+            "requirements_total": 6,
+            "requirements_unmet": [],
+            "requirements_unmet_by_category": {},
+            "spec_coverage": 1.0,
+            "spec_unmatched_count": 0,
+            "spec_validation_status": "OK",
+            "test_files_count": 3,
+            "tests_passed": false,
+            "total_files": 21
+          },
+          "run_metric": {
+            "blocking_guard_id": "",
+            "build_attempted": true,
+            "build_attempts": 4,
+            "build_success": false,
+            "clerk_compliant": true,
+            "dev_files_count": 18,
+            "error": "BuildFailed: <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\nFailed to compile.\n\n./app/page.tsx",
+            "files_count": 21,
+            "final_message": "MAX_ITER_REACHED",
+            "gate_source": "",
+            "iterations": 14,
+            "last_build_error": "<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\nFailed to compile.\n\n./app/page.tsx",
+            "last_build_error_full": "<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\nFailed to compile.\n\n./app/page.tsx:2:17\nType error: Cannot find name 'NextPage'.\n\n\u001b[0m \u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m prisma \u001b[36mfrom\u001b[39m \u001b[32m'@/lib/prisma'\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 2 |\u001b[39m \u001b[36mconst\u001b[39m \u001b[33mHomePage\u001b[39m\u001b[33m:\u001b[39m \u001b[33mNextPage\u001b[39m \u001b[33m=\u001b[39m \u001b[36masync\u001b[39m () \u001b[33m=>\u001b[39m {\u001b[0m\n\u001b[0m \u001b[90m   |\u001b[39m                 \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 3 |\u001b[39m   \u001b[36mconst\u001b[39m posts\u001b[33m:\u001b[39m \u001b[33mPrismaPost\u001b[39m[] \u001b[33m=\u001b[39m \u001b[36mawait\u001b[39m prisma\u001b[33m.\u001b[39mpost\u001b[33m.\u001b[39mfindMany({ where\u001b[33m:\u001b[39m { published\u001b[33m:\u001b[39m \u001b[36mtrue\u001b[39m } })\u001b[33m;\u001b[39m\u001b[0m\n\u001b[0m \u001b[90m 4 |\u001b[39m   \u001b[36mreturn\u001b[39m (\u001b[0m\n\u001b[0m \u001b[90m 5 |\u001b[39m     \u001b[33m<\u001b[39m\u001b[33mdiv\u001b[39m\u001b[33m>\u001b[39m\u001b[0m\nNext.js build worker exited with code: 1 and signal: null",
+            "last_failed_command": "npm run build",
+            "last_test_error": "",
+            "last_test_error_full": "",
+            "requirements_met": 6,
+            "requirements_total": 6,
+            "requirements_unmet": [],
+            "root_cause_category": "max_iterations",
+            "semantic_violations": [],
+            "spec_coverage": 1.0,
+            "tests_passed": false
+          },
+          "semantic_violations": [],
+          "status": "COMPLETED",
+          "success": false
+        }
+      },
+      "run_metric": {
+        "build_attempted": true,
+        "build_attempts": 4,
+        "build_success": false,
+        "iterations": 14,
+        "final_message": "MAX_ITER_REACHED",
+        "root_cause_category": "max_iterations",
+        "spec_coverage": 1.0,
+        "requirements_met": 6,
+        "requirements_total": 6,
+        "tests_passed": false,
+        "semantic_violations": [],
+        "last_failed_command": "npm run build",
+        "last_build_error": "<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\nFailed to compile.\n\n./app/page.tsx",
+        "error": "BuildFailed: <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)\nFailed to compile.\n\n./app/page.tsx"
+      }
+    }
+  ]
+}
