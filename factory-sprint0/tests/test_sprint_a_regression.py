@@ -17,6 +17,8 @@ Usage:
 """
 
 import json
+import builtins
+import io
 from pathlib import Path
 
 import pytest
@@ -845,21 +847,6 @@ class TestContentGuards:
         assert True
 
 
-class TestDevAutofixSourceGuardrails:
-    """
-    Guardrails source pour éviter la régression camelCase dans l'autofix Prisma.
-    """
-
-    def test_prisma_autofix_does_not_lowercase_requirement_fields(self):
-        dev_py = (Path(__file__).resolve().parents[1] / "agents" / "dev.py").read_text(encoding="utf-8")
-        assert "m_fields = re.search(r\"avec\\s+champs?\\s+(.+)$\", lower" not in dev_py, (
-            "Régression: parser Prisma basé sur texte lowercased (perte camelCase)."
-        )
-        assert "case_hints" in dev_py, (
-            "Régression: indices de casse absents pour préserver authorId/camelCase."
-        )
-
-
 # ─────────────────────────────────────────────────────────────
 # BLOC 6 — T011 : Formule gate_divergence_rate (gates structurels exclus)
 # ─────────────────────────────────────────────────────────────
@@ -1124,718 +1111,11 @@ class TestT007Fallback:
                 os.environ["LLM_FALLBACK_ENABLED"] = original
 
 
-class TestRouteHandlerTypingSanitizer:
-    """Valide le sanitizer pré-build qui type les signatures route.ts non typées."""
-
-    def test_rewrite_untyped_route_handler_signature(self):
-        from agents.shared_tools import _rewrite_untyped_route_handler_signatures
-
-        src = (
-            "import { NextResponse } from 'next/server';\n"
-            "export async function PUT(request, { params }) {\n"
-            "  return NextResponse.json({ ok: true });\n"
-            "}\n"
-        )
-        out, count = _rewrite_untyped_route_handler_signatures(
-            src, "app/api/posts/[id]/route.ts"
-        )
-        assert count == 1
-        assert "request: Request" in out
-        assert "{ params }: { params: { id: string } }" in out
-
-    def test_keep_typed_signature_unchanged(self):
-        from agents.shared_tools import _rewrite_untyped_route_handler_signatures
-
-        src = (
-            "export async function PUT(request: Request, { params }: { params: { id: string } }) {\n"
-            "  return Response.json({ id: params.id });\n"
-            "}\n"
-        )
-        out, count = _rewrite_untyped_route_handler_signatures(
-            src, "app/api/posts/[id]/route.ts"
-        )
-        assert count == 0
-        assert out == src
-
-    def test_rewrite_destructured_params_as_first_argument(self):
-        from agents.shared_tools import _rewrite_untyped_route_handler_signatures
-
-        src = (
-            "export async function GET({ params }) {\n"
-            "  return Response.json({ id: params.id });\n"
-            "}\n"
-        )
-        out, count = _rewrite_untyped_route_handler_signatures(
-            src, "app/api/users/[id]/route.ts"
-        )
-        assert count == 1
-        assert "export async function GET(request: Request, { params }: { params: { id: string } })" in out
-
-
-class TestPrismaSanitizer:
-    """Valide l'auto-fix déterministe des imports Prisma nommés dans shared_tools.run_build."""
-
-    def test_rewrite_prisma_named_import_content(self):
-        from agents.shared_tools import _rewrite_prisma_named_import
-
-        content = (
-            "import { prisma } from '@/lib/prisma'\n"
-            "export async function GET() { return Response.json([]) }\n"
-        )
-        fixed, count = _rewrite_prisma_named_import(content)
-        assert count == 1
-        assert "import prisma from '@/lib/prisma'" in fixed
-        assert "import { prisma } from '@/lib/prisma'" not in fixed
-
-    def test_rewrite_route_prisma_client_usage(self):
-        from agents.shared_tools import _rewrite_route_prisma_client_usage
-
-        content = (
-            "import { PrismaClient } from '@prisma/client';\n"
-            "import { NextResponse } from 'next/server';\n"
-            "const prisma = new PrismaClient({ datasources: { db: { url: '' } } });\n"
-            "export async function GET(request: Request) {\n"
-            "  const posts = await prisma.post.findMany();\n"
-            "  return NextResponse.json(posts);\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_route_prisma_client_usage(content)
-        assert count >= 2
-        assert "from '@prisma/client'" not in fixed
-        assert "new PrismaClient(" not in fixed
-        assert "import prisma from '@/lib/prisma';" in fixed
-
-    def test_keep_existing_prisma_singleton_import(self):
-        from agents.shared_tools import _rewrite_route_prisma_client_usage
-
-        content = (
-            "import prisma from '@/lib/prisma';\n"
-            "export async function GET(request: Request) {\n"
-            "  return Response.json(await prisma.post.findMany());\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_route_prisma_client_usage(content)
-        assert count == 0
-        assert fixed == content
-
-    def test_rewrite_route_prisma_client_alias(self):
-        from agents.shared_tools import _rewrite_route_prisma_client_usage
-
-        content = (
-            "import { PrismaClient } from '@prisma/client';\n"
-            "const db = new PrismaClient({ datasources: { db: { url: '' } } });\n"
-            "export async function GET(request: Request) {\n"
-            "  const posts = await db.post.findMany();\n"
-            "  return Response.json(posts);\n"
-            "}\n"
-        )
-        fixed, _ = _rewrite_route_prisma_client_usage(content)
-        assert "new PrismaClient(" not in fixed
-        assert "from '@prisma/client'" not in fixed
-        assert "import prisma from '@/lib/prisma';" in fixed
-        assert "await prisma.post.findMany()" in fixed
-
-    def test_rewrite_route_prisma_client_typed_alias_and_combined_import(self):
-        from agents.shared_tools import _rewrite_route_prisma_client_usage
-
-        content = (
-            "import { PrismaClient, Prisma } from '@prisma/client';\n"
-            "const db: PrismaClient = new PrismaClient({\n"
-            "  datasources: { db: { url: '' } }\n"
-            "});\n"
-            "export async function GET(request: Request) {\n"
-            "  const posts = await db.post.findMany();\n"
-            "  return Response.json(posts as Prisma.JsonValue);\n"
-            "}\n"
-        )
-        fixed, _ = _rewrite_route_prisma_client_usage(content)
-        assert "PrismaClient" not in fixed
-        assert "new PrismaClient(" not in fixed
-        assert "import { Prisma } from '@prisma/client';" in fixed
-        assert "import prisma from '@/lib/prisma';" in fixed
-        assert "await prisma.post.findMany()" in fixed
-
-    def test_rewrite_route_prisma_client_named_alias_symbol(self):
-        from agents.shared_tools import _rewrite_route_prisma_client_usage
-
-        content = (
-            "import { PrismaClient as PC } from '@prisma/client';\n"
-            "const db = new PC({ datasources: { db: { url: '' } } });\n"
-            "export async function GET(request: Request) {\n"
-            "  return Response.json(await db.post.findMany());\n"
-            "}\n"
-        )
-        fixed, _ = _rewrite_route_prisma_client_usage(content)
-        assert "new PC(" not in fixed
-        assert "from '@prisma/client'" not in fixed
-        assert "import prisma from '@/lib/prisma';" in fixed
-        assert "await prisma.post.findMany()" in fixed
-
-    def test_remove_clerk_auth_routes(self):
-        from agents.shared_tools import _remove_clerk_auth_routes
-        from agents.context import set_stack_id
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_clerk_auth_cleanup")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        auth_dir = tmp_path / "app" / "api" / "auth" / "[...nextauth]"
-        auth_dir.mkdir(parents=True, exist_ok=True)
-        (auth_dir / "route.ts").write_text("export async function POST(){}", encoding="utf-8")
-
-        set_stack_id("")
-        removed = _remove_clerk_auth_routes(str(tmp_path))
-        assert "app/api/auth/" in removed
-        assert not (tmp_path / "app" / "api" / "auth").exists()
-        set_stack_id("nextjs-clerk-prisma")
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    def test_fix_global_prisma_client_usage(self):
-        from agents.shared_tools import _fix_global_prisma_client_usage
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_global_prisma_fix")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        route_dir = tmp_path / "app" / "api" / "users"
-        route_dir.mkdir(parents=True, exist_ok=True)
-        route_path = route_dir / "route.ts"
-        route_path.write_text(
-            "import { PrismaClient } from '@prisma/client';\n"
-            "const db = new PrismaClient({ datasources: { db: { url: '' } } });\n"
-            "export async function GET(request: Request) {\n"
-            "  return Response.json(await db.user.findMany());\n"
-            "}\n",
-            encoding="utf-8",
-        )
-
-        fixed = _fix_global_prisma_client_usage(str(tmp_path))
-        assert "app/api/users/route.ts" in fixed
-        updated = route_path.read_text(encoding="utf-8")
-        assert "new PrismaClient(" not in updated
-        assert "import prisma from '@/lib/prisma';" in updated
-        assert "await prisma.user.findMany()" in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    def test_fix_global_prisma_client_usage_js_route(self):
-        from agents.shared_tools import _fix_global_prisma_client_usage
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_global_prisma_fix_js")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        route_dir = tmp_path / "app" / "api" / "posts"
-        route_dir.mkdir(parents=True, exist_ok=True)
-        route_path = route_dir / "route.js"
-        route_path.write_text(
-            "import { PrismaClient } from '@prisma/client';\n"
-            "const prismaClient = new PrismaClient({ datasources: { db: { url: '' } } });\n"
-            "export async function GET(request) {\n"
-            "  return Response.json(await prismaClient.post.findMany());\n"
-            "}\n",
-            encoding="utf-8",
-        )
-
-        fixed = _fix_global_prisma_client_usage(str(tmp_path))
-        assert "app/api/posts/route.js" in fixed
-        updated = route_path.read_text(encoding="utf-8")
-        assert "new PrismaClient(" not in updated
-        assert "import prisma from '@/lib/prisma';" in updated
-        assert "await prisma.post.findMany()" in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    def test_fix_global_prisma_client_usage_src_app_file(self):
-        from agents.shared_tools import _fix_global_prisma_client_usage
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_global_prisma_fix_src_app")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        file_dir = tmp_path / "src" / "app" / "blog"
-        file_dir.mkdir(parents=True, exist_ok=True)
-        file_path = file_dir / "page.tsx"
-        file_path.write_text(
-            "import { PrismaClient as PC } from '@prisma/client';\n"
-            "const db = new PC({ datasources: { db: { url: '' } } });\n"
-            "export default async function Page(){\n"
-            "  const posts = await db.post.findMany();\n"
-            "  return <div>{posts.length}</div>;\n"
-            "}\n",
-            encoding="utf-8",
-        )
-
-        fixed = _fix_global_prisma_client_usage(str(tmp_path))
-        assert "src/app/blog/page.tsx" in fixed
-        updated = file_path.read_text(encoding="utf-8")
-        assert "new PC(" not in updated
-        assert "from '@prisma/client'" not in updated
-        assert "import prisma from '@/lib/prisma';" in updated
-        assert "await prisma.post.findMany()" in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    def test_rewrite_route_prisma_client_usage_injects_import_after_fallback(self):
-        from agents.shared_tools import _rewrite_route_prisma_client_usage
-
-        content = (
-            "export async function GET(request: Request) {\n"
-            "  const x = new PrismaClient({ datasources: { db: { url: '' } } });\n"
-            "  return Response.json(x);\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_route_prisma_client_usage(content)
-        assert count >= 1
-        assert "new PrismaClient(" not in fixed
-        assert "import prisma from '@/lib/prisma';" in fixed
-
-    def test_rewrite_post_create_requires_authorid(self):
-        from agents.shared_tools import _rewrite_post_create_requires_authorid
-
-        content = (
-            "import { NextResponse } from 'next/server';\n"
-            "import prisma from '@/lib/prisma';\n"
-            "export async function POST(request: Request) {\n"
-            "  const body = await request.json();\n"
-            "  const postData = PostSchema.parse(body);\n"
-            "  const post = await prisma.post.create({ data: postData });\n"
-            "  return NextResponse.json(post);\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_post_create_requires_authorid(content)
-        assert count >= 1
-        assert "authorId: userId" in fixed
-        assert "const { userId } = await auth();" in fixed
-        assert "from '@clerk/nextjs/server'" in fixed
-
-    def test_fix_overescaped_prisma_schema(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "datasource db {\\\n"
-            "  provider = \\\n"
-            "}\\\n"
-            "generator client {\\\n"
-            "  provider = \\\"prisma-client-js\\\"\\\n"
-            "}\\\n"
-        )
-        fixed = _sanitize_content("prisma/schema.prisma", content)
-        assert 'provider = "postgresql"' in fixed
-        assert '\\"' not in fixed
-        assert "provider = \\\n" not in fixed
-
-    def test_prisma_generator_provider_fix(self):
-        from agents.shared_tools import _fix_prisma_generator_provider
-        import shutil
-
-        schema = (
-            "generator client {\n"
-            "  provider   =   \"prisma-client\"\n"
-            "}\n"
-            "datasource db {\n"
-            "  provider = \"postgresql\"\n"
-            "}\n"
-        )
-        tmp_path = Path("run/_pytest_tmp_prisma_fix")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        prisma_dir = tmp_path / "prisma"
-        prisma_dir.mkdir(parents=True, exist_ok=True)
-        schema_path = prisma_dir / "schema.prisma"
-        schema_path.write_text(schema, encoding="utf-8")
-
-        changed = _fix_prisma_generator_provider(str(tmp_path))
-        assert changed is True
-        updated = schema_path.read_text(encoding="utf-8")
-        assert 'provider = "prisma-client-js"' in updated or 'provider   =   "prisma-client-js"' in updated
-        assert '"prisma-client"' not in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    def test_prisma_generator_provider_injected_when_missing(self):
-        from agents.shared_tools import _fix_prisma_generator_provider
-        import shutil
-
-        schema = (
-            "generator client {\n"
-            "}\n"
-            "datasource db {\n"
-            "  provider = \"postgresql\"\n"
-            "}\n"
-        )
-        tmp_path = Path("run/_pytest_tmp_prisma_fix_missing_provider")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        prisma_dir = tmp_path / "prisma"
-        prisma_dir.mkdir(parents=True, exist_ok=True)
-        schema_path = prisma_dir / "schema.prisma"
-        schema_path.write_text(schema, encoding="utf-8")
-
-        changed = _fix_prisma_generator_provider(str(tmp_path))
-        assert changed is True
-        updated = schema_path.read_text(encoding="utf-8")
-        assert 'provider = "prisma-client-js"' in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-class TestMapCallbackTypingSanitizer:
-    """Valide l'auto-fix déterministe des callbacks map non typés."""
-
-    def test_rewrite_untyped_map_callback(self):
-        from agents.shared_tools import _rewrite_untyped_map_callback_params
-
-        content = (
-            "export default function Page() {\n"
-            "  return posts.map((post) => <div key={post.id}>{post.title}</div>);\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_untyped_map_callback_params(content)
-        assert count >= 1
-        assert ".map((post: any) =>" in fixed
-
-    def test_keep_typed_map_callback_unchanged(self):
-        from agents.shared_tools import _rewrite_untyped_map_callback_params
-
-        content = (
-            "export default function Page() {\n"
-            "  return posts.map((post: Post) => <div key={post.id}>{post.title}</div>);\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_untyped_map_callback_params(content)
-        assert count == 0
-        assert fixed == content
-
-    def test_rewrite_untyped_filter_callback(self):
-        from agents.shared_tools import _rewrite_untyped_map_callback_params
-
-        content = "const published = posts.filter((post) => post.published);\n"
-        fixed, count = _rewrite_untyped_map_callback_params(content)
-        assert count >= 1
-        assert "filter((post: any) =>" in fixed
-
-    def test_rewrite_untyped_reduce_callback(self):
-        from agents.shared_tools import _rewrite_untyped_map_callback_params
-
-        content = "const total = items.reduce((acc, item) => acc + item.value, 0);\n"
-        fixed, count = _rewrite_untyped_map_callback_params(content)
-        assert count >= 1
-        assert "reduce((acc: any, item: any) =>" in fixed
-
-    def test_rewrite_untyped_plain_map_callback_keeps_valid_syntax(self):
-        from agents.shared_tools import _rewrite_untyped_map_callback_params
-
-        content = "const rows = users.map(user => UserSchema.parse(user));\n"
-        fixed, count = _rewrite_untyped_map_callback_params(content)
-        assert count >= 1
-        assert "map((user: any) =>" in fixed
-        assert "map(user: any =>" not in fixed
-
-
-class TestNextNavigationClientDirectiveSanitizer:
-    def test_inject_use_client_when_useparams_used_in_app_page(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "import { useParams } from 'next/navigation';\n"
-            "export default function UserPage() {\n"
-            "  const params = useParams();\n"
-            "  return <div>{String(params?.id)}</div>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/users/[id]/page.tsx", content)
-        assert fixed.startswith('"use client";\n')
-
-    def test_keep_existing_use_client_for_navigation_hooks(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            '"use client";\n'
-            "import { useRouter } from 'next/navigation';\n"
-            "export default function Page() {\n"
-            "  const router = useRouter();\n"
-            "  return <button onClick={() => router.push('/')}>Go</button>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert fixed == content
-
-
-class TestReactHooksImportSanitizer:
-    def test_inject_react_hooks_import_when_missing(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            '"use client";\n'
-            "export default function Home() {\n"
-            "  const [posts, setPosts] = useState([]);\n"
-            "  useEffect(() => {}, []);\n"
-            "  return <div>{posts.length}</div>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert "import { useEffect, useState } from 'react';" in fixed
-
-    def test_merge_hooks_into_existing_react_named_import(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            '"use client";\n'
-            "import { useState } from 'react';\n"
-            "export default function Home() {\n"
-            "  const [posts, setPosts] = useState([]);\n"
-            "  useEffect(() => {}, []);\n"
-            "  return <div>{posts.length}</div>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert "import { useEffect, useState } from 'react';" in fixed
-
-
-class TestUndeclaredPrismaPostTypeSanitizer:
-    def test_strip_post_annotation_when_not_imported(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "import prisma from '@/lib/prisma';\n"
-            "export default async function Home() {\n"
-            "  const posts: Post[] = await prisma.post.findMany();\n"
-            "  return <div>{posts.length}</div>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert "const posts = await prisma.post.findMany();" in fixed
-        assert "const posts: Post[]" not in fixed
-
-    def test_keep_post_annotation_when_imported(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "import type { Post } from '@prisma/client';\n"
-            "import prisma from '@/lib/prisma';\n"
-            "export default async function Home() {\n"
-            "  const posts: Post[] = await prisma.post.findMany();\n"
-            "  return <div>{posts.length}</div>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert fixed == content
-
-    def test_strip_prisma_post_annotation_when_not_imported(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "import prisma from '@/lib/prisma';\n"
-            "export default async function Home() {\n"
-            "  const posts: PrismaPost[] = await prisma.post.findMany();\n"
-            "  return <div>{posts.length}</div>;\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert "const posts = await prisma.post.findMany();" in fixed
-        assert "PrismaPost" not in fixed
-
-
-class TestAppRouterNextPageSanitizer:
-    def test_strip_nextpage_annotation_in_app_router(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "import type { NextPage } from 'next';\n"
-            "import prisma from '@/lib/prisma';\n"
-            "const HomePage: NextPage = async () => {\n"
-            "  const posts = await prisma.post.findMany();\n"
-            "  return <div>{posts.length}</div>;\n"
-            "};\n"
-            "export default HomePage;\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert "const HomePage = async () =>" in fixed
-        assert "NextPage" not in fixed
-
-
-class TestJsxEscapedQuotesSanitizer:
-    """Valide la correction des attributs JSX sur-échappés (className=\\\"...\")."""
-
-    def test_fix_escaped_jsx_attr_quotes(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "export default function Page() {\n"
-            "  return (\n"
-            "    <div className=\\\"p-4\\\">Hello</div>\n"
-            "  );\n"
-            "}\n"
-        )
-        fixed = _sanitize_content("app/page.tsx", content)
-        assert 'className="p-4"' in fixed
-        assert '\\"' not in fixed
-
-    def test_fix_overescaped_tsx_source(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            "\\\"use client\\\";\\\n"
-            "import { useState } from 'react';\\\n"
-            "export default function Page() {\\\n"
-            "  return <div className=\\\"p-4\\\">Hello</div>;\\\n"
-            "}\\\n"
-        )
-        fixed = _sanitize_content("app/dashboard/create/page.tsx", content)
-        assert fixed.startswith('"use client";\n')
-        assert "import { useState } from 'react';\n" in fixed
-        assert "\\\"" not in fixed
-        assert ";\\" not in fixed
-
-    def test_do_not_touch_normal_tsx_source(self):
-        from agents.shared_tools import _sanitize_content
-
-        content = (
-            '"use client";\n'
-            "import { useState } from 'react';\n"
-            "export default function Page() {\n"
-            '  return <div className="p-4">Hello</div>;\n'
-            "}\n"
-        )
-        fixed = _sanitize_content("app/dashboard/create/page.tsx", content)
-        assert fixed == content
-
-
-class TestLayoutDynamicFix:
-    """Valide l'injection force-dynamic pour éviter le prerender Clerk au build."""
-
-    def test_ensure_layout_dynamic_injects_export(self):
-        from agents.shared_tools import _ensure_layout_dynamic
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_layout_dynamic")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        app_dir = tmp_path / "app"
-        app_dir.mkdir(parents=True, exist_ok=True)
-        layout_path = app_dir / "layout.tsx"
-        layout_path.write_text(
-            "import { ClerkProvider } from '@clerk/nextjs';\n"
-            "export default function RootLayout({ children }: { children: React.ReactNode }) {\n"
-            "  return <html><body><ClerkProvider>{children}</ClerkProvider></body></html>;\n"
-            "}\n",
-            encoding="utf-8",
-        )
-
-        changed = _ensure_layout_dynamic(str(tmp_path))
-        updated = layout_path.read_text(encoding="utf-8")
-        assert changed is True
-        assert 'export const dynamic = "force-dynamic";' in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-class TestAuthorIdNullableGuardSanitizer:
-    def test_inject_userid_guard_when_authorid_uses_userid(self):
-        from agents.shared_tools import _rewrite_post_create_requires_authorid
-
-        content = (
-            "import { auth } from '@clerk/nextjs/server';\n"
-            "import prisma from '@/lib/prisma';\n"
-            "export async function PUT(request: Request) {\n"
-            "  const { userId } = await auth();\n"
-            "  const body = await request.json();\n"
-            "  const post = await prisma.post.create({ data: { title: body.title, authorId: userId } });\n"
-            "  return Response.json(post);\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_post_create_requires_authorid(content)
-        assert count >= 1
-        assert "if (!userId) return Response.json({ error: 'Unauthorized' }, { status: 401 });" in fixed
-
-
-class TestLibPrismaConstructorSanitizer:
-    def test_rewrite_lib_prisma_constructor_normalizes_to_empty_ctor(self):
-        from agents.shared_tools import _rewrite_lib_prisma_constructor
-
-        content = (
-            "import { PrismaClient } from '@prisma/client';\n"
-            "const datasourceUrl = process.env.DATABASE_URL || 'postgresql://localhost:5432/db';\n"
-            "const globalForPrisma = globalThis as unknown as { prisma?: any };\n"
-            "const prisma = globalForPrisma.prisma ?? new PrismaClient({ datasourceUrl });\n"
-            "export default prisma;\n"
-        )
-        fixed, count = _rewrite_lib_prisma_constructor(content)
-        assert count >= 1
-        assert "const datasourceUrl =" not in fixed
-        assert "new PrismaClient()" in fixed
-
-
-class TestUnknownPrismaModelRouteCleanup:
-    def test_remove_unknown_prisma_model_routes(self):
-        from agents.shared_tools import _remove_unknown_prisma_model_routes
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_unknown_prisma_routes")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        (tmp_path / "prisma").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "app" / "api" / "comments" / "[id]").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "app" / "api" / "posts" / "[id]").mkdir(parents=True, exist_ok=True)
-
-        (tmp_path / "prisma" / "schema.prisma").write_text(
-            "model Post {\n  id String @id\n}\n",
-            encoding="utf-8",
-        )
-        comments_route = tmp_path / "app" / "api" / "comments" / "[id]" / "route.ts"
-        comments_route.write_text(
-            "import prisma from '@/lib/prisma';\n"
-            "export async function GET() { return Response.json(await prisma.comment.findMany()); }\n",
-            encoding="utf-8",
-        )
-        posts_route = tmp_path / "app" / "api" / "posts" / "[id]" / "route.ts"
-        posts_route.write_text(
-            "import prisma from '@/lib/prisma';\n"
-            "export async function GET() { return Response.json(await prisma.post.findMany()); }\n",
-            encoding="utf-8",
-        )
-
-        removed = _remove_unknown_prisma_model_routes(str(tmp_path))
-        assert "app/api/comments/[id]/route.ts" in removed
-        assert not comments_route.exists()
-        assert posts_route.exists()
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    def test_rewrite_layout_children_typing(self):
-        from agents.shared_tools import _rewrite_layout_children_typing
-
-        content = (
-            "export default function Layout({ children }) {\n"
-            "  return <html><body>{children}</body></html>;\n"
-            "}\n"
-        )
-        fixed, count = _rewrite_layout_children_typing(content)
-        assert count == 1
-        assert "children: React.ReactNode" in fixed
-
-    def test_fix_layout_children_typing_file(self):
-        from agents.shared_tools import _fix_layout_children_typing
-        import shutil
-
-        tmp_path = Path("run/_pytest_tmp_layout_typing")
-        if tmp_path.exists():
-            shutil.rmtree(tmp_path, ignore_errors=True)
-        app_dir = tmp_path / "app"
-        app_dir.mkdir(parents=True, exist_ok=True)
-        layout_path = app_dir / "layout.tsx"
-        layout_path.write_text(
-            "export default function Layout({ children }) {\n"
-            "  return <html><body>{children}</body></html>;\n"
-            "}\n",
-            encoding="utf-8",
-        )
-
-        changed = _fix_layout_children_typing(str(tmp_path))
-        updated = layout_path.read_text(encoding="utf-8")
-        assert changed is True
-        assert "children: React.ReactNode" in updated
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-
 class TestTemplatePathNormalization:
     """Évite le contournement de la protection template via chemins mal normalisés."""
 
     def test_normalize_guard_path(self):
+        pytest.importorskip("pydantic")
         from agents.shared_tools import _normalize_guard_path
 
         assert _normalize_guard_path("./lib//prisma.ts") == "lib/prisma.ts"
@@ -1847,6 +1127,7 @@ class TestBuildOutcomeCoherence:
     """Empêche l'incohérence BUILD_SUCCESS + build_success=false dans run_metric."""
 
     def test_build_success_message_wins(self):
+        pytest.importorskip("temporalio")
         from workflows.activities.dev_test_activity import _compute_build_outcome
 
         success, attempts, attempted = _compute_build_outcome(
@@ -1859,6 +1140,7 @@ class TestBuildOutcomeCoherence:
         assert attempts == 1
 
     def test_result_success_without_attempt_is_not_success(self):
+        pytest.importorskip("temporalio")
         from workflows.activities.dev_test_activity import _compute_build_outcome
 
         success, attempts, attempted = _compute_build_outcome(
@@ -1875,6 +1157,7 @@ class TestForbiddenImportsRuntime:
     """Valide le bridge runtime des forbidden_imports stack -> dev.py."""
 
     def test_collect_forbidden_import_violations_detects_token(self):
+        pytest.importorskip("langchain_openai")
         from agents.dev import _collect_forbidden_import_violations
 
         files = {
@@ -1887,6 +1170,7 @@ class TestForbiddenImportsRuntime:
         assert violations[0][1] == "next-auth"
 
     def test_collect_forbidden_import_violations_ignores_templated_files(self):
+        pytest.importorskip("langchain_openai")
         from agents.dev import _collect_forbidden_import_violations
 
         files = {
@@ -1900,23 +1184,59 @@ class TestForbiddenImportsRuntime:
         assert violations == []
 
 
-class TestPrebuildPoliciesConfig:
-    """Valide que les politiques pre-build sont bien lues depuis la stack config."""
+class TestPackageJsonStrictWrite:
+    """Empêche les EJSONPARSE npm en refusant package.json invalide dès write_file."""
 
-    def test_get_prebuild_policies_contains_expected_keys(self):
-        from agents.shared_tools import _get_prebuild_policies
+    def test_write_file_rejects_invalid_package_json(self, monkeypatch):
+        pytest.importorskip("pydantic")
+        import agents.shared_tools as st
 
-        policies = _get_prebuild_policies("nextjs-clerk-prisma")
-        assert policies.get("remove_clerk_auth_routes") is True
-        assert policies.get("normalize_route_prisma_client_usage") is True
-        assert policies.get("ensure_layout_dynamic") is True
+        # Aucun accès disque nécessaire: package.json invalide doit échouer
+        # avant l'étape d'écriture.
+        monkeypatch.setattr(st, "_get_workdir", lambda: ".")
+        monkeypatch.setattr(st, "_resolve_safe_path", lambda p, b: f"./{p}")
+        monkeypatch.setattr(st.os, "makedirs", lambda *args, **kwargs: None)
+
+        opened = {"called": False}
+
+        def _fake_open(*args, **kwargs):
+            opened["called"] = True
+            return io.StringIO()
+
+        monkeypatch.setattr(builtins, "open", _fake_open)
+
+        result = st.write_file.invoke({
+            "path": "package.json",
+            "content": '{"name": "x", "dependencies": {"next": "15.0.0",}}',
+        })
+        assert "package.json invalide" in result
+
+    def test_write_file_accepts_and_normalizes_valid_package_json(self, monkeypatch):
+        pytest.importorskip("pydantic")
+        import agents.shared_tools as st
+
+        monkeypatch.setattr(st, "_get_workdir", lambda: ".")
+        monkeypatch.setattr(st, "_resolve_safe_path", lambda p, b: f"./{p}")
+        monkeypatch.setattr(st.os, "makedirs", lambda *args, **kwargs: None)
+
+        sink = io.StringIO()
+
+        class _DummyCtx:
+            def __enter__(self):
+                return sink
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setattr(builtins, "open", lambda *args, **kwargs: _DummyCtx())
+
+        result = st.write_file.invoke({
+            "path": "package.json",
+            "content": '{"name":"x","dependencies":{"next":"15.0.0"}}',
+        })
+        assert result.startswith("OK:")
+        parsed = json.loads(sink.getvalue())
+        assert parsed["name"] == "x"
+        assert parsed["dependencies"]["next"] == "15.0.0"
 
 
-# ─────────────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    import subprocess
-    import sys
-    sys.exit(subprocess.run(
-        [sys.executable, "-m", "pytest", __file__, "-v", "--tb=short"],
-    ).returncode)

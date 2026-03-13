@@ -99,6 +99,21 @@ def _extract_model_block(model_name: str, schema_content: str) -> str:
     return m.group(1)
 
 
+def _schema_has_postgres_datasource(schema_content: str) -> bool:
+    """
+    Vérifie la présence d'un bloc datasource Prisma PostgreSQL.
+    Exigence structurelle minimale pour cette stack.
+    """
+    schema_content = normalize_file_content("schema.prisma", schema_content)
+    has_datasource = bool(
+        re.search(r"\bdatasource\s+\w+\s*\{", schema_content, re.IGNORECASE)
+    )
+    has_pg_provider = bool(
+        re.search(r"provider\s*=\s*['\"]postgresql['\"]", schema_content, re.IGNORECASE)
+    )
+    return has_datasource and has_pg_provider
+
+
 def _extract_required_model_fields(req: str, model_name: str) -> tuple[set[str], set[str]]:
     """
     Extrait les champs requis d'un requirement Prisma et les champs marqués @unique.
@@ -176,19 +191,57 @@ def _model_fields_satisfied(req: str, model_name: str, schema_content: str) -> b
     return True
 
 
+def _model_fields_diff(req: str, model_name: str, schema_content: str) -> dict[str, Any]:
+    """
+    Retourne un diff déterministe pour expliquer les écarts Prisma:
+    - model_present
+    - missing_fields
+    - missing_unique
+    """
+    model_block = _extract_model_block(model_name, schema_content)
+    if not model_block:
+        return {
+            "model_present": False,
+            "missing_fields": [],
+            "missing_unique": [],
+        }
+
+    required_fields, unique_required_fields = _extract_required_model_fields(req, model_name)
+    block_lower = model_block.lower()
+
+    missing_fields: list[str] = []
+    for field in sorted(required_fields):
+        if not re.search(rf"\b{re.escape(field)}\b", block_lower):
+            missing_fields.append(field)
+
+    missing_unique: list[str] = []
+    for field in sorted(unique_required_fields):
+        line_match = re.search(
+            rf"^\s*{re.escape(field)}\b[^\n]*$",
+            model_block,
+            re.IGNORECASE | re.MULTILINE,
+        )
+        if not line_match:
+            missing_unique.append(field)
+            continue
+        if "@unique" not in line_match.group(0).lower():
+            missing_unique.append(field)
+
+    return {
+        "model_present": True,
+        "missing_fields": missing_fields,
+        "missing_unique": missing_unique,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Moteur de mapping (règles A→D)
 # ---------------------------------------------------------------------------
 
-def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
+def check_requirement_verbose(req: str, files_dict: dict) -> tuple[bool, bool, str]:
     """
-    Vérifie un requirement unique contre files_dict.
-
-    Retourne (is_mappable: bool, satisfied: bool) :
-    - is_mappable=False → requirement non vérifiable de façon déterministe
-      (ex: "Authentification Clerk robuste") → assumé satisfait, non bloquant.
-    - is_mappable=True, satisfied=True  → critère couvert.
-    - is_mappable=True, satisfied=False → critère manquant → gate bloque.
+    Variante explicative de check_requirement.
+    Retourne (is_mappable, satisfied, reason).
     """
     req_lower = req.lower()
     file_set = _build_file_set(files_dict)
@@ -200,15 +253,31 @@ def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
         or "prisma:" in req_lower
     ):
         model_match = re.search(r':\s*(\w+)', req)
-        if model_match:
-            model_name = model_match.group(1).lower()
-            schema_content = next(
-                (v for k, v in files_dict.items() if "schema.prisma" in _norm_path(k)),
-                "",
+        if not model_match:
+            return True, False, "Nom de modèle Prisma introuvable dans le requirement."
+        model_name = model_match.group(1).lower()
+        schema_content = next(
+            (v for k, v in files_dict.items() if "schema.prisma" in _norm_path(k)),
+            "",
+        )
+        if not _model_in_schema(model_name, schema_content):
+            return True, False, f"Modèle '{model_name}' absent de prisma/schema.prisma."
+        if not _schema_has_postgres_datasource(schema_content):
+            return True, False, (
+                "Datasource Prisma manquante/invalide dans prisma/schema.prisma "
+                "(attendu: datasource db avec provider = \"postgresql\")."
             )
-            if not _model_in_schema(model_name, schema_content):
-                return True, False
-            return True, _model_fields_satisfied(req, model_name, schema_content)
+        diff = _model_fields_diff(req, model_name, schema_content)
+        missing_fields = diff.get("missing_fields", [])
+        missing_unique = diff.get("missing_unique", [])
+        if missing_fields or missing_unique:
+            details = []
+            if missing_fields:
+                details.append("champs manquants: " + ", ".join(missing_fields))
+            if missing_unique:
+                details.append("contraintes @unique manquantes: " + ", ".join(missing_unique))
+            return True, False, "; ".join(details)
+        return True, True, "Modèle Prisma conforme."
 
     # -- Règle B : route API (METHOD /path) --------------------------------
     route_match = re.search(
@@ -217,21 +286,24 @@ def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
     if route_match:
         api_path = route_match.group(2).strip("/")
         expected = _norm_path("app/" + api_path + "/route.ts")
-        return True, (expected in file_set)
+        ok = expected in file_set
+        reason = "Route API présente." if ok else f"Route API manquante: {expected}"
+        return True, ok, reason
 
     # -- Règle C : page mentionnée avec chemin (/path) ---------------------
     if "page" in req_lower:
-        # Exige au moins un caractère après "/" pour éviter de matcher
-        # systématiquement la racine quand le requirement vise /dashboard, /blog/[slug], etc.
         page_match = re.search(r'/[\w\[\]/\-]+', req)
         if page_match:
             raw = page_match.group(0)
             page_path = _norm_path(raw.strip("/"))
             expected = _norm_path(f"app/{page_path}/page.tsx")
-            return True, (expected in file_set)
-        # Cas racine explicite: "Page: /"
+            ok = expected in file_set
+            reason = "Page présente." if ok else f"Page manquante: {expected}"
+            return True, ok, reason
         if re.search(r'(^|[\s:(])/(?=$|[\s),.:;])', req):
-            return True, ("app/page.tsx" in file_set)
+            ok = "app/page.tsx" in file_set
+            reason = "Page racine présente." if ok else "Page racine manquante: app/page.tsx"
+            return True, ok, reason
 
     # -- Règle D : chemin explicite dans le texte du requirement -----------
     path_match = re.search(
@@ -240,12 +312,26 @@ def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
     )
     if path_match:
         req_path = _norm_path(path_match.group(1))
-        return True, any(
-            req_path in fp or fp.endswith(req_path) for fp in file_set
-        )
+        ok = any(req_path in fp or fp.endswith(req_path) for fp in file_set)
+        reason = "Fichier explicite présent." if ok else f"Fichier explicite manquant: {req_path}"
+        return True, ok, reason
 
     # Requirement non mappable — assumé satisfait, non bloquant
-    return False, True
+    return False, True, "Requirement non mappable (non bloquant)."
+
+
+def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
+    """
+    Vérifie un requirement unique contre files_dict.
+
+    Retourne (is_mappable: bool, satisfied: bool) :
+    - is_mappable=False → requirement non vérifiable de façon déterministe
+      (ex: "Authentification Clerk robuste") → assumé satisfait, non bloquant.
+    - is_mappable=True, satisfied=True  → critère couvert.
+    - is_mappable=True, satisfied=False → critère manquant → gate bloque.
+    """
+    is_mappable, satisfied, _ = check_requirement_verbose(req, files_dict)
+    return is_mappable, satisfied
 
 
 # ---------------------------------------------------------------------------
@@ -261,17 +347,18 @@ def gate_check(requirements: list[str], files_dict: dict) -> tuple[bool, str]:
     if not requirements:
         return False, ""
 
-    missing: list[str] = []
+    missing: list[tuple[str, str]] = []
     for req in requirements:
-        is_mappable, satisfied = check_requirement(req, files_dict)
+        is_mappable, satisfied, reason = check_requirement_verbose(req, files_dict)
         if is_mappable and not satisfied:
-            missing.append(req)
+            missing.append((req, reason))
 
     if missing:
+        details = "\n".join(f"  - {req}\n    ↳ {reason}" for req, reason in missing)
         return True, (
             "REQUIREMENTS GATE — BUILD BLOQUÉ\n"
             f"{len(missing)} requirement(s) métier mappable(s) non couverts :\n"
-            + "\n".join(f"  - {r}" for r in missing)
+            + details
             + "\n\nGénère les fichiers manquants avant d'appeler run_build."
         )
     return False, ""
@@ -309,4 +396,46 @@ def compute_coverage(requirements: list[str], files_dict: dict) -> dict[str, Any
         "requirements_met": len(met),
         "requirements_total": len(requirements),
         "unmet": unmet,
+    }
+
+
+def compute_coverage_detailed(requirements: list[str], files_dict: dict) -> dict[str, Any]:
+    """
+    Même logique que compute_coverage, avec statut détaillé par requirement.
+    """
+    if not requirements:
+        return {
+            "spec_coverage": 0.0,
+            "requirements_met": 0,
+            "requirements_total": 0,
+            "unmet": [],
+            "statuses": [],
+        }
+
+    statuses: list[dict[str, Any]] = []
+    met_count = 0
+    unmet: list[str] = []
+
+    for req in requirements:
+        is_mappable, satisfied, reason = check_requirement_verbose(req, files_dict)
+        if satisfied:
+            met_count += 1
+        else:
+            unmet.append(req)
+        statuses.append(
+            {
+                "requirement": req,
+                "is_mappable": is_mappable,
+                "satisfied": satisfied,
+                "reason": reason,
+            }
+        )
+
+    coverage = round(met_count / len(requirements), 3)
+    return {
+        "spec_coverage": coverage,
+        "requirements_met": met_count,
+        "requirements_total": len(requirements),
+        "unmet": unmet,
+        "statuses": statuses,
     }

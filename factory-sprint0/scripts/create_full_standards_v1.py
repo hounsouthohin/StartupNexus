@@ -1082,7 +1082,7 @@ DETECTION_REGEX: export async function (GET|POST|PUT|DELETE|PATCH)\s*\([^)]*\)\s
 ALTERNATIVE: Appeler auth() en premier et vérifier userId avant tout accès Prisma
 EXEMPLE_INVALIDE:
   // app/api/posts/route.ts
-  import { prisma } from '@/lib/prisma';
+  import prisma from '@/lib/prisma';
   import { NextResponse } from 'next/server';
 
   export async function GET() {
@@ -1092,7 +1092,7 @@ EXEMPLE_INVALIDE:
 EXEMPLE_VALIDE:
   // app/api/posts/route.ts
   import { auth } from '@clerk/nextjs/server';
-  import { prisma } from '@/lib/prisma';
+  import prisma from '@/lib/prisma';
   import { NextResponse } from 'next/server';
 
   export async function GET() {
@@ -1507,7 +1507,7 @@ RAISON: Sans mock Prisma, les tests unitaires tentent de se connecter à la base
 DETECTION_REGEX: import.*prisma.*from.*@/lib/prisma
 ALTERNATIVE: Mocker inline via jest.mock('@/lib/prisma') avec les méthodes utilisées
 EXEMPLE_INVALIDE:
-  import { prisma } from '@/lib/prisma'; // import direct → vraie DB
+  import prisma from '@/lib/prisma'; // import direct → vraie DB
   import { POST } from '@/app/api/users/route';
   test('crée un utilisateur', async () => {
     const res = await POST(req); // crash si DB absente
@@ -2029,7 +2029,7 @@ ALTERNATIVE: Les appels Prisma restent dans les Server Components (page.tsx sans
 EXEMPLE_INVALIDE:
   // app/dashboard/DashboardPage.tsx ❌
   'use client';
-  import { prisma } from '@/lib/prisma'; // ❌ Prisma dans Client Component
+  import prisma from '@/lib/prisma'; // ❌ Prisma dans Client Component
   import { useEffect, useState } from 'react';
   export default function DashboardPage() {
     const [posts, setPosts] = useState([]);

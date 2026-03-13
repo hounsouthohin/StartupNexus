@@ -293,6 +293,10 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         final_message = str(dev_output.get("final_message", ""))[:200]
         gate_source = str(dev_meta.get("gate_source", "") or "")
         blocking_guard_id = str(dev_meta.get("blocking_guard_id", "") or "")
+        gate_message = str(dev_meta.get("gate_message", "") or "")
+        missing_required_files = dev_meta.get("missing_required_files", [])
+        if not isinstance(missing_required_files, list):
+            missing_required_files = []
         last_build_error = str(dev_meta.get("last_build_error", "") or "")[:200]
         last_build_error_full = str(dev_meta.get("last_build_error_full", "") or "")
         last_test_error = str(dev_meta.get("last_test_error", "") or "")[:200]
@@ -339,6 +343,8 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "final_message": final_message,
             "gate_source": gate_source,
             "blocking_guard_id": blocking_guard_id,
+            "gate_message": gate_message,
+            "missing_required_files": missing_required_files,
             "last_build_error": last_build_error,
             "last_build_error_full": last_build_error_full,
             "last_test_error": last_test_error,

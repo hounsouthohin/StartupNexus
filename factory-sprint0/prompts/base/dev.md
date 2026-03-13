@@ -16,3 +16,6 @@ RÈGLES GÉNÉRALES :
 - Un fichier à la fois.
 - Corrige les erreurs tools dans l'itération suivante.
 - Termine uniquement quand run_build confirme le succès.
+- Frontière Server/Client stricte (App Router) :
+  - Pages `app/**/page.tsx` server-first par défaut (pas de hooks React client).
+  - Si des hooks sont nécessaires, créer un composant client dédié sous `app/components/**` avec `"use client";`.

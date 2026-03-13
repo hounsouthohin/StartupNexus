@@ -30,7 +30,7 @@ from .stack_config import (
 from utils.prompt_loader import load_stack_prompt
 from .requirements_engine import (
     gate_check as _engine_gate_check,
-    _extract_required_model_fields as _engine_extract_required_model_fields,
+    compute_coverage_detailed as _engine_compute_coverage_detailed,
 )
 
 # Logger
@@ -212,22 +212,16 @@ def dev_agent(
 
     def _main_context(messages_list, max_chars: int = MAX_MAIN_HISTORY_CHARS):
         """
-        Construit le contexte sous budget en conservant l'intégrité des couples
-        AI(tool_calls) + ToolMessage(s). Évite l'erreur OpenAI 400 sur tool_call_id.
-
-        T004 — max_chars paramétrable par phase (phase 1 : 6000 tokens, phase 2 : 14000 tokens).
+        Contexte compact state-first:
+        - garde les 2 messages initiaux,
+        - garde UNIQUEMENT le dernier tour complet AI(tool_calls)+ToolMessages,
+        - sinon garde le dernier message non-tool.
+        Cela réduit le bruit et force la boucle done/missing/next.
         """
         if len(messages_list) <= 2:
             return messages_list
 
         kept = [messages_list[0], messages_list[1]]
-        # Le budget s'applique UNIQUEMENT aux tours supplémentaires (pas aux messages initiaux
-        # qui sont toujours conservés). Sinon messages[1] (spec + RAG context ≈ 16 000 chars)
-        # dépasse max_chars à lui seul → aucun tour récent n'est jamais inclus
-        # → le LLM ne voit jamais son historique et boucle sur la même instruction.
-        current_chars = 0
-
-        # Découpe en "turns" cohérents après les 2 messages initiaux.
         turns = []
         i = 2
         n = len(messages_list)
@@ -251,27 +245,24 @@ def dev_agent(
                 else:
                     logger.warning("Turn incomplet tool_calls ignoré dans _main_context")
             else:
-                # Évite d'envoyer des ToolMessage orphelins à l'API OpenAI.
-                # Un ToolMessage doit toujours suivre immédiatement un AIMessage
-                # qui contient un tool_call correspondant.
                 if isinstance(msg, ToolMessage):
-                    logger.warning("ToolMessage orphelin ignoré dans _main_context")
                     i += 1
                     continue
                 turns.append([msg])
                 i += 1
 
-        selected = []
-        for turn in reversed(turns):
-            turn_chars = sum(len(str(getattr(m, "content", ""))) for m in turn)
-            if current_chars + turn_chars > max_chars:
-                break
-            selected.append(turn)
-            current_chars += turn_chars
+        if not turns:
+            return kept
 
-        selected.reverse()
-        flattened = [m for turn in selected for m in turn]
-        return kept + flattened
+        last_turn = turns[-1]
+        turn_chars = sum(len(str(getattr(m, "content", ""))) for m in last_turn)
+        if turn_chars > max_chars:
+            # Fallback: garder seulement le dernier message non-tool.
+            for msg in reversed(messages_list[2:]):
+                if not isinstance(msg, ToolMessage):
+                    return kept + [msg]
+            return kept
+        return kept + last_turn
 
     summarized_spec = summarize_text(spec, MAX_SPEC_TOKENS, "Specification")
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
@@ -384,8 +375,10 @@ def dev_agent(
     # Pré-populer files avec le contenu des templates (comptabilisés comme déjà écrits)
     files.update(_template_written)
     final_message = ""
-    _final_gate_source = ""  # "content_guard" | "requirements" | "no_files" — renseigné si NOT_BUILT_BY_GATE
+    _final_gate_source = ""  # "structural" | "requirements" | "no_files" | "" (pas de blocage gate)
     _final_blocking_guard_id = ""  # id du guard qui a bloqué (ex: "use_client", "blueprint")
+    _final_gate_message = ""  # message gate final (excerpt) pour observabilité
+    _final_missing_required_files: list[str] = []  # détails blueprint quand blocage structural
     _guard_warning_hits: dict[str, int] = {}  # observabilité faux positifs potentiels (guards en mode warn)
     build_attempts = 0
     build_attempted = False
@@ -418,6 +411,34 @@ def dev_agent(
             pass
         return raw_cmd
 
+    def _first_directive_line(content: str, ignore_leading_comments: bool = False) -> str:
+        """
+        Retourne la première ligne sémantique candidate pour une directive de fichier.
+        Optionnellement, ignore les commentaires d'en-tête (// et /* ... */).
+        """
+        if not content:
+            return ""
+        if not ignore_leading_comments:
+            return next((ln.strip() for ln in content.splitlines() if ln.strip()), "")
+
+        in_block_comment = False
+        for raw_line in content.splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            if in_block_comment:
+                if "*/" in line:
+                    in_block_comment = False
+                continue
+            if line.startswith("/*"):
+                if "*/" not in line:
+                    in_block_comment = True
+                continue
+            if line.startswith("//"):
+                continue
+            return line
+        return ""
+
     def _find_project_dir(files_dict: dict) -> str:
         """
         Déduit le répertoire racine du projet à partir des fichiers écrits.
@@ -448,7 +469,12 @@ def dev_agent(
         """
         # 1. Blueprint Validator
         _present = set(files_dict.keys()) | _templated_names
-        _missing = [f for f in required_files if not any(f in p for p in _present)]
+        _present_norm = {p.replace("\\", "/").lower() for p in _present}
+        _missing = []
+        for f in required_files:
+            f_norm = str(f).replace("\\", "/").lower()
+            if not any(pp == f_norm or pp.endswith("/" + f_norm) for pp in _present_norm):
+                _missing.append(f)
         if _missing:
             return True, (
                 "BLUEPRINT VALIDATOR — BUILD BLOQUÉ\n"
@@ -486,40 +512,6 @@ def dev_agent(
                         continue
                     _suggested = str(_p.parent / _p.stem / "page.tsx")
                     _violations.append((_fp_norm, _suggested))
-
-                if _violations and bool(_pg.get("auto_fix", False)):
-                    _remaining: list[tuple[str, str]] = []
-                    for _bad_fp, _target_fp in _violations:
-                        _key = (_bad_fp, _pg_id)
-                        _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
-                        if _constructive_guard_failures[_key] >= 1:
-                            _orig_fc = files_dict.get(_bad_fp) or files_dict.get(_bad_fp.replace("/", "\\"), "")
-                            if _orig_fc:
-                                try:
-                                    write_file.invoke({"file_path": _target_fp, "content": _orig_fc})
-                                    files[_target_fp] = _orig_fc
-                                    for _k in list(files.keys()):
-                                        if _k.replace("\\", "/") == _bad_fp:
-                                            del files[_k]
-                                    _factory_workdir = os.getenv("FACTORY_WORKDIR")
-                                    if _factory_workdir:
-                                        _bad_disk = os.path.normpath(os.path.join(_factory_workdir, _bad_fp))
-                                        try:
-                                            os.remove(_bad_disk)
-                                        except FileNotFoundError:
-                                            pass
-                                    messages.append(HumanMessage(content=(
-                                        f"[AUTO-FIX {_pg_id.upper()}] '{_bad_fp}' migré vers '{_target_fp}'.\n"
-                                        "Continue la génération, puis appelle run_build."
-                                    )))
-                                except Exception as _af_err:
-                                    logger.error(f"[AUTO-FIX {_pg_id}] Erreur migration {_bad_fp}: {_af_err}")
-                                    _remaining.append((_bad_fp, _target_fp))
-                            else:
-                                _remaining.append((_bad_fp, _target_fp))
-                        else:
-                            _remaining.append((_bad_fp, _target_fp))
-                    _violations = _remaining
 
             elif _pg_kind == "app_router_api_naming":
                 _api_root = str(_pg.get("api_root", "app/api/"))
@@ -604,14 +596,30 @@ def dev_agent(
             _file_prefix = _guard.get("file_prefix", "")
             _file_exts = _guard.get("file_extensions", [])
             _triggers = _guard.get("trigger_contains", [])
+            _trigger_regexes = _guard.get("trigger_regex", [])
+            _requires_contains_all = _guard.get("requires_contains_all", []) or []
+            _requires_regex_all = _guard.get("requires_regex_all", []) or []
             _directive = _guard.get("requires_first_directive")    # None = pas de vérif ; fire si ABSENTE
             _conflicts = _guard.get("conflicts_with_directive")    # None = pas de vérif ; fire si PRÉSENTE
+            _ignore_leading_comments = bool(_guard.get("ignore_leading_comments", False))
             _mode = str(_guard.get("mode", "block")).strip().lower()
             if _mode not in ("block", "warn"):
                 _mode = "block"
             _exclude_paths = [str(p).replace("\\", "/") for p in (_guard.get("exclude_paths", []) or [])]
             _exclude_when_contains = [str(s) for s in (_guard.get("exclude_when_contains", []) or [])]
             _msg_lines = _guard.get("message_lines", [f"{_gid} GUARD — BUILD BLOQUÉ", "{details}"])
+            _compiled_regexes: list[tuple[str, re.Pattern]] = []
+            for _rx in _trigger_regexes:
+                try:
+                    _compiled_regexes.append((str(_rx), re.compile(str(_rx), re.MULTILINE)))
+                except re.error as _rx_err:
+                    logger.warning(f"[CONTENT_GUARD {_gid}] regex invalide ignorée: {_rx} ({_rx_err})")
+            _compiled_required_regexes: list[tuple[str, re.Pattern]] = []
+            for _rx in _requires_regex_all:
+                try:
+                    _compiled_required_regexes.append((str(_rx), re.compile(str(_rx), re.MULTILINE)))
+                except re.error as _rx_err:
+                    logger.warning(f"[CONTENT_GUARD {_gid}] requires_regex_all invalide ignorée: {_rx} ({_rx_err})")
 
             _violations = []
             for _fp, _fc in files_dict.items():
@@ -629,15 +637,34 @@ def dev_agent(
                     continue
                 if _exclude_when_contains and any(_needle in _fc for _needle in _exclude_when_contains):
                     continue
-                # Déclenchement : au moins un trigger présent dans le contenu (substring, pas regex)
+                # Déclenchement : OR entre trigger_contains et trigger_regex.
                 _found = [t for t in _triggers if t in _fc]
-                if not _found:
+                for _rx_src, _rx in _compiled_regexes:
+                    if _rx.search(_fc):
+                        _found.append(f"regex:{_rx_src}")
+                _has_explicit_triggers = bool(_triggers or _compiled_regexes)
+                if _has_explicit_triggers and not _found:
+                    continue
+                if not _has_explicit_triggers:
+                    _found = ["scope"]
+
+                _missing_constraints = []
+                for _needle in _requires_contains_all:
+                    if _needle not in _fc:
+                        _missing_constraints.append(f"contains:{_needle}")
+                for _rx_src, _rx in _compiled_required_regexes:
+                    if not _rx.search(_fc):
+                        _missing_constraints.append(f"regex:{_rx_src}")
+                if _missing_constraints:
+                    _violations.append((_fp_norm, _found + [f"missing:{c}" for c in _missing_constraints]))
                     continue
                 # Si une directive est requise, vérifier la première ligne non-vide
                 # Normalisation : on retire les guillemets et le ';' terminal pour comparer
                 # le contenu sémantique ('use client', "use client", 'use client'; → même chose)
                 if _directive is not None or _conflicts is not None:
-                    _first = next((ln.strip() for ln in _fc.splitlines() if ln.strip()), "")
+                    _first = _first_directive_line(
+                        _fc, ignore_leading_comments=_ignore_leading_comments
+                    )
                     _first_norm = _first.replace("'", "").replace('"', "").rstrip(";").strip()
                     if _directive is not None and _directive in _first_norm:
                         continue  # directive requise présente — pas de violation
@@ -646,49 +673,17 @@ def dev_agent(
                 _violations.append((_fp_norm, _found))
 
             if _violations:
-                # Auto-fix pour guards avec requires_first_directive (ex: use_client).
-                # Après 2 blocages consécutifs sur le même fichier, on injecte la directive
-                # déterministement — bypass LLM (même mécanique que T010 auth_wrapping_route).
-                if _mode == "block" and _directive is not None:
-                    _remaining = []
-                    for _vfp, _vfound in _violations:
-                        _key = (_vfp, _gid)
-                        _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
-                        if _constructive_guard_failures[_key] >= 2:
-                            _orig_fc = files_dict.get(_vfp) or files_dict.get(_vfp.replace("/", "\\"), "")
-                            if _orig_fc:
-                                _fixed_fc = f'"{_directive}";\n' + _orig_fc
-                                try:
-                                    write_file.invoke({"file_path": _vfp, "content": _fixed_fc})
-                                    files_dict[_vfp] = _fixed_fc
-                                    logger.info(f"[AUTO-FIX {_gid}] {_vfp} corrigé (× {_constructive_guard_failures[_key]})")
-                                    messages.append(HumanMessage(content=(
-                                        f"[AUTO-FIX {_gid.upper()}] '{_vfp}' corrigé automatiquement "
-                                        f"après {_constructive_guard_failures[_key]} blocages : "
-                                        f"'\"{_directive}\";' ajouté en première ligne.\n"
-                                        "Vérifie que le fichier est correct, puis appelle run_build."
-                                    )))
-                                except Exception as _af_err:
-                                    logger.error(f"[AUTO-FIX {_gid}] Erreur écriture {_vfp}: {_af_err}")
-                                    _remaining.append((_vfp, _vfound))
-                            else:
-                                _remaining.append((_vfp, _vfound))
-                        else:
-                            _remaining.append((_vfp, _vfound))
-                    _violations = _remaining
-
-                if _violations:
-                    _details = "\n".join(
-                        f"  - {fp}  [{', '.join(found)}]"
-                        for fp, found in _violations
-                    )
-                    _msg = "\n".join(_msg_lines).replace("{details}", _details)
-                    if _mode == "warn":
-                        _guard_warning_hits[_gid] = _guard_warning_hits.get(_gid, 0) + len(_violations)
-                        logger.warning(f"[CONTENT_GUARD WARN {_gid}] {len(_violations)} violation(s) — non bloquant")
-                        messages.append(HumanMessage(content=f"[CONTENT_GUARD WARNING:{_gid}]\n{_msg}"))
-                        continue
-                    return True, _msg, _gid
+                _details = "\n".join(
+                    f"  - {fp}  [{', '.join(found)}]"
+                    for fp, found in _violations
+                )
+                _msg = "\n".join(_msg_lines).replace("{details}", _details)
+                if _mode == "warn":
+                    _guard_warning_hits[_gid] = _guard_warning_hits.get(_gid, 0) + len(_violations)
+                    logger.warning(f"[CONTENT_GUARD WARN {_gid}] {len(_violations)} violation(s) — non bloquant")
+                    messages.append(HumanMessage(content=f"[CONTENT_GUARD WARNING:{_gid}]\n{_msg}"))
+                    continue
+                return True, _msg, _gid
 
         return False, "", ""
 
@@ -701,335 +696,267 @@ def dev_agent(
         blocked, msg = _engine_gate_check(reqs, files_dict)
         if not blocked:
             return False, msg
-
-        # Auto-fix constructif requirements Prisma après 2 blocages identiques.
-        # Objectif: casser la boucle quand le LLM oublie des champs demandés.
-        unmet_reqs = []
-        for line in (msg or "").splitlines():
-            line = line.strip()
-            if line.startswith("- "):
-                unmet_reqs.append(line[2:].strip())
-
-        def _autofix_prisma_requirement(req_text: str, files_map: dict) -> bool:
-            if "modèle prisma" not in req_text.lower() and "model prisma" not in req_text.lower():
-                return False
-            model_match = re.search(r":\s*(\w+)", req_text)
-            if not model_match:
-                return False
-            model_name = model_match.group(1)
-            req_fields, req_unique = _engine_extract_required_model_fields(req_text, model_name)
-            if not req_fields and not req_unique:
-                return False
-
-            def _parse_field_specs_from_req(text: str) -> dict:
-                """
-                Extrait des specs de champs depuis:
-                '... avec champs title, content, slug @unique, published Boolean, authorId String'
-                """
-                out: dict = {}
-                # Indices de casse depuis le texte requirement brut.
-                # Permet de reconstruire authorId (camelCase) même si req_fields vient en lowercase.
-                case_hints: dict = {}
-                for _tok in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", text):
-                    _low = _tok.lower()
-                    if _low not in case_hints and any(ch.isupper() for ch in _tok):
-                        case_hints[_low] = _tok
-                m_fields = re.search(r"avec\s+champs?\s+(.+)$", text, re.IGNORECASE)
-                if not m_fields:
-                    # Fallback minimal depuis req_fields
-                    for _f in req_fields:
-                        _canon = case_hints.get(_f.lower(), _f)
-                        out[_canon] = {
-                            "type": "String",
-                            "unique": (_f in req_unique),
-                            "default": None,
-                        }
-                    return out
-
-                raw = m_fields.group(1)
-                chunks = [c.strip() for c in re.split(r",|\bet\b", raw, flags=re.IGNORECASE) if c.strip()]
-                valid_types = {"string": "String", "boolean": "Boolean", "datetime": "DateTime", "int": "Int", "float": "Float", "json": "Json"}
-
-                for chunk in chunks:
-                    tokens = re.findall(r"@[a-z_]+|[A-Za-z_][A-Za-z0-9_]*", chunk)
-                    if not tokens:
-                        continue
-                    field_name = tokens[0]
-                    field_type = "String"
-                    chunk_lower = chunk.lower()
-                    unique = "@unique" in chunk_lower or " unique" in chunk_lower
-                    default = None
-
-                    for t in tokens[1:]:
-                        t_lower = t.lower()
-                        if t_lower in valid_types:
-                            field_type = valid_types[t_lower]
-                            break
-                    # Heuristique utile pour cette stack/blog: published bool par défaut false.
-                    if field_name.lower() == "published" and field_type == "Boolean":
-                        default = "@default(false)"
-
-                    out[field_name] = {"type": field_type, "unique": unique, "default": default}
-
-                # Garantir couverture des champs déjà extraits par l'engine.
-                for _f in req_fields:
-                    # Respecte la casse issue du requirement si disponible.
-                    existing_key = next(
-                        (k for k in out.keys() if k.lower() == _f.lower()),
-                        case_hints.get(_f.lower(), _f),
-                    )
-                    out.setdefault(existing_key, {"type": "String", "unique": (_f in req_unique), "default": None})
-                    if _f in req_unique:
-                        out[existing_key]["unique"] = True
-                return out
-
-            def _render_field_line(fname: str, spec: dict) -> str:
-                parts = [f"  {fname}", spec.get("type", "String")]
-                if spec.get("unique"):
-                    parts.append("@unique")
-                if spec.get("default"):
-                    parts.append(spec["default"])
-                return " ".join(parts)
-
-            schema_key = next(
-                (k for k in files_map.keys() if "schema.prisma" in k.replace("\\", "/").lower()),
-                "prisma/schema.prisma",
-            )
-            schema_content = files_map.get(schema_key, "")
-            if not schema_content:
-                schema_content = f"model {model_name} {{\n}}\n"
-            field_specs = _parse_field_specs_from_req(req_text)
-
-            model_re = re.compile(
-                rf"\bmodel\s+{re.escape(model_name)}\s*\{{(.*?)\}}",
-                re.IGNORECASE | re.DOTALL,
-            )
-            m = model_re.search(schema_content)
-            # Mapping case-insensitive pour préserver camelCase du requirement.
-            field_specs_by_lower = {k.lower(): (k, v) for k, v in field_specs.items()}
-
-            # Champs structurels minimaux Prisma (stables pour cette stack).
-            base_structural_fields = {
-                "id": {"type": "String", "unique": False, "default": "@id @default(cuid())"},
-                "createdAt": {"type": "DateTime", "unique": False, "default": "@default(now())"},
-                "updatedAt": {"type": "DateTime", "unique": False, "default": "@updatedAt"},
-            }
-            if not m:
-                block_lines = []
-                # id en premier pour éviter les modèles sans PK.
-                block_lines.append(_render_field_line("id", base_structural_fields["id"]))
-                for f in sorted(req_fields):
-                    canonical_name, spec = field_specs_by_lower.get(
-                        f.lower(),
-                        (f, {"type": "String", "unique": (f in req_unique), "default": None}),
-                    )
-                    block_lines.append(_render_field_line(canonical_name, spec))
-                # Champs temporels obligatoires selon orm_rules.
-                block_lines.append(_render_field_line("createdAt", base_structural_fields["createdAt"]))
-                block_lines.append(_render_field_line("updatedAt", base_structural_fields["updatedAt"]))
-                model_block = f"model {model_name} {{\n" + "\n".join(block_lines) + "\n}\n"
-                new_schema = schema_content.rstrip() + "\n\n" + model_block
-            else:
-                block = m.group(1)
-                block_lines = [ln for ln in block.splitlines()]
-                block_lower = block.lower()
-                # Ajoute/normalise les champs requis
-                for f in sorted(req_fields):
-                    canonical_name, spec = field_specs_by_lower.get(
-                        f.lower(),
-                        (f, {"type": "String", "unique": (f in req_unique), "default": None}),
-                    )
-                    if not re.search(rf"\b{re.escape(canonical_name)}\b", block, re.IGNORECASE):
-                        block_lines.append(_render_field_line(canonical_name, spec))
-                        continue
-                    # Champ présent: normaliser type + contraintes minimales
-                    updated = False
-                    for idx, ln in enumerate(block_lines):
-                        m_line = re.search(rf"^(\s*)({re.escape(canonical_name)})\s+([A-Za-z][A-Za-z0-9_]*)\b(.*)$", ln, re.IGNORECASE)
-                        if m_line:
-                            indent, fname, _old_type, tail = m_line.groups()
-                            new_tail = tail or ""
-                            if spec.get("unique") and "@unique" not in new_tail:
-                                new_tail = (new_tail.rstrip() + " @unique").rstrip()
-                            if spec.get("default") and spec["default"] not in new_tail:
-                                new_tail = (new_tail.rstrip() + f" {spec['default']}").rstrip()
-                            block_lines[idx] = f"{indent}{fname} {spec.get('type', 'String')}{(' ' + new_tail.strip()) if new_tail.strip() else ''}"
-                            updated = True
-                            break
-                    if not updated:
-                        block_lines.append(_render_field_line(canonical_name, spec))
-
-                # Garantit les champs structurels même si le LLM les a omis.
-                for base_name in ("id", "createdAt", "updatedAt"):
-                    base_spec = base_structural_fields[base_name]
-                    if not re.search(rf"^\s*{re.escape(base_name)}\b", "\n".join(block_lines), re.IGNORECASE | re.MULTILINE):
-                        block_lines.append(_render_field_line(base_name, base_spec))
-
-                new_block = "\n".join(block_lines)
-                new_schema = schema_content[:m.start(1)] + new_block + schema_content[m.end(1):]
-
-            if new_schema == schema_content:
-                return False
-            try:
-                write_file.invoke({"file_path": schema_key, "content": new_schema})
-                files[schema_key] = new_schema
-                files_map[schema_key] = new_schema
-                logger.info(f"[AUTO-FIX requirements_prisma] {schema_key} enrichi depuis requirement: {req_text}")
-                messages.append(
-                    HumanMessage(
-                        content=(
-                            "[AUTO-FIX REQUIREMENTS_PRISMA] schema.prisma corrigé automatiquement "
-                            "à partir du requirement manquant (champs/contraintes Prisma ajoutés)."
-                        )
-                    )
-                )
-                return True
-            except Exception as _af_err:
-                # Fallback déterministe: on met à jour l'état en mémoire pour
-                # casser le blocage gate, même si l'écriture disque échoue.
-                files[schema_key] = new_schema
-                files_map[schema_key] = new_schema
-                logger.error(
-                    f"[AUTO-FIX requirements_prisma] écriture disque échouée, fallback mémoire actif: {_af_err}"
-                )
-                return True
-
-        def _autofix_path_requirement(req_text: str, files_map: dict) -> bool:
-            req_lower = req_text.lower()
-            # API Route: METHOD /path
-            m_route = re.search(r"(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)", req_text, re.IGNORECASE)
-            if m_route:
-                method = m_route.group(1).upper()
-                api_path = m_route.group(2).strip("/")
-                target = f"app/{api_path}/route.ts"
-                target_norm = target.replace("\\", "/").lower()
-                exists = any(fp.replace("\\", "/").lower() == target_norm for fp in files_map.keys())
-                if exists:
-                    return False
-                content = (
-                    "import { NextResponse } from 'next/server';\n\n"
-                    f"export async function {method}(request: Request) {{\n"
-                    "  return NextResponse.json({ ok: true });\n"
-                    "}\n"
-                )
-                try:
-                    write_file.invoke({"file_path": target, "content": content})
-                    files[target] = content
-                    files_map[target] = content
-                    messages.append(
-                        HumanMessage(
-                            content=(
-                                f"[AUTO-FIX REQUIREMENTS_PATH] Route manquante créée: '{target}'. "
-                                "Relance run_build."
-                            )
-                        )
-                    )
-                    logger.info(f"[AUTO-FIX requirements_path] créé {target} depuis requirement: {req_text}")
-                    return True
-                except Exception as _af_err:
-                    files[target] = content
-                    files_map[target] = content
-                    logger.error(
-                        f"[AUTO-FIX requirements_path] écriture route {target} échouée, fallback mémoire actif: {_af_err}"
-                    )
-                    return True
-
-            # Page: /path
-            if "page" in req_lower:
-                m_page = re.search(r"/[\w\[\]/\-]+", req_text)
-                if m_page:
-                    raw = m_page.group(0)
-                    page_path = raw.strip("/")
-                    target = f"app/{page_path}/page.tsx"
-                elif re.search(r"(^|[\s:(])/(?=$|[\s),.:;])", req_text):
-                    target = "app/page.tsx"
-                else:
-                    return False
-                target_norm = target.replace("\\", "/").lower()
-                exists = any(fp.replace("\\", "/").lower() == target_norm for fp in files_map.keys())
-                if exists:
-                    return False
-                content = (
-                    "export default function Page() {\n"
-                    "  return <main>Loading...</main>;\n"
-                    "}\n"
-                )
-                try:
-                    write_file.invoke({"file_path": target, "content": content})
-                    files[target] = content
-                    files_map[target] = content
-                    messages.append(
-                        HumanMessage(
-                            content=(
-                                f"[AUTO-FIX REQUIREMENTS_PATH] Page manquante créée: '{target}'. "
-                                "Relance run_build."
-                            )
-                        )
-                    )
-                    logger.info(f"[AUTO-FIX requirements_path] créé {target} depuis requirement: {req_text}")
-                    return True
-                except Exception as _af_err:
-                    files[target] = content
-                    files_map[target] = content
-                    logger.error(
-                        f"[AUTO-FIX requirements_path] écriture page {target} échouée, fallback mémoire actif: {_af_err}"
-                    )
-                    return True
-
-            return False
-
-        fixed_any = False
-        for req in unmet_reqs:
-            req_lower = req.lower()
-            if (
-                "modèle prisma" not in req_lower
-                and "model prisma" not in req_lower
-                and "page" not in req_lower
-                and not re.search(r"(GET|POST|PUT|PATCH|DELETE)\s+/", req, re.IGNORECASE)
-            ):
-                continue
-            _key = ("requirements_autofix", req)
-            _constructive_guard_failures[_key] = _constructive_guard_failures.get(_key, 0) + 1
-            if _constructive_guard_failures[_key] >= 1:
-                if "modèle prisma" in req_lower or "model prisma" in req_lower:
-                    fixed_any = _autofix_prisma_requirement(req, files_dict) or fixed_any
-                else:
-                    fixed_any = _autofix_path_requirement(req, files_dict) or fixed_any
-
-        if fixed_any:
-            blocked2, msg2 = _engine_gate_check(reqs, files_dict)
-            return blocked2, msg2
         return blocked, msg
 
-    # ── T010 : Guards Constructifs — suivi des violations pour auto-write ───────
-    # Compte les fois où la même violation est détectée dans le même fichier.
-    # Après 2 blocages : auto-write du fichier corrigé (bypass LLM).
-    _constructive_guard_failures: dict = {}  # {(file_path, guard_id): int}
+    def _missing_required_files(required_paths: list[str], files_dict: dict) -> list[str]:
+        if not required_paths:
+            return []
+        present_paths = {k.replace("\\", "/").lower() for k in files_dict.keys()}
+        missing: list[str] = []
+        for p in required_paths:
+            p_norm = str(p).replace("\\", "/").lower()
+            if not any(pp == p_norm or pp.endswith("/" + p_norm) for pp in present_paths):
+                missing.append(p)
+        return missing
 
-    def _fix_auth_wrap_content(content: str) -> str:
+    def _collect_blocking_content_guard_targets(files_dict: dict) -> tuple[str, list[str]]:
         """
-        Auto-fix : remplace chaque 'export const METHOD = auth(async (...) => {'
-        par 'export async function METHOD(request, context) {' avec auth() interne.
-        Le body de la fonction est conservé (approche best-effort).
+        Retourne (guard_id, paths) du premier content_guard bloquant en violation.
+        Sans side-effects: aucune écriture de message dans l'historique.
         """
-        _SIG_RE = re.compile(
-            r'export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD)\s*=\s*auth\s*\(\s*async\s*\([^)]*\)\s*=>\s*\{[ \t]*\n?',
-            re.MULTILINE,
+        for guard in stack_cfg.get("content_guards", []):
+            gid = str(guard.get("id", "unknown"))
+            mode = str(guard.get("mode", "block")).strip().lower()
+            if mode not in ("block", "warn"):
+                mode = "block"
+            if mode != "block":
+                continue
+
+            file_prefix = str(guard.get("file_prefix", ""))
+            file_exts = guard.get("file_extensions", []) or []
+            triggers = guard.get("trigger_contains", []) or []
+            trigger_regexes = guard.get("trigger_regex", []) or []
+            requires_contains_all = guard.get("requires_contains_all", []) or []
+            requires_regex_all = guard.get("requires_regex_all", []) or []
+            directive = guard.get("requires_first_directive")
+            conflicts = guard.get("conflicts_with_directive")
+            exclude_paths = [str(p).replace("\\", "/") for p in (guard.get("exclude_paths", []) or [])]
+            exclude_when_contains = [str(s) for s in (guard.get("exclude_when_contains", []) or [])]
+            ignore_leading_comments = bool(guard.get("ignore_leading_comments", False))
+
+            compiled_regexes: list[re.Pattern] = []
+            for rx in trigger_regexes:
+                try:
+                    compiled_regexes.append(re.compile(str(rx), re.MULTILINE))
+                except re.error:
+                    continue
+            compiled_required_regexes: list[re.Pattern] = []
+            for rx in requires_regex_all:
+                try:
+                    compiled_required_regexes.append(re.compile(str(rx), re.MULTILINE))
+                except re.error:
+                    continue
+
+            violating_paths: list[str] = []
+            for fp, fc in files_dict.items():
+                fp_norm = fp.replace("\\", "/")
+                if fp_norm in _templated_names:
+                    continue
+                if any(fp_norm.startswith(xp) for xp in exclude_paths):
+                    continue
+                if file_prefix and not fp_norm.startswith(file_prefix):
+                    continue
+                if file_exts and not any(fp_norm.endswith(ext) for ext in file_exts):
+                    continue
+                if exclude_when_contains and any(needle in fc for needle in exclude_when_contains):
+                    continue
+
+                found = any(t in fc for t in triggers)
+                if not found and compiled_regexes:
+                    found = any(rx.search(fc) for rx in compiled_regexes)
+                has_explicit_triggers = bool(triggers or compiled_regexes)
+                if has_explicit_triggers and not found:
+                    continue
+
+                if any(needle not in fc for needle in requires_contains_all):
+                    violating_paths.append(fp_norm)
+                    continue
+                if any(not rx.search(fc) for rx in compiled_required_regexes):
+                    violating_paths.append(fp_norm)
+                    continue
+
+                if directive is not None or conflicts is not None:
+                    first = _first_directive_line(fc, ignore_leading_comments=ignore_leading_comments)
+                    first_norm = first.replace("'", "").replace('"', "").rstrip(";").strip()
+                    if directive is not None and directive in first_norm:
+                        continue
+                    if conflicts is not None and conflicts not in first_norm:
+                        continue
+
+                violating_paths.append(fp_norm)
+
+            if violating_paths:
+                return gid, violating_paths
+        return "", []
+
+    def _build_run_state(files_dict: dict) -> dict:
+        cov = _engine_compute_coverage_detailed(requirements or [], files_dict)
+        unmet = cov.get("unmet", [])
+        missing_files = _missing_required_files(llm_required_files, files_dict)
+        structural_gid, structural_paths = _collect_blocking_content_guard_targets(files_dict)
+        # Priorité convergence: créer d'abord les fichiers blueprint manquants.
+        # Sinon l'agent peut boucler sur des détails requirements sans jamais
+        # produire le fichier racine attendu par le gate structural.
+        if missing_files:
+            blocker = f"file_missing::{missing_files[0]}"
+        elif structural_gid:
+            blocker = f"structural::{structural_gid}"
+        elif unmet:
+            blocker = f"requirements::{unmet[0]}"
+        elif last_build_error:
+            blocker = "build_error"
+        else:
+            blocker = "ready_for_build"
+        return {
+            "requirements_met": cov.get("requirements_met", 0),
+            "requirements_total": cov.get("requirements_total", 0),
+            "requirements_unmet": unmet,
+            "requirements_statuses": cov.get("statuses", []),
+            "missing_required_files": missing_files,
+            "structural_blocking_guard_id": structural_gid,
+            "structural_targets": structural_paths,
+            "active_blocker": blocker,
+            "last_build_error_excerpt": (last_build_error or "")[:400],
+            "build_attempts": build_attempts,
+            "iterations_left": max(0, MAX_ITERATIONS - iteration + 1),
+        }
+
+    def _extract_primary_path_from_requirement(req: str) -> str:
+        req = req or ""
+        req_lower = req.lower()
+        route_match = re.search(r'(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', req, re.IGNORECASE)
+        if route_match:
+            return f"app/{route_match.group(2).strip('/')}/route.ts"
+        if "page" in req_lower:
+            page_match = re.search(r'/[\w\[\]/\-]+', req)
+            if page_match:
+                return f"app/{page_match.group(0).strip('/')}/page.tsx"
+            if re.search(r'(^|[\s:(])/(?=$|[\s),.:;])', req):
+                return "app/page.tsx"
+        if "modèle prisma" in req_lower or "model prisma" in req_lower or "prisma:" in req_lower:
+            return "prisma/schema.prisma"
+        return ""
+
+    def _allowed_paths_for_blocker(state: dict) -> list[str]:
+        blocker = state.get("active_blocker", "")
+        if blocker.startswith("file_missing::"):
+            p = blocker.split("::", 1)[1].strip()
+            return [p] if p else []
+        if blocker.startswith("requirements::"):
+            req = blocker.split("::", 1)[1]
+            primary = _extract_primary_path_from_requirement(req)
+            allowed: list[str] = []
+            if primary:
+                allowed.append(primary)
+            req_lower = req.lower()
+            if "modèle prisma" in req_lower or "model prisma" in req_lower or "prisma:" in req_lower:
+                allowed.extend(["prisma/schema.prisma", "lib/prisma.ts", "prisma.config.ts"])
+            return allowed
+        if blocker.startswith("structural::"):
+            targets = state.get("structural_targets", []) or []
+            return [str(t).replace("\\", "/") for t in targets]
+        return []
+
+    def _path_is_allowed_for_objective(path: str, allowed_paths: list[str], blocker: str = "") -> bool:
+        if not allowed_paths:
+            return True
+        p = (path or "").replace("\\", "/").strip()
+        p_lower = p.lower()
+        # Si le blocker exige un fichier précis, ne pas autoriser d'écritures latérales.
+        if blocker.startswith("file_missing::"):
+            return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
+        if blocker.startswith("structural::"):
+            return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
+        commons = {
+            "package.json",
+            ".env.local",
+            "next.config.js",
+            "tsconfig.json",
+            "app/layout.tsx",
+            "middleware.ts",
+        }
+        if p_lower in commons:
+            return True
+        allowed_norm = [a.replace("\\", "/").lower() for a in allowed_paths]
+        return any(p_lower == a or p_lower.startswith(a.rsplit("/", 1)[0] + "/") for a in allowed_norm)
+
+    progress_summary = {
+        "what_done": [],
+        "what_missing": [],
+        "next_action": "Démarrer par l'objectif actif",
+    }
+
+    def _update_progress_summary(state: dict) -> None:
+        unmet = state.get("requirements_unmet", [])
+        missing_files = state.get("missing_required_files", [])
+        met = state.get("requirements_met", 0)
+        total = state.get("requirements_total", 0)
+        done = [f"requirements_couverts={met}/{total}"]
+        if not unmet:
+            done.append("requirements_mappables_couverts")
+        progress_summary["what_done"] = done
+        missing = []
+        if unmet:
+            missing.append(f"requirement: {unmet[0]}")
+        if missing_files:
+            missing.append(f"fichier: {missing_files[0]}")
+        if state.get("last_build_error_excerpt"):
+            missing.append("corriger dernière erreur build")
+        progress_summary["what_missing"] = missing or ["aucun blocage détecté"]
+        progress_summary["next_action"] = (
+            "appeler run_build"
+            if state.get("active_blocker") == "ready_for_build"
+            else f"corriger {state.get('active_blocker')}"
         )
 
-        def _replace_sig(m: re.Match) -> str:
-            method = m.group(1)
-            return (
-                f'export async function {method}(request: Request, context: any) {{\n'
-                f'  const {{ userId }} = await auth();\n'
-                f'  if (!userId) return NextResponse.json({{ error: "Unauthorized" }}, {{ status: 401 }});\n'
-                f'  const params = context.params;\n'
-            )
+    def _build_progress_summary_text() -> str:
+        return (
+            "SUMMARY LOOP:\n"
+            f"- DONE: {' | '.join(progress_summary['what_done'])}\n"
+            f"- MISSING: {' | '.join(progress_summary['what_missing'])}\n"
+            f"- NEXT: {progress_summary['next_action']}"
+        )
 
-        fixed = _SIG_RE.sub(_replace_sig, content)
-        # Fermeture: }); → } (auth() wrapper closing pattern)
-        fixed = re.sub(r'\n\}\);\n', '\n}\n', fixed)
-        return fixed
+    def _build_iteration_brief(state: dict) -> str:
+        unmet = state.get("requirements_unmet", [])
+        missing_files = state.get("missing_required_files", [])
+        objective = state.get("active_blocker", "ready_for_build")
+        statuses = state.get("requirements_statuses", [])
+        first_unmet_reason = ""
+        for s in statuses:
+            if s.get("is_mappable") and not s.get("satisfied"):
+                first_unmet_reason = s.get("reason", "")
+                break
+        lines = [
+            "FOCUS LOOP (itération courante) — travaille sur UNE priorité à la fois.",
+            f"OBJECTIF UNIQUE: {objective}",
+            f"REQUIREMENTS: {state.get('requirements_met', 0)}/{state.get('requirements_total', 0)} couverts",
+        ]
+        if unmet:
+            lines.append("REQUIREMENT PRIORITAIRE NON COUVERT:")
+            lines.append(f"- {unmet[0]}")
+            if first_unmet_reason:
+                lines.append(f"- DÉTAIL: {first_unmet_reason}")
+        if missing_files:
+            lines.append("FICHIER REQUIS PRIORITAIRE MANQUANT:")
+            lines.append(f"- {missing_files[0]}")
+        if objective.startswith("structural::"):
+            guard_id = state.get("structural_blocking_guard_id", "")
+            targets = state.get("structural_targets", []) or []
+            lines.append(f"GUARD STRUCTUREL BLOQUANT: {guard_id}")
+            if targets:
+                lines.append("FICHIERS CIBLES:")
+                for p in targets[:3]:
+                    lines.append(f"- {p}")
+        err = state.get("last_build_error_excerpt", "")
+        if err:
+            lines.append("DERNIÈRE ERREUR BUILD (extrait):")
+            lines.append(err)
+        lines.append(
+            "ACTION: modifie seulement les fichiers liés à cet objectif, puis valide par run_build dès que possible."
+        )
+        lines.append(_build_progress_summary_text())
+        return "\n".join(lines)
 
     stagnant_iterations = 0
     key_files = required_files or ["package.json"]
@@ -1056,49 +983,23 @@ def dev_agent(
         current_tools = tools_phase1 if current_phase == 1 else tools_phase2
         logger.info(f"[DEV AGENT v3.2] Itération {iteration}/{MAX_ITERATIONS} | Phase {current_phase} | State {_state} | Build attempts: {build_attempts}")
 
-        # Truncation ultra-safe V3 – Chronologique garantie (build from newest, reverse)
+        # Ne plus muter l'historique complet (risque de perdre des contraintes).
+        # Le budget est appliqué de façon déterministe par _main_context.
         if len(messages) > 28:
-            logger.warning("Historique trop long → truncation ultra-safe V3 chronologique.")
-            retained = [messages[0], messages[1]]  # System + Premier Human
-
-            recent = []  # Build newest to oldest
-            i = len(messages) - 1
-            pair_count = 0
-            max_pairs = 12
-
-            while i >= 2 and pair_count < max_pairs:
-                current = messages[i]
-
-                if isinstance(current, ToolMessage):
-                    found = False
-                    for j in range(i-1, max(i-20, 0), -1):
-                        prev = messages[j]
-                        if (hasattr(prev, "tool_calls") and prev.tool_calls and
-                            any(tc.get("id") == current.tool_call_id for tc in prev.tool_calls if tc.get("id"))):
-                            recent.append(current) # ToolMessage first when building newest to oldest
-                            recent.append(prev)    # Then its AIMessage parent
-                            pair_count += 1
-                            found = True
-                            i = j - 1
-                            break
-                    if not found:
-                        i -= 1 # Orphaned ToolMessage, skip
-                else:
-                    recent.append(current)
-                    i -= 1
-
-            recent.reverse()  # Now oldest to newest
-            messages = retained + recent
-            logger.info(f"Historique truncaté à {len(messages)} messages (chronologique sécurisé).")
+            logger.info("Historique long détecté — conservation intégrale, sélection contextuelle via _main_context.")
 
         # T004 — budget contexte par phase
         _ctx_budget = _PHASE1_MAX_CHARS if _state == _SM_GEN else _PHASE2_MAX_CHARS
         main_messages = _main_context(messages, max_chars=_ctx_budget)
+        run_state = _build_run_state(files)
+        _update_progress_summary(run_state)
+        main_messages.append(HumanMessage(content=_build_iteration_brief(run_state)))
         response = llm.bind_tools(current_tools).invoke(main_messages)
         messages.append(response)
 
         tool_messages = []
         raw_tool_outputs = []
+        successful_write_paths: set[str] = set()
         wrote_file_this_iter = False
         called_build_this_iter = False
         build_failed_this_iter = False
@@ -1111,6 +1012,26 @@ def dev_agent(
                         # Hard rule: corrige project_dir pour run_build si le LLM passe '.'
                         # alors que les fichiers sont sous un sous-répertoire.
                         call_args = tool_call["args"]
+                        if tool_name == "write_file":
+                            _allowed = _allowed_paths_for_blocker(run_state)
+                            _path = str(call_args.get("path", ""))
+                            if not _path_is_allowed_for_objective(
+                                _path, _allowed, run_state.get("active_blocker", "")
+                            ):
+                                _allowed_msg = ", ".join(_allowed) if _allowed else "aucune restriction"
+                                tool_messages.append(
+                                    ToolMessage(
+                                        content=(
+                                            "WRITE_FILE BLOQUÉ (focus actif)\n"
+                                            f"Objectif courant: {run_state.get('active_blocker', 'N/A')}\n"
+                                            f"Chemin proposé: {_path}\n"
+                                            f"Chemins autorisés: {_allowed_msg}\n"
+                                            "Corrige d'abord la priorité active."
+                                        ),
+                                        tool_call_id=tool_call["id"],
+                                    )
+                                )
+                                continue
                         if tool_name == "run_build":
                             computed_dir = _find_project_dir(files)
                             if computed_dir != "." and call_args.get("project_dir", ".") == ".":
@@ -1132,8 +1053,9 @@ def dev_agent(
                                 tool_messages.append(ToolMessage(content=_gate_msg, tool_call_id=tool_call["id"]))
                                 logger.warning(f"[PreBuildGate] BUILD BLOQUÉ (tool_call path)")
                                 # build_attempted reste False : run_build n'a PAS été exécuté.
-                                # called_build_this_iter = True pour reset stagnant_iterations seulement.
-                                called_build_this_iter = True
+                                # Ne PAS considérer un build bloqué comme progrès:
+                                # cela masque les boucles et retarde la convergence.
+                                called_build_this_iter = False
                                 continue  # ne pas exécuter run_build
                         logger.info(f"Exécution tool: {tool_name}")
                         # T004 — transition vers BUILD avant exécution réelle de run_build
@@ -1144,6 +1066,13 @@ def dev_agent(
                         output = tool_to_call.invoke(call_args)
                         raw_output = str(output)
                         raw_tool_outputs.append(raw_output)
+                        if tool_name == "write_file":
+                            _wp = str(call_args.get("path", "")).replace("\\", "/").strip()
+                            # Ne compter comme écrit que les write_file réellement réussis.
+                            # Évite de polluer files[] avec du contenu non présent sur disque
+                            # (ex: package.json invalide/refusé), ce qui fausse les gates.
+                            if _wp and raw_output.startswith("OK:"):
+                                successful_write_paths.add(_wp)
 
                         if tool_name == "run_build":
                             build_attempted = True
@@ -1207,8 +1136,12 @@ def dev_agent(
                     path = tc["args"].get("path")
                     content = tc["args"].get("content")
                     if path and content is not None:
-                        # Lire le contenu réel depuis le disque après sanitize,
-                        # pour que files[path] == ce que test_coverage_agent utilisera.
+                        _path_norm = str(path).replace("\\", "/").strip()
+                        if _path_norm not in successful_write_paths:
+                            logger.info(f"Write ignoré (non confirmé sur disque): {_path_norm}")
+                            continue
+                        # Lire le contenu réel depuis le disque pour garder
+                        # files[path] aligné avec ce que les gates utiliseront.
                         try:
                             workdir = os.getenv("FACTORY_WORKDIR", ".")
                             disk_path = os.path.normpath(os.path.join(workdir, path))
@@ -1218,42 +1151,6 @@ def dev_agent(
                             files[path] = content  # fallback si lecture échoue
                         wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
-                        # Auto-clean App Router pages: si le LLM écrit app/X/page.tsx
-                        # ou app/X/Y/page.tsx, supprimer le fichier .tsx invalide
-                        # au chemin parent (ex: app/X.tsx, app/X/Y.tsx).
-                        _written_p = PurePosixPath(path.replace("\\", "/"))
-                        if _written_p.parts[0:1] == ("app",) and _written_p.name == "page.tsx":
-                            _stale_str = str(_written_p.parent.with_suffix(".tsx"))
-                            _ar_workdir = os.getenv("FACTORY_WORKDIR")
-                            for _k in list(files.keys()):
-                                if _k.replace("\\", "/") == _stale_str:
-                                    del files[_k]
-                                    if _ar_workdir:
-                                        _stale_disk = os.path.normpath(os.path.join(_ar_workdir, _k))
-                                        try:
-                                            os.remove(_stale_disk)
-                                            logger.info(f"[app_router_cleanup] {_k} supprimé dict + disque")
-                                        except FileNotFoundError:
-                                            logger.info(f"[app_router_cleanup] {_k} supprimé dict (absent du disque)")
-                                    else:
-                                        logger.info(f"[app_router_cleanup] {_k} supprimé dict (FACTORY_WORKDIR non défini)")
-                        # Auto-clean Pages Router API: si le LLM écrit app/api/...,
-                        # supprimer TOUS les fichiers pages/api/ du dict (conversion App Router).
-                        if str(_written_p).startswith("app/api/"):
-                            _pages_stale = [k for k in list(files.keys()) if k.replace("\\", "/").startswith("pages/api/")]
-                            for _ps in _pages_stale:
-                                del files[_ps]
-                                # Supprimer aussi du disque : run_build lit le FS, pas le dict.
-                                _factory_workdir = os.getenv("FACTORY_WORKDIR")
-                                if _factory_workdir:
-                                    _stale_disk = os.path.normpath(os.path.join(_factory_workdir, _ps))
-                                    try:
-                                        os.remove(_stale_disk)
-                                        logger.info(f"[pages_api_cleanup] {_ps} supprimé dict + disque")
-                                    except FileNotFoundError:
-                                        logger.info(f"[pages_api_cleanup] {_ps} supprimé dict (absent du disque)")
-                                else:
-                                    logger.warning(f"[pages_api_cleanup] {_ps} supprimé dict uniquement (FACTORY_WORKDIR non défini)")
 
         # Détection build succès/échec déterministe: uniquement depuis run_build.
         if build_failed_this_iter:
@@ -1263,6 +1160,21 @@ def dev_agent(
             stagnant_iterations = 0
         else:
             stagnant_iterations += 1
+
+        # Vérification immédiate du blocker actif après écriture.
+        if wrote_file_this_iter:
+            _post_write_state = _build_run_state(files)
+            _pre_blocker = run_state.get("active_blocker", "")
+            _post_blocker = _post_write_state.get("active_blocker", "")
+            if _pre_blocker and _pre_blocker == _post_blocker and _pre_blocker != "ready_for_build":
+                _allowed = _allowed_paths_for_blocker(_post_write_state)
+                _allowed_msg = ", ".join(_allowed) if _allowed else "aucune restriction"
+                messages.append(HumanMessage(content=(
+                    "[IMMEDIATE_VERIFY] Le blocker actif n'a pas été résolu dans ce tour.\n"
+                    f"Blocker courant: {_post_blocker}\n"
+                    f"Chemins autorisés maintenant: {_allowed_msg}\n"
+                    "Corrige ce blocker en priorité avant toute autre écriture."
+                )))
 
         # ── Guard Phase 1 : primary_manifest DOIT être le premier fichier écrit ──────
         # Lecture depuis stack config (multi-stack safe) au lieu de hardcoder "package.json".
@@ -1333,10 +1245,16 @@ def dev_agent(
                         last_failed_command = failed_cmd
 
         # Reflection informative uniquement (ne pilote pas la sortie).
+        _reflection_state = _build_run_state(files)
+        _reflection_unmet = _reflection_state.get("requirements_unmet", [])
+        _reflection_missing = _reflection_state.get("missing_required_files", [])
         reflection_messages = [
             SystemMessage(content=(
                 "État actuel :\n"
-                f"Fichiers générés : {list(files.keys())}\n"
+                f"Requirements couverts : {_reflection_state.get('requirements_met', 0)}/{_reflection_state.get('requirements_total', 0)}\n"
+                f"Blocker actif : {_reflection_state.get('active_blocker', 'N/A')}\n"
+                f"Requirement prioritaire non couvert : {_reflection_unmet[0] if _reflection_unmet else 'N/A'}\n"
+                f"Fichier requis manquant prioritaire : {_reflection_missing[0] if _reflection_missing else 'N/A'}\n"
                 f"Build attempts : {build_attempts}/{MAX_BUILD_ATTEMPTS}\n"
                 f"Dernière erreur build : {last_build_error[:500] if last_build_error else 'N/A'}\n"
                 f"Dernière commande en échec : {last_failed_command or 'N/A'}\n"
@@ -1344,7 +1262,10 @@ def dev_agent(
                 "- Si trop d'échecs → 'ÉCHEC : ERREUR RÉCURRENTE BUILD'\n"
                 "- Sinon → continue l'étape suivante sans réécrire les fichiers existants."
             )),
-            HumanMessage(content=f"Fichiers générés jusqu'ici : {list(files.keys())}")
+            HumanMessage(content=(
+                f"Résumé runtime: blocker={_reflection_state.get('active_blocker', 'N/A')}, "
+                f"requirements={_reflection_state.get('requirements_met', 0)}/{_reflection_state.get('requirements_total', 0)}"
+            ))
         ]
 
         # PAS de bind_tools sur la reflection — juste du texte
@@ -1394,8 +1315,21 @@ def dev_agent(
         if _tg_blocked:
             # T005 — final_message canonique. Détail dans les logs.
             final_message = "NOT_BUILT_BY_GATE"
-            _final_gate_source = "content_guard" if _tg_is_structural else "requirements"
+            _final_gate_source = "structural" if _tg_is_structural else "requirements"
             _final_blocking_guard_id = _tg_gid
+            _final_gate_message = (_tg_msg or "")[:2000]
+            if _tg_gid == "blueprint":
+                _present = set(files.keys()) | _templated_names
+                _present_norm = {p.replace("\\", "/").lower() for p in _present}
+                _final_missing_required_files = [
+                    f
+                    for f in required_files
+                    if not any(
+                        pp == str(f).replace("\\", "/").lower()
+                        or pp.endswith("/" + str(f).replace("\\", "/").lower())
+                        for pp in _present_norm
+                    )
+                ]
             logger.warning(f"[terminal_guard] build non tente: gate bloque. guard={_tg_gid} detail={_tg_msg[:400]}")
         else:
             forced_build_output = str(run_build.invoke({"project_dir": _tg_dir}))
@@ -1421,6 +1355,7 @@ def dev_agent(
         _state = _SM_FINAL
         final_message = "NOT_BUILT_BY_GATE"
         _final_gate_source = "no_files"
+        _final_gate_message = "Aucun fichier généré; build non tentée."
         logger.info(f"[STATE] → {_state} | NOT_BUILT_BY_GATE (aucun fichier généré)")
 
     # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
@@ -1463,7 +1398,10 @@ def dev_agent(
             "last_failed_command": last_failed_command,
             "gate_source": _final_gate_source,
             "blocking_guard_id": _final_blocking_guard_id,
+            "gate_message": _final_gate_message,
+            "missing_required_files": _final_missing_required_files,
             "guard_warning_hits": _guard_warning_hits,
             "guard_warning_count": sum(_guard_warning_hits.values()),
         },
     }
+

@@ -7,14 +7,17 @@
   "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
   "root_file": "package.json",
   "primary_manifest": "package.json",
-  "cleanup_artifacts": [".next", "node_modules"],
-  "workdir_keep_extra": [".npm"],
-
+  "cleanup_artifacts": [
+    ".next",
+    "node_modules"
+  ],
+  "workdir_keep_extra": [
+    ".npm"
+  ],
   "token_budgets": {
     "phase1_tokens": 6000,
     "phase2_tokens": 14000
   },
-
   "packages": {
     "next": "14.2.25",
     "react": "^18.2.0",
@@ -22,10 +25,11 @@
     "@clerk/nextjs": "^6.0.0",
     "prisma": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "@prisma/adapter-pg": "^7.0.0",
+    "pg": "^8.13.0",
     "typescript": "^5.3.3",
     "zod": "^3.23.8"
   },
-
   "dev_packages": {
     "ts-jest": "29.1.2",
     "@types/react": "^18.2.0",
@@ -41,22 +45,18 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "14.2.25"
   },
-
   "peer_dependency_minimums": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
-
   "version_pins": {
     "next": "14.2.25",
     "typescript": "^5.3.3"
   },
-
   "forbidden_paths": [
     "pages/",
     "src/pages/"
   ],
-
   "forbidden_imports": [
     "bcrypt",
     "jsonwebtoken",
@@ -64,7 +64,6 @@
     "passport",
     "next-auth",
     "nextauth",
-    "react-router-dom",
     "authMiddleware",
     "/api/auth/register",
     "/api/auth/login",
@@ -88,12 +87,12 @@
   ],
   "prompt_rules": {
     "extraction_rules": [
-      "Extraire TOUS les modèles Prisma mentionnés dans le brief avec TOUS leurs champs",
-      "Extraire TOUTES les pages (app/page.tsx, app/dashboard/page.tsx, app/blog/[slug]/page.tsx...)",
-      "Extraire TOUTES les routes API mentionnées (GET, POST, PUT, PATCH, DELETE)",
-      "Ne PAS générer de spec générique auth-only — le brief décrit une app métier spécifique",
-      "Chaque entité du brief DOIT avoir un modèle Prisma correspondant dans data_models",
-      "Le champ requirements[] DOIT être exhaustif : un item par modèle, par page, par route, par feature"
+      "Chaque modele Prisma mentionne dans le brief doit apparaitre dans data_models.",
+      "Chaque champ et contrainte explicite d'un modele Prisma du brief doit etre conserve a l'identique.",
+      "Chaque page demandee dans le brief doit apparaitre dans pages avec son chemin exact.",
+      "Chaque route API demandee dans le brief doit apparaitre dans api_routes avec methode et chemin exacts.",
+      "requirements[] doit contenir un item explicite pour chaque modele, page, route et feature demandes.",
+      "La spec doit rester metier et specifique au brief; les specs auth-only generiques sont interdites."
     ],
     "package_scripts": {
       "build": "next build",
@@ -102,56 +101,46 @@
       "lint": "next lint",
       "test": "jest"
     },
-    "auth_rules": [
-      "Clerk exclusif pour auth (INTERDIT: bcrypt, NextAuth, JWT custom, Passport, authMiddleware)",
-      "ClerkProvider dans app/layout.tsx : OBLIGATOIRE a l'EXTERIEUR de <html> — structure: <ClerkProvider><html lang='en'><body>{children}</body></html></ClerkProvider>",
-      "app/layout.tsx : ajouter 'export const dynamic = \"force-dynamic\"' apres les imports — POLICY factory (pas obligation SDK) : empeche le prerender statique qui crash ClerkProvider avec placeholder key",
-      "Creer middleware.ts a la RACINE (pas dans app/) avec clerkMiddleware(async (auth, req) => { await auth.protect(); }) UNIQUEMENT — callback DOIT etre async",
-      "INTERDIT authMiddleware (Clerk v5 supprime en v6) — utiliser clerkMiddleware depuis @clerk/nextjs/server",
-      "CONTEXTE MIDDLEWARE UNIQUEMENT : dans clerkMiddleware, auth est un OBJET injecte (pas une fonction) — CORRECT: await auth.protect() | INTERDIT: auth().protect()",
-      "CONTEXTE SERVER COMPONENTS / ROUTE HANDLERS : auth() EST une fonction async — CORRECT: const { userId } = await auth() | INTERDIT: auth().userId sans await (retourne Promise, pas l'objet)",
-      "INTERDIT: appeler auth avec un argument request (ex: auth(req), auth(request)) dans les Server Components/Route Handlers Next.js App Router — CORRECT: await auth() sans argument",
-      "INTERDIT: créer un wrapper custom d'authentification type lib/auth.ts pour exposer userId/session avec Clerk. Utiliser directement auth() / useAuth() / useUser() selon le contexte",
-      "INTERDIT: useAuth().user — useAuth() retourne { userId, sessionId, isLoaded, isSignedIn }, PAS l'objet user. CORRECT: const { user } = useUser() depuis @clerk/nextjs pour les Client Components",
-      "Imports serveur Clerk depuis @clerk/nextjs/server UNIQUEMENT — imports client (useUser, UserButton) depuis @clerk/nextjs",
-        "INTERDIT ABSOLU: import { clerkMiddleware } from '@clerk/nextjs' — clerkMiddleware est un middleware SERVEUR, TOUJOURS importer depuis '@clerk/nextjs/server'. Écrire en UNE SEULE ligne: import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'",
-        "NE PAS generer app/api/auth/route.ts : Clerk gere ses propres routes",
-        "INTERDIT ABSOLU dans les Client Components ('use client') : import depuis '@clerk/nextjs/server' (auth, currentUser, clerkClient…) — ces exports sont SERVER ONLY et crashent le build. Dans les Client Components : utiliser UNIQUEMENT useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'",
-        "app/page.tsx DOIT être un Server Component par défaut (PAS de 'use client') — utiliser auth() depuis @clerk/nextjs/server pour obtenir userId. Si des hooks React sont nécessaires, créer un sous-composant client séparé dans app/components/",
-        "API Route Handlers App Router (app/api/**/route.ts) DOIVENT typer les paramètres: export async function PUT(request: Request, { params }: { params: { id: string } }) — INTERDIT: export async function PUT(request, { params }) (TS implicit any)"
+      "auth_rules": [
+        "Auth stack: Clerk uniquement; interdits: bcrypt, NextAuth, JWT custom, Passport, authMiddleware.",
+        "app/layout.tsx doit envelopper <html> avec <ClerkProvider>.",
+        "middleware.ts (racine) doit importer clerkMiddleware depuis @clerk/nextjs/server.",
+        "Dans server components et route handlers, auth() doit toujours etre await.",
+        "Dans app/api/**/route.ts, si authorId utilise userId, ajouter `if (!userId) return 401` avant Prisma.",
+        "Dans client components ('use client'), interdiction d'importer @clerk/nextjs/server.",
+        "useAuth() ne doit jamais etre utilise pour lire l'objet user; utiliser useUser()."
       ],
-    "ui_rules": [
-      "UI avec Tailwind CSS uniquement",
-      "INTERDIT: shadcn/ui, @radix-ui, @headlessui, librairies de composants externes",
-      "INTERDIT: import depuis @/components/ui/*",
-      "INTERDIT en App Router: import depuis react-router-dom ou next/router. Utiliser next/navigation (useRouter, useParams, useSearchParams) et next/link",
-      "INTERDIT: import depuis '@/types' — définir les types inline dans le fichier qui les utilise, ou dans un fichier types.ts adjacent (ex: app/types.ts). Ne pas créer de dossier types/ global.",
-      "TypeScript strict: les callbacks de tableaux (map/filter/reduce) doivent typer explicitement leurs paramètres si le type n'est pas inféré (interdit: (post) => ... non typé)",
-      "INTERDIT: utiliser un alias de type non déclaré dans les composants/pages (ex: `Post`, `User`) ; soit importer le type, soit déclarer un type local, soit laisser TypeScript inférer le type depuis Prisma/Zod"
+      "ui_rules": [
+        "UI: Tailwind CSS uniquement.",
+        "Librairies UI externes interdites: shadcn/ui, @radix-ui, @headlessui.",
+        "Imports depuis @/components/ui/* interdits.",
+        "Import depuis '@/types' interdit; utiliser types locaux ou fichier adjacent.",
+        "Callbacks map/filter/reduce doivent avoir des types explicites si inference absente.",
+        "En TypeScript strict, useState([]) sans type générique est interdit; typer explicitement les tableaux (ex: useState<PostSummary[]>([])).",
+        "Dans app/** (App Router), getServerSideProps/getStaticProps/getStaticPaths sont interdits.",
+        "Tout fichier app/*.tsx utilisant un hook React doit commencer par \"use client\"; sinon convertir en Server Component sans hooks."
+      ],
+    "orm_rules": [
+      "Le schema Prisma autorise est prisma/schema.prisma; prisma.config.ts reste template de stack.",
+      "schema.prisma DOIT contenir datasource db avec provider = \"postgresql\".",
+      "Prisma 7: datasource db dans schema.prisma ne doit pas declarer url = env(...).",
+      "generator client doit utiliser provider = \"prisma-client-js\".",
+      "lib/prisma.ts doit instancier PrismaClient avec PrismaPg adapter.",
+      "Dans app/api/**/route.*, l'acces Prisma doit passer par import prisma from '@/lib/prisma'.",
+      "Tous les champs et contraintes Prisma demandes par le requirement sont obligatoires a l'identique."
     ],
-      "orm_rules": [
-        "Prisma 7 : generer prisma/schema.prisma UNIQUEMENT — prisma.config.ts est fourni automatiquement par la factory (TEMPLATE_PROTÉGÉ, ne pas réécrire)",
-        "Prisma 7 : dans prisma/schema.prisma, datasource db ne doit PAS contenir url = env(...) ; la connection URL est définie dans prisma.config.ts",
-        "Dans prisma/schema.prisma, le generator client DOIT utiliser provider = \"prisma-client-js\" (interdit: \"prisma-client\") pour compatibilité avec import PrismaClient depuis @prisma/client",
-        "Dans app/api/**/route.ts(x|j|jsx), INTERDIT d'importer PrismaClient depuis @prisma/client et INTERDIT new PrismaClient(...). Utiliser UNIQUEMENT: import prisma from '@/lib/prisma'",
-        "INTERDIT de typer explicitement une variable Prisma avec un alias non défini (ex: `const post: Post | null = ...`) ; CORRECT: type inféré depuis `await prisma.post.findUnique(...)` ou type importé explicitement depuis @prisma/client",
-        "Utiliser clerkId String @unique — INTERDIT: champ password, password_hash, passwordHash avec Clerk",
-        "Chaque modele Prisma DOIT avoir createdAt DateTime @default(now()) et updatedAt DateTime @updatedAt",
-        "Quand un requirement contient 'Modèle Prisma: <Model> avec champs ...', reproduire EXACTEMENT tous les champs et contraintes dans prisma/schema.prisma (ex: slug @unique, content String) — aucun champ requis ne doit être omis",
-        "Executer prisma_migrate apres ecriture de schema.prisma"
-      ],
     "security_rules": [
-      "Validation Zod sur toutes les entrees utilisateur",
-      ".env.local DOIT contenir EXACTEMENT ces 3 variables : NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder | CLERK_SECRET_KEY=sk_test_placeholder | DATABASE_URL=postgresql://user:password@localhost:5432/todo-batch-alpha — générer ce fichier lors de l'Étape 1 avec package.json (INTERDIT: guillemets autour de la valeur DATABASE_URL)",
-      "INTERDIT: NEXT_PUBLIC_CLERK_SECRET_KEY (expose le secret Clerk au bundle client)"
+      "Toutes les entrees utilisateur doivent etre validees avec Zod.",
+      ".env.local doit contenir NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY et DATABASE_URL.",
+      "NEXT_PUBLIC_CLERK_SECRET_KEY est interdit."
     ],
     "test_rules": [
-      "jest.config.js : utiliser next/jest comme preset via createJestConfig — INTERDIT preset: 'ts-jest' directement",
-      "jest.config.js : OBLIGATOIRE setupFilesAfterEnv: ['<rootDir>/jest.setup.js'] — cle EXACTE (pas setupFiles, pas setupFilesAfterFramework)",
-      "jest.setup.js : contient uniquement 'import \"@testing-library/jest-dom\"'",
-      "Toujours mocker Clerk dans les tests React : jest.mock('@clerk/nextjs', () => ({ useAuth: ..., ClerkProvider: ({children}) => children }))",
-      "Utiliser jest.mock('@clerk/nextjs/server') pour les tests API Routes",
-      "Utiliser node-mocks-http pour les tests de Route Handlers"
+      "jest.config.js doit etre base sur next/jest (createJestConfig).",
+      "jest.config.js doit declarer setupFilesAfterEnv avec <rootDir>/jest.setup.js.",
+      "jest.setup.js ne contient que import '@testing-library/jest-dom'.",
+      "Tests React: mocks Clerk client via @clerk/nextjs.",
+      "Tests API routes: mocks Clerk server via @clerk/nextjs/server.",
+      "Tests de route handlers: utiliser node-mocks-http."
     ],
     "qa_rules": [
       "Tester la navigation vers /sign-in (Clerk)",
@@ -160,7 +149,11 @@
     ]
   },
   "spec_validation": {
-    "required_keywords": ["next.js", "clerk", "prisma"],
+    "required_keywords": [
+      "next.js",
+      "clerk",
+      "prisma"
+    ],
     "forbidden_keywords": [
       "oauth 2.0",
       "oauth2",
@@ -188,15 +181,35 @@
       "## composants tailwind"
     ]
   },
-
   "technology_categories": {
-    "auth": ["clerk", "clerkprovider", "clerkmiddleware"],
-    "database": ["prisma", "schema.prisma", "prisma_migrate"],
-    "testing": ["jest", "test", "testing-library", "node-mocks-http"],
-    "framework": ["next", "middleware", "app router", "layout.tsx"],
-    "ui": ["tailwind"]
+    "auth": [
+      "clerk",
+      "clerkprovider",
+      "clerkmiddleware"
+    ],
+    "database": [
+      "prisma",
+      "schema.prisma",
+      "prisma_migrate"
+    ],
+    "testing": [
+      "jest",
+      "test",
+      "testing-library",
+      "node-mocks-http"
+    ],
+    "framework": [
+      "next",
+      "middleware",
+      "app router",
+      "layout.tsx"
+    ],
+    "ui": [
+      "tailwind",
+      "shadcn",
+      "radix"
+    ]
   },
-
   "import_remaps": {
     "package_fixes": {
       "@clerk/clerk-sdk": "@clerk/nextjs",
@@ -209,6 +222,7 @@
       "@clerk/clerk-sdk-react": "@clerk/nextjs",
       "@clerk/nextjs/api": "@clerk/nextjs/server",
       "@clerk/nextjs/middleware": "@clerk/nextjs/server",
+      "auth().protect()": "await auth.protect()",
       "clerkMiddleware((auth,": "clerkMiddleware(async (auth,",
       "clerkMiddleware } from '@clerk/nextjs'": "clerkMiddleware } from '@clerk/nextjs/server'",
       "clerkMiddleware } from \"@clerk/nextjs\"": "clerkMiddleware } from \"@clerk/nextjs/server\"",
@@ -224,20 +238,20 @@
       "next/router": "next/navigation"
     }
   },
-
   "templated_files": {
-    "middleware.ts":                  "templates/middleware.ts",
-    "app/globals.css":                "templates/app_globals.css",
-    "jest.config.js":                 "templates/jest.config.js",
-    "jest.setup.js":                  "templates/jest.setup.js",
-    "next.config.js":                 "templates/next.config.js",
-    "tsconfig.json":                  "templates/tsconfig.json",
-    ".env.local":                     "templates/env.local.template",
-    "tests/middleware.test.ts":       "templates/tests/middleware.test.ts",
-    "lib/prisma.ts":                  "templates/lib_prisma.ts",
-    "prisma.config.ts":               "templates/prisma_config.ts"
+    "middleware.ts": "templates/middleware.ts",
+    "app/layout.tsx": "templates/app_layout.tsx",
+    "app/page.tsx": "templates/app_page.tsx",
+    "app/globals.css": "templates/app_globals.css",
+    "jest.config.js": "templates/jest.config.js",
+    "jest.setup.js": "templates/jest.setup.js",
+    "next.config.js": "templates/next.config.js",
+    "tsconfig.json": "templates/tsconfig.json",
+    ".env.local": "templates/env.local.template",
+    "tests/middleware.test.ts": "templates/tests/middleware.test.ts",
+    "lib/prisma.ts": "templates/lib_prisma.ts",
+    "prisma.config.ts": "templates/prisma_config.ts"
   },
-
   "blueprint": {
     "required_files": [
       "package.json",
@@ -269,7 +283,6 @@
       "app/components/*.tsx"
     ]
   },
-
   "commands": {
     "install": "npm install",
     "install_legacy": "npm install --legacy-peer-deps",
@@ -294,22 +307,35 @@
   ],
   "mandatory_rag_k": 4,
   "mandatory_rag_snippet_chars": 900,
-
   "qdrant_filter": {
     "collection": "factory_standards",
     "filter": {
       "must": [
         {
           "should": [
-            {"key": "metadata.stack", "match": {"value": "nextjs-clerk-prisma"}},
-            {"key": "metadata.stack", "match": {"value": "global"}}
+            {
+              "key": "metadata.stack",
+              "match": {
+                "value": "nextjs-clerk-prisma"
+              }
+            },
+            {
+              "key": "metadata.stack",
+              "match": {
+                "value": "global"
+              }
+            }
           ]
         },
-        {"key": "metadata.status", "match": {"value": "active"}}
+        {
+          "key": "metadata.status",
+          "match": {
+            "value": "active"
+          }
+        }
       ]
     }
   },
-
   "env_validation": {
     "required_vars": [
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
@@ -318,11 +344,10 @@
     ],
     "regex": {
       "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "^pk_(test|live)_",
-      "CLERK_SECRET_KEY":                  "^sk_(test|live)_",
-      "DATABASE_URL":                       "^postgresql://"
+      "CLERK_SECRET_KEY": "^sk_(test|live)_",
+      "DATABASE_URL": "^postgresql://"
     }
   },
-
   "compatibility_matrix": {
     "ts-jest": {
       "required_major": 29,
@@ -340,274 +365,90 @@
       "required_major": 29,
       "reason": "jest@30 incompatible avec ts-jest@29"
     }
-  }
-  ,
-  "prebuild_policies": {
-    "remove_pages_router_conflicts": true,
-    "remove_clerk_auth_routes": true,
-    "normalize_prisma_named_import": true,
-    "normalize_route_prisma_client_usage": true,
-    "normalize_global_prisma_client_usage": true,
-    "normalize_post_authorid": true,
-    "normalize_route_handler_typing": true,
-    "normalize_map_callback_typing": true,
-    "normalize_zod_state_schema_typing": true,
-    "normalize_app_router_query_usage": false,
-    "normalize_react_router_dom_usage": false,
-    "normalize_post_content_select": false,
-    "normalize_unknown_state_type_aliases": false,
-    "normalize_prisma_generator_provider": true,
-    "normalize_lib_prisma_constructor": true,
-    "remove_unknown_prisma_model_routes": true,
-    "ensure_layout_dynamic": true,
-    "ensure_layout_children_typing": true
   },
   "test_import_rules": {
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"
   },
-  "path_guards": [
-    {
-      "id": "app_router_convention",
-      "kind": "app_router_convention",
-      "mode": "warn",
-      "auto_fix": true,
-      "route_root": "app/",
-      "file_extensions": [".tsx"],
-      "valid_route_names": ["layout", "page", "error", "loading", "not-found", "template", "default"],
-      "excluded_directories": ["components", "lib", "utils", "hooks", "styles", "types", "context", "providers", "helpers"],
-      "message_lines": [
-        "APP ROUTER CONVENTION WARNING — NON BLOQUANT",
-        "Fichiers .tsx invalides dans app/ — chaque route doit être <segment>/page.tsx.",
-        "{details}",
-        "Structure App Router attendue : app/<segment>/page.tsx"
-      ]
-    },
-    {
-      "id": "app_router_api_naming",
-      "kind": "app_router_api_naming",
-      "mode": "warn",
-      "api_root": "app/api/",
-      "file_extensions": [".ts", ".tsx"],
-      "api_valid_stem": "route",
-      "message_lines": [
-        "APP ROUTER API NAMING WARNING — NON BLOQUANT",
-        "Les routes API App Router doivent être dans des fichiers nommés route.ts.",
-        "{details}",
-        "Structure attendue: app/api/<resource>/route.ts et app/api/<resource>/[id]/route.ts"
-      ]
-    }
-  ],
-
   "content_guards": [
-    {
-      "id": "app_router_no_gssp",
-      "description": "getServerSideProps interdit dans app/ (App Router)",
-      "file_prefix": "app/",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["getServerSideProps"],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "APP ROUTER GSSP WARNING — NON BLOQUANT",
-        "getServerSideProps est interdit dans app/ avec App Router.",
-        "",
-        "  ❌ export const getServerSideProps = ...",
-        "  ✅ Page server async + fetch/Prisma direct dans le composant serveur",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Supprime getServerSideProps et utilise les patterns App Router."
-      ]
-    },
-    {
-      "id": "route_handler_double_params_typing",
-      "description": "Double annotation de params dans la signature App Router",
-      "file_prefix": "app/api/",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["}: { params: { id: string } }: { params:", "}: { params: Record<string, string> })", "}: { params: { id: string } }) : {"],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "ROUTE HANDLER SIGNATURE WARNING — NON BLOQUANT",
-        "Double annotation de params détectée dans la signature du route handler.",
-        "",
-        "  ❌ export async function GET(request: Request, { params }: { params: { id: string } }: { params: ... })",
-        "  ✅ export async function GET(request: Request, { params }: { params: { id: string } })",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Garde une seule annotation TypeScript pour params."
-      ]
-    },
-    {
-      "id": "use_state_typed",
-      "description": "useState([]) sans générique explicite (risque never[])",
-      "file_prefix": "",
-      "file_extensions": [".tsx", ".ts"],
-      "trigger_contains": ["useState([])", "useState( [] )", "useState([] )", "useState( [])"],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "USE STATE TYPED WARNING — NON BLOQUANT",
-        "useState([]) sans annotation générique détecté.",
-        "",
-        "  ❌ const [items, setItems] = useState([])",
-        "  ✅ const [items, setItems] = useState<ItemType[]>([])",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Ajoute un type explicite pour éviter l'inférence never[] en TypeScript strict."
-      ]
-    },
-    {
-      "id": "auth_wrapping_route",
-      "description": "Route handler App Router encapsulé avec auth(...) (pattern v4/v5)",
-      "file_prefix": "app/api/",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": [
-        "export const GET = auth(",
-        "export const POST = auth(",
-        "export const PUT = auth(",
-        "export const PATCH = auth(",
-        "export const DELETE = auth(",
-        "export const HEAD = auth("
-      ],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "AUTH WRAPPING ROUTE WARNING — NON BLOQUANT",
-        "Pattern invalide détecté: export const METHOD = auth(async (...) => ...).",
-        "",
-        "  ❌ export const PUT = auth(async (req, { params }) => { ... })",
-        "  ✅ export async function PUT(request: Request, context: { params: { id: string } }) {",
-        "       const { userId } = await auth()",
-        "       // ...",
-        "     }",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "En App Router, auth() s'appelle à l'intérieur du handler, jamais en wrapper."
-      ]
-    },
-    {
-      "id": "auth_request_arg_invalid",
-      "description": "Appel auth(req/request) invalide en App Router server-side",
-      "file_prefix": "",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["auth(req)", "auth(request)"],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "AUTH REQUEST ARG WARNING — NON BLOQUANT",
-        "Appel auth(req/request) détecté. En App Router Clerk v6, utiliser auth() sans argument côté server/API.",
-        "",
-        "  ❌ const { userId } = await auth(req)",
-        "  ✅ const { userId } = await auth()",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Remplace auth(req/request) par auth() dans les handlers/pages server."
-      ]
-    },
-    {
-      "id": "custom_auth_wrapper_forbidden",
-      "description": "Wrapper custom lib/auth.ts interdit avec Clerk",
-      "file_prefix": "lib/",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["await auth(req)", "await auth(request)", "export const clerkMiddleware = async"],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "CUSTOM AUTH WRAPPER WARNING — NON BLOQUANT",
-        "Wrapper auth custom détecté dans lib/. Cette stack utilise directement les APIs Clerk officielles selon le contexte.",
-        "",
-        "  ❌ lib/auth.ts qui encapsule auth(req/request)",
-        "  ✅ middleware.ts avec clerkMiddleware(async (auth, req) => { await auth.protect(); })",
-        "  ✅ pages/API server avec const { userId } = await auth()",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Supprime le wrapper custom et utilise les patterns Clerk officiels."
-      ]
-    },
-    {
-      "id": "undeclared_prisma_type_alias",
-      "description": "Alias de type Prisma (Post/User) utilisé sans déclaration/import local",
-      "file_prefix": "app/",
-      "file_extensions": [".tsx", ".ts"],
-      "trigger_contains": [": Post |", ": Post[]", ": User |", ": User[]", "useState<Post[]", "useState<User[]"],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "exclude_when_contains": [
-        "import type { Post",
-        "import { Post",
-        "type Post =",
-        "interface Post",
-        "import type { User",
-        "import { User",
-        "type User =",
-        "interface User"
-      ],
-      "message_lines": [
-        "UNDECLARED TYPE ALIAS WARNING — NON BLOQUANT",
-        "Alias de type Prisma (Post/User) utilisé sans définition/import local détecté.",
-        "",
-        "  ❌ const post: Post | null = await prisma.post.findUnique(...)",
-        "  ✅ const post = await prisma.post.findUnique(...)",
-        "  ✅ import type { Post } from '@prisma/client'  // si annotation explicite nécessaire",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Supprime l'alias non déclaré ou importe/déclare explicitement le type."
-      ]
-    },
     {
       "id": "use_client",
       "description": "Hooks React dans un fichier App Router sans directive 'use client'",
+      "mode": "warn",
+      "ignore_leading_comments": true,
       "file_prefix": "app/",
-      "file_extensions": [".tsx"],
-      "trigger_contains": ["useEffect", "useState", "useRef", "useCallback", "useMemo", "useReducer"],
+      "file_extensions": [
+        ".tsx"
+      ],
+      "trigger_regex": [
+        "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\(",
+        "import\\s*\\{[^}]*\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\b[^}]*\\}\\s*from\\s*['\\\"]react['\\\"]"
+      ],
       "requires_first_directive": "use client",
       "message_lines": [
         "USE CLIENT GUARD — BUILD BLOQUÉ",
-        "Des hooks React sont utilisés dans des fichiers App Router SANS '\"use client\"' en première ligne.",
-        "",
-        "ERREUR NEXT.JS RÉSULTANTE :",
-        "  ✗ You're importing a component that needs useEffect.",
-        "    It only works in a Client Component but none of its parents",
-        "    are marked with 'use client', so they're Server Components by default.",
-        "",
-        "RÈGLE ABSOLUE App Router :",
-        "  • Tout composant utilisant useEffect, useState, useRef, useCallback…",
-        "    DOIT avoir '\"use client\"' comme PREMIÈRE ligne du fichier.",
-        "  • Alternative : convertir en Server Component (async function, pas de hooks).",
-        "",
-        "⚠️ CORRECTION OBLIGATOIRE — TOUS LES FICHIERS EN UNE SEULE PASSE :",
-        "  1. Appelle write_file() pour CHACUN des fichiers listés ci-dessous.",
-        "  2. La PREMIÈRE LIGNE de chaque fichier DOIT être exactement : '\"use client\";'",
-        "  3. Corrige TOUS les fichiers listés dans CE tour — NE PAS en corriger un seul puis rappeler run_build.",
-        "  4. Une fois TOUS les write_file() effectués, appelle run_build UNE SEULE fois.",
-        "",
-        "Fichiers à corriger (TOUS en un seul tour) :",
+        "Ces fichiers utilisent des hooks React sans directive '\"use client\"' en première ligne :",
         "{details}",
         "",
-        "→ write_file() × N fichiers → run_build() — dans cet ordre, sans intermédiaire."
+        "Politique de correction :",
+        "- Si le fichier est une page `app/**/page.tsx`: garder la page en Server Component et déplacer les hooks dans `app/components/**`.",
+        "- Si le fichier est un composant client: mettre EXACTEMENT '\"use client\";' en première ligne.",
+        "",
+        "Action obligatoire dans CE tour : write_file() sur tous les fichiers listés, puis run_build() une seule fois."
+      ]
+    },
+    {
+      "id": "server_root_page_no_hooks",
+      "description": "app/page.tsx doit rester server-first (pas de hooks client)",
+      "mode": "block",
+      "file_prefix": "app/page.tsx",
+      "file_extensions": [
+        ".tsx"
+      ],
+      "trigger_regex": [
+        "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\("
+      ],
+      "requires_first_directive": null,
+      "message_lines": [
+        "SERVER ROOT PAGE GUARD — BUILD BLOQUÉ",
+        "app/page.tsx contient des hooks client mais doit rester server-first.",
+        "{details}",
+        "",
+        "Correction obligatoire : déplacer les hooks dans un composant client `app/components/**` et garder app/page.tsx sans hooks."
+      ]
+    },
+    {
+      "id": "server_blog_slug_page_no_hooks",
+      "description": "app/blog/[slug]/page.tsx doit rester server-first (pas de hooks client)",
+      "mode": "block",
+      "file_prefix": "app/blog/[slug]/page.tsx",
+      "file_extensions": [
+        ".tsx"
+      ],
+      "trigger_regex": [
+        "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\("
+      ],
+      "requires_first_directive": null,
+      "message_lines": [
+        "SERVER BLOG PAGE GUARD — BUILD BLOQUÉ",
+        "app/blog/[slug]/page.tsx contient des hooks client mais doit rester server-first.",
+        "{details}",
+        "",
+        "Correction obligatoire : déplacer les hooks dans un composant client `app/components/**` et garder app/blog/[slug]/page.tsx sans hooks."
       ]
     },
     {
       "id": "prisma_import_path",
       "description": "Import Prisma avec chemin relatif — utiliser l'alias @/lib/prisma",
       "file_prefix": "",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["../lib/prisma", "../../lib/prisma"],
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "../lib/prisma",
+        "../../lib/prisma"
+      ],
       "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
@@ -629,34 +470,47 @@
     },
     {
       "id": "prisma_named_import",
-      "description": "Import Prisma nommé invalide depuis @/lib/prisma — utiliser default import",
+      "description": "Import Prisma nommé depuis @/lib/prisma — préférer default import",
       "file_prefix": "",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["import { prisma } from '@/lib/prisma'", "import { prisma } from \"@/lib/prisma\""],
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "import { prisma } from '@/lib/prisma'",
+        "import { prisma } from \"@/lib/prisma\""
+      ],
       "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
         "PRISMA NAMED IMPORT WARNING — NON BLOQUANT",
-        "Import nommé invalide détecté depuis '@/lib/prisma'.",
+        "Import nommé détecté depuis '@/lib/prisma'.",
         "",
         "  ❌ import { prisma } from '@/lib/prisma'",
         "  ✅ import prisma from '@/lib/prisma'",
         "",
-        "Raison : lib/prisma.ts exporte Prisma en export DEFAULT.",
-        "L'import nommé provoque l'erreur TypeScript 'has no exported member prisma'.",
+        "Raison : default import est la convention principale de cette stack.",
+        "L'import nommé est toléré mais peut augmenter le bruit de génération.",
         "",
         "Fichiers à corriger :",
         "{details}",
         "",
-        "Remplace tous les imports nommés Prisma par un default import, puis appelle run_build."
+        "Standardise de préférence en default import, puis appelle run_build."
       ]
     },
     {
       "id": "auth_missing_await",
       "description": "auth().userId sans await — auth() est async en App Router",
       "file_prefix": "app/",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": ["auth().userId", "auth().sessionId", "auth().orgId"],
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "auth().userId",
+        "auth().sessionId",
+        "auth().orgId"
+      ],
       "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
@@ -676,11 +530,48 @@
       ]
     },
     {
+      "id": "authorid_requires_userid_guard",
+      "description": "authorId basé sur userId sans garde null dans route handler",
+      "file_prefix": "app/api/",
+      "file_extensions": [
+        ".ts"
+      ],
+      "trigger_contains": [
+        "authorId: userId",
+        "authorId : userId"
+      ],
+      "requires_contains_all": [
+        "if (!userId)",
+        "return NextResponse.json"
+      ],
+      "mode": "block",
+      "requires_first_directive": null,
+      "message_lines": [
+        "AUTHORID USERID GUARD — BUILD BLOQUÉ",
+        "Une route utilise `authorId: userId` sans garde d'authentification explicite.",
+        "",
+        "TypeScript strict: `userId` peut être null si auth non validée.",
+        "Ajoute obligatoirement avant l'update/create Prisma :",
+        "  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Ajoute la garde null puis rappelle run_build."
+      ]
+    },
+    {
       "id": "prisma_schema_datasource_url",
       "description": "Prisma 7 interdit datasource.url dans schema.prisma",
       "file_prefix": "prisma/",
-      "file_extensions": [".prisma"],
-      "trigger_contains": ["url      = env(\"DATABASE_URL\")", "url = env(\"DATABASE_URL\")", "url = env('DATABASE_URL')"],
+      "file_extensions": [
+        ".prisma"
+      ],
+      "trigger_contains": [
+        "url      = env(\"DATABASE_URL\")",
+        "url = env(\"DATABASE_URL\")",
+        "url = env('DATABASE_URL')"
+      ],
       "requires_first_directive": null,
       "message_lines": [
         "PRISMA DATASOURCE URL GUARD — BUILD BLOQUÉ",
@@ -705,11 +596,44 @@
       ]
     },
     {
+      "id": "prisma_schema_datasource_required",
+      "description": "schema.prisma doit définir datasource db avec provider postgresql",
+      "mode": "warn",
+      "file_prefix": "prisma/",
+      "file_extensions": [
+        ".prisma"
+      ],
+      "requires_regex_all": [
+        "\\bdatasource\\s+db\\s*\\{",
+        "provider\\s*=\\s*['\\\"]postgresql['\\\"]"
+      ],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA DATASOURCE REQUIRED GUARD — BUILD BLOQUÉ",
+        "Le fichier prisma/schema.prisma doit contenir un bloc datasource db valide pour PostgreSQL.",
+        "",
+        "Exigences minimales :",
+        "  datasource db {",
+        "    provider = \"postgresql\"",
+        "  }",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Corrige schema.prisma puis rappelle run_build."
+      ]
+    },
+    {
       "id": "prisma_generator_provider",
       "description": "Generator Prisma incompatible avec import @prisma/client",
       "file_prefix": "prisma/",
-      "file_extensions": [".prisma"],
-      "trigger_contains": ["provider = \"prisma-client\"", "provider = 'prisma-client'"],
+      "file_extensions": [
+        ".prisma"
+      ],
+      "trigger_contains": [
+        "provider = \"prisma-client\"",
+        "provider = 'prisma-client'"
+      ],
       "requires_first_directive": null,
       "message_lines": [
         "PRISMA GENERATOR PROVIDER GUARD — BUILD BLOQUÉ",
@@ -731,13 +655,18 @@
     {
       "id": "prisma_direct_instantiation",
       "description": "new PrismaClient() ou import { PrismaClient } direct — utiliser le singleton @/lib/prisma",
-      "mode": "warn",
-      "file_prefix": "app/",
-      "file_extensions": [".ts", ".tsx", ".js", ".jsx"],
+      "file_prefix": "app/api/",
+      "file_extensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx"
+      ],
       "trigger_contains": [
-        "new PrismaClient(",
-        "{ PrismaClient } from '@prisma/client'",
-        "{ PrismaClient } from \"@prisma/client\""
+        "new PrismaClient()",
+        "new PrismaClient({",
+        "from '@prisma/client'",
+        "from \"@prisma/client\""
       ],
       "requires_first_directive": null,
       "message_lines": [
@@ -759,33 +688,17 @@
       ]
     },
     {
-      "id": "react_router_dom_in_next_app",
-      "description": "react-router-dom détecté dans une app Next.js App Router",
-      "file_prefix": "app/",
-      "file_extensions": [".ts", ".tsx", ".js", ".jsx"],
-      "trigger_contains": ["from 'react-router-dom'", "from \"react-router-dom\""],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "REACT ROUTER DOM WARNING — NON BLOQUANT",
-        "Import react-router-dom détecté dans une app Next.js App Router.",
-        "",
-        "  ❌ import { useParams, Link } from 'react-router-dom'",
-        "  ✅ import { useParams, useRouter } from 'next/navigation'",
-        "  ✅ import Link from 'next/link'",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Remplace react-router-dom par les APIs Next.js App Router."
-      ]
-    },
-    {
       "id": "useauth_user_property",
       "description": "useAuth().user interdit — useAuth() ne retourne pas l'objet user",
       "file_prefix": "app/",
-      "file_extensions": [".tsx", ".ts"],
-      "trigger_contains": ["useAuth().user", "const { user } = useAuth("],
+      "file_extensions": [
+        ".tsx",
+        ".ts"
+      ],
+      "trigger_contains": [
+        "useAuth().user",
+        "const { user } = useAuth("
+      ],
       "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
@@ -809,8 +722,14 @@
       "id": "clerk_server_in_client",
       "description": "Import @clerk/nextjs/server dans un Client Component — BUILD BLOQUÉ",
       "file_prefix": "app/",
-      "file_extensions": [".tsx", ".ts"],
-      "trigger_contains": ["from '@clerk/nextjs/server'", "from \"@clerk/nextjs/server\""],
+      "file_extensions": [
+        ".tsx",
+        ".ts"
+      ],
+      "trigger_contains": [
+        "from '@clerk/nextjs/server'",
+        "from \"@clerk/nextjs/server\""
+      ],
       "requires_first_directive": null,
       "conflicts_with_directive": "use client",
       "message_lines": [
@@ -839,8 +758,13 @@
       "id": "router_query_app_router",
       "description": "router.query en App Router — utiliser params props (server) ou useParams (client)",
       "file_prefix": "app/",
-      "file_extensions": [".tsx", ".ts"],
-      "trigger_contains": ["router.query"],
+      "file_extensions": [
+        ".tsx",
+        ".ts"
+      ],
+      "trigger_contains": [
+        "router.query"
+      ],
       "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
@@ -861,10 +785,24 @@
       "id": "route_handler_untyped_signature",
       "description": "Route handler App Router non typé (request/params en any implicite)",
       "file_prefix": "app/api/",
-      "file_extensions": [".ts"],
-      "trigger_contains": ["export async function GET(", "export async function POST(", "export async function PUT(", "export async function PATCH(", "export async function DELETE("],
+      "file_extensions": [
+        ".ts"
+      ],
+      "trigger_contains": [
+        "export async function GET(",
+        "export async function POST(",
+        "export async function PUT(",
+        "export async function PATCH(",
+        "export async function DELETE("
+      ],
       "mode": "warn",
-      "exclude_when_contains": [": Request", "Request,", ": NextRequest", "NextRequest,", "}: { params:"],
+      "exclude_when_contains": [
+        ": Request",
+        "Request,",
+        ": NextRequest",
+        "NextRequest,",
+        "}: { params:"
+      ],
       "requires_first_directive": null,
       "message_lines": [
         "ROUTE HANDLER TYPING WARNING — NON BLOQUANT",
@@ -878,7 +816,36 @@
         "",
         "Ajoute les types Request/params pour éviter l'erreur TS7006 (implicit any)."
       ]
+    },
+    {
+      "id": "app_router_legacy_data_fetching",
+      "description": "Interdire getServerSideProps/getStaticProps/getStaticPaths dans app/ (App Router)",
+      "file_prefix": "app/",
+      "file_extensions": [
+        ".tsx",
+        ".ts"
+      ],
+      "trigger_contains": [
+        "getServerSideProps",
+        "getStaticProps",
+        "getStaticPaths"
+      ],
+      "requires_first_directive": null,
+      "message_lines": [
+        "APP ROUTER DATA FETCHING GUARD — BUILD BLOQUÉ",
+        "Les APIs Pages Router sont interdites dans app/:",
+        "  ❌ getServerSideProps / getStaticProps / getStaticPaths",
+        "",
+        "En App Router, utiliser :",
+        "  ✅ Server Component async avec fetch/DB direct",
+        "  ✅ export const revalidate = ... (ISR)",
+        "  ✅ generateStaticParams() pour routes dynamiques",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Supprime ces exports legacy et réécris la page en Server Component App Router."
+      ]
     }
   ]
 }
-

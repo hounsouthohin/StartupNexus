@@ -1,0 +1,22 @@
+.git
+.gitignore
+
+# Python cache / test artifacts
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local venvs / editors
+.venv/
+venv/
+.vscode/
+
+# Runtime/generated artifacts not needed in image build context
+logs/
+generated-projects/
+run/_pytest_tmp*/
+tmp*/
+
+# OS-specific noise
+Thumbs.db
+Desktop.ini
