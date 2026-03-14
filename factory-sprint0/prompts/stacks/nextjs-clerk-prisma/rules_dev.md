@@ -25,7 +25,7 @@
 - Politique par defaut: pages `app/**/page.tsx` en Server Component (sans hooks React client).
 - Si un hook React est necessaire (`useState`, `useEffect`, ...), extraire la logique dans un composant client dedie sous `app/components/**`.
 - Tout composant client doit avoir `"use client";` en premiere directive.
-- Les pages publiques `app/page.tsx` et `app/blog/[slug]/page.tsx` doivent rester server-first; ne pas y mettre de hooks client directement.
+- Toutes les pages `app/**/page.tsx` doivent rester server-first par defaut; si des hooks React sont necessaires, extraire la logique dans un composant client dedie sous `app/components/**`.
 
 ### BASE DE DONNEES
 - Le schema Prisma autorise est `prisma/schema.prisma`; `prisma.config.ts` reste template stack.
@@ -37,7 +37,7 @@
 - Champs `password` et `password_hash` interdits avec Clerk.
 - Si un requirement impose des champs/contraintes Prisma (ex: `slug @unique`, `content`), ils sont obligatoires a l'identique.
 - Les types utilises dans pages/composants doivent etre resolvables (inference, type local, ou import type explicite).
-- Si `post.content` est utilise au rendu, la requete Prisma doit selectionner `content`.
+- Si un champ d'un modele Prisma est utilise au rendu (ex: `item.description`, `post.content`), la requete Prisma doit explicitement le selectionner via `select: { champ: true }`.
 
 ### SCRIPTS package.json OBLIGATOIRES
 - build: `next build`

@@ -67,7 +67,8 @@
     "authMiddleware",
     "/api/auth/register",
     "/api/auth/login",
-    "shadcn/ui"
+    "shadcn/ui",
+    "react-hook-form"
   ],
   "forbidden_auth_patterns": [
     "bcrypt",
@@ -242,6 +243,7 @@
     "middleware.ts": "templates/middleware.ts",
     "app/layout.tsx": "templates/app_layout.tsx",
     "app/page.tsx": "templates/app_page.tsx",
+    "app/blog/[slug]/page.tsx": "templates/app_blog_slug_page.tsx",
     "app/globals.css": "templates/app_globals.css",
     "jest.config.js": "templates/jest.config.js",
     "jest.setup.js": "templates/jest.setup.js",
@@ -303,7 +305,9 @@
     "next.config.js eslint ignoreDuringBuilds headers source path tsconfig exclude tests",
     "await auth userId server component route handler clerk async interdit auth().userId",
     "useAuth useUser user object client component clerk interdit useAuth().user",
-    "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe"
+    "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe",
+    "server component listing générique prisma findMany typed array try catch dynamic no hooks",
+    "auth userId null guard route handler if userId return 401 avant prisma authorId ownerId"
   ],
   "mandatory_rag_k": 4,
   "mandatory_rag_snippet_chars": 900,
@@ -541,8 +545,7 @@
         "authorId : userId"
       ],
       "requires_contains_all": [
-        "if (!userId)",
-        "return NextResponse.json"
+        "if (!userId)"
       ],
       "mode": "block",
       "requires_first_directive": null,
@@ -551,8 +554,8 @@
         "Une route utilise `authorId: userId` sans garde d'authentification explicite.",
         "",
         "TypeScript strict: `userId` peut être null si auth non validée.",
-        "Ajoute obligatoirement avant l'update/create Prisma :",
-        "  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })",
+        "Ajoute obligatoirement avant l'update/create Prisma un garde de ce type :",
+        "  if (!userId) return ...401...",
         "",
         "Fichiers à corriger :",
         "{details}",

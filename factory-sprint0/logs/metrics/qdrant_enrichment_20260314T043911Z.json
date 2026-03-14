@@ -1,0 +1,21 @@
+{
+  "injected": [
+    {
+      "point_id": "c310da47-89e3-19b4-1d12-41abe5486526",
+      "category": "nextjs",
+      "priority": "HIGH",
+      "text_excerpt": "Pattern g\u00e9n\u00e9rique pour une page de listing Next.js App Router (Server Component). Ce pattern fonctio...",
+      "generated_at": "2026-03-14T04:39:11.173606+00:00",
+      "collection": "factory_standards"
+    },
+    {
+      "point_id": "d3072df1-8e14-20ab-f7e9-bb1904d109c0",
+      "category": "clerk",
+      "priority": "CRITICAL",
+      "text_excerpt": "R\u00e8gle absolue pour tout route handler app/api/**/route.ts qui utilise userId dans une op\u00e9ration Pris...",
+      "generated_at": "2026-03-14T04:39:11.855274+00:00",
+      "collection": "factory_standards"
+    }
+  ],
+  "count": 2
+}

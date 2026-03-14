@@ -1032,6 +1032,25 @@ def dev_agent(
                                     )
                                 )
                                 continue
+                        # ── Template write-protection ────────────────────────────────────
+                        # Les singletons de stack (lib/prisma.ts, middleware.ts, etc.) sont
+                        # écrits par la factory AVANT la boucle LLM et sont corrects.
+                        # Si le LLM tente de les réécrire, on bloque : cela évite que le
+                        # LLM écrase un template valide avec du code incorrect (ex: run 1).
+                        _tp_norm = _path.lstrip("./").replace("\\", "/")
+                        if _tp_norm in _templated_names:
+                            tool_messages.append(
+                                ToolMessage(
+                                    content=(
+                                        f"WRITE_FILE BLOQUÉ — SINGLETON DE STACK PROTÉGÉ\n"
+                                        f"'{_path}' est un fichier template de la stack, déjà correct sur le disque.\n"
+                                        "NE PAS réécrire ce fichier — il est géré exclusivement par la factory.\n"
+                                        "Concentre-toi sur les fichiers métier : routes API, pages protégées, composants."
+                                    ),
+                                    tool_call_id=tool_call["id"],
+                                )
+                            )
+                            continue
                         if tool_name == "run_build":
                             computed_dir = _find_project_dir(files)
                             if computed_dir != "." and call_args.get("project_dir", ".") == ".":

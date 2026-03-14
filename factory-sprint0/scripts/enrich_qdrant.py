@@ -224,6 +224,111 @@ def inject_prisma7_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) 
     }
 
 
+GENERIC_LISTING_STANDARD = {
+    "category": "nextjs",
+    "text": (
+        "Pattern générique pour une page de listing Next.js App Router (Server Component). "
+        "Ce pattern fonctionne pour tout modèle Prisma (Post, Task, Product, Order, etc.). "
+        "Règles absolues : pas de 'use client', pas de hooks React (useState/useEffect), "
+        "export const dynamic = 'force-dynamic', typage explicite du tableau, try/catch avec fallback []. "
+        "Exemple générique applicable à tout modèle : "
+        "type ItemSummary = { id: string; title: string; createdAt: Date }; "
+        "let items: ItemSummary[] = []; "
+        "try { items = await prisma.<model>.findMany({ "
+        "where: { published: true }, orderBy: { createdAt: 'desc' }, "
+        "select: { id: true, title: true, createdAt: true } }); } catch { items = []; } "
+        "Remplacer <model> par le nom du modèle Prisma en camelCase (post, task, product...). "
+        "Remplacer ItemSummary et les champs select par ceux du modèle réel. "
+        "Ne jamais utiliser 'any' pour le type du tableau. "
+        "Ne jamais appeler prisma sans try/catch dans un Server Component (pas de DB en CI)."
+    ),
+    "tags": ["nextjs", "server-component", "prisma", "listing", "tailwind", "generic", "app-router"],
+    "priority": "HIGH",
+}
+
+AUTH_NULL_GUARD_STANDARD = {
+    "category": "clerk",
+    "text": (
+        "Règle absolue pour tout route handler app/api/**/route.ts qui utilise userId dans une opération Prisma. "
+        "Pattern mandatory : const { userId } = await auth(); "
+        "if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); "
+        "Ce guard DOIT précéder tout appel Prisma utilisant userId (create, update, delete, findUnique avec userId). "
+        "Ce pattern s'applique à TOUS les modèles avec ownership utilisateur, quel que soit le nom du champ : "
+        "authorId, userId, ownerId, createdBy — toujours vérifier userId avant de l'utiliser. "
+        "TypeScript strict : userId peut être null si l'utilisateur n'est pas authentifié. "
+        "Sans ce guard, TypeScript lève : 'Argument of type string | null is not assignable to parameter of type string'. "
+        "Signature correcte complète : "
+        "export async function PUT(request: Request, { params }: { params: { id: string } }) { "
+        "const { userId } = await auth(); "
+        "if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); "
+        "const body = await request.json(); "
+        "// Valider body avec Zod avant toute écriture Prisma. "
+        "const result = await prisma.<model>.update({ where: { id: params.id }, data: { ...body, userId } }); "
+        "return NextResponse.json(result); }"
+    ),
+    "tags": ["clerk", "auth", "userId", "null-guard", "route-handler", "prisma", "typescript", "security"],
+    "priority": "CRITICAL",
+}
+
+
+def inject_generic_listing_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+    """Insère le standard de listing générique Server Component dans Qdrant."""
+    text = GENERIC_LISTING_STANDARD["text"]
+    vector = embeddings.embed_query(text)
+    point_id = text_to_uuid(text)
+    payload = {
+        "text": text,
+        "metadata": {
+            "category": GENERIC_LISTING_STANDARD["category"],
+            "tags": GENERIC_LISTING_STANDARD["tags"],
+            "priority": GENERIC_LISTING_STANDARD["priority"],
+            "source": "manual_injection",
+            "tech": "nextjs,prisma,tailwind",
+            "version": "static",
+            "outcome": "hard_rule",
+            "stack": "nextjs-clerk-prisma",
+            "status": "active",
+            "zone": "15-generic-patterns",
+        },
+    }
+    client.upsert(
+        collection_name=QDRANT_COLLECTION_NAME,
+        points=[PointStruct(id=point_id, vector=vector, payload=payload)],
+        wait=True,
+    )
+    return {"point_id": point_id, "category": GENERIC_LISTING_STANDARD["category"],
+            "priority": GENERIC_LISTING_STANDARD["priority"], "text_excerpt": text[:100] + "..."}
+
+
+def inject_auth_null_guard_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+    """Insère le standard auth null guard dans Qdrant."""
+    text = AUTH_NULL_GUARD_STANDARD["text"]
+    vector = embeddings.embed_query(text)
+    point_id = text_to_uuid(text)
+    payload = {
+        "text": text,
+        "metadata": {
+            "category": AUTH_NULL_GUARD_STANDARD["category"],
+            "tags": AUTH_NULL_GUARD_STANDARD["tags"],
+            "priority": AUTH_NULL_GUARD_STANDARD["priority"],
+            "source": "manual_injection",
+            "tech": "nextjs,clerk,typescript",
+            "version": "static",
+            "outcome": "hard_rule",
+            "stack": "nextjs-clerk-prisma",
+            "status": "active",
+            "zone": "15-generic-patterns",
+        },
+    }
+    client.upsert(
+        collection_name=QDRANT_COLLECTION_NAME,
+        points=[PointStruct(id=point_id, vector=vector, payload=payload)],
+        wait=True,
+    )
+    return {"point_id": point_id, "category": AUTH_NULL_GUARD_STANDARD["category"],
+            "priority": AUTH_NULL_GUARD_STANDARD["priority"], "text_excerpt": text[:100] + "..."}
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Enrich Qdrant with learned standards from patterns_report.json")
     parser.add_argument(
@@ -243,6 +348,18 @@ def _parse_args() -> argparse.Namespace:
         default=False,
         help="Injecte le standard Prisma 7 breaking change directement dans Qdrant (sans patterns_report).",
     )
+    parser.add_argument(
+        "--inject-generic-listing",
+        action="store_true",
+        default=False,
+        help="Injecte le standard de listing générique Server Component dans Qdrant.",
+    )
+    parser.add_argument(
+        "--inject-auth-null-guard",
+        action="store_true",
+        default=False,
+        help="Injecte le standard auth null guard (userId check avant Prisma) dans Qdrant.",
+    )
     return parser.parse_args()
 
 
@@ -251,7 +368,7 @@ if __name__ == "__main__":
     load_dotenv(dotenv_path=".env")
     qdrant_url = _get_qdrant_url()
 
-    if args.inject_clerk_standard or args.inject_prisma7_standard:
+    if args.inject_clerk_standard or args.inject_prisma7_standard or args.inject_generic_listing or args.inject_auth_null_guard:
         _embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
         _client = QdrantClient(url=qdrant_url)
         results = []
@@ -262,6 +379,16 @@ if __name__ == "__main__":
             results.append(r)
         if args.inject_prisma7_standard:
             r = inject_prisma7_standard(_client, _embeddings)
+            r["generated_at"] = datetime.now(timezone.utc).isoformat()
+            r["collection"] = QDRANT_COLLECTION_NAME
+            results.append(r)
+        if args.inject_generic_listing:
+            r = inject_generic_listing_standard(_client, _embeddings)
+            r["generated_at"] = datetime.now(timezone.utc).isoformat()
+            r["collection"] = QDRANT_COLLECTION_NAME
+            results.append(r)
+        if args.inject_auth_null_guard:
+            r = inject_auth_null_guard_standard(_client, _embeddings)
             r["generated_at"] = datetime.now(timezone.utc).isoformat()
             r["collection"] = QDRANT_COLLECTION_NAME
             results.append(r)
