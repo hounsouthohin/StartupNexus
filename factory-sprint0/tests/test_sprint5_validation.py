@@ -197,12 +197,12 @@ class TestSpecCoverageRouteMatching:
         )
 
     def test_regle2_model_post_exact_satisfait(self):
-        """Déclaration 'model Post {' dans schema.prisma doit satisfaire le requirement."""
+        """Modèle + champs critiques présents => requirement Prisma satisfait."""
         req = ["Modèle Prisma: Post avec champs title, content, published"]
         files = {
             "schema.prisma": (
                 'datasource db {\n  provider = "postgresql"\n  url = env("DATABASE_URL")\n}\n'
-                "model Post {\n  id Int @id\n  title String\n}"
+                "model Post {\n  id Int @id\n  title String\n  content String\n  published Boolean\n}"
             )
         }
         result = self._coverage(req, files)

@@ -4,6 +4,10 @@
   "display_name": "Next.js 14 + Clerk v6 + Prisma 7",
   "status": "stable",
   "framework": "nextjs",
+  "llm_models": {
+    "architect_base": "gpt-4o-mini",
+    "architect_planner": "gpt-4o"
+  },
   "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
   "root_file": "package.json",
   "primary_manifest": "package.json",
@@ -17,6 +21,31 @@
   "token_budgets": {
     "phase1_tokens": 6000,
     "phase2_tokens": 14000
+  },
+  "iteration_policy": {
+    "base_max_iterations": 14,
+    "max_cap_iterations": 24,
+    "tiers": [
+      {
+        "min_requirements": 11,
+        "max_iterations": 17
+      },
+      {
+        "min_requirements": 16,
+        "max_iterations": 20
+      },
+      {
+        "min_requirements": 22,
+        "max_iterations": 24
+      }
+    ]
+  },
+  "generation_order": {
+    "priority_paths": [
+      "app/page.tsx",
+      "app/api/",
+      "prisma/schema.prisma"
+    ]
   },
   "packages": {
     "next": "14.2.25",
@@ -133,7 +162,8 @@
     "security_rules": [
       "Toutes les entrees utilisateur doivent etre validees avec Zod.",
       ".env.local doit contenir NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY et DATABASE_URL.",
-      "NEXT_PUBLIC_CLERK_SECRET_KEY est interdit."
+      "NEXT_PUBLIC_CLERK_SECRET_KEY est interdit.",
+      "Pattern canonique route mutative (POST/PUT/PATCH/DELETE) : const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); — obligatoire avant tout acces Prisma avec authorId ou ownerId."
     ],
     "test_rules": [
       "jest.config.js doit etre base sur next/jest (createJestConfig).",
@@ -240,10 +270,9 @@
     }
   },
   "templated_files": {
+    "package.json": "templates/package.json",
     "middleware.ts": "templates/middleware.ts",
     "app/layout.tsx": "templates/app_layout.tsx",
-    "app/page.tsx": "templates/app_page.tsx",
-    "app/blog/[slug]/page.tsx": "templates/app_blog_slug_page.tsx",
     "app/globals.css": "templates/app_globals.css",
     "jest.config.js": "templates/jest.config.js",
     "jest.setup.js": "templates/jest.setup.js",
@@ -299,17 +328,16 @@
   },
   "mandatory_rag_queries": [
     "versions exactes next.js clerk prisma jest ts-jest packages obligatoires",
-    "clerk v6 ClerkProvider layout.tsx html body force-dynamic clerkMiddleware async auth.protect middleware",
-    "jest.config.js next/jest createJestConfig setupFilesAfterEnv jest.setup.js testing-library",
+    "clerk v6 ClerkProvider layout.tsx clerkMiddleware async auth.protect middleware server",
     "prisma 7 schema.prisma prisma.config.ts defineConfig clerkId sans password createdAt updatedAt",
-    "next.config.js eslint ignoreDuringBuilds headers source path tsconfig exclude tests",
-    "await auth userId server component route handler clerk async interdit auth().userId",
-    "useAuth useUser user object client component clerk interdit useAuth().user",
+    "await auth userId server component route handler clerk async interdit auth().userId useAuth useUser",
     "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe",
     "server component listing générique prisma findMany typed array try catch dynamic no hooks",
-    "auth userId null guard route handler if userId return 401 avant prisma authorId ownerId"
+    "auth userId null guard route handler if userId return 401 avant prisma authorId ownerId",
+    "Prisma 7 datasource url interdit schema.prisma datasource generator multi-lignes canonique P1012",
+    "TypeScript strict tableau non typé interdit let array any prisma findMany catch fallback type explicite"
   ],
-  "mandatory_rag_k": 4,
+  "mandatory_rag_k": 2,
   "mandatory_rag_snippet_chars": 900,
   "qdrant_filter": {
     "collection": "factory_standards",
@@ -374,6 +402,62 @@
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"
   },
+  "path_guards": [
+    {
+      "id": "app_router_page_convention",
+      "kind": "app_router_convention",
+      "mode": "warn",
+      "route_root": "app/",
+      "file_extensions": [
+        ".tsx"
+      ],
+      "valid_route_names": [
+        "layout",
+        "page",
+        "error",
+        "loading",
+        "not-found",
+        "template",
+        "default"
+      ],
+      "excluded_directories": [
+        "components",
+        "lib",
+        "utils",
+        "hooks",
+        "styles",
+        "types",
+        "context",
+        "providers",
+        "helpers"
+      ],
+      "message_lines": [
+        "APP ROUTER CONVENTION WARNING — NON BLOQUANT",
+        "Ces fichiers app/ ne suivent pas la convention App Router (page.tsx/layout.tsx):",
+        "{details}",
+        "",
+        "Renomme les chemins selon app/<segment>/page.tsx pour les routes UI."
+      ]
+    },
+    {
+      "id": "app_router_api_route_naming",
+      "kind": "app_router_api_naming",
+      "mode": "warn",
+      "api_root": "app/api/",
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "api_valid_stem": "route",
+      "message_lines": [
+        "APP ROUTER API NAMING WARNING — NON BLOQUANT",
+        "Ces fichiers API ne suivent pas la convention App Router route.ts:",
+        "{details}",
+        "",
+        "Renomme selon app/api/<resource>/route.ts ou app/api/<resource>/[id]/route.ts."
+      ]
+    }
+  ],
   "content_guards": [
     {
       "id": "use_client",
@@ -390,7 +474,7 @@
       ],
       "requires_first_directive": "use client",
       "message_lines": [
-        "USE CLIENT GUARD — BUILD BLOQUÉ",
+        "USE CLIENT GUARD WARNING — NON BLOQUANT",
         "Ces fichiers utilisent des hooks React sans directive '\"use client\"' en première ligne :",
         "{details}",
         "",
@@ -422,23 +506,34 @@
       ]
     },
     {
-      "id": "server_blog_slug_page_no_hooks",
-      "description": "app/blog/[slug]/page.tsx doit rester server-first (pas de hooks client)",
+      "id": "server_dynamic_page_no_hooks",
+      "description": "Toute page.tsx dans app/ doit rester server-first (pas de hooks client React)",
       "mode": "block",
-      "file_prefix": "app/blog/[slug]/page.tsx",
+      "file_prefix": "app/",
       "file_extensions": [
         ".tsx"
+      ],
+      "exclude_paths": [
+        "app/components/",
+        "app/hooks/",
+        "app/context/",
+        "app/providers/",
+        "app/styles/"
+      ],
+      "exclude_when_contains": [
+        "'use client'",
+        "\"use client\""
       ],
       "trigger_regex": [
         "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\("
       ],
       "requires_first_directive": null,
       "message_lines": [
-        "SERVER BLOG PAGE GUARD — BUILD BLOQUÉ",
-        "app/blog/[slug]/page.tsx contient des hooks client mais doit rester server-first.",
+        "SERVER PAGE GUARD — BUILD BLOQUÉ",
+        "Un fichier page.tsx dans app/ contient des hooks client mais doit rester server-first.",
         "{details}",
         "",
-        "Correction obligatoire : déplacer les hooks dans un composant client `app/components/**` et garder app/blog/[slug]/page.tsx sans hooks."
+        "Correction obligatoire : déplacer les hooks dans un composant client `app/components/**` et garder la page.tsx sans hooks ni directive 'use client'."
       ]
     },
     {
@@ -544,8 +639,8 @@
         "authorId: userId",
         "authorId : userId"
       ],
-      "requires_contains_all": [
-        "if (!userId)"
+      "requires_regex_all": [
+        "if\\s*\\(\\s*!\\s*userId\\s*\\)"
       ],
       "mode": "block",
       "requires_first_directive": null,
@@ -601,23 +696,49 @@
     {
       "id": "prisma_schema_datasource_required",
       "description": "schema.prisma doit définir datasource db avec provider postgresql",
-      "mode": "warn",
+      "mode": "block",
       "file_prefix": "prisma/",
       "file_extensions": [
         ".prisma"
       ],
       "requires_regex_all": [
-        "\\bdatasource\\s+db\\s*\\{",
-        "provider\\s*=\\s*['\\\"]postgresql['\\\"]"
+        "(?ms)\\bdatasource\\s+db\\s*\\{[\\s\\S]*?\\bprovider\\s*=\\s*['\\\"]postgresql['\\\"][\\s\\S]*?\\}"
       ],
       "requires_first_directive": null,
       "message_lines": [
         "PRISMA DATASOURCE REQUIRED GUARD — BUILD BLOQUÉ",
-        "Le fichier prisma/schema.prisma doit contenir un bloc datasource db valide pour PostgreSQL.",
+        "Le fichier prisma/schema.prisma doit contenir un bloc datasource db CANONIQUE (multiligne) pour PostgreSQL.",
         "",
-        "Exigences minimales :",
+        "Format obligatoire :",
         "  datasource db {",
         "    provider = \"postgresql\"",
+        "  }",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Corrige schema.prisma puis rappelle run_build."
+      ]
+    },
+    {
+      "id": "prisma_schema_generator_required",
+      "description": "schema.prisma doit définir generator client canonical avec provider prisma-client-js",
+      "mode": "block",
+      "file_prefix": "prisma/",
+      "file_extensions": [
+        ".prisma"
+      ],
+      "requires_regex_all": [
+        "(?ms)\\bgenerator\\s+client\\s*\\{[\\s\\S]*?\\bprovider\\s*=\\s*['\\\"]prisma-client-js['\\\"][\\s\\S]*?\\}"
+      ],
+      "requires_first_directive": null,
+      "message_lines": [
+        "PRISMA GENERATOR REQUIRED GUARD — BUILD BLOQUÉ",
+        "Le fichier prisma/schema.prisma doit contenir un bloc generator client CANONIQUE (multiligne).",
+        "",
+        "Format obligatoire :",
+        "  generator client {",
+        "    provider = \"prisma-client-js\"",
         "  }",
         "",
         "Fichiers à corriger :",
@@ -818,6 +939,36 @@
         "{details}",
         "",
         "Ajoute les types Request/params pour éviter l'erreur TS7006 (implicit any)."
+      ]
+    },
+    {
+      "id": "clerk_client_import_in_api",
+      "description": "Import @clerk/nextjs (client) dans un route handler app/api/ — doit être @clerk/nextjs/server",
+      "file_prefix": "app/api/",
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "from '@clerk/nextjs'",
+        "from \"@clerk/nextjs\""
+      ],
+      "mode": "block",
+      "requires_first_directive": null,
+      "message_lines": [
+        "CLERK API IMPORT GUARD — BUILD BLOQUÉ",
+        "Un route handler importe depuis '@clerk/nextjs' (package client) au lieu de '@clerk/nextjs/server'.",
+        "",
+        "  ❌ import { auth } from '@clerk/nextjs'",
+        "     Le package client n'exporte pas auth() pour les route handlers — TypeScript error.",
+        "",
+        "  ✅ import { auth } from '@clerk/nextjs/server'",
+        "     auth() côté serveur est exclusivement dans le sous-package /server.",
+        "",
+        "Fichiers à corriger :",
+        "{details}",
+        "",
+        "Remplace l'import, puis appelle run_build."
       ]
     },
     {

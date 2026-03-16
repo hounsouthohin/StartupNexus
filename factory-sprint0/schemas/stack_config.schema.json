@@ -21,6 +21,15 @@
     "stack_id": { "type": "string" },
     "framework": { "type": "string" },
     "status": { "enum": ["stable", "experimental", "deprecated"] },
+    "llm_models": {
+      "type": "object",
+      "description": "Override des modèles LLM par stack (optionnel).",
+      "properties": {
+        "architect_base": { "type": "string" },
+        "architect_planner": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
     "packages": { "type": "object" },
     "commands": { "type": "object" },
     "import_remaps": { "type": "object" },
@@ -29,6 +38,38 @@
       "items": { "type": "string" }
     },
     "qdrant_filter": { "type": "object" },
+    "iteration_policy": {
+      "type": "object",
+      "description": "Politique dynamique d'itérations LLM selon la complexité (nombre de requirements).",
+      "properties": {
+        "base_max_iterations": { "type": "integer", "minimum": 1 },
+        "max_cap_iterations": { "type": "integer", "minimum": 1 },
+        "tiers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["min_requirements", "max_iterations"],
+            "properties": {
+              "min_requirements": { "type": "integer", "minimum": 0 },
+              "max_iterations": { "type": "integer", "minimum": 1 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "generation_order": {
+      "type": "object",
+      "description": "Priorisation config-driven des chemins à générer pour accélérer la convergence.",
+      "properties": {
+        "priority_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
     "prompt_rules": {
       "type": "object",
       "required": ["auth_rules", "ui_rules", "security_rules"],

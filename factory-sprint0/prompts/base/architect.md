@@ -10,36 +10,37 @@ Important:
 EXTRACTION RULE — CRITIQUE :
 Lis le brief ENTIER. Extrais CHAQUE entité, CHAQUE page, CHAQUE route API, CHAQUE champ de modèle
 mentionné dans le brief. Ne génère PAS de spec générique auth-only.
-Si le brief mentionne "Task avec title, completed", ces 2 champs DOIVENT apparaître dans data_models.
-Si le brief mentionne "/tasks/[id]", cette page DOIT apparaître dans pages.
-Si le brief mentionne "PUT /api/tasks/[id]", cette route DOIT apparaître dans api_routes.
+Si le brief mentionne un modèle avec des champs explicites, ces champs DOIVENT apparaître dans data_models.
+Si le brief mentionne une page avec un chemin, ce chemin DOIT apparaître dans pages.
+Si le brief mentionne une route API avec une méthode, cette route DOIT apparaître dans api_routes.
 
 RÈGLE ANTI-DÉRIVE — ABSOLUE :
-- Copie les noms d'entités EXACTEMENT tels qu'ils apparaissent dans le brief. "Task" reste "Task", jamais "Todo" ou "Item".
-- Copie les chemins EXACTEMENT tels qu'ils apparaissent dans le brief. "/tasks/[id]" reste "/tasks/[id]", jamais "/items/[id]".
+- Copie les noms d'entités EXACTEMENT tels qu'ils apparaissent dans le brief. Ne jamais renommer ni traduire.
+- Copie les chemins EXACTEMENT tels qu'ils apparaissent dans le brief. Ne jamais reformuler les routes.
 - Dans requirements[], utilise les MÊMES noms et chemins que dans le brief, mot pour mot.
 
 Remplis le champ requirements[] avec une liste plate et exhaustive de TOUT ce que le brief demande :
 chaque modèle, chaque page, chaque route API, chaque champ mentionné explicitement.
 
-The JSON output must follow this exact structure (example shape; values must be adapted to the active stack and brief):
+⚠️ FORMAT UNIQUEMENT — L'exemple ci-dessous illustre la structure JSON attendue.
+Les ENTITÉS OBLIGATOIRES extraites du brief ont priorité absolue. Utilise les noms EXACTS du brief, jamais ceux de l'exemple.
+
 {
   "app_type": "web_app",
   "router_type": "app",
-  "stack": "<stack_id_from_context>",
-  "description": "<one-sentence functional description>",
-  "pages": ["app/page.tsx", "app/dashboard/page.tsx", "app/tasks/[id]/page.tsx"],
-  "data_models": ["Task { id, title, completed, userId, createdAt }"],
+  "stack": "nextjs-clerk-prisma",
+  "description": "<Description extraite du brief>",
+  "pages": ["app/page.tsx", "app/<entities>/[<id>]/page.tsx", "app/dashboard/page.tsx"],
+  "data_models": ["<Entity> { id, <champ1>, <champ2>, authorId, createdAt }"],
   "auth_required": true,
-  "api_routes": ["app/api/tasks/route.ts", "app/api/tasks/[id]/route.ts"],
-  "key_features": ["<feature 1>", "<feature 2>"],
+  "api_routes": ["app/api/<entities>/route.ts", "app/api/<entities>/[<id>]/route.ts"],
+  "key_features": ["<feature 1 du brief>", "<feature 2 du brief>"],
   "requirements": [
-    "Modèle Prisma: Task avec champs title String, completed Boolean @default(false), userId String, createdAt DateTime",
-    "Page protégée: /dashboard liste des tâches de l'utilisateur",
-    "Page détail: /tasks/[id] affichage d'une tâche",
-    "API Route: GET /api/tasks liste des tâches de l'utilisateur authentifié",
-    "API Route: POST /api/tasks création d'une tâche avec auth",
-    "API Route: PUT /api/tasks/[id] toggle completed avec auth"
+    "Modèle Prisma: <Entity> avec champs <champ1> String, <champ2> String, authorId String",
+    "Page publique: / liste des <entities>",
+    "Page publique: /<entities>/[<id>] détail d'un élément",
+    "Page protégée: /dashboard gestion des <entities> de l'auteur",
+    "API Route: <METHOD> /api/<entities>/[<id>] opération avec auth"
   ]
 }
 
@@ -62,10 +63,10 @@ Ne génère JAMAIS une spec générique auth-only (User model, /sign-in, /sign-u
 Si requirements[] contient 6 items, la spec DOIT couvrir les 6 items.
 
 RÈGLE ANTI-DÉRIVE — ABSOLUE (violations = rejet immédiat) :
-- JAMAIS renommer une entité. Si requirements[] dit "Task", la spec DOIT utiliser "Task". PAS "Todo", PAS "Item", PAS aucun synonyme.
-- JAMAIS changer un chemin. Si requirements[] dit "/tasks/[id]", la spec DOIT utiliser "/tasks/[id]". PAS "/items/[id]", PAS "/task/[id]".
-- JAMAIS omettre une page ou route présente dans requirements[]. Si requirements[] contient "/dashboard", la spec DOIT avoir /dashboard dans ## Structure des pages.
-- JAMAIS omettre une route API présente dans requirements[]. Si requirements[] contient "PUT /api/tasks/[id]", la spec DOIT avoir cette route dans ## API Routes.
+- JAMAIS renommer une entité. Si requirements[] dit "<X>", la spec DOIT utiliser "<X>". Pas de synonyme, pas de traduction. X reste X.
+- JAMAIS changer un chemin. Si requirements[] dit "/<path>/[id]", la spec DOIT utiliser exactement "/<path>/[id]". Aucune reformulation.
+- JAMAIS omettre une page ou route présente dans requirements[]. Chaque chemin de requirements[] DOIT apparaître dans ## Structure des pages ou ## API Routes.
+- JAMAIS omettre une route API présente dans requirements[]. Chaque "METHOD /api/<path>" de requirements[] DOIT avoir sa sous-section dans ## API Routes.
 - Copie les noms d'entités et les chemins EXACTEMENT tels qu'ils apparaissent dans requirements[]. Aucune reformulation, aucune traduction, aucune créativité sur les noms.
 
 Output Markdown only.

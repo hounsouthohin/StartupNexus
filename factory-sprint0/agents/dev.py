@@ -166,9 +166,10 @@ def dev_agent(
     tools_phase2 = tools_phase1
     tool_map = {tool.name: tool for tool in tools_phase1}
 
-    MAX_ITERATIONS = 14
+    DEFAULT_MAX_ITERATIONS = 14
+    MAX_ITERATIONS = DEFAULT_MAX_ITERATIONS
     MAX_BUILD_ATTEMPTS = 8
-    PHASE1_LIMIT = 14  # identique à MAX_ITERATIONS — plus de split de phase
+    PHASE1_LIMIT = MAX_ITERATIONS  # aligné dynamiquement après chargement stack
     # Budgets ramenés à des tailles réalistes pour limiter la pression TPM
     MAX_SPEC_TOKENS = 4000
     MAX_MERMAID_TOKENS = 1200
@@ -272,6 +273,75 @@ def dev_agent(
     from .stack_config import load_stack_config
     stack_cfg = load_stack_config(effective_stack_id) or {}
 
+    generation_order_cfg = stack_cfg.get("generation_order", {}) if isinstance(stack_cfg, dict) else {}
+    _priority_paths_cfg = generation_order_cfg.get("priority_paths", []) if isinstance(generation_order_cfg, dict) else []
+    PRIORITY_PATHS = [str(p).replace("\\", "/").strip() for p in _priority_paths_cfg if str(p).strip()]
+
+    def _path_priority_rank(path: str) -> int:
+        p = str(path or "").replace("\\", "/").strip().lower()
+        if not PRIORITY_PATHS:
+            return 10_000
+        for idx, raw_pat in enumerate(PRIORITY_PATHS):
+            pat = raw_pat.lower()
+            if pat.endswith("/"):
+                if p.startswith(pat):
+                    return idx
+            elif p == pat or p.endswith("/" + pat):
+                return idx
+        return 10_000 + len(PRIORITY_PATHS)
+
+    def _sort_paths_by_priority(paths: list[str]) -> list[str]:
+        return sorted(
+            [str(p) for p in (paths or [])],
+            key=lambda p: (_path_priority_rank(p), str(p).replace("\\", "/").lower()),
+        )
+
+    def _resolve_max_iterations(cfg: dict, reqs: list | None) -> int:
+        policy = cfg.get("iteration_policy", {}) if isinstance(cfg, dict) else {}
+        if not isinstance(policy, dict):
+            return DEFAULT_MAX_ITERATIONS
+        try:
+            base = int(policy.get("base_max_iterations", DEFAULT_MAX_ITERATIONS))
+        except Exception:
+            base = DEFAULT_MAX_ITERATIONS
+        try:
+            cap = int(policy.get("max_cap_iterations", base))
+        except Exception:
+            cap = base
+        if cap < 1:
+            cap = base if base >= 1 else DEFAULT_MAX_ITERATIONS
+        req_count = len(reqs or [])
+        target = base
+        tiers = policy.get("tiers", [])
+        def _safe_int(v, d=0):
+            try:
+                return int(v)
+            except Exception:
+                return d
+
+        if isinstance(tiers, list):
+            for tier in sorted(
+                [t for t in tiers if isinstance(t, dict)],
+                key=lambda t: _safe_int(t.get("min_requirements", 0), 0),
+            ):
+                try:
+                    min_req = int(tier.get("min_requirements", 0))
+                    iter_cap = int(tier.get("max_iterations", target))
+                except Exception:
+                    continue
+                if req_count >= min_req:
+                    target = iter_cap
+        target = max(1, target)
+        target = min(target, cap)
+        return target
+
+    MAX_ITERATIONS = _resolve_max_iterations(stack_cfg, requirements)
+    PHASE1_LIMIT = MAX_ITERATIONS
+    logger.info(
+        f"[ITERATION_POLICY] requirements={len(requirements or [])} "
+        f"max_iterations={MAX_ITERATIONS}"
+    )
+
     # ── Écriture des fichiers templates AVANT la boucle LLM ──────────────────
     # Ces fichiers sont invariants pour la stack. Le LLM ne doit pas les régénérer.
     _template_written = _write_template_files(_workdir, stack_cfg, project_name, effective_stack_id)
@@ -300,7 +370,7 @@ def dev_agent(
     mandatory_rag_context = "\n\n".join(mandatory_rag_context_chunks)
 
     # Exclure les fichiers templates de l'ordre de génération LLM
-    llm_required_files = [f for f in required_files if f not in _templated_names]
+    llm_required_files = _sort_paths_by_priority([f for f in required_files if f not in _templated_names])
     templates_block = ""
     if _templated_names:
         templates_block = (
@@ -311,9 +381,9 @@ def dev_agent(
     required_files_block = ""
     if llm_required_files:
         required_files_block = (
-            "ORDRE DE GÉNÉRATION OBLIGATOIRE — respecte cette séquence exacte, un fichier à la fois :\n"
+            "FICHIERS OBLIGATOIRES À CRÉER (en plus des fichiers métier de la spec) :\n"
             + "\n".join(f"{i+1}. {f}" for i, f in enumerate(llm_required_files))
-            + "\nNe génère PAS de fichiers hors de cette liste avant que tous soient créés.\n\n"
+            + "\n\n"
         )
     requirements_block = ""
     if requirements:
@@ -332,8 +402,8 @@ def dev_agent(
             "La spec a été générée avec des noms qui diffèrent des requirements du client.\n"
             "Pour les éléments ci-dessous, IGNORER les noms de la spec et utiliser EXACTEMENT ceux des requirements :\n"
             f"{unmatched_list}\n"
-            "Règle absolue : si la spec nomme un modèle 'Article', le client exige 'Post'. "
-            "Si la spec utilise '/articles', le client exige '/blog'. "
+            "Règle absolue : si la spec nomme un modèle '<NomDansSpec>', le client exige '<NomDansRequirements>'. "
+            "Si la spec utilise '/<cheminSpec>', le client exige '/<cheminRequirements>'. "
             "Tu dois implémenter les noms des requirements MOT POUR MOT — pas leurs équivalents dans la spec.\n\n"
         )
     packages = stack_cfg.get("packages", {})
@@ -352,10 +422,29 @@ def dev_agent(
             + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in dev_packages.items())
             + "\n\n"
         )
+    # Bloc d'ordre adaptatif — basé sur llm_required_files (fichiers réellement à écrire par le LLM,
+    # templates déjà exclus). Si package.json apparaît (templates non fonctionnels), il est
+    # remonté en tête quelle que soit la priorité generation_order.
+    ordering_block = ""
+    if llm_required_files:
+        _ordered = list(llm_required_files)
+        if "package.json" in _ordered:
+            _ordered.remove("package.json")
+            _ordered.insert(0, "package.json")
+        ordering_block = (
+            "══════════════════════════════════════════════════════════\n"
+            "SÉQUENCE D'ÉCRITURE OBLIGATOIRE — respecter cet ordre AVANT tout autre fichier :\n"
+            + "\n".join(f"  {i+1}. {f}" for i, f in enumerate(_ordered))
+            + "\n"
+            "INTERDIT : run_build() ou tout fichier métier avant que TOUS ces fichiers soient écrits.\n"
+            "══════════════════════════════════════════════════════════\n\n"
+        )
+
     messages = [
         SystemMessage(content=prompt),
         HumanMessage(content=(
             f"Projet : {project_name}\n\n"
+            f"{ordering_block}"
             f"{spec_degraded_block}"
             f"Spec :\n{summarized_spec}\n\n"
             f"Mermaid :\n{summarized_mermaid}\n\n"
@@ -365,9 +454,6 @@ def dev_agent(
             f"{templates_block}"
             f"{required_files_block}"
             f"{requirements_block}"
-            "⚠️ RÈGLE ABSOLUE — package.json DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE (avant jest.setup.js, avant app/layout.tsx, avant tout). "
-            "Étape 1 OBLIGATOIRE : génère IMMÉDIATEMENT package.json avec les versions exactes ci-dessus. "
-            "Ne génère AUCUN autre fichier avant que package.json soit écrit sur le disque."
         ))
     ]
 
@@ -467,6 +553,8 @@ def dev_agent(
         Retourne (bloqué: bool, message: str).
         Utilisé sur DEUX chemins : tool_call run_build ET forced build.
         """
+        _warnings: list[str] = []
+
         # 1. Blueprint Validator
         _present = set(files_dict.keys()) | _templated_names
         _present_norm = {p.replace("\\", "/").lower() for p in _present}
@@ -482,7 +570,7 @@ def dev_agent(
                 + "\n".join(f"  - {f}" for f in _missing)
                 + "\n\nGénère ces fichiers avec write_file() maintenant."
                 " run_build sera disponible une fois tous présents."
-            ), "blueprint"
+            ), "blueprint", _warnings
         # 2. PATH GUARDS — config-driven (naming conventions de fichiers/chemins)
         for _pg in stack_cfg.get("path_guards", []):
             _pg_id = str(_pg.get("id", "unknown"))
@@ -535,9 +623,9 @@ def dev_agent(
                 if _pg_mode == "warn":
                     _guard_warning_hits[_pg_id] = _guard_warning_hits.get(_pg_id, 0) + len(_violations)
                     logger.warning(f"[PATH_GUARD WARN {_pg_id}] {len(_violations)} violation(s)")
-                    messages.append(HumanMessage(content=f"[PATH_GUARD WARNING:{_pg_id}]\n{_msg}"))
+                    _warnings.append(f"[PATH_GUARD WARNING:{_pg_id}]\n{_msg}")
                 else:
-                    return True, _msg, _pg_id
+                    return True, _msg, _pg_id, _warnings
 
         # 3. FORBIDDEN PATHS GUARD (depuis stack config)
         _forbidden = get_forbidden_paths(stack_id) if stack_id else ["pages/", "src/pages/"]
@@ -558,7 +646,7 @@ def dev_agent(
                 "  app/api/<resource>/route.ts            → export async function GET() / POST()\n"
                 "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
                 "Crée les fichiers App Router corrects avec write_file(), puis rappelle run_build."
-            ), "forbidden_paths"
+            ), "forbidden_paths", _warnings
         # 6bis. FORBIDDEN IMPORTS GUARD (depuis stack config)
         _forbidden_import_tokens = get_forbidden_imports(stack_id) if stack_id else []
         _forbidden_import_violations = _collect_forbidden_import_violations(
@@ -577,7 +665,7 @@ def dev_agent(
                 "Corrige les imports selon les règles stack (auth/ORM/UI), puis rappelle run_build."
             )
             logger.warning(f"[PREBUILD WARN forbidden_imports] {len(_forbidden_import_violations)} violation(s)")
-            messages.append(HumanMessage(content=f"[PREBUILD WARNING:forbidden_imports]\n{_warn_msg}"))
+            _warnings.append(f"[PREBUILD WARNING:forbidden_imports]\n{_warn_msg}")
         # 8+. CONTENT GUARDS — config-driven (T008/T009 multi-stack)
         # Toutes les règles de contenu fichier sont déclarées dans la section
         # "content_guards" du JSON de stack. dev.py ne contient aucune logique
@@ -681,11 +769,11 @@ def dev_agent(
                 if _mode == "warn":
                     _guard_warning_hits[_gid] = _guard_warning_hits.get(_gid, 0) + len(_violations)
                     logger.warning(f"[CONTENT_GUARD WARN {_gid}] {len(_violations)} violation(s) — non bloquant")
-                    messages.append(HumanMessage(content=f"[CONTENT_GUARD WARNING:{_gid}]\n{_msg}"))
+                    _warnings.append(f"[CONTENT_GUARD WARNING:{_gid}]\n{_msg}")
                     continue
-                return True, _msg, _gid
+                return True, _msg, _gid, _warnings
 
-        return False, "", ""
+        return False, "", "", _warnings
 
     def _requirements_gate(reqs: list, files_dict: dict) -> tuple:
         """
@@ -707,7 +795,17 @@ def dev_agent(
             p_norm = str(p).replace("\\", "/").lower()
             if not any(pp == p_norm or pp.endswith("/" + p_norm) for pp in present_paths):
                 missing.append(p)
-        return missing
+        return _sort_paths_by_priority(missing)
+
+    def _sort_requirements_by_priority(reqs: list[str]) -> list[str]:
+        if not reqs:
+            return []
+        decorated: list[tuple[int, str, str]] = []
+        for req in reqs:
+            _primary = _extract_primary_path_from_requirement(req)
+            decorated.append((_path_priority_rank(_primary), _primary, req))
+        decorated.sort(key=lambda t: (t[0], t[1].lower(), t[2].lower()))
+        return [t[2] for t in decorated]
 
     def _collect_blocking_content_guard_targets(files_dict: dict) -> tuple[str, list[str]]:
         """
@@ -791,7 +889,7 @@ def dev_agent(
 
     def _build_run_state(files_dict: dict) -> dict:
         cov = _engine_compute_coverage_detailed(requirements or [], files_dict)
-        unmet = cov.get("unmet", [])
+        unmet = _sort_requirements_by_priority(cov.get("unmet", []))
         missing_files = _missing_required_files(llm_required_files, files_dict)
         structural_gid, structural_paths = _collect_blocking_content_guard_targets(files_dict)
         # Priorité convergence: créer d'abord les fichiers blueprint manquants.
@@ -978,6 +1076,27 @@ def dev_agent(
     logger.info(f"[STATE] token budgets — phase1={_PHASE1_MAX_CHARS} chars, phase2={_PHASE2_MAX_CHARS} chars")
     # ────────────────────────────────────────────────────────────────────────────
 
+    def _append_aggregated_gate_warnings(msgs: list[str]) -> None:
+        if not msgs:
+            return
+        unique_msgs = list(dict.fromkeys([m.strip() for m in msgs if str(m).strip()]))
+        if not unique_msgs:
+            return
+        preview = unique_msgs[:3]
+        more = len(unique_msgs) - len(preview)
+        body = "\n\n".join(preview)
+        if more > 0:
+            body += f"\n\n... {more} warning(s) supplémentaire(s) non affiché(s) dans ce tour."
+        messages.append(
+            HumanMessage(
+                content=(
+                    "[PREBUILD WARNINGS AGGREGATED]\n"
+                    "Warnings non bloquants détectés (agrégés, une seule notification par itération):\n\n"
+                    f"{body}"
+                )
+            )
+        )
+
     for iteration in range(1, MAX_ITERATIONS + 1):
         current_phase = 1 if iteration <= PHASE1_LIMIT else 2
         current_tools = tools_phase1 if current_phase == 1 else tools_phase2
@@ -994,11 +1113,17 @@ def dev_agent(
         run_state = _build_run_state(files)
         _update_progress_summary(run_state)
         main_messages.append(HumanMessage(content=_build_iteration_brief(run_state)))
-        response = llm.bind_tools(current_tools).invoke(main_messages)
+        # Empêche les appels prématurés à run_build tant qu'un gate est actif.
+        # Cela réduit les boucles "run_build -> gate blocked" sans progression d'écriture.
+        _iter_tools = current_tools
+        if run_state.get("active_blocker") != "ready_for_build":
+            _iter_tools = [t for t in current_tools if getattr(t, "name", "") != "run_build"]
+        response = llm.bind_tools(_iter_tools).invoke(main_messages)
         messages.append(response)
 
         tool_messages = []
         raw_tool_outputs = []
+        iter_gate_warnings: list[str] = []
         successful_write_paths: set[str] = set()
         wrote_file_this_iter = False
         called_build_this_iter = False
@@ -1035,18 +1160,13 @@ def dev_agent(
                         # ── Template write-protection ────────────────────────────────────
                         # Les singletons de stack (lib/prisma.ts, middleware.ts, etc.) sont
                         # écrits par la factory AVANT la boucle LLM et sont corrects.
-                        # Si le LLM tente de les réécrire, on bloque : cela évite que le
-                        # LLM écrase un template valide avec du code incorrect (ex: run 1).
+                        # Message neutre : évite de désorienter le LLM (run-05 lesson).
                         _tp_norm = _path.lstrip("./").replace("\\", "/")
                         if _tp_norm in _templated_names:
+                            logger.info(f"[template_guard] write ignoré pour template: {_path}")
                             tool_messages.append(
                                 ToolMessage(
-                                    content=(
-                                        f"WRITE_FILE BLOQUÉ — SINGLETON DE STACK PROTÉGÉ\n"
-                                        f"'{_path}' est un fichier template de la stack, déjà correct sur le disque.\n"
-                                        "NE PAS réécrire ce fichier — il est géré exclusivement par la factory.\n"
-                                        "Concentre-toi sur les fichiers métier : routes API, pages protégées, composants."
-                                    ),
+                                    content=f"[OK] '{_path}' déjà sur le disque (template factory). Passe au fichier suivant.",
                                     tool_call_id=tool_call["id"],
                                 )
                             )
@@ -1061,7 +1181,8 @@ def dev_agent(
                             _prev_state = _state
                             _state = _SM_STRUCT_GATES
                             logger.info(f"[STATE] {_prev_state} → {_state}")
-                            _gate_blocked, _gate_msg, _ = _prebuild_gates(files)
+                            _gate_blocked, _gate_msg, _, _gate_warns = _prebuild_gates(files)
+                            iter_gate_warnings.extend(_gate_warns)
                             if not _gate_blocked:
                                 # ── REQUIREMENTS GATE ─────────────────────────────────────────
                                 _prev_state = _state
@@ -1221,7 +1342,8 @@ def dev_agent(
         if all(any(k in p for p in files) for k in key_files) and not build_success:
             # Ordre: d'abord les gates structurelles (_prebuild_gates), puis requirements.
             # Garantit que le LLM reçoit le feedback le plus proche du blocage réel.
-            _early_gates_blocked, _early_gates_msg, _ = _prebuild_gates(files)
+            _early_gates_blocked, _early_gates_msg, _, _early_gate_warns = _prebuild_gates(files)
+            iter_gate_warnings.extend(_early_gate_warns)
             if _early_gates_blocked:
                 messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_early_gates_msg}"))
             else:
@@ -1234,7 +1356,8 @@ def dev_agent(
         # Garde-fou: si le modele stagne sans progres, forcer un run_build.
         if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
             # ── Même gates pré-build que le chemin tool_call ──────────────────
-            _forced_blocked, _forced_msg, _ = _prebuild_gates(files)
+            _forced_blocked, _forced_msg, _, _forced_gate_warns = _prebuild_gates(files)
+            iter_gate_warnings.extend(_forced_gate_warns)
             if not _forced_blocked:
                 _forced_blocked, _forced_msg = _requirements_gate(requirements, files)
             if _forced_blocked:
@@ -1262,6 +1385,8 @@ def dev_agent(
                     failed_cmd = _extract_failed_command(forced_build_output)
                     if failed_cmd:
                         last_failed_command = failed_cmd
+
+        _append_aggregated_gate_warnings(iter_gate_warnings)
 
         # Reflection informative uniquement (ne pilote pas la sortie).
         _reflection_state = _build_run_state(files)
@@ -1326,7 +1451,7 @@ def dev_agent(
     if not build_attempted and files:
         _terminal_guard_handled = True
         _tg_dir = _find_project_dir(files)
-        _tg_blocked, _tg_msg, _tg_gid = _prebuild_gates(files)
+        _tg_blocked, _tg_msg, _tg_gid, _ = _prebuild_gates(files)
         _tg_is_structural = _tg_blocked
         if not _tg_blocked:
             _tg_blocked, _tg_msg = _requirements_gate(requirements, files)

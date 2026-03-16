@@ -1,0 +1,13 @@
+{
+  "injected": [
+    {
+      "point_id": "6b974266-5a4f-fc2d-a10c-d7071e8951c5",
+      "category": "nextjs",
+      "priority": "HIGH",
+      "text_excerpt": "Next.js 14 App Router \u2014 convention de routing URL vers fichier (OBLIGATOIRE). Chaque segment d'URL c...",
+      "generated_at": "2026-03-15T16:54:55.910191+00:00",
+      "collection": "factory_standards"
+    }
+  ],
+  "count": 1
+}

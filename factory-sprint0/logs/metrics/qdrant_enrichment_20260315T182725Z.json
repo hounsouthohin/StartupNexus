@@ -1,0 +1,12 @@
+{
+  "injected": [
+    {
+      "point_id": "ab928ac6-fdea-fb3d-f40e-b4e20620c4d5",
+      "action": "fix_prisma7_datasource",
+      "text_excerpt": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma 7 \u2014 g\u00e9n\u00e9rer schema.prisma ET prisma.config.ts\nRAISON:...",
+      "generated_at": "2026-03-15T18:27:25.235614+00:00",
+      "collection": "factory_standards"
+    }
+  ],
+  "count": 1
+}

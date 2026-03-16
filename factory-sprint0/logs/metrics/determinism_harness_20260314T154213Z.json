@@ -1,0 +1,52 @@
+{
+  "generated_at": "2026-03-14T15:42:13.321821+00:00",
+  "harness": {
+    "runs_requested": 5,
+    "timeout_seconds": null
+  },
+  "metrics": {
+    "runs_count": 5,
+    "build_attempted_rate_raw": 0.0,
+    "build_attempted_rate_adjusted": 0.0,
+    "build_success_rate": 0.0,
+    "avg_iterations": 0.0,
+    "final_status_coherence_rate": 0.0,
+    "gate_divergence_rate": 0.0,
+    "excluded_legitimate_gates": 0,
+    "blocking_guard_counts": {}
+  },
+  "baseline_path": "C:\\Users\\BAMBARA Arthur\\Desktop\\StartupNexus\\factory-sprint0\\logs\\metrics\\baseline_kpis.json",
+  "baseline_aggregated": {
+    "runs_count": 5,
+    "build_attempted_rate": 0.8,
+    "build_success_rate": 0.0,
+    "avg_iterations": 14.0,
+    "final_status_coherence_rate": 1.0,
+    "root_cause_distribution": {
+      "max_iterations": 1,
+      "client_directive": 4
+    },
+    "avg_duration_seconds": 275.4,
+    "avg_semantic_violations": 0.0,
+    "targets_sprint_b": {
+      "build_attempted_rate": 0.95,
+      "build_success_rate": null,
+      "final_status_coherence_rate": 1.0,
+      "gate_divergence_rate": 0.0
+    }
+  },
+  "deltas_vs_baseline": {
+    "build_attempted_rate_delta": -0.8,
+    "final_status_coherence_rate_delta": -1.0,
+    "avg_iterations_delta": 14.0
+  },
+  "pass": false,
+  "failures": [
+    "build_attempted_rate_adjusted < 0.95",
+    "final_status_coherence_rate < 1.0",
+    "delta build_attempted_rate <= 0 vs baseline",
+    "final_status_coherence_rate regressed below 1.0"
+  ],
+  "batch_metrics_log_path": "/app/logs\\metrics\\todo_pilot_batch_20260314T154213Z.json",
+  "batch_metrics_log_path_host": "C:\\Users\\BAMBARA Arthur\\Desktop\\StartupNexus\\factory-sprint0\\logs\\metrics\\todo_pilot_batch_20260314T154213Z.json"
+}

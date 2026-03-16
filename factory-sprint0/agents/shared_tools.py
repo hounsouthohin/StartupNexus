@@ -363,6 +363,34 @@ def _apply_package_fixes(content: str) -> str:
     return content
 
 
+def _sanitize_prisma_schema_content(content: str) -> str:
+    """
+    Expands single-line Prisma datasource/generator blocks to multi-line format.
+    Prevents P1012 errors from the prisma_schema_datasource_required guard.
+
+    Single-line:  datasource db { provider = "postgresql" }
+    Multi-line:   datasource db {
+                    provider = "postgresql"
+                  }
+    """
+    def _expand_block(m: re.Match) -> str:
+        keyword = m.group(1)
+        name = m.group(2)
+        body = m.group(3)
+        pairs = re.findall(r'(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|\S+)', body)
+        if not pairs:
+            return m.group(0)
+        inner = "\n".join(f"  {k} = {v}" for k, v in pairs)
+        return f"{keyword} {name} {{\n{inner}\n}}"
+
+    return re.sub(
+        r'\b(datasource|generator)\s+(\w+)\s*\{([^}\n]*)\}',
+        _expand_block,
+        content,
+        flags=re.MULTILINE,
+    )
+
+
 _CODE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".css", ".scss", ".prisma")
 
 
@@ -418,6 +446,11 @@ def write_file(path: str, content: str) -> str:
             if not isinstance(parsed, dict):
                 return "ERREUR: package.json invalide (racine JSON doit être un objet)."
             content = json.dumps(parsed, ensure_ascii=False, indent=2) + "\n"
+
+        # Inline sanitizer pour prisma/schema.prisma : expand les blocs monoligne
+        # datasource/generator en multi-lignes pour passer le guard prisma_schema_datasource_required.
+        if _norm_write_path in ("prisma/schema.prisma", "schema.prisma"):
+            content = _sanitize_prisma_schema_content(content)
 
         if len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
             return f"ERREUR: Fichier trop grand (> {MAX_FILE_SIZE_BYTES} bytes): {path}"

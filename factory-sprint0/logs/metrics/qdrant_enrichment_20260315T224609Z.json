@@ -1,0 +1,16 @@
+{
+  "injected": [
+    {
+      "action": "backfill_metadata_source_zone",
+      "collection": "factory_standards",
+      "scanned": 70,
+      "updated": 13,
+      "missing_source_before": 13,
+      "missing_zone_before": 13,
+      "default_source": "factory_standards_v2",
+      "default_zone": "unclassified",
+      "generated_at": "2026-03-15T22:46:09.961811+00:00"
+    }
+  ],
+  "count": 1
+}

@@ -1,0 +1,13 @@
+{
+  "injected": [
+    {
+      "point_id": "60a2d183-77b8-f733-2e4e-70012ff24bf2",
+      "category": "prisma",
+      "priority": "CRITICAL",
+      "text_excerpt": "Prisma schema structure canonique (OBLIGATOIRE). Dans prisma/schema.prisma, les blocs datasource et ...",
+      "generated_at": "2026-03-16T00:20:39.602270+00:00",
+      "collection": "factory_standards"
+    }
+  ],
+  "count": 1
+}

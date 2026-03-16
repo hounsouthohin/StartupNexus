@@ -1,0 +1,13 @@
+{
+  "injected": [
+    {
+      "point_id": "3920aef0-fc4b-6e79-01d4-e87c1f5b415a",
+      "category": "typescript",
+      "priority": "HIGH",
+      "text_excerpt": "TypeScript strict \u2014 tableau non typ\u00e9 INTERDIT dans les Server Components et API Routes (OBLIGATOIRE)...",
+      "generated_at": "2026-03-15T19:17:06.988770+00:00",
+      "collection": "factory_standards"
+    }
+  ],
+  "count": 1
+}

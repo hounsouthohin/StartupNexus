@@ -195,6 +195,170 @@ def _build_hard_rewrite_instructions(stack_id: str) -> str:
         lines.append("- Retourner uniquement le markdown corrigé.")
     return "\n".join(lines)
 
+def _resolve_architect_models(active_stack: str) -> tuple[str, str]:
+    """
+    Résout les modèles LLM Architect via env puis stack config.
+    Priorité:
+    1) ARCHITECT_BASE_MODEL / ARCHITECT_PLANNER_MODEL
+    2) stack_cfg.llm_models.architect_base / architect_planner
+    3) défauts sûrs
+    """
+    default_base = "gpt-4o-mini"
+    default_planner = "gpt-4o"
+    stack_base = ""
+    stack_planner = ""
+    try:
+        from agents.stack_config import load_stack_config
+        stack_cfg = load_stack_config(active_stack) or {}
+        llm_models = stack_cfg.get("llm_models", {})
+        if isinstance(llm_models, dict):
+            stack_base = str(llm_models.get("architect_base", "")).strip()
+            stack_planner = str(llm_models.get("architect_planner", "")).strip()
+    except Exception:
+        pass
+
+    base_model = (
+        os.getenv("ARCHITECT_BASE_MODEL", "").strip()
+        or stack_base
+        or default_base
+    )
+    planner_model = (
+        os.getenv("ARCHITECT_PLANNER_MODEL", "").strip()
+        or stack_planner
+        or default_planner
+    )
+    return base_model, planner_model
+
+def _build_minimal_plan_from_phrase(phrase: str, stack_id: str = _DEFAULT_STACK_ID) -> dict:
+    """
+    Fallback déterministe sans LLM:
+    construit un plan JSON minimal valide à partir du brief.
+    """
+    model_blocks = re.findall(
+        r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)\s*\{([^}]+)\}',
+        phrase,
+        re.IGNORECASE,
+    )
+    model_names = []
+    data_models = []
+    for name, fields in model_blocks:
+        model_names.append(name)
+        field_list = re.sub(r"\s+", " ", fields.strip())
+        data_models.append(f"{name} {{ {field_list} }}")
+    if not data_models:
+        for name in re.findall(r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', phrase, re.IGNORECASE):
+            if name not in model_names:
+                model_names.append(name)
+                data_models.append(name)
+
+    http_methods = re.findall(r'\b(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', phrase)
+    api_paths = [p for _, p in http_methods]
+    api_routes = [f"app/{p.strip('/')}/route.ts" for p in dict.fromkeys(api_paths)]
+
+    all_paths = re.findall(r'/[\w/\[\]-]{1,}', phrase)
+    page_paths = [p for p in all_paths if "/api/" not in p]
+    pages = []
+    for p in dict.fromkeys(page_paths):
+        if p == "/":
+            pages.append("app/page.tsx")
+        else:
+            pages.append(f"app/{p.strip('/')}/page.tsx")
+    if not pages:
+        pages = ["app/page.tsx"]
+
+    description = phrase.strip().splitlines()[0][:180] if phrase.strip() else "Web app"
+    key_features = []
+    if "/dashboard" in phrase:
+        key_features.append("dashboard protégé")
+    if http_methods:
+        key_features.append("API routes")
+    if not key_features:
+        key_features = ["fonctionnalités métier"]
+
+    requirements = []
+    for model in data_models:
+        requirements.append(f"Modèle Prisma: {model}")
+    for p in dict.fromkeys(page_paths):
+        requirements.append(f"Page: {p}")
+    for method, path in http_methods:
+        requirements.append(f"API Route: {method} {path}")
+    if not requirements:
+        requirements.append("Page: /")
+
+    return {
+        "app_type": "web_app",
+        "router_type": "app",
+        "stack": stack_id or _DEFAULT_STACK_ID,
+        "description": description,
+        "pages": pages,
+        "data_models": data_models,
+        "auth_required": True,
+        "api_routes": api_routes,
+        "key_features": key_features,
+        "requirements": requirements,
+    }
+
+
+def _build_minimal_spec_from_requirements(plan: dict, requirements: list[str]) -> str:
+    """
+    Fallback déterministe pour éviter un blocage Architect sur SPEC_INVALID.
+    Génère une spec markdown minimale, structurée, couvrant explicitement les requirements.
+    """
+    reqs = [str(r).strip() for r in (requirements or []) if str(r).strip()]
+    pages: list[str] = []
+    api_routes: list[str] = []
+    prisma_models: list[str] = []
+    other: list[str] = []
+    for r in reqs:
+        rl = r.lower()
+        if "modèle prisma" in rl or "model prisma" in rl:
+            prisma_models.append(r)
+        elif rl.startswith("page"):
+            pages.append(r)
+        elif rl.startswith("api route"):
+            api_routes.append(r)
+        else:
+            other.append(r)
+
+    stack = str((plan or {}).get("stack", _DEFAULT_STACK_ID))
+    description = str((plan or {}).get("description", "Spécification minimale déterministe"))
+    lines = [
+        "## Vue d'ensemble",
+        description,
+        "",
+        "## Stack technique",
+        f"- Stack: {stack}",
+        "- Next.js App Router",
+        "- Clerk",
+        "- Prisma + PostgreSQL",
+        "",
+        "## Structure des pages",
+    ]
+    if pages:
+        lines.extend([f"- {p}" for p in pages])
+    else:
+        lines.append("- Page: /")
+
+    lines.extend(["", "## Schéma Prisma"])
+    if prisma_models:
+        lines.extend([f"- {m}" for m in prisma_models])
+    else:
+        lines.append("- Modèle Prisma: à compléter selon requirements")
+
+    lines.extend(["", "## Authentification Clerk", "- Accès protégé via Clerk sur les routes privées"])
+    lines.extend(["", "## API Routes"])
+    if api_routes:
+        lines.extend([f"- {a}" for a in api_routes])
+    else:
+        lines.append("- Aucune route API explicite dans les requirements")
+
+    lines.extend(["", "## Composants Tailwind", "- Composants UI basés sur Tailwind CSS"])
+    if other:
+        lines.extend(["", "## Requirements complémentaires"])
+        lines.extend([f"- {o}" for o in other])
+
+    return "\n".join(lines).strip() + "\n"
+
 
 def _append_architect_rag_event(query: str, scored_docs: list, error: str | None = None, run_id: str = "") -> None:
     """
@@ -387,13 +551,25 @@ def create_architect_agent():
         content_payload_key="text",
     )
     retriever = vectorstore.as_retriever(search_kwargs={"k": DEFAULT_VECTOR_SEARCH_LIMIT})
-    _llm_base = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=3)
+    try:
+        from agents.shared_tools import get_stack_id
+        active_stack = str(get_stack_id() or _DEFAULT_STACK_ID)
+    except Exception:
+        active_stack = _DEFAULT_STACK_ID
+    base_model, planner_model = _resolve_architect_models(active_stack)
+
+    _llm_base = ChatOpenAI(model=base_model, temperature=0.1, max_retries=3)
+    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.1, max_retries=3)
     if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
         llm = _llm_base.with_fallbacks(
             [ChatOpenAI(model="gpt-4o", temperature=0.1, max_retries=1)]
         )
+        planner_llm = _planner_llm_base.with_fallbacks(
+            [ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=1)]
+        )
     else:
         llm = _llm_base
+        planner_llm = _planner_llm_base
 
     # --- Nodes ---
     async def retrieval_node(state: AgentState):
@@ -419,6 +595,7 @@ def create_architect_agent():
     
     async def planner_node(state: AgentState):
         phrase = state['messages'][-1].content
+        stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
 
         # ── Extraction déterministe des entités du brief ──────────────────────
         brief_entities = _extract_brief_entities(phrase)
@@ -426,7 +603,7 @@ def create_architect_agent():
         if brief_entities:
             input_text += f"\n\n{brief_entities}"
 
-        chain = prompts['planner'] | llm
+        chain = prompts['planner'] | planner_llm
         llm_response = await chain.ainvoke({"input": input_text})
 
         match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
@@ -434,8 +611,26 @@ def create_architect_agent():
 
         try:
             plan = json.loads(json_content)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Planner failed to produce a valid JSON plan. Raw LLM response: {llm_response.content}. Error: {e}")
+        except json.JSONDecodeError:
+            # Fallback dur: réduit le bruit (sans RAG) et force un JSON strict.
+            strict_input = (
+                "Return ONLY valid JSON matching this schema keys exactly: "
+                "app_type, router_type, stack, description, pages, data_models, auth_required, api_routes, key_features, requirements.\n"
+                f"User Request: {phrase}\n"
+                f"{brief_entities}\n"
+                "No prose. No markdown fences. JSON object only."
+            )
+            strict_response = await chain.ainvoke({"input": strict_input})
+            strict_match = re.search(r'```json\s*\n(.*?)\n\s*```', strict_response.content, re.DOTALL)
+            strict_content = strict_match.group(1).strip() if strict_match else strict_response.content.strip()
+            try:
+                plan = json.loads(strict_content)
+            except json.JSONDecodeError as e:
+                logger.warning(
+                    "[planner] Non-JSON après 2 essais LLM — fallback déterministe activé "
+                    f"(error={e})"
+                )
+                plan = _build_minimal_plan_from_phrase(phrase=phrase, stack_id=stack_id)
 
         # ── Validation post-plan : détection plan générique ──────────────────
         is_generic, reason = _is_generic_plan(plan, phrase)
@@ -462,12 +657,10 @@ def create_architect_agent():
         return {"plan": plan, "requirements": requirements}
 
     async def spec_writer_node(state: AgentState):
-        original_request = state["messages"][0].content
         plan_json = json.dumps(state['plan'], indent=2)
         requirements = state.get("requirements", [])
 
         input_text = (
-            f"Original User Request: \"{original_request}\"\n\n"
             f"High-Level Plan (JSON):\n{plan_json}"
         )
 
@@ -476,9 +669,9 @@ def create_architect_agent():
             reqs_block = "\n".join(f"  - {r}" for r in requirements)
             input_text += (
                 f"\n\nREQUIREMENTS OBLIGATOIRES — tous doivent apparaître dans la spec :\n{reqs_block}\n"
-                f"\nATTENTION : si un requirement mentionne un modèle Prisma (ex: Post), "
-                f"ce modèle DOIT figurer dans ## Schéma Prisma avec tous ses champs. "
-                f"Ne génère PAS une spec auth-only si ces requirements métier sont présents."
+                f"\nATTENTION : chaque modèle Prisma listé ci-dessus DOIT figurer dans ## Schéma Prisma "
+                f"avec TOUS ses champs — utilise le NOM EXACT du requirement, sans synonyme ni traduction. "
+                f"Ne génère PAS une spec auth-only si des requirements métier sont présents."
             )
         
         chain = prompts['spec_writer'] | llm
@@ -550,10 +743,9 @@ def create_architect_agent():
                     input_text
                     + "\n\nCORRECTION OBLIGATOIRE — les requirements suivants sont ABSENTS de ta spec :\n"
                     + unmatched_list
-                    + "\n\nRÈGLE ABSOLUE : utilise les noms des requirements MOT POUR MOT dans la spec. "
-                    "Si un requirement dit 'Post', écris 'Post' dans ## Schéma Prisma (jamais Article). "
-                    "Si un requirement dit '/blog/[slug]', la section ## Pages doit mentionner '/blog/[slug]'. "
-                    "Si un requirement dit 'PUT /api/posts/[id]', l'API Routes doit inclure 'PUT /api/posts/[id]'. "
+                    + "\n\nRÈGLE ABSOLUE : copie les noms des requirements MOT POUR MOT dans la spec. "
+                    "Si un requirement dit 'MonModèle', écris 'MonModèle' dans ## Schéma Prisma — jamais un synonyme. "
+                    "Si un requirement dit '/mon-chemin/[id]', cette route DOIT apparaître dans ## Pages ou ## API Routes. "
                     "Régénère uniquement la spec corrigée — retourne uniquement le markdown."
                 )
                 llm_response = await chain.ainvoke({"input": correction_input})
@@ -564,6 +756,19 @@ def create_architect_agent():
                         f"[spec_writer_node] Spec encore DEGRADED après correction — "
                         f"unmatched: {sv_final['unmatched_requirements']}"
                     )
+                    # Fallback déterministe: spec minimale couvrant mot pour mot les requirements.
+                    specification = _build_minimal_spec_from_requirements(state.get("plan", {}), requirements)
+                    sv_after_fallback = validate_spec_requirements(specification, requirements)
+                    if sv_after_fallback["status"] == "DEGRADED":
+                        logger.critical(
+                            f"[spec_writer_node] Fallback spec encore DEGRADED — "
+                            f"unmatched: {sv_after_fallback['unmatched_requirements']}"
+                        )
+                    else:
+                        logger.info(
+                            f"[spec_writer_node] Fallback spec OK — "
+                            f"{sv_after_fallback['matched_count']}/{sv_after_fallback['total_mappable']} requirements couverts"
+                        )
                     # Enforce mode : bloquer si le gate l'exige (non-retryable)
                     try:
                         from scripts.sprint5_gate import load_gate as _load_gate
@@ -687,5 +892,3 @@ def create_architect_agent():
     workflow.add_edge("formatter", END)
 
     return workflow.compile()
-
-

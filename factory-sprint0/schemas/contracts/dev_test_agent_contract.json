@@ -36,6 +36,10 @@
     "required": ["dev_output", "combined_files", "success"],
     "additionalProperties": false,
     "properties": {
+      "final_message": {
+        "type": "string",
+        "description": "Message final canonique du dev loop (MAX_ITER_REACHED, NOT_BUILT_BY_GATE, BUILD_SUCCESS, etc.)"
+      },
       "dev_output": {
         "type": "object",
         "additionalProperties": false,
@@ -76,7 +80,11 @@
           "last_failed_command":  { "type": "string" },
           "semantic_violations":  { "type": "array", "items": { "type": "string" } },
           "error":                { "type": ["string", "null"] },
-          "root_cause_category":  { "type": "string" }
+          "root_cause_category":  { "type": "string" },
+          "blocking_guard_id":    { "type": "string" },
+          "gate_message":         { "type": "string" },
+          "gate_source":          { "type": "string" },
+          "missing_required_files": { "type": "array", "items": { "type": "string" } }
         }
       },
       "metadata": {
