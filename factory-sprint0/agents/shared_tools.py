@@ -363,33 +363,6 @@ def _apply_package_fixes(content: str) -> str:
     return content
 
 
-def _sanitize_prisma_schema_content(content: str) -> str:
-    """
-    Expands single-line Prisma datasource/generator blocks to multi-line format.
-    Prevents P1012 errors from the prisma_schema_datasource_required guard.
-
-    Single-line:  datasource db { provider = "postgresql" }
-    Multi-line:   datasource db {
-                    provider = "postgresql"
-                  }
-    """
-    def _expand_block(m: re.Match) -> str:
-        keyword = m.group(1)
-        name = m.group(2)
-        body = m.group(3)
-        pairs = re.findall(r'(\w+)\s*=\s*("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|\S+)', body)
-        if not pairs:
-            return m.group(0)
-        inner = "\n".join(f"  {k} = {v}" for k, v in pairs)
-        return f"{keyword} {name} {{\n{inner}\n}}"
-
-    return re.sub(
-        r'\b(datasource|generator)\s+(\w+)\s*\{([^}\n]*)\}',
-        _expand_block,
-        content,
-        flags=re.MULTILINE,
-    )
-
 
 _CODE_EXTENSIONS = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".css", ".scss", ".prisma")
 
@@ -406,11 +379,16 @@ def write_file(path: str, content: str) -> str:
     content: contenu complet du fichier.
     """
     try:
-        # Guard : refuser l'écrasement des fichiers gérés par templates
+        # Guard : refuser l'écrasement des fichiers gérés par templates.
+        # Exception : les fichiers listés dans scaffold_extends sont réécrits par le LLM
+        # (structure pré-écrite par la factory, contenu métier ajouté par le LLM).
         _norm_path = _normalize_guard_path(path)
         try:
-            _templated = load_stack_config(get_stack_id()).get("templated_files", {})
-            if _norm_path in _templated:
+            from agents.stack_config import load_stack_config
+            _stack_cfg_guard = load_stack_config(get_stack_id())
+            _templated = _stack_cfg_guard.get("templated_files", {})
+            _scaffold_ext = set(_stack_cfg_guard.get("scaffold_extends", {}).keys())
+            if _norm_path in _templated and _norm_path not in _scaffold_ext:
                 logger.info(f"[write_file] ⛔ TEMPLATE_PROTÉGÉ — {path} ignoré")
                 return (
                     f"TEMPLATE_PROTÉGÉ: '{path}' est géré par la factory (template validé). "
@@ -447,10 +425,41 @@ def write_file(path: str, content: str) -> str:
                 return "ERREUR: package.json invalide (racine JSON doit être un objet)."
             content = json.dumps(parsed, ensure_ascii=False, indent=2) + "\n"
 
-        # Inline sanitizer pour prisma/schema.prisma : expand les blocs monoligne
-        # datasource/generator en multi-lignes pour passer le guard prisma_schema_datasource_required.
-        if _norm_write_path in ("prisma/schema.prisma", "schema.prisma"):
-            content = _sanitize_prisma_schema_content(content)
+        # Scaffold extends : pour les fichiers pré-écrits par la factory mais étendus par le LLM,
+        # on préserve l'entête canonique du template et on n'injecte que le contenu métier du LLM.
+        # Générique multi-stack — piloté par scaffold_extends dans le JSON de la stack.
+        try:
+            from agents.stack_config import load_stack_config
+            import pathlib as _pathlib
+            _se_all = load_stack_config(get_stack_id()).get("scaffold_extends", {})
+            _se_cfg = _se_all.get(_norm_write_path, {})
+            if _se_cfg:
+                _tpl_rel = _se_cfg.get("template", "")
+                _kw = _se_cfg.get("locked_until_keyword", "")
+                if _tpl_rel and _kw:
+                    _stack_id_se = get_stack_id()
+                    _base_se = _pathlib.Path(__file__).parent.parent / "config" / "stacks" / _stack_id_se
+                    _tpl_path = _base_se / _tpl_rel
+                    if _tpl_path.exists():
+                        _tpl_text = _tpl_path.read_text(encoding="utf-8")
+                        # Locked header = tout ce qui précède le premier mot-clé dans le template
+                        _idx_tpl = _tpl_text.find("\n" + _kw)
+                        _locked = _tpl_text[:_idx_tpl + 1] if _idx_tpl >= 0 else _tpl_text.rstrip() + "\n"
+                        # Contenu métier LLM = à partir du premier mot-clé dans le contenu écrit.
+                        # Cas 1 : "\nmodel " trouvé → +1 pour sauter le \n, on récupère "model ..."
+                        # Cas 2 : content commence directement par "model " → pas de \n à sauter
+                        # Cas 3 : pas de mot-clé → on garde tout le contenu LLM
+                        _idx_llm = content.find("\n" + _kw)
+                        if _idx_llm >= 0:
+                            _biz = content[_idx_llm + 1:]   # saute le \n
+                        elif content.startswith(_kw):
+                            _biz = content                   # pas de \n à sauter
+                        else:
+                            _biz = content                   # pas de modèle trouvé, garde tout
+                        content = _locked + _biz
+                        logger.info(f"[write_file] scaffold_extends merge: {path}")
+        except Exception as _se_err:
+            logger.warning(f"[write_file] scaffold_extends merge error ({path}): {_se_err}")
 
         if len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
             return f"ERREUR: Fichier trop grand (> {MAX_FILE_SIZE_BYTES} bytes): {path}"

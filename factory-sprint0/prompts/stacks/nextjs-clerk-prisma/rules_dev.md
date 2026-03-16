@@ -1,5 +1,37 @@
 ## REGLES STACK — nextjs-clerk-prisma
 
+### RÈGLE ABSOLUE — APP ROUTER DATA FETCHING (VÉRIFIÉE AVANT BUILD — VIOLATION = BLOCAGE DÉFINITIF)
+
+Dans TOUTES les pages `app/**/page.tsx` et composants server :
+
+INTERDIT (APIs Pages Router — incompatibles avec `app/`) :
+  ❌ export async function getServerSideProps(...)
+  ❌ export async function getStaticProps(...)
+  ❌ export async function getStaticPaths(...)
+
+OBLIGATOIRE — Server Component App Router :
+  ✅ export default async function Page() { const data = await prisma.model.findMany(); return <div>{data}</div>; }
+  ✅ Pour ISR : export const revalidate = 60;
+  ✅ Pour routes dynamiques : export async function generateStaticParams() { ... }
+
+Toute page `app/**` DOIT être un async Server Component qui récupère les données directement.
+Cette règle est vérifiée automatiquement. Toute violation bloque le build définitivement.
+
+### RÈGLE ABSOLUE — PRISMA SINGLETON (VÉRIFIÉE AVANT BUILD — VIOLATION = BLOCAGE DÉFINITIF)
+
+Dans TOUT fichier `app/api/**/route.ts` et tout fichier métier :
+
+INTERDIT :
+  ❌ import { PrismaClient } from '@prisma/client'
+  ❌ const prisma = new PrismaClient()
+  ❌ new PrismaClient({ ... })
+
+OBLIGATOIRE — copier EXACTEMENT cette ligne en tête du fichier :
+  ✅ import prisma from '@/lib/prisma'
+
+Le singleton `lib/prisma.ts` gère la connexion. Ne jamais instancier PrismaClient directement.
+Cette règle est vérifiée automatiquement. Toute violation bloque le build sans possibilité de run_build.
+
 ### AUTHENTIFICATION
 - Auth: Clerk uniquement. Interdits: bcrypt, NextAuth, JWT custom, Passport, authMiddleware.
 - app/layout.tsx doit envelopper `<html>` avec `<ClerkProvider>`.
@@ -38,6 +70,10 @@
 - Si un requirement impose des champs/contraintes Prisma (ex: `slug @unique`, `content`), ils sont obligatoires a l'identique.
 - Les types utilises dans pages/composants doivent etre resolvables (inference, type local, ou import type explicite).
 - Si un champ d'un modele Prisma est utilise au rendu (ex: `item.description`, `post.content`), la requete Prisma doit explicitement le selectionner via `select: { champ: true }`.
+- TYPES PRISMA + SELECT : Si `select` partiel est utilise, NE PAS declarer un type local avec plus de champs que le select — TypeScript error garantie (champ manquant). Deux options valides :
+  ✅ `const items = await prisma.model.findMany()` sans `select` — type complet infere automatiquement, aucun risque.
+  ✅ `select` avec TOUS les champs du type local inclus dans le select.
+  ❌ `let items: Model[] = await prisma.model.findMany({ select: { id: true, name: true } })` si `Model` a des champs supplementaires (ex: `authorId`) — erreur TypeScript.
 
 ### SCRIPTS package.json OBLIGATOIRES
 - build: `next build`

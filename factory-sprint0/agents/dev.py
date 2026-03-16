@@ -369,22 +369,38 @@ def dev_agent(
             mandatory_rag_context_chunks.append(f"[RAG::{query}] ERROR: {rag_err}")
     mandatory_rag_context = "\n\n".join(mandatory_rag_context_chunks)
 
-    # Exclure les fichiers templates de l'ordre de génération LLM
-    llm_required_files = _sort_paths_by_priority([f for f in required_files if f not in _templated_names])
+    # scaffold_extends : fichiers pré-écrits par template mais étendus par le LLM (ex: prisma/schema.prisma).
+    # Ils sont exemptés du bloc "NE PAS RÉÉCRIRE" et restent dans llm_required_files.
+    scaffold_extends_cfg = stack_cfg.get("scaffold_extends", {})
+    scaffold_extends_paths = set(scaffold_extends_cfg.keys())
+
+    # Exclure les fichiers templates de l'ordre de génération LLM (sauf scaffold_extends)
+    _templated_protected = _templated_names - scaffold_extends_paths
+    llm_required_files = _sort_paths_by_priority([f for f in required_files if f not in _templated_protected])
     templates_block = ""
-    if _templated_names:
+    if _templated_protected:
         templates_block = (
             "FICHIERS DÉJÀ ÉCRITS PAR LA FACTORY (templates validés — NE PAS RÉÉCRIRE) :\n"
-            + "\n".join(f"  ✓ {f}" for f in sorted(_templated_names))
+            + "\n".join(f"  ✓ {f}" for f in sorted(_templated_protected))
             + "\nCes fichiers sont corrects sur le disque. Concentre-toi sur les fichiers MÉTIER ci-dessous.\n\n"
         )
+    # required_files_block : tous les fichiers obligatoires.
+    # Pour les scaffold_extends, note courte sans mention "pré-écrit" (évite la paralysie).
     required_files_block = ""
     if llm_required_files:
+        lines = []
+        for i, f in enumerate(llm_required_files):
+            if f in scaffold_extends_paths:
+                kw = scaffold_extends_cfg[f].get("locked_until_keyword", "model ").strip()
+                lines.append(f"{i+1}. {f}  ← écrire les blocs `{kw} NomDuModele {{...}}` du brief")
+            else:
+                lines.append(f"{i+1}. {f}")
         required_files_block = (
             "FICHIERS OBLIGATOIRES À CRÉER (en plus des fichiers métier de la spec) :\n"
-            + "\n".join(f"{i+1}. {f}" for i, f in enumerate(llm_required_files))
+            + "\n".join(lines)
             + "\n\n"
         )
+    scaffold_schema_block = ""  # plus utilisé — logique fusionnée dans required_files_block
     requirements_block = ""
     if requirements:
         reqs_list = "\n".join(f"  - {r}" for r in requirements)
@@ -425,6 +441,7 @@ def dev_agent(
     # Bloc d'ordre adaptatif — basé sur llm_required_files (fichiers réellement à écrire par le LLM,
     # templates déjà exclus). Si package.json apparaît (templates non fonctionnels), il est
     # remonté en tête quelle que soit la priorité generation_order.
+    # ordering_block : tous les fichiers obligatoires dans l'ordre de priorité.
     ordering_block = ""
     if llm_required_files:
         _ordered = list(llm_required_files)
@@ -939,7 +956,11 @@ def dev_agent(
         blocker = state.get("active_blocker", "")
         if blocker.startswith("file_missing::"):
             p = blocker.split("::", 1)[1].strip()
-            return [p] if p else []
+            allowed = [p] if p else []
+            # scaffold_extends files (ex: prisma/schema.prisma) doivent toujours être
+            # autorisés : le LLM doit pouvoir les écrire quel que soit le blocker actif.
+            allowed.extend(scaffold_extends_paths)
+            return allowed
         if blocker.startswith("requirements::"):
             req = blocker.split("::", 1)[1]
             primary = _extract_primary_path_from_requirement(req)
@@ -952,7 +973,9 @@ def dev_agent(
             return allowed
         if blocker.startswith("structural::"):
             targets = state.get("structural_targets", []) or []
-            return [str(t).replace("\\", "/") for t in targets]
+            allowed = [str(t).replace("\\", "/") for t in targets]
+            allowed.extend(scaffold_extends_paths)
+            return allowed
         return []
 
     def _path_is_allowed_for_objective(path: str, allowed_paths: list[str], blocker: str = "") -> bool:
@@ -960,6 +983,10 @@ def dev_agent(
             return True
         p = (path or "").replace("\\", "/").strip()
         p_lower = p.lower()
+        # scaffold_extends files (ex: prisma/schema.prisma) sont toujours autorisés quel
+        # que soit le blocker actif : ce sont des fichiers fondamentaux à étendre par le LLM.
+        if p_lower in {s.replace("\\", "/").lower() for s in scaffold_extends_paths}:
+            return True
         # Si le blocker exige un fichier précis, ne pas autoriser d'écritures latérales.
         if blocker.startswith("file_missing::"):
             return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
@@ -1043,15 +1070,30 @@ def dev_agent(
             targets = state.get("structural_targets", []) or []
             lines.append(f"GUARD STRUCTUREL BLOQUANT: {guard_id}")
             if targets:
-                lines.append("FICHIERS CIBLES:")
+                lines.append("FICHIERS À CORRIGER (OBLIGATOIRE avant tout autre écriture):")
                 for p in targets[:3]:
                     lines.append(f"- {p}")
+            # Inject guard message_lines so the LLM knows exactly what to fix
+            guard_cfg = next(
+                (g for g in stack_cfg.get("content_guards", []) if g.get("id") == guard_id),
+                None,
+            )
+            if guard_cfg:
+                msg_lines = guard_cfg.get("message_lines", [])
+                if msg_lines:
+                    lines.append("INSTRUCTIONS DE CORRECTION:")
+                    for ml in msg_lines:
+                        if ml == "{details}":
+                            for p in targets[:3]:
+                                lines.append(f"  - {p}")
+                        else:
+                            lines.append(ml)
         err = state.get("last_build_error_excerpt", "")
         if err:
             lines.append("DERNIÈRE ERREUR BUILD (extrait):")
             lines.append(err)
         lines.append(
-            "ACTION: modifie seulement les fichiers liés à cet objectif, puis valide par run_build dès que possible."
+            "ACTION: corrige les fichiers listés ci-dessus en priorité absolue, puis valide par run_build."
         )
         lines.append(_build_progress_summary_text())
         return "\n".join(lines)
@@ -1162,7 +1204,7 @@ def dev_agent(
                         # écrits par la factory AVANT la boucle LLM et sont corrects.
                         # Message neutre : évite de désorienter le LLM (run-05 lesson).
                         _tp_norm = _path.lstrip("./").replace("\\", "/")
-                        if _tp_norm in _templated_names:
+                        if _tp_norm in _templated_names and _tp_norm not in scaffold_extends_paths:
                             logger.info(f"[template_guard] write ignoré pour template: {_path}")
                             tool_messages.append(
                                 ToolMessage(

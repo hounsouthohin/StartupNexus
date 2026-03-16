@@ -43,8 +43,7 @@
   "generation_order": {
     "priority_paths": [
       "app/page.tsx",
-      "app/api/",
-      "prisma/schema.prisma"
+      "app/api/"
     ]
   },
   "packages": {
@@ -281,7 +280,14 @@
     ".env.local": "templates/env.local.template",
     "tests/middleware.test.ts": "templates/tests/middleware.test.ts",
     "lib/prisma.ts": "templates/lib_prisma.ts",
-    "prisma.config.ts": "templates/prisma_config.ts"
+    "prisma.config.ts": "templates/prisma_config.ts",
+    "prisma/schema.prisma": "templates/prisma_schema.prisma"
+  },
+  "scaffold_extends": {
+    "prisma/schema.prisma": {
+      "template": "templates/prisma_schema.prisma",
+      "locked_until_keyword": "model "
+    }
   },
   "blueprint": {
     "required_files": [
@@ -337,7 +343,7 @@
     "Prisma 7 datasource url interdit schema.prisma datasource generator multi-lignes canonique P1012",
     "TypeScript strict tableau non typé interdit let array any prisma findMany catch fallback type explicite"
   ],
-  "mandatory_rag_k": 2,
+  "mandatory_rag_k": 3,
   "mandatory_rag_snippet_chars": 900,
   "qdrant_filter": {
     "collection": "factory_standards",

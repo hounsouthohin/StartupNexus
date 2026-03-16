@@ -1,0 +1,17 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// ENTÊTE CANONIQUE — géré par la factory Stack nextjs-clerk-prisma
+// Les blocs generator et datasource sont INVARIANTS — ne pas les modifier.
+// Écrire uniquement des blocs `model NomDuModele { ... }` ci-dessous.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODÈLES MÉTIER (ajouter ici)
+// ─────────────────────────────────────────────────────────────────────────────
