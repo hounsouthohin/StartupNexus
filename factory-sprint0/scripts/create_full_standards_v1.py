@@ -68,6 +68,187 @@ def text_to_uuid(text: str) -> str:
 
 
 # =============================================================================
+# ZONE 0 — STANDARDS DE PLANIFICATION (ARCHITECT ONLY)
+# Source: factory_planning_v1 — modèles domaine pour le planner architect
+# Ces standards sont indexés avec agent_context="architect" et ne sont
+# jamais retournés au DevAgent. Ils guident uniquement le planner.
+# =============================================================================
+
+ZONE_0_PLANNING = [
+    {
+        "text": """PLANNING: Application Todo / Tâches / Rappels
+DOMAINE: Gestion de tâches, productivité, organisation personnelle
+MOTS_CLES_BRIEF: todo, tâche, task, reminder, rappel, liste de tâches, checklist, agenda, calendrier, filtres, priorité, partage, collaboratif
+MODELE_PRINCIPAL: Task
+CHAMPS_OBLIGATOIRES: id String @id @default(cuid()), title String, description String?, completed Boolean @default(false), authorId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt
+PAGES_MINIMALES:
+  app/page.tsx               — accueil ou liste publique
+  app/tasks/page.tsx         — liste des tâches de l'utilisateur (protégée)
+  app/tasks/[id]/page.tsx    — détail d'une tâche
+  app/dashboard/page.tsx     — gestion des tâches (protégée)
+API_ROUTES_MINIMALES:
+  GET  /api/tasks            — liste filtrée par authorId (userId Clerk)
+  POST /api/tasks            — création avec authorId: userId
+  GET  /api/tasks/[id]       — détail d'une tâche
+  PUT  /api/tasks/[id]       — mise à jour (toggle completed, etc.)
+  DELETE /api/tasks/[id]     — suppression (authorId check obligatoire)
+REQUIREMENTS_MINIMUM_5:
+  1. Modèle Prisma: Task avec title String, completed Boolean, authorId String, createdAt DateTime
+  2. Page liste: /tasks — affichage des tasks filtrées par userId
+  3. Page détail: /tasks/[id] — détail d'une task
+  4. API Route: GET /api/tasks — liste filtrée par userId
+  5. API Route: POST /api/tasks — création avec authorId: userId
+NOTE: Brief "listes partagées" → ajouter TodoList (liste) + Task (items). "Calendrier" → ajouter dueDate DateTime?. "Priorité" → ajouter priority String.
+STATUS: active""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "0-planning",
+            "status": "active",
+            "version": "1.0",
+            "category": "planning",
+            "source": "factory_planning_v1",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """PLANNING: Application Blog / Publication / CMS
+DOMAINE: Publication de contenu, blogging, CMS personnel
+MOTS_CLES_BRIEF: blog, publication, post, cms, contenu, rédaction, éditeur, commentaires, partage, article, newsletter
+MODELE_PRINCIPAL: Post
+CHAMPS_OBLIGATOIRES: id String @id @default(cuid()), title String, content String, slug String @unique, published Boolean @default(false), authorId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt
+PAGES_MINIMALES:
+  app/page.tsx               — liste des posts publiés (publique)
+  app/posts/[slug]/page.tsx  — détail d'un post (publique si published)
+  app/dashboard/page.tsx     — gestion des posts de l'auteur (protégée)
+API_ROUTES_MINIMALES:
+  GET  /api/posts            — liste des posts publiés ou filtrée par authorId
+  POST /api/posts            — création avec authorId: userId et slug généré côté serveur
+  GET  /api/posts/[id]       — détail d'un post
+  PUT  /api/posts/[id]       — mise à jour (titre, contenu, published)
+  DELETE /api/posts/[id]     — suppression (authorId check obligatoire)
+REQUIREMENTS_MINIMUM_5:
+  1. Modèle Prisma: Post avec title String, content String, slug String @unique, published Boolean, authorId String, createdAt DateTime
+  2. Page liste: / — affichage des posts publiés
+  3. Page détail: /posts/[slug] — détail d'un post
+  4. API Route: GET /api/posts — liste filtrée ou publique
+  5. API Route: POST /api/posts — création avec authorId: userId, slug généré côté serveur
+NOTE: Brief "catégories" → ajouter modèle Category. "Commentaires" → ajouter modèle Comment relié à Post. Ne pas utiliser Article comme nom de modèle.
+STATUS: active""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "0-planning",
+            "status": "active",
+            "version": "1.0",
+            "category": "planning",
+            "source": "factory_planning_v1",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """PLANNING: Application E-commerce / Produits / Catalogue
+DOMAINE: Vente en ligne, catalogue produits, gestion de stock
+MOTS_CLES_BRIEF: produit, product, catalogue, boutique, shop, e-commerce, vente, stock, prix, commande, order, panier, cart, marketplace
+MODELE_PRINCIPAL: Product
+CHAMPS_OBLIGATOIRES: id String @id @default(cuid()), name String, description String, price Float, stock Int @default(0), authorId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt
+PAGES_MINIMALES:
+  app/page.tsx                   — catalogue produits (publique)
+  app/products/[id]/page.tsx     — détail d'un produit (publique)
+  app/dashboard/page.tsx         — gestion des produits du vendeur (protégée)
+API_ROUTES_MINIMALES:
+  GET  /api/products             — liste des produits
+  POST /api/products             — création avec authorId: userId
+  GET  /api/products/[id]        — détail d'un produit
+  PUT  /api/products/[id]        — mise à jour (prix, stock, etc.)
+  DELETE /api/products/[id]      — suppression (authorId check obligatoire)
+REQUIREMENTS_MINIMUM_5:
+  1. Modèle Prisma: Product avec name String, price Float, stock Int, authorId String, createdAt DateTime
+  2. Page liste: / — catalogue produits
+  3. Page détail: /products/[id] — détail d'un produit
+  4. API Route: GET /api/products — liste de produits
+  5. API Route: POST /api/products — création avec authorId: userId
+STATUS: active""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "0-planning",
+            "status": "active",
+            "version": "1.0",
+            "category": "planning",
+            "source": "factory_planning_v1",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """PLANNING: Application CRM / Contacts / Clients
+DOMAINE: Gestion de contacts, CRM, suivi clients, annuaire
+MOTS_CLES_BRIEF: contact, client, crm, annuaire, prospect, lead, suivi, relation, répertoire, fiche, carnet d'adresses
+MODELE_PRINCIPAL: Contact
+CHAMPS_OBLIGATOIRES: id String @id @default(cuid()), name String, email String, phone String?, company String?, notes String?, authorId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt
+PAGES_MINIMALES:
+  app/contacts/page.tsx          — liste des contacts de l'utilisateur (protégée)
+  app/contacts/[id]/page.tsx     — détail d'un contact
+  app/dashboard/page.tsx         — gestion des contacts (protégée)
+API_ROUTES_MINIMALES:
+  GET  /api/contacts             — liste filtrée par authorId
+  POST /api/contacts             — création avec authorId: userId
+  GET  /api/contacts/[id]        — détail d'un contact
+  PUT  /api/contacts/[id]        — mise à jour
+  DELETE /api/contacts/[id]      — suppression (authorId check obligatoire)
+REQUIREMENTS_MINIMUM_5:
+  1. Modèle Prisma: Contact avec name String, email String, phone String?, authorId String, createdAt DateTime
+  2. Page liste: /contacts — liste des contacts de l'utilisateur
+  3. Page détail: /contacts/[id] — détail d'un contact
+  4. API Route: GET /api/contacts — liste filtrée par userId
+  5. API Route: POST /api/contacts — création avec authorId: userId
+STATUS: active""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "0-planning",
+            "status": "active",
+            "version": "1.0",
+            "category": "planning",
+            "source": "factory_planning_v1",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """PLANNING: Application Générique / SaaS / Dashboard
+DOMAINE: Application web générique avec authentification, dashboard personnel, gestion de ressources
+MOTS_CLES_BRIEF: application, app, dashboard, gestion, manager, suivi, plateforme, outil, service, saas, workflow
+MODELE_PRINCIPAL: Item (adapter selon le domaine du brief)
+CHAMPS_OBLIGATOIRES: id String @id @default(cuid()), title String, description String?, status String @default("active"), authorId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt
+PAGES_MINIMALES:
+  app/page.tsx               — page d'accueil ou liste publique
+  app/items/page.tsx         — liste des éléments (protégée)
+  app/items/[id]/page.tsx    — détail d'un élément
+  app/dashboard/page.tsx     — dashboard de gestion (protégée)
+API_ROUTES_MINIMALES:
+  GET  /api/items            — liste filtrée par authorId
+  POST /api/items            — création avec authorId: userId
+  GET  /api/items/[id]       — détail d'un élément
+  PUT  /api/items/[id]       — mise à jour
+  DELETE /api/items/[id]     — suppression (authorId check obligatoire)
+REQUIREMENTS_MINIMUM_5:
+  1. Modèle Prisma: <Entité> avec title String, authorId String, createdAt DateTime (adapter le nom au domaine)
+  2. Page liste: /<entités> — liste des éléments de l'utilisateur
+  3. Page détail: /<entités>/[id] — détail d'un élément
+  4. API Route: GET /api/<entités> — liste filtrée par userId
+  5. API Route: POST /api/<entités> — création avec authorId: userId
+NOTE: Adapter le nom du modèle au domaine du brief. INTERDIT: Item, Element, Thing, Object comme nom final. Choisir le mot le plus précis du brief.
+STATUS: active""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "0-planning",
+            "status": "active",
+            "version": "1.0",
+            "category": "planning",
+            "source": "factory_planning_v1",
+            "agent_context": "architect",
+        },
+    },
+]
+
+
+# =============================================================================
 # ZONE 1 — FICHIERS OBLIGATOIRES + STRUCTURE CANONIQUE
 # Source: runs factory empiriques + doc Next.js officielle
 # =============================================================================
@@ -107,6 +288,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -160,6 +342,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -193,6 +376,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -223,6 +407,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -275,6 +460,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "typescript",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -320,6 +506,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -359,6 +546,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -380,6 +568,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -403,6 +592,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -455,6 +645,7 @@ VERSION: 1.0""",
             "category": "nextjs",
             "type": "policy",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -487,6 +678,7 @@ VERSION: 1.0""",
             "category": "nextjs",
             "type": "policy",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -526,6 +718,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "clerk",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -555,6 +748,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "clerk",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -585,6 +779,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "clerk",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -608,6 +803,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "clerk",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -629,6 +825,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "clerk",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -675,6 +872,7 @@ VERSION: 1.0""",
             "category": "clerk",
             "type": "technical",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -722,6 +920,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "prisma",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -755,6 +954,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "prisma",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -773,7 +973,7 @@ EXEMPLE_VALIDE:
   model Task {
     id        String   @id @default(cuid())
     title     String
-    userId    String
+    authorId  String
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
   }
@@ -787,6 +987,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "prisma",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -837,6 +1038,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -861,6 +1063,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -883,6 +1086,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -911,6 +1115,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -932,6 +1137,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -972,6 +1178,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -1004,6 +1211,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -1035,6 +1243,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
     {
@@ -1061,6 +1270,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "factory_standards_v2",
+            "agent_context": "dev",
         },
     },
 ]
@@ -1113,6 +1323,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "session1-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1151,6 +1362,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "session1-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1192,6 +1404,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "session1-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1236,6 +1449,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "session1-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1278,6 +1492,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "security",
             "source": "session1-ai-validated",
+            "agent_context": "dev",
         },
     },
 ]
@@ -1339,6 +1554,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "error-handling",
             "source": "session2-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1367,6 +1583,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "error-handling",
             "source": "session2-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1401,6 +1618,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "error-handling",
             "source": "session2-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1446,6 +1664,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "error-handling",
             "source": "session2-ai-validated",
+            "agent_context": "dev",
         },
     },
 ]
@@ -1497,6 +1716,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "session3-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1544,6 +1764,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "session3-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1577,6 +1798,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "session3-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1621,6 +1843,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "session3-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1650,6 +1873,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "testing",
             "source": "session3-ai-validated",
+            "agent_context": "dev",
         },
     },
 ]
@@ -1659,10 +1883,10 @@ ZONE_13_BUSINESS_LOGIC = [
     {
         "text": """ACTION: OBLIGATOIRE
 STACK: nextjs-clerk-prisma
-TECHNOLOGIE: Prisma — lier les entités utilisateur à clerkId, pas à l'id interne
-RAISON: Stocker l'id Prisma interne comme référence d'ownership crée une désynchronisation quand Clerk supprime ou recrée un utilisateur — les données orphelines ne peuvent plus être réclamées.
+TECHNOLOGIE: Prisma — lier les entités utilisateur à authorId (String Clerk), pas à l'id interne
+RAISON: Stocker l'id Prisma interne (Int) comme référence d'ownership crée une désynchronisation quand Clerk supprime ou recrée un utilisateur — les données orphelines ne peuvent plus être réclamées.
 DETECTION_REGEX: (authorId|userId|ownerId)\\s+Int\\s+(?!.*@relation.*User)
-ALTERNATIVE: Utiliser clerkId String comme clé de relation owner, ou stocker clerkId dans chaque entité liée à un utilisateur
+ALTERNATIVE: Utiliser `authorId String` dans chaque modèle lié à un utilisateur — ce champ stocke le userId Clerk (String). Ne pas créer un modèle User séparé ni utiliser une clé étrangère vers un id interne.
 EXEMPLE_INVALIDE:
   // schema.prisma ❌
   model Post {
@@ -1678,11 +1902,11 @@ EXEMPLE_VALIDE:
     title     String
     content   String
     published Boolean  @default(false)
-    authorId  String   // ✅ clerkId = identifiant Clerk stable
+    authorId  String   // ✅ userId Clerk stocké directement — stable et sans jointure User
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
   }
-  // Dans la route : where: { authorId: userId } où userId vient de auth()
+  // Dans la route : where: { authorId: userId } où userId vient de await auth()
 ERREUR_ATTENDUE: N/A (désynchronisation silencieuse à l'exécution)
 STATUS: active
 VERSION: 1.0""",
@@ -1693,6 +1917,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "business-logic",
             "source": "session4-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1733,6 +1958,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "business-logic",
             "source": "session4-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1768,6 +1994,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "business-logic",
             "source": "session4-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1815,6 +2042,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "business-logic",
             "source": "session4-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1853,6 +2081,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "business-logic",
             "source": "session4-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1890,6 +2119,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "business-logic",
             "source": "session4-ai-validated",
+            "agent_context": "dev",
         },
     },
 ]
@@ -1930,6 +2160,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "antipatterns",
             "source": "session5-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -1972,6 +2203,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "antipatterns",
             "source": "session5-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -2017,6 +2249,7 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "antipatterns",
             "source": "session5-ai-validated",
+            "agent_context": "dev",
         },
     },
     {
@@ -2058,13 +2291,15 @@ VERSION: 1.0""",
             "version": "1.0",
             "category": "antipatterns",
             "source": "session5-ai-validated",
+            "agent_context": "dev",
         },
     },
 ]
 
 
 ALL_STANDARDS = (
-    ZONE_1_REQUIRED_FILES
+    ZONE_0_PLANNING
+    + ZONE_1_REQUIRED_FILES
     + ZONE_2_PACKAGES
     + ZONE_3_TYPESCRIPT
     + ZONE_4_NEXTCONFIG
@@ -2103,7 +2338,7 @@ def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
 
 def main() -> int:
     print("\n" + "=" * 70)
-    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (14 zones)")
+    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (Zone 0-14)")
     print("   Sources: Perplexity 2026-03-01 + runs empiriques + doc officielle")
     print("=" * 70 + "\n")
 

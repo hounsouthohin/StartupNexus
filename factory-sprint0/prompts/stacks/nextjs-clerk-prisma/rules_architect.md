@@ -30,9 +30,30 @@ La spec DOIT contenir ces sections dans cet ordre:
 
 ### BASE DE DONNEES
 - Utiliser Prisma avec PostgreSQL.
-- Tout modele lie a un utilisateur doit utiliser `clerkId`.
+- Tout modele lie a un utilisateur doit utiliser `authorId` (String, lié au userId Clerk).
 - Interdit: `password`, `password_hash`, `hashedPassword`.
 - Interdit: MongoDB, MySQL, SQLite, Sequelize, TypeORM.
+
+### EXTRACTION DES ENTITÉS — RÈGLE ABSOLUE
+Le nom des modèles Prisma DOIT être extrait du brief. Deux cas :
+
+**Brief avec modèle explicite** (ex: "Modele Prisma : Post {...}") → utiliser EXACTEMENT ce nom.
+**Brief sans modèle explicite** → inférer depuis les mots-clés du domaine dans le brief :
+  - "blog" / "publication" / "cms" → modèle `Post`
+  - "todo" / "tâche" / "task" / "reminder" / "liste" → modèle `Task`
+  - "todo app avec listes partagees" → `TodoList` (liste) + `Task` (item)
+  - "produit" / "product" → modèle `Product`
+  - "commande" / "order" → modèle `Order`
+  - Si incertain : choisir le nom le plus court et le plus DIRECT depuis les mots du brief.
+
+INTERDIT ABSOLU : générer un modèle nommé `Article`, `Book`, `Goal`, `Item`, `Workout` si le brief ne mentionne pas ce mot exactement.
+INTERDIT ABSOLU : générer moins de 5 requirements — TOUT brief, même vague, DOIT produire :
+  1. `Modèle Prisma: <Entité> avec authorId, createdAt`
+  2. `Page liste: /<entités>` — affichage des items
+  3. `Page détail: /<entités>/[id]` — détail d'un item
+  4. `API Route: GET /api/<entités>` — liste filtrée par userId
+  5. `API Route: POST /api/<entités>` — création avec authorId
+INTERDIT : copier les noms d'entités depuis les standards RAG — ce sont des patrons techniques, pas des noms à réutiliser.
 
 ### UI
 - Tailwind CSS uniquement.

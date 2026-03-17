@@ -500,32 +500,39 @@ def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float 
 def _build_architect_rag_filter(stack_id: str):
     """
     Construit le filtre Qdrant pour le retriever architect.
-    Governance v1 : injecte toujours metadata.status=active pour exclure
-    les standards deprecated/archived, quelle que soit la config stack.
+    Priorité : architect_qdrant_filter du JSON stack (filtrage agent_context=architect).
+    Fallback : qdrant_filter général avec status=active forcé (Governance v1).
     """
     try:
-        from agents.stack_config import get_qdrant_filter_cfg
+        from agents.stack_config import load_stack_config, get_qdrant_filter_cfg
         from qdrant_client.http.models import Filter, FieldCondition, MatchValue
 
         def _parse(cond: dict):
             if "key" in cond:
                 return FieldCondition(key=cond["key"], match=MatchValue(value=cond["match"]["value"]))
             if "must" in cond:
-                return Filter(must=[_parse(c) for c in cond["must"]])
+                return Filter(must=[c for c in (_parse(m) for m in cond["must"]) if c])
             if "should" in cond:
-                return Filter(should=[_parse(c) for c in cond["should"]])
+                return Filter(should=[c for c in (_parse(m) for m in cond["should"]) if c])
             return None
 
-        # Governance v1 — condition toujours présente
+        # Priorité 1 : architect_qdrant_filter (agent_context=architect)
+        cfg = load_stack_config(stack_id)
+        architect_filter_cfg = cfg.get("architect_qdrant_filter", {}).get("filter", {})
+        if architect_filter_cfg:
+            must_raw = architect_filter_cfg.get("must", [])
+            conditions = [c for c in (_parse(m) for m in must_raw) if c]
+            if conditions:
+                return Filter(must=conditions)
+
+        # Fallback : qdrant_filter général + status=active forcé
         status_condition = FieldCondition(
             key="metadata.status",
             match=MatchValue(value="active"),
         )
-
         filter_cfg = get_qdrant_filter_cfg(stack_id).get("filter", {})
         must_raw = filter_cfg.get("must", [])
-        extra_conditions = [_parse(c) for c in must_raw if c]
-
+        extra_conditions = [c for c in (_parse(m) for m in must_raw) if c]
         return Filter(must=[status_condition, *extra_conditions])
     except Exception:
         return None

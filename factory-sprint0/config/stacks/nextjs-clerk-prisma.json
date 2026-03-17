@@ -162,7 +162,7 @@
       "Toutes les entrees utilisateur doivent etre validees avec Zod.",
       ".env.local doit contenir NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY et DATABASE_URL.",
       "NEXT_PUBLIC_CLERK_SECRET_KEY est interdit.",
-      "Pattern canonique route mutative (POST/PUT/PATCH/DELETE) : const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); — obligatoire avant tout acces Prisma avec authorId ou ownerId."
+      "Pattern canonique TOUT handler (GET, POST, PUT, PATCH, DELETE) utilisant userId : const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); — obligatoire avant toute operation Prisma utilisant userId (findMany, findUnique, create, update, delete). Cela inclut les GET qui filtrent par where: { authorId: userId }."
     ],
     "test_rules": [
       "jest.config.js doit etre base sur next/jest (createJestConfig).",
@@ -335,7 +335,7 @@
   "mandatory_rag_queries": [
     "versions exactes next.js clerk prisma jest ts-jest packages obligatoires",
     "clerk v6 ClerkProvider layout.tsx clerkMiddleware async auth.protect middleware server",
-    "prisma 7 schema.prisma prisma.config.ts defineConfig clerkId sans password createdAt updatedAt",
+    "prisma 7 schema.prisma prisma.config.ts defineConfig authorId sans password createdAt updatedAt",
     "await auth userId server component route handler clerk async interdit auth().userId useAuth useUser",
     "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe",
     "server component listing générique prisma findMany typed array try catch dynamic no hooks",
@@ -369,6 +369,31 @@
           "key": "metadata.status",
           "match": {
             "value": "active"
+          }
+        },
+        {
+          "key": "metadata.agent_context",
+          "match": {
+            "value": "dev"
+          }
+        }
+      ]
+    }
+  },
+  "architect_qdrant_filter": {
+    "collection": "factory_standards",
+    "filter": {
+      "must": [
+        {
+          "key": "metadata.status",
+          "match": {
+            "value": "active"
+          }
+        },
+        {
+          "key": "metadata.agent_context",
+          "match": {
+            "value": "architect"
           }
         }
       ]
@@ -651,17 +676,20 @@
       "mode": "block",
       "requires_first_directive": null,
       "message_lines": [
-        "AUTHORID USERID GUARD — BUILD BLOQUÉ",
-        "Une route utilise `authorId: userId` sans garde d'authentification explicite.",
+        "AUTHORID USERID GUARD — ERREUR TYPESCRIPT GARANTIE",
+        "auth() retourne { userId: string | null } — userId est string | null, jamais string garanti.",
+        "Prisma attend authorId: String (non-nullable). Passer string | null = ERREUR TypeScript à la compilation.",
+        "Le guard `if (!userId)` est OBLIGATOIRE pour narrower string | null → string avant toute opération Prisma.",
+        "Cela s'applique à TOUS les handlers : GET, POST, PUT, PATCH, DELETE.",
         "",
-        "TypeScript strict: `userId` peut être null si auth non validée.",
-        "Ajoute obligatoirement avant l'update/create Prisma un garde de ce type :",
-        "  if (!userId) return ...401...",
+        "Ajoute en TÊTE de CHAQUE handler avant toute opération Prisma :",
+        "  const { userId } = await auth();",
+        "  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });",
         "",
         "Fichiers à corriger :",
         "{details}",
         "",
-        "Ajoute la garde null puis rappelle run_build."
+        "Ajoute la garde dans chaque handler puis rappelle run_build."
       ]
     },
     {

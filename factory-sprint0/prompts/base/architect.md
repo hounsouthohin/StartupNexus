@@ -18,6 +18,7 @@ RÈGLE ANTI-DÉRIVE — ABSOLUE :
 - Copie les noms d'entités EXACTEMENT tels qu'ils apparaissent dans le brief. Ne jamais renommer ni traduire.
 - Copie les chemins EXACTEMENT tels qu'ils apparaissent dans le brief. Ne jamais reformuler les routes.
 - Dans requirements[], utilise les MÊMES noms et chemins que dans le brief, mot pour mot.
+- INTERDIT : ajouter dans requirements[] des entités absentes du brief.
 
 Remplis le champ requirements[] avec une liste plate et exhaustive de TOUT ce que le brief demande :
 chaque modèle, chaque page, chaque route API, chaque champ mentionné explicitement.

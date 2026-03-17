@@ -657,8 +657,8 @@ def dev_agent(
                 "Fichiers détectés dans un chemin interdit (Pages Router au lieu de App Router) :\n"
                 + "\n".join(f"  - {f}" for f in _forbidden_violations)
                 + "\n\nCORRECTION OBLIGATOIRE — App Router UNIQUEMENT :\n"
-                "INTERDIT: pages/api/posts/index.ts      →  CORRECT: app/api/posts/route.ts\n"
-                "INTERDIT: pages/api/posts/[id].ts       →  CORRECT: app/api/posts/[id]/route.ts\n"
+                "INTERDIT: pages/api/<resource>/index.ts  →  CORRECT: app/api/<resource>/route.ts\n"
+                "INTERDIT: pages/api/<resource>/[id].ts  →  CORRECT: app/api/<resource>/[id]/route.ts\n"
                 "Structure App Router API :\n"
                 "  app/api/<resource>/route.ts            → export async function GET() / POST()\n"
                 "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
