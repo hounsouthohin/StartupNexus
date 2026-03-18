@@ -1152,25 +1152,44 @@ ZONE_9_SECURITY = [
     {
         "text": """ACTION: OBLIGATOIRE
 STACK: nextjs-clerk-prisma
-TECHNOLOGIE: API Routes — vérification userId Clerk sur chaque route protégée
-RAISON: Sans vérification userId, les routes API sont accessibles sans authentification.
-DETECTION_REGEX: export async function (GET|POST|PUT|DELETE|PATCH)(?![\s\S]{0,400}await auth\(\))
-ALTERNATIVE: const { userId } = await auth(); if (!userId) return 401; au début de chaque handler
+TECHNOLOGIE: API Routes — null check userId obligatoire avant toute opération Prisma avec authorId
+RAISON_TYPESCRIPT: Clerk V6 auth() retourne { userId: string | null } — breaking change depuis Clerk V5 où userId était string. Prisma schema : authorId String (non-nullable). Passer string | null à un champ String Prisma = ERREUR TypeScript à la compilation, pas au runtime. Le null check if (!userId) effectue un TypeScript type narrowing : string | null devient string garanti — Prisma accepte. SANS ce narrowing, TypeScript refuse de compiler.
+RAISON_SECURITE: Sans vérification userId, les routes API sont accessibles sans authentification.
+ERREUR_TYPESCRIPT_EXACTE: Type 'string | null' is not assignable to type 'string'. Type 'null' is not assignable to type 'string'.
+NULL_CHECK_VALIDES:
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (userId === null) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+PATTERN_AUTHORID_CORRECT:
+  GET/DELETE : where: { authorId: userId }   — userId narrowé = string garanti
+  POST/PUT   : data: { authorId: userId, ... } — userId narrowé = string garanti
+  INTERDIT   : where: { userId }              — champ userId n'existe pas dans le modèle Prisma
 EXEMPLE_INVALIDE:
-  export async function GET(req: Request) {
-    const data = await prisma.task.findMany();
-    return NextResponse.json(data);  // Pas d'auth check
+  export async function POST(req: Request) {
+    const { userId } = await auth();
+    // userId est string | null ici — pas de narrowing
+    const body = await req.json();
+    await prisma.task.create({ data: { ...body, authorId: userId } });
+    // ERREUR TypeScript: string | null n'est pas assignable à String (Prisma)
   }
 EXEMPLE_VALIDE:
+  import { auth } from '@clerk/nextjs/server';
   export async function GET(req: Request) {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const data = await prisma.task.findMany({ where: { userId } });
+    // userId est string ici (narrowé) — Prisma accepte authorId: userId
+    const data = await prisma.task.findMany({ where: { authorId: userId } });
     return NextResponse.json(data);
   }
-ERREUR_ATTENDUE: Données exposées sans authentification
+  export async function POST(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await req.json();
+    await prisma.task.create({ data: { ...body, authorId: userId } });
+    return NextResponse.json({ success: true }, { status: 201 });
+  }
+ERREUR_ATTENDUE: Type error: Type 'string | null' is not assignable to type 'string' (compilation Next.js build)
 STATUS: active
-VERSION: 1.0""",
+VERSION: 2.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "9-security",

@@ -19,3 +19,12 @@ RÈGLES GÉNÉRALES :
 - Frontière Server/Client stricte (App Router) :
   - Pages `app/**/page.tsx` server-first par défaut (pas de hooks React client).
   - Si des hooks sont nécessaires, créer un composant client dédié sous `app/components/**` avec `"use client";`.
+- TYPAGE VARIABLES PRISMA OBLIGATOIRE (tsconfig strict=true) :
+  - INTERDIT : `let x = [];` puis `x = await prisma.model.findMany(...)` dans try-catch — TypeScript ne peut pas inférer le type → "implicitly has type 'any[]'"
+  - CORRECT  : `const x = await prisma.model.findMany(...)` directement (pas de try-catch, pas de pré-déclaration)
+  - Si try-catch nécessaire : `let x: Awaited<ReturnType<typeof prisma.model.findMany>> = [];`
+- TYPAGE PROPS OBLIGATOIRE — routes dynamiques (tsconfig strict=true) :
+  - Tout composant page avec segment dynamique `[param]` DOIT typer ses props explicitement.
+  - INTERDIT : `export default async function Page({ params })` — provoque "Binding element 'params' implicitly has an 'any' type"
+  - CORRECT   : `export default async function Page({ params }: { params: { slug: string } })`
+  - Adapter le nom du segment au contexte : `{ id: string }`, `{ slug: string }`, `{ taskId: string }`, etc.

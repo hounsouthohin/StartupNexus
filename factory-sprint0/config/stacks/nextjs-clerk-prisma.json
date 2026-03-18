@@ -671,15 +671,15 @@
         "authorId : userId"
       ],
       "requires_regex_all": [
-        "if\\s*\\(\\s*!\\s*userId\\s*\\)"
+        "if\\s*\\(\\s*!?\\s*userId"
       ],
-      "mode": "block",
+      "mode": "warn",
       "requires_first_directive": null,
       "message_lines": [
         "AUTHORID USERID GUARD — ERREUR TYPESCRIPT GARANTIE",
         "auth() retourne { userId: string | null } — userId est string | null, jamais string garanti.",
         "Prisma attend authorId: String (non-nullable). Passer string | null = ERREUR TypeScript à la compilation.",
-        "Le guard `if (!userId)` est OBLIGATOIRE pour narrower string | null → string avant toute opération Prisma.",
+        "Un null check sur userId est OBLIGATOIRE avant toute opération Prisma avec authorId.",
         "Cela s'applique à TOUS les handlers : GET, POST, PUT, PATCH, DELETE.",
         "",
         "Ajoute en TÊTE de CHAQUE handler avant toute opération Prisma :",

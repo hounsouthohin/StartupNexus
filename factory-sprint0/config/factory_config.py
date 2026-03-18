@@ -12,6 +12,7 @@ EMBEDDING_MODEL = "text-embedding-3-large"
 
 # --- Agent & Tool Configuration ---
 DEFAULT_VECTOR_SEARCH_LIMIT = 10  # Standards RAG retournés (architect + dev utilisent la même valeur)
+ARCHITECT_RAG_SCORE_THRESHOLD = 0.40  # Score cosinus minimum — standards en dessous ignorés (architect uniquement)
 SPEC_COVERAGE_SUCCESS_THRESHOLD = 0.5  # spec_coverage >= seuil → SUCCESS, sinon PARTIAL
 SPEC_COVERAGE_PARTIAL_THRESHOLD = 0.25  # spec_coverage >= seuil → PARTIAL, sinon BUILD_FAILED (app non-fonctionnelle)
 SUBPROCESS_TIMEOUT_SHORT = 30

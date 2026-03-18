@@ -19,7 +19,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage
-from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL, DEFAULT_VECTOR_SEARCH_LIMIT
+from config.factory_config import QDRANT_URL, QDRANT_COLLECTION_NAME, EMBEDDING_MODEL, DEFAULT_VECTOR_SEARCH_LIMIT, ARCHITECT_RAG_SCORE_THRESHOLD
 from utils.prompt_loader import load_base_prompt, load_stack_rules_only
 from agents.stack_config import _DEFAULT_STACK_ID
 
@@ -584,17 +584,42 @@ def create_architect_agent():
         run_id = str(state.get("run_id", ""))
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
         scored_docs = []  # List[Tuple[Document, float]]
+
+        # ── Query rewriting : enrichit le brief en mots-clés domaine ─────────
+        rag_query = query
+        try:
+            rewrite_response = await llm.ainvoke(
+                f"Résume en 10-15 mots-clés domaine séparés par des virgules le brief suivant. "
+                f"Identifie : type d'application, entités métier principales, fonctionnalités clés. "
+                f"Brief: {query}\n"
+                f"Retourne UNIQUEMENT les mots-clés, sans phrase, sans ponctuation finale."
+            )
+            rewritten = rewrite_response.content.strip()
+            if rewritten:
+                rag_query = rewritten
+                logger.info(f"[retrieval] Query rewriting: '{query[:60]}' → '{rag_query[:80]}'")
+        except Exception as e:
+            logger.warning(f"[retrieval] Query rewriting échoué ({e}) — requête originale utilisée")
+
         try:
             qdrant_filter = _build_architect_rag_filter(stack_id)
             if qdrant_filter is not None:
-                scored_docs = await vectorstore.asimilarity_search_with_score(query, k=DEFAULT_VECTOR_SEARCH_LIMIT, filter=qdrant_filter)
+                scored_docs = await vectorstore.asimilarity_search_with_score(rag_query, k=DEFAULT_VECTOR_SEARCH_LIMIT, filter=qdrant_filter)
             else:
-                plain_docs = await retriever.ainvoke(query)
+                plain_docs = await retriever.ainvoke(rag_query)
                 scored_docs = [(d, 0.0) for d in plain_docs]
-            _append_architect_rag_event(query=query, scored_docs=scored_docs, error=None, run_id=run_id)
+            # ── Score threshold : exclut les standards peu pertinents ─────────
+            before_count = len(scored_docs)
+            scored_docs = [(d, s) for d, s in scored_docs if s >= ARCHITECT_RAG_SCORE_THRESHOLD]
+            if len(scored_docs) < before_count:
+                logger.info(
+                    f"[retrieval] Score threshold {ARCHITECT_RAG_SCORE_THRESHOLD}: "
+                    f"{before_count} → {len(scored_docs)} standards retenus"
+                )
+            _append_architect_rag_event(query=rag_query, scored_docs=scored_docs, error=None, run_id=run_id)
         except Exception as e:
             logger.warning(f"RAG indisponible: {e} - continuation sans contexte")
-            _append_architect_rag_event(query=query, scored_docs=[], error=str(e), run_id=run_id)
+            _append_architect_rag_event(query=rag_query, scored_docs=[], error=str(e), run_id=run_id)
         docs = [d for d, _ in scored_docs]
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
         print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
@@ -610,7 +635,9 @@ def create_architect_agent():
         if brief_entities:
             input_text += f"\n\n{brief_entities}"
 
-        chain = prompts['planner'] | planner_llm
+        # Force JSON output — élimine les réponses en prose qui causent le fallback déterministe (1 requirement)
+        json_planner_llm = planner_llm.bind(response_format={"type": "json_object"})
+        chain = prompts['planner'] | json_planner_llm
         llm_response = await chain.ainvoke({"input": input_text})
 
         match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
@@ -641,7 +668,8 @@ def create_architect_agent():
 
         # ── Validation post-plan : détection plan générique ──────────────────
         is_generic, reason = _is_generic_plan(plan, phrase)
-        if is_generic and brief_entities:
+        plan_reqs = plan.get("requirements", [])
+        if is_generic and (brief_entities or len(plan_reqs) < 3):
             logger.warning(f"[planner] Plan générique détecté — retry forcé. Raison: {reason}")
             retry_input = (
                 f"User Request: {phrase}\n\nRAG Context:\n{state['rag_context']}\n\n"
