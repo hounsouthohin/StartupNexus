@@ -57,6 +57,7 @@ class DevTestAgent:
             "spec_validation_status": input_data.get("spec_validation_status", "OK"),
             "spec_unmatched_requirements": input_data.get("spec_unmatched_requirements", []),
         }
+        user_flows = input_data.get("user_flows", [])
         self._validate(dev_input, self.dev_contract["input_schema"], "Dev", "input")
 
         try:
@@ -112,6 +113,14 @@ class DevTestAgent:
         combined = {**dev_output.get("files", {}), **test_output.get("tests", {})}
         build_success = bool(dev_output.get("success", False))
         tests_passed = bool(test_output.get("success", False))
+
+        # ─── Journey Validator (Sprint 4.5) ──────────────────
+        journey_result: dict = {}
+        try:
+            from agents.journey_validator import validate_user_flows
+            journey_result = validate_user_flows(user_flows, combined)
+        except Exception as jv_err:
+            logger.warning(f"[journey_validator] Erreur non bloquante : {jv_err}")
 
         # ─── Spec Coverage (Sprint 4) ─────────────────────────
         requirements = input_data.get("requirements", [])
@@ -170,6 +179,11 @@ class DevTestAgent:
                 # Signal SpecValidator propagé pour observabilité Learner
                 "spec_validation_status": dev_input.get("spec_validation_status", "OK"),
                 "spec_unmatched_count": len(dev_input.get("spec_unmatched_requirements", [])),
+                # Journey Validator (Sprint 4.5)
+                "user_flows_total": journey_result.get("user_flows_total", 0),
+                "user_flows_covered": journey_result.get("user_flows_covered", 0),
+                "user_flows_coverage": journey_result.get("user_flows_coverage", 1.0),
+                "is_useful_app": journey_result.get("is_useful_app", True),
             }
         }
 

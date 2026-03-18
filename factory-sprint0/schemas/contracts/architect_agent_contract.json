@@ -64,6 +64,12 @@
         "items": {"type": "string"},
         "description": "Requirements dont les termes-clés sont absents de la spec générée (dérive spec_writer détectée)"
       },
+      "user_flows": {
+        "type": "array",
+        "description": "Liste des flux utilisateur extraits du brief (action → route/page). Utilisé par le Journey Validator.",
+        "items": {"type": "string"},
+        "default": []
+      },
       "metadata": {
         "type": "object",
         "properties": {

@@ -95,6 +95,7 @@ class TodoPilotWorkflow:
             spec_part = architect_result.get("specification", "")
             mermaid_part = architect_result.get("mermaid_diagram", "")
             requirements_part = architect_result.get("requirements", [])
+            user_flows_part = architect_result.get("user_flows", [])
             spec_validation_status = architect_result.get("spec_validation_status", "OK")
             spec_unmatched_requirements = architect_result.get("spec_unmatched_requirements", [])
 
@@ -137,6 +138,7 @@ class TodoPilotWorkflow:
                 "project_name": project_name,
                 "stack_id": stack_id,
                 "requirements": requirements_part,
+                "user_flows": user_flows_part,
                 "spec_validation_status": spec_validation_status,
                 "spec_unmatched_requirements": spec_unmatched_requirements,
             }

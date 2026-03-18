@@ -120,6 +120,7 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         "specification": "",
         "mermaid_diagram": "",
         "requirements": [],
+        "user_flows": [],
         "stack_id": str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         "run_id": run_id,
     }
@@ -143,6 +144,11 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
                 architect_output.requirements
                 if hasattr(architect_output, "requirements")
                 else architect_output.get("requirements", [])
+            ) or [],
+            "user_flows": (
+                architect_output.user_flows
+                if hasattr(architect_output, "user_flows")
+                else architect_output.get("user_flows", [])
             ) or [],
         }
 

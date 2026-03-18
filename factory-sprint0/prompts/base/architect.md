@@ -42,6 +42,12 @@ Les ENTITÉS OBLIGATOIRES extraites du brief ont priorité absolue. Utilise les 
     "Page publique: /<entities>/[<id>] détail d'un élément",
     "Page protégée: /dashboard gestion des <entities> de l'auteur",
     "API Route: <METHOD> /api/<entities>/[<id>] opération avec auth"
+  ],
+  "user_flows": [
+    "L'utilisateur crée un <entity> → POST /api/<entities>",
+    "L'utilisateur voit ses <entities> → /dashboard",
+    "L'utilisateur modifie un <entity> → PUT /api/<entities>/[<id>]",
+    "L'utilisateur supprime un <entity> → DELETE /api/<entities>/[<id>]"
   ]
 }
 

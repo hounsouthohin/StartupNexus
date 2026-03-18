@@ -395,6 +395,7 @@ class ArchitectOutput(BaseModel):
     specification: str = Field(description="The full technical specification in Markdown format.")
     mermaid_diagram: str = Field(description="The complete and valid Mermaid diagram syntax.")
     requirements: list = Field(default_factory=list, description="Flat list of all business requirements extracted from the brief.")
+    user_flows: list = Field(default_factory=list, description="List of user interaction flows mapping actions to routes/pages.")
 
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
@@ -406,6 +407,7 @@ class AgentState(TypedDict):
     run_id: str
     stack_id: str
     requirements: list
+    user_flows: list
 
 # --- Prompt Loading ---
 def _parse_level1_sections(content: str) -> dict[str, str]:
@@ -688,8 +690,9 @@ def create_architect_agent():
                 logger.warning("[planner] Retry plan invalide JSON — on garde le plan original")
 
         requirements = _extract_requirements_from_plan(plan)
-        logger.info(f"[planner] {len(requirements)} requirements extraits du brief")
-        return {"plan": plan, "requirements": requirements}
+        user_flows = [str(f) for f in plan.get("user_flows", []) if f]
+        logger.info(f"[planner] {len(requirements)} requirements, {len(user_flows)} user_flows extraits du brief")
+        return {"plan": plan, "requirements": requirements, "user_flows": user_flows}
 
     async def spec_writer_node(state: AgentState):
         plan_json = json.dumps(state['plan'], indent=2)
@@ -908,6 +911,7 @@ def create_architect_agent():
             specification=state['specification'],
             mermaid_diagram=state['mermaid_diagram'],
             requirements=state.get('requirements', []),
+            user_flows=state.get('user_flows', []),
         )
         return {"architect_output": architect_output}
 
