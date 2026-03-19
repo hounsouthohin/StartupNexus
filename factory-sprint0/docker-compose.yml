@@ -153,6 +153,8 @@ services:
       - QDRANT_URL=http://qdrant:6333
       - MERMAID_TMP_DIR=/tmp/mermaid
       - FACTORY_WORKDIR=/app/generated-projects
+      - SEMGREP_RULES_PATH=/app/semgrep/rules/critical.yml
+      - SEMGREP_TIMEOUT=30
     command: >
       bash -c "python scripts/wait-for-it.py qdrant:6333 120 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 120 && python api/flask_api.py & python run/worker.py"
     volumes:

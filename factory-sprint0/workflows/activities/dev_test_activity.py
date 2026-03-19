@@ -3,6 +3,11 @@ from temporalio.exceptions import ApplicationError
 import re
 import sys
 import os
+import shutil
+import subprocess
+import tempfile
+import json
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 
 # Validation contrats
@@ -132,6 +137,91 @@ def _check_semantic_invariants(combined_files: dict, stack_id: str = "nextjs-cle
     return violations
 
 
+def _find_schema_in_combined_files(combined_files: dict) -> tuple[str, str]:
+    """
+    Retourne (schema_path, schema_content) depuis combined_files.
+    Tolère les variantes de clés legacy et App Router.
+    """
+    preferred = ("prisma/schema.prisma", "schema.prisma")
+    for key in preferred:
+        if key in combined_files:
+            return key, str(combined_files.get(key, ""))
+    for key, content in (combined_files or {}).items():
+        norm = str(key).replace("\\", "/").lower()
+        if norm.endswith("schema.prisma"):
+            return str(key), str(content)
+    return "", ""
+
+
+def _run_prisma_validate(combined_files: dict) -> tuple[list[str], dict]:
+    """
+    Exécute `prisma validate` sur un schema généré.
+
+    Comportement:
+    - Si pas de schema: skip (pas de violation).
+    - Si Prisma CLI absente:
+        - mode non bloquant par défaut (warning de qualité)
+        - mode bloquant si PRISMA_VALIDATE_ENFORCE=1 (violation)
+    - Si validate échoue: violation.
+    """
+    violations: list[str] = []
+    details: dict[str, Any] = {
+        "enabled": os.getenv("PRISMA_VALIDATE_ENABLED", "1") == "1",
+        "enforced": os.getenv("PRISMA_VALIDATE_ENFORCE", "0") == "1",
+        "schema_path": "",
+        "cli_found": False,
+        "ran": False,
+        "ok": None,
+        "stdout": "",
+        "stderr": "",
+    }
+
+    if not details["enabled"]:
+        return violations, details
+
+    schema_path, schema_content = _find_schema_in_combined_files(combined_files)
+    details["schema_path"] = schema_path
+    if not schema_path or not schema_content.strip():
+        return violations, details
+
+    prisma_bin = shutil.which("prisma")
+    details["cli_found"] = bool(prisma_bin)
+    if not prisma_bin:
+        msg = "PRISMA_VALIDATE_UNAVAILABLE: prisma CLI introuvable dans le runtime"
+        if details["enforced"]:
+            violations.append(msg)
+        return violations, details
+
+    try:
+        with tempfile.TemporaryDirectory(prefix="prisma_validate_") as tmpdir:
+            schema_disk_path = os.path.join(tmpdir, "prisma", "schema.prisma")
+            os.makedirs(os.path.dirname(schema_disk_path), exist_ok=True)
+            with open(schema_disk_path, "w", encoding="utf-8") as f:
+                f.write(schema_content)
+
+            details["ran"] = True
+            result = subprocess.run(
+                [prisma_bin, "validate", "--schema", schema_disk_path],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            details["stdout"] = (result.stdout or "")[:1200]
+            details["stderr"] = (result.stderr or "")[:1200]
+            details["ok"] = result.returncode == 0
+            if result.returncode != 0:
+                violations.append(
+                    "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate"
+                )
+    except Exception as e:
+        details["ok"] = False
+        details["stderr"] = str(e)[:1200]
+        if details["enforced"]:
+            violations.append(f"PRISMA_VALIDATE_ERROR: {str(e)[:200]}")
+
+    return violations, details
+
+
 def _check_clerk_compliant(result: dict) -> bool:
     """
     Vérifie réellement la conformité Clerk au lieu de retourner True.
@@ -197,6 +287,48 @@ def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = ""
         )
     except Exception as log_err:
         activity.logger.warning(f"Impossible de logger dev_test_run vers Learner: {log_err}")
+
+
+def _append_guard_rule_metrics(run_id: str, dev_meta: dict, run_metric: dict, stack_id: str) -> None:
+    """
+    Persist des signaux de qualité par règle de guard pour suivi precision/recall.
+    Ce logger est additif et non-bloquant.
+    """
+    try:
+        log_root = os.getenv("FACTORY_LOG_DIR", "/app/logs")
+        metrics_dir = os.path.join(log_root, "metrics")
+        os.makedirs(metrics_dir, exist_ok=True)
+        path = os.path.join(metrics_dir, "guard_rule_events.jsonl")
+
+        guard_warning_hits = dev_meta.get("guard_warning_hits", {})
+        if not isinstance(guard_warning_hits, dict):
+            guard_warning_hits = {}
+
+        event = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "run_id": run_id,
+            "stack_id": stack_id,
+            "blocking_guard_id": str(dev_meta.get("blocking_guard_id", "") or ""),
+            "gate_source": str(dev_meta.get("gate_source", "") or ""),
+            "guard_warning_hits": guard_warning_hits,
+            "guard_warning_count": int(dev_meta.get("guard_warning_count", 0) or 0),
+            "build_success": bool(run_metric.get("build_success", False)),
+            "build_attempted": bool(run_metric.get("build_attempted", False)),
+            "root_cause_category": str(run_metric.get("root_cause_category", "unknown")),
+            # Proxies exploitables offline pour précision/rappel
+            "precision_proxy_tp": bool(
+                str(dev_meta.get("blocking_guard_id", "") or "")
+                and not bool(run_metric.get("build_success", False))
+            ),
+            "precision_proxy_fp": bool(
+                str(dev_meta.get("blocking_guard_id", "") or "")
+                and bool(run_metric.get("build_success", False))
+            ),
+        }
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event, ensure_ascii=False) + "\n")
+    except Exception as e:
+        activity.logger.warning(f"guard_rule_metrics logging failed (non-bloquant): {e}")
 
 
 def _compute_build_outcome(result_success: bool, final_message: str, dev_meta: Dict[str, Any]) -> tuple[bool, int, bool]:
@@ -269,6 +401,24 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         semantic_violations = _check_semantic_invariants(
             combined_files, stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma"))
         )
+        prisma_violations, prisma_validate_details = _run_prisma_validate(combined_files)
+        if prisma_violations:
+            semantic_violations.extend(prisma_violations)
+        if prisma_validate_details.get("ran"):
+            activity.logger.info(
+                "[PRISMA_VALIDATE] ran=%s ok=%s schema=%s",
+                prisma_validate_details.get("ran"),
+                prisma_validate_details.get("ok"),
+                prisma_validate_details.get("schema_path", ""),
+            )
+        elif prisma_validate_details.get("enabled") and prisma_validate_details.get("schema_path"):
+            if prisma_validate_details.get("cli_found"):
+                activity.logger.warning("[PRISMA_VALIDATE] non exécuté malgré CLI présente")
+            else:
+                activity.logger.warning(
+                    "[PRISMA_VALIDATE] CLI absente (enforce=%s) — voir Dockerfile/runtime",
+                    prisma_validate_details.get("enforced"),
+                )
         if semantic_violations:
             for v in semantic_violations:
                 activity.logger.warning(f"[SEMANTIC_VIOLATION] {v}")
@@ -351,6 +501,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "last_test_error_full": last_test_error_full,
             "last_failed_command": last_failed_command,
             "semantic_violations": semantic_violations,
+            "prisma_validate": prisma_validate_details,
             "error": runtime_error,
             "root_cause_category": _classify_root_cause(
                 last_build_error=last_build_error,
@@ -364,6 +515,12 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "
             f"Success: {result.get('success', False)} | "
             f"Violations: {len(semantic_violations)}"
+        )
+        _append_guard_rule_metrics(
+            run_id=run_id,
+            dev_meta=dev_meta,
+            run_metric=run_metric,
+            stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         )
 
         return {**result, "run_metric": run_metric, "semantic_violations": semantic_violations}

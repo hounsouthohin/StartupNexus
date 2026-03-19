@@ -123,6 +123,10 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         "mermaid_diagram": "",
         "requirements": [],
         "user_flows": [],
+        "ir_schema": [],          # IR canonique — Prisma models (rempli par formatter_node)
+        "ir_pages": [],           # IR canonique — pages (rempli par formatter_node)
+        "ir_routes": [],          # IR canonique — API routes (rempli par formatter_node)
+        "spec_structured": None,  # Dual-output P2 (rempli par formatter_node)
         "stack_id": str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         "run_id": run_id,
     }
@@ -152,6 +156,31 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
                 if hasattr(architect_output, "user_flows")
                 else architect_output.get("user_flows", [])
             ) or [],
+            # IR canonique — source de vérité typée (parser déterministe).
+            # Coexiste avec requirements: list[str] jusqu'en P4.
+            "ir_schema": (
+                architect_output.ir_schema
+                if hasattr(architect_output, "ir_schema")
+                else architect_output.get("ir_schema", [])
+            ) or [],
+            "ir_pages": (
+                architect_output.ir_pages
+                if hasattr(architect_output, "ir_pages")
+                else architect_output.get("ir_pages", [])
+            ) or [],
+            "ir_routes": (
+                architect_output.ir_routes
+                if hasattr(architect_output, "ir_routes")
+                else architect_output.get("ir_routes", [])
+            ) or [],
+            # Dual-output P2 — spec structurée JSON
+            "spec_structured": (
+                (architect_output.spec_structured.model_dump()
+                 if hasattr(architect_output.spec_structured, "model_dump")
+                 else architect_output.spec_structured.dict())
+                if hasattr(architect_output, "spec_structured") and architect_output.spec_structured
+                else {}
+            ),
         }
 
         violations = _validate_clerk_compliance(

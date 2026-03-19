@@ -1,0 +1,34 @@
+rules:
+  - id: authorid-userid-null-guard-missing
+    message: "authorId: userId sans garde if (!userId) dans un route handler API."
+    severity: ERROR
+    languages: [typescript, javascript]
+    paths:
+      include:
+        - app/api/**/*.ts
+        - app/api/**/*.tsx
+    patterns:
+      - pattern: "authorId: userId"
+      - pattern-not-regex: '(?s)if\\s*\\(\\s*!\\s*userId\\s*\\)'
+    metadata:
+      owner: platform
+      category: security
+      version: "1.0.0"
+
+  - id: app-router-hooks-require-use-client
+    message: "Hook React utilisé sans directive \"use client\" en tête de fichier."
+    severity: WARNING
+    languages: [typescript, javascript]
+    paths:
+      include:
+        - app/**/*.tsx
+      exclude:
+        - app/components/**
+        - app/hooks/**
+        - app/context/**
+        - app/providers/**
+    pattern-regex: "(?s)^(?!\\s*[\\\"']use client[\\\"'];).*(\\buseState\\s*\\(|\\buseEffect\\s*\\(|\\buseRef\\s*\\(|\\buseMemo\\s*\\(|\\buseCallback\\s*\\(|\\buseReducer\\s*\\()"
+    metadata:
+      owner: platform
+      category: app-router
+      version: "1.0.0"

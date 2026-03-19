@@ -337,11 +337,31 @@ def _append_architect_rag_event(query: str, scored_docs: list, error: str | None
         logger.warning(f"Architect RAG metrics logging failed: {log_err}")
 
 # --- Pydantic Models for State ---
+class SpecOutput(BaseModel):
+    """IR structuré de la spec — complément JSON du markdown brut (P2).
+    Construit de façon déterministe dans formatter_node, sans appel LLM supplémentaire.
+    specification: str reste le contrat garanti (≥500 chars markdown).
+    """
+    spec_summary: str = Field(default="", description="Premier paragraphe non-titre de la spec (≤300 chars).")
+    entities_in_spec: list = Field(default_factory=list, description="Noms d'entités IR (models) confirmées dans la spec.")
+    missing_entities: list = Field(default_factory=list, description="Entités IR absentes de la spec (drift spec_writer détecté).")
+    pages_in_spec: list = Field(default_factory=list, description="Pages IR confirmées dans la spec (URL format).")
+    routes_in_spec: list = Field(default_factory=list, description="Routes API IR confirmées dans la spec.")
+
+
 class ArchitectOutput(BaseModel):
     specification: str = Field(description="The full technical specification in Markdown format.")
     mermaid_diagram: str = Field(description="The complete and valid Mermaid diagram syntax.")
     requirements: list = Field(default_factory=list, description="Flat list of all business requirements extracted from the brief.")
     user_flows: list = Field(default_factory=list, description="List of user interaction flows mapping actions to routes/pages.")
+    # IR canonique — source de vérité typée issue du parser déterministe.
+    # Coexiste avec requirements: list[str] jusqu'en P4.
+    ir_schema: list = Field(default_factory=list, description="Prisma model strings verbatim from parsed_brief.")
+    ir_pages: list = Field(default_factory=list, description="Next.js app-router page paths from parsed_brief.")
+    ir_routes: list = Field(default_factory=list, description="API route files from parsed_brief.")
+    # Dual-output P2 — spec structurée (JSON) en complément du markdown.
+    # specification: str reste le contrat garanti (≥500 chars, non-breaking).
+    spec_structured: SpecOutput = Field(default_factory=SpecOutput, description="Version JSON structurée de la spec (P2).")
 
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
@@ -356,6 +376,10 @@ class AgentState(TypedDict):
     stack_id: str
     requirements: list
     user_flows: list
+    ir_schema: list              # IR canonique — Prisma models (source: parsed_brief)
+    ir_pages: list               # IR canonique — pages (source: parsed_brief)
+    ir_routes: list              # IR canonique — API routes (source: parsed_brief)
+    spec_structured: dict  # Dual-output P2 — spec JSON sérialisé (construit dans formatter_node, None en initial_state)
 
 # --- Prompt Loading ---
 def _parse_level1_sections(content: str) -> dict[str, str]:
@@ -715,7 +739,7 @@ def create_architect_agent():
         # ── Requirements : source de vérité = parser déterministe ────────────
         # Si le parser a extrait des données → requirements depuis le parser (jamais un LLM).
         # Fallback sur le plan LLM uniquement si le brief était 100% vague (parser vide).
-        from agents.brief_parser import requirements_from_parsed, ParsedBrief
+        from agents.brief_parser import requirements_from_parsed, user_flows_from_parsed, ParsedBrief
         has_parser_data = (
             parsed_brief.get("has_explicit_models")
             or parsed_brief.get("has_explicit_pages")
@@ -723,13 +747,20 @@ def create_architect_agent():
         )
         if has_parser_data:
             requirements = requirements_from_parsed(parsed_brief)  # type: ignore[arg-type]
-            logger.info(f"[planner] requirements depuis parser déterministe ({len(requirements)} items)")
+            # user_flows déterministes : mêmes entités/routes que requirements[]
+            # Évite la dérive LLM (ex: "POST /api/books" pour un brief Product/Order)
+            user_flows = user_flows_from_parsed(parsed_brief)  # type: ignore[arg-type]
+            logger.info(
+                f"[planner] requirements + user_flows depuis parser déterministe "
+                f"({len(requirements)} requirements, {len(user_flows)} flows)"
+            )
         else:
             requirements = _extract_requirements_from_plan(plan)
-            logger.info(f"[planner] requirements depuis plan LLM (brief vague — {len(requirements)} items)")
-
-        user_flows = [str(f) for f in plan.get("user_flows", []) if f]
-        logger.info(f"[planner] {len(requirements)} requirements, {len(user_flows)} user_flows")
+            user_flows = [str(f) for f in plan.get("user_flows", []) if f]
+            logger.info(
+                f"[planner] brief vague — requirements + user_flows depuis plan LLM "
+                f"({len(requirements)} requirements, {len(user_flows)} flows)"
+            )
         return {"plan": plan, "requirements": requirements, "user_flows": user_flows}
 
     async def spec_writer_node(state: AgentState):
@@ -832,11 +863,64 @@ def create_architect_agent():
     # diagrammer_node supprimé (Pré-Sprint 4.6) — Sprint 6 dashboard le réintégrera via agent dédié.
 
     def formatter_node(state: AgentState):
+        parsed = state.get('parsed_brief') or {}
+        spec_text = state['specification']
+        spec_lower = spec_text.lower()
+
+        # ── SpecOutput (P2) — déterministe, zéro LLM ─────────────────────────
+        # Résumé : premier paragraphe non-titre
+        spec_summary = ""
+        for para in spec_text.split('\n\n'):
+            stripped = para.strip()
+            if stripped and not stripped.startswith('#'):
+                spec_summary = stripped[:300]
+                break
+
+        # Entités IR vs spec
+        models = parsed.get('data_models', [])
+        entities_in_spec, missing_entities = [], []
+        for model in models:
+            name = model.split('{')[0].strip()
+            (entities_in_spec if name.lower() in spec_lower else missing_entities).append(name)
+
+        # Pages IR vs spec (format URL)
+        from agents.brief_parser import _app_route_to_url
+        pages_in_spec = []
+        for page in parsed.get('pages', []):
+            url = _app_route_to_url(page)
+            stripped = url.strip('/')
+            if url in spec_text or (stripped and stripped in spec_lower):
+                pages_in_spec.append(url)
+
+        # Routes API IR vs spec
+        routes_in_spec = []
+        from agents.brief_parser import _route_file_to_url
+        for route in parsed.get('api_routes', []):
+            url = _route_file_to_url(route)
+            if url in spec_text:
+                routes_in_spec.append(url)
+
+        spec_output = SpecOutput(
+            spec_summary=spec_summary,
+            entities_in_spec=entities_in_spec,
+            missing_entities=missing_entities,
+            pages_in_spec=pages_in_spec,
+            routes_in_spec=routes_in_spec,
+        )
+        if missing_entities:
+            logger.warning(
+                f"[formatter] SpecOutput — {len(missing_entities)} entité(s) IR absentes de la spec : {missing_entities}"
+            )
+
         architect_output = ArchitectOutput(
-            specification=state['specification'],
+            specification=spec_text,
             mermaid_diagram=state.get('mermaid_diagram', ''),
             requirements=state.get('requirements', []),
             user_flows=state.get('user_flows', []),
+            ir_schema=parsed.get('data_models', []),
+            ir_pages=parsed.get('pages', []),
+            ir_routes=parsed.get('api_routes', []),
+            spec_structured=spec_output,
         )
         return {"architect_output": architect_output}
 

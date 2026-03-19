@@ -570,6 +570,7 @@ def dev_agent(
         Retourne (bloqué: bool, message: str).
         Utilisé sur DEUX chemins : tool_call run_build ET forced build.
         """
+        import shutil as _shutil  # utilisé par les AST guards ("engine": "ast")
         _warnings: list[str] = []
 
         # 1. Blueprint Validator
@@ -698,6 +699,28 @@ def dev_agent(
         #   message_lines          : lignes du message constructif, "{details}" = liste fichiers.
         for _guard in stack_cfg.get("content_guards", []):
             _gid = _guard.get("id", "unknown")
+            _engine = str(_guard.get("engine", "regex")).strip().lower()
+
+            # ── P3 : Engine AST (ts-morph / Semgrep) ─────────────────────────
+            # Infrastructure stub : quand Dockerfile inclura ts-morph/Semgrep,
+            # chaque guard "engine": "ast" appellera un subprocess ici.
+            # En attendant : fallback warn avec signal clair dans les logs.
+            if _engine == "ast":
+                _ast_tool = _guard.get("ast_tool", "ts-morph")  # "ts-morph" | "semgrep"
+                _tool_binary = "node" if _ast_tool == "ts-morph" else "semgrep"
+                if _shutil.which(_tool_binary) is None:
+                    logger.warning(
+                        f"[AST_GUARD {_gid}] {_ast_tool} non disponible "
+                        f"('{_tool_binary}' introuvable dans PATH) — guard skippé. "
+                        f"Ajouter {_ast_tool} au Dockerfile pour activer ce guard."
+                    )
+                    _warnings.append(f"[AST_GUARD SKIPPED:{_gid}] {_ast_tool} non disponible")
+                else:
+                    # Placeholder : sera complété par Codex (P3 infrastructure)
+                    logger.info(f"[AST_GUARD {_gid}] {_ast_tool} disponible — exécution à implémenter (P3)")
+                    _warnings.append(f"[AST_GUARD TODO:{_gid}] subprocess {_ast_tool} non encore câblé")
+                continue  # AST guard traité (ou skippé) — pas de regex fallback
+
             _file_prefix = _guard.get("file_prefix", "")
             _file_exts = _guard.get("file_extensions", [])
             _triggers = _guard.get("trigger_contains", [])

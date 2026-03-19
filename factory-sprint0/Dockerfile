@@ -9,6 +9,7 @@ COPY requirements.txt .
 
 # Install Python deps
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir semgrep
 
 # Install Node.js 20.x for npm and build/test tools
 RUN apt-get update && \
@@ -18,6 +19,9 @@ RUN apt-get update && \
     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
     apt-get install -y nodejs
+
+# Install JS AST tooling for P3 guards (dev.py AST engine path)
+RUN npm install -g ts-morph @typescript-eslint/parser @typescript-eslint/typescript-estree
 
 # Install Docker CLI client
 RUN apt-get update && \

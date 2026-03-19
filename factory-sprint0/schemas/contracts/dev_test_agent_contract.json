@@ -10,7 +10,7 @@
     "additionalProperties": false,
     "properties": {
       "spec":         { "type": "string" },
-      "mermaid":      { "type": "string" },
+      "mermaid":      { "type": "string", "default": "" },
       "project_name": { "type": "string" },
       "stack_id":     { "type": "string" },
       "run_id":       { "type": "string" },
@@ -32,6 +32,24 @@
         "type": "array",
         "items": { "type": "string" },
         "description": "Flux utilisateur extraits par l'Architect — transmis au Journey Validator",
+        "default": []
+      },
+      "ir_schema": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "IR canonique P1 — modèles Prisma verbatim du parser déterministe (coexiste avec requirements jusqu'en P4)",
+        "default": []
+      },
+      "ir_pages": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "IR canonique P1 — chemins de pages Next.js app-router du parser déterministe",
+        "default": []
+      },
+      "ir_routes": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "IR canonique P1 — fichiers de routes API du parser déterministe",
         "default": []
       }
     }

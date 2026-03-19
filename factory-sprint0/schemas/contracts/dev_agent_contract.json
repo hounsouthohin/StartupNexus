@@ -17,8 +17,8 @@
       },
       "mermaid": {
         "type": "string",
-        "description": "Diagramme Mermaid de l'Architect Agent",
-        "minLength": 50
+        "description": "Diagramme Mermaid de l'Architect Agent (optionnel — diagrammer_node retiré Pré-Sprint 4.6)",
+        "default": ""
       },
       "project_name": {
         "type": "string",

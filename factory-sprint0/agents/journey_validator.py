@@ -18,6 +18,7 @@ Algorithme :
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Dict, Any
 
@@ -25,6 +26,46 @@ logger = logging.getLogger(__name__)
 
 # Seuil "app utile" : 60% des user_flows couverts par des fichiers générés
 USER_FLOWS_USEFUL_THRESHOLD = 0.60
+
+
+def _llm_judge_enabled() -> bool:
+    return (
+        os.getenv("JOURNEY_LLM_FALLBACK", "0") == "1"
+        and bool(os.getenv("OPENAI_API_KEY"))
+    )
+
+
+def _llm_judge_flow_coverage(flow: str, file_keys: list[str]) -> tuple[bool | None, str]:
+    """
+    Fallback sémantique (optionnel) pour flows non résolus déterministiquement.
+    Retourne (covered|None, reason). None = impossible de juger.
+    """
+    if not _llm_judge_enabled():
+        return None, "llm_disabled"
+
+    try:
+        from pydantic import BaseModel
+        from langchain_openai import ChatOpenAI
+
+        class CoverageCheck(BaseModel):
+            covered: bool
+            reason: str
+
+        model_name = os.getenv("JOURNEY_LLM_MODEL", "gpt-4o-mini")
+        llm = ChatOpenAI(model=model_name, temperature=0).with_structured_output(CoverageCheck)
+        file_list = "\n".join(f"- {k}" for k in file_keys[:120])
+        prompt = (
+            "Tu es un juge strict de couverture de flow utilisateur.\n"
+            "Réponds uniquement sur la base des fichiers listés.\n"
+            f"Flow: {flow}\n\n"
+            "Fichiers générés:\n"
+            f"{file_list}\n\n"
+            "Covered=true seulement si une route/page implémentant clairement ce flow existe."
+        )
+        resp = llm.invoke(prompt)
+        return bool(resp.covered), str(resp.reason)[:220]
+    except Exception as e:
+        return None, f"llm_error:{str(e)[:120]}"
 
 
 def _extract_path_from_flow(flow: str) -> str | None:
@@ -124,6 +165,8 @@ def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any
     covered = []
     uncovered = []
     unresolvable = []
+    llm_promoted = []
+    llm_checked = 0
 
     for flow in user_flows:
         path = _extract_path_from_flow(str(flow))
@@ -138,6 +181,27 @@ def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any
         else:
             uncovered.append(flow)
             logger.debug(f"[journey_validator] ✗ '{flow}' → {path} (absent)")
+
+    # Fallback LLM uniquement pour flows non résolus déterministiquement.
+    # Il n'est activé que par env var (JOURNEY_LLM_FALLBACK=1).
+    if _llm_judge_enabled() and (uncovered or unresolvable):
+        unresolved = list(uncovered) + list(unresolvable)
+        file_keys = list(combined_files.keys())
+        for flow in unresolved:
+            llm_checked += 1
+            judged, reason = _llm_judge_flow_coverage(str(flow), file_keys)
+            if judged is True:
+                if flow in uncovered:
+                    uncovered.remove(flow)
+                if flow in unresolvable:
+                    unresolvable.remove(flow)
+                covered.append(flow)
+                llm_promoted.append({"flow": flow, "reason": reason})
+                logger.info(f"[journey_validator][llm] promoted flow='{flow}' reason='{reason}'")
+            elif judged is False:
+                logger.debug(f"[journey_validator][llm] not covered flow='{flow}' reason='{reason}'")
+            else:
+                logger.debug(f"[journey_validator][llm] skipped flow='{flow}' reason='{reason}'")
 
     resolvable_total = len(covered) + len(uncovered)
     coverage = len(covered) / resolvable_total if resolvable_total > 0 else 1.0
@@ -159,4 +223,6 @@ def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any
         "covered": covered,
         "uncovered": uncovered,
         "unresolvable": unresolvable,
+        "llm_checked": llm_checked,
+        "llm_promoted": llm_promoted,
     }

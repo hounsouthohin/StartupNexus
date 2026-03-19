@@ -659,9 +659,9 @@
         "authorId : userId"
       ],
       "requires_regex_all": [
-        "if\\s*\\(\\s*!?\\s*userId"
+        "if\\s*\\(\\s*!\\s*userId"
       ],
-      "mode": "warn",
+      "mode": "block",
       "requires_first_directive": null,
       "message_lines": [
         "AUTHORID USERID GUARD — ERREUR TYPESCRIPT GARANTIE",

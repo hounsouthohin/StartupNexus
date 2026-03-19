@@ -98,6 +98,10 @@ class TodoPilotWorkflow:
             user_flows_part = architect_result.get("user_flows", [])
             spec_validation_status = architect_result.get("spec_validation_status", "OK")
             spec_unmatched_requirements = architect_result.get("spec_unmatched_requirements", [])
+            # IR canonique — source de vérité typée (parser déterministe, P1)
+            ir_schema_part = architect_result.get("ir_schema", [])
+            ir_pages_part = architect_result.get("ir_pages", [])
+            ir_routes_part = architect_result.get("ir_routes", [])
 
             workflow.logger.info(
                 f"Architect terminé — {len(requirements_part)} requirements extraits | "
@@ -133,6 +137,10 @@ class TodoPilotWorkflow:
                 "user_flows": user_flows_part,
                 "spec_validation_status": spec_validation_status,
                 "spec_unmatched_requirements": spec_unmatched_requirements,
+                # IR canonique — coexiste avec requirements: list[str] jusqu'en P4
+                "ir_schema": ir_schema_part,
+                "ir_pages": ir_pages_part,
+                "ir_routes": ir_routes_part,
             }
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(

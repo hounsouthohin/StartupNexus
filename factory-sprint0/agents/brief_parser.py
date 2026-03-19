@@ -56,7 +56,7 @@ def _extract_prisma_models(text: str) -> list:
     """
     models = []
     pattern = re.compile(
-        r'Mod[eè]le?\s+Prisma\s*:?\s*(\w+)\s*\{([^}]+)\}',
+        r'(?:Mod[eè]le?\s+Prisma|Model\s+Prisma|Prisma\s+Model|model)\s*:?\s*(\w+)\s*\{([^}]+)\}',
         re.IGNORECASE | re.DOTALL,
     )
     for match in pattern.finditer(text):
@@ -78,10 +78,12 @@ def _extract_pages(text: str) -> list:
     pages = []
     seen = set()
 
-    # Match: "- /path :" ou "- /path/[id] :" (avec ou sans colon)
-    pattern = re.compile(r'[-*]\s+(\/[\w\/\[\]\-]*)\s*[:\u2014\u2013]', re.MULTILINE)
-
-    for match in pattern.finditer(text):
+    # Match bullet list: "- /path", "- /path : desc", "- /path — desc"
+    bullet_pattern = re.compile(
+        r'^\s*[-*]\s+(\/[\w\/\[\]\-]*)\s*(?:[:\u2014\u2013].*)?$',
+        re.MULTILINE,
+    )
+    for match in bullet_pattern.finditer(text):
         raw_path = match.group(1).strip()
         if '/api/' in raw_path:
             continue
@@ -89,6 +91,34 @@ def _extract_pages(text: str) -> list:
         if app_path not in seen:
             seen.add(app_path)
             pages.append(app_path)
+
+    # Match inline section: "Pages: /, /dashboard, /products/[id]"
+    pages_line_pattern = re.compile(r'(?im)^\s*pages?\s*[:\-]\s*(.+)$')
+    path_pattern = re.compile(r'/[\w/\[\]\-]*')
+    for line_match in pages_line_pattern.finditer(text):
+        chunk = line_match.group(1)
+        for p in path_pattern.findall(chunk):
+            raw_path = (p or "").strip()
+            if not raw_path or "/api/" in raw_path:
+                continue
+            app_path = _path_to_app_route(raw_path)
+            if app_path not in seen:
+                seen.add(app_path)
+                pages.append(app_path)
+
+    # Match natural language lines that mention pages/paths explicitly
+    page_hint_pattern = re.compile(r'(?i)\b(page|pages|écran|ecran|path|route front|route ui)\b')
+    for line in text.splitlines():
+        if not page_hint_pattern.search(line):
+            continue
+        for p in path_pattern.findall(line):
+            raw_path = (p or "").strip()
+            if not raw_path or "/api/" in raw_path:
+                continue
+            app_path = _path_to_app_route(raw_path)
+            if app_path not in seen:
+                seen.add(app_path)
+                pages.append(app_path)
 
     return pages
 
@@ -123,7 +153,19 @@ def _extract_description(text: str) -> str:
     """Extrait la première ligne significative comme description courte."""
     for line in text.splitlines():
         line = line.strip()
-        if line and not line.startswith('{') and not line.startswith('-') and not line.startswith('Modèle'):
+        lower = line.lower()
+        if (
+            line
+            and not line.startswith('{')
+            and not line.startswith('-')
+            and not line.startswith('*')
+            and not lower.startswith("modèle")
+            and not lower.startswith("modele")
+            and not lower.startswith("model")
+            and not lower.startswith("pages")
+            and not lower.startswith("routes")
+            and not lower.startswith("api")
+        ):
             return line[:180]
     return "Application web"
 
@@ -170,6 +212,46 @@ def _route_file_to_url(route_file: str) -> str:
     without_app = route_file.removeprefix('app/')          # api/products/route.ts
     without_suffix = without_app.removesuffix('/route.ts') # api/products
     return '/' + without_suffix                            # /api/products
+
+
+def user_flows_from_parsed(parsed: ParsedBrief) -> list:
+    """
+    Dérive user_flows[] déterministiquement depuis le parser.
+    Principe identique à requirements_from_parsed() : si le brief est explicite,
+    on ne fait pas confiance au LLM pour nommer les entités dans les flows.
+
+    Format compatible avec journey_validator._extract_path_from_flow() :
+      "description → METHOD /path"   ← arrow + path extractible
+
+    Pour un brief marketplace Product/Order :
+      "L'utilisateur consulte → GET /api/products"
+      "L'utilisateur crée → POST /api/products"
+      "L'utilisateur modifie → PUT /api/products/[id]"
+      "L'utilisateur visite /products/[id]"
+    """
+    flows = []
+    methods_map = parsed.get('api_methods', {})
+
+    verb_map = {
+        'GET':    "L'utilisateur consulte",
+        'POST':   "L'utilisateur crée",
+        'PUT':    "L'utilisateur modifie",
+        'PATCH':  "L'utilisateur met à jour",
+        'DELETE': "L'utilisateur supprime",
+    }
+
+    for route_file in parsed['api_routes']:
+        url = _route_file_to_url(route_file)
+        methods = methods_map.get(route_file, [])
+        for method in methods:
+            verb = verb_map.get(method.upper(), f"L'utilisateur {method.lower()}")
+            flows.append(f"{verb} → {method.upper()} {url}")
+
+    for page in parsed['pages']:
+        url = _app_route_to_url(page)
+        flows.append(f"L'utilisateur visite {url}")
+
+    return flows if flows else ["L'utilisateur accède à l'application → /"]
 
 
 def requirements_from_parsed(parsed: ParsedBrief) -> list:

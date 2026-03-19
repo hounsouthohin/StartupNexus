@@ -70,6 +70,36 @@
         "items": {"type": "string"},
         "default": []
       },
+      "ir_schema": {
+        "type": "array",
+        "description": "IR canonique — modèles Prisma verbatim issus du parser déterministe.",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "ir_pages": {
+        "type": "array",
+        "description": "IR canonique — chemins de pages Next.js app-router issus du parser déterministe.",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "ir_routes": {
+        "type": "array",
+        "description": "IR canonique — fichiers de routes API issus du parser déterministe.",
+        "items": {"type": "string"},
+        "default": []
+      },
+      "spec_structured": {
+        "type": "object",
+        "description": "Dual-output P2 — version JSON structurée de la spec (déterministe, zéro LLM). specification: str reste le contrat garanti.",
+        "properties": {
+          "spec_summary": {"type": "string"},
+          "entities_in_spec": {"type": "array", "items": {"type": "string"}},
+          "missing_entities": {"type": "array", "items": {"type": "string"}},
+          "pages_in_spec": {"type": "array", "items": {"type": "string"}},
+          "routes_in_spec": {"type": "array", "items": {"type": "string"}}
+        },
+        "default": {}
+      },
       "metadata": {
         "type": "object",
         "properties": {

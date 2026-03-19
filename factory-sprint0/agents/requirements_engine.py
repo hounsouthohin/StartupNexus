@@ -73,6 +73,115 @@ def _build_file_set(files_dict: dict) -> set[str]:
     return {_norm_path(fp) for fp in files_dict.keys()}
 
 
+def _to_legacy_requirements(requirements_input: Any) -> list[str]:
+    """
+    Normalise l'entrée requirements vers le format legacy list[str].
+
+    Compatibilité P1:
+    - legacy list[str]
+    - IR dict {"schema": {"models": [...]}, "pages": [...], "api_routes": [...]}
+    - tolérance list[dict] (items typés model/page/api_route)
+    """
+    if requirements_input is None:
+        return []
+
+    if isinstance(requirements_input, list):
+        if not requirements_input:
+            return []
+        if all(isinstance(r, str) for r in requirements_input):
+            return [str(r).strip() for r in requirements_input if str(r).strip()]
+
+        if all(isinstance(r, dict) for r in requirements_input):
+            out: list[str] = []
+            for item in requirements_input:
+                kind = str(item.get("type", "")).strip().lower()
+                if kind == "model":
+                    name = str(item.get("name", "")).strip()
+                    if not name:
+                        continue
+                    fields = item.get("fields", []) or []
+                    specs: list[str] = []
+                    if isinstance(fields, list):
+                        for f in fields:
+                            if isinstance(f, dict):
+                                fname = str(f.get("name", "")).strip()
+                                if not fname:
+                                    continue
+                                suffix = " unique" if bool(f.get("is_unique", False)) else ""
+                                specs.append(f"{fname}{suffix}")
+                            elif isinstance(f, str) and f.strip():
+                                specs.append(f.strip())
+                    if specs:
+                        out.append(f"Modèle Prisma: {name} avec champs " + ", ".join(specs))
+                    else:
+                        out.append(f"Modèle Prisma: {name}")
+                elif kind == "page":
+                    path = str(item.get("path", "")).strip()
+                    if path:
+                        out.append(f"Page: {path}")
+                elif kind == "api_route":
+                    method = str(item.get("method", "")).strip().upper()
+                    path = str(item.get("path", "")).strip()
+                    if method and path:
+                        out.append(f"API Route: {method} {path}")
+                    elif path:
+                        out.append(f"API Route: {path}")
+            return out
+
+        return [str(r).strip() for r in requirements_input if str(r).strip()]
+
+    if isinstance(requirements_input, dict):
+        direct = requirements_input.get("requirements")
+        if isinstance(direct, list) and all(isinstance(r, str) for r in direct):
+            return [str(r).strip() for r in direct if str(r).strip()]
+
+        out: list[str] = []
+        schema = requirements_input.get("schema", {}) or {}
+        models = schema.get("models", []) if isinstance(schema, dict) else (schema if isinstance(schema, list) else [])
+        for model in models:
+            if not isinstance(model, dict):
+                continue
+            name = str(model.get("name", "")).strip()
+            if not name:
+                continue
+            fields = model.get("fields", []) or []
+            specs: list[str] = []
+            if isinstance(fields, list):
+                for f in fields:
+                    if not isinstance(f, dict):
+                        continue
+                    fname = str(f.get("name", "")).strip()
+                    if not fname:
+                        continue
+                    suffix = " unique" if bool(f.get("is_unique", False)) else ""
+                    specs.append(f"{fname}{suffix}")
+            if specs:
+                out.append(f"Modèle Prisma: {name} avec champs " + ", ".join(specs))
+            else:
+                out.append(f"Modèle Prisma: {name}")
+
+        for page in requirements_input.get("pages", []) or []:
+            path = str(page.get("path", "")).strip() if isinstance(page, dict) else str(page).strip()
+            if path:
+                out.append(f"Page: {path}")
+
+        for route in requirements_input.get("api_routes", []) or []:
+            if isinstance(route, dict):
+                method = str(route.get("method", "")).strip().upper()
+                path = str(route.get("path", "")).strip()
+            else:
+                method = ""
+                path = str(route).strip()
+            if method and path:
+                out.append(f"API Route: {method} {path}")
+            elif path:
+                out.append(f"API Route: {path}")
+
+        return out
+
+    return []
+
+
 def _model_in_schema(model_name: str, schema_content: str) -> bool:
     """
     Vérifie qu'un modèle Prisma existe dans le schema.
@@ -338,17 +447,18 @@ def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
 # API publique
 # ---------------------------------------------------------------------------
 
-def gate_check(requirements: list[str], files_dict: dict) -> tuple[bool, str]:
+def gate_check(requirements: Any, files_dict: dict) -> tuple[bool, str]:
     """
     Remplace `_requirements_gate()` dans dev.py.
     Bloque si au moins un requirement mappable n'est pas couvert.
     Retourne (bloqué: bool, message: str).
     """
-    if not requirements:
+    legacy_requirements = _to_legacy_requirements(requirements)
+    if not legacy_requirements:
         return False, ""
 
     missing: list[tuple[str, str]] = []
-    for req in requirements:
+    for req in legacy_requirements:
         is_mappable, satisfied, reason = check_requirement_verbose(req, files_dict)
         if is_mappable and not satisfied:
             missing.append((req, reason))
@@ -364,7 +474,7 @@ def gate_check(requirements: list[str], files_dict: dict) -> tuple[bool, str]:
     return False, ""
 
 
-def compute_coverage(requirements: list[str], files_dict: dict) -> dict[str, Any]:
+def compute_coverage(requirements: Any, files_dict: dict) -> dict[str, Any]:
     """
     Remplace `compute_spec_coverage()` dans spec_coverage.py (via T003).
     Retourne spec_coverage + détails.
@@ -372,7 +482,8 @@ def compute_coverage(requirements: list[str], files_dict: dict) -> dict[str, Any
     Non-mappables assumés satisfaits (on ne peut pas les vérifier) :
     ils n'apparaissent pas dans unmet et n'impactent pas le taux négativement.
     """
-    if not requirements:
+    legacy_requirements = _to_legacy_requirements(requirements)
+    if not legacy_requirements:
         return {
             "spec_coverage": 0.0,
             "requirements_met": 0,
@@ -382,7 +493,7 @@ def compute_coverage(requirements: list[str], files_dict: dict) -> dict[str, Any
 
     met: list[str] = []
     unmet: list[str] = []
-    for req in requirements:
+    for req in legacy_requirements:
         is_mappable, satisfied = check_requirement(req, files_dict)
         if satisfied:
             met.append(req)
@@ -390,20 +501,21 @@ def compute_coverage(requirements: list[str], files_dict: dict) -> dict[str, Any
             # satisfied=False → forcément is_mappable=True (non-mappables → True)
             unmet.append(req)
 
-    coverage = round(len(met) / len(requirements), 3)
+    coverage = round(len(met) / len(legacy_requirements), 3)
     return {
         "spec_coverage": coverage,
         "requirements_met": len(met),
-        "requirements_total": len(requirements),
+        "requirements_total": len(legacy_requirements),
         "unmet": unmet,
     }
 
 
-def compute_coverage_detailed(requirements: list[str], files_dict: dict) -> dict[str, Any]:
+def compute_coverage_detailed(requirements: Any, files_dict: dict) -> dict[str, Any]:
     """
     Même logique que compute_coverage, avec statut détaillé par requirement.
     """
-    if not requirements:
+    legacy_requirements = _to_legacy_requirements(requirements)
+    if not legacy_requirements:
         return {
             "spec_coverage": 0.0,
             "requirements_met": 0,
@@ -416,7 +528,7 @@ def compute_coverage_detailed(requirements: list[str], files_dict: dict) -> dict
     met_count = 0
     unmet: list[str] = []
 
-    for req in requirements:
+    for req in legacy_requirements:
         is_mappable, satisfied, reason = check_requirement_verbose(req, files_dict)
         if satisfied:
             met_count += 1
@@ -431,11 +543,11 @@ def compute_coverage_detailed(requirements: list[str], files_dict: dict) -> dict
             }
         )
 
-    coverage = round(met_count / len(requirements), 3)
+    coverage = round(met_count / len(legacy_requirements), 3)
     return {
         "spec_coverage": coverage,
         "requirements_met": met_count,
-        "requirements_total": len(requirements),
+        "requirements_total": len(legacy_requirements),
         "unmet": unmet,
         "statuses": statuses,
     }
