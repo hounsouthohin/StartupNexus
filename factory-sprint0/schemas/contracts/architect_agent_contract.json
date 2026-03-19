@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Architect Agent Contract v1.0",
-  "description": "Contract d'interface pour l'Architect Agent (génération specs + diagrammes)",
-  "version": "1.0.0",
+  "title": "Architect Agent Contract v2.0",
+  "description": "Contract d'interface pour l'Architect Agent (génération specs — Pré-Sprint 4.6 : diagrammer retiré du pipeline, mermaid_diagram optionnel)",
+  "version": "2.0.0",
   "agent_id": "architect_agent",
 
   "input_schema": {
@@ -36,7 +36,7 @@
 
   "output_schema": {
     "type": "object",
-    "required": ["specification", "mermaid_diagram", "requirements"],
+    "required": ["specification", "requirements"],
     "additionalProperties": false,
     "properties": {
       "specification": {
@@ -46,8 +46,8 @@
       },
       "mermaid_diagram": {
         "type": "string",
-        "description": "Diagramme Mermaid valide (syntaxe vérifiée)",
-        "minLength": 100
+        "description": "Diagramme Mermaid (optionnel — diagrammer_node retiré du pipeline Pré-Sprint 4.6, conservé pour Sprint 6 dashboard)",
+        "default": ""
       },
       "requirements": {
         "type": "array",
@@ -97,7 +97,6 @@
           "VALIDATION_ERROR",
           "RAG_CONNECTION_ERROR",
           "LLM_ERROR",
-          "MERMAID_SYNTAX_ERROR",
           "TIMEOUT_ERROR"
         ]
       },
@@ -108,7 +107,7 @@
         "properties": {
           "failed_step": {
             "type": "string",
-            "enum": ["retrieval", "planner", "spec_writer", "diagrammer"]
+            "enum": ["brief_normalizer", "retrieval", "planner", "spec_writer"]
           },
           "raw_error": {"type": "string"}
         }
@@ -130,8 +129,7 @@
         "additionalProperties": false,
         "properties": {
           "rag_connection": {"type": "boolean"},
-          "llm_available": {"type": "boolean"},
-          "mermaid_cli_available": {"type": "boolean"}
+          "llm_available": {"type": "boolean"}
         }
       },
       "last_check": {"type": "string", "format": "date-time"}

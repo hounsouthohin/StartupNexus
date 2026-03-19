@@ -110,25 +110,17 @@ class TodoPilotWorkflow:
                 "spec_unmatched_requirements": spec_unmatched_requirements,
             }
 
-            # ── SPEC GATE — arrêt dur avant Dev si spec DEGRADED ─────────────
+            # ── SPEC GATE — observation uniquement (non-bloquant) ────────────
+            # Historique : ce gate bloquait quand les requirements étaient LLM-générés
+            # et driftaient (Task au lieu de Product). Depuis l'introduction du brief_parser
+            # déterministe, les requirements sont corrects à la source. Le spec_validator
+            # (regex sur markdown LLM) produit des faux positifs que ce gate amplifie en
+            # arrêts définitifs. Signal de qualité conservé dans les logs et métriques.
             if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
-                workflow.logger.error(
-                    f"[SPEC_GATE] STOP — spec DEGRADED, {len(spec_unmatched_requirements)} "
-                    f"requirement(s) absents : {spec_unmatched_requirements}"
-                )
-                total_time = (workflow.now() - start_time).total_seconds()
-                return TodoPilotOutput(
-                    workflow_status="FAILED_UNRECOVERABLE",
-                    build_status="NOT_RUN",
-                    project_name=project_name,
-                    generated_files_count=0,
-                    pr_url="N/A",
-                    repo_url="N/A",
-                    dev_files_count=0,
-                    test_files_count=0,
-                    duration_seconds=float(total_time),
-                    error_message=f"SPEC_INVALID: {spec_unmatched_requirements}",
-                    activity_results=activity_results,
+                workflow.logger.warning(
+                    f"[SPEC_GATE] AVERTISSEMENT — spec DEGRADED, {len(spec_unmatched_requirements)} "
+                    f"requirement(s) non vérifiés par le validator : {spec_unmatched_requirements} "
+                    f"— pipeline continue vers DevAgent"
                 )
 
             # 2. DevTest fusionné

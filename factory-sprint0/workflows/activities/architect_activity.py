@@ -115,6 +115,8 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
 
     initial_state = {
         "messages": [HumanMessage(content=phrase)],
+        "normalized_brief": "",   # Rempli par brief_normalizer_node
+        "parsed_brief": {},       # Rempli par brief_normalizer_node (parser déterministe)
         "rag_context": "",
         "plan": {},
         "specification": "",

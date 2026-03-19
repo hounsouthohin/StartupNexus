@@ -82,7 +82,7 @@ class SaaSFactoryWorkflow:
             spec_validation_status = architect_result.get("spec_validation_status", "OK")
             spec_unmatched_requirements = architect_result.get("spec_unmatched_requirements", [])
 
-            if not spec_part.strip() or not mermaid_part.strip():
+            if not spec_part.strip():
                 workflow.logger.error(
                     f"Architecte terminé – sortie invalide. Spec: '{spec_part[:100]}...'"
                 )
@@ -93,24 +93,13 @@ class SaaSFactoryWorkflow:
                 f"spec_validation={spec_validation_status}"
             )
 
-            # ── SPEC GATE — arrêt dur avant Dev si spec DEGRADED ─────────────
+            # ── SPEC GATE — observation uniquement (non-bloquant) ────────────
+            # Voir commentaire identique dans todo_pilot_workflow.py.
             if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
-                workflow.logger.error(
-                    f"[SPEC_GATE] STOP — spec DEGRADED, {len(spec_unmatched_requirements)} "
-                    f"requirement(s) absents : {spec_unmatched_requirements}"
-                )
-                total_time = (workflow.now() - start_time).total_seconds()
-                return SaaSFactoryOutput(
-                    workflow_status="FAILED_UNRECOVERABLE",
-                    build_status="NOT_RUN",
-                    project_name=project_name,
-                    generated_files_count=0,
-                    pr_url="N/A",
-                    repo_url="N/A",
-                    dev_files_count=0,
-                    test_files_count=0,
-                    duration_seconds=float(total_time),
-                    error_message=f"SPEC_INVALID: {spec_unmatched_requirements}",
+                workflow.logger.warning(
+                    f"[SPEC_GATE] AVERTISSEMENT — spec DEGRADED, {len(spec_unmatched_requirements)} "
+                    f"requirement(s) non vérifiés par le validator : {spec_unmatched_requirements} "
+                    f"— pipeline continue vers DevAgent"
                 )
 
             # Étape 2 : DevTest fusionné

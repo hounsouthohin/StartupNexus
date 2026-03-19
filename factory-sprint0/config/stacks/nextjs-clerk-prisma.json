@@ -381,22 +381,10 @@
     }
   },
   "architect_qdrant_filter": {
+    "_comment": "SUPPRIMÉ (19 Mars 2026, Pré-Sprint 4.6) — Zone 0 (agent_context=architect) a été supprimée. L'architect utilise désormais le qdrant_filter standard (agent_context=dev, Zone 1-14). Le Brief Normalizer remplace le rôle de Zone 0.",
     "collection": "factory_standards",
     "filter": {
-      "must": [
-        {
-          "key": "metadata.status",
-          "match": {
-            "value": "active"
-          }
-        },
-        {
-          "key": "metadata.agent_context",
-          "match": {
-            "value": "architect"
-          }
-        }
-      ]
+      "must": []
     }
   },
   "env_validation": {

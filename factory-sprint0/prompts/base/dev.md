@@ -19,6 +19,11 @@ RÈGLES GÉNÉRALES :
 - Frontière Server/Client stricte (App Router) :
   - Pages `app/**/page.tsx` server-first par défaut (pas de hooks React client).
   - Si des hooks sont nécessaires, créer un composant client dédié sous `app/components/**` avec `"use client";`.
+- PRISMA DECIMAL EN JSX OBLIGATOIRE (tsconfig strict=true) :
+  - Les champs Prisma de type `Decimal` (ex: `amount Decimal`, `price Decimal`) ont le type `Prisma.Decimal`, pas `number`.
+  - INTERDIT : `<li>{invoice.amount}</li>` — TypeScript : "Type 'Decimal' is not assignable to type 'ReactNode'"
+  - CORRECT   : `<li>{invoice.amount.toString()}</li>` ou `<li>{Number(invoice.amount)}</li>`
+  - Règle : TOUT champ Prisma Decimal affiché en JSX DOIT être converti via `.toString()` ou `Number()`.
 - TYPAGE VARIABLES PRISMA OBLIGATOIRE (tsconfig strict=true) :
   - INTERDIT : `let x = [];` puis `x = await prisma.model.findMany(...)` dans try-catch — TypeScript ne peut pas inférer le type → "implicitly has type 'any[]'"
   - CORRECT  : `const x = await prisma.model.findMany(...)` directement (pas de try-catch, pas de pré-déclaration)

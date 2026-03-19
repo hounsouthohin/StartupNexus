@@ -6,9 +6,7 @@
 import os
 import json
 import re
-import subprocess
 import asyncio
-import tempfile
 import logging
 import time
 from datetime import datetime
@@ -61,78 +59,34 @@ def _contains_forbidden_auth(text: str, stack_id: str = _DEFAULT_STACK_ID) -> bo
     return any(re.search(pattern, lowered) for pattern in patterns)
 
 
-def _extract_brief_entities(phrase: str) -> str:
-    """
-    Parse déterministiquement le brief pour extraire les entités explicites.
-    Injecté dans le planner input pour que le LLM ne puisse pas les ignorer.
-    Retourne une chaîne "ENTITÉS OBLIGATOIRES" ou "" si rien de détectable.
-    """
-    lines = []
-
-    # Modèles Prisma avec champs entre accolades
-    model_blocks = re.findall(
-        r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)\s*\{([^}]+)\}',
-        phrase, re.IGNORECASE
-    )
-    if model_blocks:
-        for name, fields in model_blocks:
-            field_list = re.sub(r'\s+', ' ', fields.strip())
-            lines.append(f"MODELE PRISMA: {name} {{ {field_list} }}")
-    else:
-        # Modèles sans champs détaillés
-        model_names = re.findall(
-            r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', phrase, re.IGNORECASE
-        )
-        for name in model_names:
-            lines.append(f"MODELE PRISMA: {name}")
-
-    # Méthodes HTTP explicites (GET/POST/PUT/PATCH/DELETE + chemin)
-    http_methods = re.findall(r'\b(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', phrase)
-    for method, path in http_methods:
-        lines.append(f"ENDPOINT API: {method} {path}")
-
-    # Tous les chemins /... (pages + routes API)
-    all_paths = re.findall(r'/[\w/\[\]-]{2,}', phrase)
-    pages = [p for p in all_paths if '/api/' not in p]
-    api_routes = [p for p in all_paths if '/api/' in p]
-    # Exclut les paths déjà listés via http_methods
-    already = {path for _, path in http_methods}
-    api_routes = [p for p in api_routes if p not in already]
-
-    if pages:
-        lines.append(f"PAGES: {', '.join(dict.fromkeys(pages))}")
-    if api_routes:
-        lines.append(f"ROUTES API: {', '.join(dict.fromkeys(api_routes))}")
-
-    if not lines:
-        return ""
-    return "ENTITÉS OBLIGATOIRES (extraites du brief — toutes DOIVENT apparaître dans le plan) :\n" + "\n".join(f"  - {l}" for l in lines)
-
-
-def _is_generic_plan(plan: dict, phrase: str) -> tuple[bool, str]:
+def _is_generic_plan(plan: dict, normalized_brief: str) -> tuple[bool, str]:
     """
     Détecte si le plan est générique (auth-only) alors que le brief demande des entités métier.
-    Retourne (is_generic, reason).
+    Utilise normalized_brief (format Brief Normalizer : "- ModelName: ...") pour une détection fiable.
+    Fallback regex sur raw brief si normalized_brief est absent.
+    Retourne (is_generic, reason) — observation uniquement, non bloquant.
     """
     data_models_str = " ".join(str(m) for m in plan.get("data_models", [])).lower()
     pages_str = " ".join(str(p) for p in plan.get("pages", [])).lower()
 
-    # Cherche les modèles métier non-User dans le brief
-    model_names = re.findall(
-        r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', phrase, re.IGNORECASE
-    )
+    # Format Brief Normalizer : "- ModelName: champ1 (type), ..."
+    model_names = re.findall(r'^-\s+(\w+):', normalized_brief, re.MULTILINE)
+    if not model_names:
+        # Fallback : format raw brief (regex legacy)
+        model_names = re.findall(
+            r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', normalized_brief, re.IGNORECASE
+        )
+
     for name in model_names:
         if name.lower() not in ("user", "") and name.lower() not in data_models_str:
             return True, f"Modèle '{name}' mentionné dans le brief mais absent du plan"
 
-    # Cherche les chemins métier dans le brief
+    # Chemins métier (fonctionnent dans les deux formats)
     business_paths = [
-        p for p in re.findall(r'/[\w/\[\]-]{2,}', phrase)
+        p for p in re.findall(r'/[\w/\[\]-]{2,}', normalized_brief)
         if not any(auth in p for auth in ["sign-in", "sign-up", "login", "register"])
-        and len(p) > 1
     ]
     for path in business_paths:
-        # Normalise [slug] → matcher flexible
         path_key = re.sub(r'\[[\w-]+\]', '', path).strip("/")
         if path_key and path_key not in pages_str:
             return True, f"Page/route '{path}' mentionnée dans le brief mais absente du plan"
@@ -142,17 +96,12 @@ def _is_generic_plan(plan: dict, phrase: str) -> tuple[bool, str]:
 
 def _extract_requirements_from_plan(plan: dict) -> list:
     """
-    Extrait une liste plate de requirements depuis le plan Architect.
-    Priorité : champ requirements[] du plan (LLM). Fallback : dérivé des autres champs.
+    Dérive les requirements déterministiquement depuis data_models/pages/api_routes du plan.
+    Ne lit jamais plan["requirements"] (LLM-généré, source de dérive documentée).
     """
-    if isinstance(plan.get("requirements"), list) and plan["requirements"]:
-        return [str(r) for r in plan["requirements"] if r]
-    # Fallback dérivé si le LLM n'a pas rempli requirements[]
-    # Supporte nouveau format (data_models/pages/api_routes) et legacy (schema/auth_flow)
     reqs = []
     for model in plan.get("data_models", []):
         reqs.append(f"Modèle Prisma: {model}")
-    # Clé "schema" = format legacy (ex: "User model with clerkId")
     schema = plan.get("schema", "")
     if schema and not plan.get("data_models"):
         reqs.append(f"Modèle Prisma: {schema}")
@@ -160,10 +109,7 @@ def _extract_requirements_from_plan(plan: dict) -> list:
         reqs.append(f"Page: {page}")
     for route in plan.get("api_routes", []):
         reqs.append(f"API Route: {route}")
-    for feature in plan.get("key_features", []):
-        reqs.append(f"Feature: {feature}")
-    # "auth_flow" et "security_measures" ne sont pas mappables en fichier → ignorés
-    return reqs
+    return reqs if reqs else ["Page: /"]
 
 
 def _build_hard_rewrite_instructions(stack_id: str) -> str:
@@ -399,6 +345,8 @@ class ArchitectOutput(BaseModel):
 
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
+    normalized_brief: str        # Brief Normalizer output (Pré-Sprint 4.6)
+    parsed_brief: dict           # Sortie du brief_parser déterministe (source de vérité)
     rag_context: str
     plan: dict
     specification: str
@@ -450,9 +398,18 @@ def load_prompts():
         sections = _parse_level1_sections(base_content)
 
         prompts = {}
+        # Sections stack-agnostic : ne jamais leur injecter de règles stack
+        # brief_normalizer : doit rester 100% domaine métier — les règles Clerk/Prisma/Next.js
+        #   pollueraient son output et casseraient son rôle de filtre entités pures.
+        # planner : extrait les entités métier (QUOI construire) — les stack rules contiennent
+        #   des mappings domaine ("liste" → Task, "blog" → Post) qui se déclenchent sur des mots
+        #   présents dans le brief normalisé et causent la dérive documentée.
+        #   Le base prompt du planner (architect.md #Planner) a les règles anti-dérive suffisantes.
+        _STACK_AGNOSTIC_SECTIONS = {"brief_normalizer", "planner"}
+
         for title, section_content in sections.items():
             prompt_content = section_content
-            if stack_rules:
+            if stack_rules and title not in _STACK_AGNOSTIC_SECTIONS:
                 prompt_content = (
                     f"{section_content}\n\n---\n\n"
                     "## REGLES STACK OBLIGATOIRES\n\n"
@@ -463,7 +420,7 @@ def load_prompts():
                 HumanMessage(content="{input}")
             ])
 
-        required_sections = {"planner", "spec_writer", "diagrammer"}
+        required_sections = {"brief_normalizer", "planner", "spec_writer"}
         if not required_sections.issubset(set(prompts.keys())):
             missing = required_sections - set(prompts.keys())
             raise RuntimeError(
@@ -502,8 +459,9 @@ def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float 
 def _build_architect_rag_filter(stack_id: str):
     """
     Construit le filtre Qdrant pour le retriever architect.
-    Priorité : architect_qdrant_filter du JSON stack (filtrage agent_context=architect).
-    Fallback : qdrant_filter général avec status=active forcé (Governance v1).
+    Depuis Pré-Sprint 4.6 : architect_qdrant_filter a "must": [] (Zone 0 supprimée).
+    → tombe directement dans le fallback qdrant_filter (stack + status=active + agent_context=dev).
+    L'architect et le DevAgent partagent les mêmes standards Zone 1-14.
     """
     try:
         from agents.stack_config import load_stack_config, get_qdrant_filter_cfg
@@ -568,7 +526,9 @@ def create_architect_agent():
     base_model, planner_model = _resolve_architect_models(active_stack)
 
     _llm_base = ChatOpenAI(model=base_model, temperature=0.1, max_retries=3)
-    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.4, max_retries=3)
+    # temperature=0.0 : le planner fait de l'extraction/mapping (pas de créativité)
+    # 0.4 causait une dérive de domaine documentée (marketplace → Finance/Task)
+    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.0, max_retries=3)
     if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
         llm = _llm_base.with_fallbacks(
             [ChatOpenAI(model="gpt-4o", temperature=0.1, max_retries=1)]
@@ -581,27 +541,98 @@ def create_architect_agent():
         planner_llm = _planner_llm_base
 
     # --- Nodes ---
+    async def brief_normalizer_node(state: AgentState):
+        """
+        Brief Normalizer (refactorisé Pré-Sprint 4.6) — Architecture "Brief as Ground Truth".
+
+        Étape 1 — Parser déterministe (TOUJOURS) :
+          Extrait par code les Modèles Prisma, pages, routes API explicitement présents.
+          Résultat stocké dans parsed_brief → source de vérité pour requirements[].
+
+        Étape 2 — LLM compléteur de lacunes (SEULEMENT si le brief est vague/partiel) :
+          Si le parser a tout trouvé → LLM skippé, normalized_brief construit depuis parser.
+          Si le parser a trouvé partiellement → LLM reçoit le parsé + brief pour compléter.
+          Si le parser n'a rien trouvé (brief vague) → LLM fait tout le travail.
+
+        Ce design garantit qu'une information explicite dans le brief ne peut jamais
+        être perdue, inventée ou altérée par un LLM.
+        """
+        from agents.brief_parser import (
+            parse_brief, requirements_from_parsed,
+            build_normalized_brief_from_parsed, describe_parsed
+        )
+
+        raw_phrase = state["messages"][-1].content
+
+        # ── Étape 1 : Parser déterministe ────────────────────────────────────
+        parsed = parse_brief(raw_phrase)
+        logger.info(f"[brief_parser] {describe_parsed(parsed)}")
+
+        # ── Étape 2 : Décision LLM ───────────────────────────────────────────
+        is_complete = (
+            parsed["has_explicit_models"]
+            and parsed["has_explicit_pages"]
+            and parsed["has_explicit_routes"]
+        )
+
+        if is_complete:
+            # Brief explicite : tout est parsé déterministiquement — LLM inutile
+            normalized = build_normalized_brief_from_parsed(parsed, raw_phrase)
+            logger.info(
+                f"[brief_normalizer] Brief complet parsé sans LLM "
+                f"({len(parsed['data_models'])} modèles, "
+                f"{len(parsed['pages'])} pages, "
+                f"{len(parsed['api_routes'])} routes)"
+            )
+        else:
+            # Brief partiel ou vague : LLM complète ce que le parser n'a pas trouvé
+            normalizer_llm = ChatOpenAI(model=base_model, temperature=0.0, max_retries=2)
+            chain = prompts["brief_normalizer"] | normalizer_llm
+
+            # Si le parser a trouvé quelque chose → l'injecter pour que le LLM
+            # ne le réinvente pas (il complète uniquement les lacunes)
+            if parsed["has_explicit_models"] or parsed["has_explicit_pages"] or parsed["has_explicit_routes"]:
+                pre_parsed_block = "DONNÉES DÉJÀ EXTRAITES (source de vérité — copier verbatim, ne pas modifier) :\n"
+                if parsed["data_models"]:
+                    pre_parsed_block += "MODÈLES PRISMA :\n" + "\n".join(f"  - {m}" for m in parsed["data_models"]) + "\n"
+                if parsed["pages"]:
+                    pre_parsed_block += "PAGES :\n" + "\n".join(f"  - {p}" for p in parsed["pages"]) + "\n"
+                if parsed["api_routes"]:
+                    methods_map = parsed.get("api_methods", {})
+                    pre_parsed_block += "ROUTES API :\n" + "\n".join(
+                        f"  - {', '.join(methods_map.get(r, []))} → {r}" for r in parsed["api_routes"]
+                    ) + "\n"
+                pre_parsed_block += "\nBRIEF ORIGINAL :\n" + raw_phrase
+                llm_input = pre_parsed_block
+                logger.info(f"[brief_normalizer] Brief partiel — LLM complète les lacunes (données parsées injectées)")
+            else:
+                llm_input = raw_phrase
+                logger.info(f"[brief_normalizer] Brief vague — LLM extrait tout")
+
+            try:
+                response = await chain.ainvoke({"input": llm_input})
+                normalized = response.content.strip()
+                if not normalized:
+                    normalized = build_normalized_brief_from_parsed(parsed, raw_phrase) if (
+                        parsed["has_explicit_models"] or parsed["has_explicit_pages"]
+                    ) else raw_phrase
+            except Exception as e:
+                logger.warning(f"[brief_normalizer] LLM échoué ({e}) — fallback parser/raw")
+                normalized = build_normalized_brief_from_parsed(parsed, raw_phrase) if (
+                    parsed["has_explicit_models"] or parsed["has_explicit_pages"]
+                ) else raw_phrase
+
+        logger.info(f"[brief_normalizer] normalized_brief ({len(normalized)} chars):\n{normalized[:400]}")
+        return {"normalized_brief": normalized, "parsed_brief": dict(parsed)}
+
     async def retrieval_node(state: AgentState):
-        query = state["messages"][-1].content
+        # Utilise le brief normalisé comme query RAG — plus fiable que le query rewriting LLM
+        normalized_brief = state.get("normalized_brief", "")
+        raw_query = state["messages"][-1].content
+        rag_query = normalized_brief if normalized_brief else raw_query
         run_id = str(state.get("run_id", ""))
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
         scored_docs = []  # List[Tuple[Document, float]]
-
-        # ── Query rewriting : enrichit le brief en mots-clés domaine ─────────
-        rag_query = query
-        try:
-            rewrite_response = await llm.ainvoke(
-                f"Résume en 10-15 mots-clés domaine séparés par des virgules le brief suivant. "
-                f"Identifie : type d'application, entités métier principales, fonctionnalités clés. "
-                f"Brief: {query}\n"
-                f"Retourne UNIQUEMENT les mots-clés, sans phrase, sans ponctuation finale."
-            )
-            rewritten = rewrite_response.content.strip()
-            if rewritten:
-                rag_query = rewritten
-                logger.info(f"[retrieval] Query rewriting: '{query[:60]}' → '{rag_query[:80]}'")
-        except Exception as e:
-            logger.warning(f"[retrieval] Query rewriting échoué ({e}) — requête originale utilisée")
 
         try:
             qdrant_filter = _build_architect_rag_filter(stack_id)
@@ -624,20 +655,29 @@ def create_architect_agent():
             _append_architect_rag_event(query=rag_query, scored_docs=[], error=str(e), run_id=run_id)
         docs = [d for d, _ in scored_docs]
         rag_context = "\n\n".join([f"--- STANDARD {i+1} ({doc.metadata.get('category', 'général')}) ---\n{doc.page_content}" for i, doc in enumerate(docs)]) if docs else "No relevant standards found."
-        print(f"RAG Context for Planner:\n{rag_context}\n--- END RAG CONTEXT ---")
+        logger.info(f"[retrieval] RAG: {len(docs)} standards retenus (query: '{rag_query[:80]}')")
         return {"rag_context": rag_context}
     
     async def planner_node(state: AgentState):
         phrase = state['messages'][-1].content
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
+        normalized_brief = state.get("normalized_brief", "")
+        parsed_brief = state.get("parsed_brief", {})
 
-        # ── Extraction déterministe des entités du brief ──────────────────────
-        brief_entities = _extract_brief_entities(phrase)
-        input_text = f"User Request: {phrase}\n\nRAG Context:\n{state['rag_context']}"
-        if brief_entities:
-            input_text += f"\n\n{brief_entities}"
+        # ── Planner = domaine pur (QUOI construire) — sans RAG ───────────────
+        # Séparation architecturale : planner = brief normalisé + connaissance LLM native.
+        #                             spec_writer = plan + RAG (patterns d'implémentation).
+        if normalized_brief and normalized_brief != phrase:
+            input_text = (
+                f"BRIEF NORMALISÉ (source de vérité des entités) :\n"
+                f"{normalized_brief}\n\n"
+                f"BRIEF ORIGINAL : {phrase}"
+            )
+        else:
+            input_text = f"User Request: {phrase}"
 
-        # Force JSON output — élimine les réponses en prose qui causent le fallback déterministe (1 requirement)
+        # Temperature 0.0 : le planner fait de l'extraction (mapping), pas de la créativité.
+        # Réduit la dérive de domaine documentée (marketplace → Finance/Task).
         json_planner_llm = planner_llm.bind(response_format={"type": "json_object"})
         chain = prompts['planner'] | json_planner_llm
         llm_response = await chain.ainvoke({"input": input_text})
@@ -648,12 +688,11 @@ def create_architect_agent():
         try:
             plan = json.loads(json_content)
         except json.JSONDecodeError:
-            # Fallback dur: réduit le bruit (sans RAG) et force un JSON strict.
             strict_input = (
                 "Return ONLY valid JSON matching this schema keys exactly: "
-                "app_type, router_type, stack, description, pages, data_models, auth_required, api_routes, key_features, requirements.\n"
+                "app_type, router_type, stack, description, pages, data_models, auth_required, api_routes, key_features.\n"
+                f"BRIEF NORMALISÉ :\n{normalized_brief}\n\n"
                 f"User Request: {phrase}\n"
-                f"{brief_entities}\n"
                 "No prose. No markdown fences. JSON object only."
             )
             strict_response = await chain.ainvoke({"input": strict_input})
@@ -669,38 +708,40 @@ def create_architect_agent():
                 plan = _build_minimal_plan_from_phrase(phrase=phrase, stack_id=stack_id)
 
         # ── Validation post-plan : détection plan générique ──────────────────
-        is_generic, reason = _is_generic_plan(plan, phrase)
-        plan_reqs = plan.get("requirements", [])
-        if is_generic and (brief_entities or len(plan_reqs) < 3):
-            logger.warning(f"[planner] Plan générique détecté — retry forcé. Raison: {reason}")
-            retry_input = (
-                f"User Request: {phrase}\n\nRAG Context:\n{state['rag_context']}\n\n"
-                f"{brief_entities}\n\n"
-                f"ATTENTION — ton plan précédent était incomplet : {reason}\n"
-                f"Génère un nouveau plan JSON qui inclut TOUTES les entités listées ci-dessus.\n"
-                f"Aucune entité ne doit être omise."
-            )
-            llm_response = await chain.ainvoke({"input": retry_input})
-            match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
-            json_content = match.group(1).strip() if match else llm_response.content.strip()
-            try:
-                plan = json.loads(json_content)
-                logger.info("[planner] Plan corrigé après retry générique")
-            except json.JSONDecodeError:
-                logger.warning("[planner] Retry plan invalide JSON — on garde le plan original")
+        is_generic, reason = _is_generic_plan(plan, normalized_brief if normalized_brief else phrase)
+        if is_generic:
+            logger.warning(f"[planner] Plan possiblement générique — non bloquant (raison: {reason})")
 
-        requirements = _extract_requirements_from_plan(plan)
+        # ── Requirements : source de vérité = parser déterministe ────────────
+        # Si le parser a extrait des données → requirements depuis le parser (jamais un LLM).
+        # Fallback sur le plan LLM uniquement si le brief était 100% vague (parser vide).
+        from agents.brief_parser import requirements_from_parsed, ParsedBrief
+        has_parser_data = (
+            parsed_brief.get("has_explicit_models")
+            or parsed_brief.get("has_explicit_pages")
+            or parsed_brief.get("has_explicit_routes")
+        )
+        if has_parser_data:
+            requirements = requirements_from_parsed(parsed_brief)  # type: ignore[arg-type]
+            logger.info(f"[planner] requirements depuis parser déterministe ({len(requirements)} items)")
+        else:
+            requirements = _extract_requirements_from_plan(plan)
+            logger.info(f"[planner] requirements depuis plan LLM (brief vague — {len(requirements)} items)")
+
         user_flows = [str(f) for f in plan.get("user_flows", []) if f]
-        logger.info(f"[planner] {len(requirements)} requirements, {len(user_flows)} user_flows extraits du brief")
+        logger.info(f"[planner] {len(requirements)} requirements, {len(user_flows)} user_flows")
         return {"plan": plan, "requirements": requirements, "user_flows": user_flows}
 
     async def spec_writer_node(state: AgentState):
         plan_json = json.dumps(state['plan'], indent=2)
         requirements = state.get("requirements", [])
+        rag_context = state.get("rag_context", "")
 
-        input_text = (
-            f"High-Level Plan (JSON):\n{plan_json}"
-        )
+        # RAG injecté ici (spec_writer = COMMENT implémenter) — pas dans le planner
+        # Le planner ne voit pas le RAG pour éviter la contamination des noms d'entités.
+        input_text = f"High-Level Plan (JSON):\n{plan_json}"
+        if rag_context:
+            input_text += f"\n\nRAG Context (patterns d'implémentation stack) :\n{rag_context}"
 
         # Injection explicite des requirements — le LLM DOIT les couvrir tous
         if requirements:
@@ -763,171 +804,63 @@ def create_architect_agent():
             llm_response = await chain.ainvoke({"input": harden_input})
             specification = llm_response.content
 
-        # ── SPEC REQUIREMENTS GATE (Sprint 5) ────────────────────────────────
-        # Détecte les dérives de noms (Post→Article, /blog→/articles) DANS le node,
-        # avant que la spec dégradée ne se propage au DevAgent.
-        # Un seul retry ciblé sur les requirements absents — non-bloquant si encore DEGRADED.
+        # ── SPEC REQUIREMENTS GATE — observation pure (Pré-Sprint 4.6) ──────────
+        # La correction loop (3 appels LLM) est supprimée : elle validait un contrat
+        # requirements[] LLM-généré potentiellement faux → amplifiait l'erreur.
+        # Avec le Brief Normalizer (Pré-Sprint 4.6), requirements[] sera déterministe
+        # et ce gate servira de vérification finale fiable, pas d'un correctif.
+        # L'Agent Critique (Sprint 4.6) est le lieu approprié pour la correction.
         try:
             from agents.spec_validator import validate_spec_requirements
             sv_result = validate_spec_requirements(specification, requirements)
-            if sv_result["status"] == "DEGRADED" and sv_result["unmatched_requirements"]:
+            if sv_result["status"] == "DEGRADED":
                 logger.warning(
-                    f"[spec_writer_node] Spec DEGRADED — "
+                    f"[spec_writer_node] Spec DEGRADED (observation) — "
                     f"{len(sv_result['unmatched_requirements'])} requirement(s) absents : "
                     f"{sv_result['unmatched_requirements']}"
                 )
-                unmatched_list = "\n".join(f"  - {r}" for r in sv_result["unmatched_requirements"])
-                correction_input = (
-                    input_text
-                    + "\n\nCORRECTION OBLIGATOIRE — les requirements suivants sont ABSENTS de ta spec :\n"
-                    + unmatched_list
-                    + "\n\nRÈGLE ABSOLUE : copie les noms des requirements MOT POUR MOT dans la spec. "
-                    "Si un requirement dit 'MonModèle', écris 'MonModèle' dans ## Schéma Prisma — jamais un synonyme. "
-                    "Si un requirement dit '/mon-chemin/[id]', cette route DOIT apparaître dans ## Pages ou ## API Routes. "
-                    "Régénère uniquement la spec corrigée — retourne uniquement le markdown."
+            else:
+                logger.info(
+                    f"[spec_writer_node] Spec OK — "
+                    f"{sv_result.get('matched_count', '?')}/{sv_result.get('total_mappable', '?')} requirements couverts"
                 )
-                llm_response = await chain.ainvoke({"input": correction_input})
-                specification = llm_response.content
-                sv_final = validate_spec_requirements(specification, requirements)
-                if sv_final["status"] == "DEGRADED":
-                    logger.critical(
-                        f"[spec_writer_node] Spec encore DEGRADED après correction — "
-                        f"unmatched: {sv_final['unmatched_requirements']}"
-                    )
-                    # Fallback déterministe: spec minimale couvrant mot pour mot les requirements.
-                    specification = _build_minimal_spec_from_requirements(state.get("plan", {}), requirements)
-                    sv_after_fallback = validate_spec_requirements(specification, requirements)
-                    if sv_after_fallback["status"] == "DEGRADED":
-                        logger.critical(
-                            f"[spec_writer_node] Fallback spec encore DEGRADED — "
-                            f"unmatched: {sv_after_fallback['unmatched_requirements']}"
-                        )
-                    else:
-                        logger.info(
-                            f"[spec_writer_node] Fallback spec OK — "
-                            f"{sv_after_fallback['matched_count']}/{sv_after_fallback['total_mappable']} requirements couverts"
-                        )
-                    # Enforce mode : bloquer si le gate l'exige (non-retryable)
-                    try:
-                        from scripts.sprint5_gate import load_gate as _load_gate
-                        _gate = _load_gate()
-                        if _gate.get("enforce", False):
-                            from temporalio.exceptions import ApplicationError as _AE
-                            raise _AE(
-                                "SPEC_GATE_ENFORCE",
-                                f"Spec DEGRADED après 2 tentatives — gate en mode enforce. "
-                                f"Requirements manquants : {sv_final['unmatched_requirements']}",
-                                non_retryable=True,
-                            )
-                    except (SystemExit, KeyboardInterrupt):
-                        raise
-                    except Exception as _ge:
-                        if "SPEC_GATE_ENFORCE" in str(_ge):
-                            raise
-                        logger.warning(f"[spec_writer_node] Gate enforce check non bloquant : {_ge}")
-                else:
-                    logger.info(
-                        f"[spec_writer_node] Spec corrigée — "
-                        f"{sv_final['matched_count']}/{sv_final['total_mappable']} requirements couverts"
-                    )
-        except ApplicationError:
-            raise  # ne jamais avaler un gate enforce non-retryable
         except Exception as sv_err:
             logger.warning(f"[spec_writer_node] Spec gate non bloquant : {sv_err}")
 
         return {"specification": specification}
 
-    async def diagrammer_node(state: AgentState):
-        max_attempts = 3
-        attempts = 0
-        input_text = f"Technical Specification:\n{state['specification']}"
-        
-        # Dossier temporaire cross-platform (Windows local / Linux Docker)
-        default_mermaid_dir = r"C:\temp\mermaid" if os.name == "nt" else "/tmp/mermaid"
-        host_dir = os.getenv("MERMAID_TMP_DIR", default_mermaid_dir)
-        os.makedirs(host_dir, exist_ok=True)
-        
-        while attempts < max_attempts:
-            attempts += 1
-            chain = prompts['diagrammer'] | llm
-            llm_response = await chain.ainvoke({"input": input_text})
-            
-            match = re.search(r'```(?:mermaid)?\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
-            mermaid_code = match.group(1).strip() if match else llm_response.content.strip()
-
-            try:
-                # Création fichier temporaire dans dossier fixe
-                with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.mmd', dir=host_dir) as tmp_file:
-                    tmp_file.write(mermaid_code)
-                    tmp_file_path = tmp_file.name
-                
-                input_filename = os.path.basename(tmp_file_path)
-                output_filename = f"{input_filename}.png"
-
-                validation_error = None
-                try:
-                    result = await asyncio.to_thread(
-                        subprocess.run,
-                        ['npx', '@mermaid-js/mermaid-cli', '-i', tmp_file_path, '-o', output_filename],
-                        capture_output=True,
-                        text=True,
-                        timeout=30,
-                    )
-                    if result.returncode != 0:
-                        raise ValueError(result.stderr or result.stdout or 'Unknown Mermaid CLI error')
-                except Exception as e:
-                    validation_error = str(e)
-                    logger.warning(f"Validation Mermaid ignorée: {e}")
-
-                # Nettoyage
-                if os.path.exists(tmp_file_path):
-                    os.remove(tmp_file_path)
-                output_path = os.path.join(host_dir, output_filename)
-                if os.path.exists(output_path):
-                    os.remove(output_path)
-
-                if validation_error:
-                    logger.info(f"Mermaid retourné sans validation stricte (tentative {attempts}/{max_attempts})")
-                else:
-                    logger.info(f"Mermaid validé après {attempts} tentatives")
-                return {"mermaid_diagram": mermaid_code}
-
-            except Exception as e:
-                if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
-                    os.remove(tmp_file_path)
-                error_message = f"Mermaid generation failed (Attempt {attempts}/{max_attempts}). Error: {e}"
-                logger.error(error_message)
-
-                if attempts >= max_attempts:
-                    raise ValueError(f"Failed to generate Mermaid diagram after {max_attempts} attempts. Last error: {error_message}")
-
-                input_text += f"\n\nPrevious attempt failed. Please correct the syntax based on this error: {error_message}"
-                state["messages"].append(HumanMessage(content=f"Diagram generation failed with error: {error_message}. Please fix the Mermaid syntax."))
-
-        raise ValueError(f"Failed to generate a valid Mermaid diagram after {max_attempts} attempts.")
+    # diagrammer_node supprimé (Pré-Sprint 4.6) — Sprint 6 dashboard le réintégrera via agent dédié.
 
     def formatter_node(state: AgentState):
         architect_output = ArchitectOutput(
             specification=state['specification'],
-            mermaid_diagram=state['mermaid_diagram'],
+            mermaid_diagram=state.get('mermaid_diagram', ''),
             requirements=state.get('requirements', []),
             user_flows=state.get('user_flows', []),
         )
         return {"architect_output": architect_output}
 
     # --- Graph Definition ---
+    # Pipeline Pré-Sprint 4.6 :
+    # brief_normalizer → retrieval → planner → spec_writer → formatter
+    #
+    # brief_normalizer : zéro RAG, zéro stack — extrait les entités métier du brief brut
+    # retrieval        : utilise normalized_brief comme query RAG (plus fiable que query rewriting)
+    # planner          : zéro stack rules (stack-agnostic) — reçoit uniquement normalized_brief
+    # spec_writer      : reçoit plan + RAG (patterns d'implémentation stack)
+    # diagrammer_node  : supprimé (Pré-Sprint 4.6) — réintégré Sprint 6 via agent dédié
     workflow = StateGraph(AgentState)
+    workflow.add_node("brief_normalizer", brief_normalizer_node)
     workflow.add_node("retrieval", retrieval_node)
     workflow.add_node("planner", planner_node)
     workflow.add_node("spec_writer", spec_writer_node)
-    workflow.add_node("diagrammer", diagrammer_node)
     workflow.add_node("formatter", formatter_node)
 
-    workflow.add_edge(START, "retrieval")
+    workflow.add_edge(START, "brief_normalizer")
+    workflow.add_edge("brief_normalizer", "retrieval")
     workflow.add_edge("retrieval", "planner")
     workflow.add_edge("planner", "spec_writer")
-    workflow.add_edge("spec_writer", "diagrammer")
-    workflow.add_edge("diagrammer", "formatter")
+    workflow.add_edge("spec_writer", "formatter")
     workflow.add_edge("formatter", END)
 
     return workflow.compile()
