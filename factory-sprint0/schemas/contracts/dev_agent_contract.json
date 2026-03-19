@@ -46,6 +46,12 @@
         "type": "array",
         "items": { "type": "string" },
         "description": "Requirements dont les termes-clés sont absents de la spec générée (dérive spec_writer)"
+      },
+      "user_flows": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Flux utilisateur extraits par l'Architect — transmis au Journey Validator",
+        "default": []
       }
     }
   },

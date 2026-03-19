@@ -2317,8 +2317,10 @@ VERSION: 1.0""",
 
 
 ALL_STANDARDS = (
-    ZONE_0_PLANNING
-    + ZONE_1_REQUIRED_FILES
+    # ZONE_0_PLANNING retiré : les templates de domaine (Todo, Blog, Product, Contact, Item)
+    # overridaient le brief utilisateur → planner drift confirmé (marketplace→Book, habit→Workout).
+    # Le LLM connaît les domaines métier. Le RAG doit enseigner uniquement les patterns stack.
+    ZONE_1_REQUIRED_FILES
     + ZONE_2_PACKAGES
     + ZONE_3_TYPESCRIPT
     + ZONE_4_NEXTCONFIG

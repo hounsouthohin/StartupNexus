@@ -568,13 +568,13 @@ def create_architect_agent():
     base_model, planner_model = _resolve_architect_models(active_stack)
 
     _llm_base = ChatOpenAI(model=base_model, temperature=0.1, max_retries=3)
-    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.1, max_retries=3)
+    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.4, max_retries=3)
     if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
         llm = _llm_base.with_fallbacks(
             [ChatOpenAI(model="gpt-4o", temperature=0.1, max_retries=1)]
         )
         planner_llm = _planner_llm_base.with_fallbacks(
-            [ChatOpenAI(model="gpt-4o-mini", temperature=0.1, max_retries=1)]
+            [ChatOpenAI(model="gpt-4o-mini", temperature=0.4, max_retries=1)]
         )
     else:
         llm = _llm_base

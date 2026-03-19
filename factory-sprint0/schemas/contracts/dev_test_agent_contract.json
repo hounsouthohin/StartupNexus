@@ -27,6 +27,12 @@
         "type": "array",
         "items": { "type": "string" },
         "description": "Requirements dont les termes-clés sont absents de la spec (dérive spec_writer)"
+      },
+      "user_flows": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Flux utilisateur extraits par l'Architect — transmis au Journey Validator",
+        "default": []
       }
     }
   },
@@ -102,7 +108,11 @@
           "requirements_unmet":          { "type": "array", "items": { "type": "string" } },
           "requirements_unmet_by_category": { "type": "object" },
           "spec_validation_status":       { "type": "string" },
-          "spec_unmatched_count":         { "type": "integer" }
+          "spec_unmatched_count":         { "type": "integer" },
+          "user_flows_total":             { "type": "integer" },
+          "user_flows_covered":           { "type": "integer" },
+          "user_flows_coverage":          { "type": "number", "minimum": 0, "maximum": 1 },
+          "is_useful_app":                { "type": "boolean" }
         }
       }
     }
