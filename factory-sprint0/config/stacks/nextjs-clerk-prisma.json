@@ -489,7 +489,7 @@
       ],
       "trigger_regex": [
         "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\(",
-        "import\\s*\\{[^}]*\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\b[^}]*\\}\\s*from\\s*['\\\"]react['\\\"]"
+        "(?s)import\\s*\\{[\\s\\S]*?\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\b[\\s\\S]*?\\}\\s*from\\s*['\\\"]react['\\\"]"
       ],
       "requires_first_directive": "use client",
       "message_lines": [

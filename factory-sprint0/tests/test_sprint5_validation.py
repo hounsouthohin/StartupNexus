@@ -15,6 +15,7 @@ Usage:
 """
 
 import json
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -385,22 +386,24 @@ class TestSpecCoverageRootPage:
 class TestAbsoluteLogPaths:
     """Vérifie que les modules utilisent FACTORY_LOG_DIR pour leurs chemins de log."""
 
-    def test_sprint5_gate_path_utilise_env(self, tmp_path, monkeypatch):
+    def test_sprint5_gate_path_utilise_env(self, monkeypatch):
         """GATE_PATH doit respecter FACTORY_LOG_DIR si défini avant import."""
         import importlib
-        monkeypatch.setenv("FACTORY_LOG_DIR", str(tmp_path))
+        tmpdir = tempfile.mkdtemp(prefix="sprint5_log_root_")
+        monkeypatch.setenv("FACTORY_LOG_DIR", str(tmpdir))
         import scripts.sprint5_gate as gate_mod
         importlib.reload(gate_mod)
-        assert str(tmp_path) in str(gate_mod.GATE_PATH), (
-            f"GATE_PATH ({gate_mod.GATE_PATH}) ne commence pas par FACTORY_LOG_DIR ({tmp_path})"
+        assert str(tmpdir) in str(gate_mod.GATE_PATH), (
+            f"GATE_PATH ({gate_mod.GATE_PATH}) ne commence pas par FACTORY_LOG_DIR ({tmpdir})"
         )
 
-    def test_learner_shadow_log_path_utilise_env(self, tmp_path, monkeypatch):
+    def test_learner_shadow_log_path_utilise_env(self, monkeypatch):
         """SHADOW_LOG_PATH doit respecter FACTORY_LOG_DIR si défini avant import."""
         import importlib
-        monkeypatch.setenv("FACTORY_LOG_DIR", str(tmp_path))
+        tmpdir = tempfile.mkdtemp(prefix="learner_log_root_")
+        monkeypatch.setenv("FACTORY_LOG_DIR", str(tmpdir))
         import agents.learner as learner_mod
         importlib.reload(learner_mod)
-        assert str(tmp_path) in str(learner_mod.SHADOW_LOG_PATH), (
-            f"SHADOW_LOG_PATH ({learner_mod.SHADOW_LOG_PATH}) ne commence pas par FACTORY_LOG_DIR ({tmp_path})"
+        assert str(tmpdir) in str(learner_mod.SHADOW_LOG_PATH), (
+            f"SHADOW_LOG_PATH ({learner_mod.SHADOW_LOG_PATH}) ne commence pas par FACTORY_LOG_DIR ({tmpdir})"
         )

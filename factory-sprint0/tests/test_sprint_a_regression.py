@@ -17,6 +17,7 @@ Usage:
 """
 
 import json
+import re
 import builtins
 import io
 from pathlib import Path
@@ -87,7 +88,13 @@ class TestPrismaDoubleEncoding:
         from agents.requirements_engine import gate_check
 
         # Schema double-encodé comme un LLM pourrait le produire
-        double_encoded_schema = r"model User {\n  id String @id\n  name String\n}"
+        double_encoded_schema = (
+            "datasource db {\\n"
+            "  provider = \"postgresql\"\\n"
+            "  url      = env(\"DATABASE_URL\")\\n"
+            "}\\n\\n"
+            "model User {\\n  id String @id\\n  name String\\n}"
+        )
 
         files = {
             "prisma/schema.prisma": double_encoded_schema,
@@ -531,7 +538,8 @@ class TestContentGuards:
         """
         file_prefix = guard.get("file_prefix", "")
         file_exts = guard.get("file_extensions", [])
-        triggers = guard.get("trigger_contains", [])
+        triggers = guard.get("trigger_contains", []) or []
+        trigger_regexes = guard.get("trigger_regex", []) or []
         directive = guard.get("requires_first_directive")
         conflicts = guard.get("conflicts_with_directive")
         mode = str(guard.get("mode", "block")).strip().lower()
@@ -540,6 +548,12 @@ class TestContentGuards:
         exclude_paths = [str(p).replace("\\", "/") for p in (guard.get("exclude_paths", []) or [])]
         exclude_when_contains = [str(s) for s in (guard.get("exclude_when_contains", []) or [])]
         msg_lines = guard.get("message_lines", [])
+        compiled_regexes = []
+        for rx in trigger_regexes:
+            try:
+                compiled_regexes.append(re.compile(str(rx), re.MULTILINE))
+            except re.error:
+                continue
 
         violations = []
         for fp, fc in files_dict.items():
@@ -553,8 +567,14 @@ class TestContentGuards:
             if exclude_when_contains and any(needle in fc for needle in exclude_when_contains):
                 continue
             found = [t for t in triggers if t in fc]
-            if not found:
+            for _rx in compiled_regexes:
+                if _rx.search(fc):
+                    found.append(f"regex:{_rx.pattern}")
+            has_explicit_triggers = bool(triggers or compiled_regexes)
+            if has_explicit_triggers and not found:
                 continue
+            if not has_explicit_triggers:
+                found = ["scope"]
             if directive is not None or conflicts is not None:
                 first = next((ln.strip() for ln in fc.splitlines() if ln.strip()), "")
                 first_norm = first.replace("'", "").replace('"', "").rstrip(";").strip()
@@ -611,13 +631,18 @@ class TestContentGuards:
         assert len(guards) > 0, "content_guards ne doit pas être vide"
 
     def test_each_guard_has_required_fields(self):
-        """Chaque guard doit avoir les champs requis : id, trigger_contains, message_lines."""
+        """Chaque guard doit avoir les champs requis : id, trigger(s), message_lines."""
         for guard in self.stack_cfg.get("content_guards", []):
             gid = guard.get("id", "<sans id>")
             assert "id" in guard, "Guard sans 'id'"
-            assert "trigger_contains" in guard, f"Guard '{gid}' sans 'trigger_contains'"
-            assert isinstance(guard["trigger_contains"], list) and len(guard["trigger_contains"]) > 0, \
-                f"Guard '{gid}': trigger_contains doit être une liste non-vide"
+            has_contains = isinstance(guard.get("trigger_contains"), list) and len(guard.get("trigger_contains", [])) > 0
+            has_regex = isinstance(guard.get("trigger_regex"), list) and len(guard.get("trigger_regex", [])) > 0
+            has_requires = (
+                (isinstance(guard.get("requires_contains_all"), list) and len(guard.get("requires_contains_all", [])) > 0)
+                or (isinstance(guard.get("requires_regex_all"), list) and len(guard.get("requires_regex_all", [])) > 0)
+            )
+            assert has_contains or has_regex or has_requires, \
+                f"Guard '{gid}': définir trigger_* ou requires_* pour être testable"
             assert "message_lines" in guard, f"Guard '{gid}' sans 'message_lines'"
             assert isinstance(guard["message_lines"], list) and len(guard["message_lines"]) > 0, \
                 f"Guard '{gid}': message_lines doit être une liste non-vide"
@@ -628,7 +653,8 @@ class TestContentGuards:
 
     def test_use_client_triggers_on_hooks_without_directive(self):
         """use_client guard déclenche si useEffect présent dans app/*.tsx sans 'use client'."""
-        guard = self._get_guard("use_client")
+        guard = dict(self._get_guard("use_client"))
+        guard["mode"] = "block"
         files = {
             "app/page.tsx": (
                 "import { useEffect } from 'react'\n"
@@ -687,7 +713,8 @@ class TestContentGuards:
         [^}]* ne traverse pas les newlines, donc un import sur plusieurs lignes passait inaperçu.
         La détection par substring 'in' n'a pas ce problème.
         """
-        guard = self._get_guard("use_client")
+        guard = dict(self._get_guard("use_client"))
+        guard["mode"] = "block"
         files = {
             "app/posts/page.tsx": (
                 "import {\n"
