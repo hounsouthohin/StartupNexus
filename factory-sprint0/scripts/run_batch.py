@@ -577,6 +577,12 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Active le mode sanity: arrêt du workflow après dev_test_activity (skip QA/GitHub/Learner).",
     )
+    parser.add_argument(
+        "--briefs",
+        type=str,
+        default="",
+        help="Chemin vers un JSON de briefs: [{\"project_name\": \"...\", \"phrase\": \"...\"}, ...].",
+    )
     return parser.parse_args()
 
 
@@ -600,10 +606,31 @@ def _build_cli_projects(batch_size: int) -> List[Dict[str, str]]:
     return out
 
 
+def _load_projects_from_briefs_file(path: str) -> List[Dict[str, str]]:
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, list) or not data:
+        raise ValueError("--briefs doit contenir une liste non vide d'objets")
+
+    projects: List[Dict[str, str]] = []
+    for i, item in enumerate(data, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"--briefs item #{i} invalide: dict attendu")
+        project_name = str(item.get("project_name", "")).strip()
+        phrase = str(item.get("phrase", "")).strip()
+        if not project_name or not phrase:
+            raise ValueError(f"--briefs item #{i}: project_name et phrase sont obligatoires")
+        projects.append({"project_name": project_name, "phrase": phrase})
+    return projects
+
+
 if __name__ == "__main__":
     args = _parse_args()
-    batch_size = max(1, int(args.batch_size))
-    projects = _build_cli_projects(batch_size)
+    if args.briefs:
+        projects = _load_projects_from_briefs_file(args.briefs)
+    else:
+        batch_size = max(1, int(args.batch_size))
+        projects = _build_cli_projects(batch_size)
     result = asyncio.run(
         run_batch(
             projects=projects,

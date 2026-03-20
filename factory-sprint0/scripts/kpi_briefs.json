@@ -1,0 +1,42 @@
+[
+  {
+    "project_name": "kpi-01-todo-vague",
+    "phrase": "Fais une Todo app."
+  },
+  {
+    "project_name": "kpi-02-blog-posts-comments",
+    "phrase": "Blog avec posts et commentaires, une page /posts/[id]."
+  },
+  {
+    "project_name": "kpi-03-marketplace-explicit",
+    "phrase": "Marketplace avec Product et Order, GET/POST /api/products, POST /api/orders."
+  },
+  {
+    "project_name": "kpi-04-habit-tracker",
+    "phrase": "Habit tracker pour suivre des habitudes quotidiennes avec statistiques."
+  },
+  {
+    "project_name": "kpi-05-admin-role-guards",
+    "phrase": "Dashboard avec routes protégées par rôle admin."
+  },
+  {
+    "project_name": "kpi-06-invoice-lineitems",
+    "phrase": "SaaS facturation : Invoice avec lignes et statut paid/pending."
+  },
+  {
+    "project_name": "kpi-07-social-posts-likes",
+    "phrase": "Réseau social : posts et likes, feed filtré par userId."
+  },
+  {
+    "project_name": "kpi-08-kanban-board",
+    "phrase": "Kanban board avec colonnes et cartes, ordre persistant."
+  },
+  {
+    "project_name": "kpi-09-booking-slots",
+    "phrase": "Système de réservation avec créneaux horaires et contraintes de disponibilité."
+  },
+  {
+    "project_name": "kpi-10-brief-explicite-complet",
+    "phrase": "Marketplace de produits artisanaux avec Clerk (vendeurs et acheteurs).\n\nModèle Prisma : Product {\n  id String @id @default(cuid()),\n  name String,\n  description String,\n  price Float,\n  stock Int @default(0),\n  imageUrl String?,\n  authorId String,\n  createdAt DateTime @default(now())\n}\n\nModèle Prisma : Order {\n  id String @id @default(cuid()),\n  productId String,\n  quantity Int,\n  totalPrice Float,\n  status String @default(\"pending\"),\n  buyerId String,\n  createdAt DateTime @default(now())\n}\n\nPages :\n  - / : catalogue public\n  - /products/[id] : détail produit\n  - /dashboard : dashboard vendeur protégé\n  - /orders : historique commandes protégé\n\nAPI Routes :\n  - GET  /api/products\n  - POST /api/products\n  - PUT  /api/products/[id]\n  - POST /api/orders\n  - GET  /api/orders"
+  }
+]
