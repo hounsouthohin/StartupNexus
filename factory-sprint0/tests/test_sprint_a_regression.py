@@ -540,6 +540,8 @@ class TestContentGuards:
         file_exts = guard.get("file_extensions", [])
         triggers = guard.get("trigger_contains", []) or []
         trigger_regexes = guard.get("trigger_regex", []) or []
+        requires_contains_all = guard.get("requires_contains_all", []) or []
+        requires_regex_all = guard.get("requires_regex_all", []) or []
         directive = guard.get("requires_first_directive")
         conflicts = guard.get("conflicts_with_directive")
         mode = str(guard.get("mode", "block")).strip().lower()
@@ -552,6 +554,12 @@ class TestContentGuards:
         for rx in trigger_regexes:
             try:
                 compiled_regexes.append(re.compile(str(rx), re.MULTILINE))
+            except re.error:
+                continue
+        compiled_required_regexes = []
+        for rx in requires_regex_all:
+            try:
+                compiled_required_regexes.append(re.compile(str(rx), re.MULTILINE))
             except re.error:
                 continue
 
@@ -575,6 +583,19 @@ class TestContentGuards:
                 continue
             if not has_explicit_triggers:
                 found = ["scope"]
+            missing_constraints = []
+            for needle in requires_contains_all:
+                if needle not in fc:
+                    missing_constraints.append(f"contains:{needle}")
+            for _rx in compiled_required_regexes:
+                if not _rx.search(fc):
+                    missing_constraints.append(f"regex:{_rx.pattern}")
+            if missing_constraints:
+                violations.append((fp_norm, found + [f"missing:{c}" for c in missing_constraints]))
+                continue
+            if requires_contains_all or compiled_required_regexes:
+                # Si toutes les contraintes "requires_*" sont satisfaites, le guard est respecté.
+                continue
             if directive is not None or conflicts is not None:
                 first = next((ln.strip() for ln in fc.splitlines() if ln.strip()), "")
                 first_norm = first.replace("'", "").replace('"', "").rstrip(";").strip()
@@ -729,6 +750,33 @@ class TestContentGuards:
             "use_client guard doit détecter les imports multilignes — "
             "régression vs implémentation regex précédente"
         )
+
+    def test_authorid_guard_passes_when_userid_check_present(self):
+        """authorid guard ne bloque PAS si le code contient déjà if (!userId)."""
+        guard = dict(self._get_guard("authorid_requires_userid_guard"))
+        guard["mode"] = "block"
+        files = {
+            "app/api/posts/route.ts": (
+                "const { userId } = await auth()\n"
+                "if (!userId) return new Response('Unauthorized', { status: 401 })\n"
+                "await prisma.post.create({ data: { authorId: userId } })\n"
+            )
+        }
+        blocked, _ = self._apply_guard(guard, files)
+        assert not blocked, "authorid guard NE doit PAS bloquer si if (!userId) est présent"
+
+    def test_authorid_guard_blocks_when_userid_check_missing(self):
+        """authorid guard BLOQUE si authorId: userId sans vérification null."""
+        guard = dict(self._get_guard("authorid_requires_userid_guard"))
+        guard["mode"] = "block"
+        files = {
+            "app/api/posts/route.ts": (
+                "const { userId } = await auth()\n"
+                "await prisma.post.create({ data: { authorId: userId } })\n"
+            )
+        }
+        blocked, _ = self._apply_guard(guard, files)
+        assert blocked, "authorid guard doit bloquer si if (!userId) est absent"
 
     # --- Guard prisma_import_path ---
 
