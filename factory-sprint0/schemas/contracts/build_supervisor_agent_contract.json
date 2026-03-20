@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Build Supervisor Agent Contract v1.0",
+  "description": "Contrat d'interface pour le Build Supervisor Agent (Sprint 4.6 v2) — déclenché uniquement en cas d'échec de build. Analyse le stderr, identifie le fichier fautif, propose une correction chirurgicale.",
+  "version": "1.0.0",
+  "agent_id": "build_supervisor_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["build_stderr", "combined_files"],
+    "additionalProperties": false,
+    "properties": {
+      "build_stderr": {
+        "type": "string",
+        "description": "Sortie stderr complète du build échoué (npm run build)"
+      },
+      "combined_files": {
+        "type": "object",
+        "description": "Tous les fichiers générés dans cette session {chemin: contenu}",
+        "patternProperties": {
+          ".*": {"type": "string"}
+        }
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (observabilité)"
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack — détermine les rules_build_supervisor.md chargées",
+        "default": "nextjs-clerk-prisma"
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["status"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["ok", "needs_fix", "skipped"],
+        "description": "ok = erreur build comprise, aucune correction nécessaire (rare) | needs_fix = correction identifiée | skipped = stderr vide ou non analysable"
+      },
+      "failing_file": {
+        "type": "string",
+        "description": "Chemin du fichier principal causant l'erreur de build (optionnel)"
+      },
+      "fix_instruction": {
+        "type": "object",
+        "description": "Instruction chirurgicale de correction (présent uniquement si status=needs_fix)",
+        "additionalProperties": false,
+        "properties": {
+          "file": {"type": "string", "description": "Chemin du fichier à corriger"},
+          "problem": {"type": "string", "description": "Description précise de l'erreur de build"},
+          "fix": {"type": "string", "description": "Correction chirurgicale — jamais une réécriture complète"},
+          "lines_concerned": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "description": "Numéros de lignes concernés (optionnel)"
+          }
+        },
+        "required": ["file", "problem", "fix"]
+      }
+    }
+  },
+
+  "calibration_rules": {
+    "non_blocking": true,
+    "trigger_condition": "Uniquement déclenché APRÈS un build échoué — pas appelé per-file",
+    "never_full_rewrite": "fix_instruction doit identifier la ligne ou le bloc précis causant l'erreur TypeScript/Next.js, pas réécrire le fichier",
+    "on_error": "retourner {status: 'skipped'} — ne jamais lever d'exception"
+  }
+}

@@ -4,8 +4,10 @@ import logging
 import shutil
 import re
 import ast
+import asyncio
 from pathlib import PurePosixPath
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 
@@ -18,6 +20,7 @@ from .shared_tools import (
     read_files,
     run_build,
     get_stack_id,
+    _write_learner_event,
 )
 from .stack_config import (
     get_blueprint,
@@ -28,6 +31,10 @@ from .stack_config import (
     get_forbidden_imports,
 )
 from utils.prompt_loader import load_stack_prompt
+from .conformity_agent import run_conformity_supervisor
+from .security_agent import run_security_supervisor
+from .architecture_agent import run_architecture_supervisor
+from .build_supervisor_agent import run_build_supervisor
 from .requirements_engine import (
     gate_check as _engine_gate_check,
     compute_coverage_detailed as _engine_compute_coverage_detailed,
@@ -37,6 +44,134 @@ from .requirements_engine import (
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+
+
+def _avg(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return round(sum(values) / len(values), 3)
+
+
+def _match_supervision_routing_inline(
+    file_path: str,
+    routing: dict[str, list[str]],
+) -> list[str]:
+    """
+    Match glob supervision routing sans dépendre de dev_test_agent
+    (évite une boucle d'import dev.py <-> dev_test_agent.py).
+    """
+    from fnmatch import fnmatch
+
+    norm = (file_path or "").replace("\\", "/")
+    for pattern, supervisors in (routing or {}).items():
+        if fnmatch(norm, pattern):
+            return supervisors or []
+    return []
+
+
+async def _supervise_file_inline(
+    file_path: str,
+    file_content: str,
+    context: dict,
+    supervisors: list[str],
+    conformity_scores: list,
+    security_scores: list,
+    architecture_scores: list,
+) -> tuple[str | None, dict]:
+    """
+    Lance les superviseurs en parallèle.
+    Retourne (message_correction, résultats_normalisés).
+    """
+    tasks = {}
+    if "conformity" in supervisors:
+        tasks["conformity"] = run_conformity_supervisor(
+            file_path=file_path,
+            file_content=file_content,
+            requirements=context.get("requirements", []),
+            plan=context.get("plan", {}),
+            files_so_far=context.get("files_so_far", {}),
+            project_name=context.get("project_name", ""),
+            run_id=context.get("run_id", ""),
+            stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+        )
+    if "security" in supervisors:
+        tasks["security"] = run_security_supervisor(
+            file_path=file_path,
+            file_content=file_content,
+            prisma_schema=context.get("prisma_schema", ""),
+            project_name=context.get("project_name", ""),
+            run_id=context.get("run_id", ""),
+            stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+        )
+    if "architecture" in supervisors:
+        tasks["architecture"] = run_architecture_supervisor(
+            file_path=file_path,
+            file_content=file_content,
+            prisma_schema=context.get("prisma_schema", ""),
+            plan=context.get("plan", {}),
+            files_so_far=context.get("files_so_far", {}),
+            project_name=context.get("project_name", ""),
+            run_id=context.get("run_id", ""),
+            stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+        )
+
+    corrections: list[str] = []
+    results: dict = {}
+    for name, coro in tasks.items():
+        try:
+            result = await coro
+        except Exception:
+            result = {"status": "skipped", "confidence": 0.0}
+        results[name] = result
+        conf = float(result.get("confidence", 0.0) or 0.0)
+        if name == "conformity":
+            conformity_scores.append(conf)
+        elif name == "security":
+            security_scores.append(conf)
+        elif name == "architecture":
+            architecture_scores.append(conf)
+
+        status = str(result.get("status", "") or "").lower()
+        if status == "needs_fix" and conf > 0.7:
+            fix = result.get("fix_instruction", {}) or {}
+            if fix.get("problem") and fix.get("fix"):
+                corrections.append(
+                    f"[SUPERVISEUR {name.upper()}] {fix['problem']}\n"
+                    f"Fix obligatoire : {fix['fix']}"
+                )
+
+    if corrections:
+        return (
+            f"CORRECTIONS SUPERVISEURS OBLIGATOIRES sur {file_path} :\n"
+            + "\n\n".join(corrections)
+            + "\nApplique ces corrections avec write_file() maintenant.",
+            results,
+        )
+    return None, results
+
+
+async def _run_build_supervisor_inline(
+    build_stderr: str,
+    files: dict,
+    run_id: str,
+    stack_id: str,
+) -> str | None:
+    result = await run_build_supervisor(
+        build_stderr=build_stderr,
+        combined_files=files,
+        run_id=run_id or "",
+        stack_id=stack_id or "nextjs-clerk-prisma",
+    )
+    if str(result.get("status", "")).lower() == "needs_fix":
+        fix = result.get("fix_instruction", {}) or {}
+        if fix.get("problem") and fix.get("fix"):
+            return (
+                f"[BUILD SUPERVISOR] Erreur identifiée dans {fix.get('file', '?')}:\n"
+                f"{fix['problem']}\n"
+                f"Fix minimal : {fix['fix']}\n"
+                "Applique ce fix avec write_file() puis rappelle run_build()."
+            )
+    return None
 
 
 def _collect_forbidden_import_violations(
@@ -143,6 +278,7 @@ def dev_agent(
     stack_id: str = "",
     requirements: list = None,
     spec_unmatched: list = None,
+    plan: dict = None,
 ) -> dict:
     """
     Dev Agent v3 Ultimate – Version finale stable.
@@ -272,6 +408,12 @@ def dev_agent(
     prompt = load_stack_prompt("dev", effective_stack_id)
     from .stack_config import load_stack_config
     stack_cfg = load_stack_config(effective_stack_id) or {}
+    try:
+        _supervision_routing = load_stack_config(
+            stack_id or "nextjs-clerk-prisma"
+        ).get("supervision_routing", {})
+    except Exception:
+        _supervision_routing = {}
 
     generation_order_cfg = stack_cfg.get("generation_order", {}) if isinstance(stack_cfg, dict) else {}
     _priority_paths_cfg = generation_order_cfg.get("priority_paths", []) if isinstance(generation_order_cfg, dict) else []
@@ -486,6 +628,12 @@ def dev_agent(
     build_attempts = 0
     build_attempted = False
     build_success = False
+    _sup_files_reviewed = 0
+    _sup_corrections_count = 0
+    _conformity_scores: list[float] = []
+    _security_scores: list[float] = []
+    _architecture_scores: list[float] = []
+    _build_corrections_count = 0
     last_build_succeeded = False  # True uniquement quand run_build() confirme un succès réel
     last_build_error = ""
     last_build_error_full = ""
@@ -786,6 +934,9 @@ def dev_agent(
                 if _missing_constraints:
                     _violations.append((_fp_norm, _found + [f"missing:{c}" for c in _missing_constraints]))
                     continue
+                # All required conditions satisfied → file is compliant, not a violation.
+                if _requires_contains_all or _compiled_required_regexes:
+                    continue
                 # Si une directive est requise, vérifier la première ligne non-vide
                 # Normalisation : on retire les guillemets et le ';' terminal pour comparer
                 # le contenu sémantique ('use client', "use client", 'use client'; → même chose)
@@ -911,6 +1062,9 @@ def dev_agent(
                     continue
                 if any(not rx.search(fc) for rx in compiled_required_regexes):
                     violating_paths.append(fp_norm)
+                    continue
+                # All required conditions satisfied → file is compliant, not a violation.
+                if requires_contains_all or compiled_required_regexes:
                     continue
 
                 if directive is not None or conflicts is not None:
@@ -1356,10 +1510,86 @@ def dev_agent(
                             files[path] = content  # fallback si lecture échoue
                         wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
+                        # ── Supervision inline (Sprint 4.6 v2) ───────────────────────────────
+                        supervisors_to_call = _match_supervision_routing_inline(_path_norm, _supervision_routing)
+                        file_content_on_disk = files.get(path, "")
+                        if supervisors_to_call and file_content_on_disk:
+                            _sup_files_reviewed += 1
+                            _sup_context = {
+                                "requirements": requirements or [],
+                                "plan": plan or {},
+                                "files_so_far": files,
+                                "prisma_schema": files.get("prisma/schema.prisma", ""),
+                                "project_name": project_name or "",
+                                "run_id": run_id or "",
+                                "stack_id": stack_id or "nextjs-clerk-prisma",
+                            }
+                            try:
+                                with ThreadPoolExecutor(max_workers=1) as _ex:
+                                    _sup_result = _ex.submit(
+                                        asyncio.run,
+                                        _supervise_file_inline(
+                                            _path_norm,
+                                            file_content_on_disk,
+                                            _sup_context,
+                                            supervisors_to_call,
+                                            _conformity_scores,
+                                            _security_scores,
+                                            _architecture_scores,
+                                        ),
+                                    ).result()
+                                _sup_msg, _sup_raw_results = _sup_result
+                                if _sup_msg:
+                                    _sup_corrections_count += 1
+                                    messages.append(HumanMessage(content=_sup_msg))
+                                try:
+                                    _write_learner_event(
+                                        event_type="supervisor_file_reviewed",
+                                        payload={
+                                            "file_path": _path_norm,
+                                            "supervisors": supervisors_to_call,
+                                            "results": {
+                                                k: {
+                                                    "status": v.get("status"),
+                                                    "confidence": float(v.get("confidence", 0.0) or 0.0),
+                                                    "fix_applied": bool(
+                                                        str(v.get("status", "")).lower() == "needs_fix"
+                                                        and float(v.get("confidence", 0.0) or 0.0) > 0.7
+                                                    ),
+                                                }
+                                                for k, v in (_sup_raw_results or {}).items()
+                                            },
+                                            "project_name": project_name or "",
+                                            "stack_id": stack_id or "nextjs-clerk-prisma",
+                                        },
+                                        run_id=run_id or "",
+                                    )
+                                except Exception as _sl_err:
+                                    logger.warning(f"[inline_supervisor] shadow log non bloquant: {_sl_err}")
+                            except Exception as _sup_err:
+                                logger.warning(f"[inline_supervisor] non bloquant: {_sup_err}")
 
         # Détection build succès/échec déterministe: uniquement depuis run_build.
         if build_failed_this_iter:
             build_attempts += 1
+            if last_build_error_full:
+                try:
+                    with ThreadPoolExecutor(max_workers=1) as _ex:
+                        _bs_result = _ex.submit(
+                            asyncio.run,
+                            _run_build_supervisor_inline(
+                                last_build_error_full,
+                                files,
+                                run_id,
+                                stack_id,
+                            ),
+                        ).result()
+                    if _bs_result:
+                        _build_corrections_count += 1
+                        messages.append(HumanMessage(content=_bs_result))
+                        logger.info("[build_supervisor] correction injectée dans la boucle")
+                except Exception as _bs_err:
+                    logger.warning(f"[build_supervisor] non bloquant: {_bs_err}")
 
         if wrote_file_this_iter or called_build_this_iter:
             stagnant_iterations = 0
@@ -1450,6 +1680,23 @@ def dev_agent(
                     failed_cmd = _extract_failed_command(forced_build_output)
                     if failed_cmd:
                         last_failed_command = failed_cmd
+                    try:
+                        with ThreadPoolExecutor(max_workers=1) as _ex:
+                            _bs_result = _ex.submit(
+                                asyncio.run,
+                                _run_build_supervisor_inline(
+                                    last_build_error_full,
+                                    files,
+                                    run_id,
+                                    stack_id,
+                                ),
+                            ).result()
+                        if _bs_result:
+                            _build_corrections_count += 1
+                            messages.append(HumanMessage(content=_bs_result))
+                            logger.info("[build_supervisor] correction injectée après FORCED_RUN_BUILD")
+                    except Exception as _bs_err:
+                        logger.warning(f"[build_supervisor] non bloquant (forced): {_bs_err}")
 
         _append_aggregated_gate_warnings(iter_gate_warnings)
 
@@ -1611,6 +1858,12 @@ def dev_agent(
             "missing_required_files": _final_missing_required_files,
             "guard_warning_hits": _guard_warning_hits,
             "guard_warning_count": sum(_guard_warning_hits.values()),
+            "supervisor_files_reviewed": _sup_files_reviewed,
+            "supervisor_corrections_count": _sup_corrections_count,
+            "conformity_score": _avg(_conformity_scores),
+            "security_score": _avg(_security_scores),
+            "architecture_score": _avg(_architecture_scores),
+            "build_corrections_count": _build_corrections_count,
         },
     }
 

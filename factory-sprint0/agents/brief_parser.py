@@ -200,7 +200,8 @@ def _strip_prisma_decorators(model_str: str) -> str:
     Avant : Product { id String @id @default(cuid()), stock Int @default(0) }
     Après  : Product { id String, stock Int }
     """
-    return re.sub(r'\s+@\w+(?:\([^)]*\))?', '', model_str)
+    # Supporte les parens imbriquées : @default(cuid()) → le [^)]* s'arrêtait trop tôt
+    return re.sub(r'\s+@\w+(?:\((?:[^()]*|\([^()]*\))*\))?', '', model_str)
 
 
 def _route_file_to_url(route_file: str) -> str:
@@ -279,6 +280,25 @@ def requirements_from_parsed(parsed: ParsedBrief) -> list:
     for page in parsed['pages']:
         url = _app_route_to_url(page)
         reqs.append(f"Page: {url}")
+
+    # RC2 — Inférence de modèle depuis les pages dynamiques (ex: /posts/[id] → Modèle Prisma: Post)
+    # Cas : brief sans modèles explicites mais avec pages dynamiques.
+    # Sans ce req, le dev génère prisma.post.findMany() sans que schema.prisma contienne model Post.
+    if not parsed.get('data_models'):
+        inferred_models: set[str] = set()
+        for page in parsed['pages']:
+            url = _app_route_to_url(page)
+            url_parts = url.strip('/').split('/')
+            for j, seg in enumerate(url_parts):
+                if seg.startswith('[') and j > 0:
+                    resource = url_parts[j - 1]
+                    if resource not in ('api', 'app', ''):
+                        inferred_models.add(resource)
+        for resource in sorted(inferred_models):
+            # Singularise : "posts" → "Post", "users" → "User", "todos" → "Todo"
+            name = resource.rstrip('s') if resource.endswith('s') else resource
+            model_name = name[0].upper() + name[1:] if name else resource
+            reqs.append(f"Modèle Prisma: {model_name}")
 
     # Routes API — format méthode + URL pour que Règle B spec_validator matche
     methods_map = parsed.get('api_methods', {})

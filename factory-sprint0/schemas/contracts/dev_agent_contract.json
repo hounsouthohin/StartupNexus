@@ -89,7 +89,27 @@
             "last_build_error_full": {"type": "string"},
             "last_test_error": {"type": "string"},
             "last_test_error_full": {"type": "string"},
-            "last_failed_command": {"type": "string"}
+            "last_failed_command": {"type": "string"},
+            "gate_source": {"type": "string", "description": "Source du gate ayant bloqué : structural | requirements | no_files | ''"},
+            "blocking_guard_id": {"type": "string", "description": "ID du content guard ayant bloqué le build"},
+            "gate_message": {"type": "string", "description": "Extrait du message gate final (observabilité)"},
+            "missing_required_files": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Fichiers blueprint manquants lors du dernier gate structural"
+            },
+            "guard_warning_hits": {
+              "type": "object",
+              "description": "Nombre de hits par guard en mode warn (observabilité faux positifs)",
+              "additionalProperties": {"type": "integer"}
+            },
+            "guard_warning_count": {"type": "integer", "description": "Total des hits guards warn"},
+            "supervisor_files_reviewed": {"type": "integer"},
+            "supervisor_corrections_count": {"type": "integer"},
+            "conformity_score": {"type": "number", "minimum": 0, "maximum": 1},
+            "security_score": {"type": "number", "minimum": 0, "maximum": 1},
+            "architecture_score": {"type": "number", "minimum": 0, "maximum": 1},
+            "build_corrections_count": {"type": "integer"}
           }
       }
     }

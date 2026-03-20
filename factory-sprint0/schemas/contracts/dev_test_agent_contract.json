@@ -1,8 +1,8 @@
 {
   "agent_name": "dev_test_agent",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "mode": "fusion",
-  "description": "Contrat fusionné Dev+Test (Sprints 0.5-3) — T006: run_metric ajouté, final_message canonique T005",
+  "description": "Contrat fusionné Dev+Test (Sprint 4.6 v2) — supervision inline per-file + métriques superviseurs",
 
   "input_schema": {
     "type": "object",
@@ -130,7 +130,13 @@
           "user_flows_total":             { "type": "integer" },
           "user_flows_covered":           { "type": "integer" },
           "user_flows_coverage":          { "type": "number", "minimum": 0, "maximum": 1 },
-          "is_useful_app":                { "type": "boolean" }
+          "is_useful_app":                { "type": "boolean" },
+          "supervisor_files_reviewed":    { "type": "integer" },
+          "supervisor_corrections_count": { "type": "integer" },
+          "conformity_score":             { "type": "number", "minimum": 0, "maximum": 1 },
+          "security_score":               { "type": "number", "minimum": 0, "maximum": 1 },
+          "architecture_score":           { "type": "number", "minimum": 0, "maximum": 1 },
+          "build_corrections_count":      { "type": "integer" }
         }
       }
     }

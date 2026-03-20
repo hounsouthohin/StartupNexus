@@ -31,15 +31,22 @@ SOURCES :
   - Doc officielle Next.js, Clerk, Prisma, Jest
 
 ZONES :
-  Zone 1 — Fichiers obligatoires + structure canonique
-  Zone 2 — Package configuration
-  Zone 3 — TypeScript configuration
-  Zone 4 — Next.js configuration (next.config.js + middleware)
-  Zone 5 — App Router layout (Clerk + html/body)
-  Zone 6 — Authentification Clerk v6 (breaking changes v5→v6)
-  Zone 7 — Base de données Prisma 7
-  Zone 8 — Tests Jest 29 (next/jest + setupFilesAfterEnv)
-  Zone 9 — Sécurité (auth checks + Zod + env vars)
+  Zone 1  — Fichiers obligatoires + structure canonique
+  Zone 2  — Package configuration
+  Zone 3  — TypeScript configuration
+  Zone 4  — Next.js configuration (next.config.js + middleware)
+  Zone 5  — App Router layout (Clerk + html/body)
+  Zone 6  — Authentification Clerk v6 (breaking changes v5→v6)
+  Zone 7  — Base de données Prisma 7
+  Zone 8  — Tests Jest 29 (next/jest + setupFilesAfterEnv)
+  Zone 9  — Sécurité (auth checks + Zod + env vars)
+  Zone 10 — Sécurité avancée
+  Zone 11 — Gestion d'erreurs
+  Zone 12 — Tests avancés
+  Zone 13 — Logique métier
+  Zone 14 — Anti-patterns
+  Zone 15 — Conformité : examples de requirements bien/mal couverts (Sprint 4.6)
+  Zone 16 — Sécurité applicative : patterns valides/invalides route handlers (Sprint 4.6)
 """
 
 from __future__ import annotations
@@ -2144,6 +2151,550 @@ VERSION: 1.0""",
 ]
 
 
+# =============================================================================
+# ZONE 15 — CONFORMITÉ : exemples de requirements bien/mal couverts
+# Source: Sprint 4.6 — Agent Critique (AgentConformité)
+# agent_context: conformity — utilisé par l'AgentConformité via RAG
+# =============================================================================
+
+ZONE_15_CONFORMITY = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Agent Conformité — coverage d'un modèle Prisma
+RAISON: Un requirement "Modèle Prisma: Post" est couvert si et seulement si model Post existe dans prisma/schema.prisma avec au moins les champs id, authorId et un champ métier. Un modèle vide ou absent = requirement MISSING.
+DETECTION_REGEX: model\\s+Post\\s*\\{[\\s\\S]*?id\\s+String[\\s\\S]*?\\}
+EXEMPLE_INVALIDE:
+  // requirement : "Modèle Prisma: Post" → MISSING
+  // schema.prisma ne contient pas "model Post"
+  model Book {
+    id       String @id @default(cuid())
+    title    String
+    authorId String
+  }
+EXEMPLE_VALIDE:
+  // requirement : "Modèle Prisma: Post" → IMPLEMENTED
+  model Post {
+    id        String   @id @default(cuid())
+    title     String
+    content   String
+    authorId  String
+    createdAt DateTime @default(now())
+  }
+VERDICT: implemented si model + ≥2 champs | partial si model vide ou <2 champs | missing si absent
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "sprint46",
+            "agent_context": "conformity",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Agent Conformité — coverage d'une page dynamique
+RAISON: Un requirement "Page: /posts/[id]" est couvert si app/posts/[id]/page.tsx existe ET contient une fonction export default. Un fichier stub avec <10 lignes = PARTIAL. Absent = MISSING.
+DETECTION_REGEX: export\\s+default\\s+(async\\s+)?function\\s+\\w+
+EXEMPLE_INVALIDE:
+  // requirement : "Page: /posts/[id]" → MISSING
+  // app/posts/[id]/page.tsx absent du projet généré
+EXEMPLE_PARTIEL:
+  // requirement : "Page: /posts/[id]" → PARTIAL
+  // app/posts/[id]/page.tsx existe mais contient uniquement :
+  export default function PostPage() {
+    return <div>Post</div>; // stub sans data fetching
+  }
+EXEMPLE_VALIDE:
+  // requirement : "Page: /posts/[id]" → IMPLEMENTED
+  // app/posts/[id]/page.tsx
+  export default async function PostPage({ params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    if (!post) notFound();
+    return <article><h1>{post.title}</h1><p>{post.content}</p></article>;
+  }
+VERDICT: implemented si fichier + export default + data fetching | partial si fichier + export default mais stub | missing si absent
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "sprint46",
+            "agent_context": "conformity",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Agent Conformité — coverage d'une route API avec méthode
+RAISON: Un requirement "API Route: POST /api/posts" est couvert si app/api/posts/route.ts existe ET contient "export async function POST". Un handler vide retournant seulement NextResponse.json({}) = PARTIAL. Absent = MISSING.
+DETECTION_REGEX: export\\s+async\\s+function\\s+POST
+EXEMPLE_INVALIDE:
+  // requirement : "API Route: POST /api/posts" → MISSING
+  // app/api/posts/route.ts existe mais contient seulement GET
+  export async function GET(req: Request) { ... }
+  // Pas de POST handler → MISSING pour ce requirement
+EXEMPLE_PARTIEL:
+  // requirement : "API Route: POST /api/posts" → PARTIAL
+  export async function POST(req: Request) {
+    return NextResponse.json({}); // handler vide, sans logique Prisma
+  }
+EXEMPLE_VALIDE:
+  // requirement : "API Route: POST /api/posts" → IMPLEMENTED
+  export async function POST(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { title, content } = await req.json();
+    const post = await prisma.post.create({ data: { title, content, authorId: userId } });
+    return NextResponse.json(post, { status: 201 });
+  }
+VERDICT: implemented si handler + logique Prisma | partial si handler + return vide | missing si handler absent
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "sprint46",
+            "agent_context": "conformity",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Agent Conformité — calcul du conformity_score
+RAISON: Le conformity_score doit être calculé de manière déterministe. La formule est (implemented + 0.5 * partial) / total_requirements. Un score ≥ 0.7 = app conforme. Un score < 0.5 = déviation majeure du brief.
+FORMULE: conformity_score = (count_implemented + 0.5 * count_partial) / total_requirements
+EXEMPLE:
+  requirements = ["Modèle Prisma: Post", "Page: /", "Page: /posts/[id]", "API Route: GET /api/posts", "API Route: POST /api/posts"]
+  results = [implemented, implemented, partial, implemented, missing]
+  score = (3 + 0.5 * 1) / 5 = 3.5 / 5 = 0.70
+SEUILS:
+  ≥ 0.9 → app très conforme au brief
+  ≥ 0.7 → app conforme (signal de clôture Sprint 4.6)
+  ≥ 0.5 → app partiellement conforme
+  < 0.5 → déviation majeure — dev agent a généré une autre app
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "sprint46",
+            "agent_context": "conformity",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Agent Conformité — relation modèle ↔ route API
+RAISON: Un modèle Prisma sans aucune route API CRUD correspondante = requirement partiellement couvert. La présence du modèle dans schema.prisma est nécessaire mais insuffisante si aucun handler ne l'utilise via prisma.X.
+RÈGLE: Si requirement "Modèle Prisma: Product" → vérifier aussi qu'au moins une route app/api/products/* utilise prisma.product.
+EXEMPLE_INVALIDE:
+  // requirement "Modèle Prisma: Product" → PARTIAL
+  // schema.prisma contient model Product { ... }
+  // mais app/api/products/route.ts fait : prisma.item.findMany() // mauvais modèle
+  // → le modèle existe mais n'est pas utilisé → PARTIAL
+EXEMPLE_VALIDE:
+  // requirement "Modèle Prisma: Product" → IMPLEMENTED
+  // schema.prisma : model Product { id String... }
+  // app/api/products/route.ts : prisma.product.findMany({ where: { authorId: userId } })
+  // → modèle déclaré ET utilisé → IMPLEMENTED
+VERDICT: implemented si model déclaré + utilisé dans une route | partial si model déclaré mais non utilisé ou mauvais accesseur
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "sprint46",
+            "agent_context": "conformity",
+        },
+    },
+]
+
+
+# =============================================================================
+# ZONE 16 — SÉCURITÉ APPLICATIVE : patterns valides/invalides avec code
+# Source: Sprint 4.6 — Agent Critique (AgentSécurité)
+# agent_context: security — utilisé par l'AgentSécurité via RAG
+# =============================================================================
+
+ZONE_16_SECURITY_APPLICATIVE = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Route Handler Next.js App Router — auth check Clerk v6 obligatoire avant Prisma
+RAISON: Un handler API qui accède à Prisma sans vérifier userId via auth() expose les données de TOUS les utilisateurs à n'importe qui. Severity HIGH.
+DETECTION_REGEX: export\\s+async\\s+function\\s+(POST|PUT|DELETE|GET)[\\s\\S]*?prisma\\.[\\w]+\\.(?!.*auth\\()
+ALTERNATIVE: Appeler auth() en premier dans chaque handler, vérifier userId non-null avant toute requête Prisma.
+EXEMPLE_INVALIDE:
+  // app/api/posts/route.ts — severity: HIGH ❌
+  export async function POST(req: Request) {
+    const { title } = await req.json();
+    const post = await prisma.post.create({ data: { title } }); // ❌ pas de auth check
+    return NextResponse.json(post);
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/route.ts ✅
+  export async function POST(req: Request) {
+    const { userId } = await auth(); // ✅ auth check en premier
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { title } = await req.json();
+    const post = await prisma.post.create({ data: { title, authorId: userId } });
+    return NextResponse.json(post, { status: 201 });
+  }
+ERREUR_ATTENDUE: Fuite de données — n'importe quel utilisateur peut créer/lire/modifier des données sans être authentifié
+SEVERITY: high
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "sprint46",
+            "agent_context": "security",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Route Handler GET liste — filtrage authorId obligatoire
+RAISON: Un GET qui liste des ressources sans filtrer par authorId/userId expose les données de TOUS les utilisateurs. C'est une faille IDOR (Insecure Direct Object Reference). Severity MEDIUM.
+DETECTION_REGEX: prisma\\.\\w+\\.findMany\\(\\s*\\)
+ALTERNATIVE: Toujours passer { where: { authorId: userId } } dans findMany() après auth check.
+EXEMPLE_INVALIDE:
+  // app/api/posts/route.ts — severity: MEDIUM ❌
+  export async function GET(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const posts = await prisma.post.findMany(); // ❌ retourne TOUS les posts de TOUS les users
+    return NextResponse.json(posts);
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/route.ts ✅
+  export async function GET(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const posts = await prisma.post.findMany({ where: { authorId: userId } }); // ✅ filtré
+    return NextResponse.json(posts);
+  }
+ERREUR_ATTENDUE: Un utilisateur A peut voir les données de l'utilisateur B — faille IDOR
+SEVERITY: medium
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "sprint46",
+            "agent_context": "security",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Route Handler GET/PUT/DELETE par ID — vérification propriété obligatoire
+RAISON: Accéder à une ressource par son ID sans vérifier que authorId === userId permet à un utilisateur d'accéder aux ressources d'un autre. Severity MEDIUM.
+DETECTION_REGEX: prisma\\.\\w+\\.findUnique[\\s\\S]*?where[\\s\\S]*?id(?![\\s\\S]*?authorId\\s*!==\\s*userId)
+ALTERNATIVE: Après findUnique, vérifier post.authorId !== userId et retourner 403 si vrai.
+EXEMPLE_INVALIDE:
+  // app/api/posts/[id]/route.ts — severity: MEDIUM ❌
+  export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    await prisma.post.delete({ where: { id: params.id } }); // ❌ n'importe qui peut supprimer
+    return NextResponse.json({ deleted: true });
+  }
+EXEMPLE_VALIDE:
+  // app/api/posts/[id]/route.ts ✅
+  export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    if (!post || post.authorId !== userId) { // ✅ vérif propriété
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    await prisma.post.delete({ where: { id: params.id } });
+    return NextResponse.json({ deleted: true });
+  }
+ERREUR_ATTENDUE: Utilisateur B peut modifier/supprimer les ressources de l'utilisateur A
+SEVERITY: medium
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "sprint46",
+            "agent_context": "security",
+        },
+    },
+    {
+        "text": """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Route Handler — exposition de userId dans la réponse JSON
+RAISON: Retourner userId (Clerk internal ID) dans la réponse HTTP expose un identifiant interne qui peut faciliter l'énumération des utilisateurs. Severity MEDIUM.
+DETECTION_REGEX: NextResponse\\.json\\([\\s\\S]*?userId[\\s\\S]*?\\)
+ALTERNATIVE: Retourner uniquement les champs métier nécessaires au client. Ne jamais inclure userId, sessionId ou tout identifiant Clerk dans la réponse.
+EXEMPLE_INVALIDE:
+  // severity: MEDIUM ❌
+  export async function GET(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const profile = await prisma.user.findUnique({ where: { clerkId: userId } });
+    return NextResponse.json({ ...profile, userId }); // ❌ userId exposé
+  }
+EXEMPLE_VALIDE:
+  // ✅
+  export async function GET(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const profile = await prisma.user.findUnique({ where: { clerkId: userId } });
+    const { clerkId, ...safeProfile } = profile; // ✅ clerkId retiré de la réponse
+    return NextResponse.json(safeProfile);
+  }
+ERREUR_ATTENDUE: Enumération d'utilisateurs facilité par exposition des IDs internes
+SEVERITY: medium
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "sprint46",
+            "agent_context": "security",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Route Handler POST/PUT — validation du body avant écriture Prisma
+RAISON: Passer le body non-validé directement à Prisma peut provoquer des erreurs runtime (champs inattendus, types incorrects) ou des injections de données. Severity LOW — non exploitable directement mais bonne pratique obligatoire.
+DETECTION_REGEX: req\\.json\\(\\)[\\s\\S]*?prisma\\.\\w+\\.create\\(\\{\\s*data:\\s*\\.\\.\\.[\\s\\S]*?\\}\\)
+ALTERNATIVE: Extraire les champs individuellement depuis req.json() et construire l'objet data explicitement. Ne jamais faire { data: ...body }.
+EXEMPLE_INVALIDE:
+  // severity: LOW ❌
+  export async function POST(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const body = await req.json();
+    const post = await prisma.post.create({ data: { ...body, authorId: userId } }); // ❌ body non validé
+    return NextResponse.json(post);
+  }
+EXEMPLE_VALIDE:
+  // ✅
+  export async function POST(req: Request) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { title, content } = await req.json(); // ✅ extraction explicite
+    if (!title || typeof title !== 'string') {
+      return NextResponse.json({ error: 'title requis' }, { status: 400 });
+    }
+    const post = await prisma.post.create({ data: { title, content, authorId: userId } });
+    return NextResponse.json(post, { status: 201 });
+  }
+ERREUR_ATTENDUE: Erreurs Prisma runtime si des champs inattendus sont passés au modèle
+SEVERITY: low
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "sprint46",
+            "agent_context": "security",
+        },
+    },
+]
+
+
+# =============================================================================
+# ZONE_17 — COHERENCE ARCHITECTURALE INTER-FICHIERS
+# agent_context: dev — consommé par le dev LLM via RAG (les superviseurs utilisent les fichiers prompts, pas Qdrant)
+# Cohérence imports, patterns stack, conventions App Router, Prisma schema
+# =============================================================================
+
+ZONE_17_ARCHITECTURE = [
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Import Clerk — server vs client dans App Router
+RAISON: '@clerk/nextjs/server' est SERVER ONLY. Importé depuis un Client Component ('use client'), il provoque une erreur de build Next.js : 'server-only cannot be imported from a Client Component module'. Ce pattern est architecturalement invalide.
+RÈGLE:
+  • Client Component ('use client') → importer useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'
+  • Server Component / Route Handler → importer auth(), currentUser() depuis '@clerk/nextjs/server'
+EXEMPLE_INVALIDE:
+  // ❌ Client Component avec import server
+  'use client';
+  import { auth } from '@clerk/nextjs/server'; // ← ERREUR BUILD
+EXEMPLE_VALIDE:
+  // ✅ Client Component
+  'use client';
+  import { useAuth } from '@clerk/nextjs';
+
+  // ✅ Server Component / Route Handler
+  import { auth } from '@clerk/nextjs/server';
+ERREUR_ATTENDUE: Build error: 'server-only' cannot be imported from a Client Component module
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "17-architecture",
+            "status": "active",
+            "version": "1.0",
+            "category": "architecture",
+            "source": "sprint46",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — singleton obligatoire, instanciation directe interdite
+RAISON: Instancier PrismaClient directement (new PrismaClient()) crée une connexion DB à chaque requête. Avec le Hot Module Reloading de Next.js en dev, cela génère des dizaines de connexions simultanées et épuise le pool de connexions.
+RÈGLE: Toujours importer le singleton depuis '@/lib/prisma'.
+EXEMPLE_INVALIDE:
+  // ❌ Instanciation directe — pool épuisé
+  import { PrismaClient } from '@prisma/client';
+  const prisma = new PrismaClient();
+  export async function GET() {
+    const posts = await prisma.post.findMany();
+  }
+EXEMPLE_VALIDE:
+  // ✅ Import du singleton
+  import prisma from '@/lib/prisma';
+  export async function GET() {
+    const posts = await prisma.post.findMany();
+  }
+ERREUR_ATTENDUE: Too many database connections — pool exhaustion après quelques requêtes
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "17-architecture",
+            "status": "active",
+            "version": "1.0",
+            "category": "architecture",
+            "source": "sprint46",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: App Router — directive 'use client' et hooks React
+RAISON: En App Router Next.js, les composants sont Server Components par défaut. Utiliser useState, useEffect ou tout autre hook React dans un Server Component provoque une erreur de build : "You're importing a component that needs useState/useEffect. It only works in a Client Component."
+RÈGLE: Tout fichier app/**/*.tsx qui utilise des hooks React (useState, useEffect, useRef, useCallback, useMemo, useReducer) DOIT commencer par la directive exacte "use client" en première ligne.
+EXEMPLE_INVALIDE:
+  // ❌ Hook React dans Server Component
+  import { useState } from 'react'; // ← ERREUR si pas de 'use client'
+  export default function Page() {
+    const [count, setCount] = useState(0);
+  }
+EXEMPLE_VALIDE:
+  // ✅
+  'use client';
+  import { useState } from 'react';
+  export default function Page() {
+    const [count, setCount] = useState(0);
+  }
+  // OU : déplacer la logique state dans un composant client app/components/Counter.tsx
+ERREUR_ATTENDUE: Error: You're importing a component that needs useState. It only works in a Client Component.
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "17-architecture",
+            "status": "active",
+            "version": "1.0",
+            "category": "architecture",
+            "source": "sprint46",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Cohérence modèle Prisma — utilisation dans route handlers
+RAISON: Un route handler API qui appelle prisma.X.findMany() alors que le modèle X n'existe pas dans prisma/schema.prisma provoque une erreur runtime Prisma : "Cannot read properties of undefined". Le modèle doit être déclaré AVANT d'être utilisé dans les routes API.
+RÈGLE: Tout appel prisma.modelName.method() doit correspondre à un modèle déclaré dans prisma/schema.prisma avec les champs utilisés.
+EXEMPLE_INVALIDE:
+  // ❌ prisma.comment.create() si 'Comment' n'est pas dans schema.prisma
+  await prisma.comment.create({ data: { content, authorId: userId } });
+EXEMPLE_VALIDE:
+  // ✅ Modèle déclaré dans schema.prisma
+  // model Comment {
+  //   id        String   @id @default(cuid())
+  //   content   String
+  //   authorId  String
+  //   createdAt DateTime @default(now())
+  // }
+  await prisma.comment.create({ data: { content, authorId: userId } });
+ERREUR_ATTENDUE: TypeError: Cannot read properties of undefined (reading 'create') — prisma.comment est undefined car le modèle n'existe pas
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "17-architecture",
+            "status": "active",
+            "version": "1.0",
+            "category": "architecture",
+            "source": "sprint46",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Import chemin relatif Prisma — utiliser l'alias @/
+RAISON: Les chemins relatifs (../../lib/prisma) sont fragiles : selon la profondeur du fichier dans l'arborescence, le chemin change. L'alias '@/*' dans tsconfig.json pointe toujours vers la racine du projet.
+RÈGLE: Tout import de lib/prisma.ts doit utiliser l'alias canonique '@/lib/prisma'.
+EXEMPLE_INVALIDE:
+  import prisma from '../../lib/prisma'; // ❌ chemin relatif fragile
+  import prisma from '../../../lib/prisma'; // ❌
+EXEMPLE_VALIDE:
+  import prisma from '@/lib/prisma'; // ✅ alias canonique, toujours résolu
+ERREUR_ATTENDUE: Cannot find module '../../lib/prisma' — erreur selon la profondeur du fichier
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "17-architecture",
+            "status": "active",
+            "version": "1.0",
+            "category": "architecture",
+            "source": "sprint46",
+            "agent_context": "dev",
+        },
+    },
+]
+
+
 ALL_STANDARDS = (
     # ZONE_0_PLANNING retiré : les templates de domaine (Todo, Blog, Product, Contact, Item)
     # overridaient le brief utilisateur → planner drift confirmé (marketplace→Book, habit→Workout).
@@ -2162,6 +2713,9 @@ ALL_STANDARDS = (
     + ZONE_12_TESTING_ADVANCED
     + ZONE_13_BUSINESS_LOGIC
     + ZONE_14_ANTIPATTERNS
+    + ZONE_15_CONFORMITY
+    + ZONE_16_SECURITY_APPLICATIVE
+    + ZONE_17_ARCHITECTURE  # Sprint 4.6 — cohérence architecturale inter-fichiers
 )
 
 
@@ -2187,7 +2741,7 @@ def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
 
 def main() -> int:
     print("\n" + "=" * 70)
-    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (Zone 0-14)")
+    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (Zone 1-16)")
     print("   Sources: Perplexity 2026-03-01 + runs empiriques + doc officielle")
     print("=" * 70 + "\n")
 

@@ -36,6 +36,11 @@ class StandardSuggestion:
     title: str
     description: str
     evidence: dict[str, Any] = field(default_factory=dict)
+    supervisor_type: str = ""
+    file_type: str = ""
+    pattern: str = ""
+    zone_target: str = ""
+    confidence: float = 0.0
     generated_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -49,7 +54,8 @@ def run_learner_activity(run_id: str = "") -> dict:
     Retourne : {"suggestions_generated": int, "suggestions": list, error?: str}
     """
     try:
-        events = _load_dev_test_events()
+        all_events = _load_all_events()
+        events = _load_dev_test_events(all_events)
 
         # ── SPRINT5 GATE : mise à jour rolling au plus tôt (avant check MIN_RUNS) ──
         # Le gate doit être alimenté dès le run #1, même si le learner skippe l'analyse.
@@ -69,18 +75,26 @@ def run_learner_activity(run_id: str = "") -> dict:
         except Exception as _gate_err:
             logger.warning(f"[learner] sprint5_gate non bloquant : {_gate_err}")
 
-        if len(events) < MIN_RUNS_FOR_ANALYSIS:
+        supervisor_events_count = sum(
+            1 for e in all_events if e.get("event_type") == "supervisor_file_reviewed"
+        )
+        if len(events) < MIN_RUNS_FOR_ANALYSIS and supervisor_events_count < MIN_RUNS_FOR_ANALYSIS:
             logger.info(
-                f"[learner] Seulement {len(events)} run(s) — "
+                f"[learner] Seulement {len(events)} run(s) dev_test et "
+                f"{supervisor_events_count} event(s) supervisor_file_reviewed — "
                 f"minimum {MIN_RUNS_FOR_ANALYSIS} requis pour l'analyse"
             )
             return {
                 "suggestions_generated": 0,
                 "suggestions": [],
-                "skipped_reason": f"Insufficient data ({len(events)} < {MIN_RUNS_FOR_ANALYSIS})",
+                "skipped_reason": (
+                    f"Insufficient data (dev_test={len(events)}, "
+                    f"supervisor={supervisor_events_count}, min={MIN_RUNS_FOR_ANALYSIS})"
+                ),
             }
 
         suggestions = _analyze_patterns(events)
+        suggestions.extend(_analyze_supervisor_patterns(all_events))
         _save_suggestions(suggestions, run_id)
 
         logger.info(
@@ -101,20 +115,22 @@ def run_learner_activity(run_id: str = "") -> dict:
 # Chargement des données
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _load_dev_test_events() -> list[dict]:
-    """Charge tous les events dev_test_run depuis le shadow log."""
+def _load_all_events() -> list[dict]:
+    """Charge tous les events depuis le shadow log."""
     if not SHADOW_LOG_PATH.exists():
         logger.warning(f"[learner] Shadow log introuvable: {SHADOW_LOG_PATH}")
         return []
     try:
         log = json.loads(SHADOW_LOG_PATH.read_text(encoding="utf-8"))
-        return [
-            e for e in log.get("suggested_standards", [])
-            if e.get("event_type") == "dev_test_run"
-        ]
+        return list(log.get("suggested_standards", []))
     except Exception as e:
         logger.warning(f"[learner] Impossible de lire le shadow log: {e}")
         return []
+
+
+def _load_dev_test_events(all_events: list[dict]) -> list[dict]:
+    """Filtre les events dev_test_run depuis la liste globale."""
+    return [e for e in all_events if e.get("event_type") == "dev_test_run"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -131,6 +147,37 @@ def _normalize_build_error(error: str) -> str:
     e = re.sub(r':\d+:\d+', '', e)
     e = re.sub(r"'[^']{1,60}'", "'<ID>'", e)
     return e[:120].strip()
+
+
+def _file_type_from_path(file_path: str) -> str:
+    norm = (file_path or "").replace("\\", "/")
+    if norm.startswith("app/api/") and norm.endswith(".ts"):
+        return "app/api/*.ts"
+    if norm.startswith("app/") and norm.endswith(".tsx"):
+        return "app/**/*.tsx"
+    if norm.startswith("app/") and norm.endswith(".ts"):
+        return "app/**/*.ts"
+    if norm.endswith("schema.prisma"):
+        return "prisma/schema.prisma"
+    if "." in norm:
+        return f"*.{norm.rsplit('.', 1)[-1]}"
+    return "unknown"
+
+
+def _zone_for_supervisor(supervisor_type: str) -> str:
+    mapping = {
+        "conformity": "ZONE_15",
+        "security": "ZONE_16",
+        "architecture": "ZONE_17",
+    }
+    return mapping.get(supervisor_type, "ZONE_15")
+
+
+def _as_float(value: Any) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -333,6 +380,119 @@ def _analyze_patterns(events: list[dict]) -> list[StandardSuggestion]:
                 sprint="sprint4",
             ))
 
+    return suggestions
+
+
+def _analyze_supervisor_patterns(all_events: list[dict]) -> list[StandardSuggestion]:
+    """
+    Analyse les événements `supervisor_file_reviewed`.
+    Pattern récurrent = même superviseur corrige le même type de fichier
+    sur 3+ runs consécutifs.
+    """
+    supervisor_events = [
+        e for e in all_events
+        if e.get("event_type") == "supervisor_file_reviewed"
+    ]
+    if not supervisor_events:
+        return []
+
+    run_order: list[str] = []
+    seen_runs: set[str] = set()
+    reviewed_counts: Counter = Counter()
+    corrected_by_run: dict[tuple[str, str], set[str]] = {}
+    confidence_samples: dict[tuple[str, str], list[float]] = {}
+
+    for event in supervisor_events:
+        run_id = str(event.get("run_id", "") or "")
+        if not run_id:
+            continue
+        if run_id not in seen_runs:
+            run_order.append(run_id)
+            seen_runs.add(run_id)
+
+        payload = event.get("payload", {}) or {}
+        file_path = str(payload.get("file_path", "") or "")
+        file_type = _file_type_from_path(file_path)
+        results = payload.get("results", {}) or {}
+        if not isinstance(results, dict):
+            continue
+
+        for supervisor, result in results.items():
+            sup = str(supervisor or "").strip().lower()
+            if not sup:
+                continue
+            key = (sup, file_type)
+            reviewed_counts[key] += 1
+            result = result if isinstance(result, dict) else {}
+            conf = _as_float(result.get("confidence", 0.0))
+            confidence_samples.setdefault(key, []).append(conf)
+            fixed = bool(result.get("fix_applied", False))
+            status = str(result.get("status", "") or "").lower()
+            if fixed or status == "needs_fix":
+                corrected_by_run.setdefault(key, set()).add(run_id)
+
+    suggestions: list[StandardSuggestion] = []
+    for key, corrected_runs in corrected_by_run.items():
+        supervisor_type, file_type = key
+        if len(corrected_runs) < 3:
+            continue
+
+        longest_streak = 0
+        current_streak = 0
+        current_runs: list[str] = []
+        best_runs: list[str] = []
+        for rid in run_order:
+            if rid in corrected_runs:
+                current_streak += 1
+                current_runs.append(rid)
+                if current_streak > longest_streak:
+                    longest_streak = current_streak
+                    best_runs = list(current_runs)
+            else:
+                current_streak = 0
+                current_runs = []
+
+        if longest_streak < 3:
+            continue
+
+        reviewed_total = int(reviewed_counts.get(key, 0) or 0)
+        corrected_total = len(corrected_runs)
+        confidence_ratio = (corrected_total / reviewed_total) if reviewed_total > 0 else 0.0
+        confidence_value = max(0.0, min(1.0, round(confidence_ratio, 3)))
+
+        avg_conf = 0.0
+        samples = confidence_samples.get(key, [])
+        if samples:
+            avg_conf = round(sum(samples) / len(samples), 3)
+
+        pattern = (
+            f"Le superviseur '{supervisor_type}' corrige fréquemment le type de fichier "
+            f"'{file_type}' sur des runs consécutifs."
+        )
+        suggestions.append(
+            StandardSuggestion(
+                suggestion_id=f"P008-{uuid.uuid4().hex[:6]}",
+                category="standard",
+                severity="medium",
+                title=f"Pattern récurrent {supervisor_type} sur {file_type}",
+                description=(
+                    f"Corrections récurrentes détectées sur {longest_streak} runs consécutifs. "
+                    "Candidat pour standard prescriptif en amont."
+                ),
+                evidence={
+                    "run_ids": best_runs,
+                    "corrected_runs_total": corrected_total,
+                    "reviewed_files_total": reviewed_total,
+                    "avg_supervisor_confidence": avg_conf,
+                },
+                supervisor_type=supervisor_type,
+                file_type=file_type,
+                pattern=pattern,
+                zone_target=_zone_for_supervisor(supervisor_type),
+                confidence=confidence_value,
+                sprint="sprint46_v2",
+            )
+        )
     return suggestions
 
 

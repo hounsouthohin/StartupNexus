@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Security Agent Contract v2.0",
+  "description": "Contrat d'interface pour l'Agent Sécurité (Sprint 4.6 v2) — supervision inline per-file après chaque write_file(). Vérifie les failles de sécurité dans le fichier fourni.",
+  "version": "2.0.0",
+  "agent_id": "security_agent",
+
+  "input_schema": {
+    "type": "object",
+    "required": ["file_path", "file_content"],
+    "additionalProperties": false,
+    "properties": {
+      "file_path": {
+        "type": "string",
+        "description": "Chemin relatif du fichier à auditer (ex: app/api/posts/route.ts)"
+      },
+      "file_content": {
+        "type": "string",
+        "description": "Contenu complet du fichier généré par le Dev Agent"
+      },
+      "prisma_schema": {
+        "type": "string",
+        "description": "Contenu de prisma/schema.prisma (contexte pour valider les accès DB)"
+      },
+      "project_name": {
+        "type": "string",
+        "description": "Nom du projet (observabilité)"
+      },
+      "run_id": {
+        "type": "string",
+        "description": "Identifiant du run (observabilité)"
+      },
+      "stack_id": {
+        "type": "string",
+        "description": "Identifiant de stack — détermine les rules_security.md chargées",
+        "default": "nextjs-clerk-prisma"
+      }
+    }
+  },
+
+  "output_schema": {
+    "type": "object",
+    "required": ["status", "confidence"],
+    "additionalProperties": false,
+    "properties": {
+      "status": {
+        "type": "string",
+        "enum": ["ok", "needs_fix", "skipped"],
+        "description": "ok = fichier sécurisé | needs_fix = faille détectée avec fix_instruction | skipped = non applicable (fichier non-API, ou absence d'info)"
+      },
+      "confidence": {
+        "type": "number",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "description": "Niveau de certitude du verdict. >0.7 = correction bloquante | 0.5-0.7 = suggestion | <0.5 = observation uniquement"
+      },
+      "fix_instruction": {
+        "type": "object",
+        "description": "Instruction chirurgicale de correction (présent uniquement si status=needs_fix et confidence>0.5)",
+        "additionalProperties": false,
+        "properties": {
+          "file": {"type": "string", "description": "Chemin du fichier à corriger"},
+          "problem": {"type": "string", "description": "Description précise de la faille de sécurité détectée"},
+          "fix": {"type": "string", "description": "Correction chirurgicale à apporter (code ou instruction)"},
+          "lines_concerned": {
+            "type": "array",
+            "items": {"type": "integer"},
+            "description": "Numéros de lignes concernés (optionnel)"
+          }
+        },
+        "required": ["file", "problem", "fix"]
+      },
+      "note": {
+        "type": "string",
+        "description": "Commentaire optionnel (raison du skipped, ou observation basse confiance)"
+      }
+    }
+  },
+
+  "calibration_rules": {
+    "confidence_thresholds": {
+      "blocking": 0.7,
+      "suggestion": 0.5,
+      "observation_only": 0.0
+    },
+    "non_blocking": true,
+    "never_full_rewrite": "fix_instruction doit être chirurgical — ajouter les lignes manquantes, pas réécrire le fichier",
+    "no_speculation": "Ne signaler que des failles vérifiables dans le code fourni. Pas d'hypothèses.",
+    "skip_non_api_files": "Retourner skipped pour les pages, composants, fichiers config — uniquement les route handlers app/api/ sont pertinents",
+    "on_error": "retourner {status: 'skipped', confidence: 0.0} — ne jamais lever d'exception"
+  }
+}

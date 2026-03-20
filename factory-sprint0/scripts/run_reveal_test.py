@@ -251,7 +251,7 @@ async def main() -> None:
         flows_covered = journeys.get("user_flows_covered", "?")
         flows_total = journeys.get("user_flows_total", "?")
 
-        print(f"  [{status:14s}] {name}")
+        print(f"  [{(status or 'UNKNOWN'):14s}] {name}")
         print(f"               requirements={reqs}  spec_coverage={coverage}  user_flows={flows_covered}/{flows_total}")
         if error_snippet:
             print(f"               erreur: {error_snippet}")

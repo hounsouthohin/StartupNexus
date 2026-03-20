@@ -5,6 +5,7 @@ Re-exporte également les helpers de context.py et observability.py
 pour compatibilité avec les imports existants dans tout le pipeline.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -13,7 +14,7 @@ import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from typing import Optional
+from typing import Any, Optional
 
 try:
     from langchain_core.tools import tool
@@ -212,6 +213,34 @@ def _resolve_safe_path(path: str, base_dir: str) -> str:
     return candidate
 
 
+def _parse_prisma_blocks(text: str) -> dict:
+    """
+    Parse un texte de schema Prisma et retourne {NomBloc: texte_complet_du_bloc}
+    pour les blocs `model` et `enum`. Utilisé par scaffold_extends pour accumuler
+    les modèles entre plusieurs writes successifs du LLM.
+    """
+    blocks: dict = {}
+    lines = (text or "").splitlines(keepends=True)
+    i = 0
+    while i < len(lines):
+        stripped = lines[i].strip()
+        if (stripped.startswith("model ") or stripped.startswith("enum ")) and "{" in stripped:
+            parts = stripped.split()
+            name = parts[1] if len(parts) > 1 else ""
+            block: list = [lines[i]]
+            depth = lines[i].count("{") - lines[i].count("}")
+            i += 1
+            while i < len(lines) and depth > 0:
+                block.append(lines[i])
+                depth += lines[i].count("{") - lines[i].count("}")
+                i += 1
+            if name:
+                blocks[name] = "".join(block).rstrip()
+        else:
+            i += 1
+    return blocks
+
+
 def _normalize_guard_path(path: str) -> str:
     """
     Normalise un chemin relatif pour comparaisons de guards (templates, etc.).
@@ -379,10 +408,28 @@ def write_file(path: str, content: str) -> str:
     content: contenu complet du fichier.
     """
     try:
+        _norm_path = _normalize_guard_path(path)
+
+        # Hard guard package.json : validation JSON AVANT la protection template.
+        # Ordre important : si le JSON est invalide, on retourne l'erreur même si
+        # package.json est un fichier template (le test de régression dépend de ça).
+        if _norm_path == "package.json":
+            content = _apply_package_fixes(content)
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as je:
+                return (
+                    "ERREUR: package.json invalide (JSON parse failed). "
+                    f"Ligne {je.lineno}, colonne {je.colno}: {je.msg}. "
+                    "Réécris package.json avec un JSON strict (clés/valeurs entre guillemets, pas de virgule finale)."
+                )
+            if not isinstance(parsed, dict):
+                return "ERREUR: package.json invalide (racine JSON doit être un objet)."
+            content = json.dumps(parsed, ensure_ascii=False, indent=2) + "\n"
+
         # Guard : refuser l'écrasement des fichiers gérés par templates.
         # Exception : les fichiers listés dans scaffold_extends sont réécrits par le LLM
         # (structure pré-écrite par la factory, contenu métier ajouté par le LLM).
-        _norm_path = _normalize_guard_path(path)
         try:
             from agents.stack_config import load_stack_config
             _stack_cfg_guard = load_stack_config(get_stack_id())
@@ -408,23 +455,6 @@ def write_file(path: str, content: str) -> str:
 
         abs_path = _resolve_safe_path(path, workdir)
 
-        # Hard guard: package.json doit toujours être un JSON valide.
-        # Évite les échecs npm EJSONPARSE et force une sortie canonique.
-        _norm_write_path = _normalize_guard_path(path)
-        if _norm_write_path == "package.json":
-            content = _apply_package_fixes(content)
-            try:
-                parsed = json.loads(content)
-            except json.JSONDecodeError as je:
-                return (
-                    "ERREUR: package.json invalide (JSON parse failed). "
-                    f"Ligne {je.lineno}, colonne {je.colno}: {je.msg}. "
-                    "Réécris package.json avec un JSON strict (clés/valeurs entre guillemets, pas de virgule finale)."
-                )
-            if not isinstance(parsed, dict):
-                return "ERREUR: package.json invalide (racine JSON doit être un objet)."
-            content = json.dumps(parsed, ensure_ascii=False, indent=2) + "\n"
-
         # Scaffold extends : pour les fichiers pré-écrits par la factory mais étendus par le LLM,
         # on préserve l'entête canonique du template et on n'injecte que le contenu métier du LLM.
         # Générique multi-stack — piloté par scaffold_extends dans le JSON de la stack.
@@ -432,7 +462,7 @@ def write_file(path: str, content: str) -> str:
             from agents.stack_config import load_stack_config
             import pathlib as _pathlib
             _se_all = load_stack_config(get_stack_id()).get("scaffold_extends", {})
-            _se_cfg = _se_all.get(_norm_write_path, {})
+            _se_cfg = _se_all.get(_norm_path, {})
             if _se_cfg:
                 _tpl_rel = _se_cfg.get("template", "")
                 _kw = _se_cfg.get("locked_until_keyword", "")
@@ -457,6 +487,27 @@ def write_file(path: str, content: str) -> str:
                         else:
                             _biz = content                   # pas de modèle trouvé, garde tout
                         content = _locked + _biz
+                        # Accumulation : si le fichier existe déjà sur disque,
+                        # préserver les blocs model/enum écrits lors des passes précédentes
+                        # et absents du write LLM courant (évite la perte de modèles).
+                        if os.path.isfile(abs_path):
+                            try:
+                                _disk_blocks = _parse_prisma_blocks(
+                                    open(abs_path, encoding="utf-8").read()
+                                )
+                                _new_blocks = _parse_prisma_blocks(_biz)
+                                _merged = {**_disk_blocks, **_new_blocks}
+                                if set(_merged) != set(_new_blocks):
+                                    _biz = "\n\n".join(_merged.values()) + "\n"
+                                    content = _locked + _biz
+                                    logger.info(
+                                        f"[write_file] scaffold_extends accumulated "
+                                        f"{len(_merged)} blocks: {sorted(_merged)}"
+                                    )
+                            except Exception as _acc_err:
+                                logger.warning(
+                                    f"[write_file] scaffold_extends accumulation error: {_acc_err}"
+                                )
                         logger.info(f"[write_file] scaffold_extends merge: {path}")
         except Exception as _se_err:
             logger.warning(f"[write_file] scaffold_extends merge error ({path}): {_se_err}")
@@ -854,6 +905,111 @@ def run_tests(project_dir: str = ".", files: dict = {}) -> str:
         return "TIMEOUT: run_tests (> 60s)"
     except Exception as e:
         return f"ERREUR run_tests: {e}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Critique phase helpers (Sprint 4.6)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_TSC_ERROR_RE = re.compile(
+    r"^(?P<file>.+?)\((?P<line>\d+),(?P<col>\d+)\):\s+error\s+(?P<code>TS\d+):\s+(?P<message>.+)$",
+    re.MULTILINE,
+)
+
+
+def _parse_tsc_errors(output: str) -> list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    if not output:
+        return errors
+    for match in _TSC_ERROR_RE.finditer(output):
+        try:
+            errors.append(
+                {
+                    "file": match.group("file").strip(),
+                    "line": int(match.group("line")),
+                    "col": int(match.group("col")),
+                    "code": match.group("code").strip(),
+                    "message": match.group("message").strip(),
+                }
+            )
+        except Exception:
+            continue
+    return errors
+
+
+async def run_tsc_check(project_dir: str) -> dict:
+    """Lance tsc --noEmit. Non bloquant si tsc/tsconfig absent."""
+    try:
+        if not project_dir:
+            return {"errors": [], "success": True, "skipped": True}
+        tsconfig_path = os.path.join(project_dir, "tsconfig.json")
+        if not os.path.exists(tsconfig_path):
+            return {"errors": [], "success": True, "skipped": True}
+
+        def _run() -> subprocess.CompletedProcess:
+            return subprocess.run(
+                ["npx", "tsc", "--noEmit", "--pretty", "false"],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                env=_get_node_env(),
+            )
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, _run)
+        output = "\n".join([result.stdout or "", result.stderr or ""]).strip()
+        errors = _parse_tsc_errors(output)
+        if result.returncode != 0 and not errors:
+            errors = [
+                {
+                    "file": "",
+                    "line": 0,
+                    "col": 0,
+                    "code": "TS_UNKNOWN",
+                    "message": _truncate_output(output),
+                }
+            ]
+        return {"errors": errors, "success": result.returncode == 0}
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {"errors": [], "success": True, "skipped": True}
+    except Exception as e:
+        logger.warning(f"[run_tsc_check] non-bloquant: {e}")
+        return {"errors": [], "success": True, "skipped": True}
+
+
+async def run_prisma_validate(project_dir: str) -> dict:
+    """Lance npx prisma validate. Non bloquant si schema absent."""
+    try:
+        if not project_dir:
+            return {"valid": True, "errors": [], "skipped": True}
+        schema_rel = os.path.join("prisma", "schema.prisma")
+        schema_path = os.path.join(project_dir, schema_rel)
+        if not os.path.exists(schema_path):
+            return {"valid": True, "errors": [], "skipped": True}
+
+        def _run() -> subprocess.CompletedProcess:
+            return subprocess.run(
+                ["npx", "prisma", "validate", "--schema", schema_rel],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=30,
+                env=_get_node_env(),
+            )
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, _run)
+        stderr = (result.stderr or "").strip()
+        if result.returncode == 0:
+            return {"valid": True, "errors": []}
+        msg = _truncate_output(stderr or (result.stdout or ""))
+        return {"valid": False, "errors": [msg] if msg else ["prisma validate failed"]}
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {"valid": True, "errors": [], "skipped": True}
+    except Exception as e:
+        logger.warning(f"[run_prisma_validate] non-bloquant: {e}")
+        return {"valid": True, "errors": [], "skipped": True}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

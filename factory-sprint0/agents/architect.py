@@ -98,7 +98,17 @@ def _extract_requirements_from_plan(plan: dict) -> list:
     """
     Dérive les requirements déterministiquement depuis data_models/pages/api_routes du plan.
     Ne lit jamais plan["requirements"] (LLM-généré, source de dérive documentée).
+    Pages converties en format URL (/dashboard) et non fichier (app/dashboard/page.tsx)
+    pour que la Règle C du requirements_engine matche correctement.
     """
+    from agents.brief_parser import _app_route_to_url
+
+    def _to_url(page: str) -> str:
+        page = (page or "").strip()
+        if page.startswith("/"):
+            return page  # déjà au format URL
+        return _app_route_to_url(page)
+
     reqs = []
     for model in plan.get("data_models", []):
         reqs.append(f"Modèle Prisma: {model}")
@@ -106,7 +116,7 @@ def _extract_requirements_from_plan(plan: dict) -> list:
     if schema and not plan.get("data_models"):
         reqs.append(f"Modèle Prisma: {schema}")
     for page in plan.get("pages", []):
-        reqs.append(f"Page: {page}")
+        reqs.append(f"Page: {_to_url(page)}")
     for route in plan.get("api_routes", []):
         reqs.append(f"API Route: {route}")
     return reqs if reqs else ["Page: /"]
@@ -374,6 +384,7 @@ class AgentState(TypedDict):
     architect_output: ArchitectOutput
     run_id: str
     stack_id: str
+    project_name: str            # Identifiant unique du run — injecté dans le prompt planner pour briser le cache OpenAI
     requirements: list
     user_flows: list
     ir_schema: list              # IR canonique — Prisma models (source: parsed_brief)
@@ -550,9 +561,10 @@ def create_architect_agent():
     base_model, planner_model = _resolve_architect_models(active_stack)
 
     _llm_base = ChatOpenAI(model=base_model, temperature=0.1, max_retries=3)
-    # temperature=0.0 : le planner fait de l'extraction/mapping (pas de créativité)
-    # 0.4 causait une dérive de domaine documentée (marketplace → Finance/Task)
-    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.0, max_retries=3)
+    # temperature=0.3 : brise le cache OpenAI (dérive identique kpi-01→09 documentée)
+    # + project_name est injecté dans chaque HumanMessage → cache prefix différent par run
+    # 0.1 était insuffisant (5 briefs différents → même output Book/Review en session suivante)
+    _planner_llm_base = ChatOpenAI(model=planner_model, temperature=0.3, max_retries=3)
     if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
         llm = _llm_base.with_fallbacks(
             [ChatOpenAI(model="gpt-4o", temperature=0.1, max_retries=1)]
@@ -610,7 +622,7 @@ def create_architect_agent():
             )
         else:
             # Brief partiel ou vague : LLM complète ce que le parser n'a pas trouvé
-            normalizer_llm = ChatOpenAI(model=base_model, temperature=0.0, max_retries=2)
+            normalizer_llm = ChatOpenAI(model=base_model, temperature=0.1, max_retries=2)  # 0.1 évite le cache OpenAI prefix
             chain = prompts["brief_normalizer"] | normalizer_llm
 
             # Si le parser a trouvé quelque chose → l'injecter pour que le LLM
@@ -687,21 +699,25 @@ def create_architect_agent():
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
         normalized_brief = state.get("normalized_brief", "")
         parsed_brief = state.get("parsed_brief", {})
+        project_name = state.get("project_name", "")
 
         # ── Planner = domaine pur (QUOI construire) — sans RAG ───────────────
         # Séparation architecturale : planner = brief normalisé + connaissance LLM native.
         #                             spec_writer = plan + RAG (patterns d'implémentation).
+        # project_name préfixe le HumanMessage : chaque run a un cache prefix unique côté OpenAI.
+        project_prefix = f"[PROJET: {project_name}]\n\n" if project_name else ""
         if normalized_brief and normalized_brief != phrase:
             input_text = (
+                f"{project_prefix}"
                 f"BRIEF NORMALISÉ (source de vérité des entités) :\n"
                 f"{normalized_brief}\n\n"
                 f"BRIEF ORIGINAL : {phrase}"
             )
         else:
-            input_text = f"User Request: {phrase}"
+            input_text = f"{project_prefix}User Request: {phrase}"
 
-        # Temperature 0.0 : le planner fait de l'extraction (mapping), pas de la créativité.
-        # Réduit la dérive de domaine documentée (marketplace → Finance/Task).
+        # Temperature 0.3 + project_name prefix : brise le cache OpenAI et réduit la dérive de domaine.
+        # (kpi-01→09 : même output Book/Review pour 5 briefs différents à temperature=0.0/0.1)
         json_planner_llm = planner_llm.bind(response_format={"type": "json_object"})
         chain = prompts['planner'] | json_planner_llm
         llm_response = await chain.ainvoke({"input": input_text})

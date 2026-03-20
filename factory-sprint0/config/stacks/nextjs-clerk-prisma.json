@@ -130,25 +130,25 @@
       "lint": "next lint",
       "test": "jest"
     },
-      "auth_rules": [
-        "Auth stack: Clerk uniquement; interdits: bcrypt, NextAuth, JWT custom, Passport, authMiddleware.",
-        "app/layout.tsx doit envelopper <html> avec <ClerkProvider>.",
-        "middleware.ts (racine) doit importer clerkMiddleware depuis @clerk/nextjs/server.",
-        "Dans server components et route handlers, auth() doit toujours etre await.",
-        "Dans app/api/**/route.ts, si authorId utilise userId, ajouter `if (!userId) return 401` avant Prisma.",
-        "Dans client components ('use client'), interdiction d'importer @clerk/nextjs/server.",
-        "useAuth() ne doit jamais etre utilise pour lire l'objet user; utiliser useUser()."
-      ],
-      "ui_rules": [
-        "UI: Tailwind CSS uniquement.",
-        "Librairies UI externes interdites: shadcn/ui, @radix-ui, @headlessui.",
-        "Imports depuis @/components/ui/* interdits.",
-        "Import depuis '@/types' interdit; utiliser types locaux ou fichier adjacent.",
-        "Callbacks map/filter/reduce doivent avoir des types explicites si inference absente.",
-        "En TypeScript strict, useState([]) sans type générique est interdit; typer explicitement les tableaux (ex: useState<PostSummary[]>([])).",
-        "Dans app/** (App Router), getServerSideProps/getStaticProps/getStaticPaths sont interdits.",
-        "Tout fichier app/*.tsx utilisant un hook React doit commencer par \"use client\"; sinon convertir en Server Component sans hooks."
-      ],
+    "auth_rules": [
+      "Auth stack: Clerk uniquement; interdits: bcrypt, NextAuth, JWT custom, Passport, authMiddleware.",
+      "app/layout.tsx doit envelopper <html> avec <ClerkProvider>.",
+      "middleware.ts (racine) doit importer clerkMiddleware depuis @clerk/nextjs/server.",
+      "Dans server components et route handlers, auth() doit toujours etre await.",
+      "Dans app/api/**/route.ts, si authorId utilise userId, ajouter `if (!userId) return 401` avant Prisma.",
+      "Dans client components ('use client'), interdiction d'importer @clerk/nextjs/server.",
+      "useAuth() ne doit jamais etre utilise pour lire l'objet user; utiliser useUser()."
+    ],
+    "ui_rules": [
+      "UI: Tailwind CSS uniquement.",
+      "Librairies UI externes interdites: shadcn/ui, @radix-ui, @headlessui.",
+      "Imports depuis @/components/ui/* interdits.",
+      "Import depuis '@/types' interdit; utiliser types locaux ou fichier adjacent.",
+      "Callbacks map/filter/reduce doivent avoir des types explicites si inference absente.",
+      "En TypeScript strict, useState([]) sans type générique est interdit; typer explicitement les tableaux (ex: useState<PostSummary[]>([])).",
+      "Dans app/** (App Router), getServerSideProps/getStaticProps/getStaticPaths sont interdits.",
+      "Tout fichier app/*.tsx utilisant un hook React doit commencer par \"use client\"; sinon convertir en Server Component sans hooks."
+    ],
     "orm_rules": [
       "Le schema Prisma autorise est prisma/schema.prisma; prisma.config.ts reste template de stack.",
       "schema.prisma DOIT contenir datasource db avec provider = \"postgresql\".",
@@ -421,239 +421,42 @@
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"
   },
-  "path_guards": [
-    {
-      "id": "app_router_page_convention",
-      "kind": "app_router_convention",
-      "mode": "warn",
-      "route_root": "app/",
-      "file_extensions": [
-        ".tsx"
-      ],
-      "valid_route_names": [
-        "layout",
-        "page",
-        "error",
-        "loading",
-        "not-found",
-        "template",
-        "default"
-      ],
-      "excluded_directories": [
-        "components",
-        "lib",
-        "utils",
-        "hooks",
-        "styles",
-        "types",
-        "context",
-        "providers",
-        "helpers"
-      ],
-      "message_lines": [
-        "APP ROUTER CONVENTION WARNING — NON BLOQUANT",
-        "Ces fichiers app/ ne suivent pas la convention App Router (page.tsx/layout.tsx):",
-        "{details}",
-        "",
-        "Renomme les chemins selon app/<segment>/page.tsx pour les routes UI."
-      ]
-    },
-    {
-      "id": "app_router_api_route_naming",
-      "kind": "app_router_api_naming",
-      "mode": "warn",
-      "api_root": "app/api/",
-      "file_extensions": [
-        ".ts",
-        ".tsx"
-      ],
-      "api_valid_stem": "route",
-      "message_lines": [
-        "APP ROUTER API NAMING WARNING — NON BLOQUANT",
-        "Ces fichiers API ne suivent pas la convention App Router route.ts:",
-        "{details}",
-        "",
-        "Renomme selon app/api/<resource>/route.ts ou app/api/<resource>/[id]/route.ts."
-      ]
-    }
-  ],
   "content_guards": [
     {
       "id": "use_client",
-      "description": "Hooks React dans un fichier App Router sans directive 'use client'",
+      "description": "Hooks React dans app/*.tsx sans directive use client",
       "mode": "warn",
-      "ignore_leading_comments": true,
       "file_prefix": "app/",
-      "file_extensions": [
-        ".tsx"
-      ],
-      "trigger_regex": [
-        "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\(",
-        "(?s)import\\s*\\{[\\s\\S]*?\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\b[\\s\\S]*?\\}\\s*from\\s*['\\\"]react['\\\"]"
+      "file_extensions": [".tsx"],
+      "trigger_contains": [
+        "useEffect(",
+        "useState(",
+        "useRef(",
+        "useCallback(",
+        "useMemo(",
+        "useReducer(",
+        "useEffect,",
+        "useState,",
+        "useRef,",
+        "useCallback,",
+        "useMemo,",
+        "useReducer,"
       ],
       "requires_first_directive": "use client",
       "message_lines": [
         "USE CLIENT GUARD WARNING — NON BLOQUANT",
-        "Ces fichiers utilisent des hooks React sans directive '\"use client\"' en première ligne :",
+        "Hooks React détectés sans directive en première ligne :",
         "{details}",
         "",
-        "Politique de correction :",
-        "- Si le fichier est une page `app/**/page.tsx`: garder la page en Server Component et déplacer les hooks dans `app/components/**`.",
-        "- Si le fichier est un composant client: mettre EXACTEMENT '\"use client\";' en première ligne.",
-        "",
-        "Action obligatoire dans CE tour : write_file() sur tous les fichiers listés, puis run_build() une seule fois."
-      ]
-    },
-    {
-      "id": "server_root_page_no_hooks",
-      "description": "app/page.tsx doit rester server-first (pas de hooks client)",
-      "mode": "block",
-      "file_prefix": "app/page.tsx",
-      "file_extensions": [
-        ".tsx"
-      ],
-      "trigger_regex": [
-        "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\("
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "SERVER ROOT PAGE GUARD — BUILD BLOQUÉ",
-        "app/page.tsx contient des hooks client mais doit rester server-first.",
-        "{details}",
-        "",
-        "Correction obligatoire : déplacer les hooks dans un composant client `app/components/**` et garder app/page.tsx sans hooks."
-      ]
-    },
-    {
-      "id": "server_dynamic_page_no_hooks",
-      "description": "Toute page.tsx dans app/ doit rester server-first (pas de hooks client React)",
-      "mode": "block",
-      "file_prefix": "app/",
-      "file_extensions": [
-        ".tsx"
-      ],
-      "exclude_paths": [
-        "app/components/",
-        "app/hooks/",
-        "app/context/",
-        "app/providers/",
-        "app/styles/"
-      ],
-      "exclude_when_contains": [
-        "'use client'",
-        "\"use client\""
-      ],
-      "trigger_regex": [
-        "\\b(useEffect|useState|useRef|useCallback|useMemo|useReducer)\\s*\\("
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "SERVER PAGE GUARD — BUILD BLOQUÉ",
-        "Un fichier page.tsx dans app/ contient des hooks client mais doit rester server-first.",
-        "{details}",
-        "",
-        "Correction obligatoire : déplacer les hooks dans un composant client `app/components/**` et garder la page.tsx sans hooks ni directive 'use client'."
-      ]
-    },
-    {
-      "id": "prisma_import_path",
-      "description": "Import Prisma avec chemin relatif — utiliser l'alias @/lib/prisma",
-      "file_prefix": "",
-      "file_extensions": [
-        ".ts",
-        ".tsx"
-      ],
-      "trigger_contains": [
-        "../lib/prisma",
-        "../../lib/prisma"
-      ],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "PRISMA IMPORT PATH WARNING — NON BLOQUANT",
-        "Import Prisma avec chemin relatif détecté.",
-        "",
-        "  ❌ import prisma from '../../../../lib/prisma'",
-        "     Les chemins relatifs échouent à la résolution de modules Next.js",
-        "     selon la position du fichier dans l'arborescence.",
-        "",
-        "  ✅ import prisma from '@/lib/prisma'",
-        "     L'alias @ pointe toujours vers la racine du projet (tsconfig.json paths).",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Remplace tous les chemins relatifs Prisma par '@/lib/prisma', puis appelle run_build."
-      ]
-    },
-    {
-      "id": "prisma_named_import",
-      "description": "Import Prisma nommé depuis @/lib/prisma — préférer default import",
-      "file_prefix": "",
-      "file_extensions": [
-        ".ts",
-        ".tsx"
-      ],
-      "trigger_contains": [
-        "import { prisma } from '@/lib/prisma'",
-        "import { prisma } from \"@/lib/prisma\""
-      ],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "PRISMA NAMED IMPORT WARNING — NON BLOQUANT",
-        "Import nommé détecté depuis '@/lib/prisma'.",
-        "",
-        "  ❌ import { prisma } from '@/lib/prisma'",
-        "  ✅ import prisma from '@/lib/prisma'",
-        "",
-        "Raison : default import est la convention principale de cette stack.",
-        "L'import nommé est toléré mais peut augmenter le bruit de génération.",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Standardise de préférence en default import, puis appelle run_build."
-      ]
-    },
-    {
-      "id": "auth_missing_await",
-      "description": "auth().userId sans await — auth() est async en App Router",
-      "file_prefix": "app/",
-      "file_extensions": [
-        ".ts",
-        ".tsx"
-      ],
-      "trigger_contains": [
-        "auth().userId",
-        "auth().sessionId",
-        "auth().orgId"
-      ],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "AUTH MISSING AWAIT WARNING — NON BLOQUANT",
-        "Appel auth() sans await détecté — auth() est une fonction async en App Router.",
-        "",
-        "  ❌ const userId = auth().userId",
-        "     auth() retourne une Promise — .userId sur une Promise = undefined.",
-        "     TypeScript: 'Property userId does not exist on type Promise<...'",
-        "",
-        "  ✅ const { userId } = await auth()  // dans un Server Component ou Route Handler async",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Ajoute 'await' devant auth() et assure-toi que la fonction parente est async, puis appelle run_build."
+        "Ajoute 'use client' en première ligne ou déplace les hooks dans un composant client."
       ]
     },
     {
       "id": "authorid_requires_userid_guard",
-      "description": "authorId basé sur userId sans garde null dans route handler",
+      "description": "authorId basé sur userId sans garde null",
+      "mode": "block",
       "file_prefix": "app/api/",
-      "file_extensions": [
-        ".ts"
-      ],
+      "file_extensions": [".ts"],
       "trigger_contains": [
         "authorId: userId",
         "authorId : userId"
@@ -661,279 +464,77 @@
       "requires_regex_all": [
         "if\\s*\\(\\s*!\\s*userId"
       ],
-      "mode": "block",
-      "requires_first_directive": null,
       "message_lines": [
-        "AUTHORID USERID GUARD — ERREUR TYPESCRIPT GARANTIE",
-        "auth() retourne { userId: string | null } — userId est string | null, jamais string garanti.",
-        "Prisma attend authorId: String (non-nullable). Passer string | null = ERREUR TypeScript à la compilation.",
-        "Un null check sur userId est OBLIGATOIRE avant toute opération Prisma avec authorId.",
-        "Cela s'applique à TOUS les handlers : GET, POST, PUT, PATCH, DELETE.",
-        "",
-        "Ajoute en TÊTE de CHAQUE handler avant toute opération Prisma :",
-        "  const { userId } = await auth();",
-        "  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });",
-        "",
-        "Fichiers à corriger :",
+        "AUTHORID USERID GUARD — BUILD BLOQUÉ",
+        "authorId utilise userId sans garde de nullité :",
         "{details}",
         "",
-        "Ajoute la garde dans chaque handler puis rappelle run_build."
+        "Ajoute avant Prisma: if (!userId) return 401."
+      ]
+    },
+    {
+      "id": "prisma_import_path",
+      "description": "Import Prisma relatif interdit",
+      "mode": "warn",
+      "file_prefix": "",
+      "file_extensions": [".ts", ".tsx"],
+      "trigger_contains": [
+        "../lib/prisma",
+        "../../lib/prisma",
+        "../../../lib/prisma",
+        "../../../../lib/prisma"
+      ],
+      "message_lines": [
+        "PRISMA IMPORT PATH WARNING — NON BLOQUANT",
+        "Import Prisma relatif détecté :",
+        "{details}",
+        "",
+        "Utiliser l'alias canonique: import prisma from '@/lib/prisma'."
+      ]
+    },
+    {
+      "id": "prisma_named_import",
+      "description": "Import nommé prisma depuis @/lib/prisma",
+      "mode": "warn",
+      "file_prefix": "",
+      "file_extensions": [".ts", ".tsx"],
+      "trigger_contains": [
+        "import { prisma } from '@/lib/prisma'",
+        "import { prisma } from \"@/lib/prisma\""
+      ],
+      "message_lines": [
+        "PRISMA NAMED IMPORT WARNING — NON BLOQUANT",
+        "Import nommé Prisma détecté :",
+        "{details}",
+        "",
+        "Préférer: import prisma from '@/lib/prisma'."
       ]
     },
     {
       "id": "prisma_schema_datasource_url",
       "description": "Prisma 7 interdit datasource.url dans schema.prisma",
+      "mode": "block",
       "file_prefix": "prisma/",
-      "file_extensions": [
-        ".prisma"
-      ],
+      "file_extensions": [".prisma"],
       "trigger_contains": [
         "url      = env(\"DATABASE_URL\")",
         "url = env(\"DATABASE_URL\")",
         "url = env('DATABASE_URL')"
       ],
-      "requires_first_directive": null,
       "message_lines": [
-        "PRISMA DATASOURCE URL GUARD — BUILD BLOQUÉ",
-        "Prisma 7 n'accepte plus `datasource.url` dans `schema.prisma`.",
-        "",
-        "ERREUR TYPOQUE :",
-        "  Error code: P1012",
-        "  The datasource property `url` is no longer supported in schema files.",
-        "",
-        "CORRECTION OBLIGATOIRE :",
-        "  1. Dans prisma/schema.prisma, SUPPRIMER la ligne `url = env(...)` du bloc datasource.",
-        "  2. Garder uniquement:",
-        "       datasource db {",
-        "         provider = \"postgresql\"",
-        "       }",
-        "  3. Laisser l'URL dans prisma.config.ts (datasource.url).",
-        "",
-        "Fichier à corriger :",
+        "PRISMA DATASOURCE URL GUARD — BUILD BLOQUÉ (P1012)",
+        "datasource.url est interdit dans schema.prisma :",
         "{details}",
         "",
-        "Corrige avec write_file(), puis appelle run_build."
-      ]
-    },
-    {
-      "id": "prisma_schema_datasource_required",
-      "description": "schema.prisma doit définir datasource db avec provider postgresql",
-      "mode": "block",
-      "file_prefix": "prisma/",
-      "file_extensions": [
-        ".prisma"
-      ],
-      "requires_regex_all": [
-        "(?ms)\\bdatasource\\s+db\\s*\\{[\\s\\S]*?\\bprovider\\s*=\\s*['\\\"]postgresql['\\\"][\\s\\S]*?\\}"
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "PRISMA DATASOURCE REQUIRED GUARD — BUILD BLOQUÉ",
-        "Le fichier prisma/schema.prisma doit contenir un bloc datasource db CANONIQUE (multiligne) pour PostgreSQL.",
-        "",
-        "Format obligatoire :",
-        "  datasource db {",
-        "    provider = \"postgresql\"",
-        "  }",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Corrige schema.prisma puis rappelle run_build."
-      ]
-    },
-    {
-      "id": "prisma_schema_generator_required",
-      "description": "schema.prisma doit définir generator client canonical avec provider prisma-client-js",
-      "mode": "block",
-      "file_prefix": "prisma/",
-      "file_extensions": [
-        ".prisma"
-      ],
-      "requires_regex_all": [
-        "(?ms)\\bgenerator\\s+client\\s*\\{[\\s\\S]*?\\bprovider\\s*=\\s*['\\\"]prisma-client-js['\\\"][\\s\\S]*?\\}"
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "PRISMA GENERATOR REQUIRED GUARD — BUILD BLOQUÉ",
-        "Le fichier prisma/schema.prisma doit contenir un bloc generator client CANONIQUE (multiligne).",
-        "",
-        "Format obligatoire :",
-        "  generator client {",
-        "    provider = \"prisma-client-js\"",
-        "  }",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Corrige schema.prisma puis rappelle run_build."
-      ]
-    },
-    {
-      "id": "prisma_generator_provider",
-      "description": "Generator Prisma incompatible avec import @prisma/client",
-      "file_prefix": "prisma/",
-      "file_extensions": [
-        ".prisma"
-      ],
-      "trigger_contains": [
-        "provider = \"prisma-client\"",
-        "provider = 'prisma-client'"
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "PRISMA GENERATOR PROVIDER GUARD — BUILD BLOQUÉ",
-        "Le schema Prisma utilise provider = \"prisma-client\", incompatible avec cette stack.",
-        "",
-        "RÈGLE STACK:",
-        "  ✅ generator client { provider = \"prisma-client-js\" }",
-        "  ❌ generator client { provider = \"prisma-client\" }",
-        "",
-        "Raison : cette factory importe PrismaClient depuis '@prisma/client' (lib/prisma.ts).",
-        "Avec provider = \"prisma-client\", PrismaClient n'est pas exporté comme attendu et le build casse.",
-        "",
-        "Fichier à corriger :",
-        "{details}",
-        "",
-        "Corrige le provider en \"prisma-client-js\", puis appelle run_build."
-      ]
-    },
-    {
-      "id": "prisma_direct_instantiation",
-      "description": "new PrismaClient() ou import { PrismaClient } direct — utiliser le singleton @/lib/prisma",
-      "file_prefix": "app/api/",
-      "file_extensions": [
-        ".ts",
-        ".tsx",
-        ".js",
-        ".jsx"
-      ],
-      "trigger_contains": [
-        "new PrismaClient()",
-        "new PrismaClient({",
-        "from '@prisma/client'",
-        "from \"@prisma/client\""
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "PRISMA DIRECT INSTANTIATION GUARD — BUILD BLOQUÉ",
-        "Import/instanciation directe de PrismaClient détectée.",
-        "",
-        "  ❌ import { PrismaClient } from '@prisma/client'",
-        "  ❌ const prisma = new PrismaClient()",
-        "     Crée une nouvelle connexion DB à chaque requête — épuise le pool.",
-        "     En dev Next.js avec HMR, génère des dizaines de connexions simultanées.",
-        "",
-        "  ✅ import prisma from '@/lib/prisma'",
-        "     Le singleton lib/prisma.ts réutilise la connexion existante.",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Remplace par 'import prisma from \"@/lib/prisma\"', puis appelle run_build."
-      ]
-    },
-    {
-      "id": "useauth_user_property",
-      "description": "useAuth().user interdit — useAuth() ne retourne pas l'objet user",
-      "file_prefix": "app/",
-      "file_extensions": [
-        ".tsx",
-        ".ts"
-      ],
-      "trigger_contains": [
-        "useAuth().user",
-        "const { user } = useAuth("
-      ],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "USE AUTH USER WARNING — NON BLOQUANT",
-        "Accès à .user via useAuth() détecté — cette propriété n'existe pas.",
-        "",
-        "  ❌ const { user } = useAuth()",
-        "     useAuth() retourne { userId, sessionId, isLoaded, isSignedIn }",
-        "     PAS l'objet user complet — provoque 'Property user does not exist'.",
-        "",
-        "  ✅ const { user } = useUser()  // depuis @clerk/nextjs",
-        "     useUser() retourne l'objet user complet avec emailAddresses, etc.",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Remplace useAuth() par useUser() pour accéder à l'objet user, puis appelle run_build."
-      ]
-    },
-    {
-      "id": "clerk_server_in_client",
-      "description": "Import @clerk/nextjs/server dans un Client Component — BUILD BLOQUÉ",
-      "file_prefix": "app/",
-      "file_extensions": [
-        ".tsx",
-        ".ts"
-      ],
-      "trigger_contains": [
-        "from '@clerk/nextjs/server'",
-        "from \"@clerk/nextjs/server\""
-      ],
-      "requires_first_directive": null,
-      "conflicts_with_directive": "use client",
-      "message_lines": [
-        "CLERK SERVER IN CLIENT GUARD — BUILD BLOQUÉ",
-        "'@clerk/nextjs/server' est SERVER ONLY et ne peut pas être importé depuis un Client Component.",
-        "",
-        "ERREUR NEXT.JS RÉSULTANTE :",
-        "  ✗ 'server-only' cannot be imported from a Client Component module.",
-        "    The error was caused by importing '@clerk/nextjs/dist/esm/server/index.js'",
-        "",
-        "RÈGLE ABSOLUE :",
-        "  • Client Component ('use client') : utiliser useAuth(), useUser(), useClerk() depuis '@clerk/nextjs'",
-        "  • Server Component / Route Handler : utiliser auth(), currentUser() depuis '@clerk/nextjs/server'",
-        "",
-        "CORRECTIONS POSSIBLES pour chaque fichier listé :",
-        "  Option A — Convertir en Server Component (supprimer 'use client', garder auth() serveur)",
-        "  Option B — Remplacer les imports serveur par useAuth()/useUser() client",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Choisis l'option adaptée, corrige avec write_file(), puis appelle run_build."
-      ]
-    },
-    {
-      "id": "router_query_app_router",
-      "description": "router.query en App Router — utiliser params props (server) ou useParams (client)",
-      "file_prefix": "app/",
-      "file_extensions": [
-        ".tsx",
-        ".ts"
-      ],
-      "trigger_contains": [
-        "router.query"
-      ],
-      "mode": "warn",
-      "requires_first_directive": null,
-      "message_lines": [
-        "ROUTER QUERY WARNING — NON BLOQUANT",
-        "Pattern router.query détecté en App Router.",
-        "",
-        "  ❌ const { slug } = router.query",
-        "  ✅ Server page: const { slug } = params",
-        "  ✅ Client: const { slug } = useParams<{ slug: string }>()",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Corrige ce pattern pour éviter les erreurs runtime/build sur App Router."
+        "Supprimer la ligne url = env(...) du datasource."
       ]
     },
     {
       "id": "route_handler_untyped_signature",
-      "description": "Route handler App Router non typé (request/params en any implicite)",
+      "description": "Route handlers potentiellement non typés",
+      "mode": "warn",
       "file_prefix": "app/api/",
-      "file_extensions": [
-        ".ts"
-      ],
+      "file_extensions": [".ts"],
       "trigger_contains": [
         "export async function GET(",
         "export async function POST(",
@@ -941,87 +542,28 @@
         "export async function PATCH(",
         "export async function DELETE("
       ],
-      "mode": "warn",
       "exclude_when_contains": [
         ": Request",
-        "Request,",
         ": NextRequest",
-        "NextRequest,",
         "}: { params:"
       ],
-      "requires_first_directive": null,
       "message_lines": [
         "ROUTE HANDLER TYPING WARNING — NON BLOQUANT",
-        "Signature de route handler potentiellement non typée détectée (TypeScript strict).",
-        "",
-        "Signature canonique recommandée :",
-        "  export async function PUT(request: Request, { params }: { params: { id: string } }) { ... }",
-        "",
-        "Fichiers à corriger :",
+        "Signature route handler non typée détectée :",
         "{details}",
         "",
-        "Ajoute les types Request/params pour éviter l'erreur TS7006 (implicit any)."
-      ]
-    },
-    {
-      "id": "clerk_client_import_in_api",
-      "description": "Import @clerk/nextjs (client) dans un route handler app/api/ — doit être @clerk/nextjs/server",
-      "file_prefix": "app/api/",
-      "file_extensions": [
-        ".ts",
-        ".tsx"
-      ],
-      "trigger_contains": [
-        "from '@clerk/nextjs'",
-        "from \"@clerk/nextjs\""
-      ],
-      "mode": "block",
-      "requires_first_directive": null,
-      "message_lines": [
-        "CLERK API IMPORT GUARD — BUILD BLOQUÉ",
-        "Un route handler importe depuis '@clerk/nextjs' (package client) au lieu de '@clerk/nextjs/server'.",
-        "",
-        "  ❌ import { auth } from '@clerk/nextjs'",
-        "     Le package client n'exporte pas auth() pour les route handlers — TypeScript error.",
-        "",
-        "  ✅ import { auth } from '@clerk/nextjs/server'",
-        "     auth() côté serveur est exclusivement dans le sous-package /server.",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Remplace l'import, puis appelle run_build."
-      ]
-    },
-    {
-      "id": "app_router_legacy_data_fetching",
-      "description": "Interdire getServerSideProps/getStaticProps/getStaticPaths dans app/ (App Router)",
-      "file_prefix": "app/",
-      "file_extensions": [
-        ".tsx",
-        ".ts"
-      ],
-      "trigger_contains": [
-        "getServerSideProps",
-        "getStaticProps",
-        "getStaticPaths"
-      ],
-      "requires_first_directive": null,
-      "message_lines": [
-        "APP ROUTER DATA FETCHING GUARD — BUILD BLOQUÉ",
-        "Les APIs Pages Router sont interdites dans app/:",
-        "  ❌ getServerSideProps / getStaticProps / getStaticPaths",
-        "",
-        "En App Router, utiliser :",
-        "  ✅ Server Component async avec fetch/DB direct",
-        "  ✅ export const revalidate = ... (ISR)",
-        "  ✅ generateStaticParams() pour routes dynamiques",
-        "",
-        "Fichiers à corriger :",
-        "{details}",
-        "",
-        "Supprime ces exports legacy et réécris la page en Server Component App Router."
+        "Ajouter les types Request/params pour éviter TS7006."
       ]
     }
-  ]
+  ],
+  "supervision_routing": {
+    "app/api/**/*.ts":      ["conformity", "security"],
+    "app/**/*.tsx":         ["conformity", "architecture"],
+    "app/**/*.ts":          ["conformity", "architecture"],
+    "prisma/schema.prisma": ["architecture"],
+    "lib/**/*.ts":          ["conformity"],
+    "**/*.test.*":          [],
+    "**/*.config.*":        [],
+    "**/*.css":             []
+  }
 }

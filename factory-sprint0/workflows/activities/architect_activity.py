@@ -129,6 +129,7 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         "spec_structured": None,  # Dual-output P2 (rempli par formatter_node)
         "stack_id": str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         "run_id": run_id,
+        "project_name": project_name,  # Injecté dans le planner pour briser le cache OpenAI
     }
 
     try:
