@@ -109,7 +109,9 @@
             "conformity_score": {"type": "number", "minimum": 0, "maximum": 1},
             "security_score": {"type": "number", "minimum": 0, "maximum": 1},
             "architecture_score": {"type": "number", "minimum": 0, "maximum": 1},
-            "build_corrections_count": {"type": "integer"}
+            "build_corrections_count": {"type": "integer"},
+            "supervision_loop_corrections": {"type": "integer", "description": "Nombre total de corrections superviseur injectées dans la boucle"},
+            "supervision_loop_pending_at_end": {"type": "integer", "description": "Nombre de fichiers avec corrections superviseur encore en attente à la fin du run"}
           }
       }
     }

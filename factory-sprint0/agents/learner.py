@@ -78,10 +78,17 @@ def run_learner_activity(run_id: str = "") -> dict:
         supervisor_events_count = sum(
             1 for e in all_events if e.get("event_type") == "supervisor_file_reviewed"
         )
-        if len(events) < MIN_RUNS_FOR_ANALYSIS and supervisor_events_count < MIN_RUNS_FOR_ANALYSIS:
+        batch_events_count = sum(
+            1 for e in all_events if e.get("event_type") in
+            {"batch_generated", "supervisor_batch_reviewed", "corrections_applied"}
+        )
+        if (len(events) < MIN_RUNS_FOR_ANALYSIS
+                and supervisor_events_count < MIN_RUNS_FOR_ANALYSIS
+                and batch_events_count < MIN_RUNS_FOR_ANALYSIS):
             logger.info(
                 f"[learner] Seulement {len(events)} run(s) dev_test et "
-                f"{supervisor_events_count} event(s) supervisor_file_reviewed — "
+                f"{supervisor_events_count} event(s) supervisor_file_reviewed et "
+                f"{batch_events_count} event(s) batch — "
                 f"minimum {MIN_RUNS_FOR_ANALYSIS} requis pour l'analyse"
             )
             return {
@@ -89,12 +96,14 @@ def run_learner_activity(run_id: str = "") -> dict:
                 "suggestions": [],
                 "skipped_reason": (
                     f"Insufficient data (dev_test={len(events)}, "
-                    f"supervisor={supervisor_events_count}, min={MIN_RUNS_FOR_ANALYSIS})"
+                    f"supervisor={supervisor_events_count}, "
+                    f"batch={batch_events_count}, min={MIN_RUNS_FOR_ANALYSIS})"
                 ),
             }
 
         suggestions = _analyze_patterns(events)
         suggestions.extend(_analyze_supervisor_patterns(all_events))
+        suggestions.extend(_analyze_batch_patterns(all_events))
         _save_suggestions(suggestions, run_id)
 
         logger.info(
@@ -131,6 +140,12 @@ def _load_all_events() -> list[dict]:
 def _load_dev_test_events(all_events: list[dict]) -> list[dict]:
     """Filtre les events dev_test_run depuis la liste globale."""
     return [e for e in all_events if e.get("event_type") == "dev_test_run"]
+
+
+def _load_batch_events(all_events: list[dict]) -> list[dict]:
+    """Filtre les events batch M4 depuis la liste globale."""
+    batch_types = {"batch_generated", "supervisor_batch_reviewed", "corrections_applied"}
+    return [e for e in all_events if e.get("event_type") in batch_types]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -493,6 +508,146 @@ def _analyze_supervisor_patterns(all_events: list[dict]) -> list[StandardSuggest
                 sprint="sprint46_v2",
             )
         )
+    return suggestions
+
+
+def _analyze_batch_patterns(all_events: list[dict]) -> list[StandardSuggestion]:
+    """
+    Analyse les événements batch M4.
+    Patterns:
+      BP001 — must_fix_count > 0 sur 3+ batchs consécutifs pour le même superviseur
+      BP002 — batch_generated files_count == 0 sur 2+ runs
+      BP003 — corrections_applied applied_count == 0 sur 3+ batchs alors que must_fix_count > 0
+    """
+    batch_events = _load_batch_events(all_events)
+    if not batch_events:
+        return []
+
+    suggestions: list[StandardSuggestion] = []
+
+    # ── BP001 : superviseur avec must_fix récurrent sur batchs consécutifs ──
+    sup_events = [e for e in batch_events if e.get("event_type") == "supervisor_batch_reviewed"]
+    per_sup: dict[str, list[tuple[int, str, int]]] = {}
+    for event in sup_events:
+        payload = event.get("payload", {}) or {}
+        must_fix_count = int(payload.get("must_fix_count", 0) or 0)
+        batch_id = str(payload.get("batch_id", event.get("batch_id", "")) or "")
+        m = re.search(r"(\d+)", batch_id)
+        batch_idx = int(m.group(1)) if m else -1
+        run_id = str(event.get("run_id", "") or "")
+        # "supervisors" est une liste (émis par aggregate_corrections_activity)
+        # "supervisor" singulier : fallback pour compatibilité avec d'autres sources
+        sup_list: list[str] = []
+        raw_sups = payload.get("supervisors")
+        if isinstance(raw_sups, list):
+            sup_list = [str(s).strip().lower() for s in raw_sups if s]
+        if not sup_list:
+            s = str(payload.get("supervisor", "")).strip().lower()
+            if s:
+                sup_list = [s]
+        if not sup_list:
+            continue
+        for supervisor in sup_list:
+            per_sup.setdefault(supervisor, []).append((batch_idx, run_id, must_fix_count))
+
+    for supervisor, rows in per_sup.items():
+        rows_sorted = sorted(rows, key=lambda x: x[0])
+        longest = 0
+        current = 0
+        best_runs: list[str] = []
+        current_runs: list[str] = []
+        prev_idx = None
+        for idx, rid, must_count in rows_sorted:
+            hit = must_count > 0
+            consecutive = prev_idx is None or (idx >= 0 and prev_idx >= 0 and idx == prev_idx + 1)
+            if hit and (consecutive or current == 0):
+                current += 1
+                current_runs.append(rid)
+            elif hit:
+                current = 1
+                current_runs = [rid]
+            else:
+                current = 0
+                current_runs = []
+            prev_idx = idx
+            if current > longest:
+                longest = current
+                best_runs = list(current_runs)
+        if longest >= 3:
+            suggestions.append(StandardSuggestion(
+                suggestion_id=f"BP001-{uuid.uuid4().hex[:6]}",
+                category="standard",
+                severity="medium",
+                title=f"must_fix récurrent — superviseur {supervisor}",
+                description=(
+                    f"Le superviseur '{supervisor}' remonte des must_fix sur "
+                    f"{longest} batchs consécutifs. Ajouter/renforcer un standard amont."
+                ),
+                evidence={"run_ids": best_runs, "streak": longest, "supervisor": supervisor},
+                supervisor_type=supervisor,
+                zone_target=_zone_for_supervisor(supervisor),
+                sprint="sprint46_v2",
+            ))
+
+    # ── BP002 : plans/batchs vides sur plusieurs runs ────────────────────────
+    batch_gen_events = [e for e in batch_events if e.get("event_type") == "batch_generated"]
+    zero_runs: Counter = Counter()
+    for event in batch_gen_events:
+        payload = event.get("payload", {}) or {}
+        files_count = int(payload.get("files_count", 0) or 0)
+        run_id = str(event.get("run_id", "") or "")
+        if run_id and files_count == 0:
+            zero_runs[run_id] += 1
+    if len(zero_runs) >= 2:
+        suggestions.append(StandardSuggestion(
+            suggestion_id=f"BP002-{uuid.uuid4().hex[:6]}",
+            category="config",
+            severity="high",
+            title="Plan architect vide détecté",
+            description=(
+                f"Des batchs avec files_count=0 sont observés sur {len(zero_runs)} runs. "
+                "Le plan est potentiellement vide ou mal parsé."
+            ),
+            evidence={"run_ids": sorted(zero_runs.keys()), "zero_batch_runs": len(zero_runs)},
+            sprint="sprint46_v2",
+        ))
+
+    # ── BP003 : must_fix non appliqués de manière récurrente ─────────────────
+    must_fix_by_key: dict[tuple[str, str], int] = {}
+    for event in sup_events:
+        payload = event.get("payload", {}) or {}
+        run_id = str(event.get("run_id", "") or "")
+        batch_id = str(payload.get("batch_id", event.get("batch_id", "")) or "")
+        must_fix_by_key[(run_id, batch_id)] = max(
+            must_fix_by_key.get((run_id, batch_id), 0),
+            int(payload.get("must_fix_count", 0) or 0),
+        )
+
+    unapplied_keys: list[tuple[str, str]] = []
+    corr_events = [e for e in batch_events if e.get("event_type") == "corrections_applied"]
+    for event in corr_events:
+        payload = event.get("payload", {}) or {}
+        run_id = str(event.get("run_id", "") or "")
+        batch_id = str(payload.get("batch_id", event.get("batch_id", "")) or "")
+        applied_count = int(payload.get("applied_count", 0) or 0)
+        must_count = int(must_fix_by_key.get((run_id, batch_id), 0) or 0)
+        if must_count > 0 and applied_count == 0:
+            unapplied_keys.append((run_id, batch_id))
+
+    if len(unapplied_keys) >= 3:
+        suggestions.append(StandardSuggestion(
+            suggestion_id=f"BP003-{uuid.uuid4().hex[:6]}",
+            category="guard",
+            severity="high",
+            title="Corrections must_fix non appliquées",
+            description=(
+                f"{len(unapplied_keys)} batchs montrent applied_count=0 malgré des must_fix > 0. "
+                "Le chaînage aggregate/apply est défaillant."
+            ),
+            evidence={"batch_keys": [f"{r}:{b}" for r, b in unapplied_keys[:10]], "count": len(unapplied_keys)},
+            sprint="sprint46_v2",
+        ))
+
     return suggestions
 
 

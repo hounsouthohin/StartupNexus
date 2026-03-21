@@ -96,6 +96,7 @@
     "/api/auth/register",
     "/api/auth/login",
     "shadcn/ui",
+    "@shadcn/ui",
     "react-hook-form"
   ],
   "forbidden_auth_patterns": [
@@ -556,6 +557,10 @@
       ]
     }
   ],
+  "supervision": {
+    "batch_size": 3,
+    "supervisor_timeout_ms": 30000
+  },
   "supervision_routing": {
     "app/api/**/*.ts":      ["conformity", "security"],
     "app/**/*.tsx":         ["conformity", "architecture"],

@@ -12,7 +12,7 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-# Imports
+# Imports — pipeline principal
 from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
@@ -21,11 +21,19 @@ from workflows.activities.dev_test_activity import dev_test_activity
 from workflows.activities.qa_activity import qa_activity
 from workflows.activities.github_activity import github_activity
 from workflows.activities.learner_activity import learner_activity
-# Sprint 4.6 — créés en C1-C4
+# Sprint 4.6 — superviseurs inline
 from workflows.activities.conformity_activity import conformity_activity
 from workflows.activities.security_activity import security_activity
 from workflows.activities.architecture_activity import architecture_activity
 from workflows.activities.build_supervisor_activity import build_supervisor_activity
+# M2 — workflow parallèle + stubs activités
+from workflows.generation_session_workflow import GenerationSessionWorkflow
+from workflows.activities.generation_session_activities import (
+    generate_batch_activity,
+    aggregate_corrections_activity,
+    apply_corrections_activity,
+    build_activity,
+)
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -36,18 +44,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-TASK_QUEUE = "factory-task-queue"
+# Queues
+MAIN_QUEUE       = "factory-task-queue"       # backward compat — toutes activités existantes
+DEV_QUEUE        = "factory-dev-queue"         # M2 — génération + application corrections
+SUPERVISORS_QUEUE = "factory-supervisors-queue" # M2 — conformity / security / architecture
+BUILD_QUEUE      = "factory-build-queue"        # M2 — build + build_supervisor
 
 
 async def main():
     temporal_address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     client = await Client.connect(temporal_address)
-    worker = Worker(
+
+    # ── Worker principal (backward compat M0/M1) ─────────────────────────────
+    main_worker = Worker(
         client,
-        task_queue=TASK_QUEUE,
+        task_queue=MAIN_QUEUE,
         workflows=[
             SaaSFactoryWorkflow,
             TodoPilotWorkflow,
+            GenerationSessionWorkflow,   # M2 — enregistré ici pour le routing TodoPilot
         ],
         activities=[
             architect_activity,
@@ -55,7 +70,6 @@ async def main():
             qa_activity,
             github_activity,
             learner_activity,
-            # Sprint 4.6 — créés en C1-C4
             conformity_activity,
             security_activity,
             architecture_activity,
@@ -63,35 +77,61 @@ async def main():
         ],
     )
 
-    logger.info("╔════════════════════════════════════════════╗")
-    logger.info("║     Software Agent Factory Worker          ║")
-    logger.info("║     Queue : factory-task-queue             ║")
-    logger.info("╚════════════════════════════════════════════╝")
+    # ── Worker dev queue (M2) ─────────────────────────────────────────────────
+    dev_worker = Worker(
+        client,
+        task_queue=DEV_QUEUE,
+        activities=[
+            generate_batch_activity,
+            apply_corrections_activity,
+        ],
+    )
 
-    _all_activities = [
-        architect_activity,
-        dev_test_activity,
-        qa_activity,
-        github_activity,
-        learner_activity,
-        conformity_activity,
-        security_activity,
-        architecture_activity,
-        build_supervisor_activity,
-    ]
-    logger.info(f"Workflows   : {', '.join(w.__name__ for w in [SaaSFactoryWorkflow, TodoPilotWorkflow])}")
-    logger.info(f"Activities  : {', '.join(a.__name__ for a in _all_activities)}")
+    # ── Worker supervisors queue (M2) ─────────────────────────────────────────
+    supervisors_worker = Worker(
+        client,
+        task_queue=SUPERVISORS_QUEUE,
+        activities=[
+            conformity_activity,
+            security_activity,
+            architecture_activity,
+            aggregate_corrections_activity,
+        ],
+    )
 
-    logger.info("Worker en écoute... (Ctrl+C pour arrêter)")
-    
-    await worker.run()
+    # ── Worker build queue (M2) ───────────────────────────────────────────────
+    build_worker = Worker(
+        client,
+        task_queue=BUILD_QUEUE,
+        activities=[
+            build_activity,
+            build_supervisor_activity,
+        ],
+    )
+
+    logger.info("╔════════════════════════════════════════════════════════╗")
+    logger.info("║     Software Agent Factory Worker                      ║")
+    logger.info("║     Queues : main | dev | supervisors | build          ║")
+    logger.info("╚════════════════════════════════════════════════════════╝")
+    logger.info(f"MAIN       ({MAIN_QUEUE})       : pipeline principal + backward compat")
+    logger.info(f"DEV        ({DEV_QUEUE})          : generate_batch + apply_corrections")
+    logger.info(f"SUPERVISORS({SUPERVISORS_QUEUE}) : conformity + security + architecture")
+    logger.info(f"BUILD      ({BUILD_QUEUE})        : build + build_supervisor")
+    logger.info("Workers en écoute... (Ctrl+C pour arrêter)")
+
+    await asyncio.gather(
+        main_worker.run(),
+        dev_worker.run(),
+        supervisors_worker.run(),
+        build_worker.run(),
+    )
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Worker arrêté proprement (Ctrl+C)")
+        logger.info("Workers arrêtés proprement (Ctrl+C)")
     except Exception as e:
         logger.exception("Erreur critique dans le worker")
         sys.exit(1)

@@ -112,8 +112,8 @@ def _get_node_env() -> dict:
     env["CI"] = "true"
     env["NEXT_TELEMETRY_DISABLED"] = "1"
     # Build deterministe: prisma generate nécessite DATABASE_URL même sans DB accessible.
-    # Fallback local pour éviter les échecs de config Prisma quand seul .env.local est présent.
-    env.setdefault("DATABASE_URL", "postgresql://user:password@localhost:5432/postgres")
+    # Fallback placeholder (non-fonctionnel) uniquement si absent de l'environnement.
+    env.setdefault("DATABASE_URL", "postgresql://user:CHANGEME@localhost:5432/db_placeholder")
     return env
 
 
@@ -338,7 +338,7 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
             query=query, k=k, cache_hit=False, run_id=run_id, error=str(e)
         )
         logger.error(f"[rag_search] Error: {e}")
-        return f"[RAG ERROR] {e}"
+        return ""  # fallback silencieux: ne pas polluer le contexte LLM avec l'erreur Qdrant
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -435,7 +435,14 @@ def write_file(path: str, content: str) -> str:
             _stack_cfg_guard = load_stack_config(get_stack_id())
             _templated = _stack_cfg_guard.get("templated_files", {})
             _scaffold_ext = set(_stack_cfg_guard.get("scaffold_extends", {}).keys())
-            if _norm_path in _templated and _norm_path not in _scaffold_ext:
+            # package.json est validé/normalisé explicitement plus haut.
+            # On autorise son écriture pour éviter une divergence
+            # contrat<->tests (strict JSON parse + sortie OK).
+            if (
+                _norm_path in _templated
+                and _norm_path not in _scaffold_ext
+                and _norm_path != "package.json"
+            ):
                 logger.info(f"[write_file] ⛔ TEMPLATE_PROTÉGÉ — {path} ignoré")
                 return (
                     f"TEMPLATE_PROTÉGÉ: '{path}' est géré par la factory (template validé). "

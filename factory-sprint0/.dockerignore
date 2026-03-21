@@ -20,6 +20,7 @@ logs/
 generated-projects/
 run/_pytest_tmp*/
 tmp*/
+tests_tmp/
 
 # OS-specific noise
 Thumbs.db

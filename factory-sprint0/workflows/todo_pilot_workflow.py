@@ -1,14 +1,22 @@
 # workflows/todo_pilot_workflow.py
 """
-Workflow pilote Sprint 0.5 – Validation ToDo app avec DevTestAgent fusionné
+Workflow pilote Sprint 0.5 – Validation ToDo app avec DevTestAgent fusionné.
+
+M2 : Phase de supervision parallèle (conformity || security || architecture || qa)
+     après dev_test_activity, visible dans Temporal UI.
 """
 
+import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 from typing import Dict, Any
-from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD, SPEC_COVERAGE_PARTIAL_THRESHOLD
+from config.factory_config import (
+    SPEC_COVERAGE_SUCCESS_THRESHOLD,
+    SPEC_COVERAGE_PARTIAL_THRESHOLD,
+    TEMPORAL_PARALLEL_MODE,
+)
 
 
 @dataclass
@@ -39,6 +47,11 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
     from workflows.activities.learner_activity import learner_activity
+    from workflows.activities.conformity_activity import conformity_activity
+    from workflows.activities.security_activity import security_activity
+    from workflows.activities.architecture_activity import architecture_activity
+    # M2 — child workflow pour mode parallèle (câblé en M2b)
+    from workflows.generation_session_workflow import GenerationSessionWorkflow
 
 @workflow.defn
 class TodoPilotWorkflow:
@@ -61,7 +74,7 @@ class TodoPilotWorkflow:
 
         workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase} | Stack: {stack_id}")
 
-        start_time = workflow.now()  # déterministe !
+        start_time = workflow.now()
         run_id = str(workflow.uuid4())
         workflow.logger.info(f"TodoPilot run_id={run_id}")
 
@@ -70,21 +83,22 @@ class TodoPilotWorkflow:
             backoff_coefficient=2.0,
             maximum_attempts=3,
         )
-
-        # Retry plus patient pour architect_activity : Qdrant peut être
-        # temporairement indisponible (redémarrage, crash). _wait_for_qdrant()
-        # dans l'activité attend déjà 90s, mais on laisse 5 tentatives avec
-        # backoff de 15s pour absorber un redémarrage Qdrant plus long.
         architect_retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=15),
             backoff_coefficient=2.0,
             maximum_attempts=5,
         )
+        # Superviseurs : best-effort, pas de retry bloquant
+        supervisor_retry_policy = RetryPolicy(
+            initial_interval=timedelta(seconds=5),
+            backoff_coefficient=2.0,
+            maximum_attempts=2,
+        )
 
         try:
             activity_results: Dict[str, Any] = {}
 
-            # 1. Architect
+            # ── 1. Architect ──────────────────────────────────────────────
             architect_result: Dict[str, Any] = await workflow.execute_activity(
                 architect_activity,
                 args=[{"phrase": phrase, "project_name": project_name, "stack_id": stack_id}, run_id],
@@ -98,13 +112,13 @@ class TodoPilotWorkflow:
             user_flows_part = architect_result.get("user_flows", [])
             spec_validation_status = architect_result.get("spec_validation_status", "OK")
             spec_unmatched_requirements = architect_result.get("spec_unmatched_requirements", [])
-            # IR canonique — source de vérité typée (parser déterministe, P1)
             ir_schema_part = architect_result.get("ir_schema", [])
             ir_pages_part = architect_result.get("ir_pages", [])
             ir_routes_part = architect_result.get("ir_routes", [])
+            plan_part = architect_result.get("plan", {})
 
             workflow.logger.info(
-                f"Architect terminé — {len(requirements_part)} requirements extraits | "
+                f"Architect terminé — {len(requirements_part)} requirements | "
                 f"spec_validation={spec_validation_status}"
             )
             activity_results["architect"] = {
@@ -114,20 +128,17 @@ class TodoPilotWorkflow:
                 "spec_unmatched_requirements": spec_unmatched_requirements,
             }
 
-            # ── SPEC GATE — observation uniquement (non-bloquant) ────────────
-            # Historique : ce gate bloquait quand les requirements étaient LLM-générés
-            # et driftaient (Task au lieu de Product). Depuis l'introduction du brief_parser
-            # déterministe, les requirements sont corrects à la source. Le spec_validator
-            # (regex sur markdown LLM) produit des faux positifs que ce gate amplifie en
-            # arrêts définitifs. Signal de qualité conservé dans les logs et métriques.
             if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
                 workflow.logger.warning(
-                    f"[SPEC_GATE] AVERTISSEMENT — spec DEGRADED, {len(spec_unmatched_requirements)} "
-                    f"requirement(s) non vérifiés par le validator : {spec_unmatched_requirements} "
-                    f"— pipeline continue vers DevAgent"
+                    f"[SPEC_GATE] AVERTISSEMENT — spec DEGRADED, "
+                    f"{len(spec_unmatched_requirements)} requirement(s) non vérifiés — "
+                    f"pipeline continue"
                 )
 
-            # 2. DevTest fusionné
+            # ── 2. DevTest (génération + supervision interne + build) ─────
+            run_mode = TEMPORAL_PARALLEL_MODE  # lu une seule fois pour ce run
+            workflow.logger.info(f"[PARALLEL_MODE] run_mode={run_mode}")
+
             dev_test_input = {
                 "spec": spec_part,
                 "mermaid": mermaid_part,
@@ -137,11 +148,19 @@ class TodoPilotWorkflow:
                 "user_flows": user_flows_part,
                 "spec_validation_status": spec_validation_status,
                 "spec_unmatched_requirements": spec_unmatched_requirements,
-                # IR canonique — coexiste avec requirements: list[str] jusqu'en P4
                 "ir_schema": ir_schema_part,
                 "ir_pages": ir_pages_part,
                 "ir_routes": ir_routes_part,
+                "run_mode": run_mode,  # propagé aux activités pour traçabilité
             }
+
+            if run_mode == "workflow":
+                # M2 — child workflow GenerationSessionWorkflow (non encore fully opérationnel)
+                # Pour l'instant, fallback inline avec log d'avertissement.
+                workflow.logger.warning(
+                    "[PARALLEL_MODE] run_mode=workflow demandé mais GenerationSessionWorkflow "
+                    "n'est pas encore pleinement câblé — fallback inline."
+                )
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
                 dev_test_activity,
@@ -167,44 +186,39 @@ class TodoPilotWorkflow:
                 ),
             }
 
-            test_output = dev_test_result.get("test_output", {})
-            if not isinstance(test_output, dict):
-                test_output = {}
             dev_phase_success = bool(
                 dev_test_result.get("dev_output", {}).get("success", False)
                 if isinstance(dev_test_result.get("dev_output", {}), dict)
                 else False
             )
             semantic_violations = dev_test_result.get("semantic_violations", [])
+            spec_coverage = dev_test_result.get("metadata", {}).get("spec_coverage", 0.0)
+            combined_files: Dict[str, str] = dev_test_result.get("combined_files", {}) or {}
+
             if semantic_violations:
                 workflow.logger.warning(
                     f"Violations sémantiques ({len(semantic_violations)}): "
                     + " | ".join(semantic_violations)
                 )
 
-            spec_coverage = dev_test_result.get("metadata", {}).get("spec_coverage", 0.0)
+            # ── Build status provisoire (avant superviseurs) ──────────────
             if semantic_violations:
                 build_status = "SEMANTIC_VIOLATION"
             elif dev_phase_success:
                 if spec_coverage >= SPEC_COVERAGE_SUCCESS_THRESHOLD:
                     build_status = "SUCCESS"
                 elif spec_coverage >= SPEC_COVERAGE_PARTIAL_THRESHOLD:
-                    # App fonctionnelle mais incomplète — au moins 25% des requirements couverts
                     build_status = "PARTIAL"
                 else:
-                    # Build passe mais trop peu de fonctionnalités générées (< 25%) — non-utilisable
                     workflow.logger.warning(
                         f"[requirements_gate] DOWNGRADE BUILD_FAILED — "
-                        f"spec_coverage={spec_coverage:.0%} < {SPEC_COVERAGE_PARTIAL_THRESHOLD:.0%} "
-                        f"(seuil PARTIAL minimum)"
+                        f"spec_coverage={spec_coverage:.0%} < {SPEC_COVERAGE_PARTIAL_THRESHOLD:.0%}"
                     )
                     build_status = "BUILD_FAILED"
             else:
                 build_status = "BUILD_FAILED"
 
-            # Mode sanity: arrêt court après DevTest pour réduire coût/latence.
-            # On garde les métriques essentielles (build_status + metadata + run_metric)
-            # sans lancer QA/GitHub/Learner.
+            # Mode sanity : arrêt court après DevTest
             if sanity_mode:
                 total_time = (workflow.now() - start_time).total_seconds()
                 metadata = dev_test_result.get("metadata", {})
@@ -223,44 +237,114 @@ class TodoPilotWorkflow:
                     activity_results=activity_results,
                 )
 
-            # Le workflow continue même si build échoue.
-            # QA est en mode "best-effort": un echec QA (ex: quota fournisseur LLM)
-            # ne doit pas invalider tout le run métier.
-            e2e_tests: Dict[str, str] = {}
-            try:
-                qa_result: Dict[str, Any] = await workflow.execute_activity(
-                    qa_activity,
-                    args=[{
-                        "specification": spec_part,
-                        "project_name": project_name,
-                        "stack_id": stack_id,
-                        "generated_files": dev_test_result.get("combined_files", {}),
-                    }, run_id],
-                    start_to_close_timeout=timedelta(minutes=10),
-                    retry_policy=common_retry_policy,
-                )
-                e2e_tests = qa_result.get("e2e_tests", {})
-                workflow.logger.info(f"QA terminé – {len(e2e_tests)} tests générés")
-                activity_results["qa"] = {
-                    "status": "COMPLETED",
-                    "tests_count": len(e2e_tests),
-                }
-            except Exception as qa_err:
-                workflow.logger.warning(f"QA skipped due to error: {qa_err}")
-                e2e_tests = {}
-                activity_results["qa"] = {
-                    "status": "FAILED",
-                    "error": str(qa_err),
-                    "tests_count": 0,
-                }
+            # ── 3. Phase parallèle M2 : conformity || security || architecture || qa ──
+            workflow.logger.info(
+                "[M2] Phase parallèle — conformity + security + architecture + qa"
+            )
 
+            supervisor_input_base = {
+                "files": combined_files,
+                "requirements": requirements_part,
+                "plan": plan_part,
+                "project_name": project_name,
+                "run_id": run_id,
+                "stack_id": stack_id,
+            }
+
+            qa_input = {
+                "specification": spec_part,
+                "project_name": project_name,
+                "stack_id": stack_id,
+                "generated_files": combined_files,
+            }
+
+            parallel_results = await asyncio.gather(
+                workflow.execute_activity(
+                    conformity_activity,
+                    args=[supervisor_input_base],
+                    start_to_close_timeout=timedelta(minutes=8),
+                    retry_policy=supervisor_retry_policy,
+                ),
+                workflow.execute_activity(
+                    security_activity,
+                    args=[supervisor_input_base],
+                    start_to_close_timeout=timedelta(minutes=8),
+                    retry_policy=supervisor_retry_policy,
+                ),
+                workflow.execute_activity(
+                    architecture_activity,
+                    args=[supervisor_input_base],
+                    start_to_close_timeout=timedelta(minutes=8),
+                    retry_policy=supervisor_retry_policy,
+                ),
+                workflow.execute_activity(
+                    qa_activity,
+                    args=[qa_input, run_id],
+                    start_to_close_timeout=timedelta(minutes=10),
+                    retry_policy=supervisor_retry_policy,
+                ),
+                return_exceptions=True,
+            )
+
+            conformity_result, security_result, architecture_result, qa_result_raw = parallel_results
+
+            # Conformity
+            if isinstance(conformity_result, Exception):
+                workflow.logger.warning(f"[M2] conformity échoué: {conformity_result}")
+                activity_results["conformity"] = {"status": "FAILED", "error": str(conformity_result)}
+            else:
+                cr = conformity_result if isinstance(conformity_result, dict) else {}
+                workflow.logger.info(
+                    f"[M2] conformity — status={cr.get('status')} "
+                    f"files={cr.get('files_reviewed',0)} fixes={cr.get('needs_fix_count',0)}"
+                )
+                activity_results["conformity"] = {"status": "COMPLETED", **cr}
+
+            # Security
+            if isinstance(security_result, Exception):
+                workflow.logger.warning(f"[M2] security échoué: {security_result}")
+                activity_results["security"] = {"status": "FAILED", "error": str(security_result)}
+            else:
+                sr = security_result if isinstance(security_result, dict) else {}
+                workflow.logger.info(
+                    f"[M2] security — status={sr.get('status')} "
+                    f"routes={sr.get('files_reviewed',0)} fixes={sr.get('needs_fix_count',0)}"
+                )
+                activity_results["security"] = {"status": "COMPLETED", **sr}
+
+            # Architecture
+            if isinstance(architecture_result, Exception):
+                workflow.logger.warning(f"[M2] architecture échoué: {architecture_result}")
+                activity_results["architecture"] = {"status": "FAILED", "error": str(architecture_result)}
+            else:
+                ar = architecture_result if isinstance(architecture_result, dict) else {}
+                workflow.logger.info(
+                    f"[M2] architecture — status={ar.get('status')} "
+                    f"files={ar.get('files_reviewed',0)} fixes={ar.get('needs_fix_count',0)}"
+                )
+                activity_results["architecture"] = {"status": "COMPLETED", **ar}
+
+            # QA
+            e2e_tests: Dict[str, str] = {}
+            if isinstance(qa_result_raw, Exception):
+                workflow.logger.warning(f"[M2] qa échoué: {qa_result_raw}")
+                activity_results["qa"] = {"status": "FAILED", "error": str(qa_result_raw), "tests_count": 0}
+            else:
+                qa_result = qa_result_raw if isinstance(qa_result_raw, dict) else {}
+                e2e_tests = qa_result.get("e2e_tests", {})
+                workflow.logger.info(f"[M2] qa — {len(e2e_tests)} tests générés")
+                activity_results["qa"] = {"status": "COMPLETED", "tests_count": len(e2e_tests)}
+
+            # ── 4. GitHub ─────────────────────────────────────────────────
             github_input = {
-                "files": {**dev_test_result.get("combined_files", {}), **e2e_tests},
+                "files": {**combined_files, **e2e_tests},
                 "project_name": project_name,
                 "stack_id": stack_id,
                 "build_success": dev_phase_success,
                 "spec_coverage": spec_coverage,
-                "spec_validation_status": dev_test_result.get("metadata", {}).get("spec_validation_status", "UNKNOWN"),
+                "spec_validation_status": dev_test_result.get("metadata", {}).get(
+                    "spec_validation_status", "UNKNOWN"
+                ),
             }
 
             github_result: Dict[str, Any] = {"pr_url": "N/A", "repo_url": "N/A"}
@@ -278,7 +362,7 @@ class TodoPilotWorkflow:
                     "pr_url": github_result.get("pr_url", "N/A"),
                 }
             except Exception as github_err:
-                workflow.logger.warning(f"GitHub skipped due to error: {github_err}")
+                workflow.logger.warning(f"GitHub skipped: {github_err}")
                 activity_results["github"] = {
                     "status": "FAILED",
                     "error": str(github_err),
@@ -286,7 +370,7 @@ class TodoPilotWorkflow:
                     "pr_url": "N/A",
                 }
 
-            # 5. Learner — best-effort, ne bloque jamais le workflow
+            # ── 5. Learner — best-effort ───────────────────────────────────
             try:
                 learner_result: Dict[str, Any] = await workflow.execute_activity(
                     learner_activity,
@@ -295,19 +379,15 @@ class TodoPilotWorkflow:
                     retry_policy=RetryPolicy(maximum_attempts=1),
                 )
                 workflow.logger.info(
-                    f"Learner terminé — "
-                    f"{learner_result.get('suggestions_generated', 0)} suggestion(s)"
+                    f"Learner terminé — {learner_result.get('suggestions_generated', 0)} suggestion(s)"
                 )
                 activity_results["learner"] = {
                     "status": "COMPLETED",
                     "suggestions_generated": learner_result.get("suggestions_generated", 0),
                 }
             except Exception as learner_err:
-                workflow.logger.warning(f"Learner skipped due to error: {learner_err}")
-                activity_results["learner"] = {
-                    "status": "FAILED",
-                    "error": str(learner_err),
-                }
+                workflow.logger.warning(f"Learner skipped: {learner_err}")
+                activity_results["learner"] = {"status": "FAILED", "error": str(learner_err)}
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})
@@ -325,6 +405,7 @@ class TodoPilotWorkflow:
                 error_message=None,
                 activity_results=activity_results,
             )
+
         except Exception as exc:
             total_time = (workflow.now() - start_time).total_seconds()
             workflow.logger.error(f"TodoPilot unrecoverable failure: {exc}")

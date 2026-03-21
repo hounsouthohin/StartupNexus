@@ -5,6 +5,7 @@ import shutil
 import re
 import ast
 import asyncio
+import time
 from pathlib import PurePosixPath
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -22,6 +23,7 @@ from .shared_tools import (
     get_stack_id,
     _write_learner_event,
 )
+from .llm_runner import LLMConversationRunner
 from .stack_config import (
     get_blueprint,
     get_root_file,
@@ -39,6 +41,21 @@ from .requirements_engine import (
     gate_check as _engine_gate_check,
     compute_coverage_detailed as _engine_compute_coverage_detailed,
 )
+from .file_supervision_loop import FileSupervisionLoop
+from .dev_path_utils import (
+    make_priority_ranker,
+    sort_paths_by_priority,
+    resolve_max_iterations,
+    extract_primary_path_from_requirement,
+    sort_requirements_by_priority,
+    allowed_paths_for_blocker,
+    path_is_allowed_for_objective,
+    find_project_dir,
+    first_directive_line,
+    collect_forbidden_import_violations as _collect_forbidden_import_violations,  # backward compat
+)
+from .pre_build_validator import PreBuildValidator
+from .dev_reflection import ProgressSummary, build_iteration_brief
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -77,6 +94,7 @@ async def _supervise_file_inline(
     conformity_scores: list,
     security_scores: list,
     architecture_scores: list,
+    timeout_ms: int = 30000,
 ) -> tuple[str | None, dict]:
     """
     Lance les superviseurs en parallèle.
@@ -115,13 +133,24 @@ async def _supervise_file_inline(
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
         )
 
+    timeout_s = max(0.001, float(timeout_ms) / 1000.0)
+
+    async def _run_one(name: str, coro):
+        try:
+            result = await asyncio.wait_for(coro, timeout=timeout_s)
+            return name, result
+        except asyncio.TimeoutError:
+            return name, {"status": "skipped", "confidence": 0.0, "note": "timeout"}
+        except Exception:
+            return name, {"status": "skipped", "confidence": 0.0}
+
     corrections: list[str] = []
     results: dict = {}
-    for name, coro in tasks.items():
-        try:
-            result = await coro
-        except Exception:
-            result = {"status": "skipped", "confidence": 0.0}
+    gathered = await asyncio.gather(
+        *[_run_one(name, coro) for name, coro in tasks.items()],
+        return_exceptions=False,
+    )
+    for name, result in gathered:
         results[name] = result
         conf = float(result.get("confidence", 0.0) or 0.0)
         if name == "conformity":
@@ -173,30 +202,6 @@ async def _run_build_supervisor_inline(
             )
     return None
 
-
-def _collect_forbidden_import_violations(
-    files_dict: dict,
-    forbidden_tokens: list[str],
-    templated_names: set[str] | None = None,
-) -> list[tuple[str, str]]:
-    """Retourne les violations (path, token) pour les imports/patterns interdits."""
-    templated = templated_names or set()
-    tokens = [str(t).strip() for t in (forbidden_tokens or []) if str(t).strip()]
-    if not tokens:
-        return []
-    violations: list[tuple[str, str]] = []
-    for fp, fc in files_dict.items():
-        fp_norm = fp.replace("\\", "/")
-        if fp_norm in templated:
-            continue
-        if not fp_norm.endswith((".ts", ".tsx", ".js", ".jsx")):
-            continue
-        content_lower = (fc or "").lower()
-        for tok in tokens:
-            if tok.lower() in content_lower:
-                violations.append((fp_norm, tok))
-                break
-    return violations
 
 
 # Répertoires système à préserver lors du nettoyage inter-runs (invariants multi-stack)
@@ -325,81 +330,8 @@ def dev_agent(
                 HumanMessage(content=text)
             ]).content
             return summary
-        except:
+        except Exception:
             return text[:int(max_tokens * 3.5)] + "\n\n[TRUNCATED]"
-
-    def _compact(text: str) -> str:
-        """Compacte les espaces pour réduire la taille sans perdre l'information utile."""
-        return re.sub(r"\s+", " ", text).strip()
-
-    def _shrink_tool_output(tool_name: str, output: str, max_chars: int = MAX_TOOL_OUTPUT_CHARS) -> str:
-        """
-        Réduit les sorties tools avant insertion dans l'historique du LLM.
-        Conserve début+fin, là où les erreurs importantes apparaissent souvent.
-        """
-        compact = _compact(output)
-        if len(compact) <= max_chars:
-            return compact
-        head = max_chars // 2
-        tail = max_chars - head
-        return (
-            f"[{tool_name}] OUTPUT_TRUNCATED total_chars={len(compact)} | "
-            f"head: {compact[:head]} ... tail: {compact[-tail:]}"
-        )
-
-    def _main_context(messages_list, max_chars: int = MAX_MAIN_HISTORY_CHARS):
-        """
-        Contexte compact state-first:
-        - garde les 2 messages initiaux,
-        - garde UNIQUEMENT le dernier tour complet AI(tool_calls)+ToolMessages,
-        - sinon garde le dernier message non-tool.
-        Cela réduit le bruit et force la boucle done/missing/next.
-        """
-        if len(messages_list) <= 2:
-            return messages_list
-
-        kept = [messages_list[0], messages_list[1]]
-        turns = []
-        i = 2
-        n = len(messages_list)
-        while i < n:
-            msg = messages_list[i]
-            has_tool_calls = hasattr(msg, "tool_calls") and bool(getattr(msg, "tool_calls", None))
-
-            if has_tool_calls:
-                turn = [msg]
-                i += 1
-                while i < n and isinstance(messages_list[i], ToolMessage):
-                    turn.append(messages_list[i])
-                    i += 1
-
-                expected_ids = {tc.get("id") for tc in msg.tool_calls if tc.get("id")}
-                got_ids = {tm.tool_call_id for tm in turn[1:] if getattr(tm, "tool_call_id", None)}
-
-                # Ne garder que les turns complets (assistant + toutes réponses tools).
-                if expected_ids and expected_ids.issubset(got_ids):
-                    turns.append(turn)
-                else:
-                    logger.warning("Turn incomplet tool_calls ignoré dans _main_context")
-            else:
-                if isinstance(msg, ToolMessage):
-                    i += 1
-                    continue
-                turns.append([msg])
-                i += 1
-
-        if not turns:
-            return kept
-
-        last_turn = turns[-1]
-        turn_chars = sum(len(str(getattr(m, "content", ""))) for m in last_turn)
-        if turn_chars > max_chars:
-            # Fallback: garder seulement le dernier message non-tool.
-            for msg in reversed(messages_list[2:]):
-                if not isinstance(msg, ToolMessage):
-                    return kept + [msg]
-            return kept
-        return kept + last_turn
 
     summarized_spec = summarize_text(spec, MAX_SPEC_TOKENS, "Specification")
     summarized_mermaid = summarize_text(mermaid, MAX_MERMAID_TOKENS, "Mermaid Diagram")
@@ -414,70 +346,25 @@ def dev_agent(
         ).get("supervision_routing", {})
     except Exception:
         _supervision_routing = {}
+    _supervision_cfg = stack_cfg.get("supervision", {}) if isinstance(stack_cfg, dict) else {}
+    try:
+        _supervision_batch_size = int(_supervision_cfg.get("batch_size", 3))
+    except Exception:
+        _supervision_batch_size = 3
+    if _supervision_batch_size < 1:
+        _supervision_batch_size = 1
+    try:
+        _supervisor_timeout_ms = int(_supervision_cfg.get("supervisor_timeout_ms", 30000))
+    except Exception:
+        _supervisor_timeout_ms = 30000
+    if _supervisor_timeout_ms < 1:
+        _supervisor_timeout_ms = 30000
 
     generation_order_cfg = stack_cfg.get("generation_order", {}) if isinstance(stack_cfg, dict) else {}
     _priority_paths_cfg = generation_order_cfg.get("priority_paths", []) if isinstance(generation_order_cfg, dict) else []
-    PRIORITY_PATHS = [str(p).replace("\\", "/").strip() for p in _priority_paths_cfg if str(p).strip()]
+    _path_priority_ranker = make_priority_ranker(_priority_paths_cfg)
 
-    def _path_priority_rank(path: str) -> int:
-        p = str(path or "").replace("\\", "/").strip().lower()
-        if not PRIORITY_PATHS:
-            return 10_000
-        for idx, raw_pat in enumerate(PRIORITY_PATHS):
-            pat = raw_pat.lower()
-            if pat.endswith("/"):
-                if p.startswith(pat):
-                    return idx
-            elif p == pat or p.endswith("/" + pat):
-                return idx
-        return 10_000 + len(PRIORITY_PATHS)
-
-    def _sort_paths_by_priority(paths: list[str]) -> list[str]:
-        return sorted(
-            [str(p) for p in (paths or [])],
-            key=lambda p: (_path_priority_rank(p), str(p).replace("\\", "/").lower()),
-        )
-
-    def _resolve_max_iterations(cfg: dict, reqs: list | None) -> int:
-        policy = cfg.get("iteration_policy", {}) if isinstance(cfg, dict) else {}
-        if not isinstance(policy, dict):
-            return DEFAULT_MAX_ITERATIONS
-        try:
-            base = int(policy.get("base_max_iterations", DEFAULT_MAX_ITERATIONS))
-        except Exception:
-            base = DEFAULT_MAX_ITERATIONS
-        try:
-            cap = int(policy.get("max_cap_iterations", base))
-        except Exception:
-            cap = base
-        if cap < 1:
-            cap = base if base >= 1 else DEFAULT_MAX_ITERATIONS
-        req_count = len(reqs or [])
-        target = base
-        tiers = policy.get("tiers", [])
-        def _safe_int(v, d=0):
-            try:
-                return int(v)
-            except Exception:
-                return d
-
-        if isinstance(tiers, list):
-            for tier in sorted(
-                [t for t in tiers if isinstance(t, dict)],
-                key=lambda t: _safe_int(t.get("min_requirements", 0), 0),
-            ):
-                try:
-                    min_req = int(tier.get("min_requirements", 0))
-                    iter_cap = int(tier.get("max_iterations", target))
-                except Exception:
-                    continue
-                if req_count >= min_req:
-                    target = iter_cap
-        target = max(1, target)
-        target = min(target, cap)
-        return target
-
-    MAX_ITERATIONS = _resolve_max_iterations(stack_cfg, requirements)
+    MAX_ITERATIONS = resolve_max_iterations(stack_cfg, requirements, default=DEFAULT_MAX_ITERATIONS)
     PHASE1_LIMIT = MAX_ITERATIONS
     logger.info(
         f"[ITERATION_POLICY] requirements={len(requirements or [])} "
@@ -518,7 +405,7 @@ def dev_agent(
 
     # Exclure les fichiers templates de l'ordre de génération LLM (sauf scaffold_extends)
     _templated_protected = _templated_names - scaffold_extends_paths
-    llm_required_files = _sort_paths_by_priority([f for f in required_files if f not in _templated_protected])
+    llm_required_files = sort_paths_by_priority([f for f in required_files if f not in _templated_protected], _path_priority_ranker)
     templates_block = ""
     if _templated_protected:
         templates_block = (
@@ -615,6 +502,7 @@ def dev_agent(
             f"{requirements_block}"
         ))
     ]
+    runner = LLMConversationRunner(llm, messages)
 
     files = {}
     # Pré-populer files avec le contenu des templates (comptabilisés comme déjà écrits)
@@ -630,6 +518,7 @@ def dev_agent(
     build_success = False
     _sup_files_reviewed = 0
     _sup_corrections_count = 0
+    _supervision_loop = FileSupervisionLoop(max_attempts=2)
     _conformity_scores: list[float] = []
     _security_scores: list[float] = []
     _architecture_scores: list[float] = []
@@ -662,430 +551,29 @@ def dev_agent(
             pass
         return raw_cmd
 
-    def _first_directive_line(content: str, ignore_leading_comments: bool = False) -> str:
-        """
-        Retourne la première ligne sémantique candidate pour une directive de fichier.
-        Optionnellement, ignore les commentaires d'en-tête (// et /* ... */).
-        """
-        if not content:
-            return ""
-        if not ignore_leading_comments:
-            return next((ln.strip() for ln in content.splitlines() if ln.strip()), "")
+    _validator = PreBuildValidator(
+        stack_cfg=stack_cfg,
+        required_files=required_files,
+        templated_names=_templated_names,
+        supervision_loop=_supervision_loop,
+        scaffold_extends_paths=scaffold_extends_paths,
+        stack_id=effective_stack_id,
+        guard_warning_hits=_guard_warning_hits,
+    )
 
-        in_block_comment = False
-        for raw_line in content.splitlines():
-            line = raw_line.strip()
-            if not line:
-                continue
-            if in_block_comment:
-                if "*/" in line:
-                    in_block_comment = False
-                continue
-            if line.startswith("/*"):
-                if "*/" not in line:
-                    in_block_comment = True
-                continue
-            if line.startswith("//"):
-                continue
-            return line
-        return ""
-
-    def _find_project_dir(files_dict: dict) -> str:
-        """
-        Déduit le répertoire racine du projet à partir des fichiers écrits.
-        Hard rule (couche Code) : si le LLM a écrit sous un sous-répertoire
-        (ex: 'my-saas/package.json'), retourne ce sous-répertoire ('my-saas').
-        Sinon retourne '.'. Corrige le bug working-directory FORCED_RUN_BUILD.
-        Le fichier racine de référence est lu depuis la stack config (root_file),
-        ce qui rend la détection compatible avec toutes les stacks futures.
-        """
-        try:
-            from agents.stack_config import get_root_file
-            root_file = get_root_file(effective_stack_id)
-        except Exception:
-            root_file = "package.json"
-        root_filename = root_file.split("/")[-1]
-        for p in files_dict.keys():
-            normalized = p.replace("\\", "/")
-            if normalized == root_file or normalized.endswith("/" + root_filename):
-                parent = normalized.rsplit("/", 1)[0] if "/" in normalized else ""
-                return parent if parent else "."
-        return "."
-
-    def _prebuild_gates(files_dict: dict) -> tuple:
-        """
-        Vérifie les conditions pré-build (Blueprint + UseState + Prisma import).
-        Retourne (bloqué: bool, message: str).
-        Utilisé sur DEUX chemins : tool_call run_build ET forced build.
-        """
-        import shutil as _shutil  # utilisé par les AST guards ("engine": "ast")
-        _warnings: list[str] = []
-
-        # 1. Blueprint Validator
-        _present = set(files_dict.keys()) | _templated_names
-        _present_norm = {p.replace("\\", "/").lower() for p in _present}
-        _missing = []
-        for f in required_files:
-            f_norm = str(f).replace("\\", "/").lower()
-            if not any(pp == f_norm or pp.endswith("/" + f_norm) for pp in _present_norm):
-                _missing.append(f)
-        if _missing:
-            return True, (
-                "BLUEPRINT VALIDATOR — BUILD BLOQUÉ\n"
-                f"{len(_missing)} fichier(s) obligatoire(s) manquant(s) :\n"
-                + "\n".join(f"  - {f}" for f in _missing)
-                + "\n\nGénère ces fichiers avec write_file() maintenant."
-                " run_build sera disponible une fois tous présents."
-            ), "blueprint", _warnings
-        # 2. PATH GUARDS — config-driven (naming conventions de fichiers/chemins)
-        for _pg in stack_cfg.get("path_guards", []):
-            _pg_id = str(_pg.get("id", "unknown"))
-            _pg_kind = str(_pg.get("kind", "")).strip()
-            _pg_mode = str(_pg.get("mode", "warn")).strip().lower()
-            if _pg_mode not in ("warn", "block"):
-                _pg_mode = "warn"
-            _pg_msg_lines = _pg.get("message_lines", [f"{_pg_id} PATH GUARD", "{details}"])
-
-            _violations: list[tuple[str, str]] = []  # (file_path, suggested_fix)
-
-            if _pg_kind == "app_router_convention":
-                _root = str(_pg.get("route_root", "app/"))
-                _exts = tuple(_pg.get("file_extensions", [".tsx"]))
-                _valid_route_names = set(_pg.get("valid_route_names", ["layout", "page", "error", "loading", "not-found", "template", "default"]))
-                _excluded_dirs = set(_pg.get("excluded_directories", ["components", "lib", "utils", "hooks", "styles", "types", "context", "providers", "helpers"]))
-                for _fp in files_dict.keys():
-                    _p = PurePosixPath(_fp.replace("\\", "/"))
-                    _fp_norm = str(_p)
-                    if not _fp_norm.startswith(_root):
-                        continue
-                    if _p.suffix not in _exts:
-                        continue
-                    if len(_p.parts) >= 3 and _p.parts[1] in _excluded_dirs:
-                        continue
-                    if _p.stem in _valid_route_names:
-                        continue
-                    _suggested = str(_p.parent / _p.stem / "page.tsx")
-                    _violations.append((_fp_norm, _suggested))
-
-            elif _pg_kind == "app_router_api_naming":
-                _api_root = str(_pg.get("api_root", "app/api/"))
-                _exts = tuple(_pg.get("file_extensions", [".ts", ".tsx"]))
-                _valid_stem = str(_pg.get("api_valid_stem", "route"))
-                for _fp in files_dict.keys():
-                    _p = PurePosixPath(_fp.replace("\\", "/"))
-                    _fp_norm = str(_p)
-                    if not _fp_norm.startswith(_api_root):
-                        continue
-                    if _p.suffix not in _exts:
-                        continue
-                    if _p.stem == _valid_stem:
-                        continue
-                    _suggested = str(_p.parent / "route.ts") if _p.stem == "index" else str(_p.parent / _p.stem / "route.ts")
-                    _violations.append((_fp_norm, _suggested))
-
-            if _violations:
-                _details = "\n".join(f"  - {fp}  →  {suggested}" for fp, suggested in _violations)
-                _msg = "\n".join(_pg_msg_lines).replace("{details}", _details)
-                if _pg_mode == "warn":
-                    _guard_warning_hits[_pg_id] = _guard_warning_hits.get(_pg_id, 0) + len(_violations)
-                    logger.warning(f"[PATH_GUARD WARN {_pg_id}] {len(_violations)} violation(s)")
-                    _warnings.append(f"[PATH_GUARD WARNING:{_pg_id}]\n{_msg}")
-                else:
-                    return True, _msg, _pg_id, _warnings
-
-        # 3. FORBIDDEN PATHS GUARD (depuis stack config)
-        _forbidden = get_forbidden_paths(stack_id) if stack_id else ["pages/", "src/pages/"]
-        _forbidden_violations = [
-            fp.replace("\\", "/")
-            for fp in files_dict.keys()
-            if any(fp.replace("\\", "/").startswith(f) for f in _forbidden)
-        ]
-        if _forbidden_violations:
-            return True, (
-                "FORBIDDEN PATHS GUARD — BUILD BLOQUÉ\n"
-                "Fichiers détectés dans un chemin interdit (Pages Router au lieu de App Router) :\n"
-                + "\n".join(f"  - {f}" for f in _forbidden_violations)
-                + "\n\nCORRECTION OBLIGATOIRE — App Router UNIQUEMENT :\n"
-                "INTERDIT: pages/api/<resource>/index.ts  →  CORRECT: app/api/<resource>/route.ts\n"
-                "INTERDIT: pages/api/<resource>/[id].ts  →  CORRECT: app/api/<resource>/[id]/route.ts\n"
-                "Structure App Router API :\n"
-                "  app/api/<resource>/route.ts            → export async function GET() / POST()\n"
-                "  app/api/<resource>/[id]/route.ts       → export async function GET() / PUT() / DELETE()\n"
-                "Crée les fichiers App Router corrects avec write_file(), puis rappelle run_build."
-            ), "forbidden_paths", _warnings
-        # 6bis. FORBIDDEN IMPORTS GUARD (depuis stack config)
-        _forbidden_import_tokens = get_forbidden_imports(stack_id) if stack_id else []
-        _forbidden_import_violations = _collect_forbidden_import_violations(
-            files_dict,
-            _forbidden_import_tokens,
-            templated_names=_templated_names,
-        )
-        if _forbidden_import_violations:
-            _details = "\n".join(
-                f"  - {fp}  (token: {tok})" for fp, tok in _forbidden_import_violations
-            )
-            _warn_msg = (
-                "FORBIDDEN IMPORTS WARNING — NON BLOQUANT\n"
-                "Des imports/patterns interdits par la stack ont été détectés :\n"
-                f"{_details}\n\n"
-                "Corrige les imports selon les règles stack (auth/ORM/UI), puis rappelle run_build."
-            )
-            logger.warning(f"[PREBUILD WARN forbidden_imports] {len(_forbidden_import_violations)} violation(s)")
-            _warnings.append(f"[PREBUILD WARNING:forbidden_imports]\n{_warn_msg}")
-        # 8+. CONTENT GUARDS — config-driven (T008/T009 multi-stack)
-        # Toutes les règles de contenu fichier sont déclarées dans la section
-        # "content_guards" du JSON de stack. dev.py ne contient aucune logique
-        # spécifique à un framework — il lit et applique ces règles génériquement.
-        #
-        # Schéma d'une entrée content_guard :
-        #   id                     : identifiant lisible (pour les logs)
-        #   file_prefix            : filtrer les fichiers commençant par ce préfixe (ex: "app/")
-        #   file_extensions        : filtrer par extension (ex: [".tsx", ".ts"])
-        #   trigger_contains       : liste de sous-chaînes — déclenche si l'une est présente
-        #   requires_first_directive: chaîne sémantique dont la présence en 1ère ligne annule
-        #                            le déclenchement (ex: "use client"). None = pas de check.
-        #   message_lines          : lignes du message constructif, "{details}" = liste fichiers.
-        for _guard in stack_cfg.get("content_guards", []):
-            _gid = _guard.get("id", "unknown")
-            _engine = str(_guard.get("engine", "regex")).strip().lower()
-
-            # ── P3 : Engine AST (ts-morph / Semgrep) ─────────────────────────
-            # Infrastructure stub : quand Dockerfile inclura ts-morph/Semgrep,
-            # chaque guard "engine": "ast" appellera un subprocess ici.
-            # En attendant : fallback warn avec signal clair dans les logs.
-            if _engine == "ast":
-                _ast_tool = _guard.get("ast_tool", "ts-morph")  # "ts-morph" | "semgrep"
-                _tool_binary = "node" if _ast_tool == "ts-morph" else "semgrep"
-                if _shutil.which(_tool_binary) is None:
-                    logger.warning(
-                        f"[AST_GUARD {_gid}] {_ast_tool} non disponible "
-                        f"('{_tool_binary}' introuvable dans PATH) — guard skippé. "
-                        f"Ajouter {_ast_tool} au Dockerfile pour activer ce guard."
-                    )
-                    _warnings.append(f"[AST_GUARD SKIPPED:{_gid}] {_ast_tool} non disponible")
-                else:
-                    # Placeholder : sera complété par Codex (P3 infrastructure)
-                    logger.info(f"[AST_GUARD {_gid}] {_ast_tool} disponible — exécution à implémenter (P3)")
-                    _warnings.append(f"[AST_GUARD TODO:{_gid}] subprocess {_ast_tool} non encore câblé")
-                continue  # AST guard traité (ou skippé) — pas de regex fallback
-
-            _file_prefix = _guard.get("file_prefix", "")
-            _file_exts = _guard.get("file_extensions", [])
-            _triggers = _guard.get("trigger_contains", [])
-            _trigger_regexes = _guard.get("trigger_regex", [])
-            _requires_contains_all = _guard.get("requires_contains_all", []) or []
-            _requires_regex_all = _guard.get("requires_regex_all", []) or []
-            _directive = _guard.get("requires_first_directive")    # None = pas de vérif ; fire si ABSENTE
-            _conflicts = _guard.get("conflicts_with_directive")    # None = pas de vérif ; fire si PRÉSENTE
-            _ignore_leading_comments = bool(_guard.get("ignore_leading_comments", False))
-            _mode = str(_guard.get("mode", "block")).strip().lower()
-            if _mode not in ("block", "warn"):
-                _mode = "block"
-            _exclude_paths = [str(p).replace("\\", "/") for p in (_guard.get("exclude_paths", []) or [])]
-            _exclude_when_contains = [str(s) for s in (_guard.get("exclude_when_contains", []) or [])]
-            _msg_lines = _guard.get("message_lines", [f"{_gid} GUARD — BUILD BLOQUÉ", "{details}"])
-            _compiled_regexes: list[tuple[str, re.Pattern]] = []
-            for _rx in _trigger_regexes:
-                try:
-                    _compiled_regexes.append((str(_rx), re.compile(str(_rx), re.MULTILINE)))
-                except re.error as _rx_err:
-                    logger.warning(f"[CONTENT_GUARD {_gid}] regex invalide ignorée: {_rx} ({_rx_err})")
-            _compiled_required_regexes: list[tuple[str, re.Pattern]] = []
-            for _rx in _requires_regex_all:
-                try:
-                    _compiled_required_regexes.append((str(_rx), re.compile(str(_rx), re.MULTILINE)))
-                except re.error as _rx_err:
-                    logger.warning(f"[CONTENT_GUARD {_gid}] requires_regex_all invalide ignorée: {_rx} ({_rx_err})")
-
-            _violations = []
-            for _fp, _fc in files_dict.items():
-                _fp_norm = _fp.replace("\\", "/")
-                # Exclure les fichiers templates — leur contenu est validé en amont,
-                # ils peuvent légitimement contenir des patterns que les guards détectent
-                # (ex: lib/prisma.ts contient new PrismaClient() dans le singleton).
-                if _fp_norm in _templated_names:
-                    continue
-                if any(_fp_norm.startswith(_xp) for _xp in _exclude_paths):
-                    continue
-                if _file_prefix and not _fp_norm.startswith(_file_prefix):
-                    continue
-                if _file_exts and not any(_fp_norm.endswith(ext) for ext in _file_exts):
-                    continue
-                if _exclude_when_contains and any(_needle in _fc for _needle in _exclude_when_contains):
-                    continue
-                # Déclenchement : OR entre trigger_contains et trigger_regex.
-                _found = [t for t in _triggers if t in _fc]
-                for _rx_src, _rx in _compiled_regexes:
-                    if _rx.search(_fc):
-                        _found.append(f"regex:{_rx_src}")
-                _has_explicit_triggers = bool(_triggers or _compiled_regexes)
-                if _has_explicit_triggers and not _found:
-                    continue
-                if not _has_explicit_triggers:
-                    _found = ["scope"]
-
-                _missing_constraints = []
-                for _needle in _requires_contains_all:
-                    if _needle not in _fc:
-                        _missing_constraints.append(f"contains:{_needle}")
-                for _rx_src, _rx in _compiled_required_regexes:
-                    if not _rx.search(_fc):
-                        _missing_constraints.append(f"regex:{_rx_src}")
-                if _missing_constraints:
-                    _violations.append((_fp_norm, _found + [f"missing:{c}" for c in _missing_constraints]))
-                    continue
-                # All required conditions satisfied → file is compliant, not a violation.
-                if _requires_contains_all or _compiled_required_regexes:
-                    continue
-                # Si une directive est requise, vérifier la première ligne non-vide
-                # Normalisation : on retire les guillemets et le ';' terminal pour comparer
-                # le contenu sémantique ('use client', "use client", 'use client'; → même chose)
-                if _directive is not None or _conflicts is not None:
-                    _first = _first_directive_line(
-                        _fc, ignore_leading_comments=_ignore_leading_comments
-                    )
-                    _first_norm = _first.replace("'", "").replace('"', "").rstrip(";").strip()
-                    if _directive is not None and _directive in _first_norm:
-                        continue  # directive requise présente — pas de violation
-                    if _conflicts is not None and _conflicts not in _first_norm:
-                        continue  # directive conflictuelle absente — pas de violation
-                _violations.append((_fp_norm, _found))
-
-            if _violations:
-                _details = "\n".join(
-                    f"  - {fp}  [{', '.join(found)}]"
-                    for fp, found in _violations
-                )
-                _msg = "\n".join(_msg_lines).replace("{details}", _details)
-                if _mode == "warn":
-                    _guard_warning_hits[_gid] = _guard_warning_hits.get(_gid, 0) + len(_violations)
-                    logger.warning(f"[CONTENT_GUARD WARN {_gid}] {len(_violations)} violation(s) — non bloquant")
-                    _warnings.append(f"[CONTENT_GUARD WARNING:{_gid}]\n{_msg}")
-                    continue
-                return True, _msg, _gid, _warnings
-
-        return False, "", "", _warnings
-
-    def _requirements_gate(reqs: list, files_dict: dict) -> tuple:
-        """
-        Gate déterministe : vérifie que les requirements métier mappables sont couverts.
-        Délègue à requirements_engine.gate_check — source de vérité unique (T002).
-        Retourne (bloqué: bool, message: str).
-        """
-        blocked, msg = _engine_gate_check(reqs, files_dict)
-        if not blocked:
-            return False, msg
-        return blocked, msg
-
-    def _missing_required_files(required_paths: list[str], files_dict: dict) -> list[str]:
-        if not required_paths:
-            return []
-        present_paths = {k.replace("\\", "/").lower() for k in files_dict.keys()}
-        missing: list[str] = []
-        for p in required_paths:
-            p_norm = str(p).replace("\\", "/").lower()
-            if not any(pp == p_norm or pp.endswith("/" + p_norm) for pp in present_paths):
-                missing.append(p)
-        return _sort_paths_by_priority(missing)
-
-    def _sort_requirements_by_priority(reqs: list[str]) -> list[str]:
-        if not reqs:
-            return []
-        decorated: list[tuple[int, str, str]] = []
-        for req in reqs:
-            _primary = _extract_primary_path_from_requirement(req)
-            decorated.append((_path_priority_rank(_primary), _primary, req))
-        decorated.sort(key=lambda t: (t[0], t[1].lower(), t[2].lower()))
-        return [t[2] for t in decorated]
-
-    def _collect_blocking_content_guard_targets(files_dict: dict) -> tuple[str, list[str]]:
-        """
-        Retourne (guard_id, paths) du premier content_guard bloquant en violation.
-        Sans side-effects: aucune écriture de message dans l'historique.
-        """
-        for guard in stack_cfg.get("content_guards", []):
-            gid = str(guard.get("id", "unknown"))
-            mode = str(guard.get("mode", "block")).strip().lower()
-            if mode not in ("block", "warn"):
-                mode = "block"
-            if mode != "block":
-                continue
-
-            file_prefix = str(guard.get("file_prefix", ""))
-            file_exts = guard.get("file_extensions", []) or []
-            triggers = guard.get("trigger_contains", []) or []
-            trigger_regexes = guard.get("trigger_regex", []) or []
-            requires_contains_all = guard.get("requires_contains_all", []) or []
-            requires_regex_all = guard.get("requires_regex_all", []) or []
-            directive = guard.get("requires_first_directive")
-            conflicts = guard.get("conflicts_with_directive")
-            exclude_paths = [str(p).replace("\\", "/") for p in (guard.get("exclude_paths", []) or [])]
-            exclude_when_contains = [str(s) for s in (guard.get("exclude_when_contains", []) or [])]
-            ignore_leading_comments = bool(guard.get("ignore_leading_comments", False))
-
-            compiled_regexes: list[re.Pattern] = []
-            for rx in trigger_regexes:
-                try:
-                    compiled_regexes.append(re.compile(str(rx), re.MULTILINE))
-                except re.error:
-                    continue
-            compiled_required_regexes: list[re.Pattern] = []
-            for rx in requires_regex_all:
-                try:
-                    compiled_required_regexes.append(re.compile(str(rx), re.MULTILINE))
-                except re.error:
-                    continue
-
-            violating_paths: list[str] = []
-            for fp, fc in files_dict.items():
-                fp_norm = fp.replace("\\", "/")
-                if fp_norm in _templated_names:
-                    continue
-                if any(fp_norm.startswith(xp) for xp in exclude_paths):
-                    continue
-                if file_prefix and not fp_norm.startswith(file_prefix):
-                    continue
-                if file_exts and not any(fp_norm.endswith(ext) for ext in file_exts):
-                    continue
-                if exclude_when_contains and any(needle in fc for needle in exclude_when_contains):
-                    continue
-
-                found = any(t in fc for t in triggers)
-                if not found and compiled_regexes:
-                    found = any(rx.search(fc) for rx in compiled_regexes)
-                has_explicit_triggers = bool(triggers or compiled_regexes)
-                if has_explicit_triggers and not found:
-                    continue
-
-                if any(needle not in fc for needle in requires_contains_all):
-                    violating_paths.append(fp_norm)
-                    continue
-                if any(not rx.search(fc) for rx in compiled_required_regexes):
-                    violating_paths.append(fp_norm)
-                    continue
-                # All required conditions satisfied → file is compliant, not a violation.
-                if requires_contains_all or compiled_required_regexes:
-                    continue
-
-                if directive is not None or conflicts is not None:
-                    first = _first_directive_line(fc, ignore_leading_comments=ignore_leading_comments)
-                    first_norm = first.replace("'", "").replace('"', "").rstrip(";").strip()
-                    if directive is not None and directive in first_norm:
-                        continue
-                    if conflicts is not None and conflicts not in first_norm:
-                        continue
-
-                violating_paths.append(fp_norm)
-
-            if violating_paths:
-                return gid, violating_paths
-        return "", []
+    _progress = ProgressSummary()
 
     def _build_run_state(files_dict: dict) -> dict:
         cov = _engine_compute_coverage_detailed(requirements or [], files_dict)
-        unmet = _sort_requirements_by_priority(cov.get("unmet", []))
-        missing_files = _missing_required_files(llm_required_files, files_dict)
-        structural_gid, structural_paths = _collect_blocking_content_guard_targets(files_dict)
+        unmet = sort_requirements_by_priority(cov.get("unmet", []), _path_priority_ranker)
+        _present_p = {k.replace("\\", "/").lower() for k in files_dict.keys()}
+        missing_files = sort_paths_by_priority(
+            [p for p in llm_required_files
+             if not any(pp == str(p).replace("\\", "/").lower() or pp.endswith("/" + str(p).replace("\\", "/").lower())
+                        for pp in _present_p)],
+            _path_priority_ranker,
+        )
+        structural_gid, structural_paths = _validator.find_blocking_targets(files_dict)
         # Priorité convergence: créer d'abord les fichiers blueprint manquants.
         # Sinon l'agent peut boucler sur des détails requirements sans jamais
         # produire le fichier racine attendu par le gate structural.
@@ -1112,168 +600,6 @@ def dev_agent(
             "build_attempts": build_attempts,
             "iterations_left": max(0, MAX_ITERATIONS - iteration + 1),
         }
-
-    def _extract_primary_path_from_requirement(req: str) -> str:
-        req = req or ""
-        req_lower = req.lower()
-        route_match = re.search(r'(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', req, re.IGNORECASE)
-        if route_match:
-            return f"app/{route_match.group(2).strip('/')}/route.ts"
-        if "page" in req_lower:
-            page_match = re.search(r'/[\w\[\]/\-]+', req)
-            if page_match:
-                return f"app/{page_match.group(0).strip('/')}/page.tsx"
-            if re.search(r'(^|[\s:(])/(?=$|[\s),.:;])', req):
-                return "app/page.tsx"
-        if "modèle prisma" in req_lower or "model prisma" in req_lower or "prisma:" in req_lower:
-            return "prisma/schema.prisma"
-        return ""
-
-    def _allowed_paths_for_blocker(state: dict) -> list[str]:
-        blocker = state.get("active_blocker", "")
-        if blocker.startswith("file_missing::"):
-            p = blocker.split("::", 1)[1].strip()
-            allowed = [p] if p else []
-            # scaffold_extends files (ex: prisma/schema.prisma) doivent toujours être
-            # autorisés : le LLM doit pouvoir les écrire quel que soit le blocker actif.
-            allowed.extend(scaffold_extends_paths)
-            return allowed
-        if blocker.startswith("requirements::"):
-            req = blocker.split("::", 1)[1]
-            primary = _extract_primary_path_from_requirement(req)
-            allowed: list[str] = []
-            if primary:
-                allowed.append(primary)
-            req_lower = req.lower()
-            if "modèle prisma" in req_lower or "model prisma" in req_lower or "prisma:" in req_lower:
-                allowed.extend(["prisma/schema.prisma", "lib/prisma.ts", "prisma.config.ts"])
-            return allowed
-        if blocker.startswith("structural::"):
-            targets = state.get("structural_targets", []) or []
-            allowed = [str(t).replace("\\", "/") for t in targets]
-            allowed.extend(scaffold_extends_paths)
-            return allowed
-        return []
-
-    def _path_is_allowed_for_objective(path: str, allowed_paths: list[str], blocker: str = "") -> bool:
-        if not allowed_paths:
-            return True
-        p = (path or "").replace("\\", "/").strip()
-        p_lower = p.lower()
-        # scaffold_extends files (ex: prisma/schema.prisma) sont toujours autorisés quel
-        # que soit le blocker actif : ce sont des fichiers fondamentaux à étendre par le LLM.
-        if p_lower in {s.replace("\\", "/").lower() for s in scaffold_extends_paths}:
-            return True
-        # Si le blocker exige un fichier précis, ne pas autoriser d'écritures latérales.
-        if blocker.startswith("file_missing::"):
-            return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
-        if blocker.startswith("structural::"):
-            return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
-        commons = {
-            "package.json",
-            ".env.local",
-            "next.config.js",
-            "tsconfig.json",
-            "app/layout.tsx",
-            "middleware.ts",
-        }
-        if p_lower in commons:
-            return True
-        allowed_norm = [a.replace("\\", "/").lower() for a in allowed_paths]
-        return any(p_lower == a or p_lower.startswith(a.rsplit("/", 1)[0] + "/") for a in allowed_norm)
-
-    progress_summary = {
-        "what_done": [],
-        "what_missing": [],
-        "next_action": "Démarrer par l'objectif actif",
-    }
-
-    def _update_progress_summary(state: dict) -> None:
-        unmet = state.get("requirements_unmet", [])
-        missing_files = state.get("missing_required_files", [])
-        met = state.get("requirements_met", 0)
-        total = state.get("requirements_total", 0)
-        done = [f"requirements_couverts={met}/{total}"]
-        if not unmet:
-            done.append("requirements_mappables_couverts")
-        progress_summary["what_done"] = done
-        missing = []
-        if unmet:
-            missing.append(f"requirement: {unmet[0]}")
-        if missing_files:
-            missing.append(f"fichier: {missing_files[0]}")
-        if state.get("last_build_error_excerpt"):
-            missing.append("corriger dernière erreur build")
-        progress_summary["what_missing"] = missing or ["aucun blocage détecté"]
-        progress_summary["next_action"] = (
-            "appeler run_build"
-            if state.get("active_blocker") == "ready_for_build"
-            else f"corriger {state.get('active_blocker')}"
-        )
-
-    def _build_progress_summary_text() -> str:
-        return (
-            "SUMMARY LOOP:\n"
-            f"- DONE: {' | '.join(progress_summary['what_done'])}\n"
-            f"- MISSING: {' | '.join(progress_summary['what_missing'])}\n"
-            f"- NEXT: {progress_summary['next_action']}"
-        )
-
-    def _build_iteration_brief(state: dict) -> str:
-        unmet = state.get("requirements_unmet", [])
-        missing_files = state.get("missing_required_files", [])
-        objective = state.get("active_blocker", "ready_for_build")
-        statuses = state.get("requirements_statuses", [])
-        first_unmet_reason = ""
-        for s in statuses:
-            if s.get("is_mappable") and not s.get("satisfied"):
-                first_unmet_reason = s.get("reason", "")
-                break
-        lines = [
-            "FOCUS LOOP (itération courante) — travaille sur UNE priorité à la fois.",
-            f"OBJECTIF UNIQUE: {objective}",
-            f"REQUIREMENTS: {state.get('requirements_met', 0)}/{state.get('requirements_total', 0)} couverts",
-        ]
-        if unmet:
-            lines.append("REQUIREMENT PRIORITAIRE NON COUVERT:")
-            lines.append(f"- {unmet[0]}")
-            if first_unmet_reason:
-                lines.append(f"- DÉTAIL: {first_unmet_reason}")
-        if missing_files:
-            lines.append("FICHIER REQUIS PRIORITAIRE MANQUANT:")
-            lines.append(f"- {missing_files[0]}")
-        if objective.startswith("structural::"):
-            guard_id = state.get("structural_blocking_guard_id", "")
-            targets = state.get("structural_targets", []) or []
-            lines.append(f"GUARD STRUCTUREL BLOQUANT: {guard_id}")
-            if targets:
-                lines.append("FICHIERS À CORRIGER (OBLIGATOIRE avant tout autre écriture):")
-                for p in targets[:3]:
-                    lines.append(f"- {p}")
-            # Inject guard message_lines so the LLM knows exactly what to fix
-            guard_cfg = next(
-                (g for g in stack_cfg.get("content_guards", []) if g.get("id") == guard_id),
-                None,
-            )
-            if guard_cfg:
-                msg_lines = guard_cfg.get("message_lines", [])
-                if msg_lines:
-                    lines.append("INSTRUCTIONS DE CORRECTION:")
-                    for ml in msg_lines:
-                        if ml == "{details}":
-                            for p in targets[:3]:
-                                lines.append(f"  - {p}")
-                        else:
-                            lines.append(ml)
-        err = state.get("last_build_error_excerpt", "")
-        if err:
-            lines.append("DERNIÈRE ERREUR BUILD (extrait):")
-            lines.append(err)
-        lines.append(
-            "ACTION: corrige les fichiers listés ci-dessus en priorité absolue, puis valide par run_build."
-        )
-        lines.append(_build_progress_summary_text())
-        return "\n".join(lines)
 
     stagnant_iterations = 0
     key_files = required_files or ["package.json"]
@@ -1328,10 +654,10 @@ def dev_agent(
 
         # T004 — budget contexte par phase
         _ctx_budget = _PHASE1_MAX_CHARS if _state == _SM_GEN else _PHASE2_MAX_CHARS
-        main_messages = _main_context(messages, max_chars=_ctx_budget)
+        main_messages = runner._main_context(messages, max_chars=_ctx_budget)
         run_state = _build_run_state(files)
-        _update_progress_summary(run_state)
-        main_messages.append(HumanMessage(content=_build_iteration_brief(run_state)))
+        _progress.update(run_state)
+        main_messages.append(HumanMessage(content=build_iteration_brief(run_state, _progress, stack_cfg)))
         # Empêche les appels prématurés à run_build tant qu'un gate est actif.
         # Cela réduit les boucles "run_build -> gate blocked" sans progression d'écriture.
         _iter_tools = current_tools
@@ -1345,6 +671,7 @@ def dev_agent(
         iter_gate_warnings: list[str] = []
         successful_write_paths: set[str] = set()
         wrote_file_this_iter = False
+        _wrote_pending_file_this_iter = False  # True si un fichier en attente superviseur a été réécrit
         called_build_this_iter = False
         build_failed_this_iter = False
         if response.tool_calls:
@@ -1357,10 +684,10 @@ def dev_agent(
                         # alors que les fichiers sont sous un sous-répertoire.
                         call_args = tool_call["args"]
                         if tool_name == "write_file":
-                            _allowed = _allowed_paths_for_blocker(run_state)
+                            _allowed = allowed_paths_for_blocker(run_state, scaffold_extends_paths)
                             _path = str(call_args.get("path", ""))
-                            if not _path_is_allowed_for_objective(
-                                _path, _allowed, run_state.get("active_blocker", "")
+                            if not path_is_allowed_for_objective(
+                                _path, _allowed, run_state.get("active_blocker", ""), scaffold_extends_paths
                             ):
                                 _allowed_msg = ", ".join(_allowed) if _allowed else "aucune restriction"
                                 tool_messages.append(
@@ -1391,7 +718,7 @@ def dev_agent(
                             )
                             continue
                         if tool_name == "run_build":
-                            computed_dir = _find_project_dir(files)
+                            computed_dir = find_project_dir(files, effective_stack_id)
                             if computed_dir != "." and call_args.get("project_dir", ".") == ".":
                                 call_args = {**call_args, "project_dir": computed_dir}
                                 logger.info(f"[run_build] project_dir corrigé: '.' → '{computed_dir}'")
@@ -1400,14 +727,14 @@ def dev_agent(
                             _prev_state = _state
                             _state = _SM_STRUCT_GATES
                             logger.info(f"[STATE] {_prev_state} → {_state}")
-                            _gate_blocked, _gate_msg, _, _gate_warns = _prebuild_gates(files)
+                            _gate_blocked, _gate_msg, _, _gate_warns = _validator.check(files)
                             iter_gate_warnings.extend(_gate_warns)
                             if not _gate_blocked:
                                 # ── REQUIREMENTS GATE ─────────────────────────────────────────
                                 _prev_state = _state
                                 _state = _SM_REQ_GATES
                                 logger.info(f"[STATE] {_prev_state} → {_state}")
-                                _gate_blocked, _gate_msg = _requirements_gate(requirements, files)
+                                _gate_blocked, _gate_msg = _engine_gate_check(requirements or [], files)
                             if _gate_blocked:
                                 tool_messages.append(ToolMessage(content=_gate_msg, tool_call_id=tool_call["id"]))
                                 logger.warning(f"[PreBuildGate] BUILD BLOQUÉ (tool_call path)")
@@ -1461,7 +788,7 @@ def dev_agent(
                                 last_test_error_full = extracted_stderr if extracted_stderr else raw_output
                                 last_test_error = last_test_error_full[:2000]
 
-                        shrunk_output = _shrink_tool_output(tool_name, raw_output)
+                        shrunk_output = runner._shrink_tool_output(tool_name, raw_output)
                         tool_messages.append(ToolMessage(content=shrunk_output, tool_call_id=tool_call["id"]))
                     except Exception as e:
                         error_text = f"ERREUR {tool_name}: {e}"
@@ -1490,6 +817,7 @@ def dev_agent(
 
             messages.extend(tool_messages)
 
+            _files_to_supervise: list[tuple[str, str]] = []
             for tc in response.tool_calls:
                 if tc["name"] == "write_file":
                     path = tc["args"].get("path")
@@ -1510,64 +838,106 @@ def dev_agent(
                             files[path] = content  # fallback si lecture échoue
                         wrote_file_this_iter = True
                         logger.info(f"Fichier généré : {path}")
-                        # ── Supervision inline (Sprint 4.6 v2) ───────────────────────────────
-                        supervisors_to_call = _match_supervision_routing_inline(_path_norm, _supervision_routing)
                         file_content_on_disk = files.get(path, "")
-                        if supervisors_to_call and file_content_on_disk:
-                            _sup_files_reviewed += 1
-                            _sup_context = {
-                                "requirements": requirements or [],
-                                "plan": plan or {},
-                                "files_so_far": files,
-                                "prisma_schema": files.get("prisma/schema.prisma", ""),
-                                "project_name": project_name or "",
-                                "run_id": run_id or "",
-                                "stack_id": stack_id or "nextjs-clerk-prisma",
-                            }
-                            try:
-                                with ThreadPoolExecutor(max_workers=1) as _ex:
-                                    _sup_result = _ex.submit(
-                                        asyncio.run,
-                                        _supervise_file_inline(
-                                            _path_norm,
-                                            file_content_on_disk,
-                                            _sup_context,
-                                            supervisors_to_call,
-                                            _conformity_scores,
-                                            _security_scores,
-                                            _architecture_scores,
-                                        ),
-                                    ).result()
-                                _sup_msg, _sup_raw_results = _sup_result
-                                if _sup_msg:
+                        if file_content_on_disk:
+                            # Si le fichier était en attente de re-vérification superviseur → noter la réécriture
+                            if _path_norm in _supervision_loop.pending_paths():
+                                logger.info(f"[supervision_loop] {_path_norm} réécrit après correction superviseur")
+                                _wrote_pending_file_this_iter = True
+                            _files_to_supervise.append((_path_norm, file_content_on_disk))
+
+            # ── Supervision inline avec boucle de correction per-fichier ─────────────
+            if _files_to_supervise:
+                for _batch_start in range(0, len(_files_to_supervise), _supervision_batch_size):
+                    _batch = _files_to_supervise[_batch_start:_batch_start + _supervision_batch_size]
+                    _batch_t0 = time.perf_counter()
+                    for _path_norm, file_content_on_disk in _batch:
+                        supervisors_to_call = _match_supervision_routing_inline(_path_norm, _supervision_routing)
+                        if not supervisors_to_call:
+                            continue
+
+                        # Si ce fichier était en attente de re-vérification → on re-supervise
+                        _is_reverification = _supervision_loop.needs_reverification(_path_norm)
+                        if _is_reverification:
+                            logger.info(f"[supervision_loop] Re-vérification de {_path_norm} après correction")
+
+                        _sup_files_reviewed += 1
+                        _sup_context = {
+                            "requirements": requirements or [],
+                            "plan": plan or {},
+                            "files_so_far": files,
+                            "prisma_schema": files.get("prisma/schema.prisma", ""),
+                            "project_name": project_name or "",
+                            "run_id": run_id or "",
+                            "stack_id": stack_id or "nextjs-clerk-prisma",
+                        }
+                        try:
+                            with ThreadPoolExecutor(max_workers=1) as _ex:
+                                _sup_result = _ex.submit(
+                                    asyncio.run,
+                                    _supervise_file_inline(
+                                        _path_norm,
+                                        file_content_on_disk,
+                                        _sup_context,
+                                        supervisors_to_call,
+                                        _conformity_scores,
+                                        _security_scores,
+                                        _architecture_scores,
+                                        timeout_ms=_supervisor_timeout_ms,
+                                    ),
+                                ).result()
+                            _sup_msg, _sup_raw_results = _sup_result
+
+                            if _sup_msg:
+                                # Fichier nécessite une correction
+                                should_inject = _supervision_loop.on_supervisor_needs_fix(_path_norm)
+                                if should_inject:
                                     _sup_corrections_count += 1
-                                    messages.append(HumanMessage(content=_sup_msg))
-                                try:
-                                    _write_learner_event(
-                                        event_type="supervisor_file_reviewed",
-                                        payload={
-                                            "file_path": _path_norm,
-                                            "supervisors": supervisors_to_call,
-                                            "results": {
-                                                k: {
-                                                    "status": v.get("status"),
-                                                    "confidence": float(v.get("confidence", 0.0) or 0.0),
-                                                    "fix_applied": bool(
-                                                        str(v.get("status", "")).lower() == "needs_fix"
-                                                        and float(v.get("confidence", 0.0) or 0.0) > 0.7
-                                                    ),
-                                                }
-                                                for k, v in (_sup_raw_results or {}).items()
-                                            },
-                                            "project_name": project_name or "",
-                                            "stack_id": stack_id or "nextjs-clerk-prisma",
-                                        },
-                                        run_id=run_id or "",
+                                    runner.inject(_sup_msg)
+                                    logger.info(
+                                        f"[supervision_loop] Correction injectée pour {_path_norm} "
+                                        f"(tentatives restantes: {_supervision_loop._pending.get(_path_norm, 0)})"
                                     )
-                                except Exception as _sl_err:
-                                    logger.warning(f"[inline_supervisor] shadow log non bloquant: {_sl_err}")
-                            except Exception as _sup_err:
-                                logger.warning(f"[inline_supervisor] non bloquant: {_sup_err}")
+                                else:
+                                    logger.info(f"[supervision_loop] {_path_norm}: max tentatives atteintes, correction ignorée")
+                            else:
+                                # Superviseurs OK
+                                _supervision_loop.on_supervisor_ok(_path_norm)
+                                if _is_reverification:
+                                    logger.info(f"[supervision_loop] {_path_norm}: re-vérification OK — validé")
+
+                            try:
+                                _write_learner_event(
+                                    event_type="supervisor_file_reviewed",
+                                    payload={
+                                        "file_path": _path_norm,
+                                        "supervisors": supervisors_to_call,
+                                        "is_reverification": _is_reverification,
+                                        "results": {
+                                            k: {
+                                                "status": v.get("status"),
+                                                "confidence": float(v.get("confidence", 0.0) or 0.0),
+                                                "fix_applied": bool(
+                                                    str(v.get("status", "")).lower() == "needs_fix"
+                                                    and float(v.get("confidence", 0.0) or 0.0) > 0.7
+                                                ),
+                                            }
+                                            for k, v in (_sup_raw_results or {}).items()
+                                        },
+                                        "project_name": project_name or "",
+                                        "stack_id": stack_id or "nextjs-clerk-prisma",
+                                    },
+                                    run_id=run_id or "",
+                                )
+                            except Exception as _sl_err:
+                                logger.warning(f"[inline_supervisor] shadow log non bloquant: {_sl_err}")
+                        except Exception as _sup_err:
+                            logger.warning(f"[inline_supervisor] non bloquant: {_sup_err}")
+                    _batch_duration_ms = int((time.perf_counter() - _batch_t0) * 1000)
+                    logger.info(
+                        f"[inline_supervisor] batch_size={len(_batch)} duration_ms={_batch_duration_ms} "
+                        f"timeout_ms={_supervisor_timeout_ms}"
+                    )
 
         # Détection build succès/échec déterministe: uniquement depuis run_build.
         if build_failed_this_iter:
@@ -1586,13 +956,25 @@ def dev_agent(
                         ).result()
                     if _bs_result:
                         _build_corrections_count += 1
-                        messages.append(HumanMessage(content=_bs_result))
+                        runner.inject(_bs_result)
                         logger.info("[build_supervisor] correction injectée dans la boucle")
                 except Exception as _bs_err:
                     logger.warning(f"[build_supervisor] non bloquant: {_bs_err}")
 
-        if wrote_file_this_iter or called_build_this_iter:
+        if called_build_this_iter:
             stagnant_iterations = 0
+        elif wrote_file_this_iter:
+            # Reset seulement si aucune correction superviseur n'est en attente
+            # ou si le LLM a réécrit un fichier qui était en attente de correction.
+            # Sinon (LLM réécrit des fichiers non-pending ex: schema.prisma en boucle) → stagnant.
+            if not _supervision_loop.has_pending_corrections() or _wrote_pending_file_this_iter:
+                stagnant_iterations = 0
+            else:
+                stagnant_iterations += 1
+                logger.info(
+                    f"[stagnant] LLM a écrit des fichiers mais pas les {len(_supervision_loop.pending_paths())} "
+                    f"fichier(s) en attente superviseur — stagnant_iterations={stagnant_iterations}"
+                )
         else:
             stagnant_iterations += 1
 
@@ -1602,14 +984,14 @@ def dev_agent(
             _pre_blocker = run_state.get("active_blocker", "")
             _post_blocker = _post_write_state.get("active_blocker", "")
             if _pre_blocker and _pre_blocker == _post_blocker and _pre_blocker != "ready_for_build":
-                _allowed = _allowed_paths_for_blocker(_post_write_state)
+                _allowed = allowed_paths_for_blocker(_post_write_state, scaffold_extends_paths)
                 _allowed_msg = ", ".join(_allowed) if _allowed else "aucune restriction"
-                messages.append(HumanMessage(content=(
+                runner.inject((
                     "[IMMEDIATE_VERIFY] Le blocker actif n'a pas été résolu dans ce tour.\n"
                     f"Blocker courant: {_post_blocker}\n"
                     f"Chemins autorisés maintenant: {_allowed_msg}\n"
                     "Corrige ce blocker en priorité avant toute autre écriture."
-                )))
+                ))
 
         # ── Guard Phase 1 : primary_manifest DOIT être le premier fichier écrit ──────
         # Lecture depuis stack config (multi-stack safe) au lieu de hardcoder "package.json".
@@ -1624,39 +1006,54 @@ def dev_agent(
                 logger.warning(
                     f"[PHASE1_SEQUENCE_VIOLATION] Fichier(s) écrit(s) avant {_primary} : {non_pkg_files}"
                 )
-                messages.append(HumanMessage(content=(
+                runner.inject((
                     f"⚠️ ERREUR DE SÉQUENCE CRITIQUE : Tu as écrit {non_pkg_files} avant {_primary}.\n"
                     f"RÈGLE ABSOLUE : {_primary} DOIT être le PREMIER fichier généré, AVANT TOUT AUTRE.\n"
                     f"ACTION OBLIGATOIRE IMMÉDIATE : génère {_primary} maintenant avec les versions exactes :\n"
                     + "\n".join(f'  "{pkg}": "{ver}"' for pkg, ver in packages.items())
                     + f"\n\nNe génère AUCUN autre fichier avant que {_primary} soit écrit."
-                )))
+                ))
 
         # Forçage progression si fichiers clés présents
-        _pdir = _find_project_dir(files)  # Hard rule: répertoire réel du projet
-        if all(any(k in p for p in files) for k in key_files) and not build_success:
-            # Ordre: d'abord les gates structurelles (_prebuild_gates), puis requirements.
+        _pdir = find_project_dir(files, effective_stack_id)  # Hard rule: répertoire réel du projet
+        _files_norm = {p.replace("\\", "/").lower() for p in files}
+        if all(
+            any(
+                fp == k.replace("\\", "/").lower() or fp.endswith("/" + k.replace("\\", "/").lower())
+                for fp in _files_norm
+            )
+            for k in key_files
+        ) and not build_success:
+            # Ordre: d'abord les gates structurelles (_validator.check), puis requirements.
             # Garantit que le LLM reçoit le feedback le plus proche du blocage réel.
-            _early_gates_blocked, _early_gates_msg, _, _early_gate_warns = _prebuild_gates(files)
+            _early_gates_blocked, _early_gates_msg, _, _early_gate_warns = _validator.check(files)
             iter_gate_warnings.extend(_early_gate_warns)
             if _early_gates_blocked:
-                messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_early_gates_msg}"))
+                runner.inject(f"[PRE_BUILD_CHECK]\n{_early_gates_msg}")
             else:
-                _rg_early_blocked, _rg_early_msg = _requirements_gate(requirements, files)
+                _rg_early_blocked, _rg_early_msg = _engine_gate_check(requirements or [], files)
                 if _rg_early_blocked:
-                    messages.append(HumanMessage(content=f"[REQUIREMENTS CHECK]\n{_rg_early_msg}"))
+                    runner.inject(f"[REQUIREMENTS CHECK]\n{_rg_early_msg}")
                 else:
-                    messages.append(HumanMessage(content=f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet."))
+                    runner.inject(f"Fichiers clés présents. Appelle run_build(project_dir='{_pdir}') maintenant pour valider le projet.")
 
         # Garde-fou: si le modele stagne sans progres, forcer un run_build.
         if not build_success and not called_build_this_iter and (stagnant_iterations >= 2 or iteration >= MAX_ITERATIONS - 1):
             # ── Même gates pré-build que le chemin tool_call ──────────────────
-            _forced_blocked, _forced_msg, _, _forced_gate_warns = _prebuild_gates(files)
+            # bypass_supervision=True: si l'agent stagne malgré les corrections superviseurs,
+            # on force le build en best-effort pour débloquer la boucle.
+            _bypass_sup = stagnant_iterations >= 2 and _supervision_loop.has_pending_corrections()
+            if _bypass_sup:
+                logger.warning(
+                    f"[supervision_loop] BYPASS — {len(_supervision_loop.pending_paths())} correction(s) pendante(s) "
+                    f"après {stagnant_iterations} itérations stagnantes — build forcé en best-effort"
+                )
+            _forced_blocked, _forced_msg, _, _forced_gate_warns = _validator.check(files, bypass_supervision=_bypass_sup)
             iter_gate_warnings.extend(_forced_gate_warns)
             if not _forced_blocked:
-                _forced_blocked, _forced_msg = _requirements_gate(requirements, files)
+                _forced_blocked, _forced_msg = _engine_gate_check(requirements or [], files)
             if _forced_blocked:
-                messages.append(HumanMessage(content=f"[PRE_BUILD_CHECK]\n{_forced_msg}"))
+                runner.inject(f"[PRE_BUILD_CHECK]\n{_forced_msg}")
                 logger.warning(f"[PreBuildGate] FORCED BUILD BLOQUÉ — fichiers manquants ou violations")
                 stagnant_iterations = 0  # reset pour laisser l'agent corriger
             else:
@@ -1664,7 +1061,7 @@ def dev_agent(
                 build_attempted = True
                 called_build_this_iter = True
                 raw_tool_outputs.append(forced_build_output)
-                messages.append(HumanMessage(content=f"[FORCED_RUN_BUILD]\n{_shrink_tool_output('run_build', forced_build_output)}"))
+                runner.inject(f"[FORCED_RUN_BUILD]\n{runner._shrink_tool_output('run_build', forced_build_output)}")
                 if "Build successful" in forced_build_output:
                     last_build_succeeded = True  # build réel confirmé (chemin forcé)
                     build_success = True
@@ -1693,7 +1090,7 @@ def dev_agent(
                             ).result()
                         if _bs_result:
                             _build_corrections_count += 1
-                            messages.append(HumanMessage(content=_bs_result))
+                            runner.inject(_bs_result)
                             logger.info("[build_supervisor] correction injectée après FORCED_RUN_BUILD")
                     except Exception as _bs_err:
                         logger.warning(f"[build_supervisor] non bloquant (forced): {_bs_err}")
@@ -1734,7 +1131,7 @@ def dev_agent(
             # Do not append placeholder ToolMessages to the main 'messages' list.
             # This was the source of the persistent BadRequestError.
 
-        messages.append(HumanMessage(content=reflection))
+        runner.inject(reflection)
         # T004 — final_message calculé par état (jamais depuis texte LLM).
         # La reflection guide le LLM dans le tour suivant, elle n'est PAS final_message.
 
@@ -1762,11 +1159,11 @@ def dev_agent(
     _terminal_guard_handled = False
     if not build_attempted and files:
         _terminal_guard_handled = True
-        _tg_dir = _find_project_dir(files)
-        _tg_blocked, _tg_msg, _tg_gid, _ = _prebuild_gates(files)
+        _tg_dir = find_project_dir(files, effective_stack_id)
+        _tg_blocked, _tg_msg, _tg_gid, _ = _validator.check(files)
         _tg_is_structural = _tg_blocked
         if not _tg_blocked:
-            _tg_blocked, _tg_msg = _requirements_gate(requirements, files)
+            _tg_blocked, _tg_msg = _engine_gate_check(requirements or [], files)
             _tg_gid = "requirements" if _tg_blocked else ""
         if _tg_blocked:
             # T005 — final_message canonique. Détail dans les logs.
@@ -1815,7 +1212,7 @@ def dev_agent(
         logger.info(f"[STATE] → {_state} | NOT_BUILT_BY_GATE (aucun fichier généré)")
 
     # Nettoyage scopé au répertoire projet — artifacts lus depuis stack config (multi-stack safe).
-    _rel_dir = _find_project_dir(files)
+    _rel_dir = find_project_dir(files, effective_stack_id)
     _base = _workdir if _workdir else os.getcwd()
     project_abs = os.path.normpath(os.path.join(_base, _rel_dir))
     for _artifact in get_cleanup_artifacts(stack_id) if stack_id else [".next", "node_modules"]:
@@ -1864,6 +1261,7 @@ def dev_agent(
             "security_score": _avg(_security_scores),
             "architecture_score": _avg(_architecture_scores),
             "build_corrections_count": _build_corrections_count,
+            "supervision_loop_corrections": _supervision_loop.corrections_count,
+            "supervision_loop_pending_at_end": len(_supervision_loop.pending_paths()),
         },
     }
-

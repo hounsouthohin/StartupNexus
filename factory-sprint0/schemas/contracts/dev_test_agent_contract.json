@@ -51,6 +51,11 @@
         "items": { "type": "string" },
         "description": "IR canonique P1 — fichiers de routes API du parser déterministe",
         "default": []
+      },
+      "run_mode": {
+        "type": "string",
+        "description": "Mode d'exécution du pipeline : 'inline' (défaut) ou 'workflow' (child workflow M2)",
+        "default": "inline"
       }
     }
   },
