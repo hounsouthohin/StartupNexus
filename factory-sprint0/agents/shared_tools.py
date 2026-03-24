@@ -27,7 +27,16 @@ except ModuleNotFoundError:
                 return f
             return _decorator
         return func
-from pydantic import BaseModel, Field
+try:
+    from pydantic import BaseModel, Field
+except ModuleNotFoundError:
+    class BaseModel:  # type: ignore[override]
+        def __init__(self, *args, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    def Field(default=None, **kwargs):  # type: ignore[override]
+        return default
 
 from agents.stack_config import _DEFAULT_STACK_ID
 from config.factory_config import (
@@ -285,13 +294,14 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
         qdrant_filter = _build_rag_filter(get_stack_id())
         docs = store.similarity_search_with_score(query, k=k, filter=qdrant_filter)
 
-        # Fallback sans filtre si aucun résultat (ex: collection pas encore migrée)
+        # Pas de fallback cross-stack — filtre vide = retour vide.
+        # Un fallback sans filtre polluerait le contexte LLM avec des standards d'autres stacks.
+        # Si vide : relancer reset_qdrant.py + create_full_standards_v1.py.
         if not docs and qdrant_filter is not None:
             logger.warning(
-                "[rag_search] Aucun résultat avec filtre stack — fallback sans filtre. "
+                "[rag_search] Aucun résultat avec filtre stack — retour vide (pas de fallback cross-stack). "
                 "Vérifier: reset_qdrant.py + create_full_standards_v1.py ont-ils été exécutés ?"
             )
-            docs = store.similarity_search_with_score(query, k=k)
 
         if not docs:
             _append_rag_usage_event(
@@ -518,6 +528,16 @@ def write_file(path: str, content: str) -> str:
                         logger.info(f"[write_file] scaffold_extends merge: {path}")
         except Exception as _se_err:
             logger.warning(f"[write_file] scaffold_extends merge error ({path}): {_se_err}")
+
+        # Guard anti-faux-succès Prisma:
+        # si le LLM tente d'écrire schema.prisma sans aucun bloc model,
+        # on refuse l'écriture pour éviter un "OK" trompeur (header template seul).
+        if _norm_path == "prisma/schema.prisma":
+            if not re.search(r"(?m)^\s*model\s+\w+\s*\{", content or ""):
+                return (
+                    "ERREUR: prisma/schema.prisma incomplet. "
+                    "Ajoute au moins un bloc 'model Nom { ... }' issu du brief avant de réécrire."
+                )
 
         if len(content.encode("utf-8")) > MAX_FILE_SIZE_BYTES:
             return f"ERREUR: Fichier trop grand (> {MAX_FILE_SIZE_BYTES} bytes): {path}"
@@ -944,6 +964,39 @@ def _parse_tsc_errors(output: str) -> list[dict[str, Any]]:
     return errors
 
 
+def _parse_eslint_errors_json(output: str) -> list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    if not output:
+        return errors
+    try:
+        parsed = json.loads(output)
+    except Exception:
+        return errors
+    if not isinstance(parsed, list):
+        return errors
+    for entry in parsed:
+        if not isinstance(entry, dict):
+            continue
+        file_path = str(entry.get("filePath") or "")
+        for msg in (entry.get("messages") or []):
+            if not isinstance(msg, dict):
+                continue
+            severity = int(msg.get("severity") or 0)
+            if severity < 2:
+                # On ne bloque que sur les erreurs (pas warnings)
+                continue
+            errors.append(
+                {
+                    "file": file_path,
+                    "line": int(msg.get("line") or 0),
+                    "col": int(msg.get("column") or 0),
+                    "code": str(msg.get("ruleId") or "eslint_error"),
+                    "message": str(msg.get("message") or "").strip(),
+                }
+            )
+    return errors
+
+
 async def run_tsc_check(project_dir: str) -> dict:
     """Lance tsc --noEmit. Non bloquant si tsc/tsconfig absent."""
     try:
@@ -982,6 +1035,49 @@ async def run_tsc_check(project_dir: str) -> dict:
         return {"errors": [], "success": True, "skipped": True}
     except Exception as e:
         logger.warning(f"[run_tsc_check] non-bloquant: {e}")
+        return {"errors": [], "success": True, "skipped": True}
+
+
+async def run_eslint_check(project_dir: str) -> dict:
+    """Lance eslint en format JSON. Non bloquant si eslint/config absent."""
+    try:
+        if not project_dir:
+            return {"errors": [], "success": True, "skipped": True}
+        pkg_path = os.path.join(project_dir, "package.json")
+        if not os.path.exists(pkg_path):
+            return {"errors": [], "success": True, "skipped": True}
+
+        def _run() -> subprocess.CompletedProcess:
+            return subprocess.run(
+                ["npx", "eslint", ".", "--ext", ".ts,.tsx", "--format", "json"],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=60,
+                env=_get_node_env(),
+            )
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(None, _run)
+        output = (result.stdout or "").strip()
+        errors = _parse_eslint_errors_json(output)
+        if result.returncode != 0 and not errors:
+            stderr = (result.stderr or "").strip()
+            if stderr:
+                errors = [
+                    {
+                        "file": "",
+                        "line": 0,
+                        "col": 0,
+                        "code": "ESLINT_UNKNOWN",
+                        "message": _truncate_output(stderr),
+                    }
+                ]
+        return {"errors": errors, "success": len(errors) == 0}
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {"errors": [], "success": True, "skipped": True}
+    except Exception as e:
+        logger.warning(f"[run_eslint_check] non-bloquant: {e}")
         return {"errors": [], "success": True, "skipped": True}
 
 

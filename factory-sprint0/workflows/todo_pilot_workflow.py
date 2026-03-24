@@ -6,7 +6,6 @@ M2 : Phase de supervision parallèle (conformity || security || architecture || 
      après dev_test_activity, visible dans Temporal UI.
 """
 
-import asyncio
 from dataclasses import dataclass
 from datetime import timedelta
 from temporalio import workflow
@@ -47,10 +46,9 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
     from workflows.activities.learner_activity import learner_activity
-    from workflows.activities.conformity_activity import conformity_activity
-    from workflows.activities.security_activity import security_activity
-    from workflows.activities.architecture_activity import architecture_activity
-    # M2 — child workflow pour mode parallèle (câblé en M2b)
+    # M2 superviseurs post-build retirés — supervision inline dans dev.py (source unique)
+    # conformity/security/architecture restent dans dev.py via supervision_manager
+    # M3 — child workflow GenerationSessionWorkflow (Phase 5, non encore câblé)
     from workflows.generation_session_workflow import GenerationSessionWorkflow
 
 @workflow.defn
@@ -88,8 +86,7 @@ class TodoPilotWorkflow:
             backoff_coefficient=2.0,
             maximum_attempts=5,
         )
-        # Superviseurs : best-effort, pas de retry bloquant
-        supervisor_retry_policy = RetryPolicy(
+        qa_retry_policy = RetryPolicy(
             initial_interval=timedelta(seconds=5),
             backoff_coefficient=2.0,
             maximum_attempts=2,
@@ -237,19 +234,10 @@ class TodoPilotWorkflow:
                     activity_results=activity_results,
                 )
 
-            # ── 3. Phase parallèle M2 : conformity || security || architecture || qa ──
-            workflow.logger.info(
-                "[M2] Phase parallèle — conformity + security + architecture + qa"
-            )
-
-            supervisor_input_base = {
-                "files": combined_files,
-                "requirements": requirements_part,
-                "plan": plan_part,
-                "project_name": project_name,
-                "run_id": run_id,
-                "stack_id": stack_id,
-            }
+            # ── 3. QA — génération tests e2e (supervision inline déjà faite dans dev.py) ──
+            # Note : conformity/security/architecture superviseurs retirés de cette phase.
+            # Ils s'exécutent inline dans dev.py via supervision_manager (source unique).
+            workflow.logger.info("[QA] Génération tests e2e")
 
             qa_input = {
                 "specification": spec_part,
@@ -258,82 +246,20 @@ class TodoPilotWorkflow:
                 "generated_files": combined_files,
             }
 
-            parallel_results = await asyncio.gather(
-                workflow.execute_activity(
-                    conformity_activity,
-                    args=[supervisor_input_base],
-                    start_to_close_timeout=timedelta(minutes=8),
-                    retry_policy=supervisor_retry_policy,
-                ),
-                workflow.execute_activity(
-                    security_activity,
-                    args=[supervisor_input_base],
-                    start_to_close_timeout=timedelta(minutes=8),
-                    retry_policy=supervisor_retry_policy,
-                ),
-                workflow.execute_activity(
-                    architecture_activity,
-                    args=[supervisor_input_base],
-                    start_to_close_timeout=timedelta(minutes=8),
-                    retry_policy=supervisor_retry_policy,
-                ),
-                workflow.execute_activity(
+            e2e_tests: Dict[str, str] = {}
+            try:
+                qa_result_raw: Dict[str, Any] = await workflow.execute_activity(
                     qa_activity,
                     args=[qa_input, run_id],
                     start_to_close_timeout=timedelta(minutes=10),
-                    retry_policy=supervisor_retry_policy,
-                ),
-                return_exceptions=True,
-            )
-
-            conformity_result, security_result, architecture_result, qa_result_raw = parallel_results
-
-            # Conformity
-            if isinstance(conformity_result, Exception):
-                workflow.logger.warning(f"[M2] conformity échoué: {conformity_result}")
-                activity_results["conformity"] = {"status": "FAILED", "error": str(conformity_result)}
-            else:
-                cr = conformity_result if isinstance(conformity_result, dict) else {}
-                workflow.logger.info(
-                    f"[M2] conformity — status={cr.get('status')} "
-                    f"files={cr.get('files_reviewed',0)} fixes={cr.get('needs_fix_count',0)}"
+                    retry_policy=qa_retry_policy,
                 )
-                activity_results["conformity"] = {"status": "COMPLETED", **cr}
-
-            # Security
-            if isinstance(security_result, Exception):
-                workflow.logger.warning(f"[M2] security échoué: {security_result}")
-                activity_results["security"] = {"status": "FAILED", "error": str(security_result)}
-            else:
-                sr = security_result if isinstance(security_result, dict) else {}
-                workflow.logger.info(
-                    f"[M2] security — status={sr.get('status')} "
-                    f"routes={sr.get('files_reviewed',0)} fixes={sr.get('needs_fix_count',0)}"
-                )
-                activity_results["security"] = {"status": "COMPLETED", **sr}
-
-            # Architecture
-            if isinstance(architecture_result, Exception):
-                workflow.logger.warning(f"[M2] architecture échoué: {architecture_result}")
-                activity_results["architecture"] = {"status": "FAILED", "error": str(architecture_result)}
-            else:
-                ar = architecture_result if isinstance(architecture_result, dict) else {}
-                workflow.logger.info(
-                    f"[M2] architecture — status={ar.get('status')} "
-                    f"files={ar.get('files_reviewed',0)} fixes={ar.get('needs_fix_count',0)}"
-                )
-                activity_results["architecture"] = {"status": "COMPLETED", **ar}
-
-            # QA
-            e2e_tests: Dict[str, str] = {}
-            if isinstance(qa_result_raw, Exception):
-                workflow.logger.warning(f"[M2] qa échoué: {qa_result_raw}")
-                activity_results["qa"] = {"status": "FAILED", "error": str(qa_result_raw), "tests_count": 0}
-            else:
-                qa_result = qa_result_raw if isinstance(qa_result_raw, dict) else {}
-                e2e_tests = qa_result.get("e2e_tests", {})
-                workflow.logger.info(f"[M2] qa — {len(e2e_tests)} tests générés")
+                e2e_tests = qa_result_raw.get("e2e_tests", {})
+                workflow.logger.info(f"[QA] {len(e2e_tests)} tests générés")
                 activity_results["qa"] = {"status": "COMPLETED", "tests_count": len(e2e_tests)}
+            except Exception as qa_err:
+                workflow.logger.warning(f"[QA] échoué: {qa_err}")
+                activity_results["qa"] = {"status": "FAILED", "error": str(qa_err), "tests_count": 0}
 
             # ── 4. GitHub ─────────────────────────────────────────────────
             github_input = {

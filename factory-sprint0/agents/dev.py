@@ -9,8 +9,40 @@ import time
 from pathlib import PurePosixPath
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+try:
+    from langchain_openai import ChatOpenAI
+except ModuleNotFoundError:
+    # Permet aux tests allégés d'importer agents.dev sans dépendance OpenAI installée.
+    class ChatOpenAI:  # type: ignore[override]
+        def __init__(self, *args, **kwargs):
+            self._args = args
+            self._kwargs = kwargs
+
+        def get_num_tokens(self, text: str) -> int:
+            return max(1, len(text) // 4)
+
+        def bind_tools(self, *args, **kwargs):
+            raise ModuleNotFoundError("langchain_openai is required to execute dev_agent()")
+
+        def invoke(self, *args, **kwargs):
+            raise ModuleNotFoundError("langchain_openai is required to execute dev_agent()")
+try:
+    from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+except ModuleNotFoundError:
+    class _BaseMessage:
+        def __init__(self, content="", tool_calls=None, tool_call_id=None):
+            self.content = content
+            self.tool_calls = tool_calls or []
+            self.tool_call_id = tool_call_id
+
+    class HumanMessage(_BaseMessage):
+        pass
+
+    class SystemMessage(_BaseMessage):
+        pass
+
+    class ToolMessage(_BaseMessage):
+        pass
 
 # Import des shared tools
 from .shared_tools import (
@@ -22,8 +54,71 @@ from .shared_tools import (
     run_build,
     get_stack_id,
     _write_learner_event,
+    run_tsc_check,        # Phase 2 — check déterministe per-file
+    run_eslint_check,     # Phase 2 — check déterministe ESLint per-file
+    run_prisma_validate,  # Phase 2 — gate pré-build prisma
 )
-from .llm_runner import LLMConversationRunner
+try:
+    from .llm_runner import LLMConversationRunner
+except ModuleNotFoundError:
+    class LLMConversationRunner:  # type: ignore[override]
+        def __init__(self, llm, messages: list) -> None:
+            self.llm = llm
+            self.messages = messages
+
+        def inject(self, content: str) -> None:
+            self.messages.append(HumanMessage(content=content))
+
+        def _compact(self, text: str) -> str:
+            return re.sub(r"\s+", " ", text).strip()
+
+        def _shrink_tool_output(self, tool_name: str, output: str, max_chars: int = 1800) -> str:
+            compact = self._compact(output)
+            if len(compact) <= max_chars:
+                return compact
+            head = max_chars // 2
+            tail = max_chars - head
+            return (
+                f"[{tool_name}] OUTPUT_TRUNCATED total_chars={len(compact)} | "
+                f"head: {compact[:head]} ... tail: {compact[-tail:]}"
+            )
+
+        def _main_context(self, messages_list: list, max_chars: int = 14000) -> list:
+            if len(messages_list) <= 2:
+                return messages_list
+            kept = [messages_list[0], messages_list[1]]
+            turns = []
+            i = 2
+            n = len(messages_list)
+            while i < n:
+                msg = messages_list[i]
+                has_tool_calls = hasattr(msg, "tool_calls") and bool(getattr(msg, "tool_calls", None))
+                if has_tool_calls:
+                    turn = [msg]
+                    i += 1
+                    while i < n and isinstance(messages_list[i], ToolMessage):
+                        turn.append(messages_list[i])
+                        i += 1
+                    expected_ids = {tc.get("id") for tc in msg.tool_calls if tc.get("id")}
+                    got_ids = {tm.tool_call_id for tm in turn[1:] if getattr(tm, "tool_call_id", None)}
+                    if expected_ids and expected_ids.issubset(got_ids):
+                        turns.append(turn)
+                else:
+                    if isinstance(msg, ToolMessage):
+                        i += 1
+                        continue
+                    turns.append([msg])
+                    i += 1
+            if not turns:
+                return kept
+            last_turn = turns[-1]
+            turn_chars = sum(len(str(getattr(m, "content", ""))) for m in last_turn)
+            if turn_chars > max_chars:
+                for msg in reversed(messages_list[2:]):
+                    if not isinstance(msg, ToolMessage):
+                        return kept + [msg]
+                return kept
+            return kept + last_turn
 from .stack_config import (
     get_blueprint,
     get_root_file,
@@ -33,10 +128,29 @@ from .stack_config import (
     get_forbidden_imports,
 )
 from utils.prompt_loader import load_stack_prompt
-from .conformity_agent import run_conformity_supervisor
-from .security_agent import run_security_supervisor
-from .architecture_agent import run_architecture_supervisor
-from .build_supervisor_agent import run_build_supervisor
+try:
+    from .conformity_agent import run_conformity_supervisor
+except ModuleNotFoundError:
+    async def run_conformity_supervisor(*args, **kwargs):  # type: ignore[override]
+        return {"status": "skipped", "confidence": 0.0}
+
+try:
+    from .security_agent import run_security_supervisor
+except ModuleNotFoundError:
+    async def run_security_supervisor(*args, **kwargs):  # type: ignore[override]
+        return {"status": "skipped", "confidence": 0.0}
+
+try:
+    from .architecture_agent import run_architecture_supervisor
+except ModuleNotFoundError:
+    async def run_architecture_supervisor(*args, **kwargs):  # type: ignore[override]
+        return {"status": "skipped", "confidence": 0.0}
+
+try:
+    from .build_supervisor_agent import run_build_supervisor
+except ModuleNotFoundError:
+    async def run_build_supervisor(*args, **kwargs):  # type: ignore[override]
+        return {"status": "skipped"}
 from .requirements_engine import (
     gate_check as _engine_gate_check,
     compute_coverage_detailed as _engine_compute_coverage_detailed,
@@ -56,6 +170,8 @@ from .dev_path_utils import (
 )
 from .pre_build_validator import PreBuildValidator
 from .dev_reflection import ProgressSummary, build_iteration_brief
+from .supervision_manager import run_pre_build_deterministic_checks
+from .build_state_manager import BuildStateManager
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -95,12 +211,98 @@ async def _supervise_file_inline(
     security_scores: list,
     architecture_scores: list,
     timeout_ms: int = 30000,
+    project_dir: str = "",
 ) -> tuple[str | None, dict]:
     """
-    Lance les superviseurs en parallèle.
+    Niveau 1 — Checks déterministes (tsc, prisma validate) : faits, pas opinions.
+    Niveau 2 — Superviseurs LLM sémantiques : contexte enrichi avec résultat outils.
     Retourne (message_correction, résultats_normalisés).
     """
+    # ── Niveau 1 : Checks déterministes ──────────────────────────────────────
+    norm_path = (file_path or "").replace("\\", "/")
+    is_ts_file = norm_path.endswith(".ts") or norm_path.endswith(".tsx")
+    is_prisma_schema = norm_path == "prisma/schema.prisma"
+    det_errors: list[str] = []
+    det_context_str = ""
+
+    if project_dir:
+        if is_ts_file:
+            tsc_result: dict = {"errors": [], "success": True, "skipped": True}
+            eslint_result: dict = {"errors": [], "success": True, "skipped": True}
+            try:
+                tsc_result, eslint_result = await asyncio.gather(
+                    run_tsc_check(project_dir),
+                    run_eslint_check(project_dir),
+                )
+            except Exception as _det_exc:
+                logger.debug(f"[det_check] checks TS/ESLint non-bloquants sur {norm_path}: {_det_exc}")
+
+            # Filtrer TSC sur le fichier courant
+            tsc_file_errors: list[dict] = []
+            try:
+                if not tsc_result.get("skipped"):
+                    tsc_file_errors = [
+                        e for e in tsc_result.get("errors", [])
+                        if norm_path in (e.get("file", "") or "").replace("\\", "/")
+                    ]
+            except Exception as _tsc_exc:
+                logger.debug(f"[det_check] tsc non-bloquant sur {norm_path}: {_tsc_exc}")
+
+            # Filtrer ESLint sur le fichier courant
+            eslint_file_errors: list[dict] = []
+            try:
+                if not eslint_result.get("skipped"):
+                    eslint_file_errors = [
+                        e for e in eslint_result.get("errors", [])
+                        if norm_path in (e.get("file", "") or "").replace("\\", "/")
+                    ]
+            except Exception as _eslint_exc:
+                logger.debug(f"[det_check] eslint non-bloquant sur {norm_path}: {_eslint_exc}")
+
+            if tsc_file_errors:
+                for err in tsc_file_errors[:5]:
+                    det_errors.append(
+                        f"  [tsc] L{err.get('line', '')}:{err.get('col', '')} "
+                        f"{err.get('code', '')} — {err.get('message', '')}"
+                    )
+            if eslint_file_errors:
+                for err in eslint_file_errors[:5]:
+                    det_errors.append(
+                        f"  [eslint] L{err.get('line', '')}:{err.get('col', '')} "
+                        f"{err.get('code', '')} — {err.get('message', '')}"
+                    )
+
+            if tsc_file_errors or eslint_file_errors:
+                det_context_str = (
+                    f"[tsc] {len(tsc_file_errors)} erreur(s), "
+                    f"[eslint] {len(eslint_file_errors)} erreur(s)"
+                )
+            else:
+                det_context_str = "[tsc+eslint] pas d'erreur"
+        elif is_prisma_schema:
+            # prisma validate --schema est incompatible avec Prisma 7.5.0 (url dans prisma.config.ts,
+            # pas dans le schema). La validation réelle se fait à npm run build → prisma generate.
+            det_context_str = "[prisma validate] skipped (Prisma 7.5 — url in prisma.config.ts)"
+
+    if det_errors:
+        tool_name = "tsc/eslint" if is_ts_file else "prisma validate"
+        logger.info(
+            f"[det_check] {norm_path} — {len(det_errors)} erreur(s) {tool_name} → correction sans LLM"
+        )
+        return (
+            f"ERREUR {tool_name.upper()} sur {file_path} :\n"
+            + "\n".join(det_errors)
+            + f"\nCorrige ces erreurs dans {file_path} avec write_file() maintenant.",
+            {"deterministic": {"status": "needs_fix", "confidence": 1.0, "tool": tool_name}},
+        )
+
+    # ── Niveau 2 : Superviseurs LLM ──────────────────────────────────────────
+    # Contexte enrichi avec résultat déterministe si disponible
+    if det_context_str:
+        context = {**context, "det_tool_result": det_context_str}
+
     tasks = {}
+    _det = context.get("det_tool_result", "")
     if "conformity" in supervisors:
         tasks["conformity"] = run_conformity_supervisor(
             file_path=file_path,
@@ -111,6 +313,7 @@ async def _supervise_file_inline(
             project_name=context.get("project_name", ""),
             run_id=context.get("run_id", ""),
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+            det_tool_result=_det,
         )
     if "security" in supervisors:
         tasks["security"] = run_security_supervisor(
@@ -120,6 +323,7 @@ async def _supervise_file_inline(
             project_name=context.get("project_name", ""),
             run_id=context.get("run_id", ""),
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+            det_tool_result=_det,
         )
     if "architecture" in supervisors:
         tasks["architecture"] = run_architecture_supervisor(
@@ -131,6 +335,7 @@ async def _supervise_file_inline(
             project_name=context.get("project_name", ""),
             run_id=context.get("run_id", ""),
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+            det_tool_result=_det,
         )
 
     timeout_s = max(0.001, float(timeout_ms) / 1000.0)
@@ -566,6 +771,12 @@ def dev_agent(
     def _build_run_state(files_dict: dict) -> dict:
         cov = _engine_compute_coverage_detailed(requirements or [], files_dict)
         unmet = sort_requirements_by_priority(cov.get("unmet", []), _path_priority_ranker)
+        prisma_unmet = [
+            r for r in unmet
+            if ("modèle prisma" in str(r).lower() or "model prisma" in str(r).lower() or "prisma:" in str(r).lower())
+        ]
+        schema_text = str(files_dict.get("prisma/schema.prisma", "") or "")
+        schema_has_model = bool(re.search(r"(?m)^\s*model\s+\w+\s*\{", schema_text))
         _present_p = {k.replace("\\", "/").lower() for k in files_dict.keys()}
         missing_files = sort_paths_by_priority(
             [p for p in llm_required_files
@@ -578,9 +789,24 @@ def dev_agent(
         # Sinon l'agent peut boucler sur des détails requirements sans jamais
         # produire le fichier racine attendu par le gate structural.
         if missing_files:
-            blocker = f"file_missing::{missing_files[0]}"
+            missing_norm = [str(p).replace("\\", "/").lower() for p in missing_files]
+            if "prisma/schema.prisma" in missing_norm:
+                blocker = "file_missing::prisma/schema.prisma"
+            elif prisma_unmet:
+                # Priorité Prisma si des modèles manquent dans le schema,
+                # même si d'autres modèles existent déjà (schema_has_model=True).
+                # scaffold_extends accumule les blocs model — chaque write ajoute
+                # les modèles manquants sans écraser les existants.
+                # Note: la garde "not schema_has_model" a été retirée car elle
+                # empêchait d'ajouter le premier modèle quand le second était déjà présent.
+                blocker = f"requirements::{prisma_unmet[0]}"
+            else:
+                blocker = f"file_missing::{missing_files[0]}"
         elif structural_gid:
             blocker = f"structural::{structural_gid}"
+        elif prisma_unmet:
+            # Même logique hors missing_files.
+            blocker = f"requirements::{prisma_unmet[0]}"
         elif unmet:
             blocker = f"requirements::{unmet[0]}"
         elif last_build_error:
@@ -689,6 +915,12 @@ def dev_agent(
                             if not path_is_allowed_for_objective(
                                 _path, _allowed, run_state.get("active_blocker", ""), scaffold_extends_paths
                             ):
+                                logger.info(
+                                    "[write_focus_block] blocker=%s path=%s allowed=%s",
+                                    run_state.get("active_blocker", ""),
+                                    _path,
+                                    _allowed,
+                                )
                                 _allowed_msg = ", ".join(_allowed) if _allowed else "aucune restriction"
                                 tool_messages.append(
                                     ToolMessage(
@@ -729,6 +961,20 @@ def dev_agent(
                             logger.info(f"[STATE] {_prev_state} → {_state}")
                             _gate_blocked, _gate_msg, _, _gate_warns = _validator.check(files)
                             iter_gate_warnings.extend(_gate_warns)
+                            if not _gate_blocked:
+                                # ── DETERMINISTIC PRE-BUILD CHECKS (tsc + prisma validate) ──────
+                                try:
+                                    with ThreadPoolExecutor(max_workers=1) as _ex:
+                                        _det_blocked, _det_msg = _ex.submit(
+                                            asyncio.run,
+                                            run_pre_build_deterministic_checks(_workdir),
+                                        ).result()
+                                except Exception as _det_exc:
+                                    logger.debug(f"[pre_build_det] non-bloquant: {_det_exc}")
+                                    _det_blocked, _det_msg = False, ""
+                                if _det_blocked:
+                                    _gate_blocked = True
+                                    _gate_msg = _det_msg
                             if not _gate_blocked:
                                 # ── REQUIREMENTS GATE ─────────────────────────────────────────
                                 _prev_state = _state
@@ -829,6 +1075,7 @@ def dev_agent(
                             continue
                         # Lire le contenu réel depuis le disque pour garder
                         # files[path] aligné avec ce que les gates utiliseront.
+                        _prev_content = files.get(path, "")
                         try:
                             workdir = os.getenv("FACTORY_WORKDIR", ".")
                             disk_path = os.path.normpath(os.path.join(workdir, path))
@@ -836,15 +1083,33 @@ def dev_agent(
                                 files[path] = _df.read()
                         except Exception:
                             files[path] = content  # fallback si lecture échoue
-                        wrote_file_this_iter = True
-                        logger.info(f"Fichier généré : {path}")
                         file_content_on_disk = files.get(path, "")
-                        if file_content_on_disk:
-                            # Si le fichier était en attente de re-vérification superviseur → noter la réécriture
-                            if _path_norm in _supervision_loop.pending_paths():
-                                logger.info(f"[supervision_loop] {_path_norm} réécrit après correction superviseur")
-                                _wrote_pending_file_this_iter = True
-                            _files_to_supervise.append((_path_norm, file_content_on_disk))
+                        # No-op detection : si le contenu disque n'a pas changé,
+                        # ne pas déclencher reset_file ni re-supervision.
+                        # Évite les boucles sur les fichiers scaffold_extends
+                        # que le LLM réécrit sans modification réelle.
+                        # Normalisation trailing whitespace avant comparaison :
+                        # le scaffold_extends merge produit parfois des contenus
+                        # identiques à 1 char près (trailing newline), ce qui cause
+                        # 7+ rewrites non-noop et des oscillations 820/821 chars.
+                        _is_noop_write = (
+                            bool(_prev_content)
+                            and _prev_content.rstrip() == file_content_on_disk.rstrip()
+                        )
+                        if _is_noop_write:
+                            logger.info(f"[noop_write] {_path_norm} : contenu inchangé — supervision ignorée")
+                        else:
+                            wrote_file_this_iter = True
+                            logger.info(f"Fichier généré : {path}")
+                            # IMPORTANT Phase 1: ré-armer la boucle de supervision
+                            # immédiatement après une écriture confirmée sur disque.
+                            _supervision_loop.reset_file(_path_norm)
+                            if file_content_on_disk:
+                                # Si le fichier était en attente de re-vérification superviseur → noter la réécriture
+                                if _path_norm in _supervision_loop.pending_paths():
+                                    logger.info(f"[supervision_loop] {_path_norm} réécrit après correction superviseur")
+                                    _wrote_pending_file_this_iter = True
+                                _files_to_supervise.append((_path_norm, file_content_on_disk))
 
             # ── Supervision inline avec boucle de correction per-fichier ─────────────
             if _files_to_supervise:
@@ -884,6 +1149,7 @@ def dev_agent(
                                         _security_scores,
                                         _architecture_scores,
                                         timeout_ms=_supervisor_timeout_ms,
+                                        project_dir=_workdir,
                                     ),
                                 ).result()
                             _sup_msg, _sup_raw_results = _sup_result
@@ -1044,9 +1310,17 @@ def dev_agent(
             # on force le build en best-effort pour débloquer la boucle.
             _bypass_sup = stagnant_iterations >= 2 and _supervision_loop.has_pending_corrections()
             if _bypass_sup:
+                # Force-valider les fichiers pending : le LLM n'a pas appliqué
+                # les corrections dans les itérations imparties → best-effort.
+                # Sans ce clear, le requirements gate peut encore bloquer si
+                # les fichiers pending contiennent des données nécessaires
+                # (ex: schema.prisma avec Habit model non détecté à cause
+                # d'une oscillation trailing-newline).
+                for _bp_path in list(_supervision_loop.pending_paths()):
+                    _supervision_loop.on_supervisor_ok(_bp_path)
                 logger.warning(
-                    f"[supervision_loop] BYPASS — {len(_supervision_loop.pending_paths())} correction(s) pendante(s) "
-                    f"après {stagnant_iterations} itérations stagnantes — build forcé en best-effort"
+                    f"[supervision_loop] BYPASS — corrections pendantes force-validées en best-effort "
+                    f"après {stagnant_iterations} itérations stagnantes"
                 )
             _forced_blocked, _forced_msg, _, _forced_gate_warns = _validator.check(files, bypass_supervision=_bypass_sup)
             iter_gate_warnings.extend(_forced_gate_warns)
@@ -1235,33 +1509,36 @@ def dev_agent(
         logger.warning(f"[meta] Impossible de créer .factory-meta.json: {_me}")
 
     logger.info("Dev Agent v3.2 terminé.")
+    _state_manager = BuildStateManager(
+        iteration=iteration,
+        build_attempts=build_attempts,
+        build_attempted=build_attempted,
+        build_success=build_success,
+        final_message=final_message,
+        gate_source=_final_gate_source,
+        blocking_guard_id=_final_blocking_guard_id,
+        gate_message=_final_gate_message,
+        missing_required_files=_final_missing_required_files,
+        guard_warning_hits=_guard_warning_hits,
+        supervisor_files_reviewed=_sup_files_reviewed,
+        supervisor_corrections_count=_sup_corrections_count,
+        conformity_scores=list(_conformity_scores),
+        security_scores=list(_security_scores),
+        architecture_scores=list(_architecture_scores),
+        build_corrections_count=_build_corrections_count,
+        last_build_error=last_build_error,
+        last_build_error_full=last_build_error_full,
+        last_test_error=last_test_error,
+        last_test_error_full=last_test_error_full,
+        last_failed_command=last_failed_command,
+    )
     return {
         "files": files,
         "final_message": final_message,
         "success": build_success,
-        "metadata": {
-            "iterations": iteration,
-            "build_attempts": build_attempts,
-            "build_attempted": build_attempted,
-            "total_files": len(files),
-            "last_build_error": last_build_error[:2000] if last_build_error else "",
-            "last_build_error_full": last_build_error_full if last_build_error_full else "",
-            "last_test_error": last_test_error[:2000] if last_test_error else "",
-            "last_test_error_full": last_test_error_full if last_test_error_full else "",
-            "last_failed_command": last_failed_command,
-            "gate_source": _final_gate_source,
-            "blocking_guard_id": _final_blocking_guard_id,
-            "gate_message": _final_gate_message,
-            "missing_required_files": _final_missing_required_files,
-            "guard_warning_hits": _guard_warning_hits,
-            "guard_warning_count": sum(_guard_warning_hits.values()),
-            "supervisor_files_reviewed": _sup_files_reviewed,
-            "supervisor_corrections_count": _sup_corrections_count,
-            "conformity_score": _avg(_conformity_scores),
-            "security_score": _avg(_security_scores),
-            "architecture_score": _avg(_architecture_scores),
-            "build_corrections_count": _build_corrections_count,
-            "supervision_loop_corrections": _supervision_loop.corrections_count,
-            "supervision_loop_pending_at_end": len(_supervision_loop.pending_paths()),
-        },
+        "metadata": _state_manager.to_metadata(
+            total_files=len(files),
+            supervision_loop_corrections=_supervision_loop.corrections_count,
+            supervision_loop_pending_at_end=len(_supervision_loop.pending_paths()),
+        ),
     }

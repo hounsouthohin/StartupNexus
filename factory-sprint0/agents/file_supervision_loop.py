@@ -20,16 +20,28 @@ MAX_CORRECTION_ATTEMPTS_DEFAULT = 2
 class FileSupervisionLoop:
     max_attempts: int = MAX_CORRECTION_ATTEMPTS_DEFAULT
 
-    # path → nombre de tentatives restantes (>0 = en attente de re-vérification)
+    # path → nombre de tentatives restantes (>0 = correction en attente de re-vérification)
     _pending: dict = field(default_factory=dict)
     # paths validés par les superviseurs (ok ou max tentatives atteintes)
     _validated: set = field(default_factory=set)
-    # compteur de corrections appliquées
+    # paths réécrit sur disque et en attente de re-supervision (armés par reset_file)
+    _needs_reverify: set = field(default_factory=set)
+    # compteur de corrections appliquées (injections LLM)
     corrections_count: int = 0
+    # compteur de re-vérifications déclenchées (fichier réécrit puis re-supervisé)
+    reverifications_count: int = 0
 
     def needs_reverification(self, path: str) -> bool:
-        """Retourne True si ce fichier vient d'être réécrit et doit être re-supervisé."""
-        return path in self._pending and self._pending[path] > 0
+        """
+        Retourne True si ce fichier vient d'être réécrit sur disque après une correction
+        et doit être re-supervisé avant de continuer.
+        Incrémente reverifications_count au premier appel pour ce path (comptage unique par réécriture).
+        """
+        if path in self._needs_reverify:
+            self._needs_reverify.discard(path)
+            self.reverifications_count += 1
+            return True
+        return False
 
     def on_supervisor_ok(self, path: str) -> None:
         """Fichier validé — retirer des pending."""
@@ -61,6 +73,19 @@ class FileSupervisionLoop:
         return list(self._pending.keys())
 
     def reset_file(self, path: str) -> None:
-        """Appelé quand un fichier est réécrit — prêt pour re-supervision."""
-        # Ne rien faire : needs_reverification() retournera True si path est dans _pending
-        pass
+        """
+        Appelé à chaque réécriture confirmée sur disque (write_file succès).
+        - Si le fichier avait une correction en attente (_pending) : marquer pour re-supervision.
+        - Si le fichier était validé best-effort (_validated) : re-armer pour supervision.
+        - Si le fichier est nouveau (jamais supervisé) : pas d'action nécessaire.
+        """
+        if path in self._pending:
+            # Correction injectée + fichier réécrit → re-supervision obligatoire
+            self._needs_reverify.add(path)
+            logger.debug(f"[supervision_loop] {path}: réécrit après correction — armé pour re-supervision")
+        elif path in self._validated:
+            # Fichier réécrit après validation best-effort → re-armer avec max tentatives
+            self._validated.discard(path)
+            self._pending[path] = self.max_attempts
+            self._needs_reverify.add(path)
+            logger.debug(f"[supervision_loop] {path}: réécrit après validation — re-armé ({self.max_attempts} tentatives)")

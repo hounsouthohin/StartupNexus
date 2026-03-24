@@ -66,3 +66,12 @@ const items = await prisma.model.findMany().catch(() => []);
 let items = [];
 try { items = await prisma.model.findMany(); } catch { items = []; }
 ```
+
+### 8 — SCHEMA PRISMA : ÉCRITURE UNIQUE OBLIGATOIRE
+
+`prisma/schema.prisma` DOIT être écrit **une seule fois**, avec **tous les modèles métier** du brief en un seul `write_file`.
+
+- Écrire TOUS les modèles dans un seul appel `write_file("prisma/schema.prisma", ...)`.
+- Après cela : **NE PLUS RÉÉCRIRE** `prisma/schema.prisma`, même si un superviseur signale une correction.
+- Si correction demandée : appliquer **une seule fois**, puis passer aux pages et routes API.
+- INTERDIT : réécrire le schema à chaque itération ou combiner son écriture avec d'autres fichiers.

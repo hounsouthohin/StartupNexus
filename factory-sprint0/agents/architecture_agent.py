@@ -89,6 +89,7 @@ async def run_architecture_supervisor(
     project_name: str = "",
     run_id: str = "",
     stack_id: str = "nextjs-clerk-prisma",
+    det_tool_result: str = "",
 ) -> dict:
     """
     Vérifie la cohérence inter-fichiers.
@@ -126,7 +127,8 @@ async def run_architecture_supervisor(
             f"{json.dumps(paths, ensure_ascii=False)}\n\n"
             "PRISMA SCHEMA:\n"
             f"{prisma_schema or '[none]'}\n\n"
-            "Return strictly JSON with keys: status, confidence, optional fix_instruction, optional note."
+            + (f"DETERMINISTIC TOOL RESULT:\n{det_tool_result}\n\n" if det_tool_result else "")
+            + "Return strictly JSON with keys: status, confidence, optional fix_instruction, optional note."
         )
 
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.0, max_retries=2).bind(

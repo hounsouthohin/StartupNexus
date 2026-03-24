@@ -139,13 +139,16 @@ def allowed_paths_for_blocker(state: dict, scaffold_extends_paths: set[str]) -> 
     """
     Retourne la liste des chemins que le LLM est autorisé à écrire
     étant donné le blocker actif (depuis _build_run_state).
+
+    Fix boucle schema.prisma : scaffold_extends_paths n'est plus injecté pour
+    file_missing:: et structural:: — ces blockers ciblent un fichier précis et
+    n'ont pas besoin que le schema soit réécrit.
+    Seul requirements::Prisma autorise explicitement prisma/schema.prisma.
     """
     blocker = state.get("active_blocker", "")
     if blocker.startswith("file_missing::"):
         p = blocker.split("::", 1)[1].strip()
-        allowed = [p] if p else []
-        allowed.extend(scaffold_extends_paths)
-        return allowed
+        return [p] if p else []
     if blocker.startswith("requirements::"):
         req = blocker.split("::", 1)[1]
         primary = extract_primary_path_from_requirement(req)
@@ -158,9 +161,7 @@ def allowed_paths_for_blocker(state: dict, scaffold_extends_paths: set[str]) -> 
         return allowed
     if blocker.startswith("structural::"):
         targets = state.get("structural_targets", []) or []
-        allowed = [str(t).replace("\\", "/") for t in targets]
-        allowed.extend(scaffold_extends_paths)
-        return allowed
+        return [str(t).replace("\\", "/") for t in targets]
     return []
 
 
@@ -178,9 +179,23 @@ def path_is_allowed_for_objective(
         return True
     p = (path or "").replace("\\", "/").strip()
     p_lower = p.lower()
-    # scaffold_extends toujours autorisés
+    # scaffold_extends : autorisés UNIQUEMENT si aucun blocker actif (ready_for_build),
+    # si le blocker est requirements::Prisma,
+    # ou si le blocker est file_missing:: et que le fichier est exactement la cible demandée.
+    # Pour structural:: et autres file_missing:: non-cibles, le schema ne doit PAS être réécrit —
+    # c'est la cause racine de la boucle prisma/schema.prisma.
     if p_lower in {s.replace("\\", "/").lower() for s in scaffold_extends_paths}:
-        return True
+        if not blocker or blocker == "ready_for_build":
+            return True
+        if blocker.startswith("file_missing::") or blocker.startswith("structural::"):
+            # Autoriser si c'est exactement le fichier scaffold_extends demandé par le blocker
+            # (file_missing = création initiale, structural = correction superviseur)
+            return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
+        if blocker.startswith("requirements::"):
+            req_part = blocker.split("::", 1)[1].lower()
+            if "modèle prisma" in req_part or "model prisma" in req_part or "prisma:" in req_part:
+                return True
+        return False
     # Blockers stricts : uniquement le fichier demandé
     if blocker.startswith("file_missing::"):
         return any(p_lower == a.replace("\\", "/").lower() for a in allowed_paths)
