@@ -160,28 +160,17 @@ def _build_rag_filter(stack_id: str):
     """
     try:
         from qdrant_client.http.models import Filter, FieldCondition, MatchValue
-        from agents.stack_config import get_qdrant_filter_cfg
+        from agents.stack_config import get_qdrant_filter_cfg, StackConfigError
 
         filter_cfg = get_qdrant_filter_cfg(stack_id).get("filter", {})
-        if filter_cfg:
-            return _json_filter_to_qdrant(filter_cfg)
-
-        # Fallback si qdrant_filter absent du JSON
-        logger.warning(
-            f"[_build_rag_filter] qdrant_filter absent pour stack '{stack_id}' "
-            "— fallback programmatique (ajouter qdrant_filter dans le JSON stack)"
-        )
-        return Filter(
-            must=[
-                Filter(
-                    should=[
-                        FieldCondition(key="metadata.stack", match=MatchValue(value=stack_id)),
-                        FieldCondition(key="metadata.stack", match=MatchValue(value="global")),
-                    ]
-                ),
-                FieldCondition(key="metadata.status", match=MatchValue(value="active")),
-            ]
-        )
+        if not filter_cfg:
+            raise StackConfigError(
+                f"[_build_rag_filter] qdrant_filter.filter absent pour stack '{stack_id}' — "
+                "ajouter qdrant_filter dans le JSON stack avant tout run RAG."
+            )
+        return _json_filter_to_qdrant(filter_cfg)
+    except StackConfigError:
+        raise
     except Exception as e:
         logger.warning(f"[_build_rag_filter] Filtre Qdrant non disponible: {e}")
         return None

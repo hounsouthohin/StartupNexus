@@ -4,7 +4,107 @@ build_state_manager.py — centralise l'état de build et les métriques de fin 
 
 from __future__ import annotations
 
+import logging
+import re
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+from agents.dev_path_utils import sort_paths_by_priority, sort_requirements_by_priority
+from agents.requirements_engine import compute_coverage_detailed as _engine_compute_coverage_detailed
+
+if TYPE_CHECKING:
+    from agents.pre_build_validator import PreBuildValidator
+
+
+logger = logging.getLogger(__name__)
+
+
+class RunStateComputer:
+    def __init__(
+        self,
+        requirements,
+        llm_required_files,
+        validator,
+        path_priority_ranker,
+        scaffold_extends_paths,
+    ) -> None:
+        self.requirements = requirements
+        self.llm_required_files = llm_required_files
+        self.validator: "PreBuildValidator" = validator
+        self.path_priority_ranker = path_priority_ranker
+        self.scaffold_extends_paths = scaffold_extends_paths
+
+    def compute(self, files_dict: dict, build_attempts: int, last_build_error: str) -> dict:
+        cov = _engine_compute_coverage_detailed(self.requirements or [], files_dict)
+        unmet = sort_requirements_by_priority(cov.get("unmet", []), self.path_priority_ranker)
+        prisma_unmet = [
+            r for r in unmet
+            if ("modèle prisma" in str(r).lower() or "model prisma" in str(r).lower() or "prisma:" in str(r).lower())
+        ]
+        schema_text = str(files_dict.get("prisma/schema.prisma", "") or "")
+        schema_has_model = bool(re.search(r"(?m)^\s*model\s+\w+\s*\{", schema_text))
+        # DEBUG prisma loop trap — log uniquement quand des requirements Prisma restent unmet
+        if prisma_unmet:
+            _schema_keys = [k for k in files_dict.keys() if "schema.prisma" in k.replace("\\", "/").lower()]
+            logger.info(
+                "[prisma_debug] prisma_unmet=%d schema_keys=%s schema_has_model=%s schema_chars=%d",
+                len(prisma_unmet), _schema_keys, schema_has_model, len(schema_text),
+            )
+            for _st in cov.get("statuses", []):
+                _req_str = str(_st.get("requirement", ""))
+                if "modèle prisma" in _req_str.lower() or "model prisma" in _req_str.lower():
+                    logger.info(
+                        "[prisma_debug] req=%r  satisfied=%s  reason=%r",
+                        _req_str[:100], _st.get("satisfied"), _st.get("reason", ""),
+                    )
+        _present_p = {k.replace("\\", "/").lower() for k in files_dict.keys()}
+        missing_files = sort_paths_by_priority(
+            [p for p in self.llm_required_files
+             if not any(pp == str(p).replace("\\", "/").lower() or pp.endswith("/" + str(p).replace("\\", "/").lower())
+                        for pp in _present_p)],
+            self.path_priority_ranker,
+        )
+        structural_gid, structural_paths = self.validator.find_blocking_targets(files_dict)
+        # Priorité convergence: créer d'abord les fichiers blueprint manquants.
+        # Sinon l'agent peut boucler sur des détails requirements sans jamais
+        # produire le fichier racine attendu par le gate structural.
+        if missing_files:
+            missing_norm = [str(p).replace("\\", "/").lower() for p in missing_files]
+            if "prisma/schema.prisma" in missing_norm:
+                blocker = "file_missing::prisma/schema.prisma"
+            elif prisma_unmet:
+                # Priorité Prisma si des modèles manquent dans le schema,
+                # même si d'autres modèles existent déjà (schema_has_model=True).
+                # scaffold_extends accumule les blocs model — chaque write ajoute
+                # les modèles manquants sans écraser les existants.
+                # Note: la garde "not schema_has_model" a été retirée car elle
+                # empêchait d'ajouter le premier modèle quand le second était déjà présent.
+                blocker = f"requirements::{prisma_unmet[0]}"
+            else:
+                blocker = f"file_missing::{missing_files[0]}"
+        elif structural_gid:
+            blocker = f"structural::{structural_gid}"
+        elif prisma_unmet:
+            # Même logique hors missing_files.
+            blocker = f"requirements::{prisma_unmet[0]}"
+        elif unmet:
+            blocker = f"requirements::{unmet[0]}"
+        elif last_build_error:
+            blocker = "build_error"
+        else:
+            blocker = "ready_for_build"
+        return {
+            "requirements_met": cov.get("requirements_met", 0),
+            "requirements_total": cov.get("requirements_total", 0),
+            "requirements_unmet": unmet,
+            "requirements_statuses": cov.get("statuses", []),
+            "missing_required_files": missing_files,
+            "structural_blocking_guard_id": structural_gid,
+            "structural_targets": structural_paths,
+            "active_blocker": blocker,
+            "last_build_error_excerpt": (last_build_error or "")[:400],
+            "build_attempts": build_attempts,
+        }
 
 
 @dataclass

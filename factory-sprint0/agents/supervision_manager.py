@@ -12,11 +12,10 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from agents.architecture_agent import run_architecture_supervisor
-from agents.build_supervisor_agent import run_build_supervisor
-from agents.conformity_agent import run_conformity_supervisor
-from agents.security_agent import run_security_supervisor
-from agents.shared_tools import run_tsc_check, run_prisma_validate
+from .architecture_agent import run_architecture_supervisor
+from .conformity_agent import run_conformity_supervisor
+from .security_agent import run_security_supervisor
+from .shared_tools import run_tsc_check, run_eslint_check, run_prisma_validate
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +45,98 @@ async def _supervise_file_inline(
     security_scores: list,
     architecture_scores: list,
     timeout_ms: int = 30000,
+    project_dir: str = "",
 ) -> tuple[str | None, dict]:
     """
-    Lance les superviseurs en parallèle.
+    Niveau 1 — Checks déterministes (tsc, prisma validate) : faits, pas opinions.
+    Niveau 2 — Superviseurs LLM sémantiques : contexte enrichi avec résultat outils.
     Retourne (message_correction, résultats_normalisés).
     """
+    # ── Niveau 1 : Checks déterministes ──────────────────────────────────────
+    norm_path = (file_path or "").replace("\\", "/")
+    is_ts_file = norm_path.endswith(".ts") or norm_path.endswith(".tsx")
+    is_prisma_schema = norm_path == "prisma/schema.prisma"
+    det_errors: list[str] = []
+    det_context_str = ""
+
+    if project_dir:
+        if is_ts_file:
+            tsc_result: dict = {"errors": [], "success": True, "skipped": True}
+            eslint_result: dict = {"errors": [], "success": True, "skipped": True}
+            try:
+                tsc_result, eslint_result = await asyncio.gather(
+                    run_tsc_check(project_dir),
+                    run_eslint_check(project_dir),
+                )
+            except Exception as _det_exc:
+                logger.debug(f"[det_check] checks TS/ESLint non-bloquants sur {norm_path}: {_det_exc}")
+
+            # Filtrer TSC sur le fichier courant
+            tsc_file_errors: list[dict] = []
+            try:
+                if not tsc_result.get("skipped"):
+                    tsc_file_errors = [
+                        e for e in tsc_result.get("errors", [])
+                        if norm_path in (e.get("file", "") or "").replace("\\", "/")
+                    ]
+            except Exception as _tsc_exc:
+                logger.debug(f"[det_check] tsc non-bloquant sur {norm_path}: {_tsc_exc}")
+
+            # Filtrer ESLint sur le fichier courant
+            eslint_file_errors: list[dict] = []
+            try:
+                if not eslint_result.get("skipped"):
+                    eslint_file_errors = [
+                        e for e in eslint_result.get("errors", [])
+                        if norm_path in (e.get("file", "") or "").replace("\\", "/")
+                    ]
+            except Exception as _eslint_exc:
+                logger.debug(f"[det_check] eslint non-bloquant sur {norm_path}: {_eslint_exc}")
+
+            if tsc_file_errors:
+                for err in tsc_file_errors[:5]:
+                    det_errors.append(
+                        f"  [tsc] L{err.get('line', '')}:{err.get('col', '')} "
+                        f"{err.get('code', '')} — {err.get('message', '')}"
+                    )
+            if eslint_file_errors:
+                for err in eslint_file_errors[:5]:
+                    det_errors.append(
+                        f"  [eslint] L{err.get('line', '')}:{err.get('col', '')} "
+                        f"{err.get('code', '')} — {err.get('message', '')}"
+                    )
+
+            if tsc_file_errors or eslint_file_errors:
+                det_context_str = (
+                    f"[tsc] {len(tsc_file_errors)} erreur(s), "
+                    f"[eslint] {len(eslint_file_errors)} erreur(s)"
+                )
+            else:
+                det_context_str = "[tsc+eslint] pas d'erreur"
+        elif is_prisma_schema:
+            # prisma validate --schema est incompatible avec Prisma 7.5.0 (url dans prisma.config.ts,
+            # pas dans le schema). La validation réelle se fait à npm run build → prisma generate.
+            det_context_str = "[prisma validate] skipped (Prisma 7.5 — url in prisma.config.ts)"
+
+    if det_errors:
+        tool_name = "tsc/eslint" if is_ts_file else "prisma validate"
+        logger.info(
+            f"[det_check] {norm_path} — {len(det_errors)} erreur(s) {tool_name} → correction sans LLM"
+        )
+        return (
+            f"ERREUR {tool_name.upper()} sur {file_path} :\n"
+            + "\n".join(det_errors)
+            + f"\nCorrige ces erreurs dans {file_path} avec write_file() maintenant.",
+            {"deterministic": {"status": "needs_fix", "confidence": 1.0, "tool": tool_name}},
+        )
+
+    # ── Niveau 2 : Superviseurs LLM ──────────────────────────────────────────
+    # Contexte enrichi avec résultat déterministe si disponible
+    if det_context_str:
+        context = {**context, "det_tool_result": det_context_str}
+
     tasks = {}
+    _det = context.get("det_tool_result", "")
     if "conformity" in supervisors:
         tasks["conformity"] = run_conformity_supervisor(
             file_path=file_path,
@@ -62,6 +147,7 @@ async def _supervise_file_inline(
             project_name=context.get("project_name", ""),
             run_id=context.get("run_id", ""),
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+            det_tool_result=_det,
         )
     if "security" in supervisors:
         tasks["security"] = run_security_supervisor(
@@ -71,6 +157,7 @@ async def _supervise_file_inline(
             project_name=context.get("project_name", ""),
             run_id=context.get("run_id", ""),
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+            det_tool_result=_det,
         )
     if "architecture" in supervisors:
         tasks["architecture"] = run_architecture_supervisor(
@@ -82,6 +169,7 @@ async def _supervise_file_inline(
             project_name=context.get("project_name", ""),
             run_id=context.get("run_id", ""),
             stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
+            det_tool_result=_det,
         )
 
     timeout_s = max(0.001, float(timeout_ms) / 1000.0)
@@ -195,26 +283,3 @@ async def run_pre_build_deterministic_checks(project_dir: str) -> tuple[bool, st
 
     return False, ""
 
-
-async def _run_build_supervisor_inline(
-    build_stderr: str,
-    files: dict,
-    run_id: str,
-    stack_id: str,
-) -> str | None:
-    result = await run_build_supervisor(
-        build_stderr=build_stderr,
-        combined_files=files,
-        run_id=run_id or "",
-        stack_id=stack_id or "nextjs-clerk-prisma",
-    )
-    if str(result.get("status", "")).lower() == "needs_fix":
-        fix = result.get("fix_instruction", {}) or {}
-        if fix.get("problem") and fix.get("fix"):
-            return (
-                f"[BUILD SUPERVISOR] Erreur identifiée dans {fix.get('file', '?')}:\n"
-                f"{fix['problem']}\n"
-                f"Fix minimal : {fix['fix']}\n"
-                "Applique ce fix avec write_file() puis rappelle run_build()."
-            )
-    return None
