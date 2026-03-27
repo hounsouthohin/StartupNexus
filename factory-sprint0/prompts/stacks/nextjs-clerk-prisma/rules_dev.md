@@ -75,3 +75,17 @@ try { items = await prisma.model.findMany(); } catch { items = []; }
 - Après cela : **NE PLUS RÉÉCRIRE** `prisma/schema.prisma`, même si un superviseur signale une correction.
 - Si correction demandée : appliquer **une seule fois**, puis passer aux pages et routes API.
 - INTERDIT : réécrire le schema à chaque itération ou combiner son écriture avec d'autres fichiers.
+
+## Concepts Stack Obligatoires
+
+Le code généré doit respecter explicitement ces concepts techniques de stack, même sans appel RAG:
+
+- Versions exactes et cohérentes de `next`, `@clerk/nextjs`, `prisma`, `jest`, `ts-jest` et packages requis.
+- Clerk V6: `ClerkProvider` dans `app/layout.tsx`, `clerkMiddleware` côté serveur, et logique auth conforme App Router.
+- Prisma 7: séparation `schema.prisma` / `prisma.config.ts`, modèles métier complets, sans patterns obsolètes.
+- `auth()` asynchrone partout côté serveur (server components et route handlers), sans dérive `auth().userId`, `useAuth`/`useUser` mal placés.
+- Singleton Prisma obligatoire via `@/lib/prisma`, interdiction d'instanciation directe `new PrismaClient()`.
+- Pages server component avec accès Prisma typé et patterns robustes (`findMany`, tableaux typés, gestion d'erreur propre, pas de hooks client).
+- Guard `userId` nul avant toute opération Prisma liée à `authorId`/`ownerId` (`401` avant DB).
+- Prisma 7: `datasource.url` interdit dans `schema.prisma` (éviter les erreurs P1012), structure canonique `generator`/`datasource`.
+- TypeScript strict: aucun tableau non typé (`let arr = []`), aucun fallback `any`, types explicites sur données Prisma.

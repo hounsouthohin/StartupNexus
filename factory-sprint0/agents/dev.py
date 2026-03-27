@@ -337,6 +337,9 @@ def dev_agent(
     _security_scores = _loop_state.security_scores
     _architecture_scores = _loop_state.architecture_scores
     _build_corrections_count = _loop_state.build_corrections_count
+    _tsc_errors_caught = _loop_state.tsc_errors_caught
+    _eslint_errors_caught = _loop_state.eslint_errors_caught
+    _prisma_errors_caught = _loop_state.prisma_errors_caught
     last_build_error = _loop_state.last_build_error
     last_build_error_full = _loop_state.last_build_error_full
     last_test_error = _loop_state.last_test_error
@@ -384,6 +387,9 @@ def dev_agent(
         security_scores=list(_security_scores),
         architecture_scores=list(_architecture_scores),
         build_corrections_count=_build_corrections_count,
+        tsc_errors_caught=int(_tsc_errors_caught),
+        eslint_errors_caught=int(_eslint_errors_caught),
+        prisma_errors_caught=int(_prisma_errors_caught),
         last_build_error=last_build_error,
         last_build_error_full=last_build_error_full,
         last_test_error=last_test_error,

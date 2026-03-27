@@ -68,12 +68,16 @@ def _extract_prisma_models(text: str) -> list:
     return models
 
 
+_HTTP_METHODS = {'get', 'post', 'put', 'patch', 'delete', 'head', 'options'}
+
+
 def _extract_pages(text: str) -> list:
     """
     Extrait les chemins de pages depuis le brief.
     Reconnaît le format : '- /chemin : description'
     Convertit en chemins Next.js App Router (app/xxx/page.tsx).
-    Ignore les chemins /api/.
+    Ignore les chemins /api/ et les noms de méthodes HTTP (/POST, /GET, etc.)
+    qui peuvent être capturés depuis des patterns comme "GET/POST /api/...".
     """
     pages = []
     seen = set()
@@ -86,6 +90,8 @@ def _extract_pages(text: str) -> list:
     for match in bullet_pattern.finditer(text):
         raw_path = match.group(1).strip()
         if '/api/' in raw_path:
+            continue
+        if raw_path.lstrip('/').lower() in _HTTP_METHODS:
             continue
         app_path = _path_to_app_route(raw_path)
         if app_path not in seen:
@@ -101,6 +107,8 @@ def _extract_pages(text: str) -> list:
             raw_path = (p or "").strip()
             if not raw_path or "/api/" in raw_path:
                 continue
+            if raw_path.lstrip('/').lower() in _HTTP_METHODS:
+                continue
             app_path = _path_to_app_route(raw_path)
             if app_path not in seen:
                 seen.add(app_path)
@@ -114,6 +122,8 @@ def _extract_pages(text: str) -> list:
         for p in path_pattern.findall(line):
             raw_path = (p or "").strip()
             if not raw_path or "/api/" in raw_path:
+                continue
+            if raw_path.lstrip('/').lower() in _HTTP_METHODS:
                 continue
             app_path = _path_to_app_route(raw_path)
             if app_path not in seen:

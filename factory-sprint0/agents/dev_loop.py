@@ -60,6 +60,9 @@ class DevLoopState:
     conformity_scores: list[float] = field(default_factory=list)
     security_scores: list[float] = field(default_factory=list)
     architecture_scores: list[float] = field(default_factory=list)
+    tsc_errors_caught: int = 0
+    eslint_errors_caught: int = 0
+    prisma_errors_caught: int = 0
 
 
 async def _run_build_supervisor_inline(
@@ -129,6 +132,9 @@ def run_dev_loop(
     _conformity_scores: list[float] = []
     _security_scores: list[float] = []
     _architecture_scores: list[float] = []
+    _tsc_errors_caught = 0
+    _eslint_errors_caught = 0
+    _prisma_errors_caught = 0
     _build_corrections_count = 0
     last_build_succeeded = False
     last_build_error = ""
@@ -292,6 +298,12 @@ def run_dev_loop(
                                 except Exception as _det_exc:
                                     logger.debug(f"[pre_build_det] non-bloquant: {_det_exc}")
                                     _det_blocked, _det_msg = False, ""
+                                if _det_blocked and _det_msg:
+                                    _tsc_match = re.search(r"\[tsc\]\s+(\d+)\s+erreur", _det_msg, re.IGNORECASE)
+                                    if _tsc_match:
+                                        _tsc_errors_caught += int(_tsc_match.group(1))
+                                    if "[prisma validate]" in _det_msg.lower():
+                                        _prisma_errors_caught += 1
                                 if _det_blocked:
                                     _gate_blocked = True
                                     _gate_msg = _det_msg
@@ -449,6 +461,11 @@ def run_dev_loop(
                                     ),
                                 ).result()
                             _sup_msg, _sup_raw_results = _sup_result
+                            _det = (_sup_raw_results or {}).get("deterministic", {}) or {}
+                            if str(_det.get("status", "")).lower() == "needs_fix":
+                                _tsc_errors_caught += int(_det.get("tsc_errors_count", 0) or 0)
+                                _eslint_errors_caught += int(_det.get("eslint_errors_count", 0) or 0)
+                                _prisma_errors_caught += int(_det.get("prisma_errors_count", 0) or 0)
 
                             if _sup_msg:
                                 should_inject = supervision_loop.on_supervisor_needs_fix(_path_norm)
@@ -774,4 +791,7 @@ def run_dev_loop(
         conformity_scores=list(_conformity_scores),
         security_scores=list(_security_scores),
         architecture_scores=list(_architecture_scores),
+        tsc_errors_caught=int(_tsc_errors_caught),
+        eslint_errors_caught=int(_eslint_errors_caught),
+        prisma_errors_caught=int(_prisma_errors_caught),
     )

@@ -9,11 +9,11 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from agents.dev_path_utils import sort_paths_by_priority, sort_requirements_by_priority
-from agents.requirements_engine import compute_coverage_detailed as _engine_compute_coverage_detailed
+from .dev_path_utils import sort_paths_by_priority, sort_requirements_by_priority
+from .requirements_engine import compute_coverage_detailed as _engine_compute_coverage_detailed
 
 if TYPE_CHECKING:
-    from agents.pre_build_validator import PreBuildValidator
+    from .pre_build_validator import PreBuildValidator
 
 
 logger = logging.getLogger(__name__)
@@ -125,6 +125,9 @@ class BuildStateManager:
     security_scores: list[float] = field(default_factory=list)
     architecture_scores: list[float] = field(default_factory=list)
     build_corrections_count: int = 0
+    tsc_errors_caught: int = 0
+    eslint_errors_caught: int = 0
+    prisma_errors_caught: int = 0
     last_build_error: str = ""
     last_build_error_full: str = ""
     last_test_error: str = ""
@@ -160,6 +163,9 @@ class BuildStateManager:
             "security_score": self._avg(self.security_scores),
             "architecture_score": self._avg(self.architecture_scores),
             "build_corrections_count": self.build_corrections_count,
+            "tsc_errors_caught": int(self.tsc_errors_caught),
+            "eslint_errors_caught": int(self.eslint_errors_caught),
+            "prisma_errors_caught": int(self.prisma_errors_caught),
             "supervision_loop_corrections": supervision_loop_corrections,
             "supervision_loop_pending_at_end": supervision_loop_pending_at_end,
         }

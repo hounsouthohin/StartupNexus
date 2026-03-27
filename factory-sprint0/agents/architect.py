@@ -620,43 +620,25 @@ def create_architect_agent():
                 f"{len(parsed['pages'])} pages, "
                 f"{len(parsed['api_routes'])} routes)"
             )
+        elif parsed["has_explicit_models"] or parsed["has_explicit_pages"] or parsed["has_explicit_routes"]:
+            # Brief partiel : le parser a extrait des données — construire directement sans LLM.
+            # Le LLM brief_normalizer retourne systématiquement le template vide dans ce cas
+            # (gpt-4o-mini ne remplit pas le format quand les données sont déjà injectées).
+            # build_normalized_brief_from_parsed contient les données parsées + raw_phrase —
+            # suffisant pour le planner et le RAG.
+            normalized = build_normalized_brief_from_parsed(parsed, raw_phrase)
+            logger.info(f"[brief_normalizer] Brief partiel — construit depuis parser sans LLM")
         else:
-            # Brief partiel ou vague : LLM complète ce que le parser n'a pas trouvé
-            normalizer_llm = ChatOpenAI(model=base_model, temperature=0.1, max_retries=2)  # 0.1 évite le cache OpenAI prefix
+            # Brief vague : parser n'a rien trouvé — LLM seul recours.
+            normalizer_llm = ChatOpenAI(model=base_model, temperature=0.1, max_retries=2)
             chain = prompts["brief_normalizer"] | normalizer_llm
-
-            # Si le parser a trouvé quelque chose → l'injecter pour que le LLM
-            # ne le réinvente pas (il complète uniquement les lacunes)
-            if parsed["has_explicit_models"] or parsed["has_explicit_pages"] or parsed["has_explicit_routes"]:
-                pre_parsed_block = "DONNÉES DÉJÀ EXTRAITES (source de vérité — copier verbatim, ne pas modifier) :\n"
-                if parsed["data_models"]:
-                    pre_parsed_block += "MODÈLES PRISMA :\n" + "\n".join(f"  - {m}" for m in parsed["data_models"]) + "\n"
-                if parsed["pages"]:
-                    pre_parsed_block += "PAGES :\n" + "\n".join(f"  - {p}" for p in parsed["pages"]) + "\n"
-                if parsed["api_routes"]:
-                    methods_map = parsed.get("api_methods", {})
-                    pre_parsed_block += "ROUTES API :\n" + "\n".join(
-                        f"  - {', '.join(methods_map.get(r, []))} → {r}" for r in parsed["api_routes"]
-                    ) + "\n"
-                pre_parsed_block += "\nBRIEF ORIGINAL :\n" + raw_phrase
-                llm_input = pre_parsed_block
-                logger.info(f"[brief_normalizer] Brief partiel — LLM complète les lacunes (données parsées injectées)")
-            else:
-                llm_input = raw_phrase
-                logger.info(f"[brief_normalizer] Brief vague — LLM extrait tout")
-
+            logger.info(f"[brief_normalizer] Brief vague — LLM extrait tout")
             try:
-                response = await chain.ainvoke({"input": llm_input})
-                normalized = response.content.strip()
-                if not normalized:
-                    normalized = build_normalized_brief_from_parsed(parsed, raw_phrase) if (
-                        parsed["has_explicit_models"] or parsed["has_explicit_pages"]
-                    ) else raw_phrase
+                response = await chain.ainvoke({"input": raw_phrase})
+                normalized = response.content.strip() or raw_phrase
             except Exception as e:
-                logger.warning(f"[brief_normalizer] LLM échoué ({e}) — fallback parser/raw")
-                normalized = build_normalized_brief_from_parsed(parsed, raw_phrase) if (
-                    parsed["has_explicit_models"] or parsed["has_explicit_pages"]
-                ) else raw_phrase
+                logger.warning(f"[brief_normalizer] LLM échoué ({e}) — fallback raw_phrase")
+                normalized = raw_phrase
 
         logger.info(f"[brief_normalizer] normalized_brief ({len(normalized)} chars):\n{normalized[:400]}")
         return {"normalized_brief": normalized, "parsed_brief": dict(parsed)}
@@ -784,21 +766,25 @@ def create_architect_agent():
         requirements = state.get("requirements", [])
         rag_context = state.get("rag_context", "")
 
-        # RAG injecté ici (spec_writer = COMMENT implémenter) — pas dans le planner
-        # Le planner ne voit pas le RAG pour éviter la contamination des noms d'entités.
-        input_text = f"High-Level Plan (JSON):\n{plan_json}"
-        if rag_context:
-            input_text += f"\n\nRAG Context (patterns d'implémentation stack) :\n{rag_context}"
-
-        # Injection explicite des requirements — le LLM DOIT les couvrir tous
+        # Requirements en PREMIER — source de vérité du brief.
+        # Ordre intentionnel : requirements → plan JSON → RAG.
+        # Avant (bug) : plan JSON en tête → LLM suivait le plan et ignorait les requirements en bas.
+        # Correction : requirements en tête → LLM les traite comme contrainte prioritaire.
         if requirements:
             reqs_block = "\n".join(f"  - {r}" for r in requirements)
-            input_text += (
-                f"\n\nREQUIREMENTS OBLIGATOIRES — tous doivent apparaître dans la spec :\n{reqs_block}\n"
-                f"\nATTENTION : chaque modèle Prisma listé ci-dessus DOIT figurer dans ## Schéma Prisma "
-                f"avec TOUS ses champs — utilise le NOM EXACT du requirement, sans synonyme ni traduction. "
-                f"Ne génère PAS une spec auth-only si des requirements métier sont présents."
+            input_text = (
+                f"REQUIREMENTS OBLIGATOIRES — source de vérité du brief (TOUS doivent apparaître dans la spec) :\n"
+                f"{reqs_block}\n"
+                f"Règle absolue : utilise le NOM EXACT de chaque modèle/route (pas de synonyme, pas de traduction). "
+                f"Chaque modèle Prisma DOIT figurer dans ## Schéma Prisma avec ses champs.\n\n"
+                f"High-Level Plan (JSON):\n{plan_json}"
             )
+        else:
+            input_text = f"High-Level Plan (JSON):\n{plan_json}"
+
+        # RAG injecté après le plan — contexte d'implémentation stack (COMMENT implémenter)
+        if rag_context:
+            input_text += f"\n\nRAG Context (patterns d'implémentation stack) :\n{rag_context}"
         
         chain = prompts['spec_writer'] | llm
         llm_response = await chain.ainvoke({"input": input_text})

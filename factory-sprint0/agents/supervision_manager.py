@@ -123,11 +123,23 @@ async def _supervise_file_inline(
         logger.info(
             f"[det_check] {norm_path} — {len(det_errors)} erreur(s) {tool_name} → correction sans LLM"
         )
+        _tsc_count = len(tsc_file_errors) if is_ts_file else 0
+        _eslint_count = len(eslint_file_errors) if is_ts_file else 0
+        _prisma_count = 1 if is_prisma_schema else 0
         return (
             f"ERREUR {tool_name.upper()} sur {file_path} :\n"
             + "\n".join(det_errors)
             + f"\nCorrige ces erreurs dans {file_path} avec write_file() maintenant.",
-            {"deterministic": {"status": "needs_fix", "confidence": 1.0, "tool": tool_name}},
+            {
+                "deterministic": {
+                    "status": "needs_fix",
+                    "confidence": 1.0,
+                    "tool": tool_name,
+                    "tsc_errors_count": _tsc_count,
+                    "eslint_errors_count": _eslint_count,
+                    "prisma_errors_count": _prisma_count,
+                }
+            },
         )
 
     # ── Niveau 2 : Superviseurs LLM ──────────────────────────────────────────
@@ -282,4 +294,3 @@ async def run_pre_build_deterministic_checks(project_dir: str) -> tuple[bool, st
         return True, full_msg
 
     return False, ""
-

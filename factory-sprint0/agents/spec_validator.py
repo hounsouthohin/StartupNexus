@@ -50,7 +50,11 @@ def _extract_key_terms(req: str) -> List[str]:
     return terms
 
 
-def validate_spec_requirements(spec: str, requirements: List[str]) -> Dict:
+def validate_spec_requirements(
+    spec: str,
+    requirements: List[str],
+    threshold: float = 1.0,
+) -> Dict:
     """
     Vérifie que chaque terme-clé des requirements[] est présent dans la spec.
 
@@ -66,10 +70,15 @@ def validate_spec_requirements(spec: str, requirements: List[str]) -> Dict:
     Un requirement non-mappable (ex: "Authentification Clerk robuste") est ignoré
     — pas de terme stable à chercher dans la spec.
 
-    status = "DEGRADED" si >= 1 requirement mappable a un terme absent de la spec.
+    threshold (0.0–1.0) : fraction minimale de requirements mappables devant être
+    présents dans la spec pour obtenir "OK". Défaut = 1.0 (tous obligatoires).
+    Exemple : threshold=0.9 → 1 manquant sur 10 toléré.
+
+    status = "DEGRADED" si matched_count / total_mappable < threshold.
     """
     spec = spec or ""
     requirements = requirements or []
+    threshold = max(0.0, min(1.0, float(threshold)))
 
     unmatched = []
     matched_count = 0
@@ -92,7 +101,12 @@ def validate_spec_requirements(spec: str, requirements: List[str]) -> Dict:
         else:
             unmatched.append(req)
 
-    status = "DEGRADED" if unmatched else "OK"
+    if total_mappable == 0:
+        status = "OK"
+    elif (matched_count / total_mappable) >= threshold:
+        status = "OK"
+    else:
+        status = "DEGRADED"
 
     return {
         "status": status,

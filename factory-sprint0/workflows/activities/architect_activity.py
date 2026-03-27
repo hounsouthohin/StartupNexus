@@ -31,6 +31,7 @@ def _wait_for_qdrant(timeout_seconds: int = 90) -> None:
     )
 
 
+
 DEFAULT_FORBIDDEN_PATTERNS = [
     "bcrypt",
     "jwt",
@@ -54,6 +55,35 @@ def _load_forbidden_patterns(stack_id: str) -> list[str]:
     except Exception:
         pass
     return DEFAULT_FORBIDDEN_PATTERNS
+
+
+def _extract_output_dict(architect_output) -> dict:
+    """Extrait output_dict depuis architect_output (Pydantic ou dict)."""
+    def _get(obj, attr, default):
+        if hasattr(obj, attr):
+            return getattr(obj, attr)
+        if isinstance(obj, dict):
+            return obj.get(attr, default)
+        return default
+
+    spec_structured_raw = _get(architect_output, "spec_structured", None)
+    if spec_structured_raw and hasattr(spec_structured_raw, "model_dump"):
+        spec_structured = spec_structured_raw.model_dump()
+    elif spec_structured_raw and hasattr(spec_structured_raw, "dict"):
+        spec_structured = spec_structured_raw.dict()
+    else:
+        spec_structured = spec_structured_raw or {}
+
+    return {
+        "specification": _get(architect_output, "specification", ""),
+        "mermaid_diagram": _get(architect_output, "mermaid_diagram", ""),
+        "requirements": _get(architect_output, "requirements", []) or [],
+        "user_flows": _get(architect_output, "user_flows", []) or [],
+        "ir_schema": _get(architect_output, "ir_schema", []) or [],
+        "ir_pages": _get(architect_output, "ir_pages", []) or [],
+        "ir_routes": _get(architect_output, "ir_routes", []) or [],
+        "spec_structured": spec_structured,
+    }
 
 
 def _validate_clerk_compliance(spec: str, mermaid: str, stack_id: str = "nextjs-clerk-prisma") -> list:
@@ -133,56 +163,20 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     }
 
     try:
+        from agents.spec_validator import validate_spec_requirements
+
         final_state = await architect_agent.ainvoke(initial_state)
         architect_output = final_state.get("architect_output")
-
         if not architect_output:
             raise ValueError("architect_output manquant dans l'état final")
 
-        # On suppose que l'agent retourne déjà un dict / Pydantic → on extrait
-        output_dict = {
-            "specification": architect_output.specification
-                if hasattr(architect_output, "specification")
-                else architect_output.get("specification", ""),
-            "mermaid_diagram": architect_output.mermaid_diagram
-                if hasattr(architect_output, "mermaid_diagram")
-                else architect_output.get("mermaid_diagram", ""),
-            "requirements": (
-                architect_output.requirements
-                if hasattr(architect_output, "requirements")
-                else architect_output.get("requirements", [])
-            ) or [],
-            "user_flows": (
-                architect_output.user_flows
-                if hasattr(architect_output, "user_flows")
-                else architect_output.get("user_flows", [])
-            ) or [],
-            # IR canonique — source de vérité typée (parser déterministe).
-            # Coexiste avec requirements: list[str] jusqu'en P4.
-            "ir_schema": (
-                architect_output.ir_schema
-                if hasattr(architect_output, "ir_schema")
-                else architect_output.get("ir_schema", [])
-            ) or [],
-            "ir_pages": (
-                architect_output.ir_pages
-                if hasattr(architect_output, "ir_pages")
-                else architect_output.get("ir_pages", [])
-            ) or [],
-            "ir_routes": (
-                architect_output.ir_routes
-                if hasattr(architect_output, "ir_routes")
-                else architect_output.get("ir_routes", [])
-            ) or [],
-            # Dual-output P2 — spec structurée JSON
-            "spec_structured": (
-                (architect_output.spec_structured.model_dump()
-                 if hasattr(architect_output.spec_structured, "model_dump")
-                 else architect_output.spec_structured.dict())
-                if hasattr(architect_output, "spec_structured") and architect_output.spec_structured
-                else {}
-            ),
-        }
+        output_dict = _extract_output_dict(architect_output)
+        # Figer la cible de validation sur le premier set de requirements.
+        # Évite qu'une tentative corrective "réussisse" en modifiant les requirements
+        # au lieu de corriger réellement la spec.
+        baseline_requirements = list(output_dict.get("requirements", []) or [])
+        if not baseline_requirements:
+            baseline_requirements = list(input_data.get("requirements", []) or [])
 
         violations = _validate_clerk_compliance(
             output_dict.get("specification", ""),
@@ -196,34 +190,40 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
                 f"L'architect doit utiliser Clerk exclusivement."
             )
 
-        # ── 4. Spec Validator déterministe ───────────────────────────────────
-        # Enrichit output_dict AVANT validate_output pour que les champs soient
-        # couverts par le contrat et validés en même temps que la spec.
+        # ── 4. Spec Validator — observation (non bloquant) ───────────────────
+        # La correction loop (re-invoke du même pipeline) a été supprimée :
+        # elle re-invoquait le même pipeline avec les mêmes biais → résultat identique.
+        # La cause racine (requirements en bas du contexte spec_writer) est corrigée en amont
+        # dans spec_writer_node (architect.py). DEGRADED ici = signal d'alerte, pas d'échec.
+        # Le pipeline continue — le dev_agent travaille avec la spec disponible.
+        spec_validation: dict = {"status": "UNKNOWN", "unmatched_requirements": [], "matched_count": 0, "total_mappable": 0}
+
         try:
-            from agents.spec_validator import validate_spec_requirements
             spec_validation = validate_spec_requirements(
                 output_dict.get("specification", ""),
-                output_dict.get("requirements", []),
+                baseline_requirements,
             )
-            output_dict["spec_validation_status"] = spec_validation["status"]
-            output_dict["spec_unmatched_requirements"] = spec_validation["unmatched_requirements"]
-            if spec_validation["status"] == "DEGRADED":
-                activity.logger.critical(
-                    f"[SpecValidator] DEGRADED — "
-                    f"{len(spec_validation['unmatched_requirements'])}/{spec_validation['total_mappable']} "
-                    f"requirement(s) mappable(s) absents de la spec : "
-                    f"{spec_validation['unmatched_requirements']}"
-                )
-            else:
-                activity.logger.info(
-                    f"[SpecValidator] OK — "
-                    f"{spec_validation['matched_count']}/{spec_validation['total_mappable']} "
-                    f"requirement(s) vérifiés dans la spec"
-                )
         except Exception as sv_err:
             activity.logger.warning(f"[SpecValidator] Erreur non bloquante : {sv_err}")
-            output_dict["spec_validation_status"] = "UNKNOWN"
-            output_dict["spec_unmatched_requirements"] = []
+
+        if spec_validation["status"] == "DEGRADED":
+            unmatched = spec_validation["unmatched_requirements"]
+            activity.logger.critical(
+                f"[SpecValidator] DEGRADED — "
+                f"{len(unmatched)}/{spec_validation.get('total_mappable', '?')} "
+                f"requirement(s) absents : {unmatched} — pipeline continue (non bloquant)"
+            )
+        else:
+            activity.logger.info(
+                f"[SpecValidator] OK — "
+                f"{spec_validation.get('matched_count', '?')}/{spec_validation.get('total_mappable', '?')} "
+                f"requirement(s) vérifiés dans la spec"
+            )
+
+        # Garantit la cohérence downstream avec la cible de validation figée.
+        output_dict["requirements"] = baseline_requirements
+        output_dict["spec_validation_status"] = spec_validation.get("status", "UNKNOWN")
+        output_dict["spec_unmatched_requirements"] = spec_validation.get("unmatched_requirements", [])
 
         # ── 5. Validation stricte du contrat de sortie (après enrichissement) ──
         # Les champs spec_validation_status et spec_unmatched_requirements sont

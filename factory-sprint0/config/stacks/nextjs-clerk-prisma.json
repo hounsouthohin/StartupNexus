@@ -241,34 +241,6 @@
       "radix"
     ]
   },
-  "import_remaps": {
-    "package_fixes": {
-      "@clerk/clerk-sdk": "@clerk/nextjs",
-      "@clerk/clerk-js": "@clerk/nextjs",
-      "@clerk/sdk": "@clerk/nextjs",
-      "@clerk/react": "@clerk/nextjs"
-    },
-    "source_fixes": {
-      "@clerk/clerk-sdk": "@clerk/nextjs",
-      "@clerk/clerk-sdk-react": "@clerk/nextjs",
-      "@clerk/nextjs/api": "@clerk/nextjs/server",
-      "@clerk/nextjs/middleware": "@clerk/nextjs/server",
-      "auth().protect()": "await auth.protect()",
-      "clerkMiddleware((auth,": "clerkMiddleware(async (auth,",
-      "clerkMiddleware } from '@clerk/nextjs'": "clerkMiddleware } from '@clerk/nextjs/server'",
-      "clerkMiddleware } from \"@clerk/nextjs\"": "clerkMiddleware } from \"@clerk/nextjs/server\"",
-      "createRouteMatcher } from '@clerk/nextjs'": "createRouteMatcher } from '@clerk/nextjs/server'",
-      "createRouteMatcher } from \"@clerk/nextjs\"": "createRouteMatcher } from \"@clerk/nextjs/server\""
-    },
-    "test_fixes": {
-      "@clerk/clerk-sdk": "@clerk/nextjs",
-      "@clerk/nextjs/api": "@clerk/nextjs/server",
-      "@clerk/nextjs/middleware": "@clerk/nextjs/server"
-    },
-    "router_fixes": {
-      "next/router": "next/navigation"
-    }
-  },
   "templated_files": {
     "package.json": "templates/package.json",
     "middleware.ts": "templates/middleware.ts",
@@ -333,17 +305,8 @@
     "allow_zero_tests_debug": false,
     "cleanup_stale_tests": "always"
   },
-  "mandatory_rag_queries": [
-    "versions exactes next.js clerk prisma jest ts-jest packages obligatoires",
-    "clerk v6 ClerkProvider layout.tsx clerkMiddleware async auth.protect middleware server",
-    "prisma 7 schema.prisma prisma.config.ts defineConfig authorId sans password createdAt updatedAt",
-    "await auth userId server component route handler clerk async interdit auth().userId useAuth useUser",
-    "prisma singleton import lib/prisma interdit new PrismaClient instanciation directe",
-    "server component listing générique prisma findMany typed array try catch dynamic no hooks",
-    "auth userId null guard route handler if userId return 401 avant prisma authorId ownerId",
-    "Prisma 7 datasource url interdit schema.prisma datasource generator multi-lignes canonique P1012",
-    "TypeScript strict tableau non typé interdit let array any prisma findMany catch fallback type explicite"
-  ],
+  "mandatory_rag_queries": [],
+  "_NOTE_mandatory_rag_queries": "migré vers rules_dev.md — section Concepts Stack Obligatoires",
   "mandatory_rag_k": 3,
   "mandatory_rag_snippet_chars": 900,
   "qdrant_filter": {
@@ -422,153 +385,8 @@
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"
   },
-  "content_guards": [
-    {
-      "id": "use_client",
-      "description": "Hooks React dans app/*.tsx sans directive use client",
-      "mode": "warn",
-      "file_prefix": "app/",
-      "file_extensions": [".tsx"],
-      "trigger_contains": [
-        "useEffect(",
-        "useState(",
-        "useRef(",
-        "useCallback(",
-        "useMemo(",
-        "useReducer(",
-        "useEffect,",
-        "useState,",
-        "useRef,",
-        "useCallback,",
-        "useMemo,",
-        "useReducer,"
-      ],
-      "requires_first_directive": "use client",
-      "message_lines": [
-        "USE CLIENT GUARD WARNING — NON BLOQUANT",
-        "Hooks React détectés sans directive en première ligne :",
-        "{details}",
-        "",
-        "Ajoute 'use client' en première ligne ou déplace les hooks dans un composant client."
-      ]
-    },
-    {
-      "id": "authorid_requires_userid_guard",
-      "description": "authorId basé sur userId sans garde null",
-      "mode": "block",
-      "file_prefix": "app/api/",
-      "file_extensions": [".ts"],
-      "trigger_contains": [
-        "authorId: userId",
-        "authorId : userId"
-      ],
-      "requires_regex_all": [
-        "if\\s*\\(\\s*!\\s*userId"
-      ],
-      "message_lines": [
-        "AUTHORID USERID GUARD — BUILD BLOQUÉ",
-        "authorId utilise userId sans garde de nullité :",
-        "{details}",
-        "",
-        "Ajoute avant Prisma: if (!userId) return 401."
-      ]
-    },
-    {
-      "id": "prisma_import_path",
-      "description": "Import Prisma relatif interdit",
-      "mode": "warn",
-      "file_prefix": "",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": [
-        "../lib/prisma",
-        "../../lib/prisma",
-        "../../../lib/prisma",
-        "../../../../lib/prisma"
-      ],
-      "message_lines": [
-        "PRISMA IMPORT PATH WARNING — NON BLOQUANT",
-        "Import Prisma relatif détecté :",
-        "{details}",
-        "",
-        "Utiliser l'alias canonique: import prisma from '@/lib/prisma'."
-      ]
-    },
-    {
-      "id": "prisma_named_import",
-      "description": "Import nommé prisma depuis @/lib/prisma",
-      "mode": "warn",
-      "file_prefix": "",
-      "file_extensions": [".ts", ".tsx"],
-      "trigger_contains": [
-        "import { prisma } from '@/lib/prisma'",
-        "import { prisma } from \"@/lib/prisma\""
-      ],
-      "message_lines": [
-        "PRISMA NAMED IMPORT WARNING — NON BLOQUANT",
-        "Import nommé Prisma détecté :",
-        "{details}",
-        "",
-        "Préférer: import prisma from '@/lib/prisma'."
-      ]
-    },
-    {
-      "id": "prisma_schema_datasource_url",
-      "description": "Prisma 7 interdit datasource.url dans schema.prisma",
-      "mode": "block",
-      "file_prefix": "prisma/",
-      "file_extensions": [".prisma"],
-      "trigger_contains": [
-        "url      = env(\"DATABASE_URL\")",
-        "url = env(\"DATABASE_URL\")",
-        "url = env('DATABASE_URL')"
-      ],
-      "message_lines": [
-        "PRISMA DATASOURCE URL GUARD — BUILD BLOQUÉ (P1012)",
-        "datasource.url est interdit dans schema.prisma :",
-        "{details}",
-        "",
-        "Supprimer la ligne url = env(...) du datasource."
-      ]
-    },
-    {
-      "id": "route_handler_untyped_signature",
-      "description": "Route handlers potentiellement non typés",
-      "mode": "warn",
-      "file_prefix": "app/api/",
-      "file_extensions": [".ts"],
-      "trigger_contains": [
-        "export async function GET(",
-        "export async function POST(",
-        "export async function PUT(",
-        "export async function PATCH(",
-        "export async function DELETE("
-      ],
-      "exclude_when_contains": [
-        ": Request",
-        ": NextRequest",
-        "}: { params:"
-      ],
-      "message_lines": [
-        "ROUTE HANDLER TYPING WARNING — NON BLOQUANT",
-        "Signature route handler non typée détectée :",
-        "{details}",
-        "",
-        "Ajouter les types Request/params pour éviter TS7006."
-      ]
-    }
-  ],
   "supervision": {
     "batch_size": 3,
     "supervisor_timeout_ms": 30000
-  },
-  "supervision_routing": {
-    "app/api/**/*.ts":      ["conformity", "security"],
-    "app/**/*.tsx":         ["conformity", "architecture"],
-    "app/**/*.ts":          ["conformity", "architecture"],
-    "prisma/schema.prisma": ["architecture"],
-    "lib/**/*.ts":          ["conformity"],
-    "**/*.test.*":          [],
-    "**/*.config.*":        [],
-    "**/*.css":             []
   }
 }

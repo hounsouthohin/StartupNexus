@@ -23,10 +23,10 @@ from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from agents.file_supervision_loop import FileSupervisionLoop
+    from .file_supervision_loop import FileSupervisionLoop
 
-from agents.dev_path_utils import first_directive_line, collect_forbidden_import_violations
-from agents.stack_config import get_forbidden_imports, get_forbidden_paths
+from .dev_path_utils import first_directive_line, collect_forbidden_import_violations
+from .stack_config import get_forbidden_imports, get_forbidden_paths
 
 logger = logging.getLogger(__name__)
 

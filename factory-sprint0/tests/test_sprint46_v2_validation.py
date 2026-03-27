@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from agents.architecture_agent import run_architecture_supervisor
 from agents.build_supervisor_agent import run_build_supervisor
 from agents.conformity_agent import run_conformity_supervisor
-from agents.dev import _run_build_supervisor_inline, _supervise_file_inline
+from agents.dev_loop import _run_build_supervisor_inline
+from agents.supervision_manager import _supervise_file_inline
 from agents.dev_test_agent import _match_supervision_routing
 from agents.security_agent import run_security_supervisor
 
@@ -192,11 +193,11 @@ def test_supervision_routing_dispatch():
 
 
 def test_supervise_file_inline_returns_correction_message():
-    with patch("agents.dev.run_conformity_supervisor", new=AsyncMock(return_value={
+    with patch("agents.supervision_manager.run_conformity_supervisor", new=AsyncMock(return_value={
         "status": "needs_fix",
         "confidence": 0.9,
         "fix_instruction": {"problem": "Stub", "fix": "Add real UI"},
-    })), patch("agents.dev.run_security_supervisor", new=AsyncMock(return_value={
+    })), patch("agents.supervision_manager.run_security_supervisor", new=AsyncMock(return_value={
         "status": "ok",
         "confidence": 0.8,
     })):
@@ -224,7 +225,7 @@ def test_supervise_file_inline_returns_correction_message():
 
 
 def test_run_build_supervisor_inline_formats_message():
-    with patch("agents.dev.run_build_supervisor", new=AsyncMock(return_value={
+    with patch("agents.dev_loop.run_build_supervisor", new=AsyncMock(return_value={
         "status": "needs_fix",
         "fix_instruction": {
             "file": "app/api/posts/route.ts",
