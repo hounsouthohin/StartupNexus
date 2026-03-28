@@ -1,4 +1,10 @@
-"""Superviseur Sécurité inline (Sprint 4.6 v2)."""
+"""
+DÉPRÉCIÉ — Phase C (27 Mars 2026).
+LLM supervisors retirés du pipeline. Conservé pour ne pas casser les imports.
+Non appelé en production. À supprimer en Sprint 6 si non réintégré.
+
+Superviseur Sécurité inline (Sprint 4.6 v2).
+"""
 
 from __future__ import annotations
 

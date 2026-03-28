@@ -142,92 +142,12 @@ async def _supervise_file_inline(
             },
         )
 
-    # ── Niveau 2 : Superviseurs LLM ──────────────────────────────────────────
-    # Contexte enrichi avec résultat déterministe si disponible
-    if det_context_str:
-        context = {**context, "det_tool_result": det_context_str}
-
-    tasks = {}
-    _det = context.get("det_tool_result", "")
-    if "conformity" in supervisors:
-        tasks["conformity"] = run_conformity_supervisor(
-            file_path=file_path,
-            file_content=file_content,
-            requirements=context.get("requirements", []),
-            plan=context.get("plan", {}),
-            files_so_far=context.get("files_so_far", {}),
-            project_name=context.get("project_name", ""),
-            run_id=context.get("run_id", ""),
-            stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
-            det_tool_result=_det,
-        )
-    if "security" in supervisors:
-        tasks["security"] = run_security_supervisor(
-            file_path=file_path,
-            file_content=file_content,
-            prisma_schema=context.get("prisma_schema", ""),
-            project_name=context.get("project_name", ""),
-            run_id=context.get("run_id", ""),
-            stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
-            det_tool_result=_det,
-        )
-    if "architecture" in supervisors:
-        tasks["architecture"] = run_architecture_supervisor(
-            file_path=file_path,
-            file_content=file_content,
-            prisma_schema=context.get("prisma_schema", ""),
-            plan=context.get("plan", {}),
-            files_so_far=context.get("files_so_far", {}),
-            project_name=context.get("project_name", ""),
-            run_id=context.get("run_id", ""),
-            stack_id=context.get("stack_id", "nextjs-clerk-prisma"),
-            det_tool_result=_det,
-        )
-
-    timeout_s = max(0.001, float(timeout_ms) / 1000.0)
-
-    async def _run_one(name: str, coro):
-        try:
-            result = await asyncio.wait_for(coro, timeout=timeout_s)
-            return name, result
-        except asyncio.TimeoutError:
-            return name, {"status": "skipped", "confidence": 0.0, "note": "timeout"}
-        except Exception:
-            return name, {"status": "skipped", "confidence": 0.0}
-
-    corrections: list[str] = []
-    results: dict = {}
-    gathered = await asyncio.gather(
-        *[_run_one(name, coro) for name, coro in tasks.items()],
-        return_exceptions=False,
-    )
-    for name, result in gathered:
-        results[name] = result
-        conf = float(result.get("confidence", 0.0) or 0.0)
-        if name == "conformity":
-            conformity_scores.append(conf)
-        elif name == "security":
-            security_scores.append(conf)
-        elif name == "architecture":
-            architecture_scores.append(conf)
-
-        status = str(result.get("status", "") or "").lower()
-        if status == "needs_fix" and conf > 0.7:
-            fix = result.get("fix_instruction", {}) or {}
-            if fix.get("problem") and fix.get("fix"):
-                corrections.append(
-                    f"[SUPERVISEUR {name.upper()}] {fix['problem']}\n"
-                    f"Fix obligatoire : {fix['fix']}"
-                )
-
-    if corrections:
-        return (
-            f"CORRECTIONS SUPERVISEURS OBLIGATOIRES sur {file_path} :\n"
-            + "\n\n".join(corrections)
-            + "\nApplique ces corrections avec write_file() maintenant.",
-            results,
-        )
-    return None, results
+    # ── Niveau 2 : LLM supervisors supprimés (Phase C — 27 Mars 2026) ───────
+    # Les superviseurs conformity/security/architecture ont été archivés dans
+    # agents/_archive/. Supervision = déterministe uniquement (tsc + eslint).
+    # Les paramètres supervisors/conformity_scores/security_scores/architecture_scores
+    # sont conservés dans la signature pour rétrocompatibilité des call sites existants.
+    return None, {}
 
 
 async def run_pre_build_deterministic_checks(project_dir: str) -> tuple[bool, str]:

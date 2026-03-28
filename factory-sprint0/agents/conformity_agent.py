@@ -1,4 +1,11 @@
-"""Superviseur Conformité inline (Sprint 4.6 v2)."""
+"""
+DÉPRÉCIÉ — Phase C (27 Mars 2026).
+LLM supervisors retirés du pipeline. Ce fichier est conservé pour ne pas casser
+les imports existants (supervision_manager.py, tests). Non appelé en production.
+À supprimer en Sprint 6 si non réintégré.
+
+Superviseur Conformité inline (Sprint 4.6 v2).
+"""
 
 from __future__ import annotations
 

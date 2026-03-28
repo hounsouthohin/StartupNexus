@@ -1,6 +1,8 @@
 import asyncio
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from agents.supervision_manager import (
     _supervise_file_inline,
     run_pre_build_deterministic_checks,
@@ -75,6 +77,7 @@ def test_supervise_file_inline_blocks_on_tsc_eslint_errors():
     mock_conf.assert_not_called()
 
 
+@pytest.mark.skip(reason="LLM supervisors supprimés Phase C — run_conformity_supervisor archivé dans agents/_archive/")
 def test_supervise_file_inline_passes_det_context_to_llm_supervisor():
     context = {
         "requirements": ["Page: /"],

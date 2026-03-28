@@ -2,6 +2,8 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from agents.architecture_agent import run_architecture_supervisor
 from agents.build_supervisor_agent import run_build_supervisor
 from agents.conformity_agent import run_conformity_supervisor
@@ -192,6 +194,7 @@ def test_supervision_routing_dispatch():
     assert _match_supervision_routing("middleware.ts", routing) == []
 
 
+@pytest.mark.skip(reason="LLM supervisors supprimés Phase C — CORRECTIONS SUPERVISEURS n'est plus produit")
 def test_supervise_file_inline_returns_correction_message():
     with patch("agents.supervision_manager.run_conformity_supervisor", new=AsyncMock(return_value={
         "status": "needs_fix",

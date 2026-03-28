@@ -12,7 +12,6 @@
     "prompt_rules",
     "technology_categories",
     "commands",
-    "import_remaps",
     "mandatory_rag_queries",
     "qdrant_filter"
   ],

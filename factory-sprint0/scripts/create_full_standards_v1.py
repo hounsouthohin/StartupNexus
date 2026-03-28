@@ -51,8 +51,12 @@ ZONES :
 
 from __future__ import annotations
 
+import argparse
 import hashlib
+import json
 import os
+import re
+from datetime import datetime, timezone
 from uuid import UUID
 
 from dotenv import load_dotenv
@@ -66,6 +70,184 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "factory_standards")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
 EMBEDDINGS = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+
+# =============================================================================
+# PHASE D — SANITIZATION DES ENTITES METIER
+# =============================================================================
+
+ENTITY_BASE_TERMS = (
+    "Product",
+    "Order",
+    "User",
+    "Booking",
+    "Invoice",
+    "Post",
+    "Book",
+    "Review",
+    "Todo",
+    "Category",
+    "Article",
+    "Item",
+    "Cart",
+    "Payment",
+)
+
+# Pluriels explicites pour garantir une substitution stable.
+ENTITY_PLURAL_SEGMENTS = {
+    "product": "products",
+    "order": "orders",
+    "user": "users",
+    "booking": "bookings",
+    "invoice": "invoices",
+    "post": "posts",
+    "book": "books",
+    "review": "reviews",
+    "todo": "todos",
+    "category": "categories",
+    "article": "articles",
+    "item": "items",
+    "cart": "carts",
+    "payment": "payments",
+}
+
+_ENTITY_MODEL_TERMS_LOWER = tuple(sorted((t.lower() for t in ENTITY_BASE_TERMS), key=len, reverse=True))
+_ENTITY_ROUTE_SEGMENTS = tuple(
+    sorted(set(_ENTITY_MODEL_TERMS_LOWER + tuple(ENTITY_PLURAL_SEGMENTS.values())), key=len, reverse=True)
+)
+_ENTITY_ROUTE_API_SEGMENTS_PATTERN = "|".join(re.escape(s) for s in _ENTITY_ROUTE_SEGMENTS)
+_ENTITY_MODEL_PATTERN = re.compile(
+    r"\bmodel\s+(" + "|".join(re.escape(s) for s in _ENTITY_MODEL_TERMS_LOWER) + r")\b"
+)
+_ENTITY_REQUIREMENT_MODEL_PATTERN = re.compile(
+    r"(Modèle Prisma:\s*)(" + "|".join(re.escape(s) for s in _ENTITY_MODEL_TERMS_LOWER) + r")\b",
+    re.IGNORECASE,
+)
+_ENTITY_PRISMA_ACCESSOR_PATTERN = re.compile(
+    r"\bprisma\.(" + "|".join(re.escape(s) for s in _ENTITY_MODEL_TERMS_LOWER) + r")\b"
+)
+_ENTITY_API_ROUTE_PATTERN = re.compile(
+    r"/api/(" + _ENTITY_ROUTE_API_SEGMENTS_PATTERN + r")(?=(?:/|$|[^A-Za-z0-9_]))"
+)
+_ENTITY_GENERIC_ROUTE_PATTERN = re.compile(
+    r"/(" + _ENTITY_ROUTE_API_SEGMENTS_PATTERN + r")(?=(?:/|$|[^A-Za-z0-9_]))"
+)
+
+# User est traité uniquement dans les contextes structurels (model / prisma / route)
+# pour préserver la lisibilité des règles auth (userId, utilisateur, etc.).
+_ENTITY_NOUN_TERMS = tuple(t for t in ENTITY_BASE_TERMS if t.lower() != "user")
+_ENTITY_NOUN_VARIANTS: set[str] = set()
+for _term in _ENTITY_NOUN_TERMS:
+    _lower = _term.lower()
+    _ENTITY_NOUN_VARIANTS.add(_term)
+    _ENTITY_NOUN_VARIANTS.add(_lower)
+    _plural = ENTITY_PLURAL_SEGMENTS.get(_lower, f"{_lower}s")
+    _ENTITY_NOUN_VARIANTS.add(_plural)
+    _ENTITY_NOUN_VARIANTS.add(_plural.capitalize())
+_ENTITY_NOUN_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(v) for v in sorted(_ENTITY_NOUN_VARIANTS, key=len, reverse=True)) + r")\b"
+)
+
+_ENTITY_AUDIT_VARIANTS: set[str] = set()
+for _term in ENTITY_BASE_TERMS:
+    _lower = _term.lower()
+    _ENTITY_AUDIT_VARIANTS.add(_term)
+    _ENTITY_AUDIT_VARIANTS.add(_lower)
+    _plural = ENTITY_PLURAL_SEGMENTS.get(_lower, f"{_lower}s")
+    _ENTITY_AUDIT_VARIANTS.add(_plural)
+    _ENTITY_AUDIT_VARIANTS.add(_plural.capitalize())
+_ENTITY_AUDIT_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(v) for v in sorted(_ENTITY_AUDIT_VARIANTS, key=len, reverse=True)) + r")\b"
+)
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Injecte les standards complets dans Qdrant avec sanitization optionnelle "
+            "des entités métier (Phase D)."
+        )
+    )
+    parser.add_argument(
+        "--audit-only",
+        action="store_true",
+        help="Affiche le rapport de pollution d'entités sans injecter dans Qdrant.",
+    )
+    parser.add_argument(
+        "--only-modified",
+        action="store_true",
+        help="Injecte uniquement les standards modifiés par la sanitization.",
+    )
+    parser.add_argument(
+        "--no-sanitize",
+        action="store_true",
+        help="Désactive la sanitization des entités métier (comportement legacy).",
+    )
+    return parser.parse_args()
+
+
+def _detect_domain_terms(text: str) -> list[str]:
+    return sorted({m.group(0) for m in _ENTITY_AUDIT_PATTERN.finditer(text)})
+
+
+def _sanitize_standard_text(text: str) -> str:
+    sanitized = text
+    sanitized = _ENTITY_REQUIREMENT_MODEL_PATTERN.sub(r"\1[MODEL_NAME]", sanitized)
+    sanitized = _ENTITY_MODEL_PATTERN.sub("model [MODEL_NAME]", sanitized)
+    sanitized = _ENTITY_PRISMA_ACCESSOR_PATTERN.sub("prisma.[entity]", sanitized)
+    sanitized = _ENTITY_API_ROUTE_PATTERN.sub("/api/[entities]", sanitized)
+    sanitized = _ENTITY_GENERIC_ROUTE_PATTERN.sub("/[entities]", sanitized)
+    sanitized = _ENTITY_NOUN_PATTERN.sub("[ENTITY]", sanitized)
+    return sanitized
+
+
+def _sanitize_standards(
+    indexed_standards: list[tuple[int, dict]],
+) -> tuple[list[dict], list[dict]]:
+    prepared: list[dict] = []
+    report: list[dict] = []
+
+    for idx, std in indexed_standards:
+        text = str(std.get("text", ""))
+        metadata = dict(std.get("metadata", {}))
+        before_terms = _detect_domain_terms(text)
+        sanitized_text = _sanitize_standard_text(text)
+        after_terms = _detect_domain_terms(sanitized_text)
+        changed = sanitized_text != text
+
+        if before_terms or changed:
+            report.append(
+                {
+                    "index": idx,
+                    "zone": metadata.get("zone", "unknown"),
+                    "category": metadata.get("category", "unknown"),
+                    "changed": changed,
+                    "terms_before": before_terms,
+                    "terms_after": after_terms,
+                    "excerpt": text.replace("\n", " ")[:180],
+                }
+            )
+
+        prepared.append(
+            {
+                "index": idx,
+                "text": sanitized_text,
+                "original_text": text,
+                "metadata": metadata,
+                "changed": changed,
+            }
+        )
+
+    return prepared, report
+
+
+def _write_pollution_report(report_items: list[dict]) -> str:
+    metrics_dir = os.path.join("logs", "metrics")
+    os.makedirs(metrics_dir, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    path = os.path.join(metrics_dir, f"qdrant_phase_d_entity_audit_{ts}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(report_items, f, ensure_ascii=True, indent=2)
+    return path
 
 
 def text_to_uuid(text: str) -> str:
@@ -2740,6 +2922,8 @@ def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
 
 
 def main() -> int:
+    args = _parse_args()
+
     print("\n" + "=" * 70)
     print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (Zone 1-16)")
     print("   Sources: Perplexity 2026-03-01 + runs empiriques + doc officielle")
@@ -2763,27 +2947,75 @@ def main() -> int:
     count_before = client.count(collection_name=COLLECTION_NAME, exact=True).count
     print(f"📊 Standards avant injection: {count_before}\n")
 
-    # Séparer active vs draft
-    ready = [s for s in ALL_STANDARDS if s["metadata"].get("status") != "draft"]
-    drafts = [s for s in ALL_STANDARDS if s["metadata"].get("status") == "draft"]
+    indexed_all = list(enumerate(ALL_STANDARDS, start=1))
+    indexed_ready = [(idx, s) for idx, s in indexed_all if s["metadata"].get("status") != "draft"]
+    drafts = [s for _, s in indexed_all if s["metadata"].get("status") == "draft"]
 
-    print(f"  ✅ Prêts à injecter : {len(ready)}")
+    sanitize_enabled = not args.no_sanitize
+    if sanitize_enabled:
+        prepared_ready, pollution_report = _sanitize_standards(indexed_ready)
+    else:
+        prepared_ready = [
+            {
+                "index": idx,
+                "text": std["text"],
+                "original_text": std["text"],
+                "metadata": std["metadata"],
+                "changed": False,
+            }
+            for idx, std in indexed_ready
+        ]
+        pollution_report = []
+
+    report_path = _write_pollution_report(pollution_report)
+    changed_count = sum(1 for x in prepared_ready if x["changed"])
+    polluted_count = len(pollution_report)
+
+    print("🧪 Audit entités métier (Phase D)")
+    print(f"  - Sanitization active         : {sanitize_enabled}")
+    print(f"  - Standards audités (actifs)  : {len(prepared_ready)}")
+    print(f"  - Standards pollués détectés  : {polluted_count}")
+    print(f"  - Standards modifiés          : {changed_count}")
+    print(f"  - Rapport JSON                : {report_path}")
+    if args.audit_only:
+        print("\nℹ️ Mode audit-only: aucune injection Qdrant effectuée.")
+        return 0
+
+    if args.only_modified:
+        targets = [x for x in prepared_ready if x["changed"]]
+    else:
+        targets = prepared_ready
+
+    print(f"  ✅ Prêts à injecter : {len(targets)}")
     print(f"  ⏳ Draft (non injectés) : {len(drafts)}\n")
 
     zones: dict[str, list] = {}
-    for std in ready:
+    for std in targets:
         zone = std["metadata"].get("zone", "unknown")
         zones.setdefault(zone, []).append(std)
 
     total_ok = 0
     total_err = 0
+    total_deleted = 0
 
     for zone, items in sorted(zones.items()):
         print(f"📁 {zone:<28} — {len(items)} standards")
         for std in items:
             preview = std["text"].replace("\n", " ")[:65]
             try:
+                old_id = None
+                new_id = None
+                if std["changed"]:
+                    old_id = text_to_uuid(std["original_text"])
+                    new_id = text_to_uuid(std["text"])
                 upsert_standard(client, std["text"], std["metadata"])
+                if std["changed"] and old_id and new_id and old_id != new_id:
+                    try:
+                        client.delete(collection_name=COLLECTION_NAME, points_selector=[old_id])
+                        total_deleted += 1
+                    except Exception:
+                        # Tolérance: l'ancien ID peut ne pas exister (première injection ou reset).
+                        pass
                 print(f"   ✅  {preview}...")
                 total_ok += 1
             except Exception as e:
@@ -2797,6 +3029,7 @@ def main() -> int:
     print("🎯 RÉSULTAT")
     print(f"   Avant     : {count_before}")
     print(f"   Injectés  : {total_ok}")
+    print(f"   Supprimés : {total_deleted}")
     print(f"   Erreurs   : {total_err}")
     print(f"   Total     : {count_after}")
     print("=" * 70 + "\n")
