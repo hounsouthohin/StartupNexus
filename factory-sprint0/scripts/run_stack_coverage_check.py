@@ -18,7 +18,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, List
+from typing import Any, Dict, List
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
@@ -28,95 +28,6 @@ from scripts.brief_catalog import get_coverage_projects
 # Briefs importés depuis le catalogue partagé — ne pas dupliquer ici.
 # Source : scripts/brief_catalog.py (PHASE0_BRIEFS)
 STACK_COVERAGE_PROJECTS: List[Dict[str, object]] = get_coverage_projects()
-
-# Briefs legacy conservés pour référence — non utilisés en Phase 0.
-_LEGACY_COVERAGE_PROJECTS: List[Dict[str, object]] = [
-    {
-        "project_name": "coverage-marketplace",
-        "tags": ["catalog", "orders", "public_private_pages", "crud_api"],
-        "phrase": (
-            "Marketplace produits avec Clerk (vendeur/acheteur). "
-            "Modèles Prisma Product et Order liés. "
-            "Pages: /, /products/[id], /dashboard, /orders. "
-            "Routes API: GET/POST /api/products, PUT /api/products/[id], GET/POST /api/orders."
-        ),
-    },
-    {
-        "project_name": "coverage-rbac-admin",
-        "tags": ["rbac", "admin_guard", "org_scope", "audit_log"],
-        "phrase": (
-            "Dashboard multi-utilisateur avec rôles admin/member via Clerk. "
-            "Modèles Prisma Workspace, Membership, Task, AuditLog. "
-            "Pages protégées: /dashboard, /admin/users, /admin/audit. "
-            "Routes API: GET /api/admin/users, PATCH /api/admin/users/[id]/role, GET /api/admin/audit."
-        ),
-    },
-    {
-        "project_name": "coverage-booking",
-        "tags": ["booking", "datetime", "availability", "conflict_guard"],
-        "phrase": (
-            "Système de réservation de créneaux avec Clerk. "
-            "Modèles Prisma Service, Slot, Booking. "
-            "Empêcher les doubles réservations sur le même slot. "
-            "Pages: /services, /services/[id], /bookings. "
-            "Routes API: GET /api/slots, POST /api/bookings, DELETE /api/bookings/[id]."
-        ),
-    },
-    {
-        "project_name": "coverage-billing",
-        "tags": ["billing", "invoice", "status_workflow", "json_field"],
-        "phrase": (
-            "Application de facturation avec Clerk. "
-            "Modèles Prisma Client et Invoice avec items Json, amount Float, dueDate DateTime. "
-            "Workflow statut invoice: draft -> sent -> paid. "
-            "Pages: /clients, /invoices, /invoices/[id]. "
-            "Routes API: GET/POST /api/clients, GET/POST /api/invoices, PUT /api/invoices/[id]/status."
-        ),
-    },
-    {
-        "project_name": "coverage-social",
-        "tags": ["social_feed", "relations", "pagination", "filters"],
-        "phrase": (
-            "Mini réseau social avec Clerk. "
-            "Modèles Prisma Post, Comment, Like, Follow. "
-            "Feed paginé et filtrable par userId. "
-            "Pages: /feed, /profile/[id], /post/[id]. "
-            "Routes API: GET/POST /api/posts, POST /api/posts/[id]/like, GET/POST /api/posts/[id]/comments."
-        ),
-    },
-    {
-        "project_name": "coverage-habit-analytics",
-        "tags": ["analytics", "streaks", "nested_routes", "datetime"],
-        "phrase": (
-            "Habit tracker avec Clerk. "
-            "Modèles Prisma Habit et HabitLog. "
-            "Pages: /dashboard avec streaks, /habits/[id]. "
-            "Routes API imbriquées: GET/POST /api/habits et GET/POST /api/habits/[id]/log."
-        ),
-    },
-    {
-        "project_name": "coverage-support-tickets",
-        "tags": ["ticketing", "status_transitions", "assignee", "protected_api"],
-        "phrase": (
-            "Support desk avec tickets et assignation agent. "
-            "Modèles Prisma Ticket, TicketComment, AgentAssignment. "
-            "Statuts ticket: open -> in_progress -> resolved -> closed. "
-            "Pages: /tickets, /tickets/[id], /admin/agents. "
-            "Routes API: GET/POST /api/tickets, PATCH /api/tickets/[id]/status, POST /api/tickets/[id]/assign."
-        ),
-    },
-    {
-        "project_name": "coverage-content-cms",
-        "tags": ["cms", "slug", "seo_pages", "publish_toggle"],
-        "phrase": (
-            "CMS blog avec Clerk (auteur unique). "
-            "Modèle Prisma Post avec slug unique et published boolean. "
-            "Pages: /, /blog/[slug], /dashboard. "
-            "Routes API: POST /api/posts, PUT /api/posts/[id] (toggle published), DELETE /api/posts/[id]."
-        ),
-    },
-]
-
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -142,11 +53,32 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _project_inputs(max_projects: int) -> List[Dict[str, str]]:
+def _project_inputs(max_projects: int) -> List[Dict[str, Any]]:
     dataset = STACK_COVERAGE_PROJECTS
     if max_projects and max_projects > 0:
         dataset = dataset[:max_projects]
-    return [{"project_name": str(p["project_name"]), "phrase": str(p["phrase"])} for p in dataset]
+    projects: List[Dict[str, Any]] = []
+    for p in dataset:
+        project_name = str(p.get("project_name", "")).strip()
+        brief = p.get("brief", {})
+        if isinstance(brief, dict) and str(brief.get("description", "")).strip():
+            projects.append({"project_name": project_name, "brief": brief})
+            continue
+
+        # Compat legacy (anciens datasets en "phrase")
+        phrase = str(p.get("phrase", "")).strip()
+        projects.append(
+            {
+                "project_name": project_name,
+                "brief": {
+                    "description": phrase,
+                    "models": [],
+                    "pages": [],
+                    "routes": [],
+                },
+            }
+        )
+    return projects
 
 
 async def main() -> None:

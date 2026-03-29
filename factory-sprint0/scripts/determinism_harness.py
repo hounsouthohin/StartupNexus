@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import json
 import os
 import sys
@@ -248,13 +249,23 @@ def _evaluate_thresholds(metrics: dict[str, Any], baseline_agg: dict[str, Any]) 
     return len(failures) == 0, failures, deltas
 
 
-def _build_projects(runs: int) -> list[dict[str, str]]:
+def _build_projects(runs: int) -> list[dict[str, Any]]:
     from scripts.run_batch import BATCH_PROJECTS  # lazy — évite temporalio hors conteneur
     reference = BATCH_PROJECTS[0]
+    reference_brief = reference.get("brief", {})
+    if not isinstance(reference_brief, dict) or not str(reference_brief.get("description", "")).strip():
+        # Compat legacy (anciens catalogues en phrase)
+        phrase = str(reference.get("phrase", "")).strip()
+        reference_brief = {
+            "description": phrase,
+            "models": [],
+            "pages": [],
+            "routes": [],
+        }
     return [
         {
             "project_name": f"determinism-{i:02d}",
-            "phrase": reference["phrase"],
+            "brief": copy.deepcopy(reference_brief),
         }
         for i in range(1, runs + 1)
     ]

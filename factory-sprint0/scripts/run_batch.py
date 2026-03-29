@@ -41,7 +41,7 @@ TS_CODE_RE = re.compile(r"\bTS(?P<code>\d{4,5})\b")
 
 # Briefs importés depuis le catalogue partagé — ne pas dupliquer ici.
 # Source : scripts/brief_catalog.py (PHASE0_BRIEFS)
-BATCH_PROJECTS: List[Dict[str, str]] = get_batch_projects(5)
+BATCH_PROJECTS: List[Dict[str, Any]] = get_batch_projects(5)
 
 
 def _learner_events_count() -> int:
@@ -444,7 +444,7 @@ async def _stream_activity_events_to_sorties(
 
 async def _run_one(
     client: Client,
-    phrase: str,
+    brief: dict,
     project_name: str,
     result_timeout_seconds: float | None = None,
     sanity_mode: bool = False,
@@ -456,7 +456,7 @@ async def _run_one(
 
     handle = await client.start_workflow(
         TodoPilotWorkflow.run,
-        {"phrase": phrase, "project_name": project_name, "sanity_mode": bool(sanity_mode)},
+        {"brief": brief, "project_name": project_name, "sanity_mode": bool(sanity_mode)},
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
@@ -526,7 +526,7 @@ async def _run_one(
         "workflow_id": workflow_id,
         "run_id": getattr(handle, "first_execution_run_id", None),
         "project_name": project_name,
-        "phrase": phrase,
+        "brief_description": brief.get("description", "") if isinstance(brief, dict) else "",
         "started_at": started_at,
         "duration_seconds": duration_seconds,
         "workflow_success": workflow_success,
@@ -563,7 +563,7 @@ async def _run_one(
 
 
 async def run_batch(
-    projects: List[Dict[str, str]],
+    projects: List[Dict[str, Any]],
     result_timeout_seconds: float | None = None,
     sanity_mode: bool = False,
 ) -> Dict[str, Any]:
@@ -573,7 +573,7 @@ async def run_batch(
     for item in projects:
         run_data = await _run_one(
             client=client,
-            phrase=item["phrase"],
+            brief=item["brief"],
             project_name=item["project_name"],
             result_timeout_seconds=result_timeout_seconds,
             sanity_mode=sanity_mode,
@@ -683,12 +683,12 @@ def _parse_args() -> argparse.Namespace:
         "--briefs",
         type=str,
         default="",
-        help="Chemin vers un JSON de briefs: [{\"project_name\": \"...\", \"phrase\": \"...\"}, ...].",
+        help="Chemin vers un JSON de briefs: [{\"project_name\": \"...\", \"brief\": {\"description\": \"...\", \"models\": [], \"pages\": [], \"routes\": []}}, ...].",
     )
     return parser.parse_args()
 
 
-def _build_cli_projects(batch_size: int) -> List[Dict[str, str]]:
+def _build_cli_projects(batch_size: int) -> List[Dict[str, Any]]:
     """
     Construit une liste de projets depuis le catalogue partagé (brief_catalog.py).
     Si batch_size > 5, recycle les briefs en suffixant les noms.
@@ -696,21 +696,23 @@ def _build_cli_projects(batch_size: int) -> List[Dict[str, str]]:
     return get_batch_projects(batch_size)
 
 
-def _load_projects_from_briefs_file(path: str) -> List[Dict[str, str]]:
+def _load_projects_from_briefs_file(path: str) -> List[Dict[str, Any]]:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     if not isinstance(data, list) or not data:
         raise ValueError("--briefs doit contenir une liste non vide d'objets")
 
-    projects: List[Dict[str, str]] = []
+    projects: List[Dict] = []
     for i, item in enumerate(data, start=1):
         if not isinstance(item, dict):
             raise ValueError(f"--briefs item #{i} invalide: dict attendu")
         project_name = str(item.get("project_name", "")).strip()
-        phrase = str(item.get("phrase", "")).strip()
-        if not project_name or not phrase:
-            raise ValueError(f"--briefs item #{i}: project_name et phrase sont obligatoires")
-        projects.append({"project_name": project_name, "phrase": phrase})
+        brief = item.get("brief", {})
+        if not project_name:
+            raise ValueError(f"--briefs item #{i}: project_name est obligatoire")
+        if not isinstance(brief, dict) or not brief.get("description"):
+            raise ValueError(f"--briefs item #{i}: brief dict avec description est obligatoire")
+        projects.append({"project_name": project_name, "brief": brief})
     return projects
 
 

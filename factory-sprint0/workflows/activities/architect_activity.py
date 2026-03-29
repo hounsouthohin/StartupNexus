@@ -123,10 +123,12 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     # ── 1. Validation du contrat d'entrée ────────────────────────────────
     validate_input("architect_agent", input_data)
 
-    phrase = input_data.get("phrase", "").strip()
+    brief = input_data.get("brief", {})
+    if not isinstance(brief, dict):
+        brief = {}
     project_name = input_data.get("project_name", "projet-sans-nom")
 
-    activity.logger.info(f"Architect démarré → Projet: {project_name} | Phrase: {phrase[:80]}...")
+    activity.logger.info(f"Architect démarré → Projet: {project_name} | Brief: {brief.get('description', '')[:80]}...")
 
     # ── 2. Imports différés (pour éviter les problèmes de circularité ou de worker startup) ──
     try:
@@ -144,22 +146,22 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         raise ApplicationError("AGENT_INIT_FAILED", f"Impossible de créer l'agent Architect: {str(e)}")
 
     initial_state = {
-        "messages": [HumanMessage(content=phrase)],
-        "normalized_brief": "",   # Rempli par brief_normalizer_node
-        "parsed_brief": {},       # Rempli par brief_normalizer_node (parser déterministe)
+        "messages": [HumanMessage(content=brief.get("description", ""))],
+        "brief": brief,           # Brief structuré JSON — source de vérité (description, models, pages, routes)
         "rag_context": "",
         "plan": {},
         "specification": "",
         "mermaid_diagram": "",
         "requirements": [],
         "user_flows": [],
-        "ir_schema": [],          # IR canonique — Prisma models (rempli par formatter_node)
-        "ir_pages": [],           # IR canonique — pages (rempli par formatter_node)
-        "ir_routes": [],          # IR canonique — API routes (rempli par formatter_node)
-        "spec_structured": None,  # Dual-output P2 (rempli par formatter_node)
+        "ir_schema": [],
+        "ir_pages": [],
+        "ir_routes": [],
+        "spec_structured": None,
+        "project_spec": {},
         "stack_id": str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         "run_id": run_id,
-        "project_name": project_name,  # Injecté dans le planner pour briser le cache OpenAI
+        "project_name": project_name,
     }
 
     try:
@@ -177,11 +179,10 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         # Si absent (fallback ancien pipeline), on reconstruit depuis requirements.
         project_spec_dict = final_state.get("project_spec") or {}
 
-        # ── 5. Vérification Clerk compliance sur le brief original ────────────
-        # On vérifie le brief original (phrase) et non la spec textuelle —
-        # ProjectSpec est structuré, il ne peut pas contenir ces patterns.
+        # ── 5. Vérification Clerk compliance sur la description du brief ──────
+        # On vérifie la description textuelle — ProjectSpec structuré ne peut pas contenir ces patterns.
         violations = _validate_clerk_compliance(
-            phrase,
+            brief.get("description", ""),
             "",
             stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         )

@@ -22,7 +22,7 @@
         "url": "http://factory-worker:5000/start-saas",
         "jsonParameters": true,
         "options": {},
-        "bodyParametersJson": "={{ { \"phrase\": $json.body.phrase || \"SaaS inconnu\" } }}"
+        "bodyParametersJson": "={{ { \"brief\": { \"description\": ($json.body.brief && $json.body.brief.description) || $json.body.phrase || \"SaaS inconnu\" } } }}"
       },
       "name": "Call Factory API",
       "type": "n8n-nodes-base.httpRequest",

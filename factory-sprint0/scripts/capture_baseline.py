@@ -34,13 +34,20 @@ from config.factory_config import TEMPORAL_ADDRESS
 TASK_QUEUE = "factory-task-queue"
 
 # Brief identique pour les 5 runs — cohérence baseline
-BASELINE_PHRASE = (
-    "Blog CMS avec Clerk (auteur unique)\n"
-    "- Modele Prisma : Post { id String @id @default(cuid()), title, content, "
-    "slug String @unique, published Boolean @default(false), createdAt, authorId String }\n"
-    "- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n"
-    "- API Route : PUT /api/posts/[id] (toggle published, auth requise)"
-)
+BASELINE_BRIEF = {
+    "description": "Blog CMS avec Clerk (auteur unique), pages publiques + dashboard protégé.",
+    "models": [
+        "Post { id String @id @default(cuid()), title String, content String, slug String @unique, published Boolean @default(false), authorId String, createdAt DateTime @default(now()) }",
+    ],
+    "pages": [
+        {"path": "/", "auth": False},
+        {"path": "/blog/[slug]", "auth": False},
+        {"path": "/dashboard", "auth": True},
+    ],
+    "routes": [
+        {"method": "PUT", "path": "/api/posts/[id]"},
+    ],
+}
 BASELINE_PROJECT = "personal-blog"
 
 # Chemin sorties.md — lu après chaque run pour extraire run_metric
@@ -114,7 +121,7 @@ async def _run_one(
 
     handle = await client.start_workflow(
         "TodoPilotWorkflow",
-        {"phrase": BASELINE_PHRASE, "project_name": BASELINE_PROJECT},
+        {"brief": BASELINE_BRIEF, "project_name": BASELINE_PROJECT},
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
@@ -259,8 +266,8 @@ async def capture_baseline(runs_count: int = 5, timeout_seconds: float | None = 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "sprint_context": "baseline_avant_sprint_a",
-        "brief": BASELINE_PROJECT,
-        "phrase": BASELINE_PHRASE,
+        "project_name": BASELINE_PROJECT,
+        "brief": BASELINE_BRIEF,
         "temporal_address": TEMPORAL_ADDRESS,
         "aggregated": aggregated,
         "runs": runs,

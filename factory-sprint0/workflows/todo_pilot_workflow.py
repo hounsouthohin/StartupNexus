@@ -20,7 +20,7 @@ from config.factory_config import (
 
 @dataclass
 class TodoPilotRequest:
-    phrase: str
+    brief: dict
     project_name: str
     stack_id: str = "nextjs-clerk-prisma"
     sanity_mode: bool = False
@@ -60,18 +60,18 @@ class TodoPilotWorkflow:
     async def run(self, request: "TodoPilotRequest | Dict[str, str]") -> "TodoPilotOutput":
         if isinstance(request, dict):
             request = TodoPilotRequest(
-                phrase=request.get("phrase", "Crée une ToDo app Next.js avec Clerk auth"),
+                brief=request.get("brief", {}),
                 project_name=request.get("project_name", "todo-pilot-sprint05"),
                 stack_id=request.get("stack_id", "nextjs-clerk-prisma"),
                 sanity_mode=bool(request.get("sanity_mode", False)),
             )
 
-        phrase = request.phrase
+        brief = request.brief if isinstance(request.brief, dict) else {}
         project_name = request.project_name
         stack_id = request.stack_id or "nextjs-clerk-prisma"
         sanity_mode = bool(request.sanity_mode)
 
-        workflow.logger.info(f"TodoPilot démarré – Phrase: {phrase} | Stack: {stack_id}")
+        workflow.logger.info(f"TodoPilot démarré – Projet: {project_name} | Brief: {brief.get('description', '')[:80]} | Stack: {stack_id}")
 
         start_time = workflow.now()
         run_id = str(workflow.uuid4())
@@ -99,7 +99,7 @@ class TodoPilotWorkflow:
             # ── 1. Architect ──────────────────────────────────────────────
             architect_result: Dict[str, Any] = await workflow.execute_activity(
                 architect_activity,
-                args=[{"phrase": phrase, "project_name": project_name, "stack_id": stack_id}, run_id],
+                args=[{"brief": brief, "project_name": project_name, "stack_id": stack_id}, run_id],
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=architect_retry_policy,
             )

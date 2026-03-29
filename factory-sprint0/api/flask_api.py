@@ -55,13 +55,40 @@ def _check_rate_limit(ip: str) -> bool:
     return True
 
 
-async def _start_saas_workflow(phrase: str, project_name: str, stack_id: str) -> dict:
+def _normalize_brief(payload: dict) -> dict:
+    """
+    Normalise l'entrée vers le format brief structuré.
+    Compat legacy: accepte encore "phrase" et la convertit.
+    """
+    brief = payload.get("brief", {})
+    if isinstance(brief, dict):
+        description = str(brief.get("description", "")).strip()
+        models = brief.get("models", [])
+        pages = brief.get("pages", [])
+        routes = brief.get("routes", [])
+        return {
+            "description": description,
+            "models": models if isinstance(models, list) else [],
+            "pages": pages if isinstance(pages, list) else [],
+            "routes": routes if isinstance(routes, list) else [],
+        }
+
+    phrase = str(payload.get("phrase", "")).strip()
+    return {
+        "description": phrase,
+        "models": [],
+        "pages": [],
+        "routes": [],
+    }
+
+
+async def _start_saas_workflow(brief: dict, project_name: str, stack_id: str) -> dict:
     """Démarre un workflow SaaSFactory sur Temporal et retourne ses identifiants."""
     client = await Client.connect(TEMPORAL_ADDRESS)
     workflow_id = f"saas-{project_name}-{uuid.uuid4().hex[:8]}"
     handle = await client.start_workflow(
         SaaSFactoryWorkflow.run,
-        {"phrase": phrase, "project_name": project_name, "stack_id": stack_id},
+        {"brief": brief, "project_name": project_name, "stack_id": stack_id},
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
@@ -90,12 +117,12 @@ def start_saas() -> tuple:
         return jsonify({"error": "Rate limit exceeded — max 10 req/60s"}), 429
 
     payload = request.get_json(silent=True) or {}
-    phrase = str(payload.get("phrase", "")).strip()
+    brief = _normalize_brief(payload)
     project_name = str(payload.get("project_name", "")).strip()
     stack_id = str(payload.get("stack_id", "")).strip() or _DEFAULT_STACK_ID
 
-    if not phrase:
-        return jsonify({"error": "Champ 'phrase' requis"}), 400
+    if not brief.get("description", "").strip():
+        return jsonify({"error": "Champ 'brief.description' requis (legacy accepté: 'phrase')"}), 400
 
     if not project_name:
         project_name = f"saas-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
@@ -104,7 +131,7 @@ def start_saas() -> tuple:
         return jsonify({"error": "project_name invalide — format requis: ^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$"}), 400
 
     try:
-        started = asyncio.run(_start_saas_workflow(phrase, project_name, stack_id))
+        started = asyncio.run(_start_saas_workflow(brief, project_name, stack_id))
         return (
             jsonify(
                 {

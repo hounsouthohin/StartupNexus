@@ -37,13 +37,13 @@ import argparse
 import json
 import os
 import sys
-from typing import List, Dict
+from typing import Any, Dict, List
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
 
-REVEAL_PROJECTS: List[Dict[str, str]] = [
+REVEAL_PROJECTS: List[Dict[str, Any]] = [
     # ─────────────────────────────────────────────────────────────────────────
     # BRIEF 1 — Marketplace MVP
     # Teste : 2 modèles + relation, types Float/Int/Json,
@@ -51,43 +51,26 @@ REVEAL_PROJECTS: List[Dict[str, str]] = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "project_name": "marketplace-mvp",
-        "phrase": (
-            "Marketplace de produits artisanaux avec Clerk (vendeurs et acheteurs).\n"
-            "\n"
-            "Modèle Prisma : Product {\n"
-            "  id String @id @default(cuid()),\n"
-            "  name String,\n"
-            "  description String,\n"
-            "  price Float,\n"
-            "  stock Int @default(0),\n"
-            "  imageUrl String?,\n"
-            "  authorId String,\n"
-            "  createdAt DateTime @default(now())\n"
-            "}\n"
-            "\n"
-            "Modèle Prisma : Order {\n"
-            "  id String @id @default(cuid()),\n"
-            "  productId String,\n"
-            "  quantity Int,\n"
-            "  totalPrice Float,\n"
-            "  status String @default(\"pending\"),\n"
-            "  buyerId String,\n"
-            "  createdAt DateTime @default(now())\n"
-            "}\n"
-            "\n"
-            "Pages :\n"
-            "  - / : catalogue public (liste de tous les produits)\n"
-            "  - /products/[id] : page détail produit publique avec bouton commande\n"
-            "  - /dashboard : dashboard vendeur protégé (mes produits + mes ventes)\n"
-            "  - /orders : historique commandes de l'acheteur (protégé)\n"
-            "\n"
-            "API Routes :\n"
-            "  - GET  /api/products        : liste publique\n"
-            "  - POST /api/products        : créer un produit (auth vendeur)\n"
-            "  - PUT  /api/products/[id]   : modifier stock/prix (auth vendeur)\n"
-            "  - POST /api/orders          : passer une commande (auth acheteur)\n"
-            "  - GET  /api/orders          : mes commandes (auth acheteur)\n"
-        ),
+        "brief": {
+            "description": "Marketplace de produits artisanaux avec Clerk (vendeurs et acheteurs).",
+            "models": [
+                "Product { id String @id @default(cuid()), name String, description String, price Float, stock Int @default(0), imageUrl String?, authorId String, createdAt DateTime @default(now()) }",
+                "Order { id String @id @default(cuid()), productId String, quantity Int, totalPrice Float, status String @default(\"pending\"), buyerId String, createdAt DateTime @default(now()) }",
+            ],
+            "pages": [
+                {"path": "/", "auth": False},
+                {"path": "/products/[id]", "auth": False},
+                {"path": "/dashboard", "auth": True},
+                {"path": "/orders", "auth": True},
+            ],
+            "routes": [
+                {"method": "GET", "path": "/api/products"},
+                {"method": "POST", "path": "/api/products"},
+                {"method": "PUT", "path": "/api/products/[id]"},
+                {"method": "POST", "path": "/api/orders"},
+                {"method": "GET", "path": "/api/orders"},
+            ],
+        },
     },
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -97,39 +80,24 @@ REVEAL_PROJECTS: List[Dict[str, str]] = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "project_name": "habit-tracker",
-        "phrase": (
-            "Application de suivi d'habitudes personnelles avec Clerk.\n"
-            "\n"
-            "Modèle Prisma : Habit {\n"
-            "  id String @id @default(cuid()),\n"
-            "  name String,\n"
-            "  description String?,\n"
-            "  frequency String @default(\"daily\"),\n"
-            "  targetCount Int @default(1),\n"
-            "  color String @default(\"#4F46E5\"),\n"
-            "  authorId String,\n"
-            "  createdAt DateTime @default(now())\n"
-            "}\n"
-            "\n"
-            "Modèle Prisma : HabitLog {\n"
-            "  id String @id @default(cuid()),\n"
-            "  habitId String,\n"
-            "  completedAt DateTime @default(now()),\n"
-            "  note String?,\n"
-            "  authorId String\n"
-            "}\n"
-            "\n"
-            "Pages :\n"
-            "  - /dashboard : vue principale protégée avec liste des habitudes et streaks\n"
-            "  - /habits/[id] : détail d'une habitude avec historique des logs\n"
-            "\n"
-            "API Routes :\n"
-            "  - GET  /api/habits             : liste des habitudes de l'utilisateur\n"
-            "  - POST /api/habits             : créer une habitude\n"
-            "  - DELETE /api/habits/[id]      : supprimer une habitude\n"
-            "  - POST /api/habits/[id]/log    : enregistrer une complétion d'habitude\n"
-            "  - GET  /api/habits/[id]/log    : historique des logs d'une habitude\n"
-        ),
+        "brief": {
+            "description": "Application de suivi d'habitudes personnelles avec Clerk.",
+            "models": [
+                "Habit { id String @id @default(cuid()), name String, description String?, frequency String @default(\"daily\"), targetCount Int @default(1), color String @default(\"#4F46E5\"), authorId String, createdAt DateTime @default(now()) }",
+                "HabitLog { id String @id @default(cuid()), habitId String, completedAt DateTime @default(now()), note String?, authorId String }",
+            ],
+            "pages": [
+                {"path": "/dashboard", "auth": True},
+                {"path": "/habits/[id]", "auth": True},
+            ],
+            "routes": [
+                {"method": "GET", "path": "/api/habits"},
+                {"method": "POST", "path": "/api/habits"},
+                {"method": "DELETE", "path": "/api/habits/[id]"},
+                {"method": "POST", "path": "/api/habits/[id]/log"},
+                {"method": "GET", "path": "/api/habits/[id]/log"},
+            ],
+        },
     },
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -140,46 +108,27 @@ REVEAL_PROJECTS: List[Dict[str, str]] = [
     # ─────────────────────────────────────────────────────────────────────────
     {
         "project_name": "invoice-generator",
-        "phrase": (
-            "Générateur de factures B2B avec Clerk (freelances et PME).\n"
-            "\n"
-            "Modèle Prisma : Client {\n"
-            "  id String @id @default(cuid()),\n"
-            "  name String,\n"
-            "  email String,\n"
-            "  company String?,\n"
-            "  address String?,\n"
-            "  authorId String,\n"
-            "  createdAt DateTime @default(now())\n"
-            "}\n"
-            "\n"
-            "Modèle Prisma : Invoice {\n"
-            "  id String @id @default(cuid()),\n"
-            "  clientId String,\n"
-            "  invoiceNumber String @unique,\n"
-            "  amount Float,\n"
-            "  status String @default(\"draft\"),\n"
-            "  dueDate DateTime,\n"
-            "  items Json,\n"
-            "  notes String?,\n"
-            "  authorId String,\n"
-            "  createdAt DateTime @default(now())\n"
-            "}\n"
-            "\n"
-            "Pages :\n"
-            "  - /dashboard : résumé financier (chiffre d'affaires, factures en attente)\n"
-            "  - /clients : liste des clients (protégé)\n"
-            "  - /clients/[id] : fiche client avec ses factures\n"
-            "  - /invoices : liste de toutes les factures avec filtres par statut\n"
-            "  - /invoices/[id] : détail d'une facture (aperçu PDF-like)\n"
-            "\n"
-            "API Routes :\n"
-            "  - GET  /api/clients             : liste des clients\n"
-            "  - POST /api/clients             : créer un client\n"
-            "  - GET  /api/invoices            : liste des factures\n"
-            "  - POST /api/invoices            : créer une facture\n"
-            "  - PUT  /api/invoices/[id]/status : changer le statut (draft→sent→paid)\n"
-        ),
+        "brief": {
+            "description": "Générateur de factures B2B avec Clerk (freelances et PME).",
+            "models": [
+                "Client { id String @id @default(cuid()), name String, email String, company String?, address String?, authorId String, createdAt DateTime @default(now()) }",
+                "Invoice { id String @id @default(cuid()), clientId String, invoiceNumber String @unique, amount Float, status String @default(\"draft\"), dueDate DateTime, items Json, notes String?, authorId String, createdAt DateTime @default(now()) }",
+            ],
+            "pages": [
+                {"path": "/dashboard", "auth": True},
+                {"path": "/clients", "auth": True},
+                {"path": "/clients/[id]", "auth": True},
+                {"path": "/invoices", "auth": True},
+                {"path": "/invoices/[id]", "auth": True},
+            ],
+            "routes": [
+                {"method": "GET", "path": "/api/clients"},
+                {"method": "POST", "path": "/api/clients"},
+                {"method": "GET", "path": "/api/invoices"},
+                {"method": "POST", "path": "/api/invoices"},
+                {"method": "PUT", "path": "/api/invoices/[id]/status"},
+            ],
+        },
     },
 ]
 

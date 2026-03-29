@@ -214,13 +214,18 @@ if __name__ == "__main__":
 
     # ── Input valide ────────────────────────────────────────────────
     validate_input("architect_agent", {
-        "phrase": "Crée un SaaS de gestion de tâches avec authentification Clerk et notifications en temps réel",
+        "brief": {
+            "description": "Crée un SaaS de gestion de tâches avec authentification Clerk et notifications en temps réel",
+            "models": ["Task { id String @id @default(uuid()), title String, userId String }"],
+            "pages": [{"path": "/", "auth": True}],
+            "routes": [{"method": "POST", "path": "/api/tasks"}]
+        },
         "project_name": "taskflow-pro"
     })
 
-    # ── Input invalide (phrase trop courte) ─────────────────────────
+    # ── Input invalide (brief sans description) ──────────────────────
     validate_input("architect_agent", {
-        "phrase": "ok",
+        "brief": {},
         "project_name": "test"
     }, raise_on_error=False)
 

@@ -59,67 +59,6 @@ def _contains_forbidden_auth(text: str, stack_id: str = _DEFAULT_STACK_ID) -> bo
     return any(re.search(pattern, lowered) for pattern in patterns)
 
 
-def _is_generic_plan(plan: dict, normalized_brief: str) -> tuple[bool, str]:
-    """
-    Détecte si le plan est générique (auth-only) alors que le brief demande des entités métier.
-    Utilise normalized_brief (format Brief Normalizer : "- ModelName: ...") pour une détection fiable.
-    Fallback regex sur raw brief si normalized_brief est absent.
-    Retourne (is_generic, reason) — observation uniquement, non bloquant.
-    """
-    data_models_str = " ".join(str(m) for m in plan.get("data_models", [])).lower()
-    pages_str = " ".join(str(p) for p in plan.get("pages", [])).lower()
-
-    # Format Brief Normalizer : "- ModelName: champ1 (type), ..."
-    model_names = re.findall(r'^-\s+(\w+):', normalized_brief, re.MULTILINE)
-    if not model_names:
-        # Fallback : format raw brief (regex legacy)
-        model_names = re.findall(
-            r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', normalized_brief, re.IGNORECASE
-        )
-
-    for name in model_names:
-        if name.lower() not in ("user", "") and name.lower() not in data_models_str:
-            return True, f"Modèle '{name}' mentionné dans le brief mais absent du plan"
-
-    # Chemins métier (fonctionnent dans les deux formats)
-    business_paths = [
-        p for p in re.findall(r'/[\w/\[\]-]{2,}', normalized_brief)
-        if not any(auth in p for auth in ["sign-in", "sign-up", "login", "register"])
-    ]
-    for path in business_paths:
-        path_key = re.sub(r'\[[\w-]+\]', '', path).strip("/")
-        if path_key and path_key not in pages_str:
-            return True, f"Page/route '{path}' mentionnée dans le brief mais absente du plan"
-
-    return False, ""
-
-
-def _extract_requirements_from_plan(plan: dict) -> list:
-    """
-    Dérive les requirements déterministiquement depuis data_models/pages/api_routes du plan.
-    Ne lit jamais plan["requirements"] (LLM-généré, source de dérive documentée).
-    Pages converties en format URL (/dashboard) et non fichier (app/dashboard/page.tsx)
-    pour que la Règle C du requirements_engine matche correctement.
-    """
-    from agents.brief_parser import _app_route_to_url
-
-    def _to_url(page: str) -> str:
-        page = (page or "").strip()
-        if page.startswith("/"):
-            return page  # déjà au format URL
-        return _app_route_to_url(page)
-
-    reqs = []
-    for model in plan.get("data_models", []):
-        reqs.append(f"Modèle Prisma: {model}")
-    schema = plan.get("schema", "")
-    if schema and not plan.get("data_models"):
-        reqs.append(f"Modèle Prisma: {schema}")
-    for page in plan.get("pages", []):
-        reqs.append(f"Page: {_to_url(page)}")
-    for route in plan.get("api_routes", []):
-        reqs.append(f"API Route: {route}")
-    return reqs if reqs else ["Page: /"]
 
 
 def _build_hard_rewrite_instructions(stack_id: str) -> str:
@@ -185,135 +124,6 @@ def _resolve_architect_models(active_stack: str) -> tuple[str, str]:
     )
     return base_model, planner_model
 
-def _build_minimal_plan_from_phrase(phrase: str, stack_id: str = _DEFAULT_STACK_ID) -> dict:
-    """
-    Fallback déterministe sans LLM:
-    construit un plan JSON minimal valide à partir du brief.
-    """
-    model_blocks = re.findall(
-        r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)\s*\{([^}]+)\}',
-        phrase,
-        re.IGNORECASE,
-    )
-    model_names = []
-    data_models = []
-    for name, fields in model_blocks:
-        model_names.append(name)
-        field_list = re.sub(r"\s+", " ", fields.strip())
-        data_models.append(f"{name} {{ {field_list} }}")
-    if not data_models:
-        for name in re.findall(r'(?:Mod[eè]le?\s+Prisma|model)\s*:?\s*(\w+)', phrase, re.IGNORECASE):
-            if name not in model_names:
-                model_names.append(name)
-                data_models.append(name)
-
-    http_methods = re.findall(r'\b(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', phrase)
-    api_paths = [p for _, p in http_methods]
-    api_routes = [f"app/{p.strip('/')}/route.ts" for p in dict.fromkeys(api_paths)]
-
-    all_paths = re.findall(r'/[\w/\[\]-]{1,}', phrase)
-    page_paths = [p for p in all_paths if "/api/" not in p]
-    pages = []
-    for p in dict.fromkeys(page_paths):
-        if p == "/":
-            pages.append("app/page.tsx")
-        else:
-            pages.append(f"app/{p.strip('/')}/page.tsx")
-    if not pages:
-        pages = ["app/page.tsx"]
-
-    description = phrase.strip().splitlines()[0][:180] if phrase.strip() else "Web app"
-    key_features = []
-    if "/dashboard" in phrase:
-        key_features.append("dashboard protégé")
-    if http_methods:
-        key_features.append("API routes")
-    if not key_features:
-        key_features = ["fonctionnalités métier"]
-
-    requirements = []
-    for model in data_models:
-        requirements.append(f"Modèle Prisma: {model}")
-    for p in dict.fromkeys(page_paths):
-        requirements.append(f"Page: {p}")
-    for method, path in http_methods:
-        requirements.append(f"API Route: {method} {path}")
-    if not requirements:
-        requirements.append("Page: /")
-
-    return {
-        "app_type": "web_app",
-        "router_type": "app",
-        "stack": stack_id or _DEFAULT_STACK_ID,
-        "description": description,
-        "pages": pages,
-        "data_models": data_models,
-        "auth_required": True,
-        "api_routes": api_routes,
-        "key_features": key_features,
-        "requirements": requirements,
-    }
-
-
-def _build_minimal_spec_from_requirements(plan: dict, requirements: list[str]) -> str:
-    """
-    Fallback déterministe pour éviter un blocage Architect sur SPEC_INVALID.
-    Génère une spec markdown minimale, structurée, couvrant explicitement les requirements.
-    """
-    reqs = [str(r).strip() for r in (requirements or []) if str(r).strip()]
-    pages: list[str] = []
-    api_routes: list[str] = []
-    prisma_models: list[str] = []
-    other: list[str] = []
-    for r in reqs:
-        rl = r.lower()
-        if "modèle prisma" in rl or "model prisma" in rl:
-            prisma_models.append(r)
-        elif rl.startswith("page"):
-            pages.append(r)
-        elif rl.startswith("api route"):
-            api_routes.append(r)
-        else:
-            other.append(r)
-
-    stack = str((plan or {}).get("stack", _DEFAULT_STACK_ID))
-    description = str((plan or {}).get("description", "Spécification minimale déterministe"))
-    lines = [
-        "## Vue d'ensemble",
-        description,
-        "",
-        "## Stack technique",
-        f"- Stack: {stack}",
-        "- Next.js App Router",
-        "- Clerk",
-        "- Prisma + PostgreSQL",
-        "",
-        "## Structure des pages",
-    ]
-    if pages:
-        lines.extend([f"- {p}" for p in pages])
-    else:
-        lines.append("- Page: /")
-
-    lines.extend(["", "## Schéma Prisma"])
-    if prisma_models:
-        lines.extend([f"- {m}" for m in prisma_models])
-    else:
-        lines.append("- Modèle Prisma: à compléter selon requirements")
-
-    lines.extend(["", "## Authentification Clerk", "- Accès protégé via Clerk sur les routes privées"])
-    lines.extend(["", "## API Routes"])
-    if api_routes:
-        lines.extend([f"- {a}" for a in api_routes])
-    else:
-        lines.append("- Aucune route API explicite dans les requirements")
-
-    lines.extend(["", "## Composants Tailwind", "- Composants UI basés sur Tailwind CSS"])
-    if other:
-        lines.extend(["", "## Requirements complémentaires"])
-        lines.extend([f"- {o}" for o in other])
-
-    return "\n".join(lines).strip() + "\n"
 
 
 def _append_architect_rag_event(query: str, scored_docs: list, error: str | None = None, run_id: str = "") -> None:
@@ -375,8 +185,7 @@ class ArchitectOutput(BaseModel):
 
 class AgentState(TypedDict):
     messages: Annotated[List, operator.add]
-    normalized_brief: str        # Brief Normalizer output (Pré-Sprint 4.6)
-    parsed_brief: dict           # Sortie du brief_parser déterministe (source de vérité)
+    brief: dict                  # Brief structuré : {"description", "models", "pages", "routes"}
     rag_context: str
     plan: dict
     specification: str
@@ -384,12 +193,9 @@ class AgentState(TypedDict):
     architect_output: ArchitectOutput
     run_id: str
     stack_id: str
-    project_name: str            # Identifiant unique du run — injecté dans le prompt planner pour briser le cache OpenAI
+    project_name: str
     requirements: list
     user_flows: list
-    ir_schema: list              # IR canonique — Prisma models (source: parsed_brief)
-    ir_pages: list               # IR canonique — pages (source: parsed_brief)
-    ir_routes: list              # IR canonique — API routes (source: parsed_brief)
     spec_structured: dict        # Dual-output P2 — spec JSON sérialisé
     project_spec: dict           # Nouvelle Base — ProjectSpec.model_dump() (Phase 1)
 
@@ -578,77 +384,11 @@ def create_architect_agent():
         planner_llm = _planner_llm_base
 
     # --- Nodes ---
-    async def brief_normalizer_node(state: AgentState):
-        """
-        Brief Normalizer (refactorisé Pré-Sprint 4.6) — Architecture "Brief as Ground Truth".
-
-        Étape 1 — Parser déterministe (TOUJOURS) :
-          Extrait par code les Modèles Prisma, pages, routes API explicitement présents.
-          Résultat stocké dans parsed_brief → source de vérité pour requirements[].
-
-        Étape 2 — LLM compléteur de lacunes (SEULEMENT si le brief est vague/partiel) :
-          Si le parser a tout trouvé → LLM skippé, normalized_brief construit depuis parser.
-          Si le parser a trouvé partiellement → LLM reçoit le parsé + brief pour compléter.
-          Si le parser n'a rien trouvé (brief vague) → LLM fait tout le travail.
-
-        Ce design garantit qu'une information explicite dans le brief ne peut jamais
-        être perdue, inventée ou altérée par un LLM.
-        """
-        from agents.brief_parser import (
-            parse_brief, requirements_from_parsed,
-            build_normalized_brief_from_parsed, describe_parsed
-        )
-
-        raw_phrase = state["messages"][-1].content
-
-        # ── Étape 1 : Parser déterministe ────────────────────────────────────
-        parsed = parse_brief(raw_phrase)
-        logger.info(f"[brief_parser] {describe_parsed(parsed)}")
-
-        # ── Étape 2 : Décision LLM ───────────────────────────────────────────
-        is_complete = (
-            parsed["has_explicit_models"]
-            and parsed["has_explicit_pages"]
-            and parsed["has_explicit_routes"]
-        )
-
-        if is_complete:
-            # Brief explicite : tout est parsé déterministiquement — LLM inutile
-            normalized = build_normalized_brief_from_parsed(parsed, raw_phrase)
-            logger.info(
-                f"[brief_normalizer] Brief complet parsé sans LLM "
-                f"({len(parsed['data_models'])} modèles, "
-                f"{len(parsed['pages'])} pages, "
-                f"{len(parsed['api_routes'])} routes)"
-            )
-        elif parsed["has_explicit_models"] or parsed["has_explicit_pages"] or parsed["has_explicit_routes"]:
-            # Brief partiel : le parser a extrait des données — construire directement sans LLM.
-            # Le LLM brief_normalizer retourne systématiquement le template vide dans ce cas
-            # (gpt-4o-mini ne remplit pas le format quand les données sont déjà injectées).
-            # build_normalized_brief_from_parsed contient les données parsées + raw_phrase —
-            # suffisant pour le planner et le RAG.
-            normalized = build_normalized_brief_from_parsed(parsed, raw_phrase)
-            logger.info(f"[brief_normalizer] Brief partiel — construit depuis parser sans LLM")
-        else:
-            # Brief vague : parser n'a rien trouvé — LLM seul recours.
-            normalizer_llm = ChatOpenAI(model=base_model, temperature=0.1, max_retries=2)
-            chain = prompts["brief_normalizer"] | normalizer_llm
-            logger.info(f"[brief_normalizer] Brief vague — LLM extrait tout")
-            try:
-                response = await chain.ainvoke({"input": raw_phrase})
-                normalized = response.content.strip() or raw_phrase
-            except Exception as e:
-                logger.warning(f"[brief_normalizer] LLM échoué ({e}) — fallback raw_phrase")
-                normalized = raw_phrase
-
-        logger.info(f"[brief_normalizer] normalized_brief ({len(normalized)} chars):\n{normalized[:400]}")
-        return {"normalized_brief": normalized, "parsed_brief": dict(parsed)}
 
     async def retrieval_node(state: AgentState):
-        # Utilise le brief normalisé comme query RAG — plus fiable que le query rewriting LLM
-        normalized_brief = state.get("normalized_brief", "")
-        raw_query = state["messages"][-1].content
-        rag_query = normalized_brief if normalized_brief else raw_query
+        # Utilise la description du brief comme query RAG
+        brief = state.get("brief", {})
+        rag_query = str(brief.get("description", "")) or state["messages"][-1].content
         run_id = str(state.get("run_id", ""))
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
         scored_docs = []  # List[Tuple[Document, float]]
@@ -679,108 +419,86 @@ def create_architect_agent():
     
     async def planner_node(state: AgentState):
         """
-        Nouvelle Base (Phase 1) — planner_node avec instructor + ProjectSpec.
-        Remplace la chaîne planner_LLM → spec_writer_LLM qui produisait DEGRADED 3/3.
+        Planner — construit ProjectSpec directement depuis state["brief"] structuré.
 
-        Stratégie :
-        - Brief explicite (brief_parser a trouvé modèles + pages + routes) → construction
-          déterministe du ProjectSpec sans appel LLM.
-        - Brief partiel ou vague → instructor force le LLM à produire exactement
-          le schéma ProjectSpec (Pydantic) — dérive de noms structurellement impossible.
-
-        Produit architect_output pour compatibilité descendante avec architect_activity.
+        Le brief est un dict avec : description, models[], pages[], routes[].
+        Aucun parsing regex — les données sont déjà structurées à l'entrée.
+        Si le brief est incomplet ou absent, instructor + LLM produit le ProjectSpec.
         """
-        phrase = state['messages'][-1].content
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
-        normalized_brief = state.get("normalized_brief", "")
-        parsed_brief = state.get("parsed_brief", {})
         project_name = state.get("project_name", "")
+        brief = state.get("brief", {})
 
-        # ── Helpers de construction déterministe ─────────────────────────────
         from agents.project_spec import ProjectSpec, PrismaModel, PrismaField, ApiRoute, AppPage
-        from agents.brief_parser import (
-            requirements_from_parsed, user_flows_from_parsed,
-            _app_route_to_url, _route_file_to_url,
-        )
 
-        def _parse_model_str(model_str: str) -> list[PrismaModel]:
-            """
-            Convertit un bloc modèle en PrismaModel(s).
-
-            Important:
-            - Supporte les briefs compacts du type:
-              "Client { ... } | Invoice { ... }"
-            - Retourne une liste pour éviter de perdre les modèles après un séparateur '|'.
-            """
-            out: list[PrismaModel] = []
+        def _parse_model_str(model_str: str) -> PrismaModel:
+            """Convertit une string Prisma DSL 'Name { field Type attrs, ... }' en PrismaModel."""
             blocks = re.findall(r'(\w+)\s*\{([^}]*)\}', model_str)
             if blocks:
-                for name, raw_fields in blocks:
-                    name = name.strip()
-                    fields: list[PrismaField] = []
-                    for line in raw_fields.strip().split(','):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            fname, ftype = parts[0], parts[1]
-                            fattrs = " ".join(parts[2:]) if len(parts) > 2 else ""
-                            fields.append(PrismaField(name=fname, type=ftype, attributes=fattrs))
-                    if not fields:
-                        fields = [PrismaField(name="id", type="String", attributes="@id @default(uuid())")]
-                    out.append(PrismaModel(name=name, fields=fields))
-                return out
+                name, raw_fields = blocks[0]
+                fields: list[PrismaField] = []
+                for line in raw_fields.strip().split(','):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        fname, ftype = parts[0], parts[1]
+                        fattrs = " ".join(parts[2:]) if len(parts) > 2 else ""
+                        fields.append(PrismaField(name=fname, type=ftype, attributes=fattrs))
+                if not fields:
+                    fields = [PrismaField(name="id", type="String", attributes="@id @default(uuid())")]
+                return PrismaModel(name=name.strip(), fields=fields)
+            # Fallback : juste un nom sans champs
+            name = (model_str or "").strip().split()[0] or "Model"
+            return PrismaModel(
+                name=name,
+                fields=[PrismaField(name="id", type="String", attributes="@id @default(uuid())")],
+            )
 
-            # Fallback legacy si aucun bloc { ... } n'est trouvé.
-            token = (model_str or "").strip().split()
-            name = token[0] if token else "Model"
-            return [
-                PrismaModel(
-                    name=name,
-                    fields=[PrismaField(name="id", type="String", attributes="@id @default(uuid())")],
-                )
-            ]
+        # ── Chemin 1 : brief structuré → ProjectSpec déterministe (zéro LLM) ──
+        brief_models = brief.get("models", [])
+        brief_pages = brief.get("pages", [])
+        brief_routes = brief.get("routes", [])
 
-        def _route_file_to_api_route(route_file: str, methods: dict) -> list[ApiRoute]:
-            """Convertit 'app/api/products/route.ts' + methods en liste ApiRoute."""
-            url = _route_file_to_url(route_file)
-            if not url:
-                return []
-            method_list = methods.get(route_file, ["GET"])
-            return [ApiRoute(method=meth, path=url)  # type: ignore[arg-type]
-                    for meth in method_list
-                    if meth in ("GET", "POST", "PUT", "PATCH", "DELETE")]
-
-        # ── Chemin 1 : brief explicite → ProjectSpec déterministe (zéro LLM) ──
-        has_parser_data = (
-            parsed_brief.get("has_explicit_models")
-            or parsed_brief.get("has_explicit_pages")
-            or parsed_brief.get("has_explicit_routes")
-        )
-
-        if has_parser_data:
+        if brief_models or brief_pages or brief_routes:
             models: list[PrismaModel] = []
-            for mdl in parsed_brief.get("data_models", []):
-                models.extend(_parse_model_str(mdl))
+            seen_names: set[str] = set()
+            for mdl_str in brief_models:
+                m = _parse_model_str(str(mdl_str))
+                if m.name not in seen_names:
+                    models.append(m)
+                    seen_names.add(m.name)
 
-            # Déduplique par nom pour éviter les doublons si le brief répète un modèle.
-            # Garde la première occurrence (ordre du brief conservé).
-            dedup: dict[str, PrismaModel] = {}
-            for model in models:
-                if model.name not in dedup:
-                    dedup[model.name] = model
-            models = list(dedup.values())
-            routes: list[ApiRoute] = []
-            for rf in parsed_brief.get("api_routes", []):
-                routes.extend(_route_file_to_api_route(rf, parsed_brief.get("api_methods", {})))
-            pages = [
-                AppPage(path=_app_route_to_url(p))
-                for p in parsed_brief.get("pages", [])
-                if p
-            ]
+            pages: list[AppPage] = []
+            seen_paths: set[str] = set()
+            for pg in brief_pages:
+                if isinstance(pg, dict):
+                    path = str(pg.get("path", "/"))
+                    auth = bool(pg.get("auth", True))
+                else:
+                    path, auth = str(pg), True
+                if path not in seen_paths:
+                    pages.append(AppPage(path=path, auth_required=auth))
+                    seen_paths.add(path)
             if not any(pg.path == "/" for pg in pages):
                 pages.insert(0, AppPage(path="/", auth_required=False))
+
+            routes: list[ApiRoute] = []
+            seen_routes: set[str] = set()
+            for rt in brief_routes:
+                if isinstance(rt, dict):
+                    method = str(rt.get("method", "GET")).upper()
+                    path = str(rt.get("path", "/api/resource"))
+                    key = f"{method}:{path}"
+                    if key not in seen_routes and method in ("GET", "POST", "PUT", "PATCH", "DELETE"):
+                        routes.append(ApiRoute(method=method, path=path))  # type: ignore[arg-type]
+                        seen_routes.add(key)
+
+            user_flows = (
+                [f"L'utilisateur crée via {r.method} {r.path}" for r in routes]
+                + [f"L'utilisateur visite {p.path}" for p in pages]
+            )
 
             spec = ProjectSpec(
                 project_name=project_name,
@@ -788,7 +506,7 @@ def create_architect_agent():
                 models=models,
                 routes=routes,
                 pages=pages,
-                user_flows=user_flows_from_parsed(parsed_brief),  # type: ignore[arg-type]
+                user_flows=user_flows,
             ).with_fingerprint()
 
             logger.info(
@@ -798,7 +516,7 @@ def create_architect_agent():
             )
 
         else:
-            # ── Chemin 2 : brief vague → instructor + LLM ────────────────────
+            # ── Chemin 2 : brief absent/incomplet → instructor + LLM ─────────
             try:
                 import instructor
                 from openai import AsyncOpenAI
@@ -810,6 +528,7 @@ def create_architect_agent():
                 )
 
             rag_context = state.get("rag_context", "")
+            description = brief.get("description", "") or state["messages"][-1].content
             stack_rules = ""
             try:
                 from utils.prompt_loader import load_stack_prompt
@@ -819,8 +538,7 @@ def create_architect_agent():
 
             human_content = (
                 f"[PROJET: {project_name}]\n\n"
-                f"Brief : {phrase}\n\n"
-                + (f"Brief normalisé :\n{normalized_brief}\n\n" if normalized_brief else "")
+                f"Description : {description}\n\n"
                 + (f"Standards RAG :\n{rag_context[:2000]}\n\n" if rag_context else "")
                 + (f"Règles stack :\n{stack_rules[:1000]}" if stack_rules else "")
             )
@@ -986,12 +704,17 @@ def create_architect_agent():
     # diagrammer_node supprimé (Pré-Sprint 4.6) — Sprint 6 dashboard le réintégrera via agent dédié.
 
     def formatter_node(state: AgentState):
-        parsed = state.get('parsed_brief') or {}
-        spec_text = state['specification']
+        # formatter_node hors-graphe — conservé pour compatibilité imports tests uniquement.
+        # Le planner_node produit directement architect_output depuis le brief structuré.
+        spec_text = state.get('specification', '')
         spec_lower = spec_text.lower()
 
-        # ── SpecOutput (P2) — déterministe, zéro LLM ─────────────────────────
-        # Résumé : premier paragraphe non-titre
+        # ── SpecOutput depuis project_spec (plus de parsed_brief / brief_parser) ─
+        project_spec = state.get('project_spec') or {}
+        models_raw = project_spec.get('models', [])
+        pages_raw = project_spec.get('pages', [])
+        routes_raw = project_spec.get('routes', [])
+
         spec_summary = ""
         for para in spec_text.split('\n\n'):
             stripped = para.strip()
@@ -999,27 +722,24 @@ def create_architect_agent():
                 spec_summary = stripped[:300]
                 break
 
-        # Entités IR vs spec
-        models = parsed.get('data_models', [])
         entities_in_spec, missing_entities = [], []
-        for model in models:
-            name = model.split('{')[0].strip()
+        for m in models_raw:
+            name = m.get('name', '') if isinstance(m, dict) else str(m).split()[0]
             (entities_in_spec if name.lower() in spec_lower else missing_entities).append(name)
 
-        # Pages IR vs spec (format URL)
-        from agents.brief_parser import _app_route_to_url
         pages_in_spec = []
-        for page in parsed.get('pages', []):
-            url = _app_route_to_url(page)
+        for pg in pages_raw:
+            url = pg.get('path', '') if isinstance(pg, dict) else str(pg)
             stripped = url.strip('/')
             if url in spec_text or (stripped and stripped in spec_lower):
                 pages_in_spec.append(url)
 
-        # Routes API IR vs spec
         routes_in_spec = []
-        from agents.brief_parser import _route_file_to_url
-        for route in parsed.get('api_routes', []):
-            url = _route_file_to_url(route)
+        for rt in routes_raw:
+            if isinstance(rt, dict):
+                url = rt.get('path', '')
+            else:
+                url = str(rt)
             if url in spec_text:
                 routes_in_spec.append(url)
 
@@ -1032,7 +752,7 @@ def create_architect_agent():
         )
         if missing_entities:
             logger.warning(
-                f"[formatter] SpecOutput — {len(missing_entities)} entité(s) IR absentes de la spec : {missing_entities}"
+                f"[formatter] SpecOutput — {len(missing_entities)} entité(s) absentes de la spec : {missing_entities}"
             )
 
         architect_output = ArchitectOutput(
@@ -1040,30 +760,26 @@ def create_architect_agent():
             mermaid_diagram=state.get('mermaid_diagram', ''),
             requirements=state.get('requirements', []),
             user_flows=state.get('user_flows', []),
-            ir_schema=parsed.get('data_models', []),
-            ir_pages=parsed.get('pages', []),
-            ir_routes=parsed.get('api_routes', []),
+            ir_schema=[m.get('name', '') if isinstance(m, dict) else str(m) for m in models_raw],
+            ir_pages=[p.get('path', '') if isinstance(p, dict) else str(p) for p in pages_raw],
+            ir_routes=[f"{r.get('method','')} {r.get('path','')}" if isinstance(r, dict) else str(r) for r in routes_raw],
             spec_structured=spec_output,
         )
         return {"architect_output": architect_output}
 
     # --- Graph Definition ---
-    # Nouvelle Base (Phase 1 — 28 Mars 2026) :
-    # brief_normalizer → retrieval → planner
+    # Pipeline (Phase 2 — 28 Mars 2026) :
+    # retrieval → planner
     #
-    # brief_normalizer : extrait les entités du brief (déterministe ou LLM)
-    # retrieval        : RAG Qdrant (max 3 docs, budgeté)
-    # planner          : produit ProjectSpec typé via instructor — ZÉRO dérive de noms possible
+    # retrieval : RAG Qdrant (max 3 docs, budgeté)
+    # planner   : lit state["brief"] structuré → ProjectSpec déterministe (zéro LLM si brief complet)
     #
-    # Supprimés : spec_writer_node (texte libre → DEGRADED 3/3), formatter_node
-    # spec_writer et formatter conservés dans le code pour compatibilité imports tests existants
+    # Supprimés : brief_normalizer (brief_parser éliminé), spec_writer_node, formatter_node (hors-graphe)
     workflow = StateGraph(AgentState)
-    workflow.add_node("brief_normalizer", brief_normalizer_node)
     workflow.add_node("retrieval", retrieval_node)
     workflow.add_node("planner", planner_node)
 
-    workflow.add_edge(START, "brief_normalizer")
-    workflow.add_edge("brief_normalizer", "retrieval")
+    workflow.add_edge(START, "retrieval")
     workflow.add_edge("retrieval", "planner")
     workflow.add_edge("planner", END)
 

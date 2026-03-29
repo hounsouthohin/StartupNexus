@@ -9,7 +9,7 @@ from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD
 
 @dataclass
 class SaaSFactoryRequest:
-    phrase: str
+    brief: dict
     project_name: str
     stack_id: str = _DEFAULT_STACK_ID
 
@@ -42,15 +42,15 @@ class SaaSFactoryWorkflow:
     async def run(self, request: "SaaSFactoryRequest | Dict[str, str]") -> "SaaSFactoryOutput":
         if isinstance(request, dict):
             request = SaaSFactoryRequest(
-                phrase=request.get("phrase", "phrase inconnue"),
+                brief=request.get("brief", {}),
                 project_name=request.get("project_name", "default-saas-project"),
                 stack_id=request.get("stack_id", _DEFAULT_STACK_ID),
             )
 
-        phrase = request.phrase
+        brief = request.brief if isinstance(request.brief, dict) else {}
         project_name = request.project_name
         stack_id = request.stack_id or _DEFAULT_STACK_ID
-        workflow.logger.info(f"Workflow démarré – phrase: {phrase}, project: {project_name}")
+        workflow.logger.info(f"Workflow démarré – Projet: {project_name} | Brief: {brief.get('description', '')[:80]}")
         run_id = str(workflow.uuid4())
         workflow.logger.info(f"Workflow run_id={run_id}")
 
@@ -71,7 +71,7 @@ class SaaSFactoryWorkflow:
             # Étape 1 : Architect Activity
             architect_result: Dict = await workflow.execute_activity(
                 architect_activity,
-                args=[{"phrase": phrase, "project_name": project_name, "stack_id": stack_id}, run_id],
+                args=[{"brief": brief, "project_name": project_name, "stack_id": stack_id}, run_id],
                 start_to_close_timeout=timedelta(seconds=300),
                 retry_policy=architect_retry_policy,
             )

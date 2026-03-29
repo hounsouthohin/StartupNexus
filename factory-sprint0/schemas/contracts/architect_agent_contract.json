@@ -7,15 +7,53 @@
 
   "input_schema": {
     "type": "object",
-    "required": ["phrase"],
+    "required": ["brief"],
     "additionalProperties": false,
     "properties": {
-      "phrase": {
-        "type": "string",
-        "description": "Commande utilisateur décrivant le projet SaaS à créer",
-        "minLength": 10,
-        "maxLength": 5000,
-        "examples": ["Crée un SaaS de gestion de tâches avec authentification Clerk"]
+      "brief": {
+        "type": "object",
+        "description": "Brief structuré JSON décrivant le projet SaaS à créer",
+        "required": ["description"],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Description textuelle du projet",
+            "minLength": 10,
+            "maxLength": 2000
+          },
+          "models": {
+            "type": "array",
+            "description": "Modèles Prisma DSL verbatim (ex: 'Task { id String @id, title String, ... }')",
+            "items": {"type": "string"},
+            "default": []
+          },
+          "pages": {
+            "type": "array",
+            "description": "Pages Next.js app-router",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {"type": "string"},
+                "auth": {"type": "boolean"}
+              },
+              "required": ["path"]
+            },
+            "default": []
+          },
+          "routes": {
+            "type": "array",
+            "description": "Routes API",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]},
+                "path": {"type": "string"}
+              },
+              "required": ["method", "path"]
+            },
+            "default": []
+          }
+        }
       },
       "project_name": {
         "type": "string",
@@ -156,7 +194,7 @@
         "properties": {
           "failed_step": {
             "type": "string",
-            "enum": ["brief_normalizer", "retrieval", "planner", "spec_writer"]
+            "enum": ["retrieval", "planner"]
           },
           "raw_error": {"type": "string"}
         }
