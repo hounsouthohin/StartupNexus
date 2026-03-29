@@ -13,6 +13,9 @@ from typing import Dict, Any, List
 # Validation contrats
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from scripts.validate_contracts import validate_input, validate_output
+from utils.run_report import write_run_report as _write_run_report
+
+MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 1
 
 
 def _classify_root_cause(
@@ -26,17 +29,36 @@ def _classify_root_cause(
     Catégorise la cause racine d'un run en échec ou partiel.
     Retourne une chaîne parmi :
       semantic_violation | missing_template | client_directive
-      | prisma_import | spec_drift | max_iterations | test_failure | unknown
+      | prisma_import | prisma_schema_config | prisma_env | prisma_client_api
+      | typescript_implicit_any | typescript_property_error | typescript_type_mismatch
+      | typescript_missing_import | typescript_error
+      | spec_drift | max_iterations | test_failure | workflow_execution_error | unknown
     """
     err = (last_build_error or "").lower()
+    # ── Prisma schema errors ──────────────────────────────────────────────────
     if "error code: p1012" in err and "datasource property `url`" in err:
         return "prisma_schema_config"
     if "cannot resolve environment variable: database_url" in err:
         return "prisma_env"
     if "no exported member 'prismaclient'" in err:
         return "prisma_client_api"
+    # ── Semantic violations ───────────────────────────────────────────────────
     if semantic_violations:
         return "semantic_violation"
+    # ── TypeScript errors (P1-C2) — avant les checks module génériques ────────
+    if "ts7006" in err or "ts7031" in err or "implicitly has an 'any' type" in err:
+        return "typescript_implicit_any"
+    if "ts2339" in err or ("property" in err and "does not exist on type" in err):
+        return "typescript_property_error"
+    if "ts2345" in err or "is not assignable to parameter of type" in err:
+        return "typescript_type_mismatch"
+    if "ts2552" in err or "ts2305" in err or (
+        "cannot find name" in err and ("nextresponse" in err or "response" in err)
+    ):
+        return "typescript_missing_import"
+    if re.search(r"ts\d{4}", err):
+        return "typescript_error"
+    # ── Module / import errors ────────────────────────────────────────────────
     if "module not found" in err or "can't resolve" in err or "cannot find module" in err:
         if "lib/prisma" in err or "prisma" in err:
             return "prisma_import"
@@ -45,6 +67,10 @@ def _classify_root_cause(
         return "client_directive"
     if "prisma" in err:
         return "prisma_import"
+    # ── Workflow-level failure (aucun build atteint) ───────────────────────────
+    if "workflow execution failed" in err:
+        return "workflow_execution_error"
+    # ── Fallbacks ─────────────────────────────────────────────────────────────
     if spec_validation_status == "DEGRADED":
         return "spec_drift"
     if iterations >= 10:
@@ -52,6 +78,37 @@ def _classify_root_cause(
     if last_test_error:
         return "test_failure"
     return "unknown"
+
+
+def _validate_run_metric_consistency(run_metric: dict) -> list:
+    """
+    Vérifie la cohérence interne d'un run_metric.
+    Retourne une liste de contradiction_flags (strings).
+    Non bloquant : les flags sont loggés en WARNING et inclus dans run_metric/run_report.
+
+    Règles :
+    - INVALIDE : build_success=True ET build_attempted=False
+    - INVALIDE : build_success=True ET last_build_error non vide
+    - VALIDE   : build_success=True ET tests_passed=False (tests non bloquants)
+    - VALIDE   : build_success=True ET build_attempts=0 (build au premier coup)
+    - WARNING  : build_success=False ET root_cause_category=unknown (pas de contradiction, signal de qualité)
+    """
+    flags = []
+    build_success = bool(run_metric.get("build_success", False))
+    build_attempted = bool(run_metric.get("build_attempted", False))
+    last_build_error = str(run_metric.get("last_build_error", "") or "")
+    root_cause = str(run_metric.get("root_cause_category", "") or "")
+
+    if build_success and not build_attempted:
+        flags.append("CONTRADICTION: build_success=True mais build_attempted=False")
+
+    if build_success and last_build_error:
+        flags.append(f"CONTRADICTION: build_success=True mais last_build_error non vide: {last_build_error[:80]}")
+
+    if not build_success and root_cause == "unknown":
+        flags.append("WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)")
+
+    return flags
 
 
 def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
@@ -103,8 +160,8 @@ def _check_semantic_invariants(combined_files: dict, stack_id: str = "nextjs-cle
     if "middleware.ts" not in combined_files:
         violations.append("MISSING middleware.ts")
 
-    # 3. schema.prisma ne doit pas contenir de champ password
-    schema = combined_files.get("schema.prisma", "")
+    # 3. schema.prisma ne doit pas contenir de champ password (chemin réel : prisma/schema.prisma)
+    schema = combined_files.get("prisma/schema.prisma", "") or combined_files.get("schema.prisma", "")
     if schema and re.search(r'\bpassword\b', schema, re.IGNORECASE):
         violations.append("FORBIDDEN field 'password' detected in schema.prisma")
 
@@ -331,6 +388,35 @@ def _append_guard_rule_metrics(run_id: str, dev_meta: dict, run_metric: dict, st
         activity.logger.warning(f"guard_rule_metrics logging failed (non-bloquant): {e}")
 
 
+def _scan_workdir_files(base_dir: str | None = None) -> dict:
+    """
+    Lit tous les fichiers source du répertoire projet après exécution du dev agent.
+    base_dir: répertoire à scanner (défaut: FACTORY_WORKDIR).
+    Retourne un dict {chemin_relatif: contenu} utilisé pour combined_files.
+    Ignore node_modules, .next, .git et fichiers binaires.
+    """
+    workdir = base_dir or os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
+    files: dict = {}
+    if not os.path.isdir(workdir):
+        return files
+    EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".json", ".prisma", ".css", ".md"}
+    NAMED_FILES = {".env.local", ".env", ".gitignore"}
+    IGNORE_DIRS = {"node_modules", ".next", ".git", "dist", "build", ".turbo", "snapshots"}
+    for root, dirs, filenames in os.walk(workdir):
+        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
+        for filename in filenames:
+            _, ext = os.path.splitext(filename)
+            if ext in EXTENSIONS or filename in NAMED_FILES:
+                abs_path = os.path.join(root, filename)
+                rel_path = os.path.relpath(abs_path, workdir).replace("\\", "/")
+                try:
+                    with open(abs_path, encoding="utf-8", errors="replace") as f:
+                        files[rel_path] = f.read()
+                except Exception:
+                    pass
+    return files
+
+
 def _compute_build_outcome(result_success: bool, final_message: str, dev_meta: Dict[str, Any]) -> tuple[bool, int, bool]:
     """
     Calcule un triplet cohérent (build_success, build_attempts, build_attempted).
@@ -343,6 +429,82 @@ def _compute_build_outcome(result_success: bool, final_message: str, dev_meta: D
     if bool(result_success) and (build_attempted or build_attempts > 0):
         return True, (build_attempts if build_attempts > 0 else 1), build_attempted
     return False, build_attempts, build_attempted
+
+
+async def _run_tsc_by_activity(project_workdir: str) -> Dict[str, Any]:
+    """
+    Exécute un check TypeScript post-run (observabilité activité).
+
+    Important: ce check est indépendant des checks tsc potentiellement exécutés
+    par le LLM pendant sa boucle. Il représente l'état final du disque au moment
+    de la fin de dev_test_activity.
+    """
+    details: Dict[str, Any] = {
+        "ran": False,
+        "skipped": True,
+        "ok": None,
+        "errors_count": 0,
+        "errors": [],
+        "error": "",
+    }
+    if not project_workdir or not os.path.isdir(project_workdir):
+        details["error"] = "project_workdir_absent"
+        return details
+    try:
+        from agents.shared_tools import run_tsc_check
+
+        result = await run_tsc_check(project_workdir)
+        skipped = bool(result.get("skipped", False))
+        raw_errors = result.get("errors", [])
+        errors = raw_errors if isinstance(raw_errors, list) else []
+        ran = not skipped
+        ok = bool(result.get("success", False)) and len(errors) == 0 if ran else None
+
+        details.update(
+            {
+                "ran": ran,
+                "skipped": skipped,
+                "ok": ok,
+                "errors_count": len(errors),
+                "errors": errors[:5],
+                "error": "",
+            }
+        )
+        return details
+    except Exception as e:
+        details["error"] = str(e)[:200]
+        return details
+
+
+def _build_tsc_feedback_prompt(errors: list) -> str:
+    """
+    Construit un feedback court et actionnable a reinjecter dans le prochain passage Dev.
+    """
+    if not isinstance(errors, list) or not errors:
+        return ""
+    lines: List[str] = []
+    for item in errors[:5]:
+        if not isinstance(item, dict):
+            continue
+        file_path = str(item.get("file", "") or "")
+        line = int(item.get("line", 0) or 0)
+        col = int(item.get("col", 0) or 0)
+        code = str(item.get("code", "") or "")
+        message = str(item.get("message", "") or "")
+        loc = file_path if file_path else "<unknown>"
+        if line > 0:
+            loc += f":{line}:{col if col > 0 else 1}"
+        marker = f" [{code}]" if code else ""
+        lines.append(f"- {loc}{marker} {message}".strip())
+    if not lines:
+        return ""
+    return (
+        "[POST_BUILD_TSC_FEEDBACK]\n"
+        "Le check tsc post-mortem a detecte des erreurs TypeScript bloquantes.\n"
+        "Corrige d'abord ces erreurs ciblees, puis relance tsc avant le build.\n"
+        "Erreurs prioritaires:\n"
+        + "\n".join(lines)
+    )
 
 
 @activity.defn(name="dev_test_activity")
@@ -361,6 +523,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
     activity.logger.info(f"DevTest démarré → Projet: {project_name}")
     run_metric: Dict[str, Any] = {
         "build_success": False,
+        "build_attempted": False,
         "files_count": 0,
         "clerk_compliant": False,
         "dev_files_count": 0,
@@ -372,23 +535,185 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         "last_test_error": "",
         "last_test_error_full": "",
         "last_failed_command": "",
+        "tsc_ran_by_activity": False,
+        "tsc_ok_by_activity": None,
+        "tsc_skipped_by_activity": True,
+        "tsc_errors_count_by_activity": 0,
+        "tsc_error_samples_by_activity": [],
+        "prisma_validate": {"cli_found": False, "ran": False, "ok": None, "schema_path": ""},
         "error": "run_not_started",
     }
 
     # ── 1. Validation entrée ───────────────────────────────────────────────
-    validate_input("dev_test_agent", input_data)
-
-    # ── 2. Import différé de l'agent ──────────────────────────────────────
-    try:
-        from agents.dev_test_agent import dev_test_agent
-    except ImportError as ie:
-        activity.logger.error(f"Échec import dev_test_agent : {ie}")
-        raise ApplicationError("IMPORT_FAILURE", f"Impossible d'importer dev_test_agent: {ie}")
+    # Le workflow peut enrichir le payload avec des champs non contractuels
+    # (ex: workflow_id) utilisés uniquement pour l'observabilité.
+    # On valide contre le contrat sur une copie normalisée.
+    _contract_input = dict(input_data)
+    _contract_input.pop("workflow_id", None)
+    validate_input("dev_test_agent", _contract_input)
 
     # ── 3. Exécution ──────────────────────────────────────────────────────
+    _activity_start = datetime.now(timezone.utc)
     try:
-        # Appel synchrone (pas d'await si c'est une fonction sync)
-        result = dev_test_agent(input_data)
+        # ── Nouvelle Base — dev_graph (LangGraph + outils Python natifs) ────
+        from agents.dev_graph import run_dev_agent
+        from langgraph.errors import GraphRecursionError
+        spec_dict = input_data.get("project_spec") or {}
+        try:
+            dev_result = await run_dev_agent(
+                spec=spec_dict,
+                project_name=project_name,
+                run_id=run_id,
+            )
+        except GraphRecursionError as gre:
+            activity.logger.warning(
+                f"[dev_graph] GraphRecursionError — recursion_limit atteint, "
+                f"traité comme BUILD_FAILED : {gre}"
+            )
+            dev_result = {
+                "success": False,
+                "build_attempts": 0,
+                "last_build_error": f"GraphRecursionError: {str(gre)[:200]}",
+                "error_signatures": [],
+            }
+
+        success = bool(dev_result.get("success", False))
+        build_attempts = int(dev_result.get("build_attempts", 0))
+        last_build_error = dev_result.get("last_build_error", "") or ""
+        final_message = "BUILD_SUCCESS" if success else "BUILD_FAILED"
+
+        # ── Scan disque → combined_files réels ──────────────────────────────
+        # Le workdir est isolé par projet dans FACTORY_WORKDIR/<project_name>
+        _factory_workdir = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
+        project_workdir = os.path.join(_factory_workdir, project_name)
+        combined_files = _scan_workdir_files(project_workdir)
+        activity.logger.info(f"[dev_graph] {len(combined_files)} fichiers lus depuis {project_workdir}")
+
+        # ── Check déterministe TypeScript (observabilité activité) ────────────
+        tsc_activity_details = await _run_tsc_by_activity(project_workdir)
+        if tsc_activity_details.get("ran"):
+            activity.logger.info(
+                "[TSC_ACTIVITY] ran=%s ok=%s errors=%s",
+                tsc_activity_details.get("ran"),
+                tsc_activity_details.get("ok"),
+                tsc_activity_details.get("errors_count"),
+            )
+        elif tsc_activity_details.get("error"):
+            activity.logger.warning(
+                "[TSC_ACTIVITY] non exécuté: %s",
+                tsc_activity_details.get("error"),
+            )
+        else:
+            activity.logger.info("[TSC_ACTIVITY] skipped=true (tsconfig/tsc indisponible)")
+
+        # ── Phase 1 X2: retry unique avec feedback tsc post-mortem ────────────
+        tsc_feedback_retry_triggered = False
+        tsc_feedback_prompt_preview = ""
+        if (
+            not success
+            and MAX_ACTIVITY_TSC_FEEDBACK_RETRIES > 0
+            and bool(tsc_activity_details.get("ran"))
+            and not bool(tsc_activity_details.get("ok"))
+            and int(tsc_activity_details.get("errors_count", 0) or 0) > 0
+        ):
+            tsc_feedback_prompt = _build_tsc_feedback_prompt(tsc_activity_details.get("errors", []))
+            if tsc_feedback_prompt:
+                tsc_feedback_retry_triggered = True
+                tsc_feedback_prompt_preview = tsc_feedback_prompt[:400]
+                activity.logger.info(
+                    "[TSC_FEEDBACK] retry unique active (errors=%s)",
+                    tsc_activity_details.get("errors_count", 0),
+                )
+                retry_result = await run_dev_agent(
+                    spec=spec_dict,
+                    project_name=project_name,
+                    run_id=run_id,
+                    extra_feedback=tsc_feedback_prompt,
+                )
+
+                first_pass_attempts = build_attempts
+                dev_result = retry_result
+                success = bool(dev_result.get("success", False))
+                build_attempts = first_pass_attempts + int(dev_result.get("build_attempts", 0) or 0)
+                last_build_error = dev_result.get("last_build_error", "") or ""
+                final_message = "BUILD_SUCCESS" if success else "BUILD_FAILED"
+
+                # Rescan + tsc après le retry pour refléter l'état final réel.
+                combined_files = _scan_workdir_files(project_workdir)
+                activity.logger.info(
+                    f"[dev_graph] retry tsc_feedback -> {len(combined_files)} fichiers lus depuis {project_workdir}"
+                )
+                tsc_activity_details = await _run_tsc_by_activity(project_workdir)
+                if tsc_activity_details.get("ran"):
+                    activity.logger.info(
+                        "[TSC_ACTIVITY][after_retry] ran=%s ok=%s errors=%s",
+                        tsc_activity_details.get("ran"),
+                        tsc_activity_details.get("ok"),
+                        tsc_activity_details.get("errors_count"),
+                    )
+
+        # ── Métriques réelles via spec_coverage ─────────────────────────────
+        requirements = input_data.get("requirements", []) or []
+        try:
+            from agents.spec_coverage import compute_spec_coverage
+            cov = compute_spec_coverage(requirements, combined_files)
+            spec_coverage = float(cov.get("spec_coverage", 0.0))
+            requirements_met = int(cov.get("requirements_met", 0))
+            requirements_total = int(cov.get("requirements_total", len(requirements)))
+            requirements_unmet = cov.get("unmet", requirements)
+        except Exception as cov_err:
+            activity.logger.warning(f"[dev_graph] compute_spec_coverage échoué : {cov_err}")
+            spec_coverage = 0.0
+            requirements_met = 0
+            requirements_total = len(requirements)
+            requirements_unmet = requirements
+
+        dev_files_count = len(combined_files)
+        result = {
+            "dev_output": {
+                "files": combined_files,
+                "final_message": final_message,
+                "success": success,
+                "metadata": {
+                    "build_attempts": build_attempts,
+                    "build_attempted": build_attempts > 0,
+                    "iterations": build_attempts,
+                    "last_build_error": last_build_error[:500],
+                    "last_build_error_full": last_build_error,
+                    "last_test_error": "",
+                    "last_test_error_full": "",
+                    "last_failed_command": "",
+                    "error_signatures": dev_result.get("error_signatures", []),
+                },
+            },
+            "test_output": {"tests": {}, "success": False},
+            "combined_files": combined_files,
+            "success": success,
+            "metadata": {
+                "total_files": dev_files_count,
+                "mode": "dev_graph",
+                "dev_files_count": dev_files_count,
+                "test_files_count": 0,
+                "tests_passed": False,
+                "spec_coverage": spec_coverage,
+                "requirements_met": requirements_met,
+                "requirements_total": requirements_total,
+                "requirements_unmet": requirements_unmet,
+                "requirements_unmet_by_category": {},
+                "spec_validation_status": input_data.get("spec_validation_status", "OK"),
+                "spec_unmatched_count": len(input_data.get("spec_unmatched_requirements", [])),
+                "user_flows_total": 0,
+                "user_flows_covered": 0,
+                "user_flows_coverage": 0.0,
+                "is_useful_app": success and spec_coverage >= 0.8,
+                "supervisor_files_reviewed": 0,
+                "supervisor_corrections_count": 0,
+                "conformity_score": 0.0,
+                "security_score": 0.0,
+                "architecture_score": 0.0,
+                "build_corrections_count": build_attempts,
+            },
+        }
 
         if not isinstance(result, dict):
             raise ValueError(f"dev_test_agent a retourné {type(result)} au lieu d'un dict")
@@ -479,7 +804,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
 
         run_metric = {
             "build_success": build_success,
-            "build_attempted": bool(dev_meta.get("build_attempted", False)),
+            "build_attempted": bool(_build_attempted),  # normalisé depuis _compute_build_outcome
             "files_count": int(metadata.get("total_files", 0)),
             "clerk_compliant": _check_clerk_compliant(result),
             "dev_files_count": int(metadata.get("dev_files_count", 0)),
@@ -500,6 +825,13 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "last_test_error": last_test_error,
             "last_test_error_full": last_test_error_full,
             "last_failed_command": last_failed_command,
+            "tsc_ran_by_activity": bool(tsc_activity_details.get("ran", False)),
+            "tsc_ok_by_activity": tsc_activity_details.get("ok", None),
+            "tsc_skipped_by_activity": bool(tsc_activity_details.get("skipped", True)),
+            "tsc_errors_count_by_activity": int(tsc_activity_details.get("errors_count", 0)),
+            "tsc_error_samples_by_activity": tsc_activity_details.get("errors", []),
+            "tsc_feedback_retry_triggered": tsc_feedback_retry_triggered,
+            "tsc_feedback_prompt_preview": tsc_feedback_prompt_preview,
             "semantic_violations": semantic_violations,
             "prisma_validate": prisma_validate_details,
             "error": runtime_error,
@@ -511,6 +843,13 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 iterations=int(dev_meta.get("iterations", 0)),
             ),
         }
+        # ── Cohérence métrique (P0-C2) ────────────────────────────────────
+        contradiction_flags = _validate_run_metric_consistency(run_metric)
+        run_metric["contradiction_flags"] = contradiction_flags
+        if contradiction_flags:
+            for flag in contradiction_flags:
+                activity.logger.warning(f"[METRIC_CONSISTENCY] {flag}")
+
         activity.logger.info(
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "
             f"Success: {result.get('success', False)} | "
@@ -523,11 +862,25 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         )
 
+        # ── run_report.json (P0-C1) ───────────────────────────────────────
+        try:
+            _write_run_report(
+                run_id=run_id,
+                workflow_id=str(input_data.get("workflow_id", "")),
+                project_name=project_name,
+                run_metric=run_metric,
+                metadata=dict(metadata),
+                duration_seconds=(datetime.now(timezone.utc) - _activity_start).total_seconds(),
+            )
+        except Exception as _rr_err:
+            activity.logger.warning(f"[run_report] non bloquant : {_rr_err}")
+
         return {**result, "run_metric": run_metric, "semantic_violations": semantic_violations}
 
     except Exception as e:
         run_metric = {
             "build_success": False,
+            "build_attempted": False,
             "files_count": 0,
             "clerk_compliant": _check_clerk_compliant(result) if "result" in locals() else False,
             "dev_files_count": 0,
@@ -539,9 +892,28 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "last_test_error": "",
             "last_test_error_full": "",
             "last_failed_command": "",
+            "tsc_ran_by_activity": False,
+            "tsc_ok_by_activity": None,
+            "tsc_skipped_by_activity": True,
+            "tsc_errors_count_by_activity": 0,
+            "tsc_error_samples_by_activity": [],
+            "prisma_validate": {"cli_found": False, "ran": False, "ok": None, "schema_path": ""},
             "error": f"{type(e).__name__}: {str(e)[:200]}",
         }
         activity.logger.error(f"Échec DevTest : {str(e)}", exc_info=True)
+
+        # run_report minimal même en cas d'exception (P0-C1)
+        try:
+            run_metric["contradiction_flags"] = []
+            _write_run_report(
+                run_id=run_id,
+                workflow_id=str(input_data.get("workflow_id", "")) if "input_data" in locals() else "",
+                project_name=project_name if "project_name" in locals() else "unknown",
+                run_metric=run_metric,
+            )
+        except Exception as _rr_exc:
+            pass  # double non-bloquant
+
         raise ApplicationError(
             "DEV_TEST_EXECUTION_FAILED",
             f"Erreur dans dev_test_activity : {str(e)}"

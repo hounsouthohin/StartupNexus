@@ -1,0 +1,40 @@
+{
+  "run_id": "6fe22ea9-032c-4010-abd9-41ecea3eb1c5",
+  "workflow_id": "todo-pilot-task-manager",
+  "project_name": "task-manager",
+  "generated_at": "2026-03-29T04:37:23.440107+00:00",
+  "duration_seconds": 103.437356,
+  "build_success": true,
+  "build_attempted": true,
+  "build_attempts": 3,
+  "final_message": "BUILD_SUCCESS",
+  "root_cause_category": "unknown",
+  "last_build_error": "FAILED (exit 1)\n> task-manager@0.1.0 build\n> next build\n\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioriti",
+  "spec_coverage": 1.0,
+  "requirements_met": 5,
+  "requirements_total": 5,
+  "requirements_unmet": [],
+  "files_generated": 17,
+  "dev_files_count": 17,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_dtlungx5/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_dtlungx5/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "CONTRADICTION: build_success=True mais last_build_error non vide: FAILED (exit 1)\n> task-manager@0.1.0 build\n> next build\n\nAttention: Next.js now "
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": true,
+  "error": ""
+}

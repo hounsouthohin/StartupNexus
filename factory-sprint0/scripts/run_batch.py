@@ -10,6 +10,7 @@ import argparse
 import contextlib
 import json
 import os
+import re
 import sys
 import time
 import uuid
@@ -24,6 +25,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from config.factory_config import TEMPORAL_ADDRESS
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
+from scripts.brief_catalog import get_batch_projects
 
 
 TASK_QUEUE = "factory-task-queue"
@@ -31,22 +33,15 @@ _LOG_ROOT = os.path.join(os.getenv("FACTORY_LOG_DIR", "/app/logs"))
 LEARNER_LOG_PATH = os.path.join(_LOG_ROOT, "shadow", "learner_shadow_log.json")
 SORTIES_PATH = Path(PROJECT_ROOT).parent / "sorties.md"
 MAX_SORTIES_STR_LEN = 1200
+TS_ERROR_WITH_FILE_RE = re.compile(
+    r"(?P<file>[^\s\n()]+?\.(?:ts|tsx|js|jsx))\((?P<line>\d+),(?P<col>\d+)\):\s*error\s*TS(?P<code>\d{4,5}):",
+    re.IGNORECASE,
+)
+TS_CODE_RE = re.compile(r"\bTS(?P<code>\d{4,5})\b")
 
-BATCH_PROJECTS: List[Dict[str, str]] = [
-    {
-        "project_name": "personal-blog",
-        "phrase": (
-            "Blog CMS avec Clerk (auteur unique)\n"
-            "- Modele Prisma : Post { id String @id @default(cuid()), title, content, slug String @unique, published Boolean @default(false), createdAt, authorId String }\n"
-            "- Pages : / (liste publique), /blog/[slug] (article), /dashboard (protege)\n"
-            "- API Route : PUT /api/posts/[id] (toggle published, auth requise)"
-        ),
-    },
-    {"project_name": "todo-batch-bravo", "phrase": "Cree une Todo app collaborative avec listes partagees et reminders."},
-    {"project_name": "todo-batch-charlie", "phrase": "Cree une Todo app avec calendrier hebdo et filtres avances."},
-    {"project_name": "todo-batch-delta", "phrase": "Cree une Todo app orientee equipe avec tableaux Kanban."},
-    {"project_name": "todo-batch-echo", "phrase": "Cree une Todo app avec analytics de productivite et objectifs."},
-]
+# Briefs importés depuis le catalogue partagé — ne pas dupliquer ici.
+# Source : scripts/brief_catalog.py (PHASE0_BRIEFS)
+BATCH_PROJECTS: List[Dict[str, str]] = get_batch_projects(5)
 
 
 def _learner_events_count() -> int:
@@ -115,11 +110,25 @@ def _compact_run_metric(metric: Dict[str, Any]) -> Dict[str, Any]:
         "requirements_met": metric.get("requirements_met"),
         "requirements_total": metric.get("requirements_total"),
         "tests_passed": metric.get("tests_passed"),
+        "tsc_ran_by_activity": metric.get("tsc_ran_by_activity"),
+        "tsc_ok_by_activity": metric.get("tsc_ok_by_activity"),
+        "tsc_skipped_by_activity": metric.get("tsc_skipped_by_activity"),
+        "tsc_errors_count_by_activity": metric.get("tsc_errors_count_by_activity"),
+        "tsc_feedback_retry_triggered": metric.get("tsc_feedback_retry_triggered"),
+        "tsc_feedback_prompt_preview": _truncate_str(metric.get("tsc_feedback_prompt_preview", "")),
         "semantic_violations": metric.get("semantic_violations", []),
         "last_failed_command": metric.get("last_failed_command", ""),
         "last_build_error": _truncate_str(metric.get("last_build_error", "")),
         "error": _truncate_str(metric.get("error", "")),
     }
+    prisma_validate = metric.get("prisma_validate", {})
+    if isinstance(prisma_validate, dict):
+        compact["prisma_validate"] = {
+            "cli_found": prisma_validate.get("cli_found"),
+            "ran": prisma_validate.get("ran"),
+            "ok": prisma_validate.get("ok"),
+            "schema_path": prisma_validate.get("schema_path", ""),
+        }
     return compact
 
 
@@ -185,6 +194,97 @@ def _compact_activity_results_map(activity_results: Dict[str, Any]) -> Dict[str,
     for name, payload in activity_results.items():
         out[name] = _compact_activity_result(name, payload)
     return out
+
+
+def _extract_ts_codes_and_files(error_text: str) -> tuple[List[str], List[str]]:
+    if not isinstance(error_text, str) or not error_text:
+        return [], []
+    codes: set[str] = set()
+    files: set[str] = set()
+    for match in TS_ERROR_WITH_FILE_RE.finditer(error_text):
+        codes.add(f"TS{match.group('code')}")
+        files.add(str(match.group("file")))
+    for match in TS_CODE_RE.finditer(error_text):
+        codes.add(f"TS{match.group('code')}")
+    return sorted(codes), sorted(files)
+
+
+def _build_phase1_scoreboard(runs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    total_runs = len(runs)
+    if total_runs == 0:
+        return {
+            "build_success_rate": 0.0,
+            "unknown_root_cause_rate_on_failed": 0.0,
+            "prisma_validate_ok_rate_on_runs_with_schema": 0.0,
+            "root_cause_distribution_failed": {},
+            "ts_error_code_distribution": {},
+            "top_ts_failing_files": {},
+            "ts_signal_anomaly_count": 0,
+        }
+
+    failed_runs = 0
+    unknown_failed = 0
+    root_counter: Dict[str, int] = {}
+    ts_code_counter: Dict[str, int] = {}
+    ts_file_counter: Dict[str, int] = {}
+
+    prisma_with_schema = 0
+    prisma_ok_with_schema = 0
+    ts_signal_anomaly_count = 0
+
+    build_success_count = 0
+
+    for run in runs:
+        run_metric = run.get("run_metric", {}) if isinstance(run.get("run_metric", {}), dict) else {}
+        build_status = str(run.get("build_status", "") or "")
+        build_success = build_status in ("SUCCESS", "PARTIAL")
+        if build_success:
+            build_success_count += 1
+
+        root = str(run_metric.get("root_cause_category", "unknown") or "unknown")
+        if not build_success:
+            failed_runs += 1
+            root_counter[root] = root_counter.get(root, 0) + 1
+            if root == "unknown":
+                unknown_failed += 1
+
+        prisma_validate = run_metric.get("prisma_validate", {})
+        if isinstance(prisma_validate, dict):
+            schema_path = str(prisma_validate.get("schema_path", "") or "")
+            if schema_path:
+                prisma_with_schema += 1
+                if prisma_validate.get("ok") is True:
+                    prisma_ok_with_schema += 1
+
+        last_build_error = str(run_metric.get("last_build_error", "") or "")
+        codes, files = _extract_ts_codes_and_files(last_build_error)
+        for code in codes:
+            ts_code_counter[code] = ts_code_counter.get(code, 0) + 1
+        for file_path in files:
+            ts_file_counter[file_path] = ts_file_counter.get(file_path, 0) + 1
+
+        tsc_ran = bool(run_metric.get("tsc_ran_by_activity", False))
+        tsc_errors = int(run_metric.get("tsc_errors_count_by_activity", 0) or 0)
+        if codes and tsc_ran and tsc_errors == 0:
+            ts_signal_anomaly_count += 1
+
+    build_success_rate = round(build_success_count / total_runs, 3)
+    unknown_rate_failed = round((unknown_failed / failed_runs), 3) if failed_runs else 0.0
+    prisma_ok_rate = round((prisma_ok_with_schema / prisma_with_schema), 3) if prisma_with_schema else 0.0
+
+    top_root = dict(sorted(root_counter.items(), key=lambda kv: kv[1], reverse=True))
+    top_codes = dict(sorted(ts_code_counter.items(), key=lambda kv: kv[1], reverse=True))
+    top_files = dict(sorted(ts_file_counter.items(), key=lambda kv: kv[1], reverse=True)[:15])
+
+    return {
+        "build_success_rate": build_success_rate,
+        "unknown_root_cause_rate_on_failed": unknown_rate_failed,
+        "prisma_validate_ok_rate_on_runs_with_schema": prisma_ok_rate,
+        "root_cause_distribution_failed": top_root,
+        "ts_error_code_distribution": top_codes,
+        "top_ts_failing_files": top_files,
+        "ts_signal_anomaly_count": ts_signal_anomaly_count,
+    }
 
 
 def _event_time_to_iso(event: Any) -> str:
@@ -516,6 +616,7 @@ async def run_batch(
         "strict_success_rate": round(strict_success_count / len(runs), 3) if runs else 0.0,
         "usable_success_rate": usable_ratio,
     }
+    phase1_scoreboard = _build_phase1_scoreboard(runs)
 
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -538,6 +639,7 @@ async def run_batch(
         "total_duration_seconds": total_duration,
         "total_learner_events_delta": total_learner_delta,
         "quality_dashboard": quality_dashboard,
+        "phase1_scoreboard": phase1_scoreboard,
         "runs": runs,
     }
 
@@ -588,22 +690,10 @@ def _parse_args() -> argparse.Namespace:
 
 def _build_cli_projects(batch_size: int) -> List[Dict[str, str]]:
     """
-    Construit une liste de projets de taille arbitraire à partir du set de référence.
-    Si batch_size > len(BATCH_PROJECTS), on recycle les briefs en suffixant les noms.
+    Construit une liste de projets depuis le catalogue partagé (brief_catalog.py).
+    Si batch_size > 5, recycle les briefs en suffixant les noms.
     """
-    if batch_size <= len(BATCH_PROJECTS):
-        return BATCH_PROJECTS[:batch_size]
-
-    out: List[Dict[str, str]] = []
-    for i in range(batch_size):
-        base = BATCH_PROJECTS[i % len(BATCH_PROJECTS)]
-        out.append(
-            {
-                "project_name": f"{base['project_name']}-{i + 1:02d}",
-                "phrase": base["phrase"],
-            }
-        )
-    return out
+    return get_batch_projects(batch_size)
 
 
 def _load_projects_from_briefs_file(path: str) -> List[Dict[str, str]]:

@@ -1,0 +1,43 @@
+{
+  "run_id": "d7c3c2ef-3e2e-42f3-b34e-2d8c29f98715",
+  "workflow_id": "todo-pilot-kanban-board",
+  "project_name": "kanban-board",
+  "generated_at": "2026-03-29T04:47:54.347613+00:00",
+  "duration_seconds": 228.993668,
+  "build_success": false,
+  "build_attempted": true,
+  "build_attempts": 6,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "prisma_client_api",
+  "last_build_error": "FAILED (exit 2)\nlib/prisma.ts(1,10): error TS2305: Module '\"@prisma/client\"' has no exported member 'PrismaClient'.",
+  "spec_coverage": 0.333,
+  "requirements_met": 2,
+  "requirements_total": 6,
+  "requirements_unmet": [
+    "Modèle Prisma: Board",
+    "Page: /",
+    "Page: /boards/[id]",
+    "Page: /in_progress/done"
+  ],
+  "files_generated": 16,
+  "dev_files_count": 16,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_p6kbtfm8/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_p6kbtfm8/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": true,
+  "error": "BuildFailed: FAILED (exit 2)\nlib/prisma.ts(1,10): error TS2305: Module '\"@prisma/client\"' has no exported member 'PrismaClient'."
+}

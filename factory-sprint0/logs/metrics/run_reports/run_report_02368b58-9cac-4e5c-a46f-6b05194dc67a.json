@@ -1,0 +1,40 @@
+{
+  "run_id": "02368b58-9cac-4e5c-a46f-6b05194dc67a",
+  "workflow_id": "todo-pilot-personal-blog",
+  "project_name": "personal-blog",
+  "generated_at": "2026-03-29T04:33:13.629463+00:00",
+  "duration_seconds": 116.687569,
+  "build_success": true,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_SUCCESS",
+  "root_cause_category": "unknown",
+  "last_build_error": "",
+  "spec_coverage": 1.0,
+  "requirements_met": 5,
+  "requirements_total": 5,
+  "requirements_unmet": [],
+  "files_generated": 19,
+  "dev_files_count": 19,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_07j97avi/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_07j97avi/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "CONTRADICTION: build_success=True mais build_attempted=False"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": true,
+  "error": ""
+}

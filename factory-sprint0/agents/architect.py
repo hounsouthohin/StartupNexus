@@ -390,7 +390,8 @@ class AgentState(TypedDict):
     ir_schema: list              # IR canonique — Prisma models (source: parsed_brief)
     ir_pages: list               # IR canonique — pages (source: parsed_brief)
     ir_routes: list              # IR canonique — API routes (source: parsed_brief)
-    spec_structured: dict  # Dual-output P2 — spec JSON sérialisé (construit dans formatter_node, None en initial_state)
+    spec_structured: dict        # Dual-output P2 — spec JSON sérialisé
+    project_spec: dict           # Nouvelle Base — ProjectSpec.model_dump() (Phase 1)
 
 # --- Prompt Loading ---
 def _parse_level1_sections(content: str) -> dict[str, str]:
@@ -677,89 +678,209 @@ def create_architect_agent():
         return {"rag_context": rag_context}
     
     async def planner_node(state: AgentState):
+        """
+        Nouvelle Base (Phase 1) — planner_node avec instructor + ProjectSpec.
+        Remplace la chaîne planner_LLM → spec_writer_LLM qui produisait DEGRADED 3/3.
+
+        Stratégie :
+        - Brief explicite (brief_parser a trouvé modèles + pages + routes) → construction
+          déterministe du ProjectSpec sans appel LLM.
+        - Brief partiel ou vague → instructor force le LLM à produire exactement
+          le schéma ProjectSpec (Pydantic) — dérive de noms structurellement impossible.
+
+        Produit architect_output pour compatibilité descendante avec architect_activity.
+        """
         phrase = state['messages'][-1].content
         stack_id = str(state.get("stack_id", _DEFAULT_STACK_ID))
         normalized_brief = state.get("normalized_brief", "")
         parsed_brief = state.get("parsed_brief", {})
         project_name = state.get("project_name", "")
 
-        # ── Planner = domaine pur (QUOI construire) — sans RAG ───────────────
-        # Séparation architecturale : planner = brief normalisé + connaissance LLM native.
-        #                             spec_writer = plan + RAG (patterns d'implémentation).
-        # project_name préfixe le HumanMessage : chaque run a un cache prefix unique côté OpenAI.
-        project_prefix = f"[PROJET: {project_name}]\n\n" if project_name else ""
-        if normalized_brief and normalized_brief != phrase:
-            input_text = (
-                f"{project_prefix}"
-                f"BRIEF NORMALISÉ (source de vérité des entités) :\n"
-                f"{normalized_brief}\n\n"
-                f"BRIEF ORIGINAL : {phrase}"
-            )
-        else:
-            input_text = f"{project_prefix}User Request: {phrase}"
+        # ── Helpers de construction déterministe ─────────────────────────────
+        from agents.project_spec import ProjectSpec, PrismaModel, PrismaField, ApiRoute, AppPage
+        from agents.brief_parser import (
+            requirements_from_parsed, user_flows_from_parsed,
+            _app_route_to_url, _route_file_to_url,
+        )
 
-        # Temperature 0.3 + project_name prefix : brise le cache OpenAI et réduit la dérive de domaine.
-        # (kpi-01→09 : même output Book/Review pour 5 briefs différents à temperature=0.0/0.1)
-        json_planner_llm = planner_llm.bind(response_format={"type": "json_object"})
-        chain = prompts['planner'] | json_planner_llm
-        llm_response = await chain.ainvoke({"input": input_text})
+        def _parse_model_str(model_str: str) -> list[PrismaModel]:
+            """
+            Convertit un bloc modèle en PrismaModel(s).
 
-        match = re.search(r'```json\s*\n(.*?)\n\s*```', llm_response.content, re.DOTALL)
-        json_content = match.group(1).strip() if match else llm_response.content.strip()
+            Important:
+            - Supporte les briefs compacts du type:
+              "Client { ... } | Invoice { ... }"
+            - Retourne une liste pour éviter de perdre les modèles après un séparateur '|'.
+            """
+            out: list[PrismaModel] = []
+            blocks = re.findall(r'(\w+)\s*\{([^}]*)\}', model_str)
+            if blocks:
+                for name, raw_fields in blocks:
+                    name = name.strip()
+                    fields: list[PrismaField] = []
+                    for line in raw_fields.strip().split(','):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            fname, ftype = parts[0], parts[1]
+                            fattrs = " ".join(parts[2:]) if len(parts) > 2 else ""
+                            fields.append(PrismaField(name=fname, type=ftype, attributes=fattrs))
+                    if not fields:
+                        fields = [PrismaField(name="id", type="String", attributes="@id @default(uuid())")]
+                    out.append(PrismaModel(name=name, fields=fields))
+                return out
 
-        try:
-            plan = json.loads(json_content)
-        except json.JSONDecodeError:
-            strict_input = (
-                "Return ONLY valid JSON matching this schema keys exactly: "
-                "app_type, router_type, stack, description, pages, data_models, auth_required, api_routes, key_features.\n"
-                f"BRIEF NORMALISÉ :\n{normalized_brief}\n\n"
-                f"User Request: {phrase}\n"
-                "No prose. No markdown fences. JSON object only."
-            )
-            strict_response = await chain.ainvoke({"input": strict_input})
-            strict_match = re.search(r'```json\s*\n(.*?)\n\s*```', strict_response.content, re.DOTALL)
-            strict_content = strict_match.group(1).strip() if strict_match else strict_response.content.strip()
-            try:
-                plan = json.loads(strict_content)
-            except json.JSONDecodeError as e:
-                logger.warning(
-                    "[planner] Non-JSON après 2 essais LLM — fallback déterministe activé "
-                    f"(error={e})"
+            # Fallback legacy si aucun bloc { ... } n'est trouvé.
+            token = (model_str or "").strip().split()
+            name = token[0] if token else "Model"
+            return [
+                PrismaModel(
+                    name=name,
+                    fields=[PrismaField(name="id", type="String", attributes="@id @default(uuid())")],
                 )
-                plan = _build_minimal_plan_from_phrase(phrase=phrase, stack_id=stack_id)
+            ]
 
-        # ── Validation post-plan : détection plan générique ──────────────────
-        is_generic, reason = _is_generic_plan(plan, normalized_brief if normalized_brief else phrase)
-        if is_generic:
-            logger.warning(f"[planner] Plan possiblement générique — non bloquant (raison: {reason})")
+        def _route_file_to_api_route(route_file: str, methods: dict) -> list[ApiRoute]:
+            """Convertit 'app/api/products/route.ts' + methods en liste ApiRoute."""
+            url = _route_file_to_url(route_file)
+            if not url:
+                return []
+            method_list = methods.get(route_file, ["GET"])
+            return [ApiRoute(method=meth, path=url)  # type: ignore[arg-type]
+                    for meth in method_list
+                    if meth in ("GET", "POST", "PUT", "PATCH", "DELETE")]
 
-        # ── Requirements : source de vérité = parser déterministe ────────────
-        # Si le parser a extrait des données → requirements depuis le parser (jamais un LLM).
-        # Fallback sur le plan LLM uniquement si le brief était 100% vague (parser vide).
-        from agents.brief_parser import requirements_from_parsed, user_flows_from_parsed, ParsedBrief
+        # ── Chemin 1 : brief explicite → ProjectSpec déterministe (zéro LLM) ──
         has_parser_data = (
             parsed_brief.get("has_explicit_models")
             or parsed_brief.get("has_explicit_pages")
             or parsed_brief.get("has_explicit_routes")
         )
+
         if has_parser_data:
-            requirements = requirements_from_parsed(parsed_brief)  # type: ignore[arg-type]
-            # user_flows déterministes : mêmes entités/routes que requirements[]
-            # Évite la dérive LLM (ex: "POST /api/books" pour un brief Product/Order)
-            user_flows = user_flows_from_parsed(parsed_brief)  # type: ignore[arg-type]
+            models: list[PrismaModel] = []
+            for mdl in parsed_brief.get("data_models", []):
+                models.extend(_parse_model_str(mdl))
+
+            # Déduplique par nom pour éviter les doublons si le brief répète un modèle.
+            # Garde la première occurrence (ordre du brief conservé).
+            dedup: dict[str, PrismaModel] = {}
+            for model in models:
+                if model.name not in dedup:
+                    dedup[model.name] = model
+            models = list(dedup.values())
+            routes: list[ApiRoute] = []
+            for rf in parsed_brief.get("api_routes", []):
+                routes.extend(_route_file_to_api_route(rf, parsed_brief.get("api_methods", {})))
+            pages = [
+                AppPage(path=_app_route_to_url(p))
+                for p in parsed_brief.get("pages", [])
+                if p
+            ]
+            if not any(pg.path == "/" for pg in pages):
+                pages.insert(0, AppPage(path="/", auth_required=False))
+
+            spec = ProjectSpec(
+                project_name=project_name,
+                stack_id=stack_id,
+                models=models,
+                routes=routes,
+                pages=pages,
+                user_flows=user_flows_from_parsed(parsed_brief),  # type: ignore[arg-type]
+            ).with_fingerprint()
+
             logger.info(
-                f"[planner] requirements + user_flows depuis parser déterministe "
-                f"({len(requirements)} requirements, {len(user_flows)} flows)"
+                f"[planner] ProjectSpec déterministe — "
+                f"{len(models)} modèles, {len(pages)} pages, {len(routes)} routes "
+                f"| fingerprint={spec.spec_fingerprint}"
             )
+
         else:
-            requirements = _extract_requirements_from_plan(plan)
-            user_flows = [str(f) for f in plan.get("user_flows", []) if f]
-            logger.info(
-                f"[planner] brief vague — requirements + user_flows depuis plan LLM "
-                f"({len(requirements)} requirements, {len(user_flows)} flows)"
+            # ── Chemin 2 : brief vague → instructor + LLM ────────────────────
+            try:
+                import instructor
+                from openai import AsyncOpenAI
+                _openai_client = AsyncOpenAI()
+                _instructor_client = instructor.from_openai(_openai_client)
+            except ImportError:
+                raise RuntimeError(
+                    "[planner] instructor non installé. Exécuter : pip install instructor"
+                )
+
+            rag_context = state.get("rag_context", "")
+            stack_rules = ""
+            try:
+                from utils.prompt_loader import load_stack_prompt
+                stack_rules = load_stack_prompt(stack_id, "rules_architect") or ""
+            except Exception:
+                pass
+
+            human_content = (
+                f"[PROJET: {project_name}]\n\n"
+                f"Brief : {phrase}\n\n"
+                + (f"Brief normalisé :\n{normalized_brief}\n\n" if normalized_brief else "")
+                + (f"Standards RAG :\n{rag_context[:2000]}\n\n" if rag_context else "")
+                + (f"Règles stack :\n{stack_rules[:1000]}" if stack_rules else "")
             )
-        return {"plan": plan, "requirements": requirements, "user_flows": user_flows}
+
+            spec = await _instructor_client.chat.completions.create(
+                model=planner_model,
+                response_model=ProjectSpec,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Tu génères une spec technique structurée pour un projet Next.js 14 "
+                            "avec Clerk V6 et Prisma 7. "
+                            "Utilise EXACTEMENT les noms d'entités du brief — "
+                            "aucune traduction, aucun synonyme. "
+                            "Chaque modèle Prisma doit avoir ses champs complets. "
+                            "Toutes les pages et routes du brief doivent être présentes."
+                        ),
+                    },
+                    {"role": "user", "content": human_content},
+                ],
+            )
+            spec.project_name = project_name
+            spec.stack_id = stack_id
+            spec.with_fingerprint()
+
+            logger.info(
+                f"[planner] ProjectSpec via instructor — "
+                f"{len(spec.models)} modèles, {len(spec.pages)} pages, {len(spec.routes)} routes "
+                f"| fingerprint={spec.spec_fingerprint}"
+            )
+
+        # ── RAG budget (Phase 5 Codex — appliqué ici aussi pour cohérence) ───
+        # Le rag_context est déjà calculé dans retrieval_node (max 3 docs, max 600 chars/doc).
+
+        # ── Compatibilité descendante : architect_output pour architect_activity ─
+        spec_summary = (
+            f"Projet {project_name} | Stack {stack_id}\n"
+            f"Modèles : {', '.join(m.name for m in spec.models)}\n"
+            f"Pages : {', '.join(p.path for p in spec.pages)}\n"
+            f"Routes : {', '.join(r.method + ' ' + r.path for r in spec.routes)}"
+        )
+        architect_output = ArchitectOutput(
+            specification=spec_summary,
+            mermaid_diagram="",
+            requirements=spec.to_requirements(),
+            user_flows=spec.user_flows,
+            ir_schema=[m.name for m in spec.models],
+            ir_pages=[p.path for p in spec.pages],
+            ir_routes=[f"{r.method} {r.path}" for r in spec.routes],
+            spec_structured=SpecOutput(),
+        )
+
+        return {
+            "plan": spec.model_dump(),
+            "requirements": spec.to_requirements(),
+            "user_flows": spec.user_flows,
+            "project_spec": spec.model_dump(),
+            "architect_output": architect_output,
+        }
 
     async def spec_writer_node(state: AgentState):
         plan_json = json.dumps(state['plan'], indent=2)
@@ -927,26 +1048,23 @@ def create_architect_agent():
         return {"architect_output": architect_output}
 
     # --- Graph Definition ---
-    # Pipeline Pré-Sprint 4.6 :
-    # brief_normalizer → retrieval → planner → spec_writer → formatter
+    # Nouvelle Base (Phase 1 — 28 Mars 2026) :
+    # brief_normalizer → retrieval → planner
     #
-    # brief_normalizer : zéro RAG, zéro stack — extrait les entités métier du brief brut
-    # retrieval        : utilise normalized_brief comme query RAG (plus fiable que query rewriting)
-    # planner          : zéro stack rules (stack-agnostic) — reçoit uniquement normalized_brief
-    # spec_writer      : reçoit plan + RAG (patterns d'implémentation stack)
-    # diagrammer_node  : supprimé (Pré-Sprint 4.6) — réintégré Sprint 6 via agent dédié
+    # brief_normalizer : extrait les entités du brief (déterministe ou LLM)
+    # retrieval        : RAG Qdrant (max 3 docs, budgeté)
+    # planner          : produit ProjectSpec typé via instructor — ZÉRO dérive de noms possible
+    #
+    # Supprimés : spec_writer_node (texte libre → DEGRADED 3/3), formatter_node
+    # spec_writer et formatter conservés dans le code pour compatibilité imports tests existants
     workflow = StateGraph(AgentState)
     workflow.add_node("brief_normalizer", brief_normalizer_node)
     workflow.add_node("retrieval", retrieval_node)
     workflow.add_node("planner", planner_node)
-    workflow.add_node("spec_writer", spec_writer_node)
-    workflow.add_node("formatter", formatter_node)
 
     workflow.add_edge(START, "brief_normalizer")
     workflow.add_edge("brief_normalizer", "retrieval")
     workflow.add_edge("retrieval", "planner")
-    workflow.add_edge("planner", "spec_writer")
-    workflow.add_edge("spec_writer", "formatter")
-    workflow.add_edge("formatter", END)
+    workflow.add_edge("planner", END)
 
     return workflow.compile()

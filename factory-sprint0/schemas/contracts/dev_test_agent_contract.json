@@ -56,6 +56,11 @@
         "type": "string",
         "description": "Mode d'exécution du pipeline : 'inline' (défaut) ou 'workflow' (child workflow M2)",
         "default": "inline"
+      },
+      "project_spec": {
+        "type": "object",
+        "description": "Nouvelle Base — ProjectSpec sérialisé (models, pages, routes, fingerprint). Source de vérité pour dev_graph.",
+        "default": {}
       }
     }
   },
@@ -107,7 +112,12 @@
           "last_test_error":      { "type": "string" },
           "last_test_error_full": { "type": "string" },
           "last_failed_command":  { "type": "string" },
+          "tsc_ran_by_activity":  { "type": "boolean" },
+          "tsc_ok_by_activity":   { "type": ["boolean", "null"] },
+          "tsc_skipped_by_activity": { "type": "boolean" },
+          "tsc_errors_count_by_activity": { "type": "integer", "minimum": 0 },
           "semantic_violations":  { "type": "array", "items": { "type": "string" } },
+          "prisma_validate":      { "type": "object" },
           "error":                { "type": ["string", "null"] },
           "root_cause_category":  { "type": "string" },
           "blocking_guard_id":    { "type": "string" },

@@ -23,8 +23,14 @@ from typing import Dict, List
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
+from scripts.brief_catalog import get_coverage_projects
 
-STACK_COVERAGE_PROJECTS: List[Dict[str, object]] = [
+# Briefs importés depuis le catalogue partagé — ne pas dupliquer ici.
+# Source : scripts/brief_catalog.py (PHASE0_BRIEFS)
+STACK_COVERAGE_PROJECTS: List[Dict[str, object]] = get_coverage_projects()
+
+# Briefs legacy conservés pour référence — non utilisés en Phase 0.
+_LEGACY_COVERAGE_PROJECTS: List[Dict[str, object]] = [
     {
         "project_name": "coverage-marketplace",
         "tags": ["catalog", "orders", "public_private_pages", "crud_api"],

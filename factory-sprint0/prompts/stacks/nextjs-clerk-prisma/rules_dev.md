@@ -76,6 +76,60 @@ try { items = await prisma.model.findMany(); } catch { items = []; }
 - Si correction demandée : appliquer **une seule fois**, puis passer aux pages et routes API.
 - INTERDIT : réécrire le schema à chaque itération ou combiner son écriture avec d'autres fichiers.
 
+### 9 — HANDLERS TYPÉS (violation = TS7006 / TS7031)
+
+Les callbacks d'événements React et les fonctions de destructuring DOIVENT avoir un type explicite.
+
+```ts
+// ✅ OBLIGATOIRE
+onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
+onSubmit={(e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); handleSubmit(); }}
+
+// ❌ INTERDIT — TS7006 : "Parameter 'e' implicitly has an 'any' type"
+onChange={(e) => setValue(e.target.value)}
+onSubmit={(e) => { e.preventDefault(); ... }}
+```
+
+Pour les destructurings en paramètre de fonction :
+```ts
+// ✅ OBLIGATOIRE
+function Component({ id }: { id: string }) { ... }
+
+// ❌ INTERDIT — TS7031 : "Binding element 'id' implicitly has 'any' type"
+function Component({ id }) { ... }
+```
+
+### 10 — PROPRIÉTÉS PRISMA TYPÉES (violation = TS2339)
+
+N'accéder qu'aux propriétés déclarées dans `prisma/schema.prisma`. Un champ absent du schema provoque TS2339.
+
+```ts
+// ✅ OBLIGATOIRE — propriétés issues du schema uniquement
+const tasks = await prisma.task.findMany();
+// task.title, task.completed sont valides SI déclarés dans le model Task
+
+// ❌ INTERDIT si 'deadline' absent du schema Task
+task.deadline
+
+// Pattern sûr pour accès à une ressource unique
+const item = await prisma.task.findUnique({ where: { id } });
+if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+```
+
+### 11 — IMPORTS ROUTE HANDLERS (violation = TS2552 / TS2305)
+
+Dans tout fichier `app/api/**/route.ts`, les imports DOIVENT être présents en tête de fichier.
+
+```ts
+// ✅ OBLIGATOIRE — toujours présent en première ligne après dynamic
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import prisma from '@/lib/prisma';
+
+// ❌ INTERDIT — TS2552 : "Cannot find name 'NextResponse'. Did you mean 'Response'?"
+// (oubli de l'import NextResponse)
+```
+
 ## Concepts Stack Obligatoires
 
 Le code généré doit respecter explicitement ces concepts techniques de stack, même sans appel RAG:

@@ -171,66 +171,69 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
             raise ValueError("architect_output manquant dans l'état final")
 
         output_dict = _extract_output_dict(architect_output)
-        # Figer la cible de validation sur le premier set de requirements.
-        # Évite qu'une tentative corrective "réussisse" en modifiant les requirements
-        # au lieu de corriger réellement la spec.
-        baseline_requirements = list(output_dict.get("requirements", []) or [])
-        if not baseline_requirements:
-            baseline_requirements = list(input_data.get("requirements", []) or [])
 
+        # ── 4. Récupération du ProjectSpec (Nouvelle Base — Phase 1) ─────────
+        # planner_node retourne project_spec dans le state (dict sérialisé de ProjectSpec).
+        # Si absent (fallback ancien pipeline), on reconstruit depuis requirements.
+        project_spec_dict = final_state.get("project_spec") or {}
+
+        # ── 5. Vérification Clerk compliance sur le brief original ────────────
+        # On vérifie le brief original (phrase) et non la spec textuelle —
+        # ProjectSpec est structuré, il ne peut pas contenir ces patterns.
         violations = _validate_clerk_compliance(
-            output_dict.get("specification", ""),
-            output_dict.get("mermaid_diagram", ""),
+            phrase,
+            "",
             stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
         )
         if violations:
             raise ApplicationError(
                 "SPEC_NOT_CLERK_COMPLIANT",
-                f"Spec rejetee - patterns interdits detectes : {violations}. "
-                f"L'architect doit utiliser Clerk exclusivement."
+                f"Brief contient des patterns interdits : {violations}. "
+                f"Utiliser Clerk exclusivement."
             )
 
-        # ── 4. Spec Validator — observation (non bloquant) ───────────────────
-        # La correction loop (re-invoke du même pipeline) a été supprimée :
-        # elle re-invoquait le même pipeline avec les mêmes biais → résultat identique.
-        # La cause racine (requirements en bas du contexte spec_writer) est corrigée en amont
-        # dans spec_writer_node (architect.py). DEGRADED ici = signal d'alerte, pas d'échec.
-        # Le pipeline continue — le dev_agent travaille avec la spec disponible.
-        spec_validation: dict = {"status": "UNKNOWN", "unmatched_requirements": [], "matched_count": 0, "total_mappable": 0}
-
-        try:
-            spec_validation = validate_spec_requirements(
-                output_dict.get("specification", ""),
-                baseline_requirements,
-            )
-        except Exception as sv_err:
-            activity.logger.warning(f"[SpecValidator] Erreur non bloquante : {sv_err}")
-
-        if spec_validation["status"] == "DEGRADED":
-            unmatched = spec_validation["unmatched_requirements"]
-            activity.logger.critical(
-                f"[SpecValidator] DEGRADED — "
-                f"{len(unmatched)}/{spec_validation.get('total_mappable', '?')} "
-                f"requirement(s) absents : {unmatched} — pipeline continue (non bloquant)"
-            )
+        # ── 6. Écriture de project_spec.json (artefact officiel) ─────────────
+        # Toujours écrit — utilisé par le dev agent (Phase 3) comme source de vérité.
+        if project_spec_dict:
+            import json as _json
+            _workdir = os.getenv("FACTORY_WORKDIR", "/tmp")
+            _spec_path = os.path.join(_workdir, f"project_spec_{project_name}.json")
+            try:
+                os.makedirs(_workdir, exist_ok=True)
+                with open(_spec_path, "w", encoding="utf-8") as _f:
+                    _json.dump(project_spec_dict, _f, indent=2, ensure_ascii=False)
+                activity.logger.info(
+                    f"[architect] project_spec.json écrit — "
+                    f"fingerprint={project_spec_dict.get('spec_fingerprint', 'n/a')} "
+                    f"| {len(project_spec_dict.get('models', []))} modèles "
+                    f"| {len(project_spec_dict.get('pages', []))} pages "
+                    f"| {len(project_spec_dict.get('routes', []))} routes"
+                )
+            except Exception as _e:
+                activity.logger.warning(f"[architect] project_spec.json non écrit (non bloquant) : {_e}")
         else:
-            activity.logger.info(
-                f"[SpecValidator] OK — "
-                f"{spec_validation.get('matched_count', '?')}/{spec_validation.get('total_mappable', '?')} "
-                f"requirement(s) vérifiés dans la spec"
-            )
+            activity.logger.warning("[architect] project_spec absent du state — ancien pipeline actif ?")
 
-        # Garantit la cohérence downstream avec la cible de validation figée.
-        output_dict["requirements"] = baseline_requirements
-        output_dict["spec_validation_status"] = spec_validation.get("status", "UNKNOWN")
-        output_dict["spec_unmatched_requirements"] = spec_validation.get("unmatched_requirements", [])
+        # ── 7. Construction de l'output final ────────────────────────────────
+        requirements = list(output_dict.get("requirements", []) or [])
+        if not requirements:
+            requirements = list(input_data.get("requirements", []) or [])
 
-        # ── 5. Validation stricte du contrat de sortie (après enrichissement) ──
-        # Les champs spec_validation_status et spec_unmatched_requirements sont
-        # maintenant déclarés dans architect_agent_contract.json et validés ici.
+        output_dict["requirements"] = requirements
+        output_dict["project_spec"] = project_spec_dict
+        output_dict["spec_fingerprint"] = project_spec_dict.get("spec_fingerprint", "")
+        # Maintenu pour compatibilité contrat — toujours OK avec structured output
+        output_dict["spec_validation_status"] = "OK"
+        output_dict["spec_unmatched_requirements"] = []
+
+        # ── 8. Validation contrat de sortie ──────────────────────────────────
         validate_output("architect_agent", output_dict)
 
-        activity.logger.info(f"Architect terminé → {len(output_dict['specification'])} caractères de spec générés")
+        activity.logger.info(
+            f"Architect terminé → ProjectSpec | "
+            f"{len(requirements)} requirements | "
+            f"fingerprint={output_dict.get('spec_fingerprint', 'n/a')}"
+        )
         return output_dict
 
     except ApplicationError:

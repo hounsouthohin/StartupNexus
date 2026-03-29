@@ -11,17 +11,21 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir semgrep
 
-# Install Node.js 20.x for npm and build/test tools
+# Install Node.js 22.x — requis par Prisma 7 (@prisma/streams-local nécessite Node >= 22)
 RUN apt-get update && \
     apt-get install -y ca-certificates curl gnupg && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list && \
     apt-get update && \
     apt-get install -y nodejs
 
 # Install JS AST tooling for P3 guards (dev.py AST engine path)
 RUN npm install -g ts-morph @typescript-eslint/parser @typescript-eslint/typescript-estree
+
+# Install Prisma CLI globally (Phase 0 X1)
+# Keep major aligned with project templates using Prisma 7.
+RUN npm install -g prisma@7
 
 # Install Docker CLI client
 RUN apt-get update && \

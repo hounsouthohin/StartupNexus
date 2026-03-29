@@ -46,6 +46,7 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
     from workflows.activities.learner_activity import learner_activity
+    from utils.run_report import write_run_report_minimal as _write_run_report_minimal
     # M2 superviseurs post-build retirés — supervision inline dans dev.py (source unique)
     # conformity/security/architecture restent dans dev.py via supervision_manager
     # M3 — child workflow GenerationSessionWorkflow (Phase 5, non encore câblé)
@@ -113,6 +114,7 @@ class TodoPilotWorkflow:
             ir_pages_part = architect_result.get("ir_pages", [])
             ir_routes_part = architect_result.get("ir_routes", [])
             plan_part = architect_result.get("plan", {})
+            project_spec_part = architect_result.get("project_spec", {})
 
             workflow.logger.info(
                 f"Architect terminé — {len(requirements_part)} requirements | "
@@ -149,6 +151,8 @@ class TodoPilotWorkflow:
                 "ir_pages": ir_pages_part,
                 "ir_routes": ir_routes_part,
                 "run_mode": run_mode,  # propagé aux activités pour traçabilité
+                "project_spec": project_spec_part,  # Nouvelle Base — ProjectSpec sérialisé
+                "workflow_id": f"todo-pilot-{project_name}",
             }
 
             if run_mode == "workflow":
@@ -335,6 +339,18 @@ class TodoPilotWorkflow:
         except Exception as exc:
             total_time = (workflow.now() - start_time).total_seconds()
             workflow.logger.error(f"TodoPilot unrecoverable failure: {exc}")
+
+            # Fallback run_report minimal si DevTest n'a pas tourné (P0-C1)
+            try:
+                _write_run_report_minimal(
+                    run_id=str(run_id),
+                    workflow_id=f"todo-pilot-{project_name}",
+                    project_name=project_name,
+                    error=str(exc),
+                )
+            except Exception:
+                pass  # non bloquant
+
             return TodoPilotOutput(
                 workflow_status="FAILED_UNRECOVERABLE",
                 build_status="NOT_RUN",

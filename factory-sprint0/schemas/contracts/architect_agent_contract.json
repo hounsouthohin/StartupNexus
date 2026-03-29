@@ -41,8 +41,27 @@
     "properties": {
       "specification": {
         "type": "string",
-        "description": "Spécification technique complète en Markdown",
-        "minLength": 500
+        "description": "Résumé de la spec (Nouvelle Base : ProjectSpec remplace le texte libre)",
+        "default": ""
+      },
+      "project_spec": {
+        "type": "object",
+        "description": "Nouvelle Base — ProjectSpec typé (instructor+Pydantic). Source de vérité unique pour le dev agent.",
+        "properties": {
+          "project_name": {"type": "string"},
+          "stack_id": {"type": "string"},
+          "models": {"type": "array"},
+          "routes": {"type": "array"},
+          "pages": {"type": "array"},
+          "user_flows": {"type": "array"},
+          "spec_fingerprint": {"type": "string"}
+        },
+        "default": {}
+      },
+      "spec_fingerprint": {
+        "type": "string",
+        "description": "Hash SHA256 (16 chars) des noms modèles + pages + routes — détection dérive",
+        "default": ""
       },
       "mermaid_diagram": {
         "type": "string",
