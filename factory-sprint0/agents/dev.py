@@ -1,3 +1,10 @@
+"""
+DEPRECATED (Phase A - Prebuild Truth Engine, 2026-03-30).
+
+Legacy entrypoint kept for rollback/tests only.
+Active production path is workflows.activities.dev_test_activity -> agents.dev_graph.run_dev_agent.
+"""
+
 import os
 import json
 import logging
@@ -35,6 +42,10 @@ from .dev_loop import run_dev_loop
 logger = logging.getLogger(__name__)
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+logger.warning(
+    "[DEPRECATED] agents.dev is legacy and not used by active runtime path "
+    "(dev_test_activity -> dev_graph)."
+)
 
 
 

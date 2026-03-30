@@ -1,6 +1,10 @@
 """
 FileSupervisionLoop — Boucle de correction per-fichier superviseurs.
 
+DEPRECATED (Phase A - Prebuild Truth Engine, 2026-03-30).
+Legacy module kept for rollback/tests only.
+Active runtime uses agents.dev_graph via dev_test_activity.
+
 Responsabilité :
 - Tracker quelles fichiers ont des corrections superviseurs en attente
 - Décider si un fichier doit être re-supervisé (il vient d'être réécrit après correction)
@@ -12,6 +16,10 @@ import logging
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "[DEPRECATED] agents.file_supervision_loop is legacy and not used by active runtime path "
+    "(dev_test_activity -> dev_graph)."
+)
 
 MAX_CORRECTION_ATTEMPTS_DEFAULT = 2
 

@@ -13,7 +13,7 @@ jest.mock('@clerk/nextjs/server', () => ({
 }));
 
 describe('middleware — exports structurels', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line
   const mod = require('../middleware');
   const middleware = mod.default ?? mod;
 

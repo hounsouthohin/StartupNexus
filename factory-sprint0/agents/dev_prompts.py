@@ -1,3 +1,4 @@
+
 # agents/dev_prompts.py
 """
 System prompt du dev agent v4 (Nouvelle Base — Phase 4A, 28 Mars 2026).
@@ -188,18 +189,17 @@ RÈGLES ABSOLUES STACK (ne jamais enfreindre)
 ══════════════════════════════════════════════════════════════
 - Utilise EXACTEMENT les noms de la spec (Product pas Produit, /api/products pas /api/items)
 - App Router UNIQUEMENT → dossier app/ — jamais pages/
-- Auth : Clerk V6 uniquement → import {{ auth, currentUser }} from '@clerk/nextjs/server'
-- Pas de bcrypt, jwt, next-auth, passport, oauth dans le code
 - ClerkProvider dans app/layout.tsx — OBLIGATOIRE
-- middleware.ts : export {{ default }} from '@clerk/nextjs/server' avec clerkMiddleware()
+- Auth côté serveur : `import {{ auth, currentUser }} from '@clerk/nextjs/server'`
 - Chaque modèle Prisma doit avoir : id String @id @default(uuid()), createdAt DateTime @default(now())
-- Route handlers App Router : toujours typer les paramètres explicitement :
-  `export async function GET(request: NextRequest, {{ params }}: {{ params: {{ id: string }} }}) {{`
-  Importer NextRequest : `import {{ NextRequest }} from 'next/server'`
 - .env.local : OBLIGATOIRE avec ces valeurs exactes (format requis) :
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
   CLERK_SECRET_KEY=sk_test_placeholder
   DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 - Pas de champ "password" ou "passwordHash" dans schema.prisma
 - "use client" OBLIGATOIRE en première ligne absolue de tout fichier qui utilise useState, useEffect, useRef ou tout autre hook React — cette directive doit précéder tous les imports, même export const dynamic
+- FRONTIÈRE CLIENT/SERVEUR : un fichier "use client" NE PEUT PAS importer depuis '@clerk/nextjs/server', 'server-only', 'next/headers' ou 'next/cookies'
+  → Dans un Client Component : utiliser `useAuth()` ou `useUser()` depuis '@clerk/nextjs'
+  → Auth serveur (`auth()`, `currentUser()`) : uniquement dans les Server Components (sans "use client") et les route handlers (app/api/)
+  → Logique DB (prisma) : uniquement côté serveur — jamais dans un Client Component
 """.replace("{WORKDIR}", "/app/generated-projects")

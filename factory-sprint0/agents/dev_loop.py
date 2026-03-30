@@ -1,5 +1,9 @@
 """
 dev_loop.py — helpers de boucle dev et état d'itération.
+
+DEPRECATED (Phase A - Prebuild Truth Engine, 2026-03-30).
+Legacy module kept for rollback/tests only.
+Active runtime uses agents.dev_graph via dev_test_activity.
 """
 
 from __future__ import annotations
@@ -33,6 +37,10 @@ except ModuleNotFoundError:
 
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "[DEPRECATED] agents.dev_loop is legacy and not used by active runtime path "
+    "(dev_test_activity -> dev_graph)."
+)
 
 
 @dataclass

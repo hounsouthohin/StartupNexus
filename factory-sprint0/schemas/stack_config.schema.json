@@ -169,6 +169,10 @@
         ],
         "properties": {
           "id": { "type": "string" },
+          "status": {
+            "type": "string",
+            "description": "Etat du guard pendant la transition. Ex: legacy_ignored_by_dev_graph."
+          },
           "description": { "type": "string" },
           "file_prefix": { "type": "string" },
           "file_extensions": {

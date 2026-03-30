@@ -1,5 +1,9 @@
 """
 build_state_manager.py — centralise l'état de build et les métriques de fin de run.
+
+DEPRECATED (Phase A - Prebuild Truth Engine, 2026-03-30).
+Legacy module kept for rollback/tests only.
+Active runtime uses agents.dev_graph via dev_test_activity.
 """
 
 from __future__ import annotations
@@ -17,6 +21,10 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "[DEPRECATED] agents.build_state_manager is legacy and not used by active runtime path "
+    "(dev_test_activity -> dev_graph)."
+)
 
 
 class RunStateComputer:

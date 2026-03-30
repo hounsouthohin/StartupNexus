@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Manifeste des outils du Prebuild Truth Engine. Liste chaque outil de la toolchain native, son rôle, son statut d'implémentation, et ce qu'il remplace dans l'ancienne architecture.",
+  "version": "1.0.0",
+  "generated": "2026-03-30",
+  "tools": [
+    {
+      "id": "prisma_validate",
+      "command": "npx prisma validate",
+      "role": "Valide la syntaxe et les relations du schéma Prisma avant toute génération de types. Détecte les erreurs P1012 (modèle manquant, relation sans back-reference, champ inconnu).",
+      "status": "planned",
+      "phase": "B",
+      "stage_id": "prisma_validate",
+      "blocking": true,
+      "output_format": "stderr — messages Prisma avec codes d'erreur Pxxxx",
+      "replaces": [
+        "content_guard: prisma_schema_datasource_url (nextjs-clerk-prisma.json)",
+        "Guard regex substring dans pre_build_validator.py (legacy, jamais branché sur dev_graph)"
+      ],
+      "notes": "Non-bloquant si prisma CLI absent (status=skipped). Bloquant si schéma invalide (status=failed)."
+    },
+    {
+      "id": "prisma_generate",
+      "command": "npx prisma generate",
+      "role": "Génère @prisma/client à partir du schéma validé. Assure que les types Prisma sont disponibles AVANT que tsc analyse le code LLM. Sans cette étape, tsc produit TS2305/TS2339/TS7006 en cascade.",
+      "status": "implemented",
+      "phase": "B",
+      "stage_id": "prisma_generate",
+      "blocking": false,
+      "output_format": "stdout — confirmation de génération, stderr en cas d'erreur",
+      "replaces": [
+        "Absence de pré-génération (cause racine du cluster TS2305/TS2339/TS7006 sur kanban-board)"
+      ],
+      "notes": "Déjà implémenté en pre-run dans dev_graph.py (ajout session 30 Mars 2026). Ce stage re-génère après corrections LLM. Non-bloquant — loggé WARNING si échec."
+    },
+    {
+      "id": "tsc",
+      "command": "npx tsc --noEmit --pretty false",
+      "role": "Vérifie les types TypeScript sur la totalité du projet généré. Produit des erreurs structurées (TSxxxx) avec fichier, ligne, colonne et message. Remplace la classification substring de _classify_root_cause().",
+      "status": "planned",
+      "phase": "B",
+      "stage_id": "tsc",
+      "blocking": true,
+      "output_format": "stdout — lignes format: path/to/file.tsx(line,col): error TSxxxx: message",
+      "replaces": [
+        "_classify_root_cause() — 17 patterns substring dans dev_test_activity.py",
+        "content_guard: typescript_import_style (nextjs-clerk-prisma.json)",
+        "Règles TypeScript dans dev_prompts.py couvertes par le type checker"
+      ],
+      "notes": "Non-bloquant si tsc absent (status=skipped). Chaque erreur TS devient une Violation structurée. fix_hint déterministe par code TS (dict _TS_FIX_HINTS)."
+    },
+    {
+      "id": "eslint",
+      "command": "npx eslint . --format json",
+      "role": "Applique les règles de la stack (imports, patterns interdits, conventions Next.js). Remplace les content_guards regex et les règles de style dans dev_prompts.py.",
+      "status": "planned",
+      "phase": "B",
+      "stage_id": "eslint",
+      "blocking": true,
+      "output_format": "JSON — tableau de fichiers avec messages (ruleId, severity, line, col, message)",
+      "replaces": [
+        "content_guard: no_relative_imports (nextjs-clerk-prisma.json)",
+        "content_guard: use_client_directive — partiellement (Phase B), remplacé totalement en Phase C par ast_use_client",
+        "Règles import/style dans dev_prompts.py couvertes par ESLint"
+      ],
+      "config": ".eslintrc.stack.json",
+      "notes": "Utilise .eslintrc.stack.json dans le workdir. Skip si absent. Seules les erreurs severity=2 sont bloquantes — warnings ignorés."
+    },
+    {
+      "id": "ast_use_client",
+      "command": "tree-sitter-typescript (Python binding)",
+      "role": "Guard AST — détecte les fichiers qui utilisent des hooks React (useState, useEffect, useRef, useCallback, useMemo, useContext) sans directive 'use client' comme premier statement AST. Tolérant aux erreurs de syntaxe.",
+      "status": "planned",
+      "phase": "C",
+      "stage_id": "ast_use_client",
+      "blocking": true,
+      "output_format": "Violations structurées produites par Python (rule_id=use_client)",
+      "replaces": [
+        "content_guard: use_client_directive (nextjs-clerk-prisma.json)",
+        "Règle prompt dans dev_prompts.py: '\"use client\" OBLIGATOIRE en première ligne'",
+        "Guard regex substring dans pre_build_validator.py (legacy)"
+      ],
+      "notes": "0 faux positifs sur Server Components légitimes (layouts, API routes). tree-sitter est error-tolerant et version-independent. Remplace définitivement la détection stochastique LLM."
+    },
+    {
+      "id": "dependency_cruiser",
+      "command": "npx depcruise --config .dependency-cruiser.js",
+      "role": "Valide les frontières architectural client/server. Interdit les imports server dans les composants client, vérifie les chemins d'import selon les règles de la stack.",
+      "status": "planned",
+      "phase": "C",
+      "stage_id": "dependency_cruiser",
+      "blocking": false,
+      "output_format": "JSON — violations avec from, to, rule",
+      "replaces": [
+        "content_guard: no_relative_imports — renforcé avec frontières sémantiques",
+        "Guards de path hardcodés dans pre_build_validator.py (legacy)"
+      ],
+      "notes": "Non-bloquant dans la configuration Phase C initiale. Peut être promu blocking après validation sur 9 runs."
+    }
+  ],
+  "summary": {
+    "total_tools": 6,
+    "implemented": 1,
+    "planned_phase_b": 3,
+    "planned_phase_c": 2,
+    "critical_blocking": ["prisma_validate", "tsc", "eslint", "ast_use_client"],
+    "non_blocking": ["prisma_generate", "dependency_cruiser"],
+    "legacy_replaced": [
+      "pre_build_validator.py — jamais branché sur dev_graph (dead code)",
+      "content_guards regex dans nextjs-clerk-prisma.json — tous remplacés Phase B+C",
+      "_classify_root_cause() substring patterns — remplacé par parseur structuré tsc/eslint",
+      "~40 règles dev_prompts.py couvertes par toolchain native"
+    ]
+  }
+}

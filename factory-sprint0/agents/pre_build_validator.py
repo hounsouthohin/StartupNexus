@@ -1,6 +1,10 @@
 """
 pre_build_validator.py — Validation pré-build de l'état des fichiers générés.
 
+DEPRECATED (Phase A - Prebuild Truth Engine, 2026-03-30).
+Legacy module kept for rollback/tests only.
+Active runtime uses agents.dev_graph via dev_test_activity.
+
 Extraite de dev.py (inner function _prebuild_gates + _find_content_guard_violations
 + _collect_blocking_content_guard_targets) pour réduire la taille de dev_agent().
 
@@ -29,6 +33,10 @@ from .dev_path_utils import first_directive_line, collect_forbidden_import_viola
 from .stack_config import get_forbidden_imports, get_forbidden_paths
 
 logger = logging.getLogger(__name__)
+logger.warning(
+    "[DEPRECATED] agents.pre_build_validator is legacy and not used by active runtime path "
+    "(dev_test_activity -> dev_graph)."
+)
 
 
 class PreBuildValidator:

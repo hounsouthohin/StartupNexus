@@ -19,7 +19,7 @@ import shutil
 import subprocess
 from typing import TypedDict, List, Annotated
 
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -30,6 +30,7 @@ from agents.dev_tools import write_file, read_file, list_directory, shell_exec, 
 logger = logging.getLogger(__name__)
 
 MAX_BUILD_ATTEMPTS = 3
+MAX_PREBUILD_BLOCKS = 6
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
 DEV_TOOLS = [write_file, read_file, list_directory, shell_exec, file_exists]
@@ -51,11 +52,23 @@ class DevState(TypedDict):
     error_signatures: List[str]
     build_command_executed: bool   # True ssi npm run build a été appelé et a retourné un exit code
     build_exit_code: int           # Exit code réel du dernier npm run build (0 = succès)
+    prebuild_blocking: bool        # True si prebuild_pipeline bloque le build
+    prebuild_report: dict          # Dernier prebuild_report sérialisé
+    prebuild_block_count: int      # Nombre de blocages prebuild consécutifs
 
 
 def _error_signature(stderr: str) -> str:
     """Hash stable des 200 premiers chars d'une erreur — détection de boucle."""
     return hashlib.md5(stderr[:200].encode()).hexdigest()[:8]
+
+
+def _is_build_command(command: str) -> bool:
+    cmd = str(command or "").strip().lower()
+    return (
+        "npm run build" in cmd
+        or cmd == "next build"
+        or " next build" in cmd
+    )
 
 
 async def run_dev_agent(
@@ -134,7 +147,12 @@ async def run_dev_agent(
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
     # Protéger les fichiers Prisma critiques contre réécriture LLM.
-    _protected = {"lib/prisma.ts", "prisma.config.ts", "prisma/schema.prisma"}
+    _protected = {
+        "lib/prisma.ts",
+        "prisma.config.ts",
+        "prisma/schema.prisma",
+        ".eslintrc.stack.json",
+    }
     _dev_tools_module.set_protected_files(_protected)
 
     # ── npm install (Python pre-run, hors LLM) ──────────────────────
@@ -254,6 +272,142 @@ async def run_dev_agent(
             "error_signatures": new_sigs,
         }
 
+    # ── Nœud Prebuild Gate (B.1b) ─────────────────────────────────────
+    async def prebuild_gate_node(state: DevState) -> dict:
+        """
+        Intercepte les tool_calls avant exécution.
+        Si un npm run build est demandé, exécute prebuild_pipeline:
+        - blocking=True  -> injecte llm_correction_bundle et saute l'exécution tools
+        - blocking=False -> autorise tools (donc build)
+        """
+        last_msg = state["messages"][-1] if state.get("messages") else None
+        if not isinstance(last_msg, AIMessage):
+            return {"prebuild_blocking": False}
+
+        tool_calls = getattr(last_msg, "tool_calls", None) or []
+        build_requested = False
+        for call in tool_calls:
+            name = str(call.get("name", "") or "")
+            if not (name == "shell_exec" or name.endswith("shell_exec")):
+                continue
+            args = call.get("args", {})
+            command = str(args.get("command", "") or "") if isinstance(args, dict) else str(args or "")
+            if _is_build_command(command):
+                build_requested = True
+                break
+
+        if not build_requested:
+            return {"prebuild_blocking": False}
+
+        try:
+            from agents.prebuild_pipeline import (
+                run_prebuild_pipeline, report_to_dict, PHASE_C_STAGES,
+            )
+
+            # PHASE_C_STAGES inclut ast_use_client — activé dès que _run_ast_use_client est implémenté.
+            # Si tree-sitter absent → stage=skipped automatiquement (non bloquant).
+            report = await run_prebuild_pipeline(
+                project_dir=project_workdir,
+                stack_id=str(spec.get("stack_id", "") or "nextjs-clerk-prisma"),
+                run_id=run_id,
+                project_name=project_name,
+                stages=PHASE_C_STAGES,
+            )
+            report_dict = report_to_dict(report)
+            if report.blocking:
+                block_count = int(state.get("prebuild_block_count", 0) or 0) + 1
+                bundle = report.llm_correction_bundle or (
+                    "[PREBUILD_VIOLATIONS] Corrections obligatoires détectées avant build. "
+                    "Corrige ces violations puis relance le build."
+                )
+                logger.warning(
+                    "[prebuild] blocking=True — build bloqué (%d/%d), %d violation(s), stages_failed=%s",
+                    block_count,
+                    MAX_PREBUILD_BLOCKS,
+                    len(report.violations),
+                    report.stages_failed,
+                )
+                # OpenAI exige qu'un ToolMessage réponde à chaque tool_call_id de l'AIMessage.
+                # Sans cela → HTTP 400 "tool_calls must be followed by tool messages".
+                ack_ids: list[str] = []
+                for call in tool_calls:
+                    cid = str(call.get("id") or call.get("tool_call_id") or "").strip()
+                    if cid:
+                        ack_ids.append(cid)
+
+                # Fallback robuste: certains providers/langchain conservent les ids bruts
+                # dans additional_kwargs.tool_calls au lieu de state.tool_calls normalisé.
+                raw_tool_calls = []
+                if isinstance(getattr(last_msg, "additional_kwargs", None), dict):
+                    raw_tool_calls = last_msg.additional_kwargs.get("tool_calls", []) or []
+                for raw in raw_tool_calls:
+                    if not isinstance(raw, dict):
+                        continue
+                    cid = str(raw.get("id") or "").strip()
+                    if cid:
+                        ack_ids.append(cid)
+
+                # Dédupe en conservant l'ordre
+                dedup_ids: list[str] = []
+                seen_ids: set[str] = set()
+                for cid in ack_ids:
+                    if cid in seen_ids:
+                        continue
+                    seen_ids.add(cid)
+                    dedup_ids.append(cid)
+
+                tool_ack_messages = [
+                    ToolMessage(
+                        content="[PREBUILD_BLOCK] Build non exécuté — violations détectées. Attends les corrections.",
+                        tool_call_id=cid,
+                    )
+                    for cid in dedup_ids
+                ]
+                logger.info(
+                    "[prebuild] Tool acks envoyés: %d/%d",
+                    len(tool_ack_messages),
+                    len(tool_calls),
+                )
+                if block_count >= MAX_PREBUILD_BLOCKS:
+                    logger.warning(
+                        "[prebuild] max blocages atteint (%d) — arrêt pour éviter GraphRecursionError",
+                        MAX_PREBUILD_BLOCKS,
+                    )
+                    hard_stop = (
+                        "PREBUILD_BLOCK_LIMIT: même violation persistante après "
+                        f"{MAX_PREBUILD_BLOCKS} corrections. "
+                        "Arrêt du run pour éviter une boucle infinie."
+                    )
+                    return {
+                        "messages": tool_ack_messages + [HumanMessage(content=bundle)],
+                        "prebuild_blocking": True,
+                        "prebuild_report": report_dict,
+                        "prebuild_block_count": block_count,
+                        "last_build_error": hard_stop,
+                        "success": False,
+                        "build_command_executed": False,
+                        "build_exit_code": -1,
+                    }
+                return {
+                    "messages": tool_ack_messages + [HumanMessage(content=bundle)],
+                    "prebuild_blocking": True,
+                    "prebuild_report": report_dict,
+                    "prebuild_block_count": block_count,
+                }
+
+            logger.info(
+                "[prebuild] blocking=False — build autorisé | stages_passed=%s",
+                report.stages_passed,
+            )
+            return {
+                "prebuild_blocking": False,
+                "prebuild_report": report_dict,
+                "prebuild_block_count": 0,
+            }
+        except Exception as e:
+            logger.warning(f"[prebuild] pipeline non bloquant: {e}")
+            return {"prebuild_blocking": False}
+
     # ── Nœud Build Doctor ────────────────────────────────────────────
     async def build_doctor_node(state: DevState) -> dict:
         """Analyse l'erreur de build et injecte un diagnostic ciblé."""
@@ -354,15 +508,37 @@ async def run_dev_agent(
             return END
         return "dev"
 
+    def route_from_dev(state: DevState) -> str:
+        """Routage standard tools_condition, avec passage obligatoire par prebuild_gate."""
+        decision = tools_condition(state)
+        return "prebuild_gate" if decision == "tools" else "__end__"
+
+    def route_after_prebuild(state: DevState) -> str:
+        """Si prebuild bloque, retour au LLM sans exécuter les tool_calls."""
+        if state.get("prebuild_blocking", False):
+            if int(state.get("prebuild_block_count", 0) or 0) >= MAX_PREBUILD_BLOCKS:
+                return "__end__"
+            return "dev"
+        return "tools"
+
     # ── Assemblage du graph ──────────────────────────────────────────
     builder = StateGraph(DevState)
     builder.add_node("dev", dev_node)
+    builder.add_node("prebuild_gate", prebuild_gate_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
     builder.add_node("extract_error", extract_build_error_node)
     builder.add_node("build_doctor", build_doctor_node)
 
     builder.add_edge(START, "dev")
-    builder.add_conditional_edges("dev", tools_condition)
+    builder.add_conditional_edges("dev", route_from_dev, {
+        "prebuild_gate": "prebuild_gate",
+        "__end__": END,
+    })
+    builder.add_conditional_edges("prebuild_gate", route_after_prebuild, {
+        "tools": "tools",
+        "dev": "dev",
+        "__end__": END,
+    })
     builder.add_edge("tools", "extract_error")
     builder.add_conditional_edges("extract_error", route_after_tools, {
         "build_doctor": "build_doctor",
@@ -400,6 +576,9 @@ async def run_dev_agent(
         "error_signatures": [],
         "build_command_executed": False,
         "build_exit_code": -1,
+        "prebuild_blocking": False,
+        "prebuild_report": {},
+        "prebuild_block_count": 0,
     }
 
     try:

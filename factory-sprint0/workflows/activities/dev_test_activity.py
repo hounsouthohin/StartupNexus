@@ -24,28 +24,83 @@ def _classify_root_cause(
     semantic_violations: list,
     spec_validation_status: str,
     iterations: int,
+    prebuild_report: dict | None = None,
 ) -> str:
     """
     Catégorise la cause racine d'un run en échec ou partiel.
+
+    Priorité de classification :
+      1. semantic_violations      — gates déterministes (toujours prioritaires)
+      2. prebuild_report          — violations structurées tsc/prisma/eslint (Phase B+)
+      3. text patterns fallback   — pour erreurs runtime non capturées par prebuild
+         (use client, module resolution, erreurs Next.js dynamiques)
+
     Retourne une chaîne parmi :
-      semantic_violation | missing_template | client_directive
+      semantic_violation | missing_template | client_directive | client_server_boundary
       | prisma_import | prisma_schema_config | prisma_env | prisma_client_api
       | typescript_implicit_any | typescript_property_error | typescript_type_mismatch
       | typescript_missing_import | typescript_error
       | spec_drift | max_iterations | test_failure | workflow_execution_error | unknown
     """
+    # ── 1. Semantic violations ────────────────────────────────────────────────
+    if semantic_violations:
+        return "semantic_violation"
+
+    # ── 2. Prebuild report — violations structurées (source de vérité Phase B+) ──
+    if prebuild_report and isinstance(prebuild_report, dict):
+        violations = prebuild_report.get("violations") or []
+        stages_failed = set(prebuild_report.get("stages_failed") or [])
+
+        rule_ids = {str(v.get("rule_id", "")).lower() for v in violations if isinstance(v, dict)}
+
+        # Prisma schema invalide (prisma_validate stage)
+        if "prisma_schema_invalid" in rule_ids:
+            return "prisma_schema_config"
+
+        # TypeScript — codes TS structurés
+        if "ts7006" in rule_ids or "ts7031" in rule_ids:
+            return "typescript_implicit_any"
+        if "ts2339" in rule_ids:
+            return "typescript_property_error"
+        if "ts2345" in rule_ids:
+            return "typescript_type_mismatch"
+        if "ts2552" in rule_ids or "ts2305" in rule_ids:
+            return "typescript_missing_import"
+        if any(r.startswith("ts") and r[2:].isdigit() for r in rule_ids):
+            return "typescript_error"
+
+        # ESLint — imports (Phase B+ si .eslintrc.stack.json déployé)
+        if "no-restricted-imports" in rule_ids or "import/no-relative-packages" in rule_ids:
+            return "prisma_import"
+
+        # use_client guard (Phase C — ast_use_client stage)
+        if "use_client" in rule_ids:
+            return "client_directive"
+
+        # client/server boundary (Phase C — ast_use_client stage, check inverse)
+        if "client_server_boundary" in rule_ids:
+            return "client_server_boundary"
+
+        # Stage échoué sans violation parseable — fallback par stage
+        if "tsc" in stages_failed or "ts_unknown" in rule_ids:
+            return "typescript_error"
+        if "prisma_validate" in stages_failed:
+            return "prisma_schema_config"
+        if "eslint" in stages_failed:
+            return "typescript_error"
+
+    # ── 3. Text patterns fallback (erreurs runtime non capturées par prebuild) ──
     err = (last_build_error or "").lower()
-    # ── Prisma schema errors ──────────────────────────────────────────────────
-    if "error code: p1012" in err and "datasource property `url`" in err:
-        return "prisma_schema_config"
+
+    # Prisma env / API (runtime — non détectable avant build)
     if "cannot resolve environment variable: database_url" in err:
         return "prisma_env"
     if "no exported member 'prismaclient'" in err:
         return "prisma_client_api"
-    # ── Semantic violations ───────────────────────────────────────────────────
-    if semantic_violations:
-        return "semantic_violation"
-    # ── TypeScript errors (P1-C2) — avant les checks module génériques ────────
+    if "error code: p1012" in err and "datasource property `url`" in err:
+        return "prisma_schema_config"
+
+    # TypeScript (fallback si prebuild skipped ou tsc absent)
     if "ts7006" in err or "ts7031" in err or "implicitly has an 'any' type" in err:
         return "typescript_implicit_any"
     if "ts2339" in err or ("property" in err and "does not exist on type" in err):
@@ -58,19 +113,27 @@ def _classify_root_cause(
         return "typescript_missing_import"
     if re.search(r"ts\d{4}", err):
         return "typescript_error"
-    # ── Module / import errors ────────────────────────────────────────────────
+
+    # Module / import (runtime — next build)
     if "module not found" in err or "can't resolve" in err or "cannot find module" in err:
         if "lib/prisma" in err or "prisma" in err:
             return "prisma_import"
         return "missing_template"
+    # Client/Server boundary (runtime — "use client" + server-only import)
+    if "server-only" in err and "client component" in err:
+        return "client_server_boundary"
+    if "cannot be imported from a client component" in err:
+        return "client_server_boundary"
     if "use client" in err or "hooks can only be used" in err or "useclient" in err:
         return "client_directive"
     if "prisma" in err:
         return "prisma_import"
-    # ── Workflow-level failure (aucun build atteint) ───────────────────────────
+
+    # Workflow-level failure
     if "workflow execution failed" in err:
         return "workflow_execution_error"
-    # ── Fallbacks ─────────────────────────────────────────────────────────────
+
+    # ── Fallbacks contextuels ─────────────────────────────────────────────────
     if spec_validation_status == "DEGRADED":
         return "spec_drift"
     if iterations >= 10:
@@ -564,6 +627,12 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
     # ── 3. Exécution ──────────────────────────────────────────────────────
     _activity_start = datetime.now(timezone.utc)
     try:
+        # ── Chemin actif production (Phase A) ────────────────────────────────
+        # Runtime path:
+        #   dev_test_activity -> agents.dev_graph.run_dev_agent
+        # Legacy path kept only for rollback/tests:
+        #   agents.dev, agents.dev_loop, agents.pre_build_validator,
+        #   agents.file_supervision_loop, agents.build_state_manager
         # ── Nouvelle Base — dev_graph (LangGraph + outils Python natifs) ────
         from agents.dev_graph import run_dev_agent
         from langgraph.errors import GraphRecursionError
@@ -688,6 +757,31 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             requirements_unmet = requirements
             requirements_unknown = []
 
+        # ── Métriques réelles user_flows via journey_validator (B.2) ───────
+        user_flows = input_data.get("user_flows", []) or []
+        if not isinstance(user_flows, list):
+            user_flows = []
+
+        journey_metrics = {
+            "user_flows_total": len(user_flows),
+            "user_flows_covered": 0,
+            "user_flows_coverage": 0.0,
+            "is_useful_app": False,
+        }
+        try:
+            from agents.journey_validator import validate_user_flows
+
+            _jm = validate_user_flows(user_flows, combined_files)
+            if isinstance(_jm, dict):
+                journey_metrics["user_flows_total"] = int(_jm.get("user_flows_total", len(user_flows)))
+                journey_metrics["user_flows_covered"] = int(_jm.get("user_flows_covered", 0))
+                journey_metrics["user_flows_coverage"] = float(_jm.get("user_flows_coverage", 0.0))
+                journey_metrics["is_useful_app"] = bool(_jm.get("is_useful_app", False))
+        except Exception as jv_err:
+            activity.logger.warning(f"[dev_graph] journey_validator échoué : {jv_err}")
+
+        is_useful_app = bool(success and spec_coverage >= 0.8 and journey_metrics["is_useful_app"])
+
         dev_files_count = len(combined_files)
         result = {
             "dev_output": {
@@ -725,10 +819,10 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 "requirements_unmet_by_category": {},
                 "spec_validation_status": input_data.get("spec_validation_status", "OK"),
                 "spec_unmatched_count": len(input_data.get("spec_unmatched_requirements", [])),
-                "user_flows_total": 0,
-                "user_flows_covered": 0,
-                "user_flows_coverage": 0.0,
-                "is_useful_app": success and spec_coverage >= 0.8,
+                "user_flows_total": int(journey_metrics["user_flows_total"]),
+                "user_flows_covered": int(journey_metrics["user_flows_covered"]),
+                "user_flows_coverage": float(journey_metrics["user_flows_coverage"]),
+                "is_useful_app": is_useful_app,
                 "supervisor_files_reviewed": 0,
                 "supervisor_corrections_count": 0,
                 "conformity_score": 0.0,
@@ -869,6 +963,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 semantic_violations=semantic_violations,
                 spec_validation_status=str(result.get("metadata", {}).get("spec_validation_status", "OK")),
                 iterations=int(dev_meta.get("iterations", 0)),
+                prebuild_report=dev_result.get("prebuild_report") or {},
             ),
         }
         # ── Cohérence métrique — Phase C : contradictions = hard fail ────────

@@ -15,3 +15,5 @@ pygithub
 git-filter-repo
 pytest-asyncio
 instructor
+tree-sitter
+tree-sitter-typescript

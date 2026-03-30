@@ -71,7 +71,8 @@
     "@babel/runtime": "^7.0.0",
     "node-mocks-http": "^1.14.0",
     "eslint": "^8.0.0",
-    "eslint-config-next": "14.2.25"
+    "eslint-config-next": "14.2.25",
+    "eslint-plugin-import": "^2.29.1"
   },
   "peer_dependency_minimums": {
     "react": "^18.2.0",
@@ -249,6 +250,7 @@
     "jest.config.js": "templates/jest.config.js",
     "jest.setup.js": "templates/jest.setup.js",
     "next.config.js": "templates/next.config.js",
+    ".eslintrc.stack.json": "templates/.eslintrc.stack.json",
     "tsconfig.json": "templates/tsconfig.json",
     ".env.local": "templates/env.local.template",
     "tests/middleware.test.ts": "templates/tests/middleware.test.ts",
@@ -384,6 +386,7 @@
   "content_guards": [
     {
       "id": "use_client",
+      "status": "legacy_ignored_by_dev_graph",
       "description": "Hooks React dans app/*.tsx sans directive use client en première ligne",
       "file_prefix": "app/",
       "file_extensions": [
@@ -408,6 +411,7 @@
     },
     {
       "id": "authorid_requires_userid_guard",
+      "status": "legacy_ignored_by_dev_graph",
       "description": "Si authorId: userId est present, il faut verifier userId (if !userId) avant Prisma",
       "file_prefix": "app/api/",
       "file_extensions": [
@@ -433,6 +437,7 @@
     },
     {
       "id": "prisma_import_path",
+      "status": "legacy_ignored_by_dev_graph",
       "description": "Import Prisma en chemin relatif interdit dans app/api — utiliser @/lib/prisma",
       "file_prefix": "",
       "file_extensions": [
@@ -456,6 +461,7 @@
     },
     {
       "id": "prisma_named_import",
+      "status": "legacy_ignored_by_dev_graph",
       "description": "Import nomme Prisma invalide depuis @/lib/prisma",
       "file_prefix": "",
       "file_extensions": [
@@ -477,6 +483,7 @@
     },
     {
       "id": "prisma_schema_datasource_url",
+      "status": "legacy_ignored_by_dev_graph",
       "description": "Prisma 7 interdit datasource.url dans prisma/schema.prisma",
       "file_prefix": "prisma/",
       "file_extensions": [
@@ -497,6 +504,7 @@
     },
     {
       "id": "route_handler_untyped_signature",
+      "status": "legacy_ignored_by_dev_graph",
       "description": "Route handlers app/api non types (any implicite) — warning de qualite",
       "file_prefix": "app/api/",
       "file_extensions": [

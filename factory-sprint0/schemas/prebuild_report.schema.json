@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "prebuild_report",
+  "title": "PrebuildReport",
+  "description": "Artefact de vérité produit par prebuild_pipeline avant tout npm run build. Contient le résultat de chaque stage (tsc, eslint, prisma, ast) et le bundle de correction structuré pour le LLM.",
+  "type": "object",
+  "required": [
+    "run_id",
+    "project_name",
+    "stack_id",
+    "timestamp",
+    "blocking",
+    "stages",
+    "violations",
+    "llm_correction_bundle",
+    "stages_passed",
+    "stages_failed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "UUID du run courant — corrélation avec les logs Temporal."
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Nom du projet généré (ex: task-manager)."
+    },
+    "stack_id": {
+      "type": "string",
+      "description": "Identifiant de la stack (ex: nextjs-clerk-prisma)."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 — moment de production du report."
+    },
+    "blocking": {
+      "type": "boolean",
+      "description": "True si au moins un stage critique a échoué. Le build ne doit pas être lancé si blocking=true."
+    },
+    "stages": {
+      "type": "array",
+      "description": "Résultat de chaque stage exécuté, dans l'ordre d'exécution.",
+      "items": { "$ref": "#/definitions/StageResult" }
+    },
+    "violations": {
+      "type": "array",
+      "description": "Liste plate de toutes les violations à travers tous les stages. Dédupliquée par (rule_id, file, line).",
+      "items": { "$ref": "#/definitions/Violation" }
+    },
+    "llm_correction_bundle": {
+      "type": "string",
+      "description": "Message formaté prêt à être injecté dans le contexte LLM. Liste exactement les fichiers à corriger, la règle violée, et le fix attendu. Vide si blocking=false."
+    },
+    "stages_passed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs des stages ayant retourné status=ok."
+    },
+    "stages_failed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs des stages ayant retourné status=failed ou status=error."
+    }
+  },
+  "definitions": {
+    "StageResult": {
+      "type": "object",
+      "required": ["stage_id", "tool", "status", "duration_ms", "exit_code", "evidence", "violations"],
+      "additionalProperties": false,
+      "properties": {
+        "stage_id": {
+          "type": "string",
+          "enum": [
+            "prisma_validate",
+            "prisma_generate",
+            "tsc",
+            "eslint",
+            "ast_use_client",
+            "dependency_cruiser"
+          ],
+          "description": "Identifiant unique du stage."
+        },
+        "tool": {
+          "type": "string",
+          "description": "Commande ou outil exécuté (ex: 'npx tsc --noEmit --pretty false')."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ok", "failed", "skipped", "error"],
+          "description": "ok=aucune violation bloquante | failed=violations détectées | skipped=outil absent (non bloquant) | error=outil crashé (non bloquant si non-critique)."
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Durée d'exécution en millisecondes."
+        },
+        "exit_code": {
+          "type": ["integer", "null"],
+          "description": "Code de sortie de l'outil. Null si outil absent ou crash Python."
+        },
+        "evidence": {
+          "type": "string",
+          "maxLength": 3000,
+          "description": "Sortie brute de l'outil (stdout + stderr), tronquée à 3000 chars. Utilisée pour le debug, pas pour le LLM."
+        },
+        "violations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Violation" },
+          "description": "Violations détectées par ce stage."
+        }
+      }
+    },
+    "Violation": {
+      "type": "object",
+      "required": ["rule_id", "file", "reason", "fix_hint"],
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "description": "Identifiant de la règle violée (ex: use_client, TS7006, no-relative-imports)."
+        },
+        "file": {
+          "type": "string",
+          "description": "Chemin relatif au workdir du fichier en violation (ex: app/new/page.tsx)."
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "description": "Numéro de ligne. Null si non applicable (ex: fichier manquant)."
+        },
+        "col": {
+          "type": ["integer", "null"],
+          "description": "Numéro de colonne. Null si non applicable."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Explication humaine de la violation (ex: useState importé sans directive use client)."
+        },
+        "fix_hint": {
+          "type": "string",
+          "description": "Correction attendue, formulée comme instruction directe au LLM (ex: Ajouter '\"use client\"' en première ligne absolue de ce fichier)."
+        }
+      }
+    }
+  }
+}

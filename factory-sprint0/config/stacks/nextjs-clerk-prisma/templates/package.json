@@ -34,6 +34,7 @@
     "@babel/runtime": "^7.0.0",
     "node-mocks-http": "^1.14.0",
     "eslint": "^8.0.0",
-    "eslint-config-next": "14.2.25"
+    "eslint-config-next": "14.2.25",
+    "eslint-plugin-import": "^2.29.1"
   }
 }

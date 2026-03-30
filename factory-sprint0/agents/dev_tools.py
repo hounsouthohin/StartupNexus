@@ -183,6 +183,26 @@ def shell_exec(command: str) -> str:
             "les fichiers template ne peuvent pas être réécrits via shell. "
             "Utilise write_file() si une modification contrôlée est requise."
         )
+
+    # Guard anti-interactif : commandes qui bloquent en attendant une entrée utilisateur.
+    # Ces commandes ne peuvent pas tourner dans un pipeline non-interactif.
+    _INTERACTIVE_BLOCKLIST = (
+        "create-config",   # npx create-config / @eslint/create-config
+        "eslint --init",   # ancienne commande d'init ESLint interactive
+        "eslint-init",
+        "npm init",        # npm init sans -y
+        "npx init",
+        "prisma init",     # interactive si déjà configuré
+        "next telemetry",  # interactive
+    )
+    cmd_lower = command.strip().lower()
+    for blocked in _INTERACTIVE_BLOCKLIST:
+        if blocked in cmd_lower:
+            return (
+                f"ERREUR shell_exec: commande interactive bloquée ('{blocked}'). "
+                "Cette commande attend une entrée utilisateur et ne peut pas tourner dans le pipeline. "
+                "ESLint est déjà configuré via .eslintrc.stack.json — n'exécute pas de commande d'initialisation ESLint."
+            )
     try:
         # shell=True intentionnel : le LLM a besoin de npm, tsc, prisma, etc.
         # Containment : cwd forcé sur le workdir projet + timeout 120s.

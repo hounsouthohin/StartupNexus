@@ -65,6 +65,13 @@ Prisma :
 - "does not exist on type 'PrismaClient'" → le modèle Prisma est absent de schema.prisma.
   Action : ajouter le model manquant dans prisma/schema.prisma (vérifier la liste des modèles déclarés).
 
+Frontière Client/Serveur :
+- "'server-only' cannot be imported from a Client Component" → le fichier a "use client" ET importe depuis @clerk/nextjs/server (ou server-only, next/headers, next/cookies).
+  Action 1 : retirer l'import @clerk/nextjs/server du fichier incriminé.
+  Action 2 : si l'auth est nécessaire côté client, remplacer par `import { useAuth } from '@clerk/nextjs'` et appeler `const { userId } = useAuth()` dans le composant.
+  Action 3 : si la logique nécessite server-auth (redirection, guard), convertir la page en Server Component — retirer "use client" ET les hooks React, ou séparer la logique serveur dans un composant parent.
+  NE JAMAIS importer depuis @clerk/nextjs/server dans un fichier contenant "use client".
+
 Imports / modules :
 - "Cannot find module" → l'import pointe vers un fichier inexistant ou un mauvais chemin.
   Action : vérifier le fichier cible ou corriger le chemin d'import.
