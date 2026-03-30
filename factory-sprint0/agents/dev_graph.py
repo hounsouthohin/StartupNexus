@@ -35,8 +35,8 @@ _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 DEV_TOOLS = [write_file, read_file, list_directory, shell_exec, file_exists]
 
 
-def _check_build_success_on_disk() -> bool:
-    """Vérification déterministe : .next/ présent dans le workdir actif → build réussi."""
+def _check_next_dir_on_disk() -> bool:
+    """Indique si .next/ est présent — utilisé pour le logging uniquement, jamais pour décider du succès."""
     return os.path.isdir(os.path.join(_dev_tools_module._get_workdir(), ".next"))
 
 
@@ -49,6 +49,8 @@ class DevState(TypedDict):
     last_build_error: str
     success: bool
     error_signatures: List[str]
+    build_command_executed: bool   # True ssi npm run build a été appelé et a retourné un exit code
+    build_exit_code: int           # Exit code réel du dernier npm run build (0 = succès)
 
 
 def _error_signature(stderr: str) -> str:
@@ -163,6 +165,33 @@ async def run_dev_agent(
     except Exception as _npm_err:
         logger.warning(f"[dev_graph] npm install pre-run exception : {_npm_err}")
 
+    # ── prisma generate (Python pre-run, hors LLM) ───────────────────
+    # prisma generate est de l'infrastructure au même titre que npm install.
+    # Le schema.prisma est déjà matérialisé depuis ProjectSpec — on génère
+    # le client Prisma maintenant pour que les types @prisma/client soient
+    # disponibles dès le premier fichier LLM. Non-bloquant si échec.
+    try:
+        logger.info(f"[dev_graph] prisma generate pre-run dans {project_workdir} ...")
+        _prisma_result = subprocess.run(
+            "npx prisma generate",
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=project_workdir,
+            timeout=120,
+        )
+        if _prisma_result.returncode == 0:
+            logger.info("[dev_graph] prisma generate pre-run OK")
+        else:
+            logger.warning(
+                f"[dev_graph] prisma generate pre-run FAILED (exit {_prisma_result.returncode}): "
+                f"{(_prisma_result.stdout + _prisma_result.stderr)[:400]}"
+            )
+    except subprocess.TimeoutExpired:
+        logger.warning("[dev_graph] prisma generate pre-run TIMEOUT (>120s)")
+    except Exception as _pg_err:
+        logger.warning(f"[dev_graph] prisma generate pre-run exception : {_pg_err}")
+
     # ── System prompt ────────────────────────────────────────────────
     if not system_prompt:
         try:
@@ -260,19 +289,24 @@ async def run_dev_agent(
     def extract_build_error_node(state: DevState) -> dict:
         """
         Parcourt les ToolMessages pour détecter :
-        - un succès build déterministe (shell_exec OK + marqueurs next.js)
+        - un succès build (shell_exec exit 0 + marqueurs next.js — signal unique)
         - une erreur build à traiter
+
+        Règle Phase B : success = npm run build exécuté + exit code 0.
+        Aucun override basé sur présence de .next/ sur disque.
         """
         from langchain_core.messages import ToolMessage
 
         last_error = ""
         build_succeeded = False
+        build_executed = False
+        build_exit = -1
 
         for msg in reversed(state["messages"]):
             if isinstance(msg, ToolMessage):
                 content = str(getattr(msg, "content", "") or "")
 
-                # Succès déterministe : shell_exec retourne "OK\n" + marqueurs next.js
+                # Succès build : shell_exec retourne "OK\n" + marqueurs next.js
                 if content.startswith("OK\n") and any(marker in content for marker in [
                     "Creating an optimized production build",
                     "Compiled successfully",
@@ -281,6 +315,8 @@ async def run_dev_agent(
                     "✓ Compiled",
                 ]):
                     build_succeeded = True
+                    build_executed = True
+                    build_exit = 0
                     break
 
                 # Erreur build
@@ -290,11 +326,18 @@ async def run_dev_agent(
                     "Cannot find module", "SyntaxError",
                 ]):
                     last_error = content[:3000]
+                    build_executed = True
+                    # Extraire exit code si présent dans "FAILED (exit N)"
+                    import re as _re
+                    m = _re.search(r"exit\s+(\d+)", content)
+                    build_exit = int(m.group(1)) if m else 1
                     break
 
         return {
             "last_build_error": last_error,
             "success": build_succeeded,
+            "build_command_executed": build_executed,
+            "build_exit_code": build_exit,
         }
 
     # ── Routage ──────────────────────────────────────────────────────
@@ -355,24 +398,37 @@ async def run_dev_agent(
         "last_build_error": "",
         "success": False,
         "error_signatures": [],
+        "build_command_executed": False,
+        "build_exit_code": -1,
     }
 
     try:
         result = await graph.ainvoke(initial_state, {"recursion_limit": 80})
 
-        # ── Vérification déterministe post-execution (.next/ sur disque) ──
-        disk_success = _check_build_success_on_disk()
-        if disk_success and not result.get("success"):
-            logger.info("[dev_graph] Succès déterministe (.next/ présent) — override success=True")
-            result = {**result, "success": True}
-        elif not disk_success and result.get("success"):
-            logger.warning("[dev_graph] .next/ absent malgré success=True — override success=False")
-            result = {**result, "success": False}
+        # ── Signal de succès unique : build_command_executed + build_exit_code == 0 ──
+        # Phase B : on ne surcharge plus le résultat depuis .next/ sur disque.
+        # .next/ est logué comme signal secondaire uniquement (détection d'anomalie).
+        disk_next = _check_next_dir_on_disk()
+        final_success = bool(result.get("success", False))
+        build_executed = bool(result.get("build_command_executed", False))
+
+        if disk_next and not final_success:
+            logger.warning(
+                "[dev_graph] ANOMALIE — .next/ présent mais success=False "
+                "(build non exécuté ou erreur non capturée) — succès non accordé"
+            )
+        if final_success and not build_executed:
+            # Ne devrait plus arriver avec Phase B, mais on le trace
+            logger.error(
+                "[dev_graph] INCOHÉRENCE — success=True mais build_command_executed=False"
+            )
 
         logger.info(
-            f"[dev_graph] terminé — success={result.get('success')} "
+            f"[dev_graph] terminé — success={final_success} "
+            f"| build_executed={build_executed} "
+            f"| build_exit_code={result.get('build_exit_code', -1)} "
             f"| build_attempts={result.get('build_attempts', 0)} "
-            f"| .next/ présent={disk_success} "
+            f"| .next/={disk_next} "
             f"| workdir={project_workdir}"
         )
         return result

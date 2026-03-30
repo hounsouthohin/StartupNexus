@@ -143,10 +143,13 @@ class DevTestAgent:
         coverage_result = compute_spec_coverage(dev_input.get("requirements", []), combined)
         logger.info(
             f"[spec_coverage] {coverage_result['requirements_met']}/{coverage_result['requirements_total']} "
-            f"requirements couverts ({coverage_result['spec_coverage']:.0%})"
+            f"requirements couverts ({coverage_result['spec_coverage']:.0%}) "
+            f"| unknown={coverage_result.get('requirements_unknown', 0)}"
         )
         if coverage_result["unmet"]:
             logger.warning(f"[spec_coverage] Requirements non couverts: {coverage_result['unmet']}")
+        if coverage_result.get("unknown"):
+            logger.info(f"[spec_coverage] Requirements non vérifiables: {coverage_result['unknown']}")
 
         from config.factory_config import SPEC_COVERAGE_SUCCESS_THRESHOLD
 
@@ -189,8 +192,11 @@ class DevTestAgent:
                 "tests_passed": tests_passed,
                 "spec_coverage": coverage_result["spec_coverage"],
                 "requirements_met": coverage_result["requirements_met"],
+                "requirements_unmet": coverage_result.get("requirements_unmet", len(coverage_result["unmet"])),
+                "requirements_unknown": coverage_result.get("requirements_unknown", 0),
                 "requirements_total": coverage_result["requirements_total"],
-                "requirements_unmet": coverage_result["unmet"],
+                "requirements_unmet_list": coverage_result["unmet"],
+                "requirements_unknown_list": coverage_result.get("unknown", []),
                 "requirements_unmet_by_category": coverage_result.get("unmet_by_category", {}),
                 "spec_validation_status": dev_input.get("spec_validation_status", "OK"),
                 "spec_unmatched_count": len(dev_input.get("spec_unmatched_requirements", [])),

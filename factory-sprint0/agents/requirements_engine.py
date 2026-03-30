@@ -11,8 +11,8 @@ Règles de mapping (A→D) :
   C — Page /path → app/path/page.tsx (exact)
   D — Chemin explicite dans le texte du requirement → existence fichier
 
-Non-mappables : requirements sans marqueur connu → assumés satisfaits
-(on ne peut pas les vérifier de façon déterministe).
+Non-mappables : requirements sans marqueur connu → unknown (satisfied=None).
+Exclus du calcul spec_coverage : coverage = met / (total - unknown).
 """
 from __future__ import annotations
 
@@ -425,17 +425,16 @@ def check_requirement_verbose(req: str, files_dict: dict) -> tuple[bool, bool, s
         reason = "Fichier explicite présent." if ok else f"Fichier explicite manquant: {req_path}"
         return True, ok, reason
 
-    # Requirement non mappable — assumé satisfait, non bloquant
-    return False, True, "Requirement non mappable (non bloquant)."
+    # Requirement non mappable — non vérifiable de façon déterministe
+    return False, None, "Requirement non mappable (non vérifiable)."
 
 
-def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool]:
+def check_requirement(req: str, files_dict: dict) -> tuple[bool, bool | None]:
     """
     Vérifie un requirement unique contre files_dict.
 
-    Retourne (is_mappable: bool, satisfied: bool) :
-    - is_mappable=False → requirement non vérifiable de façon déterministe
-      (ex: "Authentification Clerk robuste") → assumé satisfait, non bloquant.
+    Retourne (is_mappable: bool, satisfied: bool | None) :
+    - is_mappable=False, satisfied=None → requirement non vérifiable (non bloquant, non compté).
     - is_mappable=True, satisfied=True  → critère couvert.
     - is_mappable=True, satisfied=False → critère manquant → gate bloque.
     """
@@ -477,60 +476,80 @@ def gate_check(requirements: Any, files_dict: dict) -> tuple[bool, str]:
 def compute_coverage(requirements: Any, files_dict: dict) -> dict[str, Any]:
     """
     Remplace `compute_spec_coverage()` dans spec_coverage.py (via T003).
-    Retourne spec_coverage + détails.
+    Retourne spec_coverage + 3 compteurs (met / unmet / unknown).
 
-    Non-mappables assumés satisfaits (on ne peut pas les vérifier) :
-    ils n'apparaissent pas dans unmet et n'impactent pas le taux négativement.
+    - met     : is_mappable=True, satisfied=True
+    - unmet   : is_mappable=True, satisfied=False  → gate peut bloquer
+    - unknown : is_mappable=False, satisfied=None  → non vérifiables, exclus du calcul
+
+    spec_coverage = met / (total - unknown)  → taux honnête, non gonflé par les non-mappables.
+    Si tous les requirements sont unknown → spec_coverage=0.0.
     """
     legacy_requirements = _to_legacy_requirements(requirements)
     if not legacy_requirements:
         return {
             "spec_coverage": 0.0,
             "requirements_met": 0,
+            "requirements_unmet": 0,
+            "requirements_unknown": 0,
             "requirements_total": 0,
             "unmet": [],
+            "unknown": [],
         }
 
     met: list[str] = []
     unmet: list[str] = []
+    unknown: list[str] = []
     for req in legacy_requirements:
         is_mappable, satisfied = check_requirement(req, files_dict)
-        if satisfied:
+        if satisfied is None:
+            unknown.append(req)
+        elif satisfied:
             met.append(req)
         else:
-            # satisfied=False → forcément is_mappable=True (non-mappables → True)
             unmet.append(req)
 
-    coverage = round(len(met) / len(legacy_requirements), 3)
+    verifiable = len(legacy_requirements) - len(unknown)
+    coverage = round(len(met) / verifiable, 3) if verifiable > 0 else 0.0
     return {
         "spec_coverage": coverage,
         "requirements_met": len(met),
+        "requirements_unmet": len(unmet),
+        "requirements_unknown": len(unknown),
         "requirements_total": len(legacy_requirements),
         "unmet": unmet,
+        "unknown": unknown,
     }
 
 
 def compute_coverage_detailed(requirements: Any, files_dict: dict) -> dict[str, Any]:
     """
     Même logique que compute_coverage, avec statut détaillé par requirement.
+    3 compteurs : met / unmet / unknown. spec_coverage = met / (total - unknown).
     """
     legacy_requirements = _to_legacy_requirements(requirements)
     if not legacy_requirements:
         return {
             "spec_coverage": 0.0,
             "requirements_met": 0,
+            "requirements_unmet": 0,
+            "requirements_unknown": 0,
             "requirements_total": 0,
             "unmet": [],
+            "unknown": [],
             "statuses": [],
         }
 
     statuses: list[dict[str, Any]] = []
     met_count = 0
     unmet: list[str] = []
+    unknown: list[str] = []
 
     for req in legacy_requirements:
         is_mappable, satisfied, reason = check_requirement_verbose(req, files_dict)
-        if satisfied:
+        if satisfied is None:
+            unknown.append(req)
+        elif satisfied:
             met_count += 1
         else:
             unmet.append(req)
@@ -543,11 +562,15 @@ def compute_coverage_detailed(requirements: Any, files_dict: dict) -> dict[str, 
             }
         )
 
-    coverage = round(met_count / len(legacy_requirements), 3)
+    verifiable = len(legacy_requirements) - len(unknown)
+    coverage = round(met_count / verifiable, 3) if verifiable > 0 else 0.0
     return {
         "spec_coverage": coverage,
         "requirements_met": met_count,
+        "requirements_unmet": len(unmet),
+        "requirements_unknown": len(unknown),
         "requirements_total": len(legacy_requirements),
         "unmet": unmet,
+        "unknown": unknown,
         "statuses": statuses,
     }

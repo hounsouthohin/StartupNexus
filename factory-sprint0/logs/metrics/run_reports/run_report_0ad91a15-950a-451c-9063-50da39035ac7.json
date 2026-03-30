@@ -1,0 +1,43 @@
+{
+  "run_id": "0ad91a15-950a-451c-9063-50da39035ac7",
+  "workflow_id": "todo-pilot-task-manager",
+  "project_name": "task-manager",
+  "generated_at": "2026-03-29T21:30:54.621951+00:00",
+  "duration_seconds": 164.152497,
+  "build_success": true,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_SUCCESS",
+  "root_cause_category": "unknown",
+  "last_build_error": "",
+  "spec_coverage": 1.0,
+  "requirements_met": 5,
+  "requirements_unmet": 0,
+  "requirements_unknown": 0,
+  "requirements_total": 5,
+  "requirements_unmet_list": [],
+  "requirements_unknown_list": [],
+  "files_generated": 18,
+  "dev_files_count": 18,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_bs2gml4b/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_bs2gml4b/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "CONTRADICTION: build_success=True mais build_attempted=False"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": true,
+  "error": ""
+}

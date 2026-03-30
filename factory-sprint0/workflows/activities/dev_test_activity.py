@@ -88,7 +88,8 @@ def _validate_run_metric_consistency(run_metric: dict) -> list:
 
     Règles :
     - INVALIDE : build_success=True ET build_attempted=False
-    - INVALIDE : build_success=True ET last_build_error non vide
+    - INVALIDE : build_success=True ET last_build_error non vide ET build_attempts <= 1
+      (si build_attempts > 1 : last_build_error peut être une erreur intermédiaire — pas une contradiction)
     - VALIDE   : build_success=True ET tests_passed=False (tests non bloquants)
     - VALIDE   : build_success=True ET build_attempts=0 (build au premier coup)
     - WARNING  : build_success=False ET root_cause_category=unknown (pas de contradiction, signal de qualité)
@@ -96,13 +97,20 @@ def _validate_run_metric_consistency(run_metric: dict) -> list:
     flags = []
     build_success = bool(run_metric.get("build_success", False))
     build_attempted = bool(run_metric.get("build_attempted", False))
+    build_command_executed = bool(run_metric.get("build_command_executed", False))
+    build_attempts = int(run_metric.get("build_attempts", 0) or 0)
     last_build_error = str(run_metric.get("last_build_error", "") or "")
     root_cause = str(run_metric.get("root_cause_category", "") or "")
 
-    if build_success and not build_attempted:
-        flags.append("CONTRADICTION: build_success=True mais build_attempted=False")
+    # build_command_executed est le signal autoritaire (Phase B) — build_attempted=False
+    # est normal quand le premier essai réussit (0 boucle de correction nécessaire).
+    effective_build_attempted = build_attempted or build_command_executed
+    if build_success and not effective_build_attempted:
+        flags.append("CONTRADICTION: build_success=True mais build_attempted=False et build_command_executed=False")
 
-    if build_success and last_build_error:
+    # Faux positif si build_attempts > 1 : last_build_error est l'erreur de la tentative
+    # précédente, pas du build final. On ne signale que si tentative unique ou zero.
+    if build_success and last_build_error and build_attempts <= 1:
         flags.append(f"CONTRADICTION: build_success=True mais last_build_error non vide: {last_build_error[:80]}")
 
     if not build_success and root_cause == "unknown":
@@ -315,8 +323,9 @@ def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = ""
             if isinstance(meta, dict):
                 extra["spec_coverage"] = meta.get("spec_coverage", 0.0)
                 extra["requirements_met"] = meta.get("requirements_met", 0)
+                extra["requirements_unmet"] = meta.get("requirements_unmet", 0)
+                extra["requirements_unknown"] = meta.get("requirements_unknown", 0)
                 extra["requirements_total"] = meta.get("requirements_total", 0)
-                extra["requirements_unmet"] = meta.get("requirements_unmet", [])
                 extra["spec_validation_status"] = meta.get("spec_validation_status", "OK")
                 extra["spec_unmatched_count"] = meta.get("spec_unmatched_count", 0)
         # delivery_status distingue un build fonctionnel complet (SUCCESS)
@@ -580,6 +589,8 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         success = bool(dev_result.get("success", False))
         build_attempts = int(dev_result.get("build_attempts", 0))
         last_build_error = dev_result.get("last_build_error", "") or ""
+        build_command_executed = bool(dev_result.get("build_command_executed", False))
+        build_exit_code = int(dev_result.get("build_exit_code", -1))
         final_message = "BUILD_SUCCESS" if success else "BUILD_FAILED"
 
         # ── Scan disque → combined_files réels ──────────────────────────────
@@ -636,6 +647,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 success = bool(dev_result.get("success", False))
                 build_attempts = first_pass_attempts + int(dev_result.get("build_attempts", 0) or 0)
                 last_build_error = dev_result.get("last_build_error", "") or ""
+                build_command_executed = build_command_executed or bool(dev_result.get("build_command_executed", False))
+                if dev_result.get("build_exit_code", -1) >= 0:
+                    build_exit_code = int(dev_result.get("build_exit_code", -1))
                 final_message = "BUILD_SUCCESS" if success else "BUILD_FAILED"
 
                 # Rescan + tsc après le retry pour refléter l'état final réel.
@@ -659,14 +673,20 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             cov = compute_spec_coverage(requirements, combined_files)
             spec_coverage = float(cov.get("spec_coverage", 0.0))
             requirements_met = int(cov.get("requirements_met", 0))
+            requirements_unmet_count = int(cov.get("requirements_unmet", 0))
+            requirements_unknown_count = int(cov.get("requirements_unknown", 0))
             requirements_total = int(cov.get("requirements_total", len(requirements)))
-            requirements_unmet = cov.get("unmet", requirements)
+            requirements_unmet = cov.get("unmet", [])
+            requirements_unknown = cov.get("unknown", [])
         except Exception as cov_err:
             activity.logger.warning(f"[dev_graph] compute_spec_coverage échoué : {cov_err}")
             spec_coverage = 0.0
             requirements_met = 0
+            requirements_unmet_count = len(requirements)
+            requirements_unknown_count = 0
             requirements_total = len(requirements)
             requirements_unmet = requirements
+            requirements_unknown = []
 
         dev_files_count = len(combined_files)
         result = {
@@ -697,8 +717,11 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 "tests_passed": False,
                 "spec_coverage": spec_coverage,
                 "requirements_met": requirements_met,
+                "requirements_unmet": requirements_unmet_count,
+                "requirements_unknown": requirements_unknown_count,
                 "requirements_total": requirements_total,
-                "requirements_unmet": requirements_unmet,
+                "requirements_unmet_list": requirements_unmet,
+                "requirements_unknown_list": requirements_unknown,
                 "requirements_unmet_by_category": {},
                 "spec_validation_status": input_data.get("spec_validation_status", "OK"),
                 "spec_unmatched_count": len(input_data.get("spec_unmatched_requirements", [])),
@@ -812,8 +835,11 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "iterations": int(dev_meta.get("iterations", 0)),
             "spec_coverage": float(metadata.get("spec_coverage", 0.0)),
             "requirements_met": int(metadata.get("requirements_met", 0)),
+            "requirements_unmet": int(metadata.get("requirements_unmet", 0)),
+            "requirements_unknown": int(metadata.get("requirements_unknown", 0)),
             "requirements_total": int(metadata.get("requirements_total", 0)),
-            "requirements_unmet": metadata.get("requirements_unmet", []),
+            "requirements_unmet_list": metadata.get("requirements_unmet_list", []),
+            "requirements_unknown_list": metadata.get("requirements_unknown_list", []),
             "tests_passed": bool(metadata.get("tests_passed", False)),
             "final_message": final_message,
             "gate_source": gate_source,
@@ -834,21 +860,48 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "tsc_feedback_prompt_preview": tsc_feedback_prompt_preview,
             "semantic_violations": semantic_violations,
             "prisma_validate": prisma_validate_details,
+            "build_command_executed": build_command_executed,
+            "build_exit_code": build_exit_code,
             "error": runtime_error,
             "root_cause_category": _classify_root_cause(
-                last_build_error=last_build_error,
+                last_build_error=last_build_error_full or last_build_error,
                 last_test_error=last_test_error,
                 semantic_violations=semantic_violations,
                 spec_validation_status=str(result.get("metadata", {}).get("spec_validation_status", "OK")),
                 iterations=int(dev_meta.get("iterations", 0)),
             ),
         }
-        # ── Cohérence métrique (P0-C2) ────────────────────────────────────
+        # ── Cohérence métrique — Phase C : contradictions = hard fail ────────
+        # Règle 1 : build_success=True sans build_command_executed=True → impossible légitimement
+        # Règle 2 : build_success=True avec build_exit_code != 0 → signal corrompu
+        # Ces deux règles utilisent les nouveaux champs Phase B (plus fiables que build_attempted).
+        hard_contradiction = False
+        if build_success and not build_command_executed:
+            activity.logger.error(
+                "[METRIC_CONSISTENCY] HARD_FAIL — build_success=True mais build_command_executed=False"
+            )
+            build_success = False
+            run_metric["build_success"] = False
+            run_metric["error"] = "METRIC_CONTRADICTION: build_success sans build_command_executed"
+            hard_contradiction = True
+
+        if build_success and build_exit_code not in (0, -1):
+            activity.logger.error(
+                f"[METRIC_CONSISTENCY] HARD_FAIL — build_success=True mais build_exit_code={build_exit_code}"
+            )
+            build_success = False
+            run_metric["build_success"] = False
+            run_metric["error"] = f"METRIC_CONTRADICTION: build_success avec exit_code={build_exit_code}"
+            hard_contradiction = True
+
         contradiction_flags = _validate_run_metric_consistency(run_metric)
+        if hard_contradiction and not any("HARD_FAIL" in f for f in contradiction_flags):
+            contradiction_flags.insert(0, "HARD_FAIL: build_success forcé à False par contradiction métrique")
         run_metric["contradiction_flags"] = contradiction_flags
         if contradiction_flags:
             for flag in contradiction_flags:
-                activity.logger.warning(f"[METRIC_CONSISTENCY] {flag}")
+                level = activity.logger.error if "HARD_FAIL" in flag else activity.logger.warning
+                level(f"[METRIC_CONSISTENCY] {flag}")
 
         activity.logger.info(
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "

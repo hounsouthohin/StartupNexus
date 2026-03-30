@@ -8,6 +8,8 @@ Remplace le transport MCP (filesystem + shell MCP servers).
 from __future__ import annotations
 
 import os
+import re
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -115,6 +117,53 @@ def list_directory(path: str = ".") -> str:
         return f"ERREUR list_directory({path}): {e}"
 
 
+def _shell_exec_targets_protected(command: str) -> str | None:
+    """
+    Détecte si une commande shell tente d'écrire dans un fichier protégé.
+    Retourne le nom du fichier concerné si détecté, None sinon.
+    Patterns couverts : redirection (> / >> avec ou sans espace), tee, cp, mv.
+    """
+    if not _protected_files:
+        return None
+    cmd_lower = command.lower()
+
+    def _norm_path_token(token: str) -> str:
+        token = str(token or "").strip().strip("\"'").replace("\\", "/")
+        while token.startswith("./"):
+            token = token[2:]
+        if token.startswith("/"):
+            token = token[1:]
+        return token
+
+    def _targets_protected(token: str, protected_file: str) -> bool:
+        t = _norm_path_token(token)
+        pf = _norm_path_token(protected_file.lower())
+        return bool(t) and (t == pf or t.endswith("/" + pf))
+
+    for pf in _protected_files:
+        pf_lower = pf.lower()
+
+        # Redirections shell: > file, >> file, >file, > "./file", etc.
+        for m in re.finditer(r">{1,2}\s*([^\s;&|]+)", cmd_lower):
+            if _targets_protected(m.group(1), pf_lower):
+                return pf
+
+        # tee file
+        for m in re.finditer(r"\btee\b\s+([^\s;&|]+)", cmd_lower):
+            if _targets_protected(m.group(1), pf_lower):
+                return pf
+
+        # cp src dest / mv src dest (dest = dernier argument)
+        try:
+            parts = shlex.split(cmd_lower, posix=True)
+        except Exception:
+            parts = cmd_lower.split()
+        if parts and parts[0] in {"cp", "mv"} and len(parts) >= 3:
+            if _targets_protected(parts[-1], pf_lower):
+                return pf
+    return None
+
+
 @tool
 def shell_exec(command: str) -> str:
     """
@@ -127,6 +176,13 @@ def shell_exec(command: str) -> str:
       shell_exec("npm run build")
       shell_exec("npx prisma generate")
     """
+    protected_target = _shell_exec_targets_protected(command)
+    if protected_target:
+        return (
+            f"ERREUR shell_exec: fichier protégé '{protected_target}' — "
+            "les fichiers template ne peuvent pas être réécrits via shell. "
+            "Utilise write_file() si une modification contrôlée est requise."
+        )
     try:
         # shell=True intentionnel : le LLM a besoin de npm, tsc, prisma, etc.
         # Containment : cwd forcé sur le workdir projet + timeout 120s.

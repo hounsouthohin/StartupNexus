@@ -431,13 +431,32 @@ def create_architect_agent():
 
         from agents.project_spec import ProjectSpec, PrismaModel, PrismaField, ApiRoute, AppPage
 
+        def _split_fields(raw: str) -> list[str]:
+            """Découpe les champs Prisma en respectant les virgules dans les parenthèses/crochets.
+            Ex: '@default(uuid()), title String' → ['@default(uuid())', ' title String']
+            Sans ça, '@relation(fields: [boardId], references: [id])' serait splitté en 2 tokens."""
+            parts, current, depth = [], [], 0
+            for ch in raw:
+                if ch in "([":
+                    depth += 1
+                elif ch in ")]":
+                    depth -= 1
+                if ch == "," and depth == 0:
+                    parts.append("".join(current))
+                    current = []
+                else:
+                    current.append(ch)
+            if current:
+                parts.append("".join(current))
+            return parts
+
         def _parse_model_str(model_str: str) -> PrismaModel:
             """Convertit une string Prisma DSL 'Name { field Type attrs, ... }' en PrismaModel."""
             blocks = re.findall(r'(\w+)\s*\{([^}]*)\}', model_str)
             if blocks:
                 name, raw_fields = blocks[0]
                 fields: list[PrismaField] = []
-                for line in raw_fields.strip().split(','):
+                for line in _split_fields(raw_fields.strip()):
                     line = line.strip()
                     if not line:
                         continue
@@ -483,6 +502,7 @@ def create_architect_agent():
                     seen_paths.add(path)
             if not any(pg.path == "/" for pg in pages):
                 pages.insert(0, AppPage(path="/", auth_required=False))
+                logger.info("[planner] page '/' ajoutée automatiquement (requis Next.js — absent du brief)")
 
             routes: list[ApiRoute] = []
             seen_routes: set[str] = set()

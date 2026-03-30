@@ -987,13 +987,13 @@ def _parse_eslint_errors_json(output: str) -> list[dict[str, Any]]:
 
 
 async def run_tsc_check(project_dir: str) -> dict:
-    """Lance tsc --noEmit. Non bloquant si tsc/tsconfig absent."""
+    """Lance tsc --noEmit. Retourne skipped=True (success=None) si outil absent."""
     try:
         if not project_dir:
-            return {"errors": [], "success": True, "skipped": True}
+            return {"errors": [], "success": None, "skipped": True, "skip_reason": "no_project_dir"}
         tsconfig_path = os.path.join(project_dir, "tsconfig.json")
         if not os.path.exists(tsconfig_path):
-            return {"errors": [], "success": True, "skipped": True}
+            return {"errors": [], "success": None, "skipped": True, "skip_reason": "no_tsconfig"}
 
         def _run() -> subprocess.CompletedProcess:
             return subprocess.run(
@@ -1019,22 +1019,24 @@ async def run_tsc_check(project_dir: str) -> dict:
                     "message": _truncate_output(output),
                 }
             ]
-        return {"errors": errors, "success": result.returncode == 0}
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return {"errors": [], "success": True, "skipped": True}
+        return {"errors": errors, "success": result.returncode == 0, "skipped": False}
+    except FileNotFoundError:
+        return {"errors": [], "success": None, "skipped": True, "skip_reason": "tsc_not_found"}
+    except subprocess.TimeoutExpired:
+        return {"errors": [], "success": None, "skipped": True, "skip_reason": "timeout"}
     except Exception as e:
         logger.warning(f"[run_tsc_check] non-bloquant: {e}")
-        return {"errors": [], "success": True, "skipped": True}
+        return {"errors": [], "success": None, "skipped": True, "skip_reason": str(e)[:80]}
 
 
 async def run_eslint_check(project_dir: str) -> dict:
-    """Lance eslint en format JSON. Non bloquant si eslint/config absent."""
+    """Lance eslint en format JSON. Retourne skipped=True (success=None) si outil absent."""
     try:
         if not project_dir:
-            return {"errors": [], "success": True, "skipped": True}
+            return {"errors": [], "success": None, "skipped": True, "skip_reason": "no_project_dir"}
         pkg_path = os.path.join(project_dir, "package.json")
         if not os.path.exists(pkg_path):
-            return {"errors": [], "success": True, "skipped": True}
+            return {"errors": [], "success": None, "skipped": True, "skip_reason": "no_package_json"}
 
         def _run() -> subprocess.CompletedProcess:
             return subprocess.run(
@@ -1062,12 +1064,14 @@ async def run_eslint_check(project_dir: str) -> dict:
                         "message": _truncate_output(stderr),
                     }
                 ]
-        return {"errors": errors, "success": len(errors) == 0}
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return {"errors": [], "success": True, "skipped": True}
+        return {"errors": errors, "success": len(errors) == 0, "skipped": False}
+    except FileNotFoundError:
+        return {"errors": [], "success": None, "skipped": True, "skip_reason": "eslint_not_found"}
+    except subprocess.TimeoutExpired:
+        return {"errors": [], "success": None, "skipped": True, "skip_reason": "timeout"}
     except Exception as e:
         logger.warning(f"[run_eslint_check] non-bloquant: {e}")
-        return {"errors": [], "success": True, "skipped": True}
+        return {"errors": [], "success": None, "skipped": True, "skip_reason": str(e)[:80]}
 
 
 async def run_prisma_validate(project_dir: str) -> dict:
@@ -1097,11 +1101,13 @@ async def run_prisma_validate(project_dir: str) -> dict:
             return {"valid": True, "errors": []}
         msg = _truncate_output(stderr or (result.stdout or ""))
         return {"valid": False, "errors": [msg] if msg else ["prisma validate failed"]}
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return {"valid": True, "errors": [], "skipped": True}
+    except FileNotFoundError:
+        return {"valid": None, "errors": [], "skipped": True, "skip_reason": "prisma_not_found"}
+    except subprocess.TimeoutExpired:
+        return {"valid": None, "errors": [], "skipped": True, "skip_reason": "timeout"}
     except Exception as e:
         logger.warning(f"[run_prisma_validate] non-bloquant: {e}")
-        return {"valid": True, "errors": [], "skipped": True}
+        return {"valid": None, "errors": [], "skipped": True, "skip_reason": str(e)[:80]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

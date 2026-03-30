@@ -223,9 +223,37 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         output_dict["requirements"] = requirements
         output_dict["project_spec"] = project_spec_dict
         output_dict["spec_fingerprint"] = project_spec_dict.get("spec_fingerprint", "")
-        # Maintenu pour compatibilité contrat — toujours OK avec structured output
-        output_dict["spec_validation_status"] = "OK"
-        output_dict["spec_unmatched_requirements"] = []
+
+        # ── 7b. Validation ProjectSpec vs brief (déterministe, honnête) ──────
+        # Vérifie que chaque modèle déclaré dans le brief est présent dans ProjectSpec.
+        # Ne force plus "OK" — le statut réel est propagé au workflow.
+        brief_model_names = []
+        for m in brief.get("models", []):
+            # Extraire le nom : "Task { ... }" → "Task"
+            name = str(m).strip().split()[0].rstrip("{").strip()
+            if name:
+                brief_model_names.append(name.lower())
+
+        spec_model_names = [
+            str(m.get("name", "") if isinstance(m, dict) else m).lower()
+            for m in project_spec_dict.get("models", [])
+        ]
+
+        unmatched = [n for n in brief_model_names if n not in spec_model_names]
+        if unmatched:
+            spec_validation_status = "DEGRADED"
+            activity.logger.warning(
+                f"[architect] spec_validation=DEGRADED — "
+                f"{len(unmatched)} modèle(s) du brief absent(s) de ProjectSpec : {unmatched}"
+            )
+        elif not project_spec_dict.get("models"):
+            spec_validation_status = "UNKNOWN"
+            activity.logger.warning("[architect] spec_validation=UNKNOWN — ProjectSpec sans modèles")
+        else:
+            spec_validation_status = "OK"
+
+        output_dict["spec_validation_status"] = spec_validation_status
+        output_dict["spec_unmatched_requirements"] = unmatched
 
         # ── 8. Validation contrat de sortie ──────────────────────────────────
         validate_output("architect_agent", output_dict)
@@ -233,6 +261,7 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         activity.logger.info(
             f"Architect terminé → ProjectSpec | "
             f"{len(requirements)} requirements | "
+            f"spec_validation={spec_validation_status} | "
             f"fingerprint={output_dict.get('spec_fingerprint', 'n/a')}"
         )
         return output_dict

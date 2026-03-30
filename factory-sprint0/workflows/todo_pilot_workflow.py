@@ -127,11 +127,30 @@ class TodoPilotWorkflow:
                 "spec_unmatched_requirements": spec_unmatched_requirements,
             }
 
-            if spec_validation_status == "DEGRADED" and spec_unmatched_requirements:
+            if spec_validation_status == "DEGRADED":
+                workflow.logger.error(
+                    f"[SPEC_GATE] BLOQUANT — spec DEGRADED, "
+                    f"modèle(s) absent(s) de ProjectSpec : {spec_unmatched_requirements}"
+                )
+                # En sanity_mode : arrêt immédiat — la spec est invalide, inutile de générer.
+                # En mode normal : même chose — un ProjectSpec incomplet produira un build corrompu.
+                total_time = (workflow.now() - start_time).total_seconds()
+                return TodoPilotOutput(
+                    workflow_status="FAILED_UNRECOVERABLE",
+                    build_status="NOT_RUN",
+                    project_name=project_name,
+                    generated_files_count=0,
+                    pr_url="N/A",
+                    repo_url="N/A",
+                    dev_files_count=0,
+                    test_files_count=0,
+                    duration_seconds=float(total_time),
+                    error_message=f"SPEC_DEGRADED: modèles absents {spec_unmatched_requirements}",
+                    activity_results=activity_results,
+                )
+            elif spec_validation_status == "UNKNOWN":
                 workflow.logger.warning(
-                    f"[SPEC_GATE] AVERTISSEMENT — spec DEGRADED, "
-                    f"{len(spec_unmatched_requirements)} requirement(s) non vérifiés — "
-                    f"pipeline continue"
+                    "[SPEC_GATE] AVERTISSEMENT — spec_validation=UNKNOWN (ProjectSpec sans modèles) — pipeline continue"
                 )
 
             # ── 2. DevTest (génération + supervision interne + build) ─────

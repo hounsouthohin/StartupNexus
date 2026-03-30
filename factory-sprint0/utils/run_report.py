@@ -64,8 +64,11 @@ def write_run_report(
             # ── Spec ───────────────────────────────────────────────────────
             "spec_coverage": float(run_metric.get("spec_coverage", 0.0)),
             "requirements_met": int(run_metric.get("requirements_met", 0)),
+            "requirements_unmet": int(run_metric.get("requirements_unmet", 0)),
+            "requirements_unknown": int(run_metric.get("requirements_unknown", 0)),
             "requirements_total": int(run_metric.get("requirements_total", 0)),
-            "requirements_unmet": run_metric.get("requirements_unmet", []),
+            "requirements_unmet_list": run_metric.get("requirements_unmet_list", []),
+            "requirements_unknown_list": run_metric.get("requirements_unknown_list", []),
             # ── Fichiers ───────────────────────────────────────────────────
             "files_generated": int(metadata.get("total_files", run_metric.get("files_count", 0))),
             "dev_files_count": int(metadata.get("dev_files_count", run_metric.get("dev_files_count", 0))),

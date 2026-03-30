@@ -95,8 +95,11 @@ class RunStateComputer:
             blocker = "ready_for_build"
         return {
             "requirements_met": cov.get("requirements_met", 0),
+            "requirements_unmet": cov.get("requirements_unmet", len(unmet)),
+            "requirements_unknown": cov.get("requirements_unknown", 0),
             "requirements_total": cov.get("requirements_total", 0),
-            "requirements_unmet": unmet,
+            "requirements_unmet_list": unmet,
+            "requirements_unknown_list": cov.get("unknown", []),
             "requirements_statuses": cov.get("statuses", []),
             "missing_required_files": missing_files,
             "structural_blocking_guard_id": structural_gid,

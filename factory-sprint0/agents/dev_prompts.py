@@ -166,8 +166,10 @@ WORKFLOW (suis cet ordre STRICTEMENT)
    - Pour chaque page : importe uniquement des composants que tu as créés
    - Génère-les TOUS avant d'exécuter la moindre commande shell
 
-1b. Génère le client Prisma (npm install déjà exécuté avant ton démarrage) :
-    shell_exec("node_modules/.bin/prisma generate")
+1b. Génère le client Prisma OBLIGATOIRE — sans cette étape tsc échouera avec "PrismaClient introuvable" :
+    shell_exec("npx prisma generate")
+    ⚠️  Si la commande retourne FAILED → lis l'erreur et corrige schema.prisma avant de continuer.
+    ⚠️  Ne JAMAIS passer à l'étape 2 si prisma generate a échoué.
 
 2. Vérifie les types TypeScript :
    shell_exec("npx tsc --noEmit")
@@ -199,4 +201,5 @@ RÈGLES ABSOLUES STACK (ne jamais enfreindre)
   CLERK_SECRET_KEY=sk_test_placeholder
   DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 - Pas de champ "password" ou "passwordHash" dans schema.prisma
+- "use client" OBLIGATOIRE en première ligne absolue de tout fichier qui utilise useState, useEffect, useRef ou tout autre hook React — cette directive doit précéder tous les imports, même export const dynamic
 """.replace("{WORKDIR}", "/app/generated-projects")

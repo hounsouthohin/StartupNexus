@@ -381,6 +381,151 @@
       "reason": "jest@30 incompatible avec ts-jest@29"
     }
   },
+  "content_guards": [
+    {
+      "id": "use_client",
+      "description": "Hooks React dans app/*.tsx sans directive use client en première ligne",
+      "file_prefix": "app/",
+      "file_extensions": [
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "useEffect",
+        "useState",
+        "useRef",
+        "useCallback",
+        "useMemo",
+        "useReducer"
+      ],
+      "requires_first_directive": "use client",
+      "message_lines": [
+        "USE CLIENT GUARD — BUILD BLOQUE",
+        "Des hooks React ont ete detectes sans directive 'use client' en tete de fichier.",
+        "Fichiers a corriger :",
+        "{details}",
+        "Ajoute 'use client' en premiere ligne (ou retire les hooks), puis relance le build."
+      ]
+    },
+    {
+      "id": "authorid_requires_userid_guard",
+      "description": "Si authorId: userId est present, il faut verifier userId (if !userId) avant Prisma",
+      "file_prefix": "app/api/",
+      "file_extensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx"
+      ],
+      "trigger_contains": [
+        "authorId: userId",
+        "authorId:userId"
+      ],
+      "requires_regex_all": [
+        "if\\s*\\(\\s*!\\s*userId\\s*\\)"
+      ],
+      "message_lines": [
+        "AUTHORID USERID GUARD — BUILD BLOQUE",
+        "authorId: userId detecte sans garde d'authentification stricte.",
+        "Fichiers a corriger :",
+        "{details}",
+        "Ajoute 'if (!userId) return ...401...' AVANT toute operation Prisma utilisant userId."
+      ]
+    },
+    {
+      "id": "prisma_import_path",
+      "description": "Import Prisma en chemin relatif interdit dans app/api — utiliser @/lib/prisma",
+      "file_prefix": "",
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "../lib/prisma",
+        "../../lib/prisma",
+        "../../../lib/prisma",
+        "../../../../lib/prisma"
+      ],
+      "mode": "warn",
+      "message_lines": [
+        "PRISMA IMPORT PATH WARNING",
+        "Import Prisma relatif detecte.",
+        "Fichiers a corriger :",
+        "{details}",
+        "Remplace par: import prisma from '@/lib/prisma'"
+      ]
+    },
+    {
+      "id": "prisma_named_import",
+      "description": "Import nomme Prisma invalide depuis @/lib/prisma",
+      "file_prefix": "",
+      "file_extensions": [
+        ".ts",
+        ".tsx"
+      ],
+      "trigger_contains": [
+        "import { prisma } from '@/lib/prisma'",
+        "import { prisma } from \"@/lib/prisma\""
+      ],
+      "mode": "warn",
+      "message_lines": [
+        "PRISMA NAMED IMPORT WARNING",
+        "Import nomme Prisma detecte depuis @/lib/prisma.",
+        "Fichiers a corriger :",
+        "{details}",
+        "Utilise: import prisma from '@/lib/prisma'"
+      ]
+    },
+    {
+      "id": "prisma_schema_datasource_url",
+      "description": "Prisma 7 interdit datasource.url dans prisma/schema.prisma",
+      "file_prefix": "prisma/",
+      "file_extensions": [
+        ".prisma"
+      ],
+      "trigger_contains": [
+        "url      = env(\"DATABASE_URL\")",
+        "url = env(\"DATABASE_URL\")",
+        "url = env('DATABASE_URL')"
+      ],
+      "message_lines": [
+        "PRISMA DATASOURCE URL GUARD — BUILD BLOQUE",
+        "Prisma 7: datasource.url dans schema.prisma provoque P1012.",
+        "Fichiers a corriger :",
+        "{details}",
+        "Supprime datasource.url du schema et garde l'URL dans prisma.config.ts."
+      ]
+    },
+    {
+      "id": "route_handler_untyped_signature",
+      "description": "Route handlers app/api non types (any implicite) — warning de qualite",
+      "file_prefix": "app/api/",
+      "file_extensions": [
+        ".ts"
+      ],
+      "trigger_contains": [
+        "export async function GET(",
+        "export async function POST(",
+        "export async function PUT(",
+        "export async function PATCH(",
+        "export async function DELETE("
+      ],
+      "exclude_when_contains": [
+        ": Request",
+        "Request,",
+        ": NextRequest",
+        "NextRequest,",
+        "}: { params:"
+      ],
+      "mode": "warn",
+      "message_lines": [
+        "ROUTE HANDLER TYPING WARNING",
+        "Signature de route potentiellement non typee detectee.",
+        "Fichiers a corriger :",
+        "{details}",
+        "Type les parametres request/params pour eviter TS7006."
+      ]
+    }
+  ],
   "test_import_rules": {
     "app_router_api": "import { handler } from '../../app/api/{name}/route'",
     "middleware": "import middleware from '../../middleware'"
