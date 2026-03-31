@@ -1228,35 +1228,8 @@ class TestBuildOutcomeCoherence:
         assert attempts == 0
 
 
-class TestForbiddenImportsRuntime:
-    """Valide le bridge runtime des forbidden_imports stack -> dev.py."""
-
-    def test_collect_forbidden_import_violations_detects_token(self):
-        pytest.importorskip("langchain_openai")
-        from agents.dev import _collect_forbidden_import_violations
-
-        files = {
-            "app/api/auth/route.ts": "import NextAuth from 'next-auth';\nexport async function GET(){}",
-            "app/page.tsx": "export default function Page(){ return <div/>; }",
-        }
-        violations = _collect_forbidden_import_violations(files, ["next-auth"])
-        assert violations
-        assert violations[0][0] == "app/api/auth/route.ts"
-        assert violations[0][1] == "next-auth"
-
-    def test_collect_forbidden_import_violations_ignores_templated_files(self):
-        pytest.importorskip("langchain_openai")
-        from agents.dev import _collect_forbidden_import_violations
-
-        files = {
-            "lib/prisma.ts": "import { PrismaClient } from '@prisma/client';\nexport default new PrismaClient();",
-        }
-        violations = _collect_forbidden_import_violations(
-            files,
-            ["@prisma/client"],
-            templated_names={"lib/prisma.ts"},
-        )
-        assert violations == []
+# TestForbiddenImportsRuntime supprimé — agents.dev supprimé (Phase D cleanup, 30 Mars 2026).
+# La logique forbidden_imports est maintenant couverte par ESLint + prebuild_pipeline (Phase C).
 
 
 class TestPackageJsonStrictWrite:

@@ -1,0 +1,46 @@
+{
+  "run_id": "658231b5-324c-400b-896a-3fa8655db0ae",
+  "workflow_id": "todo-pilot-kanban-board",
+  "project_name": "kanban-board",
+  "generated_at": "2026-03-30T21:48:45.660508+00:00",
+  "duration_seconds": 212.521274,
+  "build_success": false,
+  "build_attempted": true,
+  "build_attempts": 6,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "FAILED (exit 1)\n> kanban-board@0.1.0 build\n> next build\n\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioriti",
+  "spec_coverage": 0.667,
+  "requirements_met": 4,
+  "requirements_unmet": 2,
+  "requirements_unknown": 0,
+  "requirements_total": 6,
+  "requirements_unmet_list": [
+    "API Route: POST /api/boards/[id]/cards",
+    "API Route: PATCH /api/cards/[id]"
+  ],
+  "requirements_unknown_list": [],
+  "files_generated": 19,
+  "dev_files_count": 19,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_rryn2ix8/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_rryn2ix8/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": false,
+  "error": "BuildFailed: FAILED (exit 1)\n> kanban-board@0.1.0 build\n> next build\n\nAttention: Next.js now collects completely anonymous telemetry regarding usage.\nThis information is used to shape Next.js' roadmap and prioriti"
+}

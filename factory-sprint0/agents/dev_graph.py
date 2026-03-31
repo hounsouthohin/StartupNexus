@@ -408,37 +408,6 @@ async def run_dev_agent(
             logger.warning(f"[prebuild] pipeline non bloquant: {e}")
             return {"prebuild_blocking": False}
 
-    # ── Nœud Build Doctor ────────────────────────────────────────────
-    async def build_doctor_node(state: DevState) -> dict:
-        """Analyse l'erreur de build et injecte un diagnostic ciblé."""
-        last_error = state.get("last_build_error", "")
-        if not last_error:
-            return {}
-
-        build_attempts = state.get("build_attempts", 0) + 1
-        logger.info(
-            f"[build_doctor] Tentative {build_attempts}/{MAX_BUILD_ATTEMPTS} "
-            f"| erreur: {last_error[:80]}..."
-        )
-
-        if build_attempts >= MAX_BUILD_ATTEMPTS:
-            logger.warning("[build_doctor] MAX_BUILD_ATTEMPTS atteint — arrêt")
-            return {"build_attempts": build_attempts}
-
-        try:
-            from agents.build_doctor import diagnose_build_error
-            diagnosis = await diagnose_build_error(
-                stderr=last_error,
-                spec_dict=state.get("spec", {}),
-            )
-            return {
-                "messages": [HumanMessage(content=diagnosis)],
-                "build_attempts": build_attempts,
-            }
-        except Exception as e:
-            logger.warning(f"[build_doctor] non bloquant : {e}")
-            return {"build_attempts": build_attempts}
-
     # ── Extraction erreur + détection succès déterministe ────────────
     def extract_build_error_node(state: DevState) -> dict:
         """
@@ -497,14 +466,10 @@ async def run_dev_agent(
     # ── Routage ──────────────────────────────────────────────────────
     def route_after_tools(state: DevState) -> str:
         last_error = state.get("last_build_error", "")
-        build_attempts = state.get("build_attempts", 0)
 
         if state.get("success", False):
             return END
-        if last_error and build_attempts < MAX_BUILD_ATTEMPTS:
-            return "build_doctor"
-        # MAX_BUILD_ATTEMPTS atteint avec erreur persistante → arrêt, pas de boucle
-        if last_error and build_attempts >= MAX_BUILD_ATTEMPTS:
+        if last_error:
             return END
         return "dev"
 
@@ -527,7 +492,6 @@ async def run_dev_agent(
     builder.add_node("prebuild_gate", prebuild_gate_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
     builder.add_node("extract_error", extract_build_error_node)
-    builder.add_node("build_doctor", build_doctor_node)
 
     builder.add_edge(START, "dev")
     builder.add_conditional_edges("dev", route_from_dev, {
@@ -541,11 +505,9 @@ async def run_dev_agent(
     })
     builder.add_edge("tools", "extract_error")
     builder.add_conditional_edges("extract_error", route_after_tools, {
-        "build_doctor": "build_doctor",
         "dev": "dev",
         END: END,
     })
-    builder.add_edge("build_doctor", "dev")
 
     graph = builder.compile()
 
