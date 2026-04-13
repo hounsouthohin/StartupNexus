@@ -1,0 +1,48 @@
+{
+  "run_id": "2921f562-f958-4c76-aad5-9879925008ea",
+  "workflow_id": "todo-pilot-kanban-board",
+  "project_name": "kanban-board",
+  "generated_at": "2026-03-31T14:24:19.428277+00:00",
+  "duration_seconds": 93.673397,
+  "build_success": false,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "",
+  "spec_coverage": 0.333,
+  "requirements_met": 2,
+  "requirements_unmet": 4,
+  "requirements_unknown": 0,
+  "requirements_total": 6,
+  "requirements_unmet_list": [
+    "Page: /",
+    "Page: /boards/[id]",
+    "API Route: POST /api/boards/[id]/cards",
+    "API Route: PATCH /api/cards/[id]"
+  ],
+  "requirements_unknown_list": [],
+  "files_generated": 15,
+  "dev_files_count": 15,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_7ofw43ij/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_7ofw43ij/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": false,
+  "error": "GateBlocked: BUILD_FAILED"
+}

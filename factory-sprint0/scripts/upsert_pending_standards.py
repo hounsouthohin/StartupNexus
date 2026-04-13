@@ -16,7 +16,7 @@ from pathlib import Path
 from uuid import UUID
 
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
+from agents.embedding_provider import get_embeddings, resolve_embedding_model
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
 
@@ -44,8 +44,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--embedding-model",
-        default="text-embedding-3-large",
-        help="OpenAI embedding model",
+        default=os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"),
+        help="Embedding model (provider-aware)",
     )
     return parser.parse_args()
 
@@ -62,7 +62,8 @@ def main() -> int:
     if not isinstance(data, list):
         raise SystemExit("Invalid format: expected a JSON array")
 
-    embeddings = OpenAIEmbeddings(model=args.embedding_model)
+    embedding_model = resolve_embedding_model(args.embedding_model)
+    embeddings = get_embeddings(embedding_model)
     client = QdrantClient(url=args.qdrant_url)
 
     inserted = 0

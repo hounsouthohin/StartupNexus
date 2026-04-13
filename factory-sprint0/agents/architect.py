@@ -224,8 +224,40 @@ def _parse_level1_sections(content: str) -> dict[str, str]:
     return sections
 
 
+def _load_sections_from_personas_dir() -> dict[str, str] | None:
+    """
+    Charge les sections depuis prompts/base/personas/ (Faille 5 fix — un fichier par persona).
+    Retourne None si le dossier ou un fichier obligatoire est absent (fallback sur architect.md).
+    """
+    project_root = Path(__file__).resolve().parent.parent
+    personas_dir = project_root / "prompts" / "base" / "personas"
+    if not personas_dir.exists():
+        return None
+
+    _PERSONA_FILES = {
+        "brief_normalizer": "brief_normalizer.md",
+        "planner":          "planner.md",
+        "spec_writer":      "spec_writer.md",
+        "diagrammer":       "diagrammer.md",
+    }
+    sections: dict[str, str] = {}
+    for key, filename in _PERSONA_FILES.items():
+        path = personas_dir / filename
+        if not path.exists():
+            logger.warning("[load_prompts] persona manquant : %s — fallback monolithique", filename)
+            return None
+        sections[key] = path.read_text(encoding="utf-8").strip()
+    return sections
+
+
 def load_prompts():
-    """Charge les prompts architecte base + rules stack injectées par section."""
+    """
+    Charge les prompts architecte + rules stack injectées par section.
+
+    Priorité :
+    1. prompts/base/personas/<persona>.md  — un fichier par persona (Faille 5)
+    2. prompts/base/architect.md           — fichier monolithique (fallback legacy)
+    """
     from langchain_core.prompts import ChatPromptTemplate
     from langchain_core.messages import SystemMessage, HumanMessage
     try:
@@ -235,20 +267,19 @@ def load_prompts():
         except Exception:
             active_stack = _DEFAULT_STACK_ID
 
-        base_content = load_base_prompt("architect")
         stack_rules = load_stack_rules_only("architect", active_stack)
-        sections = _parse_level1_sections(base_content)
 
-        prompts = {}
-        # Sections stack-agnostic : ne jamais leur injecter de règles stack
-        # brief_normalizer : doit rester 100% domaine métier — les règles Clerk/Prisma/Next.js
-        #   pollueraient son output et casseraient son rôle de filtre entités pures.
-        # planner : extrait les entités métier (QUOI construire) — les stack rules contiennent
-        #   des mappings domaine ("liste" → Task, "blog" → Post) qui se déclenchent sur des mots
-        #   présents dans le brief normalisé et causent la dérive documentée.
-        #   Le base prompt du planner (architect.md #Planner) a les règles anti-dérive suffisantes.
+        # Préférer les fichiers persona individuels
+        sections = _load_sections_from_personas_dir()
+        if sections is None:
+            logger.info("[load_prompts] personas/ absent ou incomplet — chargement architect.md")
+            base_content = load_base_prompt("architect")
+            sections = _parse_level1_sections(base_content)
+
+        # brief_normalizer et planner restent stack-agnostic (voir commentaire original)
         _STACK_AGNOSTIC_SECTIONS = {"brief_normalizer", "planner"}
 
+        prompts = {}
         for title, section_content in sections.items():
             prompt_content = section_content
             if stack_rules and title not in _STACK_AGNOSTIC_SECTIONS:
@@ -266,14 +297,13 @@ def load_prompts():
         if not required_sections.issubset(set(prompts.keys())):
             missing = required_sections - set(prompts.keys())
             raise RuntimeError(
-                f"Sections manquantes dans prompts/base/architect.md: {sorted(missing)}. "
-                f"Trouvees: {sorted(prompts.keys())}"
+                f"Sections manquantes : {sorted(missing)}. Trouvées : {sorted(prompts.keys())}"
             )
         return prompts
     except FileNotFoundError:
-        raise FileNotFoundError("prompts/base/architect.md not found.")
+        raise FileNotFoundError("Prompts architecte introuvables (personas/ et architect.md absents).")
     except Exception as e:
-        raise RuntimeError(f"Failed to parse prompts/base/architect.md: {e}")
+        raise RuntimeError(f"Échec chargement prompts architecte : {e}")
 
 def _wait_for_qdrant(url: str, max_wait_seconds: int = 90, poll_interval: float = 5.0) -> None:
     """Attend que Qdrant accepte les connexions avant d'initialiser QdrantVectorStore."""

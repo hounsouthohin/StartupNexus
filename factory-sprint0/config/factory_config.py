@@ -5,7 +5,7 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 QDRANT_COLLECTION_NAME = "factory_standards"
 
 # --- OpenAI Configuration ---
-EMBEDDING_MODEL = "text-embedding-3-large"
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
 # Add other models if needed, e.g., for generation
 # GENERATION_MODEL_GPT4 = "gpt-4o"
 # GENERATION_MODEL_GPT3_5 = "gpt-3.5-turbo"

@@ -1,0 +1,48 @@
+{
+  "run_id": "7b256749-bbfa-4faa-88ae-13ead76d7674",
+  "workflow_id": "todo-pilot-task-manager",
+  "project_name": "task-manager",
+  "generated_at": "2026-03-31T14:18:07.551544+00:00",
+  "duration_seconds": 236.804871,
+  "build_success": false,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "",
+  "spec_coverage": 0.2,
+  "requirements_met": 1,
+  "requirements_unmet": 4,
+  "requirements_unknown": 0,
+  "requirements_total": 5,
+  "requirements_unmet_list": [
+    "Page: /",
+    "Page: /new",
+    "API Route: PATCH /api/tasks/[id]",
+    "API Route: DELETE /api/tasks/[id]"
+  ],
+  "requirements_unknown_list": [],
+  "files_generated": 15,
+  "dev_files_count": 15,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_i0nnohv8/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_i0nnohv8/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": false,
+  "error": "GateBlocked: BUILD_FAILED"
+}

@@ -312,7 +312,7 @@ def _run_prisma_validate(combined_files: dict) -> tuple[list[str], dict]:
     if not schema_path or not schema_content.strip():
         return violations, details
 
-    prisma_bin = shutil.which("prisma")
+    prisma_bin = shutil.which("prisma") ### assure l'installation de Prisma CLI dans le runtime de l'activité (ex: via Dockerfile)
     details["cli_found"] = bool(prisma_bin)
     if not prisma_bin:
         msg = "PRISMA_VALIDATE_UNAVAILABLE: prisma CLI introuvable dans le runtime"

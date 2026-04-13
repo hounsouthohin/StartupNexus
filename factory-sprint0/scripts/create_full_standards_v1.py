@@ -56,11 +56,25 @@ import hashlib
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import UUID
 
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
+try:
+    from agents.embedding_provider import (
+        get_embedding_provider,
+        get_embeddings,
+        resolve_embedding_model,
+    )
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from agents.embedding_provider import (
+        get_embedding_provider,
+        get_embeddings,
+        resolve_embedding_model,
+    )
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
 
@@ -68,8 +82,14 @@ load_dotenv(dotenv_path=".env")
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "factory_standards")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
-EMBEDDINGS = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+EMBEDDING_MODEL = resolve_embedding_model(os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"))
+EMBEDDING_PROVIDER = get_embedding_provider()
+try:
+    EMBEDDINGS = get_embeddings(EMBEDDING_MODEL)
+    _EMBEDDING_INIT_ERROR: Exception | None = None
+except Exception as exc:
+    EMBEDDINGS = None
+    _EMBEDDING_INIT_ERROR = exc
 
 # =============================================================================
 # PHASE D — SANITIZATION DES ENTITES METIER
@@ -2907,6 +2927,10 @@ ALL_STANDARDS = (
 
 def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
     """Embed et upsert — idempotent via UUID déterministe MD5(text)."""
+    if EMBEDDINGS is None:
+        raise RuntimeError(
+            f"Embedding backend indisponible (provider={EMBEDDING_PROVIDER}, model={EMBEDDING_MODEL})"
+        ) from _EMBEDDING_INIT_ERROR
     vector = EMBEDDINGS.embed_query(text)
     point_id = text_to_uuid(text)
     client.upsert(
@@ -3037,7 +3061,14 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    if not os.getenv("OPENAI_API_KEY"):
-        print("❌ OPENAI_API_KEY manquant dans .env")
+    if EMBEDDINGS is None:
+        print(
+            "❌ Backend embeddings indisponible "
+            f"(provider={EMBEDDING_PROVIDER}, model={EMBEDDING_MODEL})"
+        )
+        if _EMBEDDING_INIT_ERROR is not None:
+            print(f"   Détail: {_EMBEDDING_INIT_ERROR}")
+        if EMBEDDING_PROVIDER == "openai":
+            print("   Vérifie OPENAI_API_KEY ou active OPENAI_FROZEN=1 pour basculer sur Ollama.")
         raise SystemExit(1)
     raise SystemExit(main())

@@ -9,8 +9,8 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 
-DEV_TASK_QUEUE = "factory-dev-queue"
-SUPERVISORS_TASK_QUEUE = "factory-supervisors-queue"
+MAIN_TASK_QUEUE = "factory-task-queue"
+DEV_TASK_QUEUE  = "factory-dev-queue"
 BUILD_TASK_QUEUE = "factory-build-queue"
 
 CONTINUE_AS_NEW_THRESHOLD = 10
@@ -182,33 +182,8 @@ class GenerationSessionWorkflow:
                 "project_name": state.project_name,
             }
 
-            conformity_coro = workflow.execute_activity(
-                "conformity_activity",
-                supervisor_input,
-                task_queue=SUPERVISORS_TASK_QUEUE,
-                start_to_close_timeout=timedelta(minutes=8),
-                retry_policy=common_retry,
-            )
-            security_coro = workflow.execute_activity(
-                "security_activity",
-                supervisor_input,
-                task_queue=SUPERVISORS_TASK_QUEUE,
-                start_to_close_timeout=timedelta(minutes=8),
-                retry_policy=common_retry,
-            )
-            architecture_coro = workflow.execute_activity(
-                "architecture_activity",
-                supervisor_input,
-                task_queue=SUPERVISORS_TASK_QUEUE,
-                start_to_close_timeout=timedelta(minutes=8),
-                retry_policy=common_retry,
-            )
-
-            sup_results = await asyncio.gather(
-                conformity_coro,
-                security_coro,
-                architecture_coro,
-            )
+            # Superviseurs LLM supprimés (Phase C) — supervision déterministe inline uniquement.
+            sup_results: list = []
 
             corrections_bundle = await workflow.execute_activity(
                 "aggregate_corrections_activity",
@@ -219,7 +194,7 @@ class GenerationSessionWorkflow:
                     "artifact_ref": artifact_ref,
                     "stack_id": state.stack_id,
                 },
-                task_queue=SUPERVISORS_TASK_QUEUE,
+                task_queue=MAIN_TASK_QUEUE,
                 start_to_close_timeout=timedelta(minutes=2),
                 retry_policy=common_retry,
             )

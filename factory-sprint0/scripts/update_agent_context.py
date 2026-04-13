@@ -33,7 +33,7 @@ import os
 from uuid import UUID
 
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
+from agents.embedding_provider import get_embeddings
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct, Filter, FieldCondition, MatchValue
 
@@ -42,7 +42,7 @@ load_dotenv(dotenv_path=".env")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", "factory_standards")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
-EMBEDDINGS = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+EMBEDDINGS = get_embeddings(EMBEDDING_MODEL)
 
 
 def text_to_uuid(text: str) -> str:
@@ -57,12 +57,16 @@ def text_to_uuid(text: str) -> str:
 # =============================================================================
 
 try:
-    from scripts.create_full_standards_v1 import ZONE_0_PLANNING
+    from scripts import create_full_standards_v1 as _standards_module
 except ImportError:
     # Fallback si lancé depuis la racine
     import sys
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from scripts.create_full_standards_v1 import ZONE_0_PLANNING
+    from scripts import create_full_standards_v1 as _standards_module
+
+ZONE_0_PLANNING = getattr(_standards_module, "ZONE_0_PLANNING", [])
+if not ZONE_0_PLANNING:
+    print("⚠️  ZONE_0_PLANNING absent dans create_full_standards_v1.py — étape 2 ignorée.")
 
 
 def step1_tag_existing_as_dev(client: QdrantClient) -> int:

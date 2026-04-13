@@ -13,9 +13,17 @@ Usine logicielle SaaS autonome utilisant une stack moderne pour la génération 
 ### Précis-requis
 - Docker & Docker Compose
 - Python 3.10+
-- Clé API OpenAI (pour les embeddings et agents)
+- Clé API OpenAI (mode cloud) OU Ollama (mode local)
 
 ### Installation
 1. **Démarrer l'infrastructure** :
    ```bash
    docker-compose up -d
+   ```
+2. **Précharger les modèles Ollama (mode local gel OpenAI)** :
+   ```bash
+   docker compose exec ollama ollama pull qwen2.5-coder:7b
+   docker compose exec ollama ollama pull nomic-embed-text
+   # optionnel (plus lourd) :
+   # docker compose exec ollama ollama pull qwen3:8b
+   ```

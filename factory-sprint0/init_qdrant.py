@@ -4,12 +4,15 @@ from uuid import uuid4
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient, models
 from qdrant_client.http.models import Distance, VectorParams, PointStruct
-from langchain_openai import OpenAIEmbeddings
+from agents.embedding_provider import get_embeddings, detect_embedding_dimension, resolve_embedding_model
 
 # Configuration
 load_dotenv(dotenv_path='.env')
 COLLECTION_NAME = "factory_standards"
-EMBEDDINGS = OpenAIEmbeddings(model="text-embedding-3-large")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
+RESOLVED_EMBEDDING_MODEL = resolve_embedding_model(EMBEDDING_MODEL)
+EMBEDDINGS = get_embeddings(EMBEDDING_MODEL)
+VECTOR_SIZE = int(os.getenv("QDRANT_VECTOR_SIZE", "0") or "0") or detect_embedding_dimension(EMBEDDING_MODEL)
 QDRANT_URL = os.getenv("QDRANT_URL", "http://qdrant:6333")
 
 # --- Fonctions Utilitaires ---
@@ -79,9 +82,12 @@ async def init_collection():
             print(f"La collection '{COLLECTION_NAME}' n'existe pas. Création...")
             client.create_collection(
                 collection_name=COLLECTION_NAME,
-                vectors_config=VectorParams(size=3072, distance=Distance.COSINE),
+                vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
             )
-            print(f"Collection '{COLLECTION_NAME}' créée avec succès.")
+            print(
+                f"Collection '{COLLECTION_NAME}' créée avec succès "
+                f"(embedding={RESOLVED_EMBEDDING_MODEL}, dim={VECTOR_SIZE})."
+            )
         else:
             print(f"La collection '{COLLECTION_NAME}' existe déjà.")
 

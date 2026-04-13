@@ -89,11 +89,11 @@ def _build_standard_text(payload: dict) -> str:
 
 def _upsert_to_qdrant(payload: dict) -> bool:
     try:
-        from langchain_openai import OpenAIEmbeddings
+        from agents.embedding_provider import get_embeddings
         from qdrant_client import QdrantClient
         from qdrant_client.http.models import PointStruct
 
-        embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+        embeddings = get_embeddings(EMBEDDING_MODEL)
         client = QdrantClient(url=QDRANT_URL)
 
         text = _build_standard_text(payload)

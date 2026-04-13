@@ -10,10 +10,11 @@ import json
 import os
 import hashlib
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID
 
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
+from agents.embedding_provider import get_embeddings
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
 
@@ -83,7 +84,7 @@ def enrich_qdrant(patterns_report_path: str = DEFAULT_PATTERNS_REPORT) -> dict:
     report = _load_patterns(patterns_report_path)
     patterns = report.get("patterns", [])
 
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+    embeddings = get_embeddings(os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"))
     client = QdrantClient(url=qdrant_url)
 
     inserted = []
@@ -160,7 +161,7 @@ PRISMA7_STANDARD = {
 }
 
 
-def inject_clerk_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_clerk_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Insère directement le standard Clerk dans la collection Qdrant (pas de patterns_report requis)."""
     text = CLERK_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -192,7 +193,7 @@ def inject_clerk_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) ->
     }
 
 
-def inject_prisma7_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_prisma7_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Insère directement le standard Prisma 7 dans la collection Qdrant (pas de patterns_report requis)."""
     text = PRISMA7_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -271,7 +272,7 @@ AUTH_NULL_GUARD_STANDARD = {
 }
 
 
-def inject_generic_listing_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_generic_listing_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Insère le standard de listing générique Server Component dans Qdrant."""
     text = GENERIC_LISTING_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -300,7 +301,7 @@ def inject_generic_listing_standard(client: QdrantClient, embeddings: OpenAIEmbe
             "priority": GENERIC_LISTING_STANDARD["priority"], "text_excerpt": text[:100] + "..."}
 
 
-def inject_auth_null_guard_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_auth_null_guard_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Insère le standard auth null guard dans Qdrant."""
     text = AUTH_NULL_GUARD_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -352,7 +353,7 @@ UNTYPED_ARRAY_STANDARD = {
 }
 
 
-def inject_untyped_array_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_untyped_array_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Injecte le standard TypeScript strict — tableau non typé interdit."""
     text = UNTYPED_ARRAY_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -468,7 +469,7 @@ PRISMA7_DATASOURCE_CORRECTED_TEXT = (
 )
 
 
-def fix_prisma7_datasource_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def fix_prisma7_datasource_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Corrige le standard Prisma 7 datasource contradictoire dans Qdrant (upsert ciblé par ID).
 
     L'ancien standard (ab928ac6) disait que url = env(...) dans schema.prisma était 'valide',
@@ -500,7 +501,7 @@ def fix_prisma7_datasource_standard(client: QdrantClient, embeddings: OpenAIEmbe
     }
 
 
-def inject_app_router_routing_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_app_router_routing_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Insère le standard de routing App Router (/ → app/page.tsx) dans Qdrant."""
     text = APP_ROUTER_ROUTING_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -533,7 +534,7 @@ def inject_app_router_routing_standard(client: QdrantClient, embeddings: OpenAIE
     }
 
 
-def inject_prisma_schema_structure_standard(client: QdrantClient, embeddings: OpenAIEmbeddings) -> dict:
+def inject_prisma_schema_structure_standard(client: QdrantClient, embeddings: Any) -> dict:
     """Injecte un standard Prisma canonique pour la structure datasource/generator."""
     text = PRISMA_SCHEMA_STRUCTURE_STANDARD["text"]
     vector = embeddings.embed_query(text)
@@ -751,7 +752,7 @@ if __name__ == "__main__":
             or args.inject_untyped_array
             or args.inject_prisma_schema_structure
         ):
-            _embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+            _embeddings = get_embeddings(os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"))
         if args.inject_clerk_standard:
             r = inject_clerk_standard(_client, _embeddings)
             r["generated_at"] = datetime.now(timezone.utc).isoformat()

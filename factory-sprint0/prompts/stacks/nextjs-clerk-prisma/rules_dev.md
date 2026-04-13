@@ -67,14 +67,16 @@ let items = [];
 try { items = await prisma.model.findMany(); } catch { items = []; }
 ```
 
-### 8 — SCHEMA PRISMA : ÉCRITURE UNIQUE OBLIGATOIRE
+### 8 — SCHEMA PRISMA : PRÉ-GÉNÉRÉ, NE PAS RÉÉCRIRE
 
-`prisma/schema.prisma` DOIT être écrit **une seule fois**, avec **tous les modèles métier** du brief en un seul `write_file`.
+`prisma/schema.prisma` est **pré-généré par le pipeline** avant que tu n'écrives le moindre fichier.
+Il est déjà présent et CORRECT dans le dossier projet.
 
-- Écrire TOUS les modèles dans un seul appel `write_file("prisma/schema.prisma", ...)`.
-- Après cela : **NE PLUS RÉÉCRIRE** `prisma/schema.prisma`, même si un superviseur signale une correction.
-- Si correction demandée : appliquer **une seule fois**, puis passer aux pages et routes API.
-- INTERDIT : réécrire le schema à chaque itération ou combiner son écriture avec d'autres fichiers.
+- **NE JAMAIS appeler** `write_file("prisma/schema.prisma", ...)` — ce fichier est protégé.
+- **NE JAMAIS appeler** `write_file("prisma.config.ts", ...)` — idem.
+- **NE JAMAIS appeler** `write_file("lib/prisma.ts", ...)` — idem.
+- Si tu as besoin de connaître les modèles disponibles : lis le bloc SCHÉMA PRISMA dans ton contexte système.
+- INTERDIT : réécrire ou « corriger » le schema — il fait autorité.
 
 ### 9 — HANDLERS TYPÉS (violation = TS7006 / TS7031)
 
@@ -143,3 +145,45 @@ Le code généré doit respecter explicitement ces concepts techniques de stack,
 - Guard `userId` nul avant toute opération Prisma liée à `authorId`/`ownerId` (`401` avant DB).
 - Prisma 7: `datasource.url` interdit dans `schema.prisma` (éviter les erreurs P1012), structure canonique `generator`/`datasource`.
 - TypeScript strict: aucun tableau non typé (`let arr = []`), aucun fallback `any`, types explicites sur données Prisma.
+
+### 12 — NOMS DE SPEC EXACTS (violation = routes/modèles introuvables)
+
+Utilise EXACTEMENT les noms définis dans la spec — jamais de traduction ni de synonyme.
+
+```
+✅ Product, /api/products, ProductList
+❌ Produit, /api/items, Products (pluriel non spécifié)
+```
+
+### 13 — APP ROUTER EXCLUSIF (violation = build crash / routes ignorées)
+
+Tous les fichiers doivent être dans `app/` — jamais dans `pages/`.
+
+```
+✅ app/dashboard/page.tsx, app/api/products/route.ts
+❌ pages/dashboard.tsx, pages/api/products.ts
+```
+
+### 14 — CHAMPS OBLIGATOIRES MODÈLE PRISMA (violation = TS2339 / migration échouée)
+
+Chaque modèle Prisma DOIT avoir ces deux champs :
+
+```prisma
+id        String   @id @default(uuid())
+createdAt DateTime @default(now())
+```
+
+### 15 — .ENV.LOCAL OBLIGATOIRE (violation = Clerk/Prisma non initialisés)
+
+Le fichier `.env.local` DOIT exister à la racine du projet avec ce format exact :
+
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
+CLERK_SECRET_KEY=sk_test_placeholder
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+```
+
+### 16 — CHAMPS INTERDITS SCHEMA PRISMA (violation = faille sécurité)
+
+INTERDIT dans `prisma/schema.prisma` : tout champ `password`, `passwordHash`, `passwordDigest` ou dérivé.
+Clerk gère l'authentification — aucun stockage de credential côté Prisma.

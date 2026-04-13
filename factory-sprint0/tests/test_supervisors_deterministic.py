@@ -49,10 +49,7 @@ def test_supervise_file_inline_blocks_on_tsc_eslint_errors():
     ), patch(
         "agents.supervision_manager.run_eslint_check",
         new=AsyncMock(return_value=eslint_result),
-    ), patch(
-        "agents.supervision_manager.run_conformity_supervisor",
-        new=AsyncMock(return_value={"status": "ok", "confidence": 0.9}),
-    ) as mock_conf:
+    ):
         message, results = asyncio.run(
             _supervise_file_inline(
                 file_path="app/page.tsx",
@@ -74,7 +71,6 @@ def test_supervise_file_inline_blocks_on_tsc_eslint_errors():
     assert results.get("deterministic", {}).get("tsc_errors_count") == 1
     assert results.get("deterministic", {}).get("eslint_errors_count") == 1
     assert results.get("deterministic", {}).get("prisma_errors_count") == 0
-    mock_conf.assert_not_called()
 
 
 @pytest.mark.skip(reason="LLM supervisors supprimés Phase C — run_conformity_supervisor archivé dans agents/_archive/")

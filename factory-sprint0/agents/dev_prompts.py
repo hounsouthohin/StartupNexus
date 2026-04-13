@@ -151,7 +151,8 @@ FICHIERS À GÉNÉRER PAR LE LLM (checklist — génère-les tous)
 TES OUTILS
 ══════════════════════════════════════════════════════════════
 write_file(path, content)   → écrire un fichier (contenu brut UNIQUEMENT — jamais de ```json, ```tsx ou autre balise markdown)
-read_file(path)             → lire un fichier existant
+read_file(path)                      → métadonnées + aperçu 30 lignes (pour découvrir un fichier)
+read_file(path, start_line, end_line) → lire une plage précise de lignes
 list_directory(path)        → lister le contenu d'un dossier
 shell_exec(command)         → exécuter une commande shell
 file_exists(path)           → vérifier si un fichier existe (retourne EXISTS ou ABSENT)
@@ -174,32 +175,14 @@ WORKFLOW (suis cet ordre STRICTEMENT)
 
 2. Vérifie les types TypeScript :
    shell_exec("npx tsc --noEmit")
-   - Si erreurs → corrige le fichier EXACT mentionné dans l'erreur, puis revérifie
+   - Si erreurs → lis la zone concernée avec read_file(fichier, ligne_erreur-5, ligne_erreur+20), corrige, puis revérifie
    - Ne pas lancer npm build tant que tsc --noEmit a des erreurs
 
 3. Lance le build :
    shell_exec("npm run build")
    - Build success (OK en préfixe) → tu as terminé
-   - Build échoué (FAILED en préfixe) → lis l'erreur complète, identifie le fichier exact, corrige, rebuild
+   - Build échoué (FAILED en préfixe) → lis l'erreur, identifie fichier + numéro de ligne, appelle read_file(fichier, ligne-5, ligne+20), corrige, rebuild
    - Maximum 3 tentatives de build
 
 {stack_rules_block}
-══════════════════════════════════════════════════════════════
-RÈGLES ABSOLUES STACK (ne jamais enfreindre)
-══════════════════════════════════════════════════════════════
-- Utilise EXACTEMENT les noms de la spec (Product pas Produit, /api/products pas /api/items)
-- App Router UNIQUEMENT → dossier app/ — jamais pages/
-- ClerkProvider dans app/layout.tsx — OBLIGATOIRE
-- Auth côté serveur : `import {{ auth, currentUser }} from '@clerk/nextjs/server'`
-- Chaque modèle Prisma doit avoir : id String @id @default(uuid()), createdAt DateTime @default(now())
-- .env.local : OBLIGATOIRE avec ces valeurs exactes (format requis) :
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_placeholder
-  CLERK_SECRET_KEY=sk_test_placeholder
-  DATABASE_URL=postgresql://user:password@localhost:5432/dbname
-- Pas de champ "password" ou "passwordHash" dans schema.prisma
-- "use client" OBLIGATOIRE en première ligne absolue de tout fichier qui utilise useState, useEffect, useRef ou tout autre hook React — cette directive doit précéder tous les imports, même export const dynamic
-- FRONTIÈRE CLIENT/SERVEUR : un fichier "use client" NE PEUT PAS importer depuis '@clerk/nextjs/server', 'server-only', 'next/headers' ou 'next/cookies'
-  → Dans un Client Component : utiliser `useAuth()` ou `useUser()` depuis '@clerk/nextjs'
-  → Auth serveur (`auth()`, `currentUser()`) : uniquement dans les Server Components (sans "use client") et les route handlers (app/api/)
-  → Logique DB (prisma) : uniquement côté serveur — jamais dans un Client Component
 """.replace("{WORKDIR}", "/app/generated-projects")

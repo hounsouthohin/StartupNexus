@@ -8,6 +8,7 @@ from typing import Dict
 # Ajout des validations de contrat (doit être au niveau module)
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from scripts.validate_contracts import validate_input, validate_output
+from agents.llm_provider import validate_llm_env
 
 def _wait_for_qdrant(timeout_seconds: int = 90) -> None:
     """
@@ -113,9 +114,10 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     input_data["run_id"] = run_id
     load_dotenv()
 
-    # Vérification minimale de la clé API (avant même la validation contrat)
-    if not os.getenv("OPENAI_API_KEY"):
-        raise ApplicationError("MISSING_CONFIGURATION", "OPENAI_API_KEY manquante")
+    # Vérification provider-aware (OpenAI ou Ollama selon le mode).
+    ok, llm_env_msg = validate_llm_env()
+    if not ok:
+        raise ApplicationError("MISSING_CONFIGURATION", llm_env_msg)
 
     # ── 0. Health check Qdrant ────────────────────────────────────────────
     _wait_for_qdrant()

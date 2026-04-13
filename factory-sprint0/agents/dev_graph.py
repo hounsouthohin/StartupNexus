@@ -55,11 +55,93 @@ class DevState(TypedDict):
     prebuild_blocking: bool        # True si prebuild_pipeline bloque le build
     prebuild_report: dict          # Dernier prebuild_report sérialisé
     prebuild_block_count: int      # Nombre de blocages prebuild consécutifs
+    phase: str                     # "generation" → "correction" après premier build (Faille 3)
 
 
 def _error_signature(stderr: str) -> str:
     """Hash stable des 200 premiers chars d'une erreur — détection de boucle."""
     return hashlib.md5(stderr[:200].encode()).hexdigest()[:8]
+
+
+# ── Faille 4 : Correction ciblée + Pruning sémantique ────────────────────────
+
+
+def _build_targeted_correction(error: str) -> str:
+    """
+    Ramène l'erreur build dans le contexte visible du LLM + guide les étapes.
+
+    Rôle : après _prune_messages, l'ancien ToolMessage d'erreur peut être hors
+    fenêtre. Cette injection le réintroduit avec des étapes structurées.
+    Pas de parsing regex — GPT-4o sait lire une erreur TypeScript nativement.
+    """
+    first_lines = "\n".join(error.splitlines()[:10])
+    return (
+        f"ERREUR BUILD à corriger :\n{first_lines[:400]}\n\n"
+        "Étapes :\n"
+        "1. Lis le fichier + ligne mentionnés dans l'erreur ci-dessus\n"
+        "2. read_file(fichier, ligne-5, ligne+20)\n"
+        "3. Corrige uniquement la ligne concernée — ne réécris pas le fichier entier\n"
+        "4. shell_exec(\"npx tsc --noEmit\")\n"
+        "5. Si tsc OK → shell_exec(\"npm run build\")"
+    )
+
+
+def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
+    """
+    Élagage sémantique du contexte LLM (Faille 4 fix — Context Window Management).
+
+    Garde :
+      - SystemMessage(s)                         → toujours (règles stack)
+      - Premier HumanMessage                     → toujours (spec initiale)
+      - Dernier HumanMessage                     → toujours (correction en cours)
+      - 3 dernières paires AIMessage+ToolMessage → fenêtre d'action récente
+
+    Élimine : vieux ToolMessage "OK: X écrit", anciens échanges de génération,
+    HumanMessage d'injection obsolètes — tout ce qui est devenu du bruit.
+    """
+    if len(messages) <= 8:
+        return messages  # contexte court → rien à élaguer
+
+    system_msgs = [m for m in messages if isinstance(m, SystemMessage)]
+    human_msgs  = [m for m in messages if isinstance(m, HumanMessage)]
+
+    first_human = [human_msgs[0]] if human_msgs else []
+    last_human  = [human_msgs[-1]] if len(human_msgs) > 1 else []
+
+    # Reconstruit les "rounds" : AIMessage + ToolMessage(s) suivants
+    rounds: list[list[BaseMessage]] = []
+    current: list[BaseMessage] = []
+    for msg in messages:
+        if isinstance(msg, AIMessage):
+            if current:
+                rounds.append(current)
+            current = [msg]
+        elif isinstance(msg, ToolMessage) and current:
+            current.append(msg)
+        elif isinstance(msg, HumanMessage) and current:
+            rounds.append(current)
+            current = []
+    if current:
+        rounds.append(current)
+
+    # Garde les 3 derniers rounds (actions récentes)
+    recent = [m for round_ in rounds[-3:] for m in round_]
+
+    # Assemble sans doublons : system → first_human → recent → last_human
+    seen: set[int] = set()
+    result: list[BaseMessage] = []
+
+    def _add(m: BaseMessage) -> None:
+        if id(m) not in seen:
+            seen.add(id(m))
+            result.append(m)
+
+    for m in system_msgs:  _add(m)
+    for m in first_human:  _add(m)
+    for m in recent:       _add(m)
+    for m in last_human:   _add(m)
+
+    return result
 
 
 def _is_build_command(command: str) -> bool:
@@ -244,22 +326,35 @@ async def run_dev_agent(
 
     # ── Nœud dev principal ───────────────────────────────────────────
     def dev_node(state: DevState) -> dict:
-        messages = list(state["messages"])
+        # Pruning sémantique : élimine le bruit accumulé (vieux write_file OK,
+        # anciens échanges de génération) tout en gardant les éléments critiques
+        # (SystemMessage, spec initiale, 3 derniers rounds, dernière correction).
+        messages = _prune_messages(list(state["messages"]))
 
-        # Anti-loop : même erreur ≥ 2 fois → changement de stratégie obligatoire
+        # En phase "correction" : rappel explicite que le LLM ne doit pas repartir
+        # de zéro — corrige uniquement la ligne indiquée, ne réécrit pas les fichiers entiers.
+        if state.get("phase", "generation") == "correction" and not state.get("last_build_error", ""):
+            messages.append(HumanMessage(content=(
+                "Tu es en phase correction. "
+                "Ne régénère pas les fichiers depuis zéro. "
+                "Identifie la ligne fautive, lis-la avec read_file, corrige-la chirurgicalement."
+            )))
+
+        # Injection ciblée sur TOUTE erreur — pas seulement à la 2ème répétition.
+        # Réintroduit l'erreur dans le contexte visible après pruning + guide les étapes.
+        # En cas de même erreur répétée : escalade avec avertissement explicite.
         last_error = state.get("last_build_error", "")
         if last_error:
             sig = _error_signature(last_error)
-            count = state.get("error_signatures", []).count(sig)
-            if count >= 2:
-                messages.append(HumanMessage(content=(
-                    "⚠️ Tu as rencontré cette même erreur plusieurs fois sans la résoudre. "
-                    "CHANGEMENT DE STRATÉGIE OBLIGATOIRE : "
-                    "1. Utilise read_file pour lire le fichier exact mentionné dans l'erreur. "
-                    "2. Identifie la ligne précise du problème. "
-                    "3. Applique une correction ciblée sur ce fichier uniquement. "
-                    "4. Appelle shell_exec(\"npx tsc --noEmit\") pour valider avant de rebuilder."
-                )))
+            repeat_count = state.get("error_signatures", []).count(sig)
+            correction = _build_targeted_correction(last_error)
+            if repeat_count >= 2:
+                correction = (
+                    f"⚠️ MÊME ERREUR APRÈS {repeat_count} TENTATIVES — "
+                    "Ne réécris pas le fichier entier. Corrige uniquement la ligne indiquée :\n\n"
+                    + correction
+                )
+            messages.append(HumanMessage(content=correction))
 
         response = llm_with_tools.invoke(messages)
 
@@ -456,21 +551,38 @@ async def run_dev_agent(
                     build_exit = int(m.group(1)) if m else 1
                     break
 
+        new_attempts = int(state.get("build_attempts", 0) or 0) + (1 if build_executed else 0)
+        # Dès que le build a tourné (réussi ou non) → phase "correction"
+        new_phase = "correction" if build_executed else state.get("phase", "generation")
+
         return {
             "last_build_error": last_error,
             "success": build_succeeded,
             "build_command_executed": build_executed,
             "build_exit_code": build_exit,
+            "build_attempts": new_attempts,
+            "phase": new_phase,
         }
 
     # ── Routage ──────────────────────────────────────────────────────
     def route_after_tools(state: DevState) -> str:
-        last_error = state.get("last_build_error", "")
-
         if state.get("success", False):
             return END
+
+        last_error = state.get("last_build_error", "")
         if last_error:
-            return END
+            # Boucle de correction : le LLM reçoit la correction ciblée (Faille 4)
+            # et corrige dans la phase "correction" (Faille 3).
+            # Limite : MAX_BUILD_ATTEMPTS tentatives avant d'abandonner.
+            attempts = int(state.get("build_attempts", 0) or 0)
+            if attempts >= MAX_BUILD_ATTEMPTS:
+                logger.warning(
+                    "[dev_graph] MAX_BUILD_ATTEMPTS=%d atteint — arrêt boucle correction",
+                    MAX_BUILD_ATTEMPTS,
+                )
+                return END
+            return "dev"
+
         return "dev"
 
     def route_from_dev(state: DevState) -> str:
@@ -541,6 +653,7 @@ async def run_dev_agent(
         "prebuild_blocking": False,
         "prebuild_report": {},
         "prebuild_block_count": 0,
+        "phase": "generation",
     }
 
     try:

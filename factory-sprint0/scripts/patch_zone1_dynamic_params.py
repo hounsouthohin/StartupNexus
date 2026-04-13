@@ -19,7 +19,7 @@ import os
 from uuid import UUID
 
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
+from agents.embedding_provider import get_embeddings
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import PointStruct
 
@@ -112,7 +112,7 @@ def main() -> None:
     print(f"Standard UUID : {standard_id}")
 
     client = QdrantClient(url=QDRANT_URL)
-    embeddings = OpenAIEmbeddings(model=EMBEDDING_MODEL)
+    embeddings = get_embeddings(EMBEDDING_MODEL)
 
     vector = embeddings.embed_query(STANDARD_TEXT)
     point = PointStruct(

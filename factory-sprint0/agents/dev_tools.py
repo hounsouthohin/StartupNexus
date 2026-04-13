@@ -81,19 +81,54 @@ def write_file(path: str, content: str) -> str:
 
 
 @tool
-def read_file(path: str) -> str:
+def read_file(path: str, start_line: int = 0, end_line: int = 0) -> str:
     """
     Lit un fichier depuis le répertoire de travail du projet.
     path: chemin relatif (ex: 'app/layout.tsx', 'package.json')
+    start_line: première ligne à lire, 1-indexé (obligatoire si fichier > 50 lignes)
+    end_line: dernière ligne à lire incluse
+
+    Workflow obligatoire pour un fichier inconnu :
+      1. Appelle read_file("app/page.tsx") → reçois les métadonnées + aperçu 30 lignes
+      2. Choisis ta plage selon le total de lignes indiqué
+      3. Appelle read_file("app/page.tsx", 80, 120) → lis la section exacte
+
+    Exemples :
+      read_file("app/page.tsx")            → métadonnées + lignes 1-30
+      read_file("app/page.tsx", 1, 50)     → lignes 1 à 50
+      read_file("app/page.tsx", 80, 120)   → lignes 80 à 120 (autour d'une erreur ligne 87)
+      read_file("package.json", 1, 30)     → package.json complet si < 30 lignes
     """
     try:
         abs_path = _safe_path(path)
         if not os.path.exists(abs_path):
             return f"ABSENT: {path} n'existe pas"
         content = Path(abs_path).read_text(encoding="utf-8", errors="replace")
-        if len(content) > 8000:
-            return content[:8000] + f"\n... [tronqué — {len(content)} chars total]"
-        return content
+        lines = content.splitlines(keepends=True)
+        total_lines = len(lines)
+
+        # ── Lecture par plage explicite ──────────────────────────────
+        if start_line > 0 or end_line > 0:
+            s = max(0, start_line - 1)
+            e = end_line if end_line > 0 else total_lines
+            e = min(e, total_lines)
+            excerpt = "".join(lines[s:e])
+            header = f"[{path} — lignes {s+1}-{e} sur {total_lines}]\n"
+            return header + excerpt
+
+        # ── Sans plage : métadonnées + aperçu des 30 premières lignes ─
+        preview_end = min(30, total_lines)
+        preview = "".join(lines[:preview_end])
+        meta = f"[{path} — {total_lines} lignes au total]\n"
+        if total_lines <= 30:
+            return meta + content
+        return (
+            meta
+            + preview
+            + f"\n... [{total_lines - preview_end} lignes restantes]"
+            + f"\n→ Pour lire la suite : read_file(\"{path}\", 31, 80)"
+            + f"\n→ Pour aller à une erreur ligne N : read_file(\"{path}\", N-5, N+20)"
+        )
     except Exception as e:
         return f"ERREUR read_file({path}): {e}"
 
@@ -203,22 +238,47 @@ def shell_exec(command: str) -> str:
                 "Cette commande attend une entrée utilisateur et ne peut pas tourner dans le pipeline. "
                 "ESLint est déjà configuré via .eslintrc.stack.json — n'exécute pas de commande d'initialisation ESLint."
             )
+
+    # Timeout adapté au type de commande.
+    _COMMAND_TIMEOUTS: list[tuple[tuple[str, ...], int]] = [
+        (("npm run build", "next build"),              300),
+        (("npm install", "npm ci"),                    300),
+        (("npx prisma generate", "prisma generate"),   120),
+        (("npx prisma migrate", "prisma migrate"),     120),
+        (("npx tsc", "tsc --"),                        120),
+        (("npx eslint", "eslint "),                     60),
+        (("npx jest", "jest "),                         90),
+    ]
+    timeout_s = 120  # défaut
+    for patterns, t in _COMMAND_TIMEOUTS:
+        if any(p in cmd_lower for p in patterns):
+            timeout_s = t
+            break
+
+    # Environnement non-interactif : CI=true désactive les prompts et spinners.
+    env = os.environ.copy()
+    env["CI"] = "true"
+    env["DEBIAN_FRONTEND"] = "noninteractive"
+    env["NPM_CONFIG_YES"] = "true"
+    env["NEXT_TELEMETRY_DISABLED"] = "1"
+
     try:
         # shell=True intentionnel : le LLM a besoin de npm, tsc, prisma, etc.
-        # Containment : cwd forcé sur le workdir projet + timeout 120s.
+        # Containment : cwd forcé sur le workdir projet.
         result = subprocess.run(
             command,
             shell=True,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=timeout_s,
             cwd=_get_workdir(),
+            env=env,
         )
         output = (result.stdout + result.stderr).strip()
         status = "OK" if result.returncode == 0 else f"FAILED (exit {result.returncode})"
         return f"{status}\n{output[:4000]}"
     except subprocess.TimeoutExpired:
-        return "TIMEOUT: commande dépassée 120s"
+        return f"TIMEOUT: commande dépassée {timeout_s}s — '{command[:60]}'"
     except Exception as exc:
         return f"ERREUR shell_exec: {exc}"
 
