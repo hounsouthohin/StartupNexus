@@ -15,7 +15,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 from utils.run_report import write_run_report as _write_run_report
 
-MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 1
+# D1 : désactivé — le dev_graph a maintenant une validation progressive (file_validate_node)
+# qui intercepte les erreurs tsc PENDANT la génération (avant build).
+# Le retry post-mortem ici était un 2e run complet coûteux sur des erreurs déjà traitées.
+MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 0
 
 
 def _classify_root_cause(

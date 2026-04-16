@@ -31,7 +31,14 @@ PAGES DEMANDÉES:
 
 ROUTES API DEMANDÉES:
 - <MÉTHODE> /api/<ressource> — <description courte>
-[une ligne par endpoint. Omets cette section si aucune route API dans le brief]
+[une ligne par endpoint]
+RÈGLE CRUD OBLIGATOIRE : pour chaque modèle métier, génère TOUTES les routes CRUD standards
+sauf si le brief les exclut EXPLICITEMENT :
+  GET    /api/<ressource>       — liste
+  POST   /api/<ressource>       — créer
+  GET    /api/<ressource>/[id]  — détail
+  PATCH  /api/<ressource>/[id]  — modifier
+  DELETE /api/<ressource>/[id]  — supprimer
 
 FONCTIONNALITÉS:
 - <fonctionnalité explicite du brief>

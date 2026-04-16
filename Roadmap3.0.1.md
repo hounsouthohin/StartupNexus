@@ -1,6 +1,6 @@
 # 🚀 ROADMAP AGILE 2026 — SOFTWARE AGENT FACTORY
-## Version 2.2 — Mise à jour 04 Mars 2026
-## (v2.0 : 23 Février 2026 — base · v2.1 : 03 Mars 2026 — Sprint 2 clôturé · v2.2 : 04 Mars 2026 — Sprint 3 + Audit fixes)
+## Version 2.3 — Mise à jour 28 Mars 2026
+## (v2.0 : 23 Fév 2026 — base · v2.1 : 03 Mars 2026 — Sprint 2 clôturé · v2.2 : 04 Mars 2026 — Sprint 3 + Audit fixes · v2.3 : 28 Mars 2026 — Refactorisation Architecture Simplifiée)
 
 ---
 
@@ -28,6 +28,61 @@ PRINCIPE 3 — La boucle d'apprentissage doit être fermée
   RAG → Agent → Erreur → Learner → RAG
   Chaque maillon doit être implémenté avant de passer au suivant
   Les patches silencieux masquent l'apprentissage → les rendre visibles
+
+---
+
+---
+
+## REFACTORISATION ARCHITECTURE SIMPLIFIÉE ✅ COMPLÉTÉE
+## Date : 27-28 Mars 2026 | Superviseur : Claude | Exécutants : Claude + Codex
+
+OBJECTIF : Éliminer le LLM bloat, rendre le pipeline fiable et observable.
+Contexte de départ : 3/3 runs en échec avec SPEC_DEGRADED_UNRECOVERABLE.
+
+### Phase A — Pipeline Architect corrigé ✅
+  A1 — spec_writer_node : requirements[] injectés en PREMIER dans input_text
+       (avant : plan JSON en tête → LLM ignorait les requirements → SPEC_DEGRADED systématique)
+  A2 — brief_parser : filtre /POST capturé comme page (bug regex "GET/POST /api/...")
+  A3 — architect_activity : suppression de l'ApplicationError SPEC_DEGRADED_UNRECOVERABLE
+       (la correction loop re-invoquait le même pipeline → cascade de failure garantie)
+  Gate A ✅ : 3/3 runs atteignent le dev agent (plus de crash architect)
+
+### Phase B — Stack JSON simplifié ✅ (exécuté par Codex)
+  B1 — content_guards[] supprimé (~135 lignes) — doublons de rules_dev.md
+  B2 — import_remaps{} supprimé (~28 lignes) — sanitizer anti-pattern
+  B3 — supervision_routing{} supprimé (~10 lignes) — obsolète
+  B4 — mandatory_rag_queries[] vidé + migré vers rules_dev.md (section "Concepts Stack Obligatoires")
+  Fix complémentaire — schemas/stack_config.schema.json : import_remaps retiré du required[]
+  Résultat : JSON 574 lignes → 392 lignes (réduction -32%)
+  Gate B ✅ : aucune régression, import_remaps error disparue
+
+### Phase C — Retrait LLM supervisors ✅
+  C1 — supervision_manager.py : bloc Niveau 2 LLM supprimé (conformity/security/architecture)
+       Supervision = déterministe uniquement (tsc + eslint)
+  C2 — conformity_agent.py, security_agent.py, architecture_agent.py : marqués DÉPRÉCIÉS
+       (conservés pour rétrocompatibilité imports, non appelés en production)
+  Tests mis à jour : 2 tests LLM supervisor → @pytest.mark.skip
+  Gate C ✅ : latence réduite, 2/3 runs à spec_coverage=1.0 + requirements_met=7/7
+
+### Phase D — Purge Qdrant ✅ (exécuté par Codex)
+  68 standards audités, 36 pollués détectés, 33 sanitisés
+  Entités concrètes → placeholders [ENTITY], [MODEL_NAME], [entities]
+  Modes ajoutés : --audit-only, --only-modified, --no-sanitize
+  Validation : polluted_hits=0 sur 3 briefs tests (marketplace, habit-tracker, invoice-generator)
+  Note : objectif ~15 standards non atteint (68 sanitisés) — pollution supprimée sans réduction de couverture
+  Gate D ✅ : RAG propre sur tous les briefs testés
+
+### Résultats observés post-refactorisation
+  Avant : 3/3 runs SPEC_DEGRADED_UNRECOVERABLE (dev agent jamais atteint)
+  Après : 3/3 runs COMPLETED, dev agent génère 13-29 fichiers par run
+          2/3 runs : spec_coverage=1.0, requirements_met=7/7, is_useful_app=true
+          Erreurs résiduelles : Prisma schema LLM (double @default, relation manquante)
+          → problème qualité dev agent, hors scope refactorisation
+
+### Ancien plan (plan.md) — archivé
+  Phase 1 ✅ absorbée | Phase 2 partiellement absorbée | Phase 3 abandonnée
+  Phase 4 ✅ absorbée (correction loop supprimée) | Phase 5 abandonnée
+  Référence complète : PLAN_REFACTO_SIMPLIFIE.md
 
 ---
 
@@ -483,7 +538,7 @@ SIGNAL : LearnerAgent produit des StandardSuggestion structurées,
 ---
 
 ## SPRINT 4 — Gate Décisionnel + Modularité Avancée
-## Deadline : Mars 2026 | STATUT : En cours
+## Deadline : Mars 2026 | STATUT : ✅ COMPLÉTÉ (Groupes A-D accomplis — voir MEMORY.md)
 
 OBJECTIF : Valider empiriquement l'architecture + fermer la boucle
 d'apprentissage + préparer multi-stack
@@ -632,6 +687,345 @@ SIGNAL CLÔTURE SPRINT 4.5 :
   - user_flows[] extrait par l'Architect sur 3 projets distincts
   - Journey Validator opérationnel et logge dans shadow log
   - Au moins 1 projet atteint spec_coverage > 80%
+
+---
+
+## PRÉ-SPRINT 4.6 — Refactoring Architect Agent (fondation Sprint 4.6+)
+## Deadline : Avant Sprint 4.6 | STATUT : ✅ ABSORBÉ par Refactorisation Architecture Simplifiée (Phase A — 27-28 Mars 2026)
+
+CONTEXTE :
+  L'Architect Agent a accumulé des incohérences architecturales au fil des sprints :
+  - requirements[] trusté depuis le LLM (source d'erreur) au lieu d'être dérivé déterministiquement
+  - DEGRADED correction loop (3 appels LLM) corrigeant un contrat lui-même faux
+  - Diagrammer dans le pipeline principal (jamais utilisé par le DevAgent)
+  - Entités du brief injectées APRÈS le contexte RAG → biais de position LLM
+  - Absence de normalisation du brief → planner dérive sur briefs en prose naturelle
+  Ces dettes produisaient des "ghost success" : BUILD_SUCCESS avec la mauvaise app.
+
+OBJECTIF :
+  Repartir sur des fondations propres AVANT d'ajouter l'Agent Critique.
+  Un Agent Critique comparant des requirements[] LLM-générés (potentiellement faux)
+  n'apporte aucune valeur. La fiabilité du contrat requirements[] est un prérequis.
+
+ARCHITECTURE CIBLE (graph LangGraph) :
+
+  START
+    ↓
+  [brief_normalizer]  — gpt-4o-mini, ZÉRO RAG
+    ↓                   Transforme tout brief (prose/structuré) en brief normalisé
+  [retrieval]         — Qdrant, query = normalized_brief (pas de LLM rewriting séparé)
+    ↓                   Retourne RAG context filtré par stack + status=active
+  [planner]           — gpt-4o, normalized_brief + rag_context
+    ↓                   Produit plan{} : data_models, pages, api_routes, user_flows
+  [spec_writer]       — gpt-4o-mini, plan{} + deterministic requirements[] + rag_context
+    ↓                   1 appel LLM + auth check + stack keywords check
+  [formatter]         — 0 LLM, pack ArchitectOutput
+    ↓
+  END
+
+PRINCIPE CLÉ — Brief Normalizer :
+  Input  : brief utilisateur (n'importe quel format)
+  Output : brief structuré avec blocs Prisma explicites, pages, routes
+  Raison : sépare "ce qu'on construit" (domaine métier = LLM natif)
+           de "comment on le construit" (patterns stack = RAG)
+  Multi-stack : aucune dépendance stack — extrait uniquement le domaine métier
+
+PRINCIPE CLÉ — requirements[] déterministe :
+  TOUJOURS dérivé de plan.data_models / plan.pages / plan.api_routes
+  JAMAIS depuis plan["requirements"] (champ LLM-généré, source de ghost success)
+  Garantit que l'Agent Critique (Sprint 4.6) compare contre un contrat fiable
+
+ÉLÉMENTS SUPPRIMÉS :
+  - diagrammer_node retiré du graph (jamais utilisé par DevAgent, 30s timeout)
+  - DEGRADED correction loop supprimée de spec_writer (validait un contrat faux)
+  - sprint5_gate dans spec_writer (mauvais endroit, logique future)
+  - plan["requirements"] comme source de requirements[] (remplacé par dérivé déterministe)
+  - Query rewriting LLM séparé (remplacé par usage direct du normalized_brief)
+
+ÉLÉMENTS CONSERVÉS :
+  - _contains_forbidden_auth (stack-specific, légitime)
+  - Stack keywords/sections check (stack-specific, légitime)
+  - _build_minimal_plan_from_phrase (fallback déterministe si JSON invalide)
+  - RAG filter par stack + status=active (inchangé)
+  - user_flows[] extraction du plan (inchangé)
+  - Journey Validator en aval (inchangé)
+
+COÛT LLM :
+  Avant refactoring : 4 appels nominaux, 9 appels pire cas
+  Après refactoring  : 3 appels nominaux (normalizer + planner + spec_writer), 5 pire cas
+
+SIGNAL CLÔTURE PRÉ-SPRINT 4.6 :
+  - brief_normalizer opérationnel (test sur 3 briefs prose + 3 briefs structurés)
+  - requirements[] 100% déterministe (zero LLM hallucination dans le contrat)
+  - Ghost success impossible (requirements[] reflète toujours le plan réel)
+  - reveal tests : marketplace-mvp + habit-tracker + invoice-generator → BUILD_SUCCESS
+    avec les BONNES entités générées (Product/Order, Habit/HabitLog, Client/Invoice)
+
+---
+
+## SPRINT 4.6 — Supervision Inline : Système Multi-Agents (v2 — 20 Mars 2026)
+## Deadline : Après Sprint 4.5 | STATUT : ❌ ABANDONNÉ — 27-28 Mars 2026
+##
+## ⚠️ ATTENTION : L'architecture décrite ci-dessous (conformity_activity, security_activity,
+## architecture_activity en parallèle) a été EXPLICITEMENT DÉPRÉCIÉE par la Refactorisation
+## Architecture Simplifiée (Phase C, 27-28 Mars 2026).
+## Les agents conformity_agent.py, security_agent.py, architecture_agent.py sont marqués
+## DÉPRÉCIÉS dans le code. Ne PAS implémenter cette architecture.
+## La supervision est désormais déterministe uniquement : tsc + eslint.
+## Conservation de cette section pour historique uniquement.
+
+CONTEXTE :
+  Sprint 4   = "est-ce que ça build ?"
+  Sprint 4.5 = "est-ce que l'app répond au brief ?"
+  Sprint 4.6 = "est-ce que chaque fichier généré respecte le brief, est sécurisé
+               et cohérent — avant même de passer au fichier suivant ?"
+
+PHILOSOPHIE (v2 — révisée 20 Mars 2026) :
+  La v1 décrivait un reviewer post-génération. C'était insuffisant.
+  La vision correcte : des superviseurs inline qui observent le Dev fichier par fichier,
+  corrigent chirurgicalement, et laissent le build valider uniquement la compilabilité.
+
+  PRINCIPE FONDAMENTAL :
+    Dev écrit un fichier → Superviseur(s) observent → correction ciblée si besoin
+    → fichier suivant. Pas de restart complet. Pas de revue globale tardive.
+
+  FIN DES GUARDS DÉTERMINISTES :
+    Les guards regex dans shared_tools.py sont supprimés (code mort avec cette architecture).
+    Les compilateurs (tsc, prisma validate, next build) sont les seuls arbitres d'intégrité.
+    Les superviseurs LLM sont les arbitres de qualité, conformité et sécurité.
+    Le Learner + RAG sont les arbitres de prévention sur le long terme.
+
+  CONFORMITÉ = STRUCTURE + SENS :
+    Un superviseur ne vérifie pas seulement qu'un fichier EXISTE à la bonne route.
+    Il vérifie que le CONTENU du fichier implémente réellement ce que le brief demande.
+    Exemple : brief "marketplace" → le superviseur vérifie que app/api/orders/route.ts
+    crée bien une commande avec productId + buyerId + quantity, pas juste qu'il existe.
+
+ARCHITECTURE — SUPERVISION INLINE PAR TYPE DE FICHIER :
+
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  Pour chaque fichier généré par write_file() :                      │
+  │                                                                     │
+  │  *.tsx pages           → Superviseur Conformité Sémantique          │
+  │  app/api/**/*.ts       → Superviseur Conformité + Superviseur Sécu  │
+  │  prisma/schema.prisma  → Superviseur Cohérence Architecturale       │
+  │  lib/*.ts, utils/*.ts  → Superviseur Conformité (léger)             │
+  │  Templates protégés    → Pas de supervision (immuables)             │
+  │                                                                     │
+  │  Si superviseur détecte problème (confidence > 0.7) :               │
+  │    → Instruction chirurgicale envoyée au Dev                        │
+  │    → Dev corrige CE FICHIER UNIQUEMENT                              │
+  │    → Superviseur re-vérifie → si OK, fichier suivant                │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  APRÈS tous les fichiers :
+    [tsc --noEmit] + [prisma validate] → erreurs résiduelles → Superviseur Compilabilité
+    → instruction ciblée au Dev (ligne précise, pas restart)
+    → Build final → QA → GitHub
+
+LES 3 SUPERVISEURS CORE (chacun avec sa Temporal Activity) :
+
+  SUPERVISEUR CONFORMITÉ SÉMANTIQUE (conformity_activity)
+  ────────────────────────────────────────────────────────
+  Input  : fichier_path + contenu + requirements[] + plan{} (contexte projet complet)
+           + tous les fichiers générés jusqu'ici (contexte cumulatif)
+  Tâche  : DEUX NIVEAUX de vérification :
+    1. Structurel : ce fichier couvre-t-il le requirement attendu ? (route, modèle, page)
+    2. Sémantique : le CONTENU du fichier fait-il réellement ce que le brief demande ?
+       - La page `/products` AFFICHE-T-ELLE des produits avec prix + bouton achat ?
+       - Le handler POST `/api/orders` CRÉE-T-IL une commande avec productId + buyerId ?
+       - Le dashboard FILTRE-T-IL par authorId ou expose-t-il toutes les données ?
+  Output : {
+    "status": "ok|needs_fix",
+    "confidence": 0.85,
+    "fix_instruction": {
+      "file": "app/products/page.tsx",
+      "problem": "La page affiche une liste statique, sans fetch des produits depuis l'API",
+      "fix": "Ajouter un appel fetch('/api/products') et mapper les résultats en JSX",
+      "lines_concerned": [12, 28]
+    }
+  }
+  RAG    : ZONE_15 — exemples de conformité structurelle ET sémantique
+  Prompt : prompts/base/conformity.md + prompts/stacks/<stack>/rules_conformity.md
+
+  SUPERVISEUR SÉCURITÉ (security_activity)
+  ─────────────────────────────────────────
+  Input  : fichier_path + contenu (routes API uniquement)
+           + schema Prisma (contexte des modèles et leurs champs sensibles)
+  Tâche  : pour chaque handler détecté dans le fichier :
+    1. Auth check présent avant toute opération Prisma
+    2. Queries filtrées par authorId (pas d'exposition cross-user)
+    3. Pas d'exposition de champs sensibles
+    4. Input validation sur POST/PUT
+  Output : {
+    "status": "ok|needs_fix",
+    "confidence": 0.90,
+    "fix_instruction": {
+      "file": "app/api/orders/route.ts",
+      "handler": "POST",
+      "problem": "Aucun auth() check avant db.order.create()",
+      "fix": "Ajouter : const { userId } = await auth(); if (!userId) return Response.json({error:'Unauthorized'},{status:401}); en ligne 3",
+      "lines_concerned": [3]
+    }
+  }
+  RAG    : ZONE_16 — patterns sécurité Clerk v6 valides/invalides avec code
+  Prompt : prompts/base/security.md + prompts/stacks/<stack>/rules_security.md
+
+  SUPERVISEUR COHÉRENCE ARCHITECTURALE (architecture_activity)
+  ─────────────────────────────────────────────────────────────
+  Input  : fichier_path + contenu + schema Prisma + plan{} (data_models, relations)
+  Tâche  : vérifier que le fichier est cohérent avec le schéma de données global
+    - Un composant Orders utilise-t-il bien la relation Order→Product pour afficher
+      le nom du produit, ou affiche-t-il juste l'ID ?
+    - Un route handler crée-t-il les champs obligatoires du modèle Prisma (createdAt, authorId) ?
+    - Les imports entre fichiers sont-ils valides (path qui existe dans combined_files) ?
+  Output : même format que Conformité (status/confidence/fix_instruction)
+  RAG    : ZONE_15 (partagé avec Conformité) — patterns de cohérence inter-fichiers
+  Prompt : prompts/base/architecture.md + prompts/stacks/<stack>/rules_architecture.md
+
+  SUPERVISEUR COMPILABILITÉ (build_supervisor_activity) — POST-BUILD UNIQUEMENT
+  ────────────────────────────────────────────────────────────────────────────────
+  Déclenché uniquement si le build échoue.
+  Input  : stderr du build + combined_files
+  Tâche  : identifier le(s) fichier(s) et ligne(s) responsables de l'erreur
+           → instruction ciblée au Dev pour corriger UNIQUEMENT cette zone
+           → le Dev ne repasse PAS par les autres superviseurs (déjà validés)
+  Output : {
+    "failing_file": "app/products/[id]/page.tsx",
+    "error_type": "TypeScript",
+    "fix_instruction": "..."
+  }
+
+SUPERVISION BUDGÉTISÉE — RÈGLE D'ACTIVATION :
+  Ne pas appeler tous les superviseurs sur chaque fichier.
+  Routing par type de fichier (déclaré dans stack JSON) :
+  {
+    "supervision_routing": {
+      "app/api/**/*.ts":      ["conformity", "security"],
+      "app/**/*.tsx":         ["conformity", "architecture"],
+      "prisma/schema.prisma": ["architecture"],
+      "lib/**/*.ts":          ["conformity"],
+      "**/*.test.*":          []
+    }
+  }
+
+SCORE DE CONFIANCE — RÈGLE D'APPLICATION :
+  confidence > 0.8 → correction obligatoire (bloque le fichier suivant)
+  confidence 0.6-0.8 → correction suggérée (Dev peut passer outre, logué)
+  confidence < 0.6 → observation uniquement, transmis au Learner
+
+INSTRUCTION CHIRURGICALE — FORMAT OBLIGATOIRE :
+  Toute correction doit spécifier :
+    file, problem (description précise), fix (code ou instruction exacte),
+    lines_concerned (lignes à modifier)
+  Interdire les instructions vagues comme "corrige l'auth" ou "améliore la page".
+
+SUPERVISION MEMORY DANS LE RUN :
+  Le Superviseur Conformité maintient une vue cumulative du projet en cours :
+  - Fichiers déjà vérifiés et leur statut
+  - Requirements déjà couverts vs manquants
+  - Patterns détectés (ex: "le Dev n'utilise jamais les types TypeScript → signaler tôt")
+  Cette mémoire permet d'anticiper et de contextualiser chaque nouveau fichier.
+
+TEMPORAL ACTIVITIES — VISIBILITÉ DASHBOARD :
+  Chaque superviseur est une Temporal Activity indépendante :
+  - conformity_activity   → visible sur le dashboard Temporal
+  - security_activity     → visible sur le dashboard Temporal
+  - architecture_activity → visible sur le dashboard Temporal
+  - build_supervisor_activity → visible sur le dashboard Temporal (si build échoue)
+  Le Dev loop (dev_test_activity) les appelle via execute_activity().
+
+RISQUES MULTI-AGENTS ET MITIGATIONS :
+
+  1. COÛT TOKENS
+     Risque   : 2-3 appels LLM/fichier × 20 fichiers = 40-60 calls/run supplémentaires
+     Mitigation :
+       - Supervision budgétisée (routing par type de fichier)
+       - Modèle gpt-4o-mini pour tous les superviseurs (pas gpt-4o)
+       - Skip si fichier = template protégé ou fichier de config
+       - Caching : si contenu identique à un template → supervision sautée
+
+  2. HALLUCINATION SUPERVISEUR
+     Risque   : superviseur déclare un fichier défaillant alors qu'il est correct
+     Mitigation :
+       - Score de confiance obligatoire dans chaque output
+       - Correction non-bloquante si confidence < 0.7
+       - Learner track les faux positifs (superviseur corrige → build réussit quand même)
+         → recalibration automatique du prompt superviseur
+
+  3. MANQUE DE CONNAISSANCE RAG
+     Risque   : superviseur ne connaît pas les patterns Clerk v6 → mauvais verdict
+     Mitigation :
+       - Chaque superviseur fait sa propre query RAG (ZONE_15/16) avant de juger
+       - Standards prescriptifs ZONE_15/16 avec EXEMPLE_INVALIDE + EXEMPLE_VALIDE
+       - Si RAG retourne 0 résultats → superviseur passe en mode "observation uniquement"
+
+  4. CALIBRATION PROMPTS
+     Risque   : superviseur trop sévère → Dev corrige indéfiniment
+     Mitigation :
+       - Calibration sur 10 runs avant activation en mode bloquant
+       - Seuil de confiance progressif (0.9 en phase calibration, 0.7 en production)
+       - Learner mesure le ratio corrections→succès build : si <60% → prompt recalibré
+
+  5. MULTI-STACK
+     Risque   : superviseurs codés pour Next.js/Clerk → inutiles pour Vue/FastAPI
+     Mitigation :
+       - Même architecture Stack-as-Config : supervision_routing déclaré dans JSON
+       - prompts/stacks/<stack>/rules_conformity.md + rules_security.md + rules_architecture.md
+       - Les prompts base sont stack-agnostiques (logique) ; les rules_ sont stack-specific
+
+NETTOYAGE PRÉREQUIS — AVANT IMPLÉMENTATION :
+  Supprimer de shared_tools.py :
+    - Tous les content_guards (blocking + non-blocking) → remplacés par superviseurs
+    - _sanitize_package_json_content() → Learner+RAG prévient, superviseur corrige
+    - _sanitize_nextconfig_content() → superviseur compilabilité
+    - _apply_clerk_middleware_v5(), _remove_pages_router_conflicts(),
+      _remove_problematic_babel_config() → Learner+RAG à la source
+  Conserver :
+    - Templates (package.json, middleware.ts, etc.) — infrastructure, pas des guards
+    - run_build(), run_tests(), run_tsc_check(), run_prisma_validate() — outils d'exécution neutres
+    - SANITIZER_REGISTRY → migré Sprint 6 SanitizerRegistry (dette connue)
+
+CONNEXION AVEC LE LEARNER (boucle évolutive) :
+  Superviseur détecte pattern récurrent sur N runs (ex: handler POST sans auth)
+    → Learner génère suggestion ZONE_15 ou ZONE_16
+    → Après validation humaine → upsert Qdrant status=active
+    → Prochain run : RAG retourne le bon pattern → Dev génère correctement dès le début
+    → Superviseur n'a plus rien à corriger sur ce pattern
+  Objectif : les superviseurs ont de moins en moins de travail à mesure que le Dev apprend.
+  Un superviseur qui ne détecte plus rien = une réussite, pas une inutilité.
+
+  De plus, les superviseurs transmettent au Learner :
+    - Les bons comportements du Dev (fichiers validés sans correction au premier essai)
+    - Les mauvais comportements récurrents (même erreur sur plusieurs runs)
+    → Le Learner construit un profil comportemental du Dev pour affiner les standards.
+
+NOUVELLES MÉTRIQUES SHADOW LOG :
+  Par fichier supervisé :
+    - supervisor_type : "conformity|security|architecture|build"
+    - file_path : chemin du fichier supervisé
+    - status : "ok|corrected|skipped"
+    - confidence : float 0-1
+    - correction_applied : bool
+  Par run :
+    - conformity_score : float 0-1 (% fichiers conformes sémantiquement)
+    - security_score   : float 0-1 (% handlers sécurisés)
+    - architecture_score : float 0-1 (% fichiers cohérents avec le schéma)
+    - supervisor_corrections_count : int (corrections appliquées pendant la génération)
+    - build_corrections_count : int (corrections post-build)
+
+SIGNAL CLÔTURE SPRINT 4.6 (v2) :
+  - Guards déterministes supprimés de shared_tools.py (code mort éliminé)
+  - 3 superviseurs core opérationnels avec Temporal Activities dédiées
+  - Supervision inline active dans le Dev loop (après chaque write_file)
+  - Instruction chirurgicale au format obligatoire (file + problem + fix + lines)
+  - Score de confiance dans chaque output superviseur
+  - supervision_routing déclaré dans nextjs-clerk-prisma.json
+  - ZONE_15 + ZONE_16 + ZONE_17 (architecture) créées dans Qdrant (≥5 standards chacune)
+  - Superviseur Compilabilité opérationnel (post-build, ciblé)
+  - conformity_score > 0.75 ET security_score > 0.80 ET architecture_score > 0.70
+    sur au moins 2 projets distincts
+  - Métriques par fichier loggées dans shadow log
 
 ---
 
@@ -831,6 +1225,8 @@ Inchangé de v1.5.
 | ~~Dès possible~~ | Sprint 2 clôturé | build_success=true + tests_passed=true reproductibles | ✅ 02 Mars 2026 |
 | 7 Mars 2026 | Sprint 3 terminé | qdrant_filter branché + commands lus JSON + LearnerActivity connectée + standards taggés + secrets clean | ✅ 04 Mars 2026 |
 | Fin Mars 2026 | Sprint 4 terminé | Gate décisionnel + anti-patterns auto + contracts inter-agents v2 | ⏳ |
+| Début Avril 2026 | Sprint 4.5 | Journey Validator + user_flows + spec_coverage > 80% | ⏳ |
+| Mi-Avril 2026 | Sprint 4.6 | Agent Critique (AgentConformité + AgentSécurité) + ZONE_15/16 | ⏳ |
 | Fin Avril 2026 | Sprints 5-6 | Boucle RAG→Learner→RAG fermée + web search + dashboard gouvernance | ⏳ |
 | Mi-Mai 2026 | Sprints 7-8 | Meta-learning + multi-stack <5% Python (Vue.js/FastAPI) | ⏳ |
 | 15 Mai 2026 | Sprint 9 | Démo 50 projets autonomes | ⏳ |
@@ -843,6 +1239,17 @@ DÉCISIONS ARCHITECTURALES PRISES (03 Mars 2026) :
   → Retry tenacity (shared_tools.py) : entre Sprint 3 et 4 (non bloquant mais ROI fort)
   → SanitizerRegistry : Sprint 6 exactement comme planifié v2.0
   → Vercel Preview Deploys + Playwright E2E : Sprint 6 (QA agent complet)
+
+DÉCISIONS ARCHITECTURALES PRISES (18 Mars 2026) :
+  → Guards regex → tous passés en mode WARN. TypeScript/Prisma/Next.js sont les
+     arbitres autoritaires. Les guards informent, les compilateurs bloquent.
+  → Agent Critique = 2 sous-agents LLM parallèles (Conformité + Sécurité) +
+     2 outils déterministes (tsc --noEmit + prisma validate).
+     TypeScript quality et Prisma patterns sont couverts par les outils → pas d'agent LLM pour ces dimensions.
+  → ZONE_15 (conformity) + ZONE_16 (security) = nouvelles zones Qdrant à créer en Sprint 4.6.
+  → La boucle Agent Critique → Learner → Standards → Dev est le moteur central
+     de l'organisme évolutif : l'Agent Critique a pour objectif de se rendre inutile
+     sur chaque pattern qu'il a appris à détecter.
 
 ---
 
@@ -871,3 +1278,15 @@ DÉCISIONS ARCHITECTURALES PRISES (03 Mars 2026) :
 #30 | Dette tech   | Pre-build hooks Python = violation PRINCIPE 1 (stack-specific en Python) → SanitizerRegistry Sprint 6-7 | Sprint 6-7
 #31 | Bug class    | Next.js headers() format : LLM génère [{key,value}] au lieu de [{source, headers:[]}] → _fix_nextconfig_security_headers | Sprint 2 fix immédiat
 #32 | Bug class    | App Router layout sans <html>/<body> : LLM génère React.FC classique → _ensure_layout_html_body | Sprint 2 fix immédiat
+#33 | Architecture | Guards regex → tous WARN. TypeScript/Prisma/Next.js sont arbitres autoritaires | Sprint 4.6 principe (18 Mars 2026)
+#34 | Architecture | Agent Critique = AgentConformité + AgentSécurité (2 LLM parallèles) + tsc/prisma (2 outils) | Sprint 4.6
+#35 | Standards    | ZONE_15 (conformity) + ZONE_16 (security applicative) créées dans Qdrant | Sprint 4.6
+#36 | Évolution    | Boucle Agent Critique → Learner → ZONE_15/16 → Dev génère mieux → Agent Critique s'auto-rend inutile | Sprint 5+
+#37 | Architecture | Brief Normalizer : nœud LangGraph dédié (gpt-4o-mini, zéro RAG) — sépare domaine métier (LLM natif) et patterns stack (RAG). Multi-stack by design. | Pré-Sprint 4.6
+#38 | Architecture | requirements[] déterministe : TOUJOURS dérivé de plan.data_models/pages/api_routes — JAMAIS depuis plan["requirements"] LLM-généré. Élimine ghost success. | Pré-Sprint 4.6
+#39 | Suppression  | diagrammer_node retiré du pipeline Architect (jamais utilisé par DevAgent, 30s timeout systématique). Conservé en fonction inactive pour Sprint 6 dashboard. | Pré-Sprint 4.6
+#40 | Suppression  | DEGRADED correction loop supprimée de spec_writer (3 appels LLM pour corriger un contrat lui-même faux). Remplacée par observation pure. | Pré-Sprint 4.6
+#41 | Fondation    | Pré-Sprint 4.6 est prérequis à Sprint 4.6 : Agent Critique comparant requirements[] fiables (déterministes) vs requirements[] LLM-générés (potentiellement faux) = valeur nulle. | 19 Mars 2026
+#42 | Dette tech   | Moteur AST dans dev.py (guards `engine="ast"`) : placeholder non finalisé — loggé en TODO/skipped si binaire absent. Les protections avancées (analyse structurelle fichier avant write) ne sont pas effectives en production. À activer dans un sprint dédié si le besoin est confirmé. Fichier : `agents/dev.py` (grep `engine.*ast`). | Sprint 7+
+#43 | Limite connue | Classes d'erreurs TypeScript — couverture partielle du feedback LLM : tsc est exhaustif (catch tous les codes), mais notre aide au LLM ne couvre que les classes observées en run réel. Classes traitées : TS2304/TS2724 (mauvais nom de type → A2+C2), TS2307 local (module manquant → E1). Classes non traitées : TS2322 (type incompatible), TS2339 (propriété inexistante), TS2307 npm (dépendance manquante). À traiter au fil des runs suivants — le Learner devra à terme enrichir les standards Qdrant pour que le LLM évite ces erreurs à la source. | Sprint 5+ Learner
+#44 | Limite connue | Scalabilité brief complexe — budget tokens système prompt : chaque modèle Prisma ajoute ~300-500 chars au system prompt (schema block + types_block + checklist). Pour des briefs avec 8+ modèles fortement relationnels, risque de dégradation silencieuse : le LLM n'attende plus équitablement toutes les parties du prompt → certains modèles/routes ignorés. Seuil estimé : >6 modèles avec relations = zone à risque. Mitigation à prévoir Sprint 6-7 : prompt dynamique (injecter uniquement les modèles/routes liés au fichier en cours de génération, via contextualisation locale). Stack actuelle non affectée (briefs catalogue = 1-2 modèles). | Sprint 6-7

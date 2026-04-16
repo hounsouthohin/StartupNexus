@@ -57,11 +57,16 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     return result
 
 
-def build_system_prompt(spec: "ProjectSpec", pre_written_files: list[str] | None = None) -> str:
+def build_system_prompt(
+    spec: "ProjectSpec",
+    pre_written_files: list[str] | None = None,
+    types_exported: list[str] | None = None,
+) -> str:
     """
     Construit le system prompt complet pour le dev agent v4.
     Reçoit un ProjectSpec typé — les noms sont garantis exacts.
     pre_written_files : fichiers déjà écrits depuis les templates (le LLM ne doit pas les réécrire).
+    types_exported    : liste exacte des symboles exportés par lib/types.ts (depuis TypesFileResult).
     """
     pre_written: set[str] = set(pre_written_files or [])
     expected_files = _expected_files_from_spec(spec)
@@ -108,6 +113,56 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
         "fingerprint": spec.spec_fingerprint,
     }, ensure_ascii=False)
 
+    # Bloc types.ts — affiché uniquement si lib/types.ts est dans pre_written
+    types_block = ""
+    if "lib/types.ts" in pre_written:
+        # C2 : liste les noms EXACTS exportés pour empêcher les hallucinations (ex: CreatePostInput)
+        if types_exported:
+            exact_names = ", ".join(types_exported)
+            forbidden_examples = [
+                n for n in ("CreatePostInput", "CreateUserInput", "CreateItemInput")
+                if n not in types_exported
+            ]
+            forbidden_note = (
+                f"\nNOM INTERDITS (non exportés, jamais disponibles) : {', '.join(forbidden_examples)}"
+                if forbidden_examples
+                else ""
+            )
+            types_block = f"""
+══════════════════════════════════════════════════════════════
+lib/types.ts — SOURCE DE VÉRITÉ DES TYPES (PRÉ-GÉNÉRÉ)
+══════════════════════════════════════════════════════════════
+Le fichier lib/types.ts a été généré automatiquement depuis la spec.
+Il exporte EXACTEMENT ces symboles (rien d'autre) :
+  {exact_names}
+  + ApiResponse<T>, PaginatedResponse<T>, AuthenticatedRequest{forbidden_note}
+
+RÈGLE ABSOLUE : utilise UNIQUEMENT ces noms exacts dans tes imports.
+  ✅  import type {{ {", ".join(types_exported[:3])} }} from '@/lib/types'
+  ❌  N'invente PAS de noms non listés ci-dessus — tsc échouera avec TS2304/TS2724.
+
+NE JAMAIS réécrire lib/types.ts — il est protégé.
+"""
+        else:
+            types_block = """
+══════════════════════════════════════════════════════════════
+lib/types.ts — SOURCE DE VÉRITÉ DES TYPES (PRÉ-GÉNÉRÉ)
+══════════════════════════════════════════════════════════════
+Le fichier lib/types.ts a été généré automatiquement depuis la spec.
+Il contient :
+  - Les types Prisma re-exportés (depuis @prisma/client)
+  - ApiResponse<T> et PaginatedResponse<T> pour toutes les routes API
+  - CreateXxxInput / UpdateXxxInput pour chaque modèle (champs éditables)
+  - XxxPageParams pour les pages dynamiques ([id])
+  - AuthenticatedRequest (userId garanti non-null)
+
+RÈGLE ABSOLUE : importe UNIQUEMENT les symboles listés dans ce fichier — jamais d'autres noms.
+  ✅  import type { Task, CreateTaskInput, ApiResponse } from '@/lib/types'
+  ❌  import type { CreatePostInput } from '@/lib/types'  ← n'existe PAS → TS2724
+
+NE JAMAIS réécrire lib/types.ts — il est protégé.
+"""
+
     # Bloc fichiers pré-générés (affiché uniquement si la liste est non vide)
     pre_written_block = ""
     if pre_written:
@@ -123,7 +178,7 @@ Ils sont CORRECTS et COMPLETS — ne les réécrits JAMAIS avec write_file :
 
     return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7.
 Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
-{pre_written_block}
+{types_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
 SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 ══════════════════════════════════════════════════════════════

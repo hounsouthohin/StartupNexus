@@ -1,5 +1,0 @@
-﻿External audit pack generated
-Timestamp: 20260311_120332
-ProjectRoot: c:\Users\BAMBARA Arthur\Desktop\StartupNexus\factory-sprint0
-Copied files: 29
-Missing files: 0

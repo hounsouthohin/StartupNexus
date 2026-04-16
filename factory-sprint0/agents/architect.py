@@ -566,59 +566,23 @@ def create_architect_agent():
             )
 
         else:
-            # ── Chemin 2 : brief absent/incomplet → instructor + LLM ─────────
-            try:
-                import instructor
-                from openai import AsyncOpenAI
-                _openai_client = AsyncOpenAI()
-                _instructor_client = instructor.from_openai(_openai_client)
-            except ImportError:
-                raise RuntimeError(
-                    "[planner] instructor non installé. Exécuter : pip install instructor"
-                )
-
-            rag_context = state.get("rag_context", "")
-            description = brief.get("description", "") or state["messages"][-1].content
-            stack_rules = ""
-            try:
-                from utils.prompt_loader import load_stack_prompt
-                stack_rules = load_stack_prompt(stack_id, "rules_architect") or ""
-            except Exception:
-                pass
-
-            human_content = (
-                f"[PROJET: {project_name}]\n\n"
-                f"Description : {description}\n\n"
-                + (f"Standards RAG :\n{rag_context[:2000]}\n\n" if rag_context else "")
-                + (f"Règles stack :\n{stack_rules[:1000]}" if stack_rules else "")
+            # Brief non structuré — les opérateurs sont responsables de fournir
+            # models/pages/routes dans le brief avant de soumettre à la factory.
+            # Chemin 2 (instructor + LLM) supprimé : source de spécifications incomplètes
+            # (ex: task-manager → seulement PATCH+DELETE au lieu du CRUD complet).
+            missing = []
+            if not brief_models:  missing.append("models")
+            if not brief_pages:   missing.append("pages")
+            if not brief_routes:  missing.append("routes")
+            logger.error(
+                "[planner] Brief non structuré reçu — champs manquants : %s. "
+                "Fournir un brief avec models[], pages[] et routes[] explicites.",
+                missing,
             )
-
-            spec = await _instructor_client.chat.completions.create(
-                model=planner_model,
-                response_model=ProjectSpec,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "Tu génères une spec technique structurée pour un projet Next.js 14 "
-                            "avec Clerk V6 et Prisma 7. "
-                            "Utilise EXACTEMENT les noms d'entités du brief — "
-                            "aucune traduction, aucun synonyme. "
-                            "Chaque modèle Prisma doit avoir ses champs complets. "
-                            "Toutes les pages et routes du brief doivent être présentes."
-                        ),
-                    },
-                    {"role": "user", "content": human_content},
-                ],
-            )
-            spec.project_name = project_name
-            spec.stack_id = stack_id
-            spec.with_fingerprint()
-
-            logger.info(
-                f"[planner] ProjectSpec via instructor — "
-                f"{len(spec.models)} modèles, {len(spec.pages)} pages, {len(spec.routes)} routes "
-                f"| fingerprint={spec.spec_fingerprint}"
+            raise ApplicationError(
+                f"Brief insuffisant : {missing} absents. "
+                "Structurer le brief (models/pages/routes) avant de soumettre à la factory.",
+                non_retryable=True,
             )
 
         # ── RAG budget (Phase 5 Codex — appliqué ici aussi pour cohérence) ───

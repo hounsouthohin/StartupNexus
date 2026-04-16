@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 MAX_BUILD_ATTEMPTS = 3
 MAX_PREBUILD_BLOCKS = 6
+MAX_FILE_VALIDATION_RETRIES = 2  # Tentatives de correction par fichier avant de passer au suivant
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
 DEV_TOOLS = [write_file, read_file, list_directory, shell_exec, file_exists]
@@ -56,6 +57,10 @@ class DevState(TypedDict):
     prebuild_report: dict          # Dernier prebuild_report sérialisé
     prebuild_block_count: int      # Nombre de blocages prebuild consécutifs
     phase: str                     # "generation" → "correction" après premier build (Faille 3)
+    # Progressive Validation (Étape 2)
+    validated_files: List[str]     # Fichiers .ts/.tsx ayant passé tsc file-level sans erreur
+    file_validation_errors: str    # Erreurs tsc du dernier tour — injectées en HumanMessage si non vides
+    file_validation_retries: int   # Tentatives de correction sur le batch courant
 
 
 def _error_signature(stderr: str) -> str:
@@ -228,9 +233,32 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
-    # Protéger les fichiers Prisma critiques contre réécriture LLM.
+    # ── Génération déterministe de lib/types.ts depuis ProjectSpec ──────────────
+    # Écrit avant que le LLM démarre — source de vérité des types partagés.
+    # Élimine les TS2339 sur les types Prisma (re-exports propres) et
+    # fournit CreateXxxInput/UpdateXxxInput/ApiResponse<T> pour toutes les routes.
+    # Le LLM importe depuis ce fichier au lieu de réinventer ses propres interfaces.
+    # C2 : liste exacte des symboles exportés par lib/types.ts → injectée dans le system prompt
+    # pour empêcher le LLM d'utiliser des noms fantômes (CreatePostInput, etc.).
+    _types_exported_names: list[str] = []
+    if spec_obj is not None:
+        try:
+            from agents.dev_types_generator import generate_types_file
+            types_result = generate_types_file(spec_obj, project_workdir)
+            template_written[types_result.path] = types_result.content
+            _types_exported_names = types_result.model_names + types_result.input_types
+            logger.info(
+                "[dev_graph] lib/types.ts généré — modèles: %s, input types: %s",
+                types_result.model_names,
+                types_result.input_types,
+            )
+        except Exception as _types_err:
+            logger.warning(f"[dev_graph] generate_types_file non bloquant : {_types_err}")
+
+    # Protéger les fichiers Prisma critiques + types.ts contre réécriture LLM.
     _protected = {
         "lib/prisma.ts",
+        "lib/types.ts",
         "prisma.config.ts",
         "prisma/schema.prisma",
         ".eslintrc.stack.json",
@@ -300,7 +328,11 @@ async def run_dev_agent(
                 from agents.project_spec import ProjectSpec
 
                 spec_obj = ProjectSpec(**spec)
-            system_prompt = build_system_prompt(spec_obj, pre_written_files=list(template_written.keys()))
+            system_prompt = build_system_prompt(
+                spec_obj,
+                pre_written_files=list(template_written.keys()),
+                types_exported=_types_exported_names or None,
+            )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
         except Exception as e:
             logger.warning(f"[dev_graph] dev_prompts non disponible ({e}), fallback minimal")
@@ -340,7 +372,46 @@ async def run_dev_agent(
                 "Identifie la ligne fautive, lis-la avec read_file, corrige-la chirurgicalement."
             )))
 
-        # Injection ciblée sur TOUTE erreur — pas seulement à la 2ème répétition.
+        # A1 — Transition génération → build.
+        # Si les derniers fichiers écrits ont passé tsc (file_validation_errors vide)
+        # et qu'aucun build n'a encore été lancé, guider explicitement le LLM vers le build.
+        # Sans cette injection, le LLM continue d'écrire des fichiers indéfiniment.
+        if (
+            not state.get("file_validation_errors", "")
+            and not state.get("build_command_executed", False)
+            and state.get("validated_files")  # au moins 1 fichier validé
+        ):
+            validated = state.get("validated_files", [])
+            messages.append(HumanMessage(content=(
+                f"{len(validated)} fichier(s) TypeScript validés par tsc. "
+                "Exécute maintenant dans cet ordre EXACT :\n"
+                "1. shell_exec('npx prisma generate')\n"
+                "2. shell_exec('npm run build')\n"
+                "Ne génère pas d'autres fichiers avant d'avoir lancé le build."
+            )))
+
+        # Injection des erreurs de validation file-level (Progressive Validation Étape 2).
+        # Si file_validate_node a détecté des erreurs TS dans les fichiers écrits ce tour,
+        # on les injecte avant l'appel LLM pour une correction immédiate et ciblée.
+        file_val_errors = state.get("file_validation_errors", "")
+        if file_val_errors:
+            retries = int(state.get("file_validation_retries", 0) or 0)
+            validated = state.get("validated_files", [])
+            validated_summary = (
+                f" ({len(validated)} fichiers déjà validés)" if validated else ""
+            )
+            messages.append(HumanMessage(content=(
+                f"ERREURS TypeScript détectées dans les fichiers que tu viens d'écrire "
+                f"(tentative {retries}/{MAX_FILE_VALIDATION_RETRIES}){validated_summary} :\n\n"
+                f"{file_val_errors}\n\n"
+                "Étapes :\n"
+                "1. Lis la ligne indiquée avec read_file(fichier, ligne-3, ligne+10)\n"
+                "2. Corrige uniquement la ligne fautive\n"
+                "3. N'écris PAS d'autres fichiers tant que ces erreurs ne sont pas résolues\n"
+                "4. Importe les types manquants depuis '@/lib/types' si possible"
+            )))
+
+        # Injection ciblée sur TOUTE erreur build — pas seulement à la 2ème répétition.
         # Réintroduit l'erreur dans le contexte visible après pruning + guide les étapes.
         # En cas de même erreur répétée : escalade avec avertissement explicite.
         last_error = state.get("last_build_error", "")
@@ -583,6 +654,9 @@ async def run_dev_agent(
                 return END
             return "dev"
 
+        # LLM n'a pas encore lancé de build — continuer.
+        # La sécurité contre les boucles infinies est assurée par recursion_limit=80
+        # + l'injection A1 ("build maintenant") dans dev_node qui guide le LLM vers le build.
         return "dev"
 
     def route_from_dev(state: DevState) -> str:
@@ -598,11 +672,212 @@ async def run_dev_agent(
             return "dev"
         return "tools"
 
+    # ── Progressive Validation (Étape 2) ─────────────────────────────
+    # Nœud intercalé entre tools et extract_error.
+    # Après chaque batch de tool calls, détecte les fichiers .ts/.tsx écrits,
+    # lance tsc --noEmit, filtre les erreurs sur ces fichiers uniquement.
+    # Si erreurs → injection HumanMessage ciblé → retour au LLM pour correction immédiate.
+    # Si clean   → pass-through vers extract_error (flux normal).
+    #
+    # Pourquoi ici et pas dans write_file :
+    #   - write_file est un outil atomique — il ne doit pas piloter le graph
+    #   - Un nœud LangGraph est le seul endroit correct pour décider du routage
+    #   - On valide le batch (plusieurs fichiers d'un tour) plutôt que chaque write isolé
+
+    _TS_EXTENSIONS = {".ts", ".tsx"}
+    _PROTECTED_NAMES = {"lib/prisma.ts", "lib/types.ts", "prisma/schema.prisma",
+                        "prisma.config.ts", "middleware.ts", ".eslintrc.stack.json"}
+
+    def _extract_written_ts_files(messages: list) -> list[str]:
+        """
+        Parcourt les ToolMessages du dernier tour pour trouver les fichiers écrits.
+        Retourne uniquement les .ts/.tsx non-protégés.
+        write_file retourne : "OK: path écrit (N chars)"
+        """
+        import re as _re
+        written = []
+        for msg in reversed(messages):
+            if not isinstance(msg, ToolMessage):
+                # On s'arrête au premier non-ToolMessage : on ne veut que le dernier tour
+                break
+            content = str(getattr(msg, "content", "") or "")
+            m = _re.match(r"OK:\s+(.+?)\s+écrit", content)
+            if not m:
+                continue
+            path = m.group(1).strip().replace("\\", "/").lstrip("./")
+            _, ext = os.path.splitext(path)
+            if ext not in _TS_EXTENSIONS:
+                continue
+            if path in _PROTECTED_NAMES:
+                continue
+            written.append(path)
+        return written
+
+    def _parse_tsc_errors_for_files(tsc_output: str, target_files: list[str]) -> str:
+        """
+        Filtre la sortie tsc pour ne garder que les erreurs sur les fichiers cibles.
+        Format tsc : "app/api/posts/route.ts(15,3): error TS2339: ..."
+        Retourne un string lisible par le LLM, vide si aucune erreur pertinente.
+        """
+        import re as _re
+        relevant: list[str] = []
+        # Normalise les paths cibles pour la comparaison
+        targets_norm = {f.lstrip("./").replace("\\", "/") for f in target_files}
+
+        for line in tsc_output.splitlines():
+            # Extrait le chemin du fichier depuis la ligne d'erreur
+            m = _re.match(r"^([^(]+)\(\d+,\d+\):\s+error\s+TS", line)
+            if not m:
+                continue
+            file_in_error = m.group(1).strip().replace("\\", "/").lstrip("./")
+            if any(file_in_error.endswith(t) or t.endswith(file_in_error) for t in targets_norm):
+                relevant.append(line)
+
+        if not relevant:
+            return ""
+        return "\n".join(relevant[:20])  # cap 20 lignes pour ne pas saturer le contexte
+
+    async def file_validate_node(state: DevState) -> dict:
+        """
+        Progressive Validation : tsc --noEmit sur les fichiers TypeScript écrits dans ce tour.
+        Non bloquant si tsc indisponible (node_modules absent, première itération).
+        """
+        messages = list(state.get("messages", []))
+        written_files = _extract_written_ts_files(messages)
+
+        if not written_files:
+            # Rien d'écrit en TS dans ce tour (shell_exec, fichiers non-TS, etc.)
+            return {"file_validation_errors": ""}
+
+        logger.info("[file_validate] Fichiers TS écrits ce tour : %s", written_files)
+
+        # Vérifie que tsc est disponible (node_modules installé)
+        tsc_bin = os.path.join(project_workdir, "node_modules", ".bin", "tsc")
+        tsc_available = os.path.exists(tsc_bin) or os.path.exists(tsc_bin + ".cmd")
+        if not tsc_available:
+            logger.info("[file_validate] tsc non disponible (npm install pas encore lancé) — skip")
+            return {"file_validation_errors": ""}
+
+        try:
+            result = subprocess.run(
+                "npx tsc --noEmit 2>&1",
+                shell=True,
+                capture_output=True,
+                text=True,
+                cwd=project_workdir,
+                timeout=60,
+            )
+            tsc_stdout = (result.stdout or "") + (result.stderr or "")
+
+            if result.returncode == 0:
+                # tsc clean → tous les fichiers écrits sont valides
+                new_validated = list(state.get("validated_files", []))
+                for f in written_files:
+                    if f not in new_validated:
+                        new_validated.append(f)
+                logger.info("[file_validate] ✓ tsc OK — fichiers validés : %s", written_files)
+                return {
+                    "file_validation_errors": "",
+                    "validated_files": new_validated,
+                    "file_validation_retries": 0,
+                }
+
+            # tsc a des erreurs → filtrer sur les fichiers écrits ce tour
+            errors_for_written = _parse_tsc_errors_for_files(tsc_stdout, written_files)
+            if not errors_for_written:
+                # Erreurs dans d'autres fichiers (déjà existants) — pas de notre faute maintenant
+                logger.info("[file_validate] tsc errors but not in newly written files — skip")
+                return {"file_validation_errors": ""}
+
+            # A2 — Lire les lignes fautives et les injecter avec l'erreur.
+            # Sans ça, le LLM réécrit le fichier entier depuis sa mémoire (blog anchor).
+            # Avec ça, il voit le code existant ligne par ligne → correction chirurgicale.
+            import re as _re2
+            enriched_lines: list[str] = []
+            for err_line in errors_for_written.splitlines():
+                enriched_lines.append(err_line)
+
+                # A2 — Lire les lignes fautives pour correction chirurgicale.
+                m = _re2.match(r"^([^(]+)\((\d+),\d+\):", err_line)
+                if m:
+                    err_file = m.group(1).strip().replace("\\", "/").lstrip("./")
+                    err_lineno = int(m.group(2))
+                    try:
+                        abs_file = os.path.join(project_workdir, err_file)
+                        with open(abs_file, "r", encoding="utf-8") as _f:
+                            file_lines = _f.readlines()
+                        start = max(0, err_lineno - 4)
+                        end = min(len(file_lines), err_lineno + 3)
+                        snippet = "".join(file_lines[start:end])
+                        enriched_lines.append(
+                            f"  ↳ Contenu actuel lignes {start+1}-{end} de {err_file} :\n"
+                            f"```typescript\n{snippet.rstrip()}\n```"
+                        )
+                    except Exception:
+                        pass  # non bloquant si lecture impossible
+
+                # E1 — TS2307 sur module LOCAL : le fichier n'existe pas, il faut le créer.
+                # TS2307 sur npm (next/, @clerk/, react, ...) → pas de traitement spécial.
+                _ts2307 = _re2.search(r"error TS2307: Cannot find module '([^']+)'", err_line)
+                if _ts2307:
+                    _mod = _ts2307.group(1)
+                    _is_local = _mod.startswith("@/") or _mod.startswith("./") or _mod.startswith("../")
+                    if _is_local:
+                        # Convertit @/components/TaskForm → components/TaskForm.tsx
+                        _clean = _mod.lstrip("@").lstrip("/")
+                        _basename = _clean.rsplit("/", 1)[-1]
+                        # Heuristique extension : tsx si composant React (capital, dans components/ ou app/)
+                        _is_component = (
+                            _basename[:1].isupper()
+                            or "component" in _clean.lower()
+                            or _clean.startswith("components/")
+                            or _clean.startswith("app/")
+                        )
+                        _ext = ".tsx" if _is_component else ".ts"
+                        _file_hint = _clean + _ext
+                        enriched_lines.append(
+                            f"  ⚠️  FICHIER MANQUANT (TS2307) : '{_mod}' n'existe pas sur le disque.\n"
+                            f"  ACTION OBLIGATOIRE : crée '{_file_hint}' avec write_file('{_file_hint}', ...).\n"
+                            f"  NE modifie PAS l'import — le chemin est correct, c'est le fichier qui manque."
+                        )
+
+            errors_enriched = "\n".join(enriched_lines)
+            retries = int(state.get("file_validation_retries", 0) or 0) + 1
+            logger.warning(
+                "[file_validate] TS errors dans fichiers écrits (retry %d/%d) : %s",
+                retries, MAX_FILE_VALIDATION_RETRIES, written_files,
+            )
+            return {
+                "file_validation_errors": errors_enriched,
+                "file_validation_retries": retries,
+            }
+
+        except subprocess.TimeoutExpired:
+            logger.warning("[file_validate] tsc timeout (>60s) — skip")
+            return {"file_validation_errors": ""}
+        except Exception as _e:
+            logger.warning("[file_validate] non bloquant : %s", _e)
+            return {"file_validation_errors": ""}
+
+    def route_after_file_validate(state: DevState) -> str:
+        """
+        Si des erreurs TS ont été détectées sur les fichiers écrits ce tour :
+          → retour au LLM pour correction immédiate (avant de continuer)
+          → après MAX_FILE_VALIDATION_RETRIES échecs, on laisse passer (non-bloquant)
+        Sinon → extract_error (flux normal).
+        """
+        errors = state.get("file_validation_errors", "")
+        retries = int(state.get("file_validation_retries", 0) or 0)
+        if errors and retries <= MAX_FILE_VALIDATION_RETRIES:
+            return "dev"
+        return "extract_error"
+
     # ── Assemblage du graph ──────────────────────────────────────────
     builder = StateGraph(DevState)
     builder.add_node("dev", dev_node)
     builder.add_node("prebuild_gate", prebuild_gate_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
+    builder.add_node("file_validate", file_validate_node)
     builder.add_node("extract_error", extract_build_error_node)
 
     builder.add_edge(START, "dev")
@@ -615,7 +890,12 @@ async def run_dev_agent(
         "dev": "dev",
         "__end__": END,
     })
-    builder.add_edge("tools", "extract_error")
+    # tools → file_validate → (dev si erreurs TS) → extract_error (flux normal)
+    builder.add_edge("tools", "file_validate")
+    builder.add_conditional_edges("file_validate", route_after_file_validate, {
+        "dev": "dev",
+        "extract_error": "extract_error",
+    })
     builder.add_conditional_edges("extract_error", route_after_tools, {
         "dev": "dev",
         END: END,
@@ -654,6 +934,9 @@ async def run_dev_agent(
         "prebuild_report": {},
         "prebuild_block_count": 0,
         "phase": "generation",
+        "validated_files": [],
+        "file_validation_errors": "",
+        "file_validation_retries": 0,
     }
 
     try:
