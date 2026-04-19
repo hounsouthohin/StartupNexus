@@ -266,10 +266,9 @@ async def run_dev_agent(
         except Exception as _types_err:
             logger.warning(f"[dev_graph] generate_types_file non bloquant : {_types_err}")
 
-    # ── Génération déterministe des pages liste/détail + services DAL ──────────
-    # Écrit app/<path>/page.tsx et lib/services/<model>.service.ts AVANT le LLM.
-    # Élimine les shells vides (<h1>Titre</h1>) que le LLM produit sans instructions.
-    # Ces fichiers sont protégés → le LLM ne peut pas les écraser.
+    # ── Génération déterministe des services DAL + loading.tsx ──────────────────
+    # Écrit lib/services/<model>.service.ts et app/<path>/loading.tsx AVANT le LLM.
+    # Les page.tsx sont volontairement laissées au LLM (guidé par spec_writer blueprint).
     if spec_obj is not None:
         try:
             from agents.dev_pages_generator import generate_pages_and_services
