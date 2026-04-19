@@ -2,72 +2,160 @@
   {
     "project_name": "personal-blog",
     "brief": {
-      "description": "Blog CMS avec Clerk (auteur unique), pages publiques et dashboard.",
+      "description": "Blog CMS avec un auteur unique. Les visiteurs lisent les articles publiés sans se connecter. L'auteur se connecte via Clerk pour créer, modifier et publier des articles.",
+      "architecture": "CMS hybride — / et /blog/[slug] sont publiques (pas d'auth). /dashboard et sous-pages sont protégées par Clerk. Un seul auteur. Workflow : créer en draft → publier via toggle → visible sur /.",
       "models": [
-        "Post { id String @id @default(cuid()), title String, content String, slug String @unique, published Boolean @default(false), authorId String, createdAt DateTime @default(now()) }"
+        "Post { id String @id @default(cuid()), title String, content String, slug String @unique, published Boolean @default(false), authorId String, createdAt DateTime @default(now()), @@index([authorId]), @@index([slug]) }"
       ],
       "pages": [
         {"path": "/", "auth": false},
         {"path": "/blog/[slug]", "auth": false},
-        {"path": "/dashboard", "auth": true}
+        {"path": "/dashboard", "auth": true},
+        {"path": "/dashboard/posts/new", "auth": true},
+        {"path": "/dashboard/posts/[id]/edit", "auth": true}
       ],
+      "pages_detail": {
+        "/": "Page d'accueil publique. Liste des articles publiés (published=true) ordonnés par date. Chaque article : titre (lien → /blog/[slug]), extrait 150 chars, date. Si vide : 'Aucun article pour le moment.'.",
+        "/blog/[slug]": "Page article publique. Cherche Post par slug. Titre en H1, date, contenu complet. Bouton retour '← Tous les articles'. notFound() si slug inexistant ou non publié.",
+        "/dashboard": "Dashboard auteur (Clerk). Liste TOUS les articles (publiés + drafts). Colonnes : titre, badge Publié/Brouillon, date. Boutons : Publier/Dépublier (PUT published), Modifier → /dashboard/posts/[id]/edit, Supprimer (DELETE). Bouton 'Nouvel article' → /dashboard/posts/new.",
+        "/dashboard/posts/new": "Formulaire Client Component. Champs : titre (required), slug (required, auto-généré depuis titre), contenu (textarea required). Submit → POST /api/posts → redirect /dashboard. Créé en draft.",
+        "/dashboard/posts/[id]/edit": "Formulaire édition Client Component. Pré-rempli avec valeurs actuelles. Champs : titre, slug, contenu. Submit → PUT /api/posts/[id] → redirect /dashboard. notFound() si introuvable."
+      },
       "routes": [
-        {"method": "PUT", "path": "/api/posts/[id]"}
+        {"method": "GET",    "path": "/api/posts"},
+        {"method": "POST",   "path": "/api/posts"},
+        {"method": "GET",    "path": "/api/posts/[id]"},
+        {"method": "PUT",    "path": "/api/posts/[id]"},
+        {"method": "DELETE", "path": "/api/posts/[id]"}
+      ],
+      "user_flows": [
+        "Le visiteur consulte les articles publiés sur / (sans connexion)",
+        "Le visiteur lit un article via /blog/[slug] (sans connexion)",
+        "L'auteur se connecte via Clerk → accède à /dashboard",
+        "L'auteur crée un article : /dashboard/posts/new → POST /api/posts → redirect /dashboard",
+        "L'auteur publie un article : bouton sur /dashboard → PUT /api/posts/[id] { published: true }",
+        "L'auteur modifie un article : /dashboard/posts/[id]/edit → PUT /api/posts/[id] → redirect /dashboard",
+        "L'auteur supprime un article : bouton sur /dashboard → DELETE /api/posts/[id]"
       ]
     }
   },
   {
     "project_name": "expense-tracker",
     "brief": {
-      "description": "App de suivi de dépenses avec dashboard récapitulatif par catégorie, Clerk auth.",
+      "description": "Application de suivi de dépenses personnelles. L'utilisateur enregistre ses dépenses avec montant, catégorie et description. Un dashboard affiche les totaux par catégorie.",
+      "architecture": "SaaS single-tenant. Dashboard avec agrégations calculées côté serveur (total par catégorie). CRUD complet sur les dépenses. Toutes les pages protégées par Clerk.",
       "models": [
-        "Expense { id String @id @default(uuid()), amount Float, category String, description String, date DateTime, userId String, createdAt DateTime @default(now()) }"
+        "Expense { id String @id @default(uuid()), amount Float, category String, description String, date DateTime, userId String, createdAt DateTime @default(now()), @@index([userId]) }"
       ],
       "pages": [
-        {"path": "/", "auth": true},
+        {"path": "/dashboard", "auth": true},
         {"path": "/expenses", "auth": true},
+        {"path": "/expenses/[id]", "auth": true},
         {"path": "/expenses/new", "auth": true}
       ],
+      "pages_detail": {
+        "/dashboard": "Dashboard récapitulatif. Total global en haut. Cards par catégorie : nom, total en euros, nombre de dépenses. Lien → /expenses. Bouton 'Ajouter une dépense' → /expenses/new. Si aucune dépense : message d'invitation.",
+        "/expenses": "Liste des dépenses ordonnées par date décroissante. Chaque ligne : description, catégorie (badge), montant en euros, date. Lien → /expenses/[id]. Bouton 'Supprimer' par ligne. Bouton 'Ajouter' → /expenses/new. Si vide : 'Aucune dépense.'.",
+        "/expenses/[id]": "Détail : description en H1, montant en grand, catégorie badge, date, date de création. Bouton retour. Bouton 'Supprimer' (DELETE → redirect /expenses). notFound() si introuvable.",
+        "/expenses/new": "Formulaire Client Component. Champs : description (required), montant (number, required, min=0.01), catégorie (select : Alimentation/Transport/Logement/Loisirs/Santé/Autre), date (date, required, défaut=aujourd'hui). Submit → POST /api/expenses → redirect /expenses."
+      },
       "routes": [
-        {"method": "POST", "path": "/api/expenses"},
+        {"method": "GET",    "path": "/api/expenses"},
+        {"method": "POST",   "path": "/api/expenses"},
+        {"method": "GET",    "path": "/api/expenses/[id]"},
+        {"method": "PATCH",  "path": "/api/expenses/[id]"},
         {"method": "DELETE", "path": "/api/expenses/[id]"}
+      ],
+      "user_flows": [
+        "L'utilisateur se connecte et accède au /dashboard (totaux par catégorie)",
+        "L'utilisateur consulte la liste de ses dépenses → /expenses",
+        "L'utilisateur ajoute une dépense : /expenses/new → POST /api/expenses → redirect /expenses",
+        "L'utilisateur consulte le détail → /expenses/[id]",
+        "L'utilisateur supprime une dépense → DELETE /api/expenses/[id]"
       ]
     }
   },
   {
     "project_name": "invoice-app",
     "brief": {
-      "description": "App de facturation avec clients et factures, Clerk auth.",
+      "description": "Application de facturation. L'utilisateur gère ses clients et crée des factures associées à un client. Une facture a un montant et un statut (draft/sent/paid).",
+      "architecture": "SaaS single-tenant. Invoice est liée à Client via clientId (@relation Prisma). Status workflow : draft → sent → paid. CRUD complet sur clients et factures. Toutes les pages protégées par Clerk.",
       "models": [
-        "Client { id String @id @default(uuid()), name String, email String, userId String, createdAt DateTime @default(now()) }",
-        "Invoice { id String @id @default(uuid()), amount Float, status String @default(\"draft\"), clientId String, userId String, createdAt DateTime @default(now()) }"
+        "Client { id String @id @default(uuid()), name String, email String @unique, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+        "Invoice { id String @id @default(uuid()), amount Float, status String @default(\"draft\"), clientId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([clientId]) }"
       ],
       "pages": [
         {"path": "/clients", "auth": true},
+        {"path": "/clients/[id]", "auth": true},
+        {"path": "/clients/new", "auth": true},
         {"path": "/invoices", "auth": true},
+        {"path": "/invoices/[id]", "auth": true},
         {"path": "/invoices/new", "auth": true}
       ],
+      "pages_detail": {
+        "/clients": "Liste des clients : nom, email, date d'ajout. Lien → /clients/[id]. Bouton Supprimer. Bouton 'Nouveau client' → /clients/new. Si vide : message.",
+        "/clients/[id]": "Détail client : nom en H1, email, date création. Section factures du client : montant, statut badge, date. Bouton 'Nouvelle facture pour ce client'. Bouton retour. notFound() si introuvable.",
+        "/clients/new": "Formulaire Client Component. Champs : nom (required), email (required). Submit → POST /api/clients → redirect /clients.",
+        "/invoices": "Liste des factures : id tronqué, nom client, montant en euros, badge statut (draft=gris/sent=bleu/paid=vert), date. Lien → /invoices/[id]. Bouton 'Nouvelle facture'. Si vide : message.",
+        "/invoices/[id]": "Détail facture : montant en H1, statut badge, nom client (lien → /clients/[id]), date. Boutons workflow : 'Marquer envoyée' (PATCH status:sent) si draft, 'Marquer payée' (PATCH status:paid) si sent. Bouton Supprimer si draft. Bouton retour. notFound() si introuvable.",
+        "/invoices/new": "Formulaire Client Component. Champs : sélecteur client (select parmi les clients de l'utilisateur, required), montant (number, required). Charge GET /api/clients au montage. Submit → POST /api/invoices → redirect /invoices."
+      },
       "routes": [
-        {"method": "POST", "path": "/api/invoices"},
-        {"method": "PATCH", "path": "/api/invoices/[id]"}
+        {"method": "GET",    "path": "/api/clients"},
+        {"method": "POST",   "path": "/api/clients"},
+        {"method": "GET",    "path": "/api/clients/[id]"},
+        {"method": "PATCH",  "path": "/api/clients/[id]"},
+        {"method": "DELETE", "path": "/api/clients/[id]"},
+        {"method": "GET",    "path": "/api/invoices"},
+        {"method": "POST",   "path": "/api/invoices"},
+        {"method": "GET",    "path": "/api/invoices/[id]"},
+        {"method": "PATCH",  "path": "/api/invoices/[id]"},
+        {"method": "DELETE", "path": "/api/invoices/[id]"}
+      ],
+      "user_flows": [
+        "L'utilisateur crée un client : /clients/new → POST /api/clients → redirect /clients",
+        "L'utilisateur crée une facture : /invoices/new (sélectionne client, saisit montant) → POST /api/invoices → redirect /invoices",
+        "L'utilisateur passe une facture en 'sent' : bouton sur /invoices/[id] → PATCH status:sent",
+        "L'utilisateur passe une facture en 'paid' : bouton sur /invoices/[id] → PATCH status:paid",
+        "L'utilisateur supprime un client → DELETE /api/clients/[id]"
       ]
     }
   },
   {
     "project_name": "kanban-board",
     "brief": {
-      "description": "App Kanban avec boards et cartes, Clerk auth.",
+      "description": "Application Kanban. L'utilisateur crée des boards et y ajoute des cartes avec une colonne (todo/in-progress/done).",
+      "architecture": "SaaS single-tenant. Card est liée à Board via boardId (@relation Prisma). Workflow colonnes : todo → in-progress → done. Toutes les pages protégées par Clerk.",
       "models": [
-        "Board { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()) }",
-        "Card { id String @id @default(uuid()), title String, column String @default(\"todo\"), boardId String, createdAt DateTime @default(now()) }"
+        "Board { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+        "Card { id String @id @default(uuid()), title String, column String @default(\"todo\"), boardId String, createdAt DateTime @default(now()), @@index([boardId]) }"
       ],
       "pages": [
-        {"path": "/", "auth": true},
-        {"path": "/boards/[id]", "auth": true}
+        {"path": "/boards", "auth": true},
+        {"path": "/boards/[id]", "auth": true},
+        {"path": "/boards/new", "auth": true}
       ],
+      "pages_detail": {
+        "/boards": "Liste des boards : nom, date de création. Clic → /boards/[id]. Bouton Supprimer. Bouton 'Nouveau board' → /boards/new. Si vide : 'Aucun board. Créez votre premier tableau Kanban !'.",
+        "/boards/[id]": "Vue Kanban : titre du board en H1. 3 colonnes : 'À faire' (todo), 'En cours' (in-progress), 'Terminé' (done). Chaque colonne affiche ses cartes. Chaque carte : titre + boutons changer colonne (Démarrer/Terminer) + bouton Supprimer. Formulaire inline par colonne : input titre + bouton Ajouter (POST /api/boards/[id]/cards { title, column }). Bouton retour. notFound() si board introuvable.",
+        "/boards/new": "Formulaire Client Component. Champ : nom du board (required). Submit → POST /api/boards → redirect /boards."
+      },
       "routes": [
-        {"method": "POST", "path": "/api/boards/[id]/cards"},
-        {"method": "PATCH", "path": "/api/cards/[id]"}
+        {"method": "GET",    "path": "/api/boards"},
+        {"method": "POST",   "path": "/api/boards"},
+        {"method": "GET",    "path": "/api/boards/[id]"},
+        {"method": "PATCH",  "path": "/api/boards/[id]"},
+        {"method": "DELETE", "path": "/api/boards/[id]"},
+        {"method": "POST",   "path": "/api/boards/[id]/cards"},
+        {"method": "PATCH",  "path": "/api/cards/[id]"},
+        {"method": "DELETE", "path": "/api/cards/[id]"}
+      ],
+      "user_flows": [
+        "L'utilisateur crée un board : /boards/new → POST /api/boards → redirect /boards",
+        "L'utilisateur ouvre un board → /boards/[id] : 3 colonnes avec ses cartes",
+        "L'utilisateur ajoute une carte : formulaire inline → POST /api/boards/[id]/cards",
+        "L'utilisateur déplace une carte : bouton → PATCH /api/cards/[id] { column: 'in-progress' }",
+        "L'utilisateur supprime une carte → DELETE /api/cards/[id]"
       ]
     }
   }

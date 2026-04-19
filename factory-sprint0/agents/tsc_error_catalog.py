@@ -28,6 +28,17 @@ from __future__ import annotations
 import re as _re
 from typing import Any
 
+
+def _service_obj_name(module_path: str) -> str:
+    """
+    '@/lib/services/expense.service' → 'expenseService'
+    '@/lib/services/invoice-item.service' → 'invoiceItemService'
+    """
+    name = module_path.split("/")[-1].replace(".service", "").replace(".ts", "")
+    parts = name.split("-")
+    return parts[0] + "".join(p.capitalize() for p in parts[1:]) + "Service"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # CATALOGUE
 # ─────────────────────────────────────────────────────────────────────────────
@@ -183,6 +194,72 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                 ),
                 "rag_query": "TypeScript null check guard Prisma findUnique NextResponse 404",
                 "action": "ADD_NULL_CHECK",
+            },
+        ],
+    },
+
+    # ── TS2322 : Type X is not assignable to type Y (assignment / property) ────
+    # Distinct de TS2345 (argument de fonction) — même cause racine possible.
+    "TS2322": {
+        "_pattern": r"error TS2322: Type '([^']+)' is not assignable to type '([^']+)'",
+        "_extract": lambda m: (m.group(1), m.group(2)),
+        "entries": [
+            {
+                # string | null passé à Prisma where/create : auth guard absent
+                "condition": lambda got, expected: "null" in got and "string" in got,
+                "context_hint": lambda got, expected: (
+                    f"⚠️  AUTH GUARD MANQUANT (TS2322) : '{got}' ne peut pas être passé à Prisma.\n"
+                    f"  CAUSE : auth() retourne userId: string | null — il faut le narrower avant Prisma.\n"
+                    f"  FIX OBLIGATOIRE dans le handler :\n"
+                    f"    const {{ userId }} = await auth();\n"
+                    f"    if (!userId) return NextResponse.json({{ error: 'Unauthorized' }}, {{ status: 401 }});\n"
+                    f"  Après ce guard, userId est string (non-nullable) — Prisma accepte."
+                ),
+                "rag_query": "Clerk auth userId null guard NextResponse Prisma TypeScript",
+                "action": "FIX_AUTH_GUARD",
+            },
+            {
+                "condition": lambda got, expected: True,
+                "context_hint": lambda got, expected: (
+                    f"⚠️  TYPE INCOMPATIBLE (TS2322) : '{got}' n'est pas assignable à '{expected}'.\n"
+                    f"  FIX : aligne le type de la valeur assignée avec le type attendu."
+                ),
+                "rag_query": "TypeScript type incompatible assignable propriété Next.js Prisma",
+                "action": "FIX_TYPE_MISMATCH",
+            },
+        ],
+    },
+
+    # ── TS2305 : Module X has no exported member Y ───────────────────────────
+    # Déclenché quand le LLM importe une fonction nommée inexistante depuis un service.
+    # Ex: import { getExpenses } from '@/lib/services/expense.service'
+    # → le service exporte un objet (expenseService.findMany), pas des fonctions nommées.
+    "TS2305": {
+        "_pattern": r"error TS2305: Module '([^']+)' has no exported member '([^']+)'",
+        "_extract": lambda m: (m.group(1), m.group(2)),
+        "entries": [
+            {
+                # Import depuis lib/services : mauvais pattern (fonctions nommées vs objet service)
+                "condition": lambda mod, name: "services" in mod,
+                "context_hint": lambda mod, name: (
+                    f"⚠️  EXPORT INEXISTANT (TS2305) : '{mod}' n'exporte pas '{name}'.\n"
+                    f"  CAUSE : les services exportent un OBJET, pas des fonctions nommées.\n"
+                    f"  PATTERN CORRECT :\n"
+                    f"    import {{ {_service_obj_name(mod)} }} from '{mod}'\n"
+                    f"    const data = await {_service_obj_name(mod)}.findMany(userId)\n"
+                    f"  JAMAIS : import {{ getAll, getById }} from '{mod}' — ces exports n'existent pas."
+                ),
+                "rag_query": "service DAL objet TypeScript Prisma findMany export nommé",
+                "action": "FIX_SERVICE_IMPORT",
+            },
+            {
+                "condition": lambda mod, name: True,
+                "context_hint": lambda mod, name: (
+                    f"⚠️  EXPORT INEXISTANT (TS2305) : '{mod}' n'exporte pas '{name}'.\n"
+                    f"  FIX : vérifie les exports du module — utilise uniquement les noms déclarés."
+                ),
+                "rag_query": "TypeScript export inexistant module import nommé",
+                "action": "CHECK_EXPORTS",
             },
         ],
     },

@@ -45,6 +45,14 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         # Non bloquant : si stack_config est indisponible, on conserve la base spec.
         pass
 
+    # Option B : lib/types.ts et lib/services/ générés par le LLM.
+    # On les ajoute à la checklist pour qu'il n'oublie pas de les créer.
+    import re as _re
+    files.append("lib/types.ts")
+    for m in spec.models:
+        kebab = _re.sub(r"(?<!^)(?=[A-Z])", "-", m.name).lower()
+        files.append(f"lib/services/{kebab}.service.ts")
+
     # Déduplique en préservant l'ordre.
     seen: set[str] = set()
     result: list[str] = []
@@ -60,13 +68,14 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
 def build_system_prompt(
     spec: "ProjectSpec",
     pre_written_files: list[str] | None = None,
-    types_exported: list[str] | None = None,
 ) -> str:
     """
     Construit le system prompt complet pour le dev agent v4.
     Reçoit un ProjectSpec typé — les noms sont garantis exacts.
     pre_written_files : fichiers déjà écrits depuis les templates (le LLM ne doit pas les réécrire).
-    types_exported    : liste exacte des symboles exportés par lib/types.ts (depuis TypesFileResult).
+
+    Option B (Avril 2026) : lib/types.ts et lib/services/ sont générés par le LLM.
+    Le LLM est auteur unique du code applicatif → cohérence garantie, fossé d'auteur éliminé.
     """
     pre_written: set[str] = set(pre_written_files or [])
     expected_files = _expected_files_from_spec(spec)
@@ -105,6 +114,34 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
         for p in spec.pages
     )
 
+    # Bloc services DAL — noms exacts des services à créer (un par modèle métier).
+    # Le LLM génère ces fichiers lui-même (Option B) — on lui donne uniquement les noms
+    # pour qu'il n'invente pas de variantes (getExpenses, getAllTasks...).
+    _service_names = []
+    for m in spec.models:
+        import re as _re
+        kebab = _re.sub(r"(?<!^)(?=[A-Z])", "-", m.name).lower()
+        camel = m.name[0].lower() + m.name[1:] if m.name else m.name
+        _service_names.append((m.name, camel + "Service", f"lib/services/{kebab}.service.ts"))
+
+    services_block = ""
+    if _service_names:
+        lines = "\n".join(
+            f"  {name} → {svc_obj}  ({path})"
+            for name, svc_obj, path in _service_names
+        )
+        services_block = f"""
+══════════════════════════════════════════════════════════════
+SERVICES DAL À CRÉER (Rule 26 — un par modèle métier)
+══════════════════════════════════════════════════════════════
+{lines}
+
+Convention fixe — JAMAIS de fonctions nommées exportées :
+  ✅  import {{ expenseService }} from '@/lib/services/expense.service'
+  ✅  const items = await expenseService.findMany(userId)
+  ❌  import {{ getExpenses, getExpenseById }} from '@/lib/services/expense.service'
+"""
+
     # Spec JSON compacte pour référence LLM
     spec_json = json.dumps({
         "models": [m.name for m in spec.models],
@@ -112,56 +149,6 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
         "routes": [f"{r.method} {r.path}" for r in spec.routes],
         "fingerprint": spec.spec_fingerprint,
     }, ensure_ascii=False)
-
-    # Bloc types.ts — affiché uniquement si lib/types.ts est dans pre_written
-    types_block = ""
-    if "lib/types.ts" in pre_written:
-        # C2 : liste les noms EXACTS exportés pour empêcher les hallucinations (ex: CreatePostInput)
-        if types_exported:
-            exact_names = ", ".join(types_exported)
-            forbidden_examples = [
-                n for n in ("CreatePostInput", "CreateUserInput", "CreateItemInput")
-                if n not in types_exported
-            ]
-            forbidden_note = (
-                f"\nNOM INTERDITS (non exportés, jamais disponibles) : {', '.join(forbidden_examples)}"
-                if forbidden_examples
-                else ""
-            )
-            types_block = f"""
-══════════════════════════════════════════════════════════════
-lib/types.ts — SOURCE DE VÉRITÉ DES TYPES (PRÉ-GÉNÉRÉ)
-══════════════════════════════════════════════════════════════
-Le fichier lib/types.ts a été généré automatiquement depuis la spec.
-Il exporte EXACTEMENT ces symboles (rien d'autre) :
-  {exact_names}
-  + ApiResponse<T>, PaginatedResponse<T>, AuthenticatedRequest{forbidden_note}
-
-RÈGLE ABSOLUE : utilise UNIQUEMENT ces noms exacts dans tes imports.
-  ✅  import type {{ {", ".join(types_exported[:3])} }} from '@/lib/types'
-  ❌  N'invente PAS de noms non listés ci-dessus — tsc échouera avec TS2304/TS2724.
-
-NE JAMAIS réécrire lib/types.ts — il est protégé.
-"""
-        else:
-            types_block = """
-══════════════════════════════════════════════════════════════
-lib/types.ts — SOURCE DE VÉRITÉ DES TYPES (PRÉ-GÉNÉRÉ)
-══════════════════════════════════════════════════════════════
-Le fichier lib/types.ts a été généré automatiquement depuis la spec.
-Il contient :
-  - Les types Prisma re-exportés (depuis @prisma/client)
-  - ApiResponse<T> et PaginatedResponse<T> pour toutes les routes API
-  - CreateXxxInput / UpdateXxxInput pour chaque modèle (champs éditables)
-  - XxxPageParams pour les pages dynamiques ([id])
-  - AuthenticatedRequest (userId garanti non-null)
-
-RÈGLE ABSOLUE : importe UNIQUEMENT les symboles listés dans ce fichier — jamais d'autres noms.
-  ✅  import type { Task, CreateTaskInput, ApiResponse } from '@/lib/types'
-  ❌  import type { CreatePostInput } from '@/lib/types'  ← n'existe PAS → TS2724
-
-NE JAMAIS réécrire lib/types.ts — il est protégé.
-"""
 
     # Bloc fichiers pré-générés (affiché uniquement si la liste est non vide)
     pre_written_block = ""
@@ -178,7 +165,7 @@ Ils sont CORRECTS et COMPLETS — ne les réécrits JAMAIS avec write_file :
 
     return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7.
 Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
-{types_block}{pre_written_block}
+{services_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
 SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 ══════════════════════════════════════════════════════════════
@@ -216,11 +203,12 @@ rag_search(query)           → chercher des standards d'implémentation
 ══════════════════════════════════════════════════════════════
 WORKFLOW (suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
-1. Génère les fichiers de la checklist ci-dessus (les templates sont déjà présents)
-   - Ne réécris jamais les fichiers pré-générés (incluant prisma/schema.prisma et lib/prisma.ts)
-   - Puis app/page.tsx, les autres pages, et les routes API
-   - Pour chaque route API : vérifie que le modèle Prisma est dans schema.prisma
-   - Pour chaque page : importe uniquement des composants que tu as créés
+1. Génère les fichiers dans cet ordre :
+   a. lib/types.ts — types partagés (modèles Prisma re-exportés, CreateXxxInput, ApiResponse<T>)
+   b. lib/services/<model>.service.ts — un par modèle (voir bloc SERVICES DAL ci-dessus, Rule 26)
+   c. app/api/**/route.ts — routes API (peuvent importer prisma directement)
+   d. app/**/page.tsx — pages (importent les services via l'objet service, jamais prisma directement)
+   - Ne réécris jamais les fichiers pré-générés (prisma/schema.prisma, lib/prisma.ts)
    - Génère-les TOUS avant d'exécuter la moindre commande shell
 
 1b. Génère le client Prisma OBLIGATOIRE — sans cette étape tsc échouera avec "PrismaClient introuvable" :

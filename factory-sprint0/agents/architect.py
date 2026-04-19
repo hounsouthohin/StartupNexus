@@ -507,19 +507,24 @@ def create_architect_agent():
 
         def _inject_prisma_relations(models: list[PrismaModel]) -> list[PrismaModel]:
             """
-            Détecte les foreign keys (xxxId String) dont le nom correspond à un modèle connu
-            et injecte le champ de relation Prisma manquant.
+            Détecte les foreign keys (xxxId String) et injecte les deux côtés
+            de la relation Prisma (obligatoire — Prisma P1012 si un côté manque).
 
-            Ex : Invoice a clientId String + Client existe
-            → ajoute : client Client @relation(fields: [clientId], references: [id])
+            Ex : Invoice.clientId String + Client existe
+            → Invoice reçoit : client Client @relation(fields: [clientId], references: [id])
+            → Client reçoit  : invoices Invoice[]          ← côté inverse OBLIGATOIRE
 
-            Règle : si le champ de relation existe déjà (@relation présent) → skip.
-            Idempotent : appelable plusieurs fois sans effet secondaire.
+            Idempotent : skip si les champs existent déjà.
             """
             model_names = {m.name for m in models}
+            # Index pour retrouver un modèle par nom rapidement
+            model_by_name: dict[str, PrismaModel] = {m.name: m for m in models}
+
+            # Collecte des relations à injecter (évite de modifier pendant l'itération)
+            # Liste de tuples : (child_model, field_to_add, parent_model, reverse_field_to_add)
+            relations_to_inject: list[tuple] = []
 
             for model in models:
-                fields_to_add: list[PrismaField] = []
                 existing_relation_types = {
                     f.type.rstrip("?").rstrip("[]")
                     for f in model.fields
@@ -528,49 +533,64 @@ def create_architect_agent():
 
                 for field in model.fields:
                     fname = field.name
-                    # Cherche les champs de type xxxId (camelCase ou snake_case)
                     if not (fname.endswith("Id") or fname.endswith("_id")):
                         continue
-                    # Vérifie que le type est scalaire (String/Int/uuid)
                     base_type = field.type.rstrip("?")
                     if base_type not in ("String", "Int", "BigInt"):
                         continue
 
-                    # Déduit le nom du modèle référencé : clientId → Client
                     if fname.endswith("_id"):
                         ref_model_raw = fname[:-3]
                     else:
-                        ref_model_raw = fname[:-2]  # retire "Id"
+                        ref_model_raw = fname[:-2]
 
-                    # PascalCase : clientId → Client
                     ref_model = ref_model_raw[0].upper() + ref_model_raw[1:]
 
                     if ref_model not in model_names:
                         continue
                     if ref_model in existing_relation_types:
-                        continue  # relation déjà déclarée
-
-                    # Nom du champ de relation : Client → client
-                    rel_field_name = ref_model[0].lower() + ref_model[1:]
-                    rel_attrs = f"@relation(fields: [{fname}], references: [id])"
-
-                    # Vérifie qu'un champ de ce nom n'existe pas déjà
-                    existing_names = {f.name for f in model.fields}
-                    if rel_field_name in existing_names:
                         continue
 
-                    fields_to_add.append(PrismaField(
+                    # Champ côté enfant : client Client @relation(...)
+                    rel_field_name = ref_model[0].lower() + ref_model[1:]
+                    existing_child_names = {f.name for f in model.fields}
+                    if rel_field_name in existing_child_names:
+                        continue
+
+                    child_field = PrismaField(
                         name=rel_field_name,
                         type=ref_model,
-                        attributes=rel_attrs,
-                    ))
-                    existing_relation_types.add(ref_model)
-                    logger.info(
-                        "[planner] relation injectée : %s.%s → %s",
-                        model.name, rel_field_name, ref_model,
+                        attributes=f"@relation(fields: [{fname}], references: [id])",
                     )
 
-                model.fields.extend(fields_to_add)
+                    # Champ côté parent : invoices Invoice[]  (relation inverse)
+                    # Nom : pluriel du modèle enfant en camelCase
+                    child_name_lower = model.name[0].lower() + model.name[1:]
+                    child_plural = child_name_lower + "s"
+                    parent_model = model_by_name[ref_model]
+                    existing_parent_names = {f.name for f in parent_model.fields}
+
+                    parent_field = None
+                    if child_plural not in existing_parent_names:
+                        parent_field = PrismaField(
+                            name=child_plural,
+                            type=f"{model.name}[]",
+                            attributes="",
+                        )
+
+                    relations_to_inject.append((model, child_field, parent_model, parent_field))
+                    existing_relation_types.add(ref_model)
+
+            # Application des injections
+            for child_model, child_field, parent_model, parent_field in relations_to_inject:
+                child_model.fields.append(child_field)
+                if parent_field is not None:
+                    parent_model.fields.append(parent_field)
+                logger.info(
+                    "[planner] relation bidirectionnelle : %s.%s ↔ %s.%s",
+                    child_model.name, child_field.name,
+                    parent_model.name, parent_field.name if parent_field else "(existant)",
+                )
 
             return models
 
@@ -632,12 +652,20 @@ def create_architect_agent():
             if architecture_hint and isinstance(architecture_hint, str):
                 user_flows = [f"[ARCHITECTURE] {architecture_hint}"] + user_flows
 
+            # description + pages_detail transmis tels quels au spec_writer via plan_json
+            brief_description = str(brief.get("description", "")).strip()
+            brief_pages_detail = brief.get("pages_detail", {})
+            if not isinstance(brief_pages_detail, dict):
+                brief_pages_detail = {}
+
             spec = ProjectSpec(
                 project_name=project_name,
                 stack_id=stack_id,
+                description=brief_description,
                 models=models,
                 routes=routes,
                 pages=pages,
+                pages_detail=brief_pages_detail,
                 user_flows=user_flows,
             ).with_fingerprint()
 
@@ -705,9 +733,23 @@ def create_architect_agent():
         # Ordre intentionnel : requirements → plan JSON → RAG.
         # Avant (bug) : plan JSON en tête → LLM suivait le plan et ignorait les requirements en bas.
         # Correction : requirements en tête → LLM les traite comme contrainte prioritaire.
+        # pages_detail — instructions d'affichage par page (QUOI afficher)
+        # Injecté AVANT le plan JSON pour que le spec_writer les trouve en priorité
+        plan_dict = state.get("plan", {})
+        pages_detail: dict = plan_dict.get("pages_detail", {}) if isinstance(plan_dict, dict) else {}
+        brief_description: str = plan_dict.get("description", "") if isinstance(plan_dict, dict) else ""
+
+        pages_detail_block = ""
+        if pages_detail:
+            lines = ["CONTENU DES PAGES — instructions précises par page (à reproduire dans les blueprints) :"]
+            for path, detail in pages_detail.items():
+                lines.append(f"  {path} : {detail}")
+            pages_detail_block = "\n".join(lines) + "\n\n"
+
         if requirements:
             reqs_block = "\n".join(f"  - {r}" for r in requirements)
             input_text = (
+                f"{pages_detail_block}"
                 f"REQUIREMENTS OBLIGATOIRES — source de vérité du brief (TOUS doivent apparaître dans la spec) :\n"
                 f"{reqs_block}\n"
                 f"Règle absolue : utilise le NOM EXACT de chaque modèle/route (pas de synonyme, pas de traduction). "
@@ -715,7 +757,7 @@ def create_architect_agent():
                 f"High-Level Plan (JSON):\n{plan_json}"
             )
         else:
-            input_text = f"High-Level Plan (JSON):\n{plan_json}"
+            input_text = f"{pages_detail_block}High-Level Plan (JSON):\n{plan_json}"
 
         # RAG injecté après le plan — contexte d'implémentation stack (COMMENT implémenter)
         if rag_context:

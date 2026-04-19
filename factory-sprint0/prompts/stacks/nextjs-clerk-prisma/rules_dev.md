@@ -54,3 +54,32 @@
 24. **REDIRECT APRÈS MUTATION** : tout formulaire Client Component qui soumet un POST/PATCH DOIT appeler `router.push('/resource')` après succès via `useRouter()` de `next/navigation`.
 
 25. **CREATEDDAT AUTO** : JAMAIS passer `createdAt: new Date()` dans un `prisma.model.create()` — le schema a `@default(now())`, c'est automatique.
+
+26. **SERVICE DAL — PATTERN OBLIGATOIRE** : pour chaque modèle `ModelName`, créer `lib/services/modelName.service.ts` (camelCase) exportant un objet unique :
+    ```ts
+    export const modelNameService = {
+      findMany: (userId: string) =>
+        prisma.modelName.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+      findUnique: async (id: string, userId: string) => {
+        const r = await prisma.modelName.findUnique({ where: { id } })
+        if (!r || r.userId !== userId) return null
+        return r
+      },
+      create: (data: CreateModelNameInput, userId: string) =>
+        prisma.modelName.create({ data: { ...data, userId } }),
+      update: async (id: string, data: UpdateModelNameInput, userId: string) => {
+        const r = await prisma.modelName.findUnique({ where: { id } })
+        if (!r || r.userId !== userId) throw new Error('Forbidden')
+        return prisma.modelName.update({ where: { id }, data })
+      },
+      delete: async (id: string, userId: string) => {
+        const r = await prisma.modelName.findUnique({ where: { id } })
+        if (!r || r.userId !== userId) throw new Error('Forbidden')
+        await prisma.modelName.delete({ where: { id } })
+      },
+    }
+    ```
+    - Si le modèle utilise `authorId` au lieu de `userId`, remplacer `userId` par `authorId` partout.
+    - Si le modèle n'a pas de champ owner direct (ex: `Card` lié à `Board`), omettre les checks ownership et utiliser `boardId` ou l'id parent dans `findMany`.
+    - Import dans les pages : `import { modelNameService } from '@/lib/services/modelName.service'`
+    - JAMAIS exporter des fonctions nommées (`export function getAll`) — toujours l'objet service.

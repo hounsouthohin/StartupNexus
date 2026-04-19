@@ -244,58 +244,23 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
-    # ── Génération déterministe de lib/types.ts depuis ProjectSpec ──────────────
-    # Écrit avant que le LLM démarre — source de vérité des types partagés.
-    # Élimine les TS2339 sur les types Prisma (re-exports propres) et
-    # fournit CreateXxxInput/UpdateXxxInput/ApiResponse<T> pour toutes les routes.
-    # Le LLM importe depuis ce fichier au lieu de réinventer ses propres interfaces.
-    # C2 : liste exacte des symboles exportés par lib/types.ts → injectée dans le system prompt
-    # pour empêcher le LLM d'utiliser des noms fantômes (CreatePostInput, etc.).
-    _types_exported_names: list[str] = []
+    # ── Génération déterministe des loading.tsx ─────────────────────────────────
+    # Option B : lib/types.ts et lib/services/ sont générés par le LLM (auteur unique).
+    # Seuls les loading.tsx restent déterministes — trivials, sans contrat à communiquer.
     if spec_obj is not None:
         try:
-            from agents.dev_types_generator import generate_types_file
-            types_result = generate_types_file(spec_obj, project_workdir)
-            template_written[types_result.path] = types_result.content
-            _types_exported_names = types_result.model_names + types_result.input_types
-            logger.info(
-                "[dev_graph] lib/types.ts généré — modèles: %s, input types: %s",
-                types_result.model_names,
-                types_result.input_types,
-            )
-        except Exception as _types_err:
-            logger.warning(f"[dev_graph] generate_types_file non bloquant : {_types_err}")
-
-    # ── Génération déterministe des services DAL + loading.tsx ──────────────────
-    # Écrit lib/services/<model>.service.ts et app/<path>/loading.tsx AVANT le LLM.
-    # Les page.tsx sont volontairement laissées au LLM (guidé par spec_writer blueprint).
-    if spec_obj is not None:
-        try:
-            from agents.dev_pages_generator import generate_pages_and_services
-            pages_result = generate_pages_and_services(spec_obj, project_workdir)
-            template_written.update(pages_result.files)
-            logger.info(
-                "[dev_graph] pages+services générés — %d services, %d pages",
-                len(pages_result.service_names),
-                len(pages_result.pages_generated),
-            )
-            # Les fichiers de pages et services s'ajoutent au set des protégés
-            _pages_protected = pages_result.protected_files
+            from agents.dev_pages_generator import generate_loading_files
+            generate_loading_files(spec_obj, project_workdir)
         except Exception as _pg_err:
-            logger.warning(f"[dev_graph] generate_pages_and_services non bloquant : {_pg_err}")
-            _pages_protected: set = set()
-    else:
-        _pages_protected: set = set()
+            logger.warning(f"[dev_graph] generate_loading_files non bloquant : {_pg_err}")
 
-    # Protéger les fichiers Prisma critiques + types.ts + webhook + pages/services générés.
+    # Protéger uniquement l'infrastructure — le code applicatif appartient au LLM.
     _protected = {
         "lib/prisma.ts",
-        "lib/types.ts",
         "prisma.config.ts",
         "prisma/schema.prisma",
         ".eslintrc.stack.json",
-        "app/api/webhooks/clerk/route.ts",  # webhook Clerk — template déterministe
-    } | _pages_protected
+    }
     _dev_tools_module.set_protected_files(_protected)
 
     # ── npm install (Python pre-run, hors LLM) ──────────────────────
@@ -364,7 +329,6 @@ async def run_dev_agent(
             system_prompt = build_system_prompt(
                 spec_obj,
                 pre_written_files=list(template_written.keys()),
-                types_exported=_types_exported_names or None,
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
         except Exception as e:

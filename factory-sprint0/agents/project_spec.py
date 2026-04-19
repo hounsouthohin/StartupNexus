@@ -73,6 +73,10 @@ class AppPage(BaseModel):
 class ProjectSpec(BaseModel):
     project_name: str = Field(default="", description="Nom du projet")
     stack_id: str = Field(default="nextjs-clerk-prisma", description="Identifiant de la stack")
+    description: str = Field(
+        default="",
+        description="Description humaine du projet — transmise au spec_writer pour contexte métier"
+    )
     models: List[PrismaModel] = Field(
         description=(
             "Tous les modèles Prisma nécessaires au projet. "
@@ -84,6 +88,13 @@ class ProjectSpec(BaseModel):
     )
     pages: List[AppPage] = Field(
         description="Toutes les pages Next.js du projet (App Router)"
+    )
+    pages_detail: dict = Field(
+        default_factory=dict,
+        description=(
+            "Instructions d'affichage par page : { '/path': 'description précise des données, "
+            "champs, actions, état vide' }. Transmis au spec_writer pour les blueprints."
+        )
     )
     user_flows: List[str] = Field(
         default_factory=list,
