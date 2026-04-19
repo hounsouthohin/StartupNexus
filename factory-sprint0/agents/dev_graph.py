@@ -73,21 +73,32 @@ def _error_signature(stderr: str) -> str:
 
 def _build_targeted_correction(error: str) -> str:
     """
-    Ramène l'erreur build dans le contexte visible du LLM + guide les étapes.
+    Construit le message de correction post-build pour le LLM.
 
-    Rôle : après _prune_messages, l'ancien ToolMessage d'erreur peut être hors
-    fenêtre. Cette injection le réintroduit avec des étapes structurées.
-    Pas de parsing regex — GPT-4o sait lire une erreur TypeScript nativement.
+    Deux branches :
+      - Erreur cataloguée  → diagnostic ciblé (context_hint) + 1 ligne workflow
+      - Erreur inconnue    → fallback minimal (ne pas laisser le LLM sans guidance)
+
+    Le RAG est injecté en amont par dev_node (rag_search.invoke) — pas ici.
     """
+    from agents.tsc_error_catalog import lookup_error as _lookup_error
+
     first_lines = "\n".join(error.splitlines()[:10])
+
+    for line in error.splitlines()[:10]:
+        match = _lookup_error(line)
+        if match:
+            return (
+                f"ERREUR BUILD à corriger :\n{first_lines[:400]}\n"
+                f"\nDIAGNOSTIC ({match.code} — {match.action}) :\n{match.context_hint}\n\n"
+                "Après correction : shell_exec(\"npx tsc --noEmit\") — si OK → shell_exec(\"npm run build\")"
+            )
+
+    # Fallback minimal — erreur non encore cataloguée
     return (
         f"ERREUR BUILD à corriger :\n{first_lines[:400]}\n\n"
-        "Étapes :\n"
-        "1. Lis le fichier + ligne mentionnés dans l'erreur ci-dessus\n"
-        "2. read_file(fichier, ligne-5, ligne+20)\n"
-        "3. Corrige uniquement la ligne concernée — ne réécris pas le fichier entier\n"
-        "4. shell_exec(\"npx tsc --noEmit\")\n"
-        "5. Si tsc OK → shell_exec(\"npm run build\")"
+        "Corrige uniquement la ligne indiquée — ne réécris pas le fichier entier.\n"
+        "shell_exec(\"npx tsc --noEmit\") — si OK → shell_exec(\"npm run build\")"
     )
 
 
@@ -419,6 +430,26 @@ async def run_dev_agent(
             sig = _error_signature(last_error)
             repeat_count = state.get("error_signatures", []).count(sig)
             correction = _build_targeted_correction(last_error)
+
+            # F1 — RAG bridge : recherche automatique du standard correctif Qdrant.
+            # Si le catalogue identifie un code avec rag_query, on effectue la recherche
+            # en Python et on injecte le résultat directement — sans que le LLM ait à
+            # appeler rag_search lui-même (il peut l'ignorer sous pression de correction).
+            from agents.tsc_error_catalog import lookup_error as _catalog_lookup
+            for _eline in last_error.splitlines()[:10]:
+                _cmatch = _catalog_lookup(_eline)
+                if _cmatch and _cmatch.rag_query:
+                    try:
+                        from agents.shared_tools import rag_search as _rag_fn
+                        _rag_result = _rag_fn.invoke({"query": _cmatch.rag_query})
+                        if _rag_result and not _rag_result.startswith("[RAG]"):
+                            correction += (
+                                f"\n\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:500]}"
+                            )
+                    except Exception:
+                        pass  # non-bloquant — Qdrant peut être absent
+                    break
+
             if repeat_count >= 2:
                 correction = (
                     f"⚠️ MÊME ERREUR APRÈS {repeat_count} TENTATIVES — "
@@ -789,9 +820,10 @@ async def run_dev_agent(
                 logger.info("[file_validate] tsc errors but not in newly written files — skip")
                 return {"file_validation_errors": ""}
 
-            # A2 — Lire les lignes fautives et les injecter avec l'erreur.
-            # Sans ça, le LLM réécrit le fichier entier depuis sa mémoire (blog anchor).
-            # Avec ça, il voit le code existant ligne par ligne → correction chirurgicale.
+            # A2 + Catalogue : enrichissement ciblé par erreur.
+            # A2 : lit les lignes fautives (correction chirurgicale, évite blog-anchor).
+            # Catalogue : injecte un context_hint actionnable spécifique à chaque code d'erreur.
+            from agents.tsc_error_catalog import lookup_error as _lookup_error
             import re as _re2
             enriched_lines: list[str] = []
             for err_line in errors_for_written.splitlines():
@@ -816,30 +848,10 @@ async def run_dev_agent(
                     except Exception:
                         pass  # non bloquant si lecture impossible
 
-                # E1 — TS2307 sur module LOCAL : le fichier n'existe pas, il faut le créer.
-                # TS2307 sur npm (next/, @clerk/, react, ...) → pas de traitement spécial.
-                _ts2307 = _re2.search(r"error TS2307: Cannot find module '([^']+)'", err_line)
-                if _ts2307:
-                    _mod = _ts2307.group(1)
-                    _is_local = _mod.startswith("@/") or _mod.startswith("./") or _mod.startswith("../")
-                    if _is_local:
-                        # Convertit @/components/TaskForm → components/TaskForm.tsx
-                        _clean = _mod.lstrip("@").lstrip("/")
-                        _basename = _clean.rsplit("/", 1)[-1]
-                        # Heuristique extension : tsx si composant React (capital, dans components/ ou app/)
-                        _is_component = (
-                            _basename[:1].isupper()
-                            or "component" in _clean.lower()
-                            or _clean.startswith("components/")
-                            or _clean.startswith("app/")
-                        )
-                        _ext = ".tsx" if _is_component else ".ts"
-                        _file_hint = _clean + _ext
-                        enriched_lines.append(
-                            f"  ⚠️  FICHIER MANQUANT (TS2307) : '{_mod}' n'existe pas sur le disque.\n"
-                            f"  ACTION OBLIGATOIRE : crée '{_file_hint}' avec write_file('{_file_hint}', ...).\n"
-                            f"  NE modifie PAS l'import — le chemin est correct, c'est le fichier qui manque."
-                        )
+                # Catalogue — context_hint actionnable pour chaque code d'erreur catalogué.
+                catalog_match = _lookup_error(err_line)
+                if catalog_match:
+                    enriched_lines.append(f"  {catalog_match.context_hint}")
 
             errors_enriched = "\n".join(enriched_lines)
             retries = int(state.get("file_validation_retries", 0) or 0) + 1

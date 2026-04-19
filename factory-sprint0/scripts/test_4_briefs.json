@@ -1,0 +1,74 @@
+[
+  {
+    "project_name": "personal-blog",
+    "brief": {
+      "description": "Blog CMS avec Clerk (auteur unique), pages publiques et dashboard.",
+      "models": [
+        "Post { id String @id @default(cuid()), title String, content String, slug String @unique, published Boolean @default(false), authorId String, createdAt DateTime @default(now()) }"
+      ],
+      "pages": [
+        {"path": "/", "auth": false},
+        {"path": "/blog/[slug]", "auth": false},
+        {"path": "/dashboard", "auth": true}
+      ],
+      "routes": [
+        {"method": "PUT", "path": "/api/posts/[id]"}
+      ]
+    }
+  },
+  {
+    "project_name": "expense-tracker",
+    "brief": {
+      "description": "App de suivi de dépenses avec dashboard récapitulatif par catégorie, Clerk auth.",
+      "models": [
+        "Expense { id String @id @default(uuid()), amount Float, category String, description String, date DateTime, userId String, createdAt DateTime @default(now()) }"
+      ],
+      "pages": [
+        {"path": "/", "auth": true},
+        {"path": "/expenses", "auth": true},
+        {"path": "/expenses/new", "auth": true}
+      ],
+      "routes": [
+        {"method": "POST", "path": "/api/expenses"},
+        {"method": "DELETE", "path": "/api/expenses/[id]"}
+      ]
+    }
+  },
+  {
+    "project_name": "invoice-app",
+    "brief": {
+      "description": "App de facturation avec clients et factures, Clerk auth.",
+      "models": [
+        "Client { id String @id @default(uuid()), name String, email String, userId String, createdAt DateTime @default(now()) }",
+        "Invoice { id String @id @default(uuid()), amount Float, status String @default(\"draft\"), clientId String, userId String, createdAt DateTime @default(now()) }"
+      ],
+      "pages": [
+        {"path": "/clients", "auth": true},
+        {"path": "/invoices", "auth": true},
+        {"path": "/invoices/new", "auth": true}
+      ],
+      "routes": [
+        {"method": "POST", "path": "/api/invoices"},
+        {"method": "PATCH", "path": "/api/invoices/[id]"}
+      ]
+    }
+  },
+  {
+    "project_name": "kanban-board",
+    "brief": {
+      "description": "App Kanban avec boards et cartes, Clerk auth.",
+      "models": [
+        "Board { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()) }",
+        "Card { id String @id @default(uuid()), title String, column String @default(\"todo\"), boardId String, createdAt DateTime @default(now()) }"
+      ],
+      "pages": [
+        {"path": "/", "auth": true},
+        {"path": "/boards/[id]", "auth": true}
+      ],
+      "routes": [
+        {"method": "POST", "path": "/api/boards/[id]/cards"},
+        {"method": "PATCH", "path": "/api/cards/[id]"}
+      ]
+    }
+  }
+]
