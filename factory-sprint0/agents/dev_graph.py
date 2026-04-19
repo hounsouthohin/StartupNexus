@@ -266,14 +266,37 @@ async def run_dev_agent(
         except Exception as _types_err:
             logger.warning(f"[dev_graph] generate_types_file non bloquant : {_types_err}")
 
-    # Protéger les fichiers Prisma critiques + types.ts contre réécriture LLM.
+    # ── Génération déterministe des pages liste/détail + services DAL ──────────
+    # Écrit app/<path>/page.tsx et lib/services/<model>.service.ts AVANT le LLM.
+    # Élimine les shells vides (<h1>Titre</h1>) que le LLM produit sans instructions.
+    # Ces fichiers sont protégés → le LLM ne peut pas les écraser.
+    if spec_obj is not None:
+        try:
+            from agents.dev_pages_generator import generate_pages_and_services
+            pages_result = generate_pages_and_services(spec_obj, project_workdir)
+            template_written.update(pages_result.files)
+            logger.info(
+                "[dev_graph] pages+services générés — %d services, %d pages",
+                len(pages_result.service_names),
+                len(pages_result.pages_generated),
+            )
+            # Les fichiers de pages et services s'ajoutent au set des protégés
+            _pages_protected = pages_result.protected_files
+        except Exception as _pg_err:
+            logger.warning(f"[dev_graph] generate_pages_and_services non bloquant : {_pg_err}")
+            _pages_protected: set = set()
+    else:
+        _pages_protected: set = set()
+
+    # Protéger les fichiers Prisma critiques + types.ts + webhook + pages/services générés.
     _protected = {
         "lib/prisma.ts",
         "lib/types.ts",
         "prisma.config.ts",
         "prisma/schema.prisma",
         ".eslintrc.stack.json",
-    }
+        "app/api/webhooks/clerk/route.ts",  # webhook Clerk — template déterministe
+    } | _pages_protected
     _dev_tools_module.set_protected_files(_protected)
 
     # ── npm install (Python pre-run, hors LLM) ──────────────────────

@@ -125,7 +125,7 @@ class ProjectSpec(BaseModel):
 
     def to_prisma_schema_block(self) -> str:
         """
-        Génère le fichier schema.prisma complet : header canonique + modèles métier.
+        Génère le fichier schema.prisma complet : header canonique + modèle User + modèles métier.
         Le header (generator + datasource) est INVARIANT — ne jamais l'omettre.
         Utilisé dans le system prompt du dev agent pour garantir la cohérence.
         """
@@ -139,7 +139,28 @@ class ProjectSpec(BaseModel):
             '}\n'
             '\n'
         )
+
+        # Modèle User standard — synchronisé via le webhook Clerk.
+        # Présent dans TOUS les projets pour associer les entités métier à un utilisateur réel.
+        user_model_block = (
+            "model User {\n"
+            '  id        String   @id              // Clerk userId (ex: user_xxx)\n'
+            '  email     String   @unique\n'
+            '  name      String?\n'
+            '  createdAt DateTime @default(now())\n'
+            '  updatedAt DateTime @updatedAt\n'
+            "\n"
+            "  @@index([email])\n"
+            "}\n"
+            "\n"
+        )
+
         lines = []
+        model_names = {m.name for m in self.models}
+        # User est géré ici — ne pas le dupliquer si le brief l'inclut déjà
+        if "User" not in model_names:
+            lines.append(user_model_block)
+
         for model in self.models:
             lines.append(f"model {model.name} {{")
             for field in model.fields:

@@ -505,6 +505,75 @@ def create_architect_agent():
                 fields=[PrismaField(name="id", type="String", attributes="@id @default(uuid())")],
             )
 
+        def _inject_prisma_relations(models: list[PrismaModel]) -> list[PrismaModel]:
+            """
+            Détecte les foreign keys (xxxId String) dont le nom correspond à un modèle connu
+            et injecte le champ de relation Prisma manquant.
+
+            Ex : Invoice a clientId String + Client existe
+            → ajoute : client Client @relation(fields: [clientId], references: [id])
+
+            Règle : si le champ de relation existe déjà (@relation présent) → skip.
+            Idempotent : appelable plusieurs fois sans effet secondaire.
+            """
+            model_names = {m.name for m in models}
+
+            for model in models:
+                fields_to_add: list[PrismaField] = []
+                existing_relation_types = {
+                    f.type.rstrip("?").rstrip("[]")
+                    for f in model.fields
+                    if "@relation" in (f.attributes or "")
+                }
+
+                for field in model.fields:
+                    fname = field.name
+                    # Cherche les champs de type xxxId (camelCase ou snake_case)
+                    if not (fname.endswith("Id") or fname.endswith("_id")):
+                        continue
+                    # Vérifie que le type est scalaire (String/Int/uuid)
+                    base_type = field.type.rstrip("?")
+                    if base_type not in ("String", "Int", "BigInt"):
+                        continue
+
+                    # Déduit le nom du modèle référencé : clientId → Client
+                    if fname.endswith("_id"):
+                        ref_model_raw = fname[:-3]
+                    else:
+                        ref_model_raw = fname[:-2]  # retire "Id"
+
+                    # PascalCase : clientId → Client
+                    ref_model = ref_model_raw[0].upper() + ref_model_raw[1:]
+
+                    if ref_model not in model_names:
+                        continue
+                    if ref_model in existing_relation_types:
+                        continue  # relation déjà déclarée
+
+                    # Nom du champ de relation : Client → client
+                    rel_field_name = ref_model[0].lower() + ref_model[1:]
+                    rel_attrs = f"@relation(fields: [{fname}], references: [id])"
+
+                    # Vérifie qu'un champ de ce nom n'existe pas déjà
+                    existing_names = {f.name for f in model.fields}
+                    if rel_field_name in existing_names:
+                        continue
+
+                    fields_to_add.append(PrismaField(
+                        name=rel_field_name,
+                        type=ref_model,
+                        attributes=rel_attrs,
+                    ))
+                    existing_relation_types.add(ref_model)
+                    logger.info(
+                        "[planner] relation injectée : %s.%s → %s",
+                        model.name, rel_field_name, ref_model,
+                    )
+
+                model.fields.extend(fields_to_add)
+
+            return models
+
         # ── Chemin 1 : brief structuré → ProjectSpec déterministe (zéro LLM) ──
         brief_models = brief.get("models", [])
         brief_pages = brief.get("pages", [])
@@ -518,6 +587,9 @@ def create_architect_agent():
                 if m.name not in seen_names:
                     models.append(m)
                     seen_names.add(m.name)
+
+            # Auto-injection des directives @relation manquantes
+            models = _inject_prisma_relations(models)
 
             pages: list[AppPage] = []
             seen_paths: set[str] = set()
@@ -545,10 +617,20 @@ def create_architect_agent():
                         routes.append(ApiRoute(method=method, path=path))  # type: ignore[arg-type]
                         seen_routes.add(key)
 
-            user_flows = (
-                [f"L'utilisateur crée via {r.method} {r.path}" for r in routes]
-                + [f"L'utilisateur visite {p.path}" for p in pages]
-            )
+            # user_flows — priorité aux flux explicites du brief, fallback déterministe
+            brief_user_flows = brief.get("user_flows", [])
+            if brief_user_flows and isinstance(brief_user_flows, list):
+                user_flows = [str(f) for f in brief_user_flows]
+            else:
+                user_flows = (
+                    [f"L'utilisateur crée via {r.method} {r.path}" for r in routes]
+                    + [f"L'utilisateur visite {p.path}" for p in pages]
+                )
+
+            # architecture hint — injecté en tête de user_flows pour context LLM
+            architecture_hint = brief.get("architecture", "")
+            if architecture_hint and isinstance(architecture_hint, str):
+                user_flows = [f"[ARCHITECTURE] {architecture_hint}"] + user_flows
 
             spec = ProjectSpec(
                 project_name=project_name,

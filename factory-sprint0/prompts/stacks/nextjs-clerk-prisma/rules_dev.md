@@ -1,14 +1,14 @@
 ## RÈGLES STACK — nextjs-clerk-prisma
 
-1. **FORCE-DYNAMIC** : `export const dynamic = 'force-dynamic';` PREMIÈRE LIGNE (avant les imports) dans tout fichier appelant Prisma (`app/**/page.tsx`, `app/api/**/route.ts`).
+1. **FORCE-DYNAMIC (SERVER ONLY)** : `export const dynamic = 'force-dynamic';` PREMIÈRE LIGNE uniquement dans les **Server Components** (`app/**/page.tsx` sans hooks React) et les route handlers (`app/api/**/route.ts`). INTERDIT dans les Client Components.
 
-2. **PRISMA SINGLETON** : `import prisma from '@/lib/prisma'` — JAMAIS `new PrismaClient()`.
+2. **USE CLIENT (PRIORITÉ ABSOLUE)** : tout composant avec `useState`, `useEffect` ou tout hook React DOIT avoir `"use client"` en **ligne 1 absolue** — avant tout autre code. Un Client Component n'a JAMAIS `export const dynamic` (inutile : les Client Components sont toujours dynamiques).
 
-3. **AUTH GUARD** : `const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });` AVANT tout accès Prisma. Après le guard, `userId` est `string` (non-nullable).
+3. **PRISMA SINGLETON** : `import prisma from '@/lib/prisma'` — JAMAIS `new PrismaClient()`.
 
-4. **AUTHORID SERVEUR** : `authorId`/`userId` vient de `auth()` UNIQUEMENT — JAMAIS du body/request.
+4. **AUTH GUARD** : `const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });` AVANT tout accès Prisma. Après le guard, `userId` est `string` (non-nullable).
 
-5. **USE CLIENT** : tout composant avec `useState`, `useEffect` ou hook React DOIT avoir `"use client"` en première ligne.
+5. **AUTHORID SERVEUR** : `authorId`/`userId` vient de `auth()` UNIQUEMENT — JAMAIS du body/request.
 
 6. **TAILWIND ONLY** : INTERDIT `shadcn/ui`, `@radix-ui`, `@headlessui`, `@/components/ui/*`.
 
@@ -33,3 +33,24 @@
 16. **PAS DE PASSWORDS** : INTERDIT tout champ `password`/`passwordHash`/`passwordDigest` dans schema — Clerk gère l'authentification.
 
 17. **ZOD VALIDATION** : tout handler POST/PUT/PATCH DOIT valider le body avec `z.object({...}).safeParse(body)` avant tout accès Prisma. INTERDIT de passer `body` directement à `prisma.model.create/update()`. Le champ `authorId` vient toujours de `auth()`, jamais de `result.data`.
+
+18. **OWNERSHIP CHECK** : avant tout `prisma.model.update()` ou `prisma.model.delete()`, vérifier que l'enregistrement appartient à l'utilisateur :
+    ```ts
+    const record = await prisma.model.findUnique({ where: { id } });
+    if (!record || record.userId !== userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    ```
+    JAMAIS faire un update/delete sans vérification préalable d'ownership.
+
+19. **PAGES AVEC DONNÉES RÉELLES** : toute page listant des entités DOIT appeler `prisma.model.findMany({ where: { userId } })` et afficher les résultats dans le JSX. Un `<h1>` seul sans données est INTERDIT. Les pages doivent aussi inclure un état vide ("Aucun élément") si la liste est vide.
+
+20. **AUTH REDIRECT PAGES** : dans les Server Components protégés, utiliser `redirect('/sign-in')` (depuis `next/navigation`) si `!userId` — JAMAIS retourner null ou un composant vide.
+
+21. **LOADING STATES** : tout dossier de page avec fetch Prisma DOIT avoir un fichier `loading.tsx` adjacent avec un skeleton ou spinner. JAMAIS laisser une page sans état de chargement.
+
+22. **DATA ACCESS LAYER** : tout accès Prisma depuis une page DOIT passer par `lib/services/<model>.service.ts`. Les pages n'importent JAMAIS prisma directement — elles importent le service correspondant. Les routes API peuvent importer prisma directement.
+
+23. **PRISMA INDEXES** : tout champ utilisé dans un `where` fréquent (`userId`, `slug`, `email`) DOIT avoir `@@index([champ])` dans le schema Prisma.
+
+24. **REDIRECT APRÈS MUTATION** : tout formulaire Client Component qui soumet un POST/PATCH DOIT appeler `router.push('/resource')` après succès via `useRouter()` de `next/navigation`.
+
+25. **CREATEDDAT AUTO** : JAMAIS passer `createdAt: new Date()` dans un `prisma.model.create()` — le schema a `@default(now())`, c'est automatique.
