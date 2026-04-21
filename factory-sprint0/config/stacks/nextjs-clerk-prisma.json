@@ -56,7 +56,9 @@
     "@prisma/adapter-pg": "^7.0.0",
     "pg": "^8.13.0",
     "typescript": "^5.3.3",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "pino": "^9.0.0",
+    "pino-pretty": "^11.0.0"
   },
   "dev_packages": {
     "ts-jest": "29.1.2",
@@ -255,6 +257,9 @@
     ".env.local": "templates/env.local.template",
     "tests/middleware.test.ts": "templates/tests/middleware.test.ts",
     "lib/prisma.ts": "templates/lib_prisma.ts",
+    "lib/prisma-errors.ts": "templates/lib_prisma_errors.ts",
+    "lib/logger.ts": "templates/lib_logger.ts",
+    "app/api/health/route.ts": "templates/app_api_health_route.ts",
     "prisma.config.ts": "templates/prisma_config.ts",
     "prisma/schema.prisma": "templates/prisma_schema.prisma"
   },
@@ -276,6 +281,9 @@
       "prisma.config.ts",
       ".env.local",
       "lib/prisma.ts",
+      "lib/prisma-errors.ts",
+      "lib/logger.ts",
+      "app/api/health/route.ts",
       "app/page.tsx",
       "jest.config.js",
       "jest.setup.js"

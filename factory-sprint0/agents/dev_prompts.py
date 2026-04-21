@@ -65,6 +65,89 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     return result
 
 
+def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
+    """
+    Requêtes Qdrant déclenchées en Python AVANT la génération, basées sur le contenu
+    du brief. Les standards les plus pertinents sont injectés directement dans le prompt
+    — sans attendre que le LLM pense à appeler rag_search.
+
+    Logique de déclenchement (déterministe depuis la spec) :
+      - "always"          → toujours (sécurité, fiabilité core)
+      - "list-routes"     → si au moins un GET dans spec.routes
+      - "relation-models" → si au moins un modèle a un champ *Id (foreign key)
+      - "multi-table"     → si spec a 2+ modèles (mutations probables multi-tables)
+    """
+    try:
+        from agents.shared_tools import rag_search as _rag_fn
+        from agents.stack_config import load_stack_config
+    except Exception:
+        return ""  # Qdrant absent → non-bloquant
+
+    # ── Détection des contextes pertinents ───────────────────────────────────
+    contexts: list[str] = ["always"]
+
+    has_get_routes = any(r.method == "GET" for r in spec.routes)
+    if has_get_routes:
+        contexts.append("list-routes")
+
+    has_relations = any(
+        any(
+            f.name != "id" and f.name.endswith("Id")
+            for f in m.fields
+        )
+        for m in spec.models
+    )
+    if has_relations:
+        contexts.append("relation-models")
+
+    if len(spec.models) >= 2:
+        contexts.append("multi-table")
+
+    # ── Requêtes ciblées par contexte ────────────────────────────────────────
+    CONTEXT_QUERIES: dict[str, str] = {
+        "always":          "sécurité auth ownership CreateInput sans userId logging healthcheck",
+        "list-routes":     "pagination findMany skip take PaginatedResponse select minimal",
+        "relation-models": "N+1 prevention include select imbriqué findUnique loop",
+        "multi-table":     "transaction prisma $transaction séquentielle interactive rollback",
+    }
+
+    snippets: list[str] = []
+    seen_texts: set[str] = set()
+
+    stack_id = getattr(spec, "stack_id", "nextjs-clerk-prisma")
+    try:
+        stack_cfg = load_stack_config(stack_id)
+        qdrant_filter = stack_cfg.get("qdrant_filter", {}).get("filter", {})
+    except Exception:
+        qdrant_filter = {}
+
+    for ctx in contexts:
+        query = CONTEXT_QUERIES.get(ctx, "")
+        if not query:
+            continue
+        try:
+            result = _rag_fn.invoke({"query": query})
+            if result and not result.startswith("[RAG]") and result not in seen_texts:
+                seen_texts.add(result)
+                snippets.append(f"[contexte: {ctx}]\n{result[:600]}")
+        except Exception:
+            pass  # Qdrant absent → non-bloquant
+
+    if not snippets:
+        return ""
+
+    joined = "\n\n---\n\n".join(snippets)
+    return f"""
+══════════════════════════════════════════════════════════════
+STANDARDS TECHNIQUES APPLICABLES À CE BRIEF (Qdrant)
+══════════════════════════════════════════════════════════════
+Ces standards ont été sélectionnés automatiquement selon le contenu du brief.
+Applique-les lors de la génération — ne les ignore pas.
+
+{joined}
+"""
+
+
 def build_system_prompt(
     spec: "ProjectSpec",
     pre_written_files: list[str] | None = None,
@@ -114,6 +197,22 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
         for p in spec.pages
     )
 
+    # pages_detail — instructions d'affichage précises pour chaque page
+    # Sans ce bloc, le LLM invente le contenu des pages au lieu de suivre le brief.
+    pages_detail_block = ""
+    if spec.pages_detail and isinstance(spec.pages_detail, dict):
+        detail_lines = []
+        for path, detail in spec.pages_detail.items():
+            detail_lines.append(f"  {path} :\n    {str(detail).strip()}")
+        if detail_lines:
+            pages_detail_block = (
+                "\n══════════════════════════════════════════════════════════════\n"
+                "CONTENU ATTENDU PAR PAGE (instructions précises — à implémenter tel quel)\n"
+                "══════════════════════════════════════════════════════════════\n"
+                + "\n\n".join(detail_lines)
+                + "\n"
+            )
+
     # Bloc services DAL — noms exacts des services à créer (un par modèle métier).
     # Le LLM génère ces fichiers lui-même (Option B) — on lui donne uniquement les noms
     # pour qu'il n'invente pas de variantes (getExpenses, getAllTasks...).
@@ -122,13 +221,14 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
         import re as _re
         kebab = _re.sub(r"(?<!^)(?=[A-Z])", "-", m.name).lower()
         camel = m.name[0].lower() + m.name[1:] if m.name else m.name
-        _service_names.append((m.name, camel + "Service", f"lib/services/{kebab}.service.ts"))
+        owner = getattr(m, "owner_field", "userId")
+        _service_names.append((m.name, camel + "Service", f"lib/services/{kebab}.service.ts", owner))
 
     services_block = ""
     if _service_names:
         lines = "\n".join(
-            f"  {name} → {svc_obj}  ({path})"
-            for name, svc_obj, path in _service_names
+            f"  {name} → {svc_obj}  ({path})  [owner_field: {owner}]"
+            for name, svc_obj, path, owner in _service_names
         )
         services_block = f"""
 ══════════════════════════════════════════════════════════════
@@ -136,10 +236,14 @@ SERVICES DAL À CRÉER (Rule 26 — un par modèle métier)
 ══════════════════════════════════════════════════════════════
 {lines}
 
+owner_field = champ d'ownership du modèle dans le schéma Prisma.
+  - userId/authorId → ownership direct : utilise ce champ dans findMany/findUnique/create/update/delete
+  - xxxId (ex: boardId) → modèle enfant : utilise l'id du parent comme filtre, vérifie l'ownership du parent dans la route API
+
 Convention fixe — JAMAIS de fonctions nommées exportées :
-  ✅  import {{ expenseService }} from '@/lib/services/expense.service'
-  ✅  const items = await expenseService.findMany(userId)
-  ❌  import {{ getExpenses, getExpenseById }} from '@/lib/services/expense.service'
+  ✅  import {{ modelService }} from '@/lib/services/model.service'
+  ✅  const items = await modelService.findMany(userId)
+  ❌  import {{ getItems, getItemById }} from '@/lib/services/model.service'
 """
 
     # Spec JSON compacte pour référence LLM
@@ -149,6 +253,12 @@ Convention fixe — JAMAIS de fonctions nommées exportées :
         "routes": [f"{r.method} {r.path}" for r in spec.routes],
         "fingerprint": spec.spec_fingerprint,
     }, ensure_ascii=False)
+
+    # ── Bloc RAG obligatoire spec-aware ──────────────────────────────────────
+    # Requêtes Qdrant déclenchées AVANT la génération selon le contenu du brief.
+    # Garantit que les standards qualité (pagination, N+1, transactions) sont
+    # visibles dans le prompt — sans dépendre de l'initiative du LLM.
+    mandatory_rag_block = _build_mandatory_rag_block(spec)
 
     # Bloc fichiers pré-générés (affiché uniquement si la liste est non vide)
     pre_written_block = ""
@@ -164,6 +274,7 @@ Ils sont CORRECTS et COMPLETS — ne les réécrits JAMAIS avec write_file :
 """
 
     return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7.
+{mandatory_rag_block}
 Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
 {services_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
@@ -173,7 +284,7 @@ SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 
 PAGES À CRÉER :
 {pages_summary}
-
+{pages_detail_block}
 ROUTES API À CRÉER :
 {routes_summary}
 

@@ -44,6 +44,15 @@ class PrismaModel(BaseModel):
     fields: List[PrismaField] = Field(
         description="Liste des champs du modèle. Toujours inclure id, createdAt minimum."
     )
+    owner_field: str = Field(
+        default="userId",
+        description=(
+            "Champ d'ownership dans ce modèle. "
+            "'userId' pour les modèles directs (Expense, Task, Invoice). "
+            "'authorId' pour les modèles CMS (Post, Article). "
+            "Nom du champ parent (ex: 'boardId') pour les modèles enfants sans userId direct."
+        )
+    )
 
 
 class ApiRoute(BaseModel):

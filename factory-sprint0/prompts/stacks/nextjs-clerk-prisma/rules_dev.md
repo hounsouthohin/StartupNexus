@@ -55,31 +55,81 @@
 
 25. **CREATEDDAT AUTO** : JAMAIS passer `createdAt: new Date()` dans un `prisma.model.create()` — le schema a `@default(now())`, c'est automatique.
 
-26. **SERVICE DAL — PATTERN OBLIGATOIRE** : pour chaque modèle `ModelName`, créer `lib/services/modelName.service.ts` (camelCase) exportant un objet unique :
+26. **SERVICE DAL — PATTERN OBLIGATOIRE** : pour chaque modèle `ModelName`, créer `lib/services/model-name.service.ts` exportant un objet unique `modelNameService`. Le champ `owner_field` est fourni dans le bloc SERVICES DAL du prompt — utiliser ce champ exact, ne jamais le deviner :
+
+    **Cas 1 — owner_field = userId ou authorId (ownership direct)** :
     ```ts
+    import prisma from '@/lib/prisma'
+    import type { CreateModelNameInput, UpdateModelNameInput } from '@/lib/types'
+
     export const modelNameService = {
-      findMany: (userId: string) =>
-        prisma.modelName.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
-      findUnique: async (id: string, userId: string) => {
+      findMany: (ownerId: string) =>
+        prisma.modelName.findMany({ where: { <owner_field>: ownerId }, orderBy: { createdAt: 'desc' } }),
+      findUnique: async (id: string, ownerId: string) => {
         const r = await prisma.modelName.findUnique({ where: { id } })
-        if (!r || r.userId !== userId) return null
+        if (!r || r.<owner_field> !== ownerId) return null
         return r
       },
-      create: (data: CreateModelNameInput, userId: string) =>
-        prisma.modelName.create({ data: { ...data, userId } }),
-      update: async (id: string, data: UpdateModelNameInput, userId: string) => {
+      create: (data: CreateModelNameInput, ownerId: string) =>
+        prisma.modelName.create({ data: { ...data, <owner_field>: ownerId } }),
+      update: async (id: string, data: UpdateModelNameInput, ownerId: string) => {
         const r = await prisma.modelName.findUnique({ where: { id } })
-        if (!r || r.userId !== userId) throw new Error('Forbidden')
+        if (!r || r.<owner_field> !== ownerId) throw new Error('Forbidden')
         return prisma.modelName.update({ where: { id }, data })
       },
-      delete: async (id: string, userId: string) => {
+      delete: async (id: string, ownerId: string) => {
         const r = await prisma.modelName.findUnique({ where: { id } })
-        if (!r || r.userId !== userId) throw new Error('Forbidden')
+        if (!r || r.<owner_field> !== ownerId) throw new Error('Forbidden')
         await prisma.modelName.delete({ where: { id } })
       },
     }
     ```
-    - Si le modèle utilise `authorId` au lieu de `userId`, remplacer `userId` par `authorId` partout.
-    - Si le modèle n'a pas de champ owner direct (ex: `Card` lié à `Board`), omettre les checks ownership et utiliser `boardId` ou l'id parent dans `findMany`.
-    - Import dans les pages : `import { modelNameService } from '@/lib/services/modelName.service'`
-    - JAMAIS exporter des fonctions nommées (`export function getAll`) — toujours l'objet service.
+
+    **Cas 2 — owner_field = parentId (modèle enfant, ex: boardId, projectId)** :
+    L'ownership est indirect — vérifié au niveau de la route API via le parent. Le service utilise `parentId` comme filtre, pas `userId` :
+    ```ts
+    export const modelNameService = {
+      findManyByParent: (parentId: string) =>
+        prisma.modelName.findMany({ where: { <owner_field>: parentId }, orderBy: { createdAt: 'asc' } }),
+      create: (data: CreateModelNameInput, parentId: string) =>
+        prisma.modelName.create({ data: { ...data, <owner_field>: parentId } }),
+      update: (id: string, data: UpdateModelNameInput) =>
+        prisma.modelName.update({ where: { id }, data }),
+      delete: (id: string) =>
+        prisma.modelName.delete({ where: { id } }),
+    }
+    // Dans la route API : vérifier que le parent appartient à userId AVANT d'appeler le service
+    ```
+
+    - Remplacer `<owner_field>` par la valeur exacte fournie dans le bloc SERVICES DAL
+    - JAMAIS exporter des fonctions nommées (`export function getAll`) — toujours l'objet service
+    - Import dans les pages : `import { modelNameService } from '@/lib/services/model-name.service'`
+
+27. **CREATEINPUT SANS CHAMP OWNER** : `CreateModelNameInput` dans `lib/types.ts` ne contient JAMAIS `userId`, `authorId` ou tout autre champ d'ownership — ces champs viennent de `auth()`. Un type d'entrée contenant `userId` est une faille de sécurité (TS2322 probable).
+    ```ts
+    // ✅ CORRECT
+    export type CreateExpenseInput = { amount: number; category: string; description: string; date: string }
+    // ❌ INTERDIT
+    export type CreateExpenseInput = { amount: number; userId: string; ... }
+    ```
+
+28. **LOGGING STRUCTURÉ** : utiliser `import logger from '@/lib/logger'` dans les routes API. Chaque erreur serveur doit être loguée avec contexte avant de retourner la réponse d'erreur :
+    ```ts
+    } catch (error) {
+      logger.error({ error, userId, route: 'POST /api/models' }, 'Erreur création')
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+    ```
+
+29. **GESTION ERREURS PRISMA** : utiliser `handlePrismaError` depuis `@/lib/prisma-errors` dans les blocs catch des routes API :
+    ```ts
+    import { handlePrismaError } from '@/lib/prisma-errors'
+
+    } catch (error) {
+      const { status, message } = handlePrismaError(error)
+      return NextResponse.json({ error: message }, { status })
+    }
+    ```
+    `handlePrismaError` retourne `{ status: 409, message: 'Conflict' }` pour P2002, `{ status: 404, message: 'Not found' }` pour P2025, `{ status: 500, message: 'Internal server error' }` pour le reste.
+
+30. **HEALTHCHECK** : ne pas créer `app/api/health/route.ts` — ce fichier est pré-généré par le pipeline. Ne pas le réécrire avec `write_file`.

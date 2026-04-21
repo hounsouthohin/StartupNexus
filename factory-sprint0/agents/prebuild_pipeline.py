@@ -29,10 +29,11 @@ STAGE_TSC = "tsc"
 STAGE_ESLINT = "eslint"
 STAGE_AST_USE_CLIENT = "ast_use_client"      # Phase C
 STAGE_DEP_CRUISER = "dependency_cruiser"     # Phase C
+STAGE_QUALITY_RULES = "quality_rules"        # Phase C — AST Z21/Z24/Z25/Z26
 
 CRITICAL_STAGES = {STAGE_PRISMA_VALIDATE, STAGE_TSC, STAGE_ESLINT, STAGE_AST_USE_CLIENT}
 PHASE_B_STAGES = [STAGE_PRISMA_VALIDATE, STAGE_PRISMA_GENERATE, STAGE_TSC, STAGE_ESLINT]
-PHASE_C_STAGES = [STAGE_PRISMA_VALIDATE, STAGE_PRISMA_GENERATE, STAGE_TSC, STAGE_ESLINT, STAGE_AST_USE_CLIENT]
+PHASE_C_STAGES = [STAGE_PRISMA_VALIDATE, STAGE_PRISMA_GENERATE, STAGE_TSC, STAGE_ESLINT, STAGE_AST_USE_CLIENT, STAGE_QUALITY_RULES]
 
 # Hooks React qui exigent "use client" comme premier statement AST
 _REACT_HOOKS = frozenset({
@@ -504,12 +505,20 @@ async def run_prebuild_pipeline(
     stages: list[str] | None = None,
 ) -> PrebuildReport:
     selected = stages or list(PHASE_B_STAGES)
+
+    async def _run_quality_rules_lazy(project_dir: str) -> StageResult:
+        # Lazy import pour éviter la dépendance circulaire
+        # (quality_validator importe StageResult depuis ce module)
+        from agents.quality_validator import run_quality_check  # noqa: PLC0415
+        return await run_quality_check(project_dir)
+
     runners = {
         STAGE_PRISMA_VALIDATE: _run_prisma_validate,
         STAGE_PRISMA_GENERATE: _run_prisma_generate,
         STAGE_TSC: _run_tsc,
         STAGE_ESLINT: _run_eslint,
         STAGE_AST_USE_CLIENT: _run_ast_use_client,
+        STAGE_QUALITY_RULES: _run_quality_rules_lazy,
     }
 
     stage_results: list[StageResult] = []

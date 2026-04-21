@@ -219,6 +219,22 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                 "action": "FIX_AUTH_GUARD",
             },
             {
+                # CreateXxxInput contenant userId/authorId → type incompatible avec Prisma input
+                "condition": lambda got, expected: (
+                    "userId" in expected or "authorId" in expected
+                    or "userId" in got or "authorId" in got
+                ),
+                "context_hint": lambda got, expected: (
+                    f"⚠️  CREATEINPUT AVEC USERID (TS2322) : le type d'entrée contient un champ owner.\n"
+                    f"  CAUSE : CreateXxxInput ne doit JAMAIS inclure userId/authorId — ces champs viennent de auth().\n"
+                    f"  FIX dans lib/types.ts : retire userId/authorId du type CreateXxxInput.\n"
+                    f"  Dans le service : ajouter le champ owner séparément lors du create :\n"
+                    f"    prisma.model.create({{ data: {{ ...data, <owner_field>: ownerId }} }})"
+                ),
+                "rag_query": "CreateInput sans userId authorId auth() Prisma service TypeScript",
+                "action": "FIX_CREATEINPUT_OWNER",
+            },
+            {
                 "condition": lambda got, expected: True,
                 "context_hint": lambda got, expected: (
                     f"⚠️  TYPE INCOMPATIBLE (TS2322) : '{got}' n'est pas assignable à '{expected}'.\n"

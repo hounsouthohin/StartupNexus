@@ -480,6 +480,25 @@ def create_architect_agent():
                 parts.append("".join(current))
             return parts
 
+        def _detect_owner_field(fields: list) -> str:
+            """
+            Déduit le champ d'ownership depuis les champs déclarés :
+            - userId    → modèle direct (Expense, Task, Invoice)
+            - authorId  → modèle CMS (Post, Article)
+            - xxxId     → modèle enfant sans userId direct (Card→boardId, Item→projectId)
+            - défaut    → "userId"
+            """
+            field_names = [f.name for f in fields]
+            if "userId" in field_names:
+                return "userId"
+            if "authorId" in field_names:
+                return "authorId"
+            # Modèle enfant : chercher le premier champ *Id qui n'est pas juste "id"
+            for fname in field_names:
+                if fname != "id" and fname.endswith("Id"):
+                    return fname
+            return "userId"
+
         def _parse_model_str(model_str: str) -> PrismaModel:
             """Convertit une string Prisma DSL 'Name { field Type attrs, ... }' en PrismaModel."""
             blocks = re.findall(r'(\w+)\s*\{([^}]*)\}', model_str)
@@ -497,7 +516,8 @@ def create_architect_agent():
                         fields.append(PrismaField(name=fname, type=ftype, attributes=fattrs))
                 if not fields:
                     fields = [PrismaField(name="id", type="String", attributes="@id @default(uuid())")]
-                return PrismaModel(name=name.strip(), fields=fields)
+                owner_field = _detect_owner_field(fields)
+                return PrismaModel(name=name.strip(), fields=fields, owner_field=owner_field)
             # Fallback : juste un nom sans champs
             name = (model_str or "").strip().split()[0] or "Model"
             return PrismaModel(
@@ -907,18 +927,16 @@ def create_architect_agent():
 
     # --- Graph Definition ---
     # Pipeline (Phase 2 — 28 Mars 2026) :
-    # retrieval → planner
+    # START → planner → END
     #
-    # retrieval : RAG Qdrant (max 3 docs, budgeté)
-    # planner   : lit state["brief"] structuré → ProjectSpec déterministe (zéro LLM si brief complet)
+    # planner : lit state["brief"] structuré → ProjectSpec déterministe (zéro LLM si brief complet)
     #
-    # Supprimés : brief_normalizer (brief_parser éliminé), spec_writer_node, formatter_node (hors-graphe)
+    # retrieval_node supprimé (Avril 2026) : rag_context n'est plus lu par planner_node
+    # depuis la suppression de spec_writer_node du graph (Mars 2026)
     workflow = StateGraph(AgentState)
-    workflow.add_node("retrieval", retrieval_node)
     workflow.add_node("planner", planner_node)
 
-    workflow.add_edge(START, "retrieval")
-    workflow.add_edge("retrieval", "planner")
+    workflow.add_edge(START, "planner")
     workflow.add_edge("planner", END)
 
     return workflow.compile()

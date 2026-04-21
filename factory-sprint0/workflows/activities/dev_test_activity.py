@@ -208,64 +208,12 @@ def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
         activity.logger.warning(f"Snapshot persistence failed (non-bloquant): {e}")
 
 
-def _check_semantic_invariants(combined_files: dict, stack_id: str = "nextjs-clerk-prisma") -> List[str]:
+def _check_semantic_invariants(_combined_files: dict, _stack_id: str = "nextjs-clerk-prisma") -> List[str]:
     """
-    Vérifie les invariants sémantiques sur les fichiers générés.
-    Retourne une liste de violations ([] = tout bon).
-
-    Ces assertions remplacent les sanitizers supprimés : au lieu de corriger
-    silencieusement une erreur du LLM, on la signale explicitement pour
-    forcer la correction des prompts/RAG à la source.
+    Supprimé (Avril 2026) : tous les checks étaient redondants avec les templates pré-écrits
+    (layout.tsx, middleware.ts, schema.prisma, .env.local) protégés par Option B.
     """
-    violations = []
-
-    # 0. package.json doit exister (ENOENT guard)
-    if "package.json" not in combined_files:
-        violations.append("MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques")
-
-    # 1. app/layout.tsx doit exister et contenir ClerkProvider
-    layout = combined_files.get("app/layout.tsx", "")
-    if not layout:
-        violations.append("MISSING app/layout.tsx")
-    elif "ClerkProvider" not in layout:
-        violations.append("MISSING ClerkProvider in app/layout.tsx")
-
-    # 2. middleware.ts doit exister
-    if "middleware.ts" not in combined_files:
-        violations.append("MISSING middleware.ts")
-
-    # 3. schema.prisma ne doit pas contenir de champ password (chemin réel : prisma/schema.prisma)
-    schema = combined_files.get("prisma/schema.prisma", "") or combined_files.get("schema.prisma", "")
-    if schema and re.search(r'\bpassword\b', schema, re.IGNORECASE):
-        violations.append("FORBIDDEN field 'password' detected in schema.prisma")
-
-    # 4. env_validation — regex branchée depuis stack_config (Governance Sprint 4)
-    try:
-        from agents.stack_config import load_stack_config
-        env_cfg = load_stack_config(stack_id).get("env_validation", {})
-        required_vars = env_cfg.get("required_vars", [])
-        regex_map = env_cfg.get("regex", {})
-        env_content = combined_files.get(".env.local", "")
-        if required_vars and not env_content:
-            violations.append("MISSING .env.local — variables requises non générées")
-        elif env_content:
-            for var in required_vars:
-                if var not in env_content:
-                    violations.append(f"MISSING env var {var} in .env.local")
-            for var, pattern in regex_map.items():
-                for line in env_content.splitlines():
-                    if line.startswith(f"{var}="):
-                        value = line.split("=", 1)[1].strip()
-                        if not re.match(pattern, value):
-                            violations.append(
-                                f"INVALID env var {var}='{value[:40]}' — "
-                                f"attendu: {pattern}"
-                            )
-                        break
-    except Exception:
-        pass  # env_validation non bloquant si stack_config inaccessible
-
-    return violations
+    return []
 
 
 def _find_schema_in_combined_files(combined_files: dict) -> tuple[str, str]:
@@ -843,9 +791,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
 
         # ── 5. Assertions sémantiques ─────────────────────────────────────
         combined_files = result.get("combined_files", {})
-        semantic_violations = _check_semantic_invariants(
-            combined_files, stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma"))
-        )
+        semantic_violations = _check_semantic_invariants(combined_files)
         prisma_violations, prisma_validate_details = _run_prisma_validate(combined_files)
         if prisma_violations:
             semantic_violations.extend(prisma_violations)

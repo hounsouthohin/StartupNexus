@@ -78,7 +78,8 @@
             "tsc",
             "eslint",
             "ast_use_client",
-            "dependency_cruiser"
+            "dependency_cruiser",
+            "quality_rules"
           ],
           "description": "Identifiant unique du stage."
         },
