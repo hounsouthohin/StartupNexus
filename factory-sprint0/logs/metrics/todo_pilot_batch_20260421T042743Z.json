@@ -1,0 +1,216 @@
+{
+  "generated_at": "2026-04-21T04:27:43.981469+00:00",
+  "temporal_address": "temporal:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "sanity_mode": true,
+  "workflow_success_count": 1,
+  "workflow_failure_count": 0,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 1,
+  "build_unknown_count": 0,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 1,
+  "failure_count": 0,
+  "total_duration_seconds": 296.18,
+  "total_learner_events_delta": 1,
+  "quality_dashboard": {
+    "spec_validation_status_counts": {
+      "degraded_spec_gate_blocked": 0,
+      "semantic_violation_at_dev": 0,
+      "ok_or_partial": 1
+    },
+    "requirements_mappable_met_ratio": 0.0,
+    "build_not_run_count": 0,
+    "strict_success_rate": 0.0,
+    "usable_success_rate": 0.0
+  },
+  "phase1_scoreboard": {
+    "build_success_rate": 0.0,
+    "unknown_root_cause_rate_on_failed": 1.0,
+    "prisma_validate_ok_rate_on_runs_with_schema": 1.0,
+    "root_cause_distribution_failed": {
+      "unknown": 1
+    },
+    "ts_error_code_distribution": {},
+    "top_ts_failing_files": {},
+    "ts_signal_anomaly_count": 0
+  },
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-task-manager-d30cd04f",
+      "run_id": "019dae46-c918-77ba-aa9f-46c584558352",
+      "project_name": "task-manager",
+      "brief_description": "Application de gestion de t\u00e2ches personnelles. Chaque utilisateur g\u00e8re sa propre liste de t\u00e2ches avec titre, date limite optionnelle et statut done/todo.",
+      "started_at": "2026-04-21T04:22:47.774227+00:00",
+      "duration_seconds": 296.18,
+      "workflow_success": true,
+      "build_success": false,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": "COMPLETED",
+      "build_status": "BUILD_FAILED",
+      "error": null,
+      "workflow_error_message": null,
+      "learner_events_before": 4240,
+      "learner_events_after": 4241,
+      "learner_events_delta": 1,
+      "result_excerpt": "TodoPilotOutput(workflow_status='COMPLETED', build_status='BUILD_FAILED', project_name='task-manager', generated_files_count=29, pr_url='N/A', repo_url='N/A', dev_files_count=29, test_files_count=0, duration_seconds=295.988892, error_message=None, activity_results={'architect': {'requirements_count': 10, 'spec_unmatched_requirements': [], 'spec_validation_status': 'OK', 'status': 'COMPLETED'}, 'de",
+      "activity_results": {
+        "architect": {
+          "requirements_count": 10,
+          "spec_unmatched_requirements": [],
+          "spec_validation_status": "OK",
+          "status": "COMPLETED"
+        },
+        "dev_test": {
+          "final_message": "BUILD_FAILED",
+          "metadata": {
+            "architecture_score": 0.0,
+            "build_corrections_count": 0,
+            "conformity_score": 0.0,
+            "dev_files_count": 29,
+            "is_useful_app": false,
+            "mode": "dev_graph",
+            "requirements_met": 10,
+            "requirements_total": 10,
+            "requirements_unknown": 0,
+            "requirements_unknown_list": [],
+            "requirements_unmet": 0,
+            "requirements_unmet_by_category": {},
+            "requirements_unmet_list": [],
+            "security_score": 0.0,
+            "spec_coverage": 1.0,
+            "spec_unmatched_count": 0,
+            "spec_validation_status": "OK",
+            "supervisor_corrections_count": 0,
+            "supervisor_files_reviewed": 0,
+            "test_files_count": 0,
+            "tests_passed": false,
+            "total_files": 29,
+            "user_flows_coverage": 1.0,
+            "user_flows_covered": 5,
+            "user_flows_total": 6
+          },
+          "run_metric": {
+            "blocking_guard_id": "",
+            "build_attempted": false,
+            "build_attempts": 0,
+            "build_command_executed": false,
+            "build_exit_code": -1,
+            "build_success": false,
+            "clerk_compliant": false,
+            "contradiction_flags": [
+              "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+            ],
+            "dev_files_count": 29,
+            "error": "BuildFailed: GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.la",
+            "files_count": 29,
+            "final_message": "BUILD_FAILED",
+            "gate_message": "",
+            "gate_source": "",
+            "iterations": 0,
+            "last_build_error": "GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.la",
+            "last_build_error_full": "GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/pytho",
+            "last_failed_command": "",
+            "last_test_error": "",
+            "last_test_error_full": "",
+            "missing_required_files": [],
+            "prisma_validate": {
+              "cli_found": true,
+              "enabled": true,
+              "enforced": false,
+              "ok": true,
+              "ran": true,
+              "schema_path": "prisma/schema.prisma",
+              "stderr": "Prisma schema loaded from ../tmp/prisma_validate_8w1xh_0m/prisma/schema.prisma.\n",
+              "stdout": "The schema at ../tmp/prisma_validate_8w1xh_0m/prisma/schema.prisma is valid \ud83d\ude80\n"
+            },
+            "requirements_met": 10,
+            "requirements_total": 10,
+            "requirements_unknown": 0,
+            "requirements_unknown_list": [],
+            "requirements_unmet": 0,
+            "requirements_unmet_list": [],
+            "root_cause_category": "unknown",
+            "semantic_violations": [],
+            "spec_coverage": 1.0,
+            "tests_passed": false,
+            "tsc_error_samples_by_activity": [
+              {
+                "code": "TS2305",
+                "col": 10,
+                "file": "app/api/tasks/[id]/route.ts",
+                "line": 2,
+                "message": "Module '\"@clerk/nextjs\"' has no exported member 'auth'."
+              },
+              {
+                "code": "TS2305",
+                "col": 10,
+                "file": "app/api/tasks/route.ts",
+                "line": 2,
+                "message": "Module '\"@clerk/nextjs\"' has no exported member 'auth'."
+              },
+              {
+                "code": "TS2305",
+                "col": 10,
+                "file": "app/tasks/[id]/page.tsx",
+                "line": 2,
+                "message": "Module '\"@clerk/nextjs\"' has no exported member 'auth'."
+              },
+              {
+                "code": "TS2305",
+                "col": 10,
+                "file": "app/tasks/page.tsx",
+                "line": 2,
+                "message": "Module '\"@clerk/nextjs\"' has no exported member 'auth'."
+              }
+            ],
+            "tsc_errors_count_by_activity": 4,
+            "tsc_feedback_prompt_preview": "",
+            "tsc_feedback_retry_triggered": false,
+            "tsc_ok_by_activity": false,
+            "tsc_ran_by_activity": true,
+            "tsc_skipped_by_activity": false
+          },
+          "semantic_violations": [],
+          "status": "COMPLETED",
+          "success": false
+        }
+      },
+      "run_metric": {
+        "build_attempted": false,
+        "build_attempts": 0,
+        "build_success": false,
+        "iterations": 0,
+        "final_message": "BUILD_FAILED",
+        "root_cause_category": "unknown",
+        "spec_coverage": 1.0,
+        "requirements_met": 10,
+        "requirements_unmet": 0,
+        "requirements_unknown": 0,
+        "requirements_total": 10,
+        "tests_passed": false,
+        "tsc_ran_by_activity": true,
+        "tsc_ok_by_activity": false,
+        "tsc_skipped_by_activity": false,
+        "tsc_errors_count_by_activity": 4,
+        "tsc_feedback_retry_triggered": false,
+        "tsc_feedback_prompt_preview": "",
+        "semantic_violations": [],
+        "last_failed_command": "",
+        "last_build_error": "GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.la",
+        "error": "BuildFailed: GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.la",
+        "prisma_validate": {
+          "cli_found": true,
+          "ran": true,
+          "ok": true,
+          "schema_path": "prisma/schema.prisma"
+        }
+      }
+    }
+  ]
+}

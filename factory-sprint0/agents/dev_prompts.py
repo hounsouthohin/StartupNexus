@@ -339,4 +339,25 @@ WORKFLOW (suis cet ordre STRICTEMENT)
    - Maximum 3 tentatives de build
 
 {stack_rules_block}
+══════════════════════════════════════════════════════════════
+INTERDITS ABSOLUS — violations qui font échouer le build
+══════════════════════════════════════════════════════════════
+Ces patterns sont INCORRECTS pour cette stack (Clerk V5/V6, Next.js 14 App Router) :
+
+  ❌  import {{ auth }} from '@clerk/nextjs'          → INTERDIT (Clerk V4)
+  ✅  import {{ auth }} from '@clerk/nextjs/server'   → CORRECT
+
+  ❌  import {{ currentUser }} from '@clerk/nextjs'   → INTERDIT (Clerk V4)
+  ✅  import {{ currentUser }} from '@clerk/nextjs/server'
+
+  ❌  import {{ getAuth }} from '@clerk/nextjs/server'  → INTERDIT (n'existe pas)
+  ✅  const {{ userId }} = await auth()                 → CORRECT
+
+  ❌  import Link from 'react'                        → INTERDIT
+  ✅  import Link from 'next/link'
+
+  ❌  import {{ useRouter }} from 'react'             → INTERDIT
+  ✅  import {{ useRouter }} from 'next/navigation'
+
+Si tu es incertain sur un import → utilise rag_search("clerk auth import nextjs/server") avant d'écrire.
 """.replace("{WORKDIR}", "/app/generated-projects")

@@ -61,6 +61,7 @@ class DevState(TypedDict):
     validated_files: List[str]     # Fichiers .ts/.tsx ayant passé tsc file-level sans erreur
     file_validation_errors: str    # Erreurs tsc du dernier tour — injectées en HumanMessage si non vides
     file_validation_retries: int   # Tentatives de correction sur le batch courant
+    stale_error_keys: List[str]    # Clés "file:TSxxxx" vues au fil des tours — détection de boucle
 
 
 def _error_signature(stderr: str) -> str:
@@ -841,6 +842,20 @@ async def run_dev_agent(
 
             errors_enriched = "\n".join(enriched_lines)
             retries = int(state.get("file_validation_retries", 0) or 0) + 1
+
+            # Circuit breaker — same-file loop detector.
+            # Accumule les clés "file:TSxxxx" vues à chaque tour (un ajout par tour, pas par ligne).
+            # Si la même clé apparaît 3+ tours → boucle stagnante détectée.
+            import re as _re3
+            stale_keys = list(state.get("stale_error_keys", []))
+            new_keys_this_turn: set[str] = set()
+            for _eline in errors_for_written.splitlines():
+                _m = _re3.match(r"^([^(]+)\(\d+,\d+\): error (TS\d+):", _eline)
+                if _m:
+                    _key = f"{_m.group(1).strip().replace(chr(92), '/')}:{_m.group(2)}"
+                    new_keys_this_turn.add(_key)
+            stale_keys.extend(sorted(new_keys_this_turn))
+
             logger.warning(
                 "[file_validate] TS errors dans fichiers écrits (retry %d/%d) : %s",
                 retries, MAX_FILE_VALIDATION_RETRIES, written_files,
@@ -848,6 +863,7 @@ async def run_dev_agent(
             return {
                 "file_validation_errors": errors_enriched,
                 "file_validation_retries": retries,
+                "stale_error_keys": stale_keys,
             }
 
         except subprocess.TimeoutExpired:
@@ -862,8 +878,22 @@ async def run_dev_agent(
         Si des erreurs TS ont été détectées sur les fichiers écrits ce tour :
           → retour au LLM pour correction immédiate (avant de continuer)
           → après MAX_FILE_VALIDATION_RETRIES échecs, on laisse passer (non-bloquant)
+          → si la même erreur (file:TSxxxx) a été vue 3+ fois → boucle stagnante → END
         Sinon → extract_error (flux normal).
         """
+        # Circuit breaker — détection de boucle stagnante.
+        stale_keys = state.get("stale_error_keys", [])
+        if stale_keys:
+            from collections import Counter
+            counts = Counter(stale_keys)
+            worst_key, worst_count = counts.most_common(1)[0]
+            if worst_count >= 3:
+                logger.error(
+                    "[file_validate] BOUCLE STAGNANTE détectée : '%s' vue %d fois — arrêt anticipé.",
+                    worst_key, worst_count,
+                )
+                return END
+
         errors = state.get("file_validation_errors", "")
         retries = int(state.get("file_validation_retries", 0) or 0)
         if errors and retries <= MAX_FILE_VALIDATION_RETRIES:
@@ -893,6 +923,7 @@ async def run_dev_agent(
     builder.add_conditional_edges("file_validate", route_after_file_validate, {
         "dev": "dev",
         "extract_error": "extract_error",
+        END: END,
     })
     builder.add_conditional_edges("extract_error", route_after_tools, {
         "dev": "dev",
@@ -935,6 +966,7 @@ async def run_dev_agent(
         "validated_files": [],
         "file_validation_errors": "",
         "file_validation_retries": 0,
+        "stale_error_keys": [],
     }
 
     try:

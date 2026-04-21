@@ -1,0 +1,100 @@
+{
+  "generated_at": "2026-04-21T05:29:56.164700+00:00",
+  "temporal_address": "temporal:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "sanity_mode": true,
+  "workflow_success_count": 0,
+  "workflow_failure_count": 1,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 0,
+  "build_unknown_count": 0,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 0,
+  "failure_count": 1,
+  "total_duration_seconds": 282.96,
+  "total_learner_events_delta": 3,
+  "quality_dashboard": {
+    "spec_validation_status_counts": {
+      "degraded_spec_gate_blocked": 0,
+      "semantic_violation_at_dev": 0,
+      "ok_or_partial": 1
+    },
+    "requirements_mappable_met_ratio": 0.0,
+    "build_not_run_count": 1,
+    "strict_success_rate": 0.0,
+    "usable_success_rate": 0.0
+  },
+  "phase1_scoreboard": {
+    "build_success_rate": 0.0,
+    "unknown_root_cause_rate_on_failed": 1.0,
+    "prisma_validate_ok_rate_on_runs_with_schema": 0.0,
+    "root_cause_distribution_failed": {
+      "unknown": 1
+    },
+    "ts_error_code_distribution": {},
+    "top_ts_failing_files": {},
+    "ts_signal_anomaly_count": 0
+  },
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-task-manager-c682f238",
+      "run_id": "019dae7f-efa2-7744-bbca-f94274c39378",
+      "project_name": "task-manager",
+      "brief_description": "Application de gestion de t\u00e2ches personnelles. Chaque utilisateur g\u00e8re sa propre liste de t\u00e2ches avec titre, date limite optionnelle et statut done/todo.",
+      "started_at": "2026-04-21T05:25:13.124766+00:00",
+      "duration_seconds": 282.96,
+      "workflow_success": false,
+      "build_success": false,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": "FAILED_UNRECOVERABLE",
+      "build_status": "NOT_RUN",
+      "error": null,
+      "workflow_error_message": "Activity task failed",
+      "learner_events_before": 4241,
+      "learner_events_after": 4244,
+      "learner_events_delta": 3,
+      "result_excerpt": "TodoPilotOutput(workflow_status='FAILED_UNRECOVERABLE', build_status='NOT_RUN', project_name='task-manager', generated_files_count=0, pr_url='N/A', repo_url='N/A', dev_files_count=0, test_files_count=0, duration_seconds=281.872384, error_message='Activity task failed', activity_results={'workflow': {'error': 'Activity task failed', 'status': 'FAILED'}})",
+      "activity_results": {
+        "workflow": {
+          "error": "Activity task failed",
+          "status": "FAILED"
+        }
+      },
+      "run_metric": {
+        "build_attempted": null,
+        "build_attempts": null,
+        "build_success": null,
+        "iterations": null,
+        "final_message": null,
+        "root_cause_category": null,
+        "spec_coverage": null,
+        "requirements_met": null,
+        "requirements_unmet": null,
+        "requirements_unknown": null,
+        "requirements_total": null,
+        "tests_passed": null,
+        "tsc_ran_by_activity": null,
+        "tsc_ok_by_activity": null,
+        "tsc_skipped_by_activity": null,
+        "tsc_errors_count_by_activity": null,
+        "tsc_feedback_retry_triggered": null,
+        "tsc_feedback_prompt_preview": "",
+        "semantic_violations": [],
+        "last_failed_command": "",
+        "last_build_error": "",
+        "error": "",
+        "prisma_validate": {
+          "cli_found": null,
+          "ran": null,
+          "ok": null,
+          "schema_path": ""
+        }
+      }
+    }
+  ]
+}

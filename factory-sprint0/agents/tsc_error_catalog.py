@@ -113,6 +113,32 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
         "_pattern": r"error TS2304: Cannot find name '([^']+)'",
         "_extract": lambda m: m.group(1),
         "entries": [
+            # Entrée prioritaire : composants/hooks Next.js sans import explicite
+            {
+                "condition": lambda name: name in (
+                    "Link", "Image", "useRouter", "usePathname",
+                    "useSearchParams", "useParams", "redirect",
+                    "notFound", "permanentRedirect",
+                ),
+                "context_hint": lambda name: (
+                    f"⚠️  IMPORT NEXT.JS MANQUANT (TS2304) : '{name}' utilisé sans import.\n"
+                    f"  FIX — ajoute l'import correspondant en tête de fichier :\n"
+                    + {
+                        "Link":             "  import Link from 'next/link'",
+                        "Image":            "  import Image from 'next/image'",
+                        "useRouter":        "  import {{ useRouter }} from 'next/navigation'",
+                        "usePathname":      "  import {{ usePathname }} from 'next/navigation'",
+                        "useSearchParams":  "  import {{ useSearchParams }} from 'next/navigation'",
+                        "useParams":        "  import {{ useParams }} from 'next/navigation'",
+                        "redirect":         "  import {{ redirect }} from 'next/navigation'",
+                        "notFound":         "  import {{ notFound }} from 'next/navigation'",
+                        "permanentRedirect":"  import {{ permanentRedirect }} from 'next/navigation'",
+                    }.get(name, f"  import {{ {name} }} from 'next/navigation'")
+                ),
+                "rag_query": "Next.js import Link Image useRouter usePathname next/link next/navigation",
+                "action": "FIX_NEXTJS_IMPORT",
+            },
+            # Fallback générique : type/interface absent de lib/types.ts
             {
                 "condition": lambda name: True,
                 "context_hint": lambda name: (
@@ -254,6 +280,20 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
         "_pattern": r"error TS2305: Module '([^']+)' has no exported member '([^']+)'",
         "_extract": lambda m: (m.group(1), m.group(2)),
         "entries": [
+            {
+                # Clerk V4 → V6 : auth/currentUser doivent venir de @clerk/nextjs/server
+                "condition": lambda mod, name: "@clerk/nextjs" in mod and "server" not in mod and name in ("auth", "currentUser", "clerkClient"),
+                "context_hint": lambda mod, name: (
+                    f"⚠️  IMPORT CLERK INCORRECT (TS2305) : '{name}' n'existe pas dans '@clerk/nextjs'.\n"
+                    f"  CAUSE : syntaxe Clerk V4 détectée. La stack utilise Clerk V5/V6.\n"
+                    f"  FIX OBLIGATOIRE dans TOUS les fichiers qui ont cette erreur :\n"
+                    f"    INTERDIT  → import {{ {name} }} from '@clerk/nextjs'\n"
+                    f"    CORRECT   → import {{ {name} }} from '@clerk/nextjs/server'\n"
+                    f"  S'applique à : app/api/**/route.ts et tous les Server Components."
+                ),
+                "rag_query": "clerk auth currentUser server import nextjs/server API route",
+                "action": "FIX_CLERK_SERVER_IMPORT",
+            },
             {
                 # Import depuis lib/services : mauvais pattern (fonctions nommées vs objet service)
                 "condition": lambda mod, name: "services" in mod,
