@@ -53,6 +53,19 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         kebab = _re.sub(r"(?<!^)(?=[A-Z])", "-", m.name).lower()
         files.append(f"lib/services/{kebab}.service.ts")
 
+    # pages-client : pour chaque page marquée [INTERACTIVE] dans pages_detail,
+    # ajouter le fichier page-client.tsx correspondant à la checklist.
+    pages_detail = getattr(spec, "pages_detail", {}) or {}
+    if isinstance(pages_detail, dict):
+        for path, detail in pages_detail.items():
+            if "[INTERACTIVE]" in str(detail):
+                page_slug = path.strip("/")
+                client_file = (
+                    f"app/{page_slug}/page-client.tsx"
+                    if page_slug else "app/page-client.tsx"
+                )
+                files.append(client_file)
+
     # Déduplique en préservant l'ordre.
     seen: set[str] = set()
     result: list[str] = []
@@ -103,12 +116,17 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     if len(spec.models) >= 2:
         contexts.append("multi-table")
 
+    # "interactive-pages" : toujours déclenché car tout brief avec pages a des boutons CRUD
+    if spec.pages:
+        contexts.append("interactive-pages")
+
     # ── Requêtes ciblées par contexte ────────────────────────────────────────
     CONTEXT_QUERIES: dict[str, str] = {
-        "always":          "sécurité auth ownership CreateInput sans userId logging healthcheck",
-        "list-routes":     "pagination findMany skip take PaginatedResponse select minimal",
-        "relation-models": "N+1 prevention include select imbriqué findUnique loop",
-        "multi-table":     "transaction prisma $transaction séquentielle interactive rollback",
+        "always":            "sécurité auth ownership CreateInput sans userId logging healthcheck",
+        "list-routes":       "pagination findMany skip take PaginatedResponse select minimal",
+        "relation-models":   "N+1 prevention include select imbriqué findUnique loop",
+        "multi-table":       "transaction prisma $transaction séquentielle interactive rollback",
+        "interactive-pages": "Server Component Client Component onClick use client split interactive buttons",
     }
 
     snippets: list[str] = []
@@ -199,11 +217,25 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
 
     # pages_detail — instructions d'affichage précises pour chaque page
     # Sans ce bloc, le LLM invente le contenu des pages au lieu de suivre le brief.
+    # Les pages marquées [INTERACTIVE] reçoivent une instruction explicite de split Server+Client.
     pages_detail_block = ""
     if spec.pages_detail and isinstance(spec.pages_detail, dict):
         detail_lines = []
         for path, detail in spec.pages_detail.items():
-            detail_lines.append(f"  {path} :\n    {str(detail).strip()}")
+            detail_str = str(detail).strip()
+            if "[INTERACTIVE]" in detail_str:
+                page_slug = path.strip("/").replace("/", "-") or "home"
+                client_file = (
+                    f"app/{path.strip('/')}/page-client.tsx"
+                    if path.strip("/") else "app/page-client.tsx"
+                )
+                detail_str += (
+                    f"\n    ⚠️  SPLIT OBLIGATOIRE : créer {client_file} avec '\"use client\"' "
+                    f"en ligne 1 pour les boutons/handlers. "
+                    f"app/{path.strip('/') + '/' if path.strip('/') else ''}page.tsx reste Server Component "
+                    f"(fetch données) et rend <{page_slug.title().replace('-', '')}Client ... />."
+                )
+            detail_lines.append(f"  {path} :\n    {detail_str}")
         if detail_lines:
             pages_detail_block = (
                 "\n══════════════════════════════════════════════════════════════\n"
@@ -339,25 +371,4 @@ WORKFLOW (suis cet ordre STRICTEMENT)
    - Maximum 3 tentatives de build
 
 {stack_rules_block}
-══════════════════════════════════════════════════════════════
-INTERDITS ABSOLUS — violations qui font échouer le build
-══════════════════════════════════════════════════════════════
-Ces patterns sont INCORRECTS pour cette stack (Clerk V5/V6, Next.js 14 App Router) :
-
-  ❌  import {{ auth }} from '@clerk/nextjs'          → INTERDIT (Clerk V4)
-  ✅  import {{ auth }} from '@clerk/nextjs/server'   → CORRECT
-
-  ❌  import {{ currentUser }} from '@clerk/nextjs'   → INTERDIT (Clerk V4)
-  ✅  import {{ currentUser }} from '@clerk/nextjs/server'
-
-  ❌  import {{ getAuth }} from '@clerk/nextjs/server'  → INTERDIT (n'existe pas)
-  ✅  const {{ userId }} = await auth()                 → CORRECT
-
-  ❌  import Link from 'react'                        → INTERDIT
-  ✅  import Link from 'next/link'
-
-  ❌  import {{ useRouter }} from 'react'             → INTERDIT
-  ✅  import {{ useRouter }} from 'next/navigation'
-
-Si tu es incertain sur un import → utilise rag_search("clerk auth import nextjs/server") avant d'écrire.
 """.replace("{WORKDIR}", "/app/generated-projects")

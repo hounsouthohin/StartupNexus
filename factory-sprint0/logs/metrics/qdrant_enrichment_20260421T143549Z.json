@@ -1,0 +1,13 @@
+{
+  "injected": [
+    {
+      "point_id": "0d7e19fe-e51b-628c-8ea0-4e1af3acc961",
+      "category": "nextjs",
+      "priority": "CRITICAL",
+      "text_excerpt": "Next.js 14 App Router \u2014 Server Component vs Client Component (CRITIQUE). R\u00e8gle absolue : un Server C...",
+      "generated_at": "2026-04-21T14:35:49.351938+00:00",
+      "collection": "factory_standards"
+    }
+  ],
+  "count": 1
+}

@@ -1,0 +1,43 @@
+{
+  "run_id": "529c6617-eee0-49ae-9c5c-7c062863711a",
+  "workflow_id": "todo-pilot-leave-manager",
+  "project_name": "leave-manager",
+  "generated_at": "2026-04-21T15:29:56.158685+00:00",
+  "duration_seconds": 410.09194,
+  "build_success": false,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.la",
+  "spec_coverage": 1.0,
+  "requirements_met": 24,
+  "requirements_unmet": 0,
+  "requirements_unknown": 0,
+  "requirements_total": 24,
+  "requirements_unmet_list": [],
+  "requirements_unknown_list": [],
+  "files_generated": 50,
+  "dev_files_count": 50,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_vfolv298/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_vfolv298/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": false,
+  "tsc_errors_count": 22,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": false,
+  "error": "BuildFailed: GraphRecursionError: Recursion limit of 80 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.la"
+}

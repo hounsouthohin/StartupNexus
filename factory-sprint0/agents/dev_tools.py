@@ -65,14 +65,40 @@ def write_file(path: str, content: str) -> str:
     path: chemin relatif (ex: 'app/layout.tsx', 'package.json', '.env.local')
     content: contenu complet du fichier
     """
+    import json as _json
     try:
         norm_path = str(path).strip().replace("\\", "/").lstrip("/")
         abs_path = _safe_path(path)
+
+        # Guard : fichiers protégés par template (écrits par la factory avant le LLM).
         if norm_path in _protected_files and os.path.exists(abs_path):
             return (
                 f"ERREUR write_file({path}): fichier protégé par template. "
                 "Lis-le avec read_file() et évite toute réécriture."
             )
+
+        # Validation package.json : JSON strict requis.
+        if norm_path == "package.json":
+            try:
+                parsed = _json.loads(content)
+            except _json.JSONDecodeError as je:
+                return (
+                    f"ERREUR: package.json invalide (JSON parse failed). "
+                    f"Ligne {je.lineno}, col {je.colno}: {je.msg}. "
+                    "Réécris package.json avec un JSON strict (pas de virgule finale)."
+                )
+            if not isinstance(parsed, dict):
+                return "ERREUR: package.json invalide (la racine doit être un objet JSON)."
+            content = _json.dumps(parsed, ensure_ascii=False, indent=2) + "\n"
+
+        # Validation prisma/schema.prisma : au moins un bloc model requis.
+        if norm_path == "prisma/schema.prisma":
+            if not re.search(r"(?m)^\s*model\s+\w+\s*\{", content or ""):
+                return (
+                    "ERREUR: prisma/schema.prisma incomplet — aucun bloc 'model Nom { ... }' trouvé. "
+                    "Ajoute les modèles du brief avant d'écrire ce fichier."
+                )
+
         os.makedirs(os.path.dirname(abs_path), exist_ok=True)
         Path(abs_path).write_text(content, encoding="utf-8")
         return f"OK: {path} écrit ({len(content)} chars)"

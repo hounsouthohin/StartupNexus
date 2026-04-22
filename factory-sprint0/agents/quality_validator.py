@@ -23,7 +23,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from agents.prebuild_pipeline import StageResult, Violation
+from agents.pipeline_types import StageResult, Violation
 
 STAGE_QUALITY_RULES = "quality_rules"
 CHECKER_SCRIPT = Path(__file__).resolve().parents[1] / "quality_checker" / "quality_check.mjs"

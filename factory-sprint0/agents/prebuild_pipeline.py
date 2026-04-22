@@ -15,10 +15,10 @@ import re
 import shutil
 import subprocess
 import time
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Literal
+
+from agents.pipeline_types import Violation, StageResult, PrebuildReport  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -60,41 +60,6 @@ _ESLINT_FIX_HINTS: dict[str, str] = {
     "no-restricted-imports": "Remplace l'import interdit par l'import stack autorisé.",
     "import/no-relative-packages": "Remplace l'import relatif inter-package par un alias/chemin autorisé.",
 }
-
-
-@dataclass
-class Violation:
-    rule_id: str
-    file: str
-    reason: str
-    fix_hint: str
-    line: int | None = None
-    col: int | None = None
-
-
-@dataclass
-class StageResult:
-    stage_id: str
-    tool: str
-    status: Literal["ok", "failed", "skipped", "error"]
-    duration_ms: int
-    violations: list[Violation] = field(default_factory=list)
-    exit_code: int | None = None
-    evidence: str = ""
-
-
-@dataclass
-class PrebuildReport:
-    run_id: str
-    project_name: str
-    stack_id: str
-    timestamp: str
-    blocking: bool
-    stages: list[StageResult]
-    violations: list[Violation]
-    llm_correction_bundle: str
-    stages_passed: list[str]
-    stages_failed: list[str]
 
 
 def _truncate(text: str, n: int = _MAX_EVIDENCE_CHARS) -> str:
@@ -720,6 +685,26 @@ async def _run_ast_use_client(project_dir: str) -> StageResult:
 
         return sorted(detected)
 
+    def _detect_event_handlers(root_node, src: bytes) -> list[str]:
+        """Détecte les event handlers JSX (onClick, onChange, onSubmit…) dans l'AST.
+        Utilisé pour repérer les Server Components qui ont des handlers interactifs
+        sans 'use client' — bug silencieux à runtime, pas d'erreur TypeScript.
+        """
+        detected: set[str] = set()
+        stack = [root_node]
+        while stack:
+            node = stack.pop()
+            if getattr(node, "type", "") == "jsx_attribute":
+                named = getattr(node, "named_children", None) or []
+                if named:
+                    attr_name = _node_text(named[0], src).strip()
+                    if re.match(r"^on[A-Z]\w*$", attr_name):
+                        detected.add(attr_name)
+            children = getattr(node, "children", None) or []
+            if children:
+                stack.extend(children)
+        return sorted(detected)
+
     def _first_statement_is_use_client(root_node, src: bytes) -> bool:
         for child in (getattr(root_node, "named_children", None) or []):
             stmt = _node_text(child, src).strip()
@@ -801,6 +786,32 @@ async def _run_ast_use_client(project_dir: str) -> StageResult:
                         )
                     )
 
+            # Check 3 — event handlers JSX dans un Server Component (onClick, onChange, etc.)
+            # Ces handlers sont silencieusement non-fonctionnels à runtime — pas d'erreur TypeScript.
+            if not has_use_client:
+                event_handlers = _detect_event_handlers(root, src)
+                if event_handlers:
+                    handlers_str = ", ".join(event_handlers[:6])
+                    client_file = rel_path.replace("page.tsx", "page-client.tsx")
+                    violations.append(
+                        Violation(
+                            rule_id="server_event_handler",
+                            file=rel_path,
+                            line=None,
+                            col=None,
+                            reason=(
+                                f"Event handlers JSX ({handlers_str}) détectés dans un Server Component "
+                                f"(sans 'use client') — silencieusement non-fonctionnels à l'exécution."
+                            ),
+                            fix_hint=(
+                                f"Créer {client_file} avec '\"use client\"' en ligne 1, "
+                                f"y déplacer les éléments interactifs ({handlers_str}). "
+                                f"Dans {rel_path} (Server Component), importer et rendre <PageClient ... /> "
+                                "en lui passant les données comme props."
+                            ),
+                        )
+                    )
+
             # Check 2 — "use client" avec imports server-only (boundary violation)
             if has_use_client:
                 server_imports = _has_server_only_imports(root, src)
@@ -830,11 +841,14 @@ async def _run_ast_use_client(project_dir: str) -> StageResult:
     if violations:
         use_client_count = sum(1 for v in violations if v.rule_id == "use_client")
         boundary_count = sum(1 for v in violations if v.rule_id == "client_server_boundary")
+        event_handler_count = sum(1 for v in violations if v.rule_id == "server_event_handler")
         evidence_parts = []
         if use_client_count:
             evidence_parts.append(f"{use_client_count} use_client manquant(s)")
         if boundary_count:
             evidence_parts.append(f"{boundary_count} client_server_boundary")
+        if event_handler_count:
+            evidence_parts.append(f"{event_handler_count} server_event_handler(s)")
         evidence = (
             f"{len(violations)} violation(s) AST [{', '.join(evidence_parts)}] "
             f"sur {len(targets)} fichiers cibles (fichiers avec hooks={hooks_seen})"

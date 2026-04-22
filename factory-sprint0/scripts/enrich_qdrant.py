@@ -386,6 +386,38 @@ def inject_untyped_array_standard(client: QdrantClient, embeddings: Any) -> dict
     }
 
 
+SERVER_CLIENT_SPLIT_STANDARD = {
+    "category": "nextjs",
+    "text": (
+        "Next.js 14 App Router — Server Component vs Client Component (CRITIQUE). "
+        "Règle absolue : un Server Component (sans 'use client') NE PEUT PAS contenir onClick, "
+        "onChange, useState, useEffect, useRouter, ni aucun handler d'événement. "
+        "Ces éléments sont silencieusement non-fonctionnels en Server Component — pas d'erreur build, "
+        "mais l'application est cassée à l'exécution. "
+        "PATTERN OBLIGATOIRE pour toute page avec boutons/formulaires ET fetch de données : "
+        "séparer en deux fichiers. "
+        "Fichier 1 — Server Component (page.tsx, sans 'use client') : "
+        "  export default async function TasksPage() { "
+        "    const tasks = await taskService.findMany(userId); "
+        "    return <TasksClient tasks={tasks} />; "
+        "  } "
+        "Fichier 2 — Client Component (tasks-client.tsx, avec 'use client') : "
+        "  'use client'; "
+        "  export function TasksClient({ tasks }: { tasks: Task[] }) { "
+        "    return tasks.map(t => <button onClick={() => handleDelete(t.id)}>Supprimer</button>); "
+        "  } "
+        "Règles de détection : si le brief décrit des boutons (Modifier, Supprimer, Ajouter, Valider, "
+        "Annuler) sur une page qui affiche des données, le pattern Server+Client est OBLIGATOIRE. "
+        "Le Server Component porte le fetch de données. "
+        "Le Client Component porte toute interactivité (onClick, formulaires, états locaux). "
+        "Ne jamais mettre 'use client' sur une page qui appelle prisma ou auth() directement — "
+        "déléguer le fetch au Server Component parent ou utiliser un Server Action."
+    ),
+    "tags": ["nextjs", "server-component", "client-component", "use-client", "onclick", "split", "app-router", "interactive"],
+    "priority": "CRITICAL",
+}
+
+
 APP_ROUTER_ROUTING_STANDARD = {
     "category": "nextjs",
     "text": (
@@ -498,6 +530,39 @@ def fix_prisma7_datasource_standard(client: QdrantClient, embeddings: Any) -> di
         "point_id": PRISMA7_DATASOURCE_STANDARD_ID,
         "action": "fix_prisma7_datasource",
         "text_excerpt": text[:120] + "...",
+    }
+
+
+def inject_server_client_split_standard(client: QdrantClient, embeddings: Any) -> dict:
+    """Injecte le standard Server+Client Component split pour les pages interactives."""
+    text = SERVER_CLIENT_SPLIT_STANDARD["text"]
+    vector = embeddings.embed_query(text)
+    point_id = text_to_uuid(text)
+    payload = {
+        "text": text,
+        "metadata": {
+            "category": SERVER_CLIENT_SPLIT_STANDARD["category"],
+            "tags": SERVER_CLIENT_SPLIT_STANDARD["tags"],
+            "priority": SERVER_CLIENT_SPLIT_STANDARD["priority"],
+            "source": "manual_injection",
+            "tech": "nextjs,react,app-router",
+            "version": "static",
+            "outcome": "hard_rule",
+            "stack": "nextjs-clerk-prisma",
+            "status": "active",
+            "zone": "ZONE_17-frontend-components",
+        },
+    }
+    client.upsert(
+        collection_name=QDRANT_COLLECTION_NAME,
+        points=[PointStruct(id=point_id, vector=vector, payload=payload)],
+        wait=True,
+    )
+    return {
+        "point_id": point_id,
+        "category": SERVER_CLIENT_SPLIT_STANDARD["category"],
+        "priority": SERVER_CLIENT_SPLIT_STANDARD["priority"],
+        "text_excerpt": text[:100] + "...",
     }
 
 
@@ -687,6 +752,12 @@ def _parse_args() -> argparse.Namespace:
         help="Injecte le standard App Router routing (/ → app/page.tsx) dans Qdrant.",
     )
     parser.add_argument(
+        "--inject-server-client-split",
+        action="store_true",
+        default=False,
+        help="Injecte le standard Server+Client Component split pour les pages interactives.",
+    )
+    parser.add_argument(
         "--fix-prisma7-datasource",
         action="store_true",
         default=False,
@@ -737,6 +808,7 @@ if __name__ == "__main__":
         or args.fix_prisma7_datasource
         or args.inject_untyped_array
         or args.inject_prisma_schema_structure
+        or args.inject_server_client_split
         or args.backfill_metadata_source_zone
     ):
         _client = QdrantClient(url=qdrant_url)
@@ -751,6 +823,7 @@ if __name__ == "__main__":
             or args.fix_prisma7_datasource
             or args.inject_untyped_array
             or args.inject_prisma_schema_structure
+            or args.inject_server_client_split
         ):
             _embeddings = get_embeddings(os.getenv("EMBEDDING_MODEL", "text-embedding-3-large"))
         if args.inject_clerk_standard:
@@ -790,6 +863,11 @@ if __name__ == "__main__":
             results.append(r)
         if args.inject_prisma_schema_structure:
             r = inject_prisma_schema_structure_standard(_client, _embeddings)
+            r["generated_at"] = datetime.now(timezone.utc).isoformat()
+            r["collection"] = QDRANT_COLLECTION_NAME
+            results.append(r)
+        if args.inject_server_client_split:
+            r = inject_server_client_split_standard(_client, _embeddings)
             r["generated_at"] = datetime.now(timezone.utc).isoformat()
             r["collection"] = QDRANT_COLLECTION_NAME
             results.append(r)

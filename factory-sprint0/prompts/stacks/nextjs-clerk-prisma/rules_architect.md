@@ -64,6 +64,24 @@ INTERDIT : copier les noms d'entités depuis les standards RAG — ce sont des p
 - Representer explicitement le flux pages -> auth -> API -> DB.
 - Interdit: diagramme generique `graph TD` sans composants applicatifs.
 
+### PAGES INTERACTIVES — MARQUAGE OBLIGATOIRE DANS pages_detail
+Marquer avec `[INTERACTIVE]` uniquement les pages qui COMBINENT fetch de données serveur
+ET boutons/handlers d'action (Modifier, Supprimer, Changer statut, Approuver, etc.).
+Ces pages ont besoin d'un split Server Component (fetch) + Client Component (handlers).
+
+```
+"/tasks":     "Liste des tâches avec boutons Modifier et Supprimer [INTERACTIVE]"
+"/tasks/[id]":"Détail avec bouton Terminer et formulaire commentaire inline [INTERACTIVE]"
+"/tasks/new": "Formulaire de création (Client Component uniquement — pas de [INTERACTIVE])"
+```
+
+Règle de décision :
+- Page avec données + boutons d'action → `[INTERACTIVE]` obligatoire
+- Page formulaire pur (création/édition uniquement) → PAS de `[INTERACTIVE]`, déjà Client Component
+- Page lecture seule (dashboard métriques, détail sans bouton) → PAS de `[INTERACTIVE]`
+
+Ce marquage déclenche la génération d'un `page-client.tsx` séparé dans le DevAgent.
+
 ### MOTS INTERDITS DANS LA SPEC
 - "React.js or Angular"
 - "OAuth 2.0"

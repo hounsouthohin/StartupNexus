@@ -7,11 +7,14 @@ Format v3 — chaque brief contient :
 - models        : Prisma DSL verbatim
 - pages         : [{"path": "/...", "auth": bool}]
 - pages_detail  : {"path": "QUOI afficher, quels champs, quelles actions, état vide"}
+                  Les pages avec boutons/formulaires d'action sont marquées [INTERACTIVE].
 - routes        : [{"method": "...", "path": "/api/..."}]
 - user_flows    : flux utilisateur principaux
 
 pages_detail est le champ le plus critique : il dit au spec_writer exactement
 quoi afficher sur chaque page, ce que le LLM ne peut pas deviner seul.
+[INTERACTIVE] déclenche la génération d'un Client Component séparé (page-client.tsx)
+pour les éléments interactifs — les boutons/handlers ne peuvent pas être dans un Server Component.
 """
 from __future__ import annotations
 
@@ -21,363 +24,490 @@ from typing import Dict, List
 PHASE0_BRIEFS: List[Dict] = [
 
     # ──────────────────────────────────────────────────────────────────
-    # Famille 1 — CRUD simple (1 modèle)
+    # Projet 1 — Gestion de projets et tâches (project-hub)
+    # 3 modèles : Project, Task, Comment
+    # Complexité : relations imbriquées, workflow statut, commentaires
     # ──────────────────────────────────────────────────────────────────
     {
-        "project_name": "task-manager",
-        "family": "crud_simple",
-        "tags": ["crud", "single_model", "auth_guard"],
+        "project_name": "project-hub",
+        "family": "project_management",
+        "tags": ["multi_model", "relations", "status_workflow", "comments", "nested_routes"],
         "brief": {
-            "description": "Application de gestion de tâches personnelles. Chaque utilisateur gère sa propre liste de tâches avec titre, date limite optionnelle et statut done/todo.",
-            "architecture": "SaaS single-tenant — toutes les pages sont protégées par Clerk. Un utilisateur ne voit que ses propres tâches (filtrées par userId). CRUD complet : liste, détail, création, mise à jour, suppression.",
+            "description": (
+                "Application SaaS de gestion de projets et tâches. "
+                "L'utilisateur crée des projets, y ajoute des tâches avec priorité et statut, "
+                "et peut commenter chaque tâche. Vue kanban par projet (todo/in-progress/done)."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Task est liée à Project via projectId. Comment est liée à Task via taskId "
+                "avec authorId (= userId Clerk). "
+                "Workflow statut Task : todo → in-progress → done. "
+                "CRUD complet sur projets, tâches et commentaires."
+            ),
             "models": [
-                "Task { id String @id @default(uuid()), title String, done Boolean @default(false), dueDate DateTime?, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+                (
+                    "Project { id String @id @default(uuid()), name String, "
+                    "description String?, status String @default(\"active\"), "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Task { id String @id @default(uuid()), title String, "
+                    "description String?, status String @default(\"todo\"), "
+                    "priority String @default(\"medium\"), "
+                    "projectId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([projectId]), @@index([userId]) }"
+                ),
+                (
+                    "Comment { id String @id @default(uuid()), content String, "
+                    "taskId String, authorId String, "
+                    "createdAt DateTime @default(now()), @@index([taskId]) }"
+                ),
             ],
             "pages": [
-                {"path": "/tasks", "auth": True},
-                {"path": "/tasks/[id]", "auth": True},
-                {"path": "/tasks/new", "auth": True},
+                {"path": "/projects",                     "auth": True},
+                {"path": "/projects/new",                 "auth": True},
+                {"path": "/projects/[id]",                "auth": True},
+                {"path": "/projects/[id]/tasks/new",      "auth": True},
+                {"path": "/tasks/[id]",                   "auth": True},
             ],
             "pages_detail": {
-                "/tasks": (
-                    "Liste de toutes les tâches de l'utilisateur connecté. "
-                    "Chaque ligne affiche : titre de la tâche, date limite formatée (ex: '15 mai 2026') ou 'Sans échéance', "
-                    "badge coloré vert 'Terminée' ou gris 'En cours'. "
-                    "Lien cliquable sur chaque ligne vers /tasks/[id]. "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/tasks/[id]). "
-                    "Bouton 'Nouvelle tâche' en haut à droite → /tasks/new. "
-                    "Si liste vide : message 'Aucune tâche. Commencez par en créer une !' avec lien vers /tasks/new."
+                "/projects": (
+                    "Liste des projets de l'utilisateur. "
+                    "Chaque carte affiche : nom du projet, description courte (60 chars max), "
+                    "badge statut (active=vert, archived=gris), date de création. "
+                    "Lien cliquable → /projects/[id]. "
+                    "Bouton 'Archiver' (PATCH /api/projects/[id] { status: 'archived' }) si active. "
+                    "Bouton 'Réactiver' (PATCH { status: 'active' }) si archived. "
+                    "Bouton 'Supprimer' (DELETE /api/projects/[id]). "
+                    "Bouton 'Nouveau projet' en haut à droite → /projects/new. "
+                    "Si liste vide : 'Aucun projet. Créez votre premier projet !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/projects/new": (
+                    "Formulaire de création de projet (Client Component). "
+                    "Champs : nom (input text, required, placeholder 'Nom du projet'), "
+                    "description (textarea, optionnel, placeholder 'Description du projet'). "
+                    "Bouton 'Créer le projet'. "
+                    "Submit → POST /api/projects { name, description } → redirect /projects/[id]. "
+                    "Erreur inline si nom vide."
+                ),
+                "/projects/[id]": (
+                    "Page du projet. Titre en H1, description, badge statut. "
+                    "3 colonnes côte à côte : 'À faire' (todo), 'En cours' (in-progress), 'Terminé' (done). "
+                    "Chaque colonne liste les tâches filtrées par statut. "
+                    "Chaque tâche affiche : titre, badge priorité (high=rouge, medium=jaune, low=gris), "
+                    "lien → /tasks/[id], bouton 'Supprimer' (DELETE /api/tasks/[id]). "
+                    "Bouton de transition par tâche : 'Démarrer' (todo→in-progress, PATCH /api/tasks/[id] { status: 'in-progress' }), "
+                    "'Terminer' (in-progress→done, PATCH { status: 'done' }). "
+                    "Bouton 'Nouvelle tâche' → /projects/[id]/tasks/new. "
+                    "Bouton retour '← Mes projets'. "
+                    "notFound() si projet introuvable ou n'appartient pas à l'utilisateur. "
+                    "[INTERACTIVE]"
+                ),
+                "/projects/[id]/tasks/new": (
+                    "Formulaire de création de tâche (Client Component). "
+                    "Champs : titre (input text, required), "
+                    "description (textarea, optionnel), "
+                    "priorité (select : low / medium / high, défaut : medium). "
+                    "Bouton 'Créer la tâche'. "
+                    "Submit → POST /api/projects/[id]/tasks { title, description, priority } "
+                    "→ redirect /projects/[id]. "
+                    "Erreur inline si titre vide."
                 ),
                 "/tasks/[id]": (
-                    "Détail d'une tâche. Affiche : titre en H1, statut (badge vert 'Terminée' / gris 'En cours'), "
-                    "date limite ou 'Sans échéance', date de création (format lisible). "
-                    "Bouton 'Marquer comme terminée' si done=false (PATCH /api/tasks/[id] { done: true }). "
-                    "Bouton 'Rouvrir' si done=true (PATCH /api/tasks/[id] { done: false }). "
-                    "Bouton retour '← Mes tâches' vers /tasks. "
-                    "Si tâche introuvable ou n'appartient pas à l'utilisateur : notFound()."
-                ),
-                "/tasks/new": (
-                    "Formulaire de création de tâche (Client Component). "
-                    "Champs : titre (input text, required, placeholder 'Titre de la tâche'), "
-                    "date limite (input date, optionnel). "
-                    "Bouton 'Créer la tâche' (submit). "
-                    "Submit → POST /api/tasks avec { title, dueDate } → redirect vers /tasks. "
-                    "Afficher un message d'erreur inline si le titre est vide."
+                    "Détail d'une tâche. Titre en H1, description, badge priorité, badge statut. "
+                    "Boutons de transition de statut : "
+                    "'Démarrer' si todo (PATCH /api/tasks/[id] { status: 'in-progress' }), "
+                    "'Terminer' si in-progress (PATCH { status: 'done' }), "
+                    "'Réouvrir' si done (PATCH { status: 'todo' }). "
+                    "Section 'Commentaires' : liste des commentaires triés par date croissante "
+                    "(contenu, auteur=authorId tronqué, date formatée). "
+                    "Bouton 'Supprimer' par commentaire si authorId = userId connecté "
+                    "(DELETE /api/comments/[id]). "
+                    "Formulaire inline en bas : textarea placeholder 'Ajouter un commentaire' "
+                    "+ bouton 'Commenter' (POST /api/tasks/[id]/comments { content }). "
+                    "Bouton retour '← Projet'. "
+                    "notFound() si tâche introuvable. "
+                    "[INTERACTIVE]"
                 ),
             },
             "routes": [
-                {"method": "GET",    "path": "/api/tasks"},
-                {"method": "POST",   "path": "/api/tasks"},
+                {"method": "GET",    "path": "/api/projects"},
+                {"method": "POST",   "path": "/api/projects"},
+                {"method": "GET",    "path": "/api/projects/[id]"},
+                {"method": "PATCH",  "path": "/api/projects/[id]"},
+                {"method": "DELETE", "path": "/api/projects/[id]"},
+                {"method": "GET",    "path": "/api/projects/[id]/tasks"},
+                {"method": "POST",   "path": "/api/projects/[id]/tasks"},
                 {"method": "GET",    "path": "/api/tasks/[id]"},
                 {"method": "PATCH",  "path": "/api/tasks/[id]"},
                 {"method": "DELETE", "path": "/api/tasks/[id]"},
+                {"method": "POST",   "path": "/api/tasks/[id]/comments"},
+                {"method": "DELETE", "path": "/api/comments/[id]"},
             ],
             "user_flows": [
-                "L'utilisateur se connecte via Clerk et accède à /tasks (liste de ses tâches)",
-                "L'utilisateur crée une tâche : /tasks/new → POST /api/tasks → redirect /tasks",
-                "L'utilisateur consulte le détail d'une tâche : clic sur la ligne → /tasks/[id]",
-                "L'utilisateur marque une tâche terminée : bouton sur /tasks/[id] → PATCH /api/tasks/[id]",
-                "L'utilisateur supprime une tâche : bouton Supprimer sur /tasks → DELETE /api/tasks/[id]",
+                "L'utilisateur crée un projet : /projects/new → POST /api/projects → redirect /projects/[id]",
+                "L'utilisateur ajoute une tâche : /projects/[id]/tasks/new → POST /api/projects/[id]/tasks → redirect /projects/[id]",
+                "L'utilisateur déplace une tâche en 'En cours' : bouton sur /projects/[id] → PATCH /api/tasks/[id] { status: 'in-progress' }",
+                "L'utilisateur consulte une tâche et ajoute un commentaire : /tasks/[id] → POST /api/tasks/[id]/comments",
+                "L'utilisateur archive un projet terminé : bouton sur /projects → PATCH /api/projects/[id] { status: 'archived' }",
+                "L'utilisateur supprime une tâche : bouton sur /projects/[id] → DELETE /api/tasks/[id]",
             ],
         },
     },
 
     # ──────────────────────────────────────────────────────────────────
-    # Famille 2 — CRUD relationnel (Invoice → Client)
+    # Projet 2 — CRM contact (contact-crm)
+    # 3 modèles : Company, Contact, Interaction
+    # Complexité : dashboard agrégé, fetch côté Client Component,
+    #              relations Company→Contact→Interaction, query params pré-sélection
     # ──────────────────────────────────────────────────────────────────
     {
-        "project_name": "invoice-app",
-        "family": "crud_relational",
-        "tags": ["crud", "relations", "multi_model", "status_workflow"],
+        "project_name": "contact-crm",
+        "family": "crm",
+        "tags": ["multi_model", "dashboard", "aggregation", "relations", "client_fetch"],
         "brief": {
-            "description": "Application de facturation. L'utilisateur gère ses clients et crée des factures associées à un client. Une facture a un montant, un statut (draft/sent/paid) et est liée à un client.",
-            "architecture": "SaaS single-tenant. Invoice est liée à Client via clientId (relation Prisma @relation). Status workflow : draft → sent → paid. CRUD complet sur clients et factures. Toutes les pages protégées par Clerk.",
+            "description": (
+                "Mini CRM de gestion de contacts professionnels. "
+                "L'utilisateur gère ses entreprises clientes, les contacts dans chaque entreprise, "
+                "et l'historique des interactions (appels, emails, réunions) par contact."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Contact est lié à Company via companyId. "
+                "Interaction est liée à Contact via contactId. "
+                "Tous les modèles ont userId pour l'ownership direct. "
+                "Dashboard avec métriques agrégées calculées côté serveur. "
+                "Les formulaires de création chargent les listes de sélection via fetch côté client."
+            ),
             "models": [
-                "Client { id String @id @default(uuid()), name String, email String @unique, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
-                "Invoice { id String @id @default(uuid()), amount Float, status String @default(\"draft\"), clientId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([clientId]) }",
+                (
+                    "Company { id String @id @default(uuid()), name String, "
+                    "website String?, industry String, "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Contact { id String @id @default(uuid()), firstName String, lastName String, "
+                    "email String, phone String?, "
+                    "companyId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([companyId]) }"
+                ),
+                (
+                    "Interaction { id String @id @default(uuid()), "
+                    "type String, notes String, date DateTime, "
+                    "contactId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([contactId]) }"
+                ),
             ],
             "pages": [
-                {"path": "/clients", "auth": True},
-                {"path": "/clients/[id]", "auth": True},
-                {"path": "/clients/new", "auth": True},
-                {"path": "/invoices", "auth": True},
-                {"path": "/invoices/[id]", "auth": True},
-                {"path": "/invoices/new", "auth": True},
-            ],
-            "pages_detail": {
-                "/clients": (
-                    "Liste de tous les clients de l'utilisateur. "
-                    "Chaque ligne affiche : nom du client, email, nombre de factures (si disponible), date d'ajout. "
-                    "Lien cliquable vers /clients/[id]. "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/clients/[id]). "
-                    "Bouton 'Nouveau client' en haut à droite → /clients/new. "
-                    "Si liste vide : 'Aucun client. Ajoutez votre premier client !'."
-                ),
-                "/clients/[id]": (
-                    "Détail d'un client : nom en H1, email, date de création. "
-                    "Section 'Factures de ce client' : liste des factures avec montant, statut badge (draft=gris, sent=bleu, paid=vert), date. "
-                    "Bouton 'Nouvelle facture pour ce client' → /invoices/new?clientId=[id]. "
-                    "Bouton retour '← Clients'. notFound() si client introuvable."
-                ),
-                "/clients/new": (
-                    "Formulaire Client Component. Champs : nom (input text, required), email (input email, required). "
-                    "Submit → POST /api/clients → redirect /clients. "
-                    "Erreur inline si champ manquant."
-                ),
-                "/invoices": (
-                    "Liste de toutes les factures de l'utilisateur. "
-                    "Chaque ligne : numéro/id tronqué, nom du client (via relation), montant formaté en euros, "
-                    "badge statut (draft=gris, sent=bleu, paid=vert), date de création. "
-                    "Lien vers /invoices/[id]. "
-                    "Bouton 'Nouvelle facture' → /invoices/new. "
-                    "Si vide : 'Aucune facture. Créez votre première facture !'."
-                ),
-                "/invoices/[id]": (
-                    "Détail d'une facture : montant en H1 formaté, statut badge, nom du client (lien → /clients/[id]), date. "
-                    "Boutons de changement de statut : 'Marquer comme envoyée' (PATCH status:sent) si draft, "
-                    "'Marquer comme payée' (PATCH status:paid) si sent. "
-                    "Bouton 'Supprimer' (DELETE) si status=draft. "
-                    "Bouton retour '← Factures'. notFound() si introuvable."
-                ),
-                "/invoices/new": (
-                    "Formulaire Client Component. Champs : sélecteur client (select parmi les clients de l'utilisateur, required), "
-                    "montant (input number, required, min=0.01). "
-                    "Submit → POST /api/invoices { clientId, amount } → redirect /invoices. "
-                    "Charger la liste des clients via GET /api/clients au montage du composant."
-                ),
-            },
-            "routes": [
-                {"method": "GET",    "path": "/api/clients"},
-                {"method": "POST",   "path": "/api/clients"},
-                {"method": "GET",    "path": "/api/clients/[id]"},
-                {"method": "PATCH",  "path": "/api/clients/[id]"},
-                {"method": "DELETE", "path": "/api/clients/[id]"},
-                {"method": "GET",    "path": "/api/invoices"},
-                {"method": "POST",   "path": "/api/invoices"},
-                {"method": "GET",    "path": "/api/invoices/[id]"},
-                {"method": "PATCH",  "path": "/api/invoices/[id]"},
-                {"method": "DELETE", "path": "/api/invoices/[id]"},
-            ],
-            "user_flows": [
-                "L'utilisateur crée un client : /clients/new → POST /api/clients → redirect /clients",
-                "L'utilisateur crée une facture : /invoices/new (sélectionne un client, saisit le montant) → POST /api/invoices → redirect /invoices",
-                "L'utilisateur passe une facture en 'sent' : bouton sur /invoices/[id] → PATCH /api/invoices/[id] { status: 'sent' }",
-                "L'utilisateur passe une facture en 'paid' : bouton sur /invoices/[id] → PATCH /api/invoices/[id] { status: 'paid' }",
-                "L'utilisateur supprime un client : bouton sur /clients → DELETE /api/clients/[id]",
-            ],
-        },
-    },
-
-    # ──────────────────────────────────────────────────────────────────
-    # Famille 3 — Workflow Kanban (Board → Card)
-    # ──────────────────────────────────────────────────────────────────
-    {
-        "project_name": "kanban-board",
-        "family": "workflow",
-        "tags": ["kanban", "multi_model", "state_transitions", "relations"],
-        "brief": {
-            "description": "Application Kanban. L'utilisateur crée des boards (tableaux) et y ajoute des cartes. Chaque carte appartient à un board et a une colonne (todo / in-progress / done).",
-            "architecture": "SaaS single-tenant. Card est liée à Board via boardId (@relation). Colonne workflow : todo → in-progress → done. Un Board peut avoir plusieurs Cards. Toutes les pages protégées par Clerk.",
-            "models": [
-                "Board { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
-                "Card { id String @id @default(uuid()), title String, column String @default(\"todo\"), boardId String, createdAt DateTime @default(now()), @@index([boardId]) }",
-            ],
-            "pages": [
-                {"path": "/boards", "auth": True},
-                {"path": "/boards/[id]", "auth": True},
-                {"path": "/boards/new", "auth": True},
-            ],
-            "pages_detail": {
-                "/boards": (
-                    "Liste des boards de l'utilisateur. "
-                    "Chaque card affiche : nom du board, nombre de cartes (si disponible), date de création. "
-                    "Clic → /boards/[id]. "
-                    "Bouton 'Supprimer' par board (DELETE /api/boards/[id]). "
-                    "Bouton 'Nouveau board' → /boards/new. "
-                    "Si vide : 'Aucun board. Créez votre premier tableau Kanban !'."
-                ),
-                "/boards/[id]": (
-                    "Vue Kanban du board. Titre du board en H1. "
-                    "3 colonnes côte à côte : 'À faire' (todo), 'En cours' (in-progress), 'Terminé' (done). "
-                    "Chaque colonne affiche ses cartes (filtrées par column). "
-                    "Chaque carte affiche son titre et des boutons pour changer de colonne "
-                    "(ex: 'Démarrer' passe todo→in-progress, 'Terminer' passe in-progress→done, 'Supprimer'). "
-                    "Formulaire inline en bas de chaque colonne : input 'Titre de la carte' + bouton 'Ajouter' "
-                    "(POST /api/boards/[id]/cards { title, column }). "
-                    "Bouton retour '← Mes boards'. notFound() si board introuvable ou n'appartient pas à l'utilisateur."
-                ),
-                "/boards/new": (
-                    "Formulaire Client Component. Champ : nom du board (input text, required). "
-                    "Submit → POST /api/boards { name } → redirect /boards."
-                ),
-            },
-            "routes": [
-                {"method": "GET",    "path": "/api/boards"},
-                {"method": "POST",   "path": "/api/boards"},
-                {"method": "GET",    "path": "/api/boards/[id]"},
-                {"method": "PATCH",  "path": "/api/boards/[id]"},
-                {"method": "DELETE", "path": "/api/boards/[id]"},
-                {"method": "POST",   "path": "/api/boards/[id]/cards"},
-                {"method": "PATCH",  "path": "/api/cards/[id]"},
-                {"method": "DELETE", "path": "/api/cards/[id]"},
-            ],
-            "user_flows": [
-                "L'utilisateur crée un board : /boards/new → POST /api/boards → redirect /boards",
-                "L'utilisateur ouvre un board → /boards/[id] : voit ses cartes en 3 colonnes",
-                "L'utilisateur ajoute une carte dans une colonne : formulaire inline → POST /api/boards/[id]/cards",
-                "L'utilisateur déplace une carte (change colonne) : bouton → PATCH /api/cards/[id] { column: 'in-progress' }",
-                "L'utilisateur supprime une carte : bouton Supprimer → DELETE /api/cards/[id]",
-            ],
-        },
-    },
-
-    # ──────────────────────────────────────────────────────────────────
-    # Famille 4 — CMS Blog (pages publiques + dashboard auteur)
-    # ──────────────────────────────────────────────────────────────────
-    {
-        "project_name": "personal-blog",
-        "family": "content",
-        "tags": ["cms", "slug", "public_private_pages", "publish_toggle"],
-        "brief": {
-            "description": "Blog CMS avec un auteur unique. Les visiteurs lisent les articles publiés sans se connecter. L'auteur se connecte via Clerk pour créer, modifier et publier des articles.",
-            "architecture": "CMS hybride — / et /blog/[slug] sont publiques (pas d'auth). /dashboard et sous-pages sont protégées par Clerk. Un seul auteur. Workflow : créer en draft → publier via toggle → visible sur /.",
-            "models": [
-                "Post { id String @id @default(cuid()), title String, content String, slug String @unique, published Boolean @default(false), authorId String, createdAt DateTime @default(now()), @@index([authorId]), @@index([slug]) }",
-            ],
-            "pages": [
-                {"path": "/", "auth": False},
-                {"path": "/blog/[slug]", "auth": False},
-                {"path": "/dashboard", "auth": True},
-                {"path": "/dashboard/posts/new", "auth": True},
-                {"path": "/dashboard/posts/[id]/edit", "auth": True},
+                {"path": "/",                  "auth": True},
+                {"path": "/companies",         "auth": True},
+                {"path": "/companies/new",     "auth": True},
+                {"path": "/companies/[id]",    "auth": True},
+                {"path": "/contacts",          "auth": True},
+                {"path": "/contacts/new",      "auth": True},
+                {"path": "/contacts/[id]",     "auth": True},
+                {"path": "/interactions/new",  "auth": True},
             ],
             "pages_detail": {
                 "/": (
-                    "Page d'accueil publique. Affiche la liste des articles publiés (published=true), "
-                    "ordonnés par date décroissante. Chaque article : titre (lien → /blog/[slug]), "
-                    "extrait du contenu (150 premiers caractères + '...'), date de publication formatée. "
-                    "Si aucun article publié : 'Aucun article pour le moment.'. "
-                    "Lien 'Se connecter' en haut à droite si non authentifié."
+                    "Dashboard récapitulatif (Server Component). "
+                    "3 métriques en haut : nombre total d'entreprises, nombre total de contacts, "
+                    "nombre total d'interactions. "
+                    "Section 'Interactions récentes' : 5 dernières interactions triées par date "
+                    "(type badge, notes tronquées à 80 chars, prénom+nom du contact via include, date formatée). "
+                    "Section 'Accès rapides' : liens vers /companies/new, /contacts/new, /interactions/new. "
+                    "Si aucune interaction : 'Aucune activité récente.'"
                 ),
-                "/blog/[slug]": (
-                    "Page article publique. Cherche le Post par slug (findUnique where slug). "
-                    "Affiche : titre en H1, date de publication, contenu complet. "
-                    "Bouton retour '← Tous les articles' vers /. "
-                    "notFound() si slug inexistant ou article non publié."
+                "/companies": (
+                    "Liste de toutes les entreprises. "
+                    "Chaque ligne : nom, secteur (badge coloré), site web (lien externe si renseigné), "
+                    "date d'ajout. "
+                    "Lien → /companies/[id]. "
+                    "Bouton 'Supprimer' par ligne (DELETE /api/companies/[id]). "
+                    "Bouton 'Nouvelle entreprise' en haut → /companies/new. "
+                    "Si vide : 'Aucune entreprise. Ajoutez votre premier client !'. "
+                    "[INTERACTIVE]"
                 ),
-                "/dashboard": (
-                    "Dashboard auteur (protégé Clerk). Liste TOUS les articles (publiés et drafts). "
-                    "Chaque ligne : titre, badge 'Publié' (vert) ou 'Brouillon' (gris), date de création. "
-                    "Bouton 'Publier' / 'Dépublier' par ligne (PUT /api/posts/[id] { published: true/false }). "
-                    "Bouton 'Modifier' → /dashboard/posts/[id]/edit. "
-                    "Bouton 'Supprimer' (DELETE /api/posts/[id]). "
-                    "Bouton 'Nouvel article' → /dashboard/posts/new."
+                "/companies/new": (
+                    "Formulaire de création d'entreprise (Client Component). "
+                    "Champs : nom (input text, required), "
+                    "secteur (select : Tech / Finance / Santé / Retail / Éducation / Autre, required), "
+                    "site web (input url, optionnel, placeholder 'https://'). "
+                    "Bouton 'Ajouter l'entreprise'. "
+                    "Submit → POST /api/companies { name, industry, website } → redirect /companies. "
+                    "Erreur inline si champ requis manquant."
                 ),
-                "/dashboard/posts/new": (
-                    "Formulaire Client Component. Champs : titre (input text, required), "
-                    "slug (input text, required, généré automatiquement depuis le titre en kebab-case), "
-                    "contenu (textarea, required). "
-                    "Submit → POST /api/posts { title, slug, content } → redirect /dashboard. "
-                    "Article créé en draft par défaut."
+                "/companies/[id]": (
+                    "Détail d'une entreprise. Nom en H1, secteur badge, site web cliquable. "
+                    "Section 'Contacts' : liste de tous les contacts de cette entreprise "
+                    "(prénom+nom, email, téléphone, lien → /contacts/[id]). "
+                    "Bouton 'Nouveau contact pour cette entreprise' → /contacts/new?companyId=[id]. "
+                    "Bouton retour '← Entreprises'. "
+                    "notFound() si entreprise introuvable ou n'appartient pas à l'utilisateur. "
+                    "[INTERACTIVE]"
                 ),
-                "/dashboard/posts/[id]/edit": (
-                    "Formulaire édition Client Component. Pré-rempli avec les valeurs actuelles. "
-                    "Champs : titre, slug, contenu. "
-                    "Submit → PUT /api/posts/[id] → redirect /dashboard. "
-                    "notFound() si article introuvable."
+                "/contacts": (
+                    "Liste de tous les contacts. "
+                    "Chaque ligne : prénom+nom, email, téléphone (ou '-'), "
+                    "entreprise (nom via include, lien → /companies/[id]). "
+                    "Lien → /contacts/[id]. "
+                    "Bouton 'Supprimer' par ligne (DELETE /api/contacts/[id]). "
+                    "Bouton 'Nouveau contact' en haut → /contacts/new. "
+                    "Si vide : 'Aucun contact.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/contacts/new": (
+                    "Formulaire de création de contact (Client Component). "
+                    "Champs : prénom (input text, required), nom (input text, required), "
+                    "email (input email, required), téléphone (input tel, optionnel), "
+                    "entreprise (select parmi les entreprises de l'utilisateur, required — "
+                    "pré-sélectionné si ?companyId= présent en query param). "
+                    "Charger la liste des entreprises via GET /api/companies au montage du composant "
+                    "(useEffect + fetch). "
+                    "Bouton 'Ajouter le contact'. "
+                    "Submit → POST /api/contacts { firstName, lastName, email, phone, companyId } "
+                    "→ redirect /contacts. "
+                    "Erreur inline si champ requis manquant."
+                ),
+                "/contacts/[id]": (
+                    "Profil du contact. Prénom+Nom en H1, email (lien mailto:), téléphone, "
+                    "entreprise (nom, lien → /companies/[id]). "
+                    "Section 'Historique des interactions' : toutes les interactions de ce contact "
+                    "triées par date décroissante (type badge coloré : "
+                    "Appel=bleu, Email=vert, Réunion=orange, Démo=violet, Autre=gris ; "
+                    "notes en texte ; date formatée). "
+                    "Bouton 'Supprimer' par interaction (DELETE /api/interactions/[id]). "
+                    "Bouton 'Ajouter une interaction' → /interactions/new?contactId=[id]. "
+                    "Bouton retour '← Contacts'. "
+                    "notFound() si contact introuvable. "
+                    "[INTERACTIVE]"
+                ),
+                "/interactions/new": (
+                    "Formulaire d'ajout d'interaction (Client Component). "
+                    "Champs : type (select : Appel téléphonique / Email / Réunion / Démo / Autre, required), "
+                    "notes (textarea, required, placeholder 'Résumé de l'échange...'), "
+                    "date (input date, required, défaut = aujourd'hui), "
+                    "contact (select parmi tous les contacts de l'utilisateur, required — "
+                    "pré-sélectionné si ?contactId= présent en query param). "
+                    "Charger la liste des contacts via GET /api/contacts au montage du composant "
+                    "(useEffect + fetch). "
+                    "Bouton 'Enregistrer l'interaction'. "
+                    "Submit → POST /api/interactions { type, notes, date, contactId } "
+                    "→ redirect /contacts/[contactId] si contactId connu, sinon /contacts. "
+                    "Erreur inline si champ requis manquant."
                 ),
             },
             "routes": [
-                {"method": "GET",    "path": "/api/posts"},
-                {"method": "POST",   "path": "/api/posts"},
-                {"method": "GET",    "path": "/api/posts/[id]"},
-                {"method": "PUT",    "path": "/api/posts/[id]"},
-                {"method": "DELETE", "path": "/api/posts/[id]"},
+                {"method": "GET",    "path": "/api/companies"},
+                {"method": "POST",   "path": "/api/companies"},
+                {"method": "GET",    "path": "/api/companies/[id]"},
+                {"method": "DELETE", "path": "/api/companies/[id]"},
+                {"method": "GET",    "path": "/api/contacts"},
+                {"method": "POST",   "path": "/api/contacts"},
+                {"method": "GET",    "path": "/api/contacts/[id]"},
+                {"method": "DELETE", "path": "/api/contacts/[id]"},
+                {"method": "GET",    "path": "/api/interactions"},
+                {"method": "POST",   "path": "/api/interactions"},
+                {"method": "DELETE", "path": "/api/interactions/[id]"},
             ],
             "user_flows": [
-                "Le visiteur consulte les articles publiés sur / (sans connexion)",
-                "Le visiteur lit un article via /blog/[slug] (sans connexion)",
-                "L'auteur se connecte via Clerk → accède à /dashboard",
-                "L'auteur crée un article : /dashboard/posts/new → POST /api/posts → redirect /dashboard",
-                "L'auteur publie un article : bouton sur /dashboard → PUT /api/posts/[id] { published: true }",
-                "L'auteur modifie un article : /dashboard/posts/[id]/edit → PUT /api/posts/[id] → redirect /dashboard",
-                "L'auteur supprime un article : bouton sur /dashboard → DELETE /api/posts/[id]",
+                "L'utilisateur ajoute une entreprise : /companies/new → POST /api/companies → redirect /companies",
+                "L'utilisateur ajoute un contact dans une entreprise : /contacts/new?companyId=[id] → POST /api/contacts → redirect /contacts",
+                "L'utilisateur enregistre un appel avec un contact : /interactions/new?contactId=[id] → POST /api/interactions → redirect /contacts/[id]",
+                "L'utilisateur consulte le profil d'un contact et voit son historique : /contacts/[id]",
+                "L'utilisateur consulte le dashboard et voit les 5 dernières interactions : /",
+                "L'utilisateur supprime une entreprise sans contacts : bouton Supprimer → DELETE /api/companies/[id]",
             ],
         },
     },
 
     # ──────────────────────────────────────────────────────────────────
-    # Famille 5 — Dashboard analytics (agrégations côté serveur)
+    # Projet 3 — Gestion des congés (leave-manager)
+    # 3 modèles : Department, Employee, LeaveRequest
+    # Complexité : workflow d'approbation multi-statut, calcul de durée,
+    #              dashboard avec pending, fetch Client Component pour select
     # ──────────────────────────────────────────────────────────────────
     {
-        "project_name": "expense-tracker",
-        "family": "dashboard",
-        "tags": ["analytics", "aggregation", "single_model", "dashboard"],
+        "project_name": "leave-manager",
+        "family": "hr_workflow",
+        "tags": ["multi_model", "workflow", "approval", "dashboard", "date_calculations", "client_fetch"],
         "brief": {
-            "description": "Application de suivi de dépenses personnelles. L'utilisateur enregistre ses dépenses avec montant, catégorie et description. Un dashboard affiche les totaux par catégorie.",
-            "architecture": "SaaS single-tenant. Dashboard avec agrégations calculées côté serveur (total par catégorie via groupBy Prisma ou reduce JS). CRUD complet sur les dépenses. Toutes les pages protégées par Clerk.",
+            "description": (
+                "Application RH de gestion des demandes de congé. "
+                "L'utilisateur (manager RH) gère les départements, les employés, "
+                "et traite les demandes de congé (approbation ou rejet). "
+                "Dashboard avec demandes en attente et métriques clés."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Employee est lié à Department via departmentId. "
+                "LeaveRequest est liée à Employee via employeeId. "
+                "Tous les modèles ont userId (le manager connecté via Clerk). "
+                "Workflow statut LeaveRequest : pending → approved | rejected. "
+                "Les formulaires de création chargent les listes (départements, employés) "
+                "via fetch côté Client Component au montage."
+            ),
             "models": [
-                "Expense { id String @id @default(uuid()), amount Float, category String, description String, date DateTime, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+                (
+                    "Department { id String @id @default(uuid()), name String, "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Employee { id String @id @default(uuid()), firstName String, lastName String, "
+                    "position String, departmentId String, "
+                    "userId String, createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([departmentId]) }"
+                ),
+                (
+                    "LeaveRequest { id String @id @default(uuid()), "
+                    "type String, startDate DateTime, endDate DateTime, "
+                    "reason String, status String @default(\"pending\"), "
+                    "employeeId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([employeeId]) }"
+                ),
             ],
             "pages": [
-                {"path": "/dashboard", "auth": True},
-                {"path": "/expenses", "auth": True},
-                {"path": "/expenses/[id]", "auth": True},
-                {"path": "/expenses/new", "auth": True},
+                {"path": "/",                "auth": True},
+                {"path": "/departments",     "auth": True},
+                {"path": "/departments/new", "auth": True},
+                {"path": "/employees",       "auth": True},
+                {"path": "/employees/new",   "auth": True},
+                {"path": "/employees/[id]",  "auth": True},
+                {"path": "/leaves",          "auth": True},
+                {"path": "/leaves/new",      "auth": True},
+                {"path": "/leaves/[id]",     "auth": True},
             ],
             "pages_detail": {
-                "/dashboard": (
-                    "Dashboard récapitulatif. "
-                    "Calcule les totaux par catégorie depuis toutes les dépenses de l'utilisateur. "
-                    "Affiche une card par catégorie avec : nom de la catégorie, total formaté en euros, nombre de dépenses. "
-                    "Total global de toutes les dépenses en grand en haut. "
-                    "Lien 'Voir toutes les dépenses' → /expenses. "
-                    "Bouton 'Ajouter une dépense' → /expenses/new. "
-                    "Si aucune dépense : 'Aucune dépense enregistrée. Commencez à tracker vos dépenses !'."
+                "/": (
+                    "Dashboard RH (Server Component). "
+                    "3 métriques en haut : total employés, demandes en attente (status=pending), "
+                    "demandes approuvées ce mois. "
+                    "Section 'Demandes en attente' : liste de toutes les LeaveRequest avec status=pending — "
+                    "prénom+nom de l'employé (via include), type de congé badge, "
+                    "dates (du X au Y), bouton 'Approuver' (PATCH /api/leaves/[id] { status: 'approved' }) "
+                    "et bouton 'Rejeter' (PATCH { status: 'rejected' }). "
+                    "Si aucune demande en attente : 'Aucune demande en attente.'. "
+                    "Section 'Employés récents' : 3 derniers employés ajoutés (prénom+nom, poste). "
+                    "[INTERACTIVE]"
                 ),
-                "/expenses": (
-                    "Liste de toutes les dépenses, ordonnées par date décroissante. "
-                    "Chaque ligne : description, catégorie (badge coloré), montant en euros, date formatée. "
-                    "Lien vers /expenses/[id]. "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/expenses/[id]). "
-                    "Bouton 'Ajouter une dépense' → /expenses/new. "
-                    "Si vide : 'Aucune dépense.'."
+                "/departments": (
+                    "Liste des départements. "
+                    "Chaque ligne : nom du département, nombre d'employés (via _count si possible). "
+                    "Bouton 'Supprimer' par ligne (DELETE /api/departments/[id]). "
+                    "Bouton 'Nouveau département' → /departments/new. "
+                    "Si vide : 'Aucun département créé.'. "
+                    "[INTERACTIVE]"
                 ),
-                "/expenses/[id]": (
-                    "Détail d'une dépense : description en H1, montant en grand, catégorie badge, date, date de création. "
-                    "Bouton retour '← Mes dépenses' vers /expenses. "
-                    "Bouton 'Supprimer' (DELETE /api/expenses/[id] → redirect /expenses). "
-                    "notFound() si introuvable ou n'appartient pas à l'utilisateur."
+                "/departments/new": (
+                    "Formulaire de création de département (Client Component). "
+                    "Champ : nom (input text, required, placeholder 'Ex: Ingénierie, RH, Finance'). "
+                    "Bouton 'Créer le département'. "
+                    "Submit → POST /api/departments { name } → redirect /departments. "
+                    "Erreur inline si nom vide."
                 ),
-                "/expenses/new": (
-                    "Formulaire Client Component. Champs : "
-                    "description (input text, required), "
-                    "montant (input number, required, min=0.01, step=0.01), "
-                    "catégorie (select avec options : Alimentation, Transport, Logement, Loisirs, Santé, Autre), "
-                    "date (input date, required, défaut=aujourd'hui). "
-                    "Submit → POST /api/expenses → redirect /expenses."
+                "/employees": (
+                    "Liste de tous les employés. "
+                    "Chaque ligne : prénom+nom, poste, département (badge via include), "
+                    "date d'embauche formatée. "
+                    "Lien → /employees/[id]. "
+                    "Bouton 'Supprimer' par ligne (DELETE /api/employees/[id]). "
+                    "Bouton 'Nouvel employé' → /employees/new. "
+                    "Si vide : 'Aucun employé.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/employees/new": (
+                    "Formulaire d'ajout d'employé (Client Component). "
+                    "Champs : prénom (input text, required), nom (input text, required), "
+                    "poste (input text, required, placeholder 'Ex: Développeur, Designer'), "
+                    "département (select parmi les départements, required). "
+                    "Charger la liste des départements via GET /api/departments au montage "
+                    "(useEffect + fetch). "
+                    "Bouton 'Ajouter l'employé'. "
+                    "Submit → POST /api/employees { firstName, lastName, position, departmentId } "
+                    "→ redirect /employees. "
+                    "Erreur inline si champ requis manquant."
+                ),
+                "/employees/[id]": (
+                    "Profil d'un employé. Prénom+Nom en H1, poste, département badge. "
+                    "Section 'Congés' : liste de toutes ses LeaveRequest triées par startDate décroissant "
+                    "(type badge, dates, durée calculée en jours : "
+                    "Math.ceil((endDate - startDate) / (1000*60*60*24)) + 1 jours, "
+                    "badge statut : pending=jaune, approved=vert, rejected=rouge). "
+                    "Bouton 'Nouvelle demande pour cet employé' → /leaves/new?employeeId=[id]. "
+                    "Bouton retour '← Employés'. "
+                    "notFound() si employé introuvable."
+                ),
+                "/leaves": (
+                    "Liste de toutes les demandes de congé. "
+                    "Chaque ligne : prénom+nom de l'employé (via include), "
+                    "type badge (Annuel=bleu, Maladie=orange, Autre=gris), "
+                    "dates (du X au Y), durée en jours, badge statut (pending=jaune, approved=vert, rejected=rouge). "
+                    "Lien → /leaves/[id]. "
+                    "Bouton 'Nouvelle demande' → /leaves/new. "
+                    "Si vide : 'Aucune demande de congé.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/leaves/new": (
+                    "Formulaire de demande de congé (Client Component). "
+                    "Champs : employé (select parmi tous les employés, required — "
+                    "pré-sélectionné si ?employeeId= présent en query param), "
+                    "type (select : Congé annuel / Congé maladie / Autre, required), "
+                    "date de début (input date, required), "
+                    "date de fin (input date, required, >= date de début), "
+                    "motif (textarea, required, placeholder 'Motif de la demande...'). "
+                    "Charger la liste des employés via GET /api/employees au montage "
+                    "(useEffect + fetch). "
+                    "Bouton 'Soumettre la demande'. "
+                    "Submit → POST /api/leaves { type, startDate, endDate, reason, employeeId } "
+                    "→ redirect /leaves. "
+                    "Erreur inline si champ requis manquant ou date fin < date début."
+                ),
+                "/leaves/[id]": (
+                    "Détail d'une demande de congé. "
+                    "Prénom+Nom de l'employé en H1, type badge, dates (du X au Y), "
+                    "durée calculée en jours, motif, badge statut, date de soumission. "
+                    "Si status=pending : bouton 'Approuver' (PATCH /api/leaves/[id] { status: 'approved' }) "
+                    "et bouton 'Rejeter' (PATCH { status: 'rejected' }). "
+                    "Bouton 'Supprimer' si status=pending (DELETE /api/leaves/[id] → redirect /leaves). "
+                    "Bouton retour '← Demandes de congé'. "
+                    "notFound() si demande introuvable. "
+                    "[INTERACTIVE]"
                 ),
             },
             "routes": [
-                {"method": "GET",    "path": "/api/expenses"},
-                {"method": "POST",   "path": "/api/expenses"},
-                {"method": "GET",    "path": "/api/expenses/[id]"},
-                {"method": "PATCH",  "path": "/api/expenses/[id]"},
-                {"method": "DELETE", "path": "/api/expenses/[id]"},
+                {"method": "GET",    "path": "/api/departments"},
+                {"method": "POST",   "path": "/api/departments"},
+                {"method": "DELETE", "path": "/api/departments/[id]"},
+                {"method": "GET",    "path": "/api/employees"},
+                {"method": "POST",   "path": "/api/employees"},
+                {"method": "GET",    "path": "/api/employees/[id]"},
+                {"method": "DELETE", "path": "/api/employees/[id]"},
+                {"method": "GET",    "path": "/api/leaves"},
+                {"method": "POST",   "path": "/api/leaves"},
+                {"method": "GET",    "path": "/api/leaves/[id]"},
+                {"method": "PATCH",  "path": "/api/leaves/[id]"},
+                {"method": "DELETE", "path": "/api/leaves/[id]"},
             ],
             "user_flows": [
-                "L'utilisateur se connecte et accède au /dashboard (totaux par catégorie)",
-                "L'utilisateur consulte la liste de ses dépenses → /expenses",
-                "L'utilisateur ajoute une dépense : /expenses/new → POST /api/expenses → redirect /expenses",
-                "L'utilisateur consulte le détail d'une dépense → /expenses/[id]",
-                "L'utilisateur supprime une dépense : bouton sur /expenses → DELETE /api/expenses/[id]",
+                "Le manager crée les départements : /departments/new → POST /api/departments → redirect /departments",
+                "Le manager ajoute un employé dans un département : /employees/new → POST /api/employees → redirect /employees",
+                "Le manager soumet une demande de congé pour un employé : /leaves/new → POST /api/leaves → redirect /leaves",
+                "Le manager approuve une demande en attente : bouton sur / (dashboard) → PATCH /api/leaves/[id] { status: 'approved' }",
+                "Le manager rejette une demande : bouton sur /leaves/[id] → PATCH /api/leaves/[id] { status: 'rejected' }",
+                "Le manager consulte l'historique des congés d'un employé : /employees/[id]",
             ],
         },
     },
 ]
 
 
-def get_batch_projects(batch_size: int = 5) -> List[Dict]:
+def get_batch_projects(batch_size: int = 3) -> List[Dict]:
     base = [{"project_name": b["project_name"], "brief": b["brief"]} for b in PHASE0_BRIEFS]
     if batch_size <= len(base):
         return base[:batch_size]

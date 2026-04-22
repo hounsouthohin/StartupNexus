@@ -208,8 +208,9 @@ async def run_dev_agent(
     # ── Pré-génération des fichiers templates ────────────────────────
     # package.json, middleware.ts, app/layout.tsx, tsconfig.json, etc.
     # sont écrits depuis les templates de la stack AVANT que le LLM démarre.
-    # Cela évite que le LLM génère package.json avec du JSON double-encodé (EJSONPARSE).
+    # BLOQUANT : sans package.json, npm install échoue et le run entier est compromis.
     template_written: dict = {}
+    _template_error: str = ""
     try:
         from agents.dev_file_ops import write_template_files
         from agents.stack_config import load_stack_config
@@ -221,7 +222,22 @@ async def run_dev_agent(
             f"{list(template_written.keys())}"
         )
     except Exception as _te:
-        logger.warning(f"[dev_graph] write_template_files non bloquant : {_te}")
+        _template_error = f"write_template_files échoué : {_te}"
+        logger.error(f"[dev_graph] {_template_error}")
+
+    if _template_error or "package.json" not in template_written:
+        reason = _template_error or "package.json absent des templates"
+        logger.error(f"[dev_graph] ABORT — {reason}")
+        _dev_tools_module.set_protected_files(None)
+        _dev_tools_module.set_workdir(None)
+        return {  # type: ignore[return-value]
+            "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
+            "build_attempts": 0, "last_build_error": f"TEMPLATE_FAILURE: {reason}",
+            "success": False, "error_signatures": [], "build_command_executed": False,
+            "build_exit_code": -1, "prebuild_blocking": False, "prebuild_report": {},
+            "prebuild_block_count": 0, "phase": "generation", "validated_files": [],
+            "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
+        }
 
     # ── Materialisation déterministe de schema.prisma depuis ProjectSpec ─────
     # Cause racine traitée:
@@ -293,31 +309,47 @@ async def run_dev_agent(
         logger.warning(f"[dev_graph] npm install pre-run exception : {_npm_err}")
 
     # ── prisma generate (Python pre-run, hors LLM) ───────────────────
-    # prisma generate est de l'infrastructure au même titre que npm install.
-    # Le schema.prisma est déjà matérialisé depuis ProjectSpec — on génère
-    # le client Prisma maintenant pour que les types @prisma/client soient
-    # disponibles dès le premier fichier LLM. Non-bloquant si échec.
-    try:
-        logger.info(f"[dev_graph] prisma generate pre-run dans {project_workdir} ...")
-        _prisma_result = subprocess.run(
-            "npx prisma generate",
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=project_workdir,
-            timeout=120,
-        )
-        if _prisma_result.returncode == 0:
-            logger.info("[dev_graph] prisma generate pre-run OK")
-        else:
-            logger.warning(
-                f"[dev_graph] prisma generate pre-run FAILED (exit {_prisma_result.returncode}): "
-                f"{(_prisma_result.stdout + _prisma_result.stderr)[:400]}"
+    # prisma generate est BLOQUANT si npm install a réussi :
+    # sans @prisma/client généré, tout import 'from @prisma/client' échoue (TS2305).
+    if _npm_prerun_ok:
+        try:
+            logger.info(f"[dev_graph] prisma generate pre-run dans {project_workdir} ...")
+            _prisma_env = os.environ.copy()
+            _prisma_env["CI"] = "true"
+            _prisma_env.setdefault("DATABASE_URL", "postgresql://user:CHANGEME@localhost:5432/db_placeholder")
+            _prisma_result = subprocess.run(
+                "npx prisma generate",
+                shell=True,
+                capture_output=True,
+                text=True,
+                cwd=project_workdir,
+                timeout=120,
+                env=_prisma_env,
             )
-    except subprocess.TimeoutExpired:
-        logger.warning("[dev_graph] prisma generate pre-run TIMEOUT (>120s)")
-    except Exception as _pg_err:
-        logger.warning(f"[dev_graph] prisma generate pre-run exception : {_pg_err}")
+            if _prisma_result.returncode == 0:
+                logger.info("[dev_graph] prisma generate pre-run OK")
+            else:
+                _pg_out = (_prisma_result.stdout + _prisma_result.stderr)[:600]
+                logger.error(
+                    f"[dev_graph] prisma generate FAILED (exit {_prisma_result.returncode}): {_pg_out}"
+                )
+                _dev_tools_module.set_protected_files(None)
+                _dev_tools_module.set_workdir(None)
+                return {  # type: ignore[return-value]
+                    "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
+                    "build_attempts": 0,
+                    "last_build_error": f"PRISMA_GENERATE_FAILED: {_pg_out[:300]}",
+                    "success": False, "error_signatures": [], "build_command_executed": False,
+                    "build_exit_code": -1, "prebuild_blocking": False, "prebuild_report": {},
+                    "prebuild_block_count": 0, "phase": "generation", "validated_files": [],
+                    "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
+                }
+        except subprocess.TimeoutExpired:
+            logger.warning("[dev_graph] prisma generate pre-run TIMEOUT (>120s) — non bloquant")
+        except Exception as _pg_err:
+            logger.warning(f"[dev_graph] prisma generate pre-run exception (non bloquant) : {_pg_err}")
+    else:
+        logger.warning("[dev_graph] prisma generate skipped — npm install a échoué")
 
     # ── System prompt ────────────────────────────────────────────────
     if not system_prompt:
@@ -351,7 +383,7 @@ async def run_dev_agent(
 
     logger.info(f"[dev_graph] {len(tools)} outils : {[t.name for t in tools]}")
 
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, max_retries=3)
+    llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
     llm_with_tools = llm.bind_tools(tools)
 
     # ── Nœud dev principal ───────────────────────────────────────────
@@ -371,22 +403,60 @@ async def run_dev_agent(
             )))
 
         # A1 — Transition génération → build.
-        # Si les derniers fichiers écrits ont passé tsc (file_validation_errors vide)
-        # et qu'aucun build n'a encore été lancé, guider explicitement le LLM vers le build.
-        # Sans cette injection, le LLM continue d'écrire des fichiers indéfiniment.
+        # Ne se déclenche que si les fichiers essentiels de la spec sont présents :
+        # au moins une API route ET au moins une page (en plus du service).
+        # Sans cette garde, le LLM peut builder après le premier fichier validé.
         if (
             not state.get("file_validation_errors", "")
             and not state.get("build_command_executed", False)
-            and state.get("validated_files")  # au moins 1 fichier validé
+            and state.get("validated_files")
         ):
             validated = state.get("validated_files", [])
-            messages.append(HumanMessage(content=(
-                f"{len(validated)} fichier(s) TypeScript validés par tsc. "
-                "Exécute maintenant dans cet ordre EXACT :\n"
-                "1. shell_exec('npx prisma generate')\n"
-                "2. shell_exec('npm run build')\n"
-                "Ne génère pas d'autres fichiers avant d'avoir lancé le build."
-            )))
+
+            # Vérifie que les catégories essentielles sont couvertes.
+            has_route = any("app/api/" in f and f.endswith("route.ts") for f in validated)
+            has_page  = any(f.endswith("page.tsx") and "/api/" not in f for f in validated)
+
+            # Complément : fichiers écrits mais pas encore validés (erreurs en cours de correction)
+            all_written = _extract_written_ts_files(list(state.get("messages", [])))
+            if not has_route:
+                has_route = any("app/api/" in f and f.endswith("route.ts") for f in all_written)
+            if not has_page:
+                has_page = any(f.endswith("page.tsx") and "/api/" not in f for f in all_written)
+
+            if has_route and has_page:
+                missing = []
+                spec = state.get("spec", {})
+                for r in spec.get("routes", []):
+                    rpath = r.get("path", "")
+                    # Les routes ont souvent un préfixe /api dans le spec (ex: /api/tasks)
+                    # → on le retire pour construire app/api/tasks/route.ts sans double /api/
+                    if rpath.startswith("/api"):
+                        rpath = rpath[4:]
+                    route_file = f"app/api{rpath.rstrip('/')}/route.ts"
+                    if route_file not in validated and route_file not in all_written:
+                        missing.append(route_file)
+                for p in spec.get("pages", []):
+                    page_path = p.get("path", "/").strip("/")
+                    page_file = ("app/page.tsx" if not page_path else f"app/{page_path}/page.tsx")
+                    if page_file not in validated and page_file not in all_written:
+                        missing.append(page_file)
+
+                if missing:
+                    messages.append(HumanMessage(content=(
+                        f"{len(validated)} fichier(s) TypeScript validés. "
+                        f"Avant de lancer le build, génère encore ces fichiers manquants :\n"
+                        + "\n".join(f"  - {f}" for f in missing[:10])
+                    )))
+                else:
+                    messages.append(HumanMessage(content=(
+                        f"{len(validated)} fichier(s) TypeScript validés par tsc. "
+                        "Tous les fichiers essentiels sont présents. "
+                        "Exécute maintenant dans cet ordre EXACT :\n"
+                        "1. shell_exec('npx prisma generate')\n"
+                        "2. shell_exec('npm run build')\n"
+                        "Ne génère pas d'autres fichiers avant d'avoir lancé le build."
+                    )))
 
         # Injection des erreurs de validation file-level (Progressive Validation Étape 2).
         # Si file_validate_node a détecté des erreurs TS dans les fichiers écrits ce tour,
@@ -599,8 +669,9 @@ async def run_dev_agent(
         - un succès build (shell_exec exit 0 + marqueurs next.js — signal unique)
         - une erreur build à traiter
 
-        Règle Phase B : success = npm run build exécuté + exit code 0.
-        Aucun override basé sur présence de .next/ sur disque.
+        Phase B : success = npm run build exécuté + exit code 0.
+        Phase hardening : build_executed = True dès qu'une AIMessage tool_call
+        cible npm run build — même si l'output ne contient pas les marqueurs attendus.
         """
         from langchain_core.messages import ToolMessage
 
@@ -634,11 +705,31 @@ async def run_dev_agent(
                 ]):
                     last_error = content[:3000]
                     build_executed = True
-                    # Extraire exit code si présent dans "FAILED (exit N)"
                     import re as _re
                     m = _re.search(r"exit\s+(\d+)", content)
                     build_exit = int(m.group(1)) if m else 1
                     break
+
+        # Hardening : si aucun ToolMessage n'a déclenché build_executed, vérifie
+        # l'AIMessage le plus récent pour détecter un build command non capturé
+        # (output tronqué, format inattendu, etc.).
+        if not build_executed:
+            for msg in reversed(state["messages"]):
+                if isinstance(msg, AIMessage):
+                    for call in (getattr(msg, "tool_calls", None) or []):
+                        name = str(call.get("name", "") or "")
+                        if not (name == "shell_exec" or name.endswith("shell_exec")):
+                            continue
+                        args = call.get("args", {})
+                        cmd = str(args.get("command", "") if isinstance(args, dict) else args or "")
+                        if _is_build_command(cmd):
+                            build_executed = True
+                            build_exit = 1  # conservatif — pas de succès sans marqueurs
+                            logger.warning(
+                                "[extract_error] build command détecté dans AIMessage mais pas "
+                                "dans ToolMessage output — marqueurs next.js absents ou output tronqué"
+                            )
+                    break  # on ne cherche que le dernier AIMessage
 
         new_attempts = int(state.get("build_attempts", 0) or 0) + (1 if build_executed else 0)
         # Dès que le build a tourné (réussi ou non) → phase "correction"
@@ -731,29 +822,7 @@ async def run_dev_agent(
             written.append(path)
         return written
 
-    def _parse_tsc_errors_for_files(tsc_output: str, target_files: list[str]) -> str:
-        """
-        Filtre la sortie tsc pour ne garder que les erreurs sur les fichiers cibles.
-        Format tsc : "app/api/posts/route.ts(15,3): error TS2339: ..."
-        Retourne un string lisible par le LLM, vide si aucune erreur pertinente.
-        """
-        import re as _re
-        relevant: list[str] = []
-        # Normalise les paths cibles pour la comparaison
-        targets_norm = {f.lstrip("./").replace("\\", "/") for f in target_files}
-
-        for line in tsc_output.splitlines():
-            # Extrait le chemin du fichier depuis la ligne d'erreur
-            m = _re.match(r"^([^(]+)\(\d+,\d+\):\s+error\s+TS", line)
-            if not m:
-                continue
-            file_in_error = m.group(1).strip().replace("\\", "/").lstrip("./")
-            if any(file_in_error.endswith(t) or t.endswith(file_in_error) for t in targets_norm):
-                relevant.append(line)
-
-        if not relevant:
-            return ""
-        return "\n".join(relevant[:20])  # cap 20 lignes pour ne pas saturer le contexte
+    from agents.error_parser import filter_tsc_errors_for_files as _parse_tsc_errors_for_files
 
     async def file_validate_node(state: DevState) -> dict:
         """
