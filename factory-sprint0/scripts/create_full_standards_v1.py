@@ -1907,7 +1907,7 @@ VERSION: 1.0""",
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: Jest — jest.mock placé après les imports ES modules
 RAISON: jest.mock() est hoisté avant les imports uniquement avec Babel/ts-jest CommonJS. Avec ESM natif ou mauvaise config ts-jest, le mock n'est pas appliqué et l'import réel est utilisé.
-DETECTION_REGEX: import\s+\{[^}]+\}\s+from\s+['"][^'"]+['"];\s*[\s\S]*?jest\.mock\(
+DETECTION_REGEX: import\\s+\\{[^}]+\\}\\s+from\\s+['"][^'"]+['"];\\s*[\\s\\S]*?jest\\.mock\\(
 ALTERNATIVE: Placer jest.mock() avant tout import, ou utiliser require() pour les mocks dynamiques
 EXEMPLE_INVALIDE:
   import { clerkMiddleware } from '@clerk/nextjs/server'; // import AVANT mock
@@ -2246,7 +2246,9 @@ EXEMPLE_VALIDE:
   // app/dashboard/DashboardClient.tsx
   'use client';
   import { useState } from 'react';
-  export function DashboardClient({ posts }) {
+  import type { Post } from '@/lib/types';
+  interface DashboardClientProps { posts: Post[] }
+  export function DashboardClient({ posts }: DashboardClientProps) {
     const [filter, setFilter] = useState('all');
   }
 ERREUR_ATTENDUE: Error: useState only works in Client Components. Add the "use client" directive at the top of the file to use it.

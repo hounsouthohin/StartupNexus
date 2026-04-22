@@ -234,6 +234,10 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
                     f"en ligne 1 pour les boutons/handlers. "
                     f"app/{path.strip('/') + '/' if path.strip('/') else ''}page.tsx reste Server Component "
                     f"(fetch données) et rend <{page_slug.title().replace('-', '')}Client ... />."
+                    f"\n    ⚠️  TYPAGE OBLIGATOIRE des props du Client Component (TS7031 sinon) :\n"
+                    f"      interface {page_slug.title().replace('-', '')}ClientProps {{ /* props passées par le Server Component */ }}\n"
+                    f"      export default function {page_slug.title().replace('-', '')}Client({{ ... }}: {page_slug.title().replace('-', '')}ClientProps) {{ ... }}\n"
+                    f"      Ne jamais écrire function Comp({{ prop }}) sans interface de props déclarée."
                 )
             detail_lines.append(f"  {path} :\n    {detail_str}")
         if detail_lines:

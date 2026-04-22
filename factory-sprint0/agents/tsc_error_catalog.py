@@ -138,6 +138,23 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                 "rag_query": "Next.js import Link Image useRouter usePathname next/link next/navigation",
                 "action": "FIX_NEXTJS_IMPORT",
             },
+            # Clerk V5/V6 : fonctions serveur utilisées sans import @clerk/nextjs/server
+            {
+                "condition": lambda name: name in ("auth", "currentUser", "clerkClient"),
+                "context_hint": lambda name: (
+                    f"⚠️  IMPORT CLERK MANQUANT (TS2304) : '{name}' utilisé sans import.\n"
+                    f"  FIX — ajoute en tête du fichier (Server Component / route.ts) :\n"
+                    + {
+                        "auth":        "  import { auth } from '@clerk/nextjs/server'",
+                        "currentUser": "  import { currentUser } from '@clerk/nextjs/server'",
+                        "clerkClient": "  import { clerkClient } from '@clerk/nextjs/server'",
+                    }.get(name, f"  import {{ {name} }} from '@clerk/nextjs/server'") + "\n"
+                    f"  ⚠️  JAMAIS : import {{ {name} }} from '@clerk/nextjs' (syntaxe V4 — interdit)\n"
+                    f"  S'applique aux routes API (app/api/**/route.ts) et Server Components."
+                ),
+                "rag_query": "clerk auth currentUser server import nextjs/server API route",
+                "action": "FIX_CLERK_SERVER_IMPORT",
+            },
             # Fallback générique : type/interface absent de lib/types.ts
             {
                 "condition": lambda name: True,

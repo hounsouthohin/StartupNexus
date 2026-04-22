@@ -19,6 +19,13 @@ _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 _runtime_workdir: str | None = None
 _protected_files: set[str] = set()
 
+# ── Dynamic write authority (correction mode) ────────────────────────────────
+# _validated_files : fichiers ayant passé tsc --noEmit (validés par file_validate_node)
+# _errored_files   : None = mode génération (autorité totale)
+#                    set  = mode correction (seuls ces fichiers sont modifiables)
+_validated_files: set[str] = set()
+_errored_files: "set[str] | None" = None
+
 
 def _get_workdir() -> str:
     """Retourne le workdir actif pour ce run (projet-spécifique si set_workdir a été appelé)."""
@@ -29,6 +36,32 @@ def set_workdir(path: str | None) -> None:
     """Fixe le workdir pour le run courant. Passer None pour réinitialiser."""
     global _runtime_workdir
     _runtime_workdir = path
+
+
+def add_validated_files(paths: list[str]) -> None:
+    """Marque des fichiers comme validés par tsc. Appelé par file_validate_node (tsc OK)."""
+    global _validated_files
+    for p in paths:
+        _validated_files.add(str(p).strip().replace("\\", "/").lstrip("/"))
+
+
+def set_errored_files(paths: list[str]) -> None:
+    """Active le mode correction : seuls ces fichiers sont modifiables via write_file_restricted."""
+    global _errored_files
+    _errored_files = {str(p).strip().replace("\\", "/").lstrip("/") for p in paths}
+
+
+def clear_errored_files() -> None:
+    """Désactive le mode correction (retour autorité totale)."""
+    global _errored_files
+    _errored_files = None
+
+
+def reset_write_authority() -> None:
+    """Réinitialise l'état d'autorité complet à la fin d'un run."""
+    global _validated_files, _errored_files
+    _validated_files = set()
+    _errored_files = None
 
 
 def set_protected_files(paths: list[str] | set[str] | None) -> None:
@@ -70,11 +103,21 @@ def write_file(path: str, content: str) -> str:
         norm_path = str(path).strip().replace("\\", "/").lstrip("/")
         abs_path = _safe_path(path)
 
-        # Guard : fichiers protégés par template (écrits par la factory avant le LLM).
+        # Guard 1 : fichiers protégés par template (écrits par la factory avant le LLM).
         if norm_path in _protected_files and os.path.exists(abs_path):
             return (
                 f"ERREUR write_file({path}): fichier protégé par template. "
                 "Lis-le avec read_file() et évite toute réécriture."
+            )
+
+        # Guard 2 : autorité de correction — fichier validé sans erreur active.
+        # Actif uniquement quand _errored_files est un set (mode correction).
+        # Un fichier validé + absent de _errored_files = autorité bloquée.
+        if _errored_files is not None and norm_path in _validated_files and norm_path not in _errored_files:
+            allowed = sorted(_errored_files)[:6]
+            return (
+                f"BLOCKED: '{norm_path}' est déjà validé par tsc et n'a pas d'erreurs actives. "
+                f"Corrige uniquement les fichiers en erreur : {allowed}"
             )
 
         # Validation package.json : JSON strict requis.

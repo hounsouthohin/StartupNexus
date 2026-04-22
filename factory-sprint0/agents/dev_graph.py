@@ -26,15 +26,36 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 import agents.dev_tools as _dev_tools_module
 from agents.dev_tools import write_file, read_file, list_directory, shell_exec, file_exists
+from langchain_core.tools import tool as _tool
 
 logger = logging.getLogger(__name__)
 
 MAX_BUILD_ATTEMPTS = 3
 MAX_PREBUILD_BLOCKS = 6
-MAX_FILE_VALIDATION_RETRIES = 2  # Tentatives de correction par fichier avant de passer au suivant
+MAX_FILE_VALIDATION_RETRIES = 2
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
-DEV_TOOLS = [write_file, read_file, list_directory, shell_exec, file_exists]
+
+@_tool
+def write_file_restricted(path: str, content: str) -> str:
+    """
+    Mode CORRECTION uniquement — écrit un fichier ayant des erreurs TypeScript actives.
+    Les fichiers déjà validés par tsc sans erreur active sont bloqués.
+    Utilise write_file pour les nouvelles créations ou la phase de génération.
+    """
+    norm_path = str(path).strip().replace("\\", "/").lstrip("/")
+    errored = _dev_tools_module._errored_files
+    validated = _dev_tools_module._validated_files
+    if errored is not None and norm_path in validated and norm_path not in errored:
+        allowed = sorted(errored)[:6]
+        return (
+            f"BLOCKED: '{norm_path}' est validé et sans erreur active. "
+            f"Corrige uniquement : {allowed}"
+        )
+    return write_file.invoke({"path": path, "content": content})
+
+
+DEV_TOOLS = [write_file, write_file_restricted, read_file, list_directory, shell_exec, file_exists]
 
 
 def _check_next_dir_on_disk() -> bool:
@@ -62,6 +83,7 @@ class DevState(TypedDict):
     file_validation_errors: str    # Erreurs tsc du dernier tour — injectées en HumanMessage si non vides
     file_validation_retries: int   # Tentatives de correction sur le batch courant
     stale_error_keys: List[str]    # Clés "file:TSxxxx" vues au fil des tours — détection de boucle
+    errored_files: List[str]       # Fichiers avec des erreurs tsc actives (mode correction)
 
 
 def _error_signature(stderr: str) -> str:
@@ -384,7 +406,7 @@ async def run_dev_agent(
     logger.info(f"[dev_graph] {len(tools)} outils : {[t.name for t in tools]}")
 
     llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
-    llm_with_tools = llm.bind_tools(tools)
+    # llm_with_tools est construit dynamiquement dans dev_node selon la phase.
 
     # ── Nœud dev principal ───────────────────────────────────────────
     def dev_node(state: DevState) -> dict:
@@ -514,6 +536,16 @@ async def run_dev_agent(
                     + correction
                 )
             messages.append(HumanMessage(content=correction))
+
+        # Dynamic tool binding selon la phase.
+        # Correction active (erreurs tsc) → write_file_restricted (autorité limitée aux fichiers en erreur).
+        # Génération / build → tools complets (write_file sans restriction).
+        if state.get("file_validation_errors"):
+            correction_tools = [t for t in tools if t.name != "write_file"]
+            llm_with_tools = llm.bind_tools(correction_tools)
+        else:
+            generation_tools = [t for t in tools if t.name != "write_file_restricted"]
+            llm_with_tools = llm.bind_tools(generation_tools)
 
         response = llm_with_tools.invoke(messages)
 
@@ -764,7 +796,7 @@ async def run_dev_agent(
             return "dev"
 
         # LLM n'a pas encore lancé de build — continuer.
-        # La sécurité contre les boucles infinies est assurée par recursion_limit=80
+        # La sécurité contre les boucles infinies est assurée par recursion_limit=150
         # + l'injection A1 ("build maintenant") dans dev_node qui guide le LLM vers le build.
         return "dev"
 
@@ -857,16 +889,19 @@ async def run_dev_agent(
             tsc_stdout = (result.stdout or "") + (result.stderr or "")
 
             if result.returncode == 0:
-                # tsc clean → tous les fichiers écrits sont valides
+                # tsc clean → fichiers validés + désactivation du mode correction
                 new_validated = list(state.get("validated_files", []))
                 for f in written_files:
                     if f not in new_validated:
                         new_validated.append(f)
+                _dev_tools_module.add_validated_files(written_files)
+                _dev_tools_module.clear_errored_files()
                 logger.info("[file_validate] ✓ tsc OK — fichiers validés : %s", written_files)
                 return {
                     "file_validation_errors": "",
                     "validated_files": new_validated,
                     "file_validation_retries": 0,
+                    "errored_files": [],
                 }
 
             # tsc a des erreurs → filtrer sur les fichiers écrits ce tour
@@ -925,6 +960,17 @@ async def run_dev_agent(
                     new_keys_this_turn.add(_key)
             stale_keys.extend(sorted(new_keys_this_turn))
 
+            # Extrait les chemins des fichiers en erreur pour alimenter l'autorité de correction.
+            import re as _re4
+            errored_paths: list[str] = []
+            for _eline_e in errors_for_written.splitlines():
+                _me = _re4.match(r"^([^(]+)\(\d+,\d+\):", _eline_e)
+                if _me:
+                    _ep = _me.group(1).strip().replace("\\", "/").lstrip("./")
+                    if _ep not in errored_paths:
+                        errored_paths.append(_ep)
+            _dev_tools_module.set_errored_files(errored_paths)
+
             logger.warning(
                 "[file_validate] TS errors dans fichiers écrits (retry %d/%d) : %s",
                 retries, MAX_FILE_VALIDATION_RETRIES, written_files,
@@ -933,6 +979,7 @@ async def run_dev_agent(
                 "file_validation_errors": errors_enriched,
                 "file_validation_retries": retries,
                 "stale_error_keys": stale_keys,
+                "errored_files": errored_paths,
             }
 
         except subprocess.TimeoutExpired:
@@ -1036,10 +1083,11 @@ async def run_dev_agent(
         "file_validation_errors": "",
         "file_validation_retries": 0,
         "stale_error_keys": [],
+        "errored_files": [],
     }
 
     try:
-        result = await graph.ainvoke(initial_state, {"recursion_limit": 80})
+        result = await graph.ainvoke(initial_state, {"recursion_limit": 150})
 
         # ── Signal de succès unique : build_command_executed + build_exit_code == 0 ──
         # Phase B : on ne surcharge plus le résultat depuis .next/ sur disque.
@@ -1071,4 +1119,5 @@ async def run_dev_agent(
     finally:
         # Toujours réinitialiser — même en cas d'exception
         _dev_tools_module.set_protected_files(None)
+        _dev_tools_module.reset_write_authority()
         _dev_tools_module.set_workdir(None)
