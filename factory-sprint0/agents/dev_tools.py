@@ -34,6 +34,14 @@ _protected_cv: ContextVar[frozenset[str]]    = ContextVar("factory_protected",  
 _validated_cv: ContextVar[frozenset[str]]    = ContextVar("factory_validated",  default=frozenset())
 _errored_cv:   ContextVar[frozenset[str] | None] = ContextVar("factory_errored", default=None)
 
+# ── Dict globaux keyed par run_id ─────────────────────────────────────────────
+# Les ContextVar _errored_cv et _validated_cv ne traversent pas les frontières
+# de nœuds LangGraph (isolation asyncio par nœud). Ces dicts globaux sont la
+# seule façon de partager l'état entre file_validate_node et write_file (ToolNode).
+# Clé = run_id (ContextVar prouvé fonctionnel car setté avant le graph start).
+_errored_by_run:   dict[str, frozenset[str] | None] = {}
+_validated_by_run: dict[str, frozenset[str]]        = {}
+
 
 # ── Accesseurs internes ───────────────────────────────────────────────────────
 
@@ -46,10 +54,20 @@ def _get_protected_files() -> frozenset[str]:
 
 
 def _get_validated_files() -> frozenset[str]:
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    if run_id in _validated_by_run:
+        return _validated_by_run[run_id]
     return _validated_cv.get()
 
 
 def _get_errored_files() -> frozenset[str] | None:
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    # Dict global en priorité (visible cross-nœuds LangGraph).
+    # Fallback ContextVar pour compatibilité avec les appelants hors-graph.
+    if run_id in _errored_by_run:
+        return _errored_by_run[run_id]
     return _errored_cv.get()
 
 
@@ -62,26 +80,46 @@ def set_workdir(path: str | None) -> None:
 
 def add_validated_files(paths: list[str]) -> None:
     """Marque des fichiers comme validés par tsc. Appelé par file_validate_node (tsc OK)."""
-    normalized = frozenset(
-        str(p).strip().replace("\\", "/").lstrip("/") for p in paths
-    )
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    normalized = frozenset(str(p).strip().replace("\\", "/").lstrip("/") for p in paths)
+    current = _validated_by_run.get(run_id, frozenset())
+    _validated_by_run[run_id] = current | normalized
     _validated_cv.set(_validated_cv.get() | normalized)
 
 
+def set_validated_files(paths: list[str]) -> None:
+    """Resync complet des fichiers validés depuis le graph state. Appelé par dev_node."""
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    value = frozenset(str(p).strip().replace("\\", "/").lstrip("/") for p in paths)
+    _validated_by_run[run_id] = value
+    _validated_cv.set(value)
+
+
 def set_errored_files(paths: list[str]) -> None:
-    """Active le mode correction : seuls ces fichiers sont modifiables via write_file_restricted."""
-    _errored_cv.set(frozenset(
-        str(p).strip().replace("\\", "/").lstrip("/") for p in paths
-    ))
+    """Active le mode correction : seuls ces fichiers sont modifiables via write_file."""
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    value = frozenset(str(p).strip().replace("\\", "/").lstrip("/") for p in paths)
+    _errored_by_run[run_id] = value
+    _errored_cv.set(value)  # ContextVar maintenu pour backward compat
 
 
 def clear_errored_files() -> None:
     """Désactive le mode correction (retour autorité totale)."""
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    _errored_by_run[run_id] = None
     _errored_cv.set(None)
 
 
 def reset_write_authority() -> None:
     """Réinitialise l'état d'autorité complet à la fin d'un run."""
+    from agents.context import get_run_id
+    run_id = get_run_id() or "default"
+    _errored_by_run.pop(run_id, None)
+    _validated_by_run.pop(run_id, None)
     _validated_cv.set(frozenset())
     _errored_cv.set(None)
 
@@ -130,16 +168,19 @@ def write_file(path: str, content: str) -> str:
                 "Lis-le avec read_file() et évite toute réécriture."
             )
 
-        # Guard 2 : autorité de correction — fichier validé sans erreur active.
-        # Actif uniquement quand errored_files est un set (mode correction).
-        # Un fichier validé + absent de errored_files = autorité bloquée.
+        # Guard 2 : protection permanente des fichiers validés.
+        # Un fichier ayant passé tsc NE PEUT PAS être réécrit, que le mode soit
+        # correction (errored != None) ou génération libre (errored = None).
+        # Exception : le fichier est explicitement dans errored_files (correction ciblée).
+        # Sans cette protection, le LLM entre dans une boucle circulaire services↔routes
+        # même quand tout passe tsc — causant une RecursionError à 150 nœuds.
         errored = _get_errored_files()
         validated = _get_validated_files()
-        if errored is not None and norm_path in validated and norm_path not in errored:
-            allowed = sorted(errored)[:6]
+        if norm_path in validated and (errored is None or norm_path not in errored):
+            allowed = sorted(errored)[:6] if errored else []
+            suffix = f" Corrige uniquement : {allowed}" if allowed else " Continue avec les fichiers restants à générer."
             return (
-                f"BLOCKED: '{norm_path}' est déjà validé par tsc et n'a pas d'erreurs actives. "
-                f"Corrige uniquement les fichiers en erreur : {allowed}"
+                f"BLOCKED: '{norm_path}' est déjà validé par tsc — réécriture interdite.{suffix}"
             )
 
         # Validation package.json : JSON strict requis.

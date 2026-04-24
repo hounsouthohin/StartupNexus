@@ -74,6 +74,25 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
         ],
     },
 
+    # ── TS2551 : Property 'X' does not exist on type 'Y'. Did you mean 'Z'? ───
+    # Déclenché quand la route appelle une méthode de service avec un nom légèrement erroné.
+    "TS2551": {
+        "_pattern": r"error TS2551: Property '([^']+)' does not exist on type '(.+?)'\. Did you mean '([^']+)'\?",
+        "_extract": lambda m: (m.group(1), m.group(2), m.group(3)),
+        "entries": [
+            {
+                "condition": lambda wrong, typ, correct: True,
+                "context_hint": lambda wrong, typ, correct: (
+                    f"⚠️  NOM DE MÉTHODE INCORRECT (TS2551) : '{wrong}' n'existe pas sur le service.\n"
+                    f"  CORRECTION IMMÉDIATE : remplace '{wrong}' par '{correct}' dans ce fichier.\n"
+                    f"  NE réécris PAS le service — adapte l'appelant (la route) au contrat du service."
+                ),
+                "rag_query": "service method naming contract findManyByProject findUnique TypeScript route",
+                "action": "FIX_METHOD_NAME",
+            },
+        ],
+    },
+
     # ── TS2339 : Property 'X' does not exist on type 'Y' ─────────────────────
     # Pattern : capture jusqu'au dernier ' avant le . final de la ligne.
     # Gère les types complexes : '{ id: string; }', 'string | null', 'never'.
@@ -82,6 +101,22 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
         "_pattern": r"error TS2339: Property '([^']+)' does not exist on type '(.+?)'\.",
         "_extract": lambda m: (m.group(1), m.group(2)),
         "entries": [
+            {
+                # Méthode de service inexistante — route appelle une méthode non déclarée
+                "condition": lambda prop, typ: (
+                    "findUnique" in prop or "findMany" in prop or "findAll" in prop
+                    or "getBy" in prop or "fetchBy" in prop
+                ) and "{" in typ,
+                "context_hint": lambda prop, typ: (
+                    f"⚠️  MÉTHODE SERVICE INEXISTANTE (TS2339) : '{prop}' n'est pas exportée par ce service.\n"
+                    f"  CAUSE : la route appelle une méthode que le service ne déclare pas.\n"
+                    f"  RÈGLE : NE réécris PAS le service — lis-le avec read_file() et adapte la route\n"
+                    f"  aux méthodes réellement disponibles dans le service.\n"
+                    f"  Méthodes standard : findManyBy<Relation>(id), findUnique(id, userId), create(...), update(...), delete(...)"
+                ),
+                "rag_query": "service method contract route findManyByProject findUnique TypeScript TS2339",
+                "action": "FIX_ROUTE_METHOD_CALL",
+            },
             {
                 # never[] : tableau non typé (let items = []; try { items = await ... })
                 "condition": lambda prop, typ: "never" in typ,
@@ -241,12 +276,65 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
         ],
     },
 
+    # ── TS2741 : Property 'X' is missing in type '...' but required in type '...' ──
+    # Déclenché quand un Server Component passe un objet Prisma sans include à un
+    # Client Component dont les props requièrent des relations imbriquées.
+    "TS2741": {
+        "_pattern": r"error TS2741: Property '([^']+)' is missing in type '(.+?)' but required in type",
+        "_extract": lambda m: (m.group(1), m.group(2)),
+        "entries": [
+            {
+                "condition": lambda prop, got: True,
+                "context_hint": lambda prop, got: (
+                    f"⚠️  RELATION MANQUANTE (TS2741) : '{prop}' attendu par le composant client"
+                    f" mais absent de la query Prisma.\n"
+                    f"  CAUSE : le Server Component passe le résultat Prisma brut sans include.\n"
+                    f"  FIX option A — ajouter include dans la query Prisma :\n"
+                    f"    prisma.model.findUnique({{ where: {{id}}, include: {{ {prop}: true }} }})\n"
+                    f"  FIX option B — rendre la prop optionnelle dans le composant client :\n"
+                    f"    {prop}?: {{ id: string; ... }}[]"
+                ),
+                "rag_query": "Prisma include nested relations server component client component props TypeScript TS2741",
+                "action": "ADD_PRISMA_INCLUDE",
+            },
+        ],
+    },
+
     # ── TS2322 : Type X is not assignable to type Y (assignment / property) ────
     # Distinct de TS2345 (argument de fonction) — même cause racine possible.
     "TS2322": {
         "_pattern": r"error TS2322: Type '([^']+)' is not assignable to type '([^']+)'",
         "_extract": lambda m: (m.group(1), m.group(2)),
         "entries": [
+            {
+                # Prisma create : type union Without<XCreateInput, XUncheckedCreateInput>
+                # Indique qu'un champ requis (userId, status, projectId…) est absent du data.
+                "condition": lambda got, expected: "Without" in expected or "UncheckedCreateInput" in expected,
+                "context_hint": lambda got, expected: (
+                    f"⚠️  CHAMP REQUIS MANQUANT (TS2322) : l'objet passé à prisma.create() ne correspond pas.\n"
+                    f"  CAUSE : un champ obligatoire (userId, status, projectId…) est absent du {{ data }}.\n"
+                    f"  FIX — inclure tous les champs requis dans le create :\n"
+                    f"    prisma.task.create({{ data: {{ title, description, priority, status: 'pending',\n"
+                    f"      projectId, userId }} }})\n"
+                    f"  Si status a un @default dans schema.prisma, TypeScript l'exige quand même\n"
+                    f"  dans TaskUncheckedCreateInput — le passer explicitement."
+                ),
+                "rag_query": "Prisma create required fields TaskUncheckedCreateInput userId status TypeScript TS2322",
+                "action": "FIX_PRISMA_CREATE_FIELDS",
+            },
+            {
+                # Date Prisma vs string attendu par composant client — DTO manquant
+                "condition": lambda got, expected: "Date" in got and "string" in expected,
+                "context_hint": lambda got, expected: (
+                    f"⚠️  SÉRIALISATION DATE (TS2322) : Prisma retourne 'Date', le composant attend 'string'.\n"
+                    f"  CAUSE : objet Prisma passé directement à un Client Component sans DTO.\n"
+                    f"  FIX dans le Server Component — construire un DTO avant le passage :\n"
+                    f"    const dto = {{ ...item, createdAt: item.createdAt.toISOString() }}\n"
+                    f"  OU (conversion complète) : const dto = JSON.parse(JSON.stringify(item))"
+                ),
+                "rag_query": "Prisma Date toISOString DTO serialisation Server Component Client Component Next.js TS2322",
+                "action": "FIX_DATE_SERIALIZATION",
+            },
             {
                 # string | null passé à Prisma where/create : auth guard absent
                 "condition": lambda got, expected: "null" in got and "string" in got,

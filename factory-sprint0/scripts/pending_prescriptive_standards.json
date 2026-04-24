@@ -145,5 +145,35 @@
       "version": "1.0",
       "category": "prisma"
     }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Contrat service/route — noms de méthodes et signatures\nRAISON: Quand une route API appelle une méthode de service qui n'existe pas (TS2339) ou avec un mauvais nom (TS2551), NE PAS réécrire le service. Lire le service avec read_file() et adapter la route. Réécrire le service casse toutes les autres routes qui l'appellent correctement.\nMÉTHODES_CANONIQUES:\n  findManyBy<Relation>(relationId: string)   // ex: findManyByProject(projectId)\n  findUnique(id: string, userId: string)     // retourne null si non trouvé ou non autorisé\n  create(data: CreateXxxInput, ownerId: string)\n  update(id: string, data: UpdateXxxInput, userId: string)\n  delete(id: string, userId: string)         // TOUJOURS 2 args : id + userId\nREGLE_ABSOLUE: Si la route appelle taskService.findManyByParent() mais le service a findManyByProject() → corriger la route, pas le service.\nEXEMPLE_INVALIDE:\n  // Route — MAUVAIS\n  const tasks = await taskService.findManyByParent(projectId)  // TS2551\n  await commentService.delete(id)                              // TS2554 : manque userId\nEXEMPLE_VALIDE:\n  // Route — CORRECT\n  const tasks = await taskService.findManyByProject(projectId)\n  await commentService.delete(id, userId)\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "zone": "9-security",
+      "status": "active",
+      "version": "1.0",
+      "category": "typescript"
+    }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma create — champs requis dans TaskUncheckedCreateInput\nRAISON: prisma.task.create({ data: { title, projectId } }) génère TS2322 car userId et status sont requis dans TaskUncheckedCreateInput même s'ils ont un @default dans schema.prisma. TypeScript exige qu'ils soient fournis explicitement.\nEXEMPLE_INVALIDE:\n  await prisma.task.create({ data: { title, description, priority, projectId } })  // manque userId et status\nEXEMPLE_VALIDE:\n  await prisma.task.create({\n    data: { title, description, priority, status: 'pending', projectId, userId }\n  })\nREGLE: Toujours passer userId (depuis auth()) et status (valeur par défaut 'pending' ou 'todo') dans prisma.task.create(). Même logique pour prisma.comment.create() : passer authorId et taskId.\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "zone": "9-security",
+      "status": "active",
+      "version": "1.0",
+      "category": "prisma"
+    }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Prisma include — relations imbriquées passées à un Client Component\nRAISON: Quand un Server Component passe un objet Prisma à un Client Component dont les props requièrent des relations imbriquées (ex: tasks[], comments[]), la query Prisma DOIT utiliser include. Sans include, TypeScript génère TS2741 car le type Prisma ne contient pas la relation.\nERREUR: TS2741: Property 'tasks' is missing in type '{ id: string; name: string; createdAt: Date; ... }' but required in type '{ ...; tasks: { id: string; title: string; status: string; priority: string; }[]; }'\nEXEMPLE_INVALIDE:\n  // Server Component — manque include\n  const project = await prisma.project.findUnique({ where: { id } })\n  return <ProjectDetail project={project} />  // TS2741 si ProjectDetail attend project.tasks\nEXEMPLE_VALIDE:\n  // Server Component — avec include\n  const project = await prisma.project.findUnique({\n    where: { id },\n    include: { tasks: { select: { id: true, title: true, status: true, priority: true } } }\n  })\n  return <ProjectDetail project={project} />\nALTERNATIVE_SI_PAS_INCLUDE: Déclarer la prop optionnelle dans le composant client : tasks?: { id: string; ... }[]\nREGLE: Toujours aligner les props du composant client avec ce que la query Prisma fetche réellement.\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "zone": "9-security",
+      "status": "active",
+      "version": "1.0",
+      "category": "prisma"
+    }
   }
 ]

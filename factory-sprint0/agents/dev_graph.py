@@ -26,7 +26,6 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 import agents.dev_tools as _dev_tools_module
 from agents.dev_tools import write_file, read_file, list_directory, shell_exec, file_exists
-from langchain_core.tools import tool as _tool
 
 logger = logging.getLogger(__name__)
 
@@ -36,26 +35,7 @@ MAX_FILE_VALIDATION_RETRIES = 2
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
 
-@_tool
-def write_file_restricted(path: str, content: str) -> str:
-    """
-    Mode CORRECTION uniquement — écrit un fichier ayant des erreurs TypeScript actives.
-    Les fichiers déjà validés par tsc sans erreur active sont bloqués.
-    Utilise write_file pour les nouvelles créations ou la phase de génération.
-    """
-    norm_path = str(path).strip().replace("\\", "/").lstrip("/")
-    errored = _dev_tools_module._get_errored_files()
-    validated = _dev_tools_module._get_validated_files()
-    if errored is not None and norm_path in validated and norm_path not in errored:
-        allowed = sorted(errored)[:6]
-        return (
-            f"BLOCKED: '{norm_path}' est validé et sans erreur active. "
-            f"Corrige uniquement : {allowed}"
-        )
-    return write_file.invoke({"path": path, "content": content})
-
-
-DEV_TOOLS = [write_file, write_file_restricted, read_file, list_directory, shell_exec, file_exists]
+DEV_TOOLS = [write_file, read_file, list_directory, shell_exec, file_exists]
 
 
 def _check_next_dir_on_disk() -> bool:
@@ -418,6 +398,18 @@ async def run_dev_agent(
         # (SystemMessage, spec initiale, 3 derniers rounds, dernière correction).
         messages = _prune_messages(list(state["messages"]))
 
+        # Resync errored_files + validated_files state → dicts globaux (cross-nœuds).
+        # Guard 2 dans write_file lit _get_errored_files() / _get_validated_files() depuis
+        # _errored_by_run/_validated_by_run. Ces dicts traversent les frontières asyncio ;
+        # les ContextVar seuls ne suffisent pas (isolation par nœud LangGraph).
+        _state_errored = state.get("errored_files", [])
+        if _state_errored:
+            _dev_tools_module.set_errored_files(_state_errored)
+        else:
+            _dev_tools_module.clear_errored_files()
+        _state_validated = state.get("validated_files", [])
+        _dev_tools_module.set_validated_files(_state_validated)
+
         # En phase "correction" : rappel explicite que le LLM ne doit pas repartir
         # de zéro — corrige uniquement la ligne indiquée, ne réécrit pas les fichiers entiers.
         if state.get("phase", "generation") == "correction" and not state.get("last_build_error", ""):
@@ -540,15 +532,9 @@ async def run_dev_agent(
                 )
             messages.append(HumanMessage(content=correction))
 
-        # Dynamic tool binding selon la phase.
-        # Correction active (erreurs tsc) → write_file_restricted (autorité limitée aux fichiers en erreur).
-        # Génération / build → tools complets (write_file sans restriction).
-        if state.get("file_validation_errors"):
-            correction_tools = [t for t in tools if t.name != "write_file"]
-            llm_with_tools = llm.bind_tools(correction_tools)
-        else:
-            generation_tools = [t for t in tools if t.name != "write_file_restricted"]
-            llm_with_tools = llm.bind_tools(generation_tools)
+        # write_file expose Guard 2 intégré : si errored_files est actif, les fichiers
+        # validés non-en-erreur retournent BLOCKED automatiquement. Pas de binding distinct.
+        llm_with_tools = llm.bind_tools(tools)
 
         response = llm_with_tools.invoke(messages)
 
@@ -934,7 +920,9 @@ async def run_dev_agent(
                 # tsc a des erreurs, mais pas dans les fichiers nouvellement écrits.
                 # Si des fichiers étaient déjà marqués en erreur, réinjecter leur contrainte —
                 # sinon le LLM perd le contexte et réécrit des fichiers déjà OK au lieu de corriger.
-                existing_errored = _dev_tools_module._get_errored_files()
+                # Lecture depuis graph state (pas ContextVar) : LangGraph isole les contextes
+                # asyncio entre nœuds, donc _get_errored_files() retourne None ici.
+                existing_errored = frozenset(state.get("errored_files", []))
                 if existing_errored:
                     if tsc_diagnostics is not None:
                         still_broken = _filter_tsc_structured(
@@ -987,6 +975,26 @@ async def run_dev_agent(
                 catalog_match = _lookup_error(err_line)
                 if catalog_match:
                     enriched_lines.append(f"  {catalog_match.context_hint}")
+
+            # F1 RAG bridge (file_validate) — même pattern que la correction post-build.
+            # Pour la première erreur cataloguée avec rag_query, recherche le standard
+            # Qdrant et l'injecte directement — sans attendre que le LLM appelle rag_search.
+            _rag_injected = False
+            for _rl in errors_for_written.splitlines():
+                if _rag_injected:
+                    break
+                _cm = _lookup_error(_rl)
+                if _cm and _cm.rag_query:
+                    try:
+                        from agents.shared_tools import rag_search as _rag_fn
+                        _rag_result = _rag_fn.invoke({"query": _cm.rag_query})
+                        if _rag_result and not _rag_result.startswith("[RAG]"):
+                            enriched_lines.append(
+                                f"\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:600]}"
+                            )
+                            _rag_injected = True
+                    except Exception:
+                        pass  # non-bloquant — Qdrant peut être absent
 
             errors_enriched = "\n".join(enriched_lines)
             retries = int(state.get("file_validation_retries", 0) or 0) + 1
