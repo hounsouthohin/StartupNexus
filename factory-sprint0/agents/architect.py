@@ -91,7 +91,20 @@ def _parse_model_str(model_str: str):
     import re
     from agents.project_spec import PrismaModel, PrismaField
 
-    blocks = re.findall(r'(\w+)\s*\{([^}]*)\}', model_str)
+    # Brace-depth counting — [^}]* regex casse sur les attributs imbriqués
+    _bm = re.search(r'(\w+)\s*\{', model_str)
+    blocks: list[tuple[str, str]] = []
+    if _bm:
+        _inner_start = _bm.end()
+        _depth = 1
+        for _i, _ch in enumerate(model_str[_inner_start:], start=_inner_start):
+            if _ch == "{":
+                _depth += 1
+            elif _ch == "}":
+                _depth -= 1
+                if _depth == 0:
+                    blocks = [(_bm.group(1), model_str[_inner_start:_i])]
+                    break
     if blocks:
         name, raw_fields = blocks[0]
         fields: list[PrismaField] = []

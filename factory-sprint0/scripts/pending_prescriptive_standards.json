@@ -90,6 +90,36 @@
     }
   },
   {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — Prisma result vers Client Component (TS2322)\nRAISON: Prisma retourne des objets avec des types non-sérialisables (Date, null, prototypes) qui causent TS2322 quand passés directement comme props d'un Client Component. La boundary Server→Client Next.js exige des props sérialisables (plain JSON). Cause la plus fréquente des erreurs TS2322 dans les pages App Router.\nERREUR_EXACTE: Type '{ id: string; createdAt: Date; description: string | null; ... }' is not assignable to type '{ id: string; createdAt: string; description?: string | undefined; ... }'\nREGLE_ABSOLUE: Ne jamais passer un résultat Prisma directement en props d'un composant client — toujours mapper vers un DTO sérialisable.\nSOLUTION_RECOMMANDEE_DTO:\n  // 1. Définir le type DTO dans le fichier page.tsx ou dans lib/types/\n  type ProjectDTO = {\n    id: string\n    name: string\n    description?: string       // undefined, pas null\n    status: string\n    createdAt: string          // string ISO, pas Date\n  }\n  // 2. Mapper avant de passer au Client Component\n  const projects: ProjectDTO[] = prismaResult.map(p => ({\n    id: p.id,\n    name: p.name,\n    description: p.description ?? undefined,  // null → undefined\n    status: p.status,\n    createdAt: p.createdAt.toISOString(),      // Date → string ISO\n  }))\n  // 3. Passer le DTO (plus de TS2322)\n  return <ProjectList projects={projects} />\nSOLUTION_ALTERNATIVE_RAPIDE:\n  // JSON.parse(JSON.stringify()) convertit automatiquement Date → string et préserve null\n  const serialized = JSON.parse(JSON.stringify(prismaResult))\n  return <ProjectList projects={serialized} />\nINTERDIT:\n  return <ProjectList projects={prismaResult} />  // prismaResult contient Date → TS2322\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "zone": "9-security",
+      "status": "active",
+      "version": "1.0",
+      "category": "typescript"
+    }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — Server Component protégé (app/**/page.tsx sans \"use client\")\nRAISON: auth() et currentUser() sont des APIs server-only de Clerk. Elles s'importent UNIQUEMENT depuis '@clerk/nextjs/server'. Importer depuis '@clerk/nextjs' (sans /server) casse le build avec TS2305. redirect() vient de 'next/navigation', pas 'next/router'. Ces imports manquants sont la cause principale des erreurs TS2304/TS2305 sur les pages générées.\nIMPORTS_OBLIGATOIRES:\n  import { auth } from '@clerk/nextjs/server';\n  import { redirect } from 'next/navigation';\nIMPORTS_OPTIONNELS:\n  import { currentUser } from '@clerk/nextjs/server';  // si besoin de l'objet user complet\n  import { prisma } from '@/lib/prisma';               // si accès DB\nPATTERN_MINIMAL:\n  import { auth } from '@clerk/nextjs/server';\n  import { redirect } from 'next/navigation';\n\n  export default async function Page() {\n    const { userId } = await auth();\n    if (!userId) redirect('/sign-in');\n    return <main>...</main>;\n  }\nINTERDIT:\n  import { auth } from '@clerk/nextjs'           // manque /server => TS2305\n  import { useAuth } from '@clerk/nextjs/server' // hooks = client uniquement\nERREUR_SI_ABSENT: TS2305: Module '\"@clerk/nextjs\"' has no exported member 'auth'. / TS2304: Cannot find name 'redirect'.\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "zone": "9-security",
+      "status": "active",
+      "version": "1.0",
+      "category": "clerk"
+    }
+  },
+  {
+    "text": "ACTION: OBLIGATOIRE\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router — Client Component avec hooks Clerk (app/**/page.tsx ou composants avec \"use client\")\nRAISON: Les hooks React et les hooks Clerk (useAuth, useUser) nécessitent \"use client\" en PREMIERE LIGNE ABSOLUE du fichier, avant tout import. Les hooks Clerk client s'importent depuis '@clerk/nextjs' (SANS /server). Oublier \"use client\" ou le placer après les imports = erreur React hooks au runtime. C'est la deuxième cause principale d'erreurs sur les pages générées.\nDIRECTIVE_OBLIGATOIRE: \"use client\" en ligne 1, avant tout import, avant tout commentaire\nIMPORTS_OBLIGATOIRES:\n  \"use client\";\n  import { useAuth } from '@clerk/nextjs';\n  import { useRouter } from 'next/navigation';\nIMPORTS_OPTIONNELS:\n  import { useUser } from '@clerk/nextjs';      // si besoin de l'objet user complet\n  import { useParams } from 'next/navigation';  // si route dynamique [id]\n  import { useState, useEffect } from 'react';  // hooks React standard\nPATTERN_MINIMAL:\n  \"use client\";\n\n  import { useAuth } from '@clerk/nextjs';\n  import { useRouter } from 'next/navigation';\n\n  export default function ClientPage() {\n    const { userId, isLoaded } = useAuth();\n    const router = useRouter();\n    if (!isLoaded) return null;\n    if (!userId) { router.push('/sign-in'); return null; }\n    return <main>...</main>;\n  }\nINTERDIT:\n  import { auth } from '@clerk/nextjs'         // auth() est server-only\n  import { auth } from '@clerk/nextjs/server'  // server dans client component = boundary violation\nERREUR_SI_ABSENT: Error: You're importing a component that needs \"use client\". / Cannot call hooks inside a Server Component.\nSTATUS: active\nVERSION: 1.0",
+    "metadata": {
+      "stack": "nextjs-clerk-prisma",
+      "zone": "9-security",
+      "status": "active",
+      "version": "1.0",
+      "category": "clerk"
+    }
+  },
+  {
     "text": "ACTION: INTERDIT\nSTACK: nextjs-clerk-prisma\nTECHNOLOGIE: Next.js App Router data fetching\nRAISON: `getServerSideProps` est une API Pages Router et n'est pas supportée dans `app/**`.\nDETECTION_REGEX: getServerSideProps\nALTERNATIVE: Utiliser des Server Components async + fetch/Prisma directement dans la page App Router.\nEXEMPLE_INVALIDE: export const getServerSideProps = async () => ... dans app/page.tsx\nEXEMPLE_VALIDE: export default async function Page() { const data = await prisma.post.findMany(); ... }\nERREUR_ATTENDUE: \"getServerSideProps\" is not supported in app/\nSTATUS: active\nVERSION: 1.0",
     "metadata": {
       "stack": "nextjs-clerk-prisma",

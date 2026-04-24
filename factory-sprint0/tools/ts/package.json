@@ -1,0 +1,10 @@
+{
+  "name": "factory-ts-tools",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Node.js helpers for structured TypeScript diagnostics and Prisma parsing",
+  "dependencies": {
+    "ts-morph": "*"
+  }
+}

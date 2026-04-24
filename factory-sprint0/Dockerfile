@@ -44,5 +44,8 @@ RUN apt-get update && \
 RUN find . -name "*.pyc" -delete
 COPY . .
 
+# Install ts-morph locally for tsc_check.mjs (R1 — structured TS diagnostics)
+RUN cd /app/tools/ts && npm install --production
+
 # Commande de démarrage
 CMD ["python", "run/worker.py"]

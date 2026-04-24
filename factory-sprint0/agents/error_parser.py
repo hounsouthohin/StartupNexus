@@ -4,11 +4,18 @@ error_parser.py — Parsing centralisé des sorties d'outils de build.
 Source unique pour parser les erreurs TSC et ESLint.
 Remplace les deux regex divergentes dans shared_tools.py et dev_graph.py.
 
+R1 (Avril 2026) — ts-morph structured diagnostics :
+  run_tsc_structured()        : appelle tsc_check.mjs via subprocess, retourne list[dict]
+  filter_tsc_errors_structured(): filtre les diagnostics par fichiers cibles, retourne str LLM-ready
+
 Règle : ce module n'importe rien des autres agents (zéro dépendance interne).
 """
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+from pathlib import Path
 from typing import Any
 
 # ── Regex canonique TSC ───────────────────────────────────────────────────────
@@ -64,6 +71,87 @@ def filter_tsc_errors_for_files(tsc_output: str, target_files: list[str], max_li
     if not relevant:
         return ""
     return "\n".join(relevant[:max_lines])
+
+
+# ── ts-morph structured diagnostics (R1) ─────────────────────────────────────
+_TOOLS_TS_DIR = Path(__file__).resolve().parent.parent / "tools" / "ts"
+_TSC_CHECK_MJS = _TOOLS_TS_DIR / "tsc_check.mjs"
+
+
+def run_tsc_structured(project_dir: str, timeout_s: int = 120) -> list[dict[str, Any]] | None:
+    """
+    Appelle tools/ts/tsc_check.mjs et retourne les diagnostics structurés TypeScript.
+    Chaque dict : {file: str|None, line: int|None, col: int|None, code: str, message: str}
+
+    Retourne None si le script ou Node.js est indisponible — le caller doit
+    alors tomber sur le fallback npx tsc + regex.
+    Exit 0 = aucune erreur, exit 1 = erreurs TS (liste non vide), exit 2 = tsconfig absent.
+    """
+    script = str(_TSC_CHECK_MJS)
+    if not Path(script).exists():
+        return None
+    if not shutil.which("node"):
+        return None
+
+    try:
+        result = subprocess.run(
+            ["node", script, project_dir],
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+        )
+        if result.returncode == 2:
+            # tsconfig absent / projet non chargeable — signal pour fallback
+            return None
+        import json as _json
+        return _json.loads(result.stdout or "[]")
+    except (subprocess.TimeoutExpired, ValueError, Exception):
+        return None
+
+
+def filter_tsc_errors_structured(
+    diagnostics: list[dict[str, Any]],
+    target_files: list[str],
+    project_dir: str = "",
+    max_errors: int = 20,
+) -> str:
+    """
+    Filtre les diagnostics ts-morph sur les fichiers cibles et retourne un string LLM-ready.
+    Format aligné sur filter_tsc_errors_for_files :
+      app/page.tsx(12,5): error TS2345: message
+    """
+    if not diagnostics or not target_files:
+        return ""
+
+    targets_norm = {f.lstrip("./").replace("\\", "/") for f in target_files}
+
+    def _rel(file_path: str | None) -> str | None:
+        if not file_path:
+            return None
+        norm = str(file_path).replace("\\", "/")
+        if project_dir:
+            try:
+                norm = str(Path(norm).relative_to(project_dir)).replace("\\", "/")
+            except Exception:
+                pass
+        return norm.lstrip("./")
+
+    lines: list[str] = []
+    for d in diagnostics:
+        rel = _rel(d.get("file"))
+        if not rel:
+            continue
+        if not any(rel.endswith(t) or t.endswith(rel) for t in targets_norm):
+            continue
+        line = d.get("line") or ""
+        col  = d.get("col") or ""
+        code = d.get("code") or "TSxxxx"
+        msg  = d.get("message") or ""
+        lines.append(f"{rel}({line},{col}): error {code}: {msg}")
+        if len(lines) >= max_errors:
+            break
+
+    return "\n".join(lines)
 
 
 def parse_eslint_errors_json(output: str) -> list[dict[str, Any]]:

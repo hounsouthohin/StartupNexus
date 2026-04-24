@@ -44,8 +44,8 @@ def write_file_restricted(path: str, content: str) -> str:
     Utilise write_file pour les nouvelles créations ou la phase de génération.
     """
     norm_path = str(path).strip().replace("\\", "/").lstrip("/")
-    errored = _dev_tools_module._errored_files
-    validated = _dev_tools_module._validated_files
+    errored = _dev_tools_module._get_errored_files()
+    validated = _dev_tools_module._get_validated_files()
     if errored is not None and norm_path in validated and norm_path not in errored:
         allowed = sorted(errored)[:6]
         return (
@@ -283,15 +283,18 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
-    # ── Génération déterministe des loading.tsx ─────────────────────────────────
-    # Option B : lib/types.ts et lib/services/ sont générés par le LLM (auteur unique).
-    # Seuls les loading.tsx restent déterministes — trivials, sans contrat à communiquer.
+    # ── Génération déterministe : loading.tsx + stubs page.tsx ──────────────────
+    # loading.tsx : squelettes UI triviaux, jamais incorrects.
+    # page stubs (R6) : page.tsx avec imports Clerk/Next.js pré-remplis.
+    #   Le LLM lit ces stubs avant d'écrire — il voit les imports dès le départ,
+    #   ce qui élimine la boucle de correction sur imports manquants (P1).
     if spec_obj is not None:
         try:
-            from agents.dev_pages_generator import generate_loading_files
+            from agents.dev_pages_generator import generate_loading_files, generate_page_stubs
             generate_loading_files(spec_obj, project_workdir)
+            generate_page_stubs(spec_obj, project_workdir)
         except Exception as _pg_err:
-            logger.warning(f"[dev_graph] generate_loading_files non bloquant : {_pg_err}")
+            logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
     # Protéger uniquement l'infrastructure — le code applicatif appartient au LLM.
     _protected = {
@@ -697,71 +700,76 @@ async def run_dev_agent(
     # ── Extraction erreur + détection succès déterministe ────────────
     def extract_build_error_node(state: DevState) -> dict:
         """
-        Parcourt les ToolMessages pour détecter :
-        - un succès build (shell_exec exit 0 + marqueurs next.js — signal unique)
-        - une erreur build à traiter
+        Détecte le succès/échec du build Next.js en corrélant chaque ToolMessage
+        avec le command de l'AIMessage via tool_call_id.
 
-        Phase B : success = npm run build exécuté + exit code 0.
-        Phase hardening : build_executed = True dès qu'une AIMessage tool_call
-        cible npm run build — même si l'output ne contient pas les marqueurs attendus.
+        Source unique de vérité : exit code retourné par shell_exec.
+          "OK\n..."       → exit code 0  → build_success = True
+          "FAILED (exit N)..." → exit code N → build_success = False
+        Zéro keyword matching sur le contenu de la sortie.
         """
         from langchain_core.messages import ToolMessage
+        import re as _re
+
+        # Étape 1 — construire la map tool_call_id → command depuis tous les AIMessages.
+        # Permet de savoir, pour chaque ToolMessage, quelle commande l'a produit.
+        tool_call_commands: dict[str, str] = {}
+        for msg in state["messages"]:
+            if isinstance(msg, AIMessage):
+                for call in (getattr(msg, "tool_calls", None) or []):
+                    call_id = call.get("id", "")
+                    if not call_id:
+                        continue
+                    args = call.get("args", {})
+                    cmd = str(args.get("command", "") if isinstance(args, dict) else args or "")
+                    tool_call_commands[call_id] = cmd
 
         last_error = ""
         build_succeeded = False
         build_executed = False
         build_exit = -1
 
+        # Étape 2 — scanner les ToolMessages en remontant, filtrer sur les build commands.
         for msg in reversed(state["messages"]):
-            if isinstance(msg, ToolMessage):
-                content = str(getattr(msg, "content", "") or "")
+            if not isinstance(msg, ToolMessage):
+                continue
+            content = str(getattr(msg, "content", "") or "")
+            call_id = getattr(msg, "tool_call_id", "") or ""
+            cmd = tool_call_commands.get(call_id, "")
 
-                # Succès build : shell_exec retourne "OK\n" + marqueurs next.js
-                if content.startswith("OK\n") and any(marker in content for marker in [
-                    "Creating an optimized production build",
-                    "Compiled successfully",
-                    "compiled successfully",
-                    "Route (app)",
-                    "✓ Compiled",
-                ]):
-                    build_succeeded = True
-                    build_executed = True
-                    build_exit = 0
-                    break
+            if not _is_build_command(cmd):
+                continue  # tsc, prisma, npm install, etc. — pas un build
 
-                # Erreur build
-                if any(kw in content for kw in [
-                    "Type error:", "Failed to compile", "Build failed",
-                    "FAILED (exit", "error TS", "does not exist on type",
-                    "Cannot find module", "SyntaxError",
-                ]):
-                    last_error = content[:3000]
-                    build_executed = True
-                    import re as _re
-                    m = _re.search(r"exit\s+(\d+)", content)
-                    build_exit = int(m.group(1)) if m else 1
-                    break
+            build_executed = True
 
-        # Hardening : si aucun ToolMessage n'a déclenché build_executed, vérifie
-        # l'AIMessage le plus récent pour détecter un build command non capturé
-        # (output tronqué, format inattendu, etc.).
+            # Succès : exit code 0 — préfixe "OK\n" de shell_exec, point final
+            if content.startswith("OK\n"):
+                build_succeeded = True
+                build_exit = 0
+                break
+
+            # Échec : préfixe "FAILED (exit N)" de shell_exec
+            last_error = content[:3000]
+            m = _re.search(r"FAILED \(exit (\d+)\)", content)
+            build_exit = int(m.group(1)) if m else 1
+            break
+
+        # Hardening : build command dans un AIMessage sans ToolMessage associé
+        # (output tronqué, tool error intercepté par ToolNode, etc.).
         if not build_executed:
             for msg in reversed(state["messages"]):
                 if isinstance(msg, AIMessage):
                     for call in (getattr(msg, "tool_calls", None) or []):
-                        name = str(call.get("name", "") or "")
-                        if not (name == "shell_exec" or name.endswith("shell_exec")):
-                            continue
                         args = call.get("args", {})
                         cmd = str(args.get("command", "") if isinstance(args, dict) else args or "")
                         if _is_build_command(cmd):
                             build_executed = True
-                            build_exit = 1  # conservatif — pas de succès sans marqueurs
+                            build_exit = 1  # conservatif — pas de succès sans ToolMessage
                             logger.warning(
-                                "[extract_error] build command détecté dans AIMessage mais pas "
-                                "dans ToolMessage output — marqueurs next.js absents ou output tronqué"
+                                "[extract_error] build command dans AIMessage sans ToolMessage associé "
+                                "— output manquant ou tronqué"
                             )
-                    break  # on ne cherche que le dernier AIMessage
+                    break
 
         new_attempts = int(state.get("build_attempts", 0) or 0) + (1 if build_executed else 0)
         # Dès que le build a tourné (réussi ou non) → phase "correction"
@@ -854,7 +862,11 @@ async def run_dev_agent(
             written.append(path)
         return written
 
-    from agents.error_parser import filter_tsc_errors_for_files as _parse_tsc_errors_for_files
+    from agents.error_parser import (
+        filter_tsc_errors_for_files as _parse_tsc_errors_for_files,
+        run_tsc_structured as _run_tsc_structured,
+        filter_tsc_errors_structured as _filter_tsc_structured,
+    )
 
     async def file_validate_node(state: DevState) -> dict:
         """
@@ -878,17 +890,25 @@ async def run_dev_agent(
             return {"file_validation_errors": ""}
 
         try:
-            result = subprocess.run(
-                "npx tsc --noEmit 2>&1",
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=project_workdir,
-                timeout=60,
-            )
-            tsc_stdout = (result.stdout or "") + (result.stderr or "")
+            # R1 — ts-morph structured diagnostics (pas de regex sur du texte)
+            tsc_diagnostics = _run_tsc_structured(project_workdir, timeout_s=60)
 
-            if result.returncode == 0:
+            if tsc_diagnostics is not None:
+                tsc_ok = len(tsc_diagnostics) == 0
+            else:
+                # Fallback : npx tsc + regex (tsc_check.mjs indisponible)
+                _fb = subprocess.run(
+                    "npx tsc --noEmit 2>&1",
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                    cwd=project_workdir,
+                    timeout=60,
+                )
+                tsc_stdout_fb = (_fb.stdout or "") + (_fb.stderr or "")
+                tsc_ok = _fb.returncode == 0
+
+            if tsc_ok:
                 # tsc clean → fichiers validés + désactivation du mode correction
                 new_validated = list(state.get("validated_files", []))
                 for f in written_files:
@@ -905,9 +925,33 @@ async def run_dev_agent(
                 }
 
             # tsc a des erreurs → filtrer sur les fichiers écrits ce tour
-            errors_for_written = _parse_tsc_errors_for_files(tsc_stdout, written_files)
+            if tsc_diagnostics is not None:
+                errors_for_written = _filter_tsc_structured(tsc_diagnostics, written_files, project_workdir)
+            else:
+                errors_for_written = _parse_tsc_errors_for_files(tsc_stdout_fb, written_files)
+
             if not errors_for_written:
-                # Erreurs dans d'autres fichiers (déjà existants) — pas de notre faute maintenant
+                # tsc a des erreurs, mais pas dans les fichiers nouvellement écrits.
+                # Si des fichiers étaient déjà marqués en erreur, réinjecter leur contrainte —
+                # sinon le LLM perd le contexte et réécrit des fichiers déjà OK au lieu de corriger.
+                existing_errored = _dev_tools_module._get_errored_files()
+                if existing_errored:
+                    if tsc_diagnostics is not None:
+                        still_broken = _filter_tsc_structured(
+                            tsc_diagnostics, list(existing_errored), project_workdir
+                        )
+                    else:
+                        still_broken = _parse_tsc_errors_for_files(tsc_stdout_fb, list(existing_errored))
+                    if still_broken:
+                        logger.warning(
+                            "[file_validate] tsc errors dans fichiers précédemment en erreur"
+                            " — réinjection contrainte : %s",
+                            sorted(existing_errored),
+                        )
+                        return {
+                            "file_validation_errors": still_broken,
+                            "errored_files": list(existing_errored),
+                        }
                 logger.info("[file_validate] tsc errors but not in newly written files — skip")
                 return {"file_validation_errors": ""}
 

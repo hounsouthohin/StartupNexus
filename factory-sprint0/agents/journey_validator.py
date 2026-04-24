@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from pathlib import Path
 from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -106,29 +107,94 @@ def _path_to_candidates(path: str) -> list[str]:
         ]
 
 
-def _is_covered(path: str, combined_files: dict) -> bool:
+def _file_path_to_route(file_path: str) -> str | None:
+    """
+    Convertit un chemin de fichier Next.js App Router en route URL.
+    Ne retourne rien pour les non-pages (route.ts, layout.tsx, etc.).
+    Route groups (x) et parallel routes @slot sont ignorés.
+    """
+    p = Path(file_path)
+    if p.name not in ("page.tsx", "page.ts", "page.jsx", "page.js"):
+        return None
+
+    parts = list(p.parent.parts)
+    while parts and parts[0] in ("app", "src"):
+        parts.pop(0)
+
+    route_parts: list[str] = []
+    for part in parts:
+        if re.match(r"^\(.*\)$", part):       # route group (auth) → ignoré
+            continue
+        if part.startswith("@"):               # parallel route slot → ignoré
+            continue
+        if re.match(r"^\[\.\.\..*\]$", part):  # catch-all [...slug]
+            route_parts.append("*")
+        elif re.match(r"^\[.*\]$", part):      # dynamic segment [id] → :id
+            route_parts.append(":" + part[1:-1])
+        else:
+            route_parts.append(part)
+
+    return "/" + "/".join(route_parts) if route_parts else "/"
+
+
+def build_route_table(file_keys: "set[str] | list[str]") -> dict[str, str]:
+    """
+    Construit {route_url: file_path} depuis la liste des fichiers générés.
+    Exporté pour spec_validator.py.
+    """
+    table: dict[str, str] = {}
+    for f in file_keys:
+        route = _file_path_to_route(f)
+        if route:
+            table[route] = f
+    return table
+
+
+def _spec_path_to_pattern(spec_path: str) -> re.Pattern:
+    """
+    Convertit un chemin spec (/users/[id] ou /users/:id) en regex
+    matchant la route table (qui stocke :param).
+    """
+    parts = spec_path.strip("/").split("/")
+    regex_parts: list[str] = []
+    for p in parts:
+        if (p.startswith("[") and p.endswith("]")) or p.startswith(":") or p == "*":
+            regex_parts.append("[^/]+")
+        else:
+            regex_parts.append(re.escape(p.lower()))
+    if not regex_parts:
+        return re.compile(r"^/$")
+    return re.compile("^/" + "/".join(regex_parts) + "$", re.IGNORECASE)
+
+
+def _is_covered(path: str, combined_files: dict, _route_table: "dict | None" = None) -> bool:
     """
     Vérifie si un chemin URL est couvert dans les fichiers générés.
-    Stratégie : exact d'abord, puis fuzzy par segments non-vides.
+    Stratégie :
+      1. Exact match sur les candidats directs (page.tsx, route.ts)
+      2. Route table déterministe — remplace le fuzzy matching par segments
+         (évite les faux positifs type /companies → app/contacts/companies/page.tsx)
+    _route_table : pré-construit par validate_user_flows pour ne pas reconstruire à chaque flow.
     """
-    candidates = _path_to_candidates(path)
     file_keys = set(combined_files.keys())
+    candidates = _path_to_candidates(path)
 
-    # Match exact
     for c in candidates:
         if c in file_keys:
             return True
 
-    # Match fuzzy : tous les segments significatifs du path doivent apparaître dans le nom de fichier
-    segments = [s for s in path.strip("/").split("/") if s and s not in ("api",) and not s.startswith("[")]
-    if not segments:
+    # API routes : pas de route table page — seul route.ts compte
+    normalized = path.strip("/")
+    if normalized.startswith("api/") or "/api/" in normalized:
         return False
 
-    for f in file_keys:
-        if all(seg.lower() in f.lower() for seg in segments):
-            return True
+    # Route table déterministe — segment exact, pas de substring matching
+    table = _route_table if _route_table is not None else build_route_table(file_keys)
+    if not table:
+        return False
 
-    return False
+    pattern = _spec_path_to_pattern(path)
+    return any(pattern.match(route) for route in table)
 
 
 def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any]:
@@ -168,6 +234,9 @@ def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any
     llm_promoted = []
     llm_checked = 0
 
+    # Pré-construit une seule fois pour tous les flows (R7 — route table déterministe)
+    _route_table = build_route_table(set(combined_files.keys()))
+
     for flow in user_flows:
         path = _extract_path_from_flow(str(flow))
         if not path:
@@ -175,7 +244,7 @@ def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any
             logger.debug(f"[journey_validator] Pas de chemin extractible : '{flow}'")
             continue
 
-        if _is_covered(path, combined_files):
+        if _is_covered(path, combined_files, _route_table=_route_table):
             covered.append(flow)
             logger.debug(f"[journey_validator] ✓ '{flow}' → {path}")
         else:

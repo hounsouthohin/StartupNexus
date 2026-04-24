@@ -28,28 +28,35 @@ def _classify_root_cause(
     spec_validation_status: str,
     iterations: int,
     prebuild_report: dict | None = None,
+    tsc_errors_by_activity: int = 0,
 ) -> str:
     """
     Catégorise la cause racine d'un run en échec ou partiel.
 
     Priorité de classification :
       1. semantic_violations      — gates déterministes (toujours prioritaires)
-      2. prebuild_report          — violations structurées tsc/prisma/eslint (Phase B+)
-      3. text patterns fallback   — pour erreurs runtime non capturées par prebuild
+      2. tsc_error_loop           — erreurs tsc persistantes sans build (circuit breaker)
+      3. prebuild_report          — violations structurées tsc/prisma/eslint (Phase B+)
+      4. text patterns fallback   — pour erreurs runtime non capturées par prebuild
          (use client, module resolution, erreurs Next.js dynamiques)
 
     Retourne une chaîne parmi :
-      semantic_violation | missing_template | client_directive | client_server_boundary
-      | prisma_import | prisma_schema_config | prisma_env | prisma_client_api
-      | typescript_implicit_any | typescript_property_error | typescript_type_mismatch
-      | typescript_missing_import | typescript_error
+      semantic_violation | tsc_error_loop | missing_template | client_directive
+      | client_server_boundary | prisma_import | prisma_schema_config | prisma_env
+      | prisma_client_api | typescript_implicit_any | typescript_property_error
+      | typescript_type_mismatch | typescript_missing_import | typescript_error
       | spec_drift | max_iterations | test_failure | workflow_execution_error | unknown
     """
     # ── 1. Semantic violations ────────────────────────────────────────────────
     if semantic_violations:
         return "semantic_violation"
 
-    # ── 2. Prebuild report — violations structurées (source de vérité Phase B+) ──
+    # ── 2. TSC error loop — build jamais tenté, erreurs tsc persistantes (circuit breaker) ──
+    # Signature : build_error vide + tsc_errors > 0 → graph stoppé par circuit breaker avant build.
+    if tsc_errors_by_activity > 0 and not last_build_error:
+        return "tsc_error_loop"
+
+    # ── 3. Prebuild report — violations structurées (source de vérité Phase B+) ──
     if prebuild_report and isinstance(prebuild_report, dict):
         violations = prebuild_report.get("violations") or []
         stages_failed = set(prebuild_report.get("stages_failed") or [])
@@ -913,6 +920,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 spec_validation_status=str(result.get("metadata", {}).get("spec_validation_status", "OK")),
                 iterations=int(dev_meta.get("iterations", 0)),
                 prebuild_report=dev_result.get("prebuild_report") or {},
+                tsc_errors_by_activity=int(tsc_activity_details.get("errors_count", 0)),
             ),
         }
         # ── Cohérence métrique — Phase C : contradictions = hard fail ────────

@@ -196,16 +196,27 @@ def _model_in_schema(model_name: str, schema_content: str) -> bool:
 
 
 def _extract_model_block(model_name: str, schema_content: str) -> str:
-    """Retourne le bloc `model <Name> { ... }` (sans accolades) ou chaîne vide."""
+    """Retourne le contenu intérieur du bloc `model <Name> { ... }` ou chaîne vide.
+    Comptage de profondeur d'accolades — robuste aux attributs imbriqués (@map, @default({}), etc.).
+    """
     schema_content = normalize_file_content("schema.prisma", schema_content)
-    m = re.search(
-        rf"\bmodel\s+{re.escape(model_name)}\s*\{{(.*?)\}}",
+    start_m = re.search(
+        rf"\bmodel\s+{re.escape(model_name)}\s*\{{",
         schema_content,
-        re.IGNORECASE | re.DOTALL,
+        re.IGNORECASE,
     )
-    if not m:
+    if not start_m:
         return ""
-    return m.group(1)
+    inner_start = start_m.end()
+    depth = 1
+    for i, ch in enumerate(schema_content[inner_start:], start=inner_start):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return schema_content[inner_start:i]
+    return ""
 
 
 def _schema_has_postgres_datasource(schema_content: str) -> bool:

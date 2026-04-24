@@ -315,13 +315,51 @@ async def _run_prisma_generate(project_dir: str) -> StageResult:
 
 async def _run_tsc(project_dir: str) -> StageResult:
     started = time.perf_counter()
-    tool = "npx tsc --noEmit --pretty false"
     tsconfig = os.path.join(project_dir, "tsconfig.json")
 
+    if not os.path.exists(tsconfig):
+        return StageResult(STAGE_TSC, "tsc", "skipped", int((time.perf_counter() - started) * 1000), evidence="tsconfig absent")
+
+    # R1 — ts-morph structured diagnostics (pas de regex, pas de parsing texte)
+    from agents.error_parser import run_tsc_structured as _run_tsc_structured
+
+    loop = asyncio.get_running_loop()
+    diagnostics = await loop.run_in_executor(None, lambda: _run_tsc_structured(project_dir, timeout_s=120))
+
+    if diagnostics is not None:
+        tool = "ts-morph getPreEmitDiagnostics (tsc_check.mjs)"
+        violations: list[Violation] = []
+        for d in diagnostics:
+            code = str(d.get("code") or "TS_UNKNOWN")
+            msg  = str(d.get("message") or "")
+            file_rel = _relpath(str(d.get("file") or ""), project_dir)
+            line_val = d.get("line")
+            col_val  = d.get("col")
+            violations.append(
+                Violation(
+                    rule_id=code,
+                    file=file_rel,
+                    line=int(line_val) if line_val else None,
+                    col=int(col_val) if col_val else None,
+                    reason=f"{code}: {msg}",
+                    fix_hint=_TS_FIX_HINTS.get(code, "Corrige l'erreur TypeScript sur la ligne indiquée puis relance tsc."),
+                )
+            )
+        violations = _dedupe_violations(violations)
+
+        if not violations:
+            return StageResult(STAGE_TSC, tool, "ok", int((time.perf_counter() - started) * 1000), exit_code=0, evidence="tsc OK (ts-morph) — aucune erreur détectée")
+
+        evidence = _truncate(
+            f"{len(violations)} erreur(s) TS (ts-morph) : "
+            + "; ".join(f"{v.file}:{v.line} {v.rule_id}" for v in violations[:5])
+        )
+        return StageResult(STAGE_TSC, tool, "failed", int((time.perf_counter() - started) * 1000), violations=violations, exit_code=1, evidence=evidence)
+
+    # Fallback — tsc_check.mjs indisponible, repli sur npx tsc + regex
+    tool = "npx tsc --noEmit --pretty false (fallback)"
     if shutil.which("npx") is None:
         return StageResult(STAGE_TSC, tool, "skipped", int((time.perf_counter() - started) * 1000), evidence="npx introuvable")
-    if not os.path.exists(tsconfig):
-        return StageResult(STAGE_TSC, tool, "skipped", int((time.perf_counter() - started) * 1000), evidence="tsconfig absent")
 
     try:
         res = await _run_subprocess(["npx", "tsc", "--noEmit", "--pretty", "false"], cwd=project_dir)
@@ -329,7 +367,7 @@ async def _run_tsc(project_dir: str) -> StageResult:
         if _is_missing_tool_output("tsc", output):
             return StageResult(STAGE_TSC, tool, "skipped", int((time.perf_counter() - started) * 1000), evidence=output)
 
-        violations: list[Violation] = []
+        violations_fb: list[Violation] = []
         rgx = re.compile(r"^(?P<file>.+?)\((?P<line>\d+),(?P<col>\d+)\):\s*error\s+(?P<code>TS\d+):\s*(?P<msg>.+)$")
         for raw in output.splitlines():
             m = rgx.match(raw.strip())
@@ -338,7 +376,7 @@ async def _run_tsc(project_dir: str) -> StageResult:
             code = m.group("code")
             msg = m.group("msg").strip()
             file_rel = _relpath(m.group("file"), project_dir)
-            violations.append(
+            violations_fb.append(
                 Violation(
                     rule_id=code,
                     file=file_rel,
@@ -349,11 +387,11 @@ async def _run_tsc(project_dir: str) -> StageResult:
                 )
             )
 
-        if res.returncode == 0 and not violations:
+        if res.returncode == 0 and not violations_fb:
             return StageResult(STAGE_TSC, tool, "ok", int((time.perf_counter() - started) * 1000), exit_code=0, evidence=output)
 
-        if not violations:
-            violations = [
+        if not violations_fb:
+            violations_fb = [
                 Violation(
                     rule_id="TS_UNKNOWN",
                     file="",
@@ -361,7 +399,7 @@ async def _run_tsc(project_dir: str) -> StageResult:
                     fix_hint="Lis la sortie tsc complète et corrige la première erreur bloquante.",
                 )
             ]
-        return StageResult(STAGE_TSC, tool, "failed", int((time.perf_counter() - started) * 1000), violations=violations, exit_code=res.returncode, evidence=output)
+        return StageResult(STAGE_TSC, tool, "failed", int((time.perf_counter() - started) * 1000), violations=violations_fb, exit_code=res.returncode, evidence=output)
     except subprocess.TimeoutExpired:
         return StageResult(STAGE_TSC, tool, "error", int((time.perf_counter() - started) * 1000), evidence="timeout tsc >120s")
     except Exception as e:

@@ -4,6 +4,16 @@ Outils Python natifs pour le dev agent v4 (Nouvelle Base).
 Remplace le transport MCP (filesystem + shell MCP servers).
 5 outils, zéro legacy, zéro dette.
 28 Mars 2026.
+
+R5-v2 (24 Avril 2026) — Isolation par contexte asyncio (ContextVar) :
+  dev_test_activity est async — elle await LangGraph dont le ToolNode invoque
+  les outils synchrones via asyncio.run_in_executor(). CPython propage le
+  contexte ContextVar aux threads executor via contextvars.copy_context().
+  threading.local() n'est PAS propagé par run_in_executor → workdir invisible
+  dans les threads outils → ENOENT (R5-v1 bug, corrigé ici).
+
+  Isolation entre runs concurrents : chaque activité Temporal async tourne dans
+  sa propre asyncio.Task — les ContextVar sont isolés par Task par défaut.
 """
 from __future__ import annotations
 
@@ -11,57 +21,69 @@ import os
 import re
 import shlex
 import subprocess
+from contextvars import ContextVar
 from pathlib import Path
 
 from langchain_core.tools import tool
 
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
-_runtime_workdir: str | None = None
-_protected_files: set[str] = set()
 
-# ── Dynamic write authority (correction mode) ────────────────────────────────
-# _validated_files : fichiers ayant passé tsc --noEmit (validés par file_validate_node)
-# _errored_files   : None = mode génération (autorité totale)
-#                    set  = mode correction (seuls ces fichiers sont modifiables)
-_validated_files: set[str] = set()
-_errored_files: "set[str] | None" = None
+# ── ContextVar state — propagé par asyncio.run_in_executor aux threads outils ─
+_workdir_cv:   ContextVar[str | None]        = ContextVar("factory_workdir",   default=None)
+_protected_cv: ContextVar[frozenset[str]]    = ContextVar("factory_protected",  default=frozenset())
+_validated_cv: ContextVar[frozenset[str]]    = ContextVar("factory_validated",  default=frozenset())
+_errored_cv:   ContextVar[frozenset[str] | None] = ContextVar("factory_errored", default=None)
 
+
+# ── Accesseurs internes ───────────────────────────────────────────────────────
 
 def _get_workdir() -> str:
-    """Retourne le workdir actif pour ce run (projet-spécifique si set_workdir a été appelé)."""
-    return _runtime_workdir or _BASE_WORKDIR
+    return _workdir_cv.get() or _BASE_WORKDIR
 
+
+def _get_protected_files() -> frozenset[str]:
+    return _protected_cv.get()
+
+
+def _get_validated_files() -> frozenset[str]:
+    return _validated_cv.get()
+
+
+def _get_errored_files() -> frozenset[str] | None:
+    return _errored_cv.get()
+
+
+# ── API publique de gestion d'état ────────────────────────────────────────────
 
 def set_workdir(path: str | None) -> None:
     """Fixe le workdir pour le run courant. Passer None pour réinitialiser."""
-    global _runtime_workdir
-    _runtime_workdir = path
+    _workdir_cv.set(path)
 
 
 def add_validated_files(paths: list[str]) -> None:
     """Marque des fichiers comme validés par tsc. Appelé par file_validate_node (tsc OK)."""
-    global _validated_files
-    for p in paths:
-        _validated_files.add(str(p).strip().replace("\\", "/").lstrip("/"))
+    normalized = frozenset(
+        str(p).strip().replace("\\", "/").lstrip("/") for p in paths
+    )
+    _validated_cv.set(_validated_cv.get() | normalized)
 
 
 def set_errored_files(paths: list[str]) -> None:
     """Active le mode correction : seuls ces fichiers sont modifiables via write_file_restricted."""
-    global _errored_files
-    _errored_files = {str(p).strip().replace("\\", "/").lstrip("/") for p in paths}
+    _errored_cv.set(frozenset(
+        str(p).strip().replace("\\", "/").lstrip("/") for p in paths
+    ))
 
 
 def clear_errored_files() -> None:
     """Désactive le mode correction (retour autorité totale)."""
-    global _errored_files
-    _errored_files = None
+    _errored_cv.set(None)
 
 
 def reset_write_authority() -> None:
     """Réinitialise l'état d'autorité complet à la fin d'un run."""
-    global _validated_files, _errored_files
-    _validated_files = set()
-    _errored_files = None
+    _validated_cv.set(frozenset())
+    _errored_cv.set(None)
 
 
 def set_protected_files(paths: list[str] | set[str] | None) -> None:
@@ -69,16 +91,14 @@ def set_protected_files(paths: list[str] | set[str] | None) -> None:
     Définit la liste des fichiers protégés contre réécriture pendant un run.
     Les chemins sont normalisés en style posix relatif au workdir.
     """
-    global _protected_files
     if not paths:
-        _protected_files = set()
+        _protected_cv.set(frozenset())
         return
-    normalized = {
+    _protected_cv.set(frozenset(
         str(p).strip().replace("\\", "/").lstrip("/")
         for p in paths
         if str(p).strip()
-    }
-    _protected_files = normalized
+    ))
 
 
 def _safe_path(path: str) -> str:
@@ -104,17 +124,19 @@ def write_file(path: str, content: str) -> str:
         abs_path = _safe_path(path)
 
         # Guard 1 : fichiers protégés par template (écrits par la factory avant le LLM).
-        if norm_path in _protected_files and os.path.exists(abs_path):
+        if norm_path in _get_protected_files() and os.path.exists(abs_path):
             return (
                 f"ERREUR write_file({path}): fichier protégé par template. "
                 "Lis-le avec read_file() et évite toute réécriture."
             )
 
         # Guard 2 : autorité de correction — fichier validé sans erreur active.
-        # Actif uniquement quand _errored_files est un set (mode correction).
-        # Un fichier validé + absent de _errored_files = autorité bloquée.
-        if _errored_files is not None and norm_path in _validated_files and norm_path not in _errored_files:
-            allowed = sorted(_errored_files)[:6]
+        # Actif uniquement quand errored_files est un set (mode correction).
+        # Un fichier validé + absent de errored_files = autorité bloquée.
+        errored = _get_errored_files()
+        validated = _get_validated_files()
+        if errored is not None and norm_path in validated and norm_path not in errored:
+            allowed = sorted(errored)[:6]
             return (
                 f"BLOCKED: '{norm_path}' est déjà validé par tsc et n'a pas d'erreurs actives. "
                 f"Corrige uniquement les fichiers en erreur : {allowed}"
@@ -227,7 +249,8 @@ def _shell_exec_targets_protected(command: str) -> str | None:
     Retourne le nom du fichier concerné si détecté, None sinon.
     Patterns couverts : redirection (> / >> avec ou sans espace), tee, cp, mv.
     """
-    if not _protected_files:
+    protected = _get_protected_files()
+    if not protected:
         return None
     cmd_lower = command.lower()
 
@@ -244,7 +267,7 @@ def _shell_exec_targets_protected(command: str) -> str | None:
         pf = _norm_path_token(protected_file.lower())
         return bool(t) and (t == pf or t.endswith("/" + pf))
 
-    for pf in _protected_files:
+    for pf in protected:
         pf_lower = pf.lower()
 
         # Redirections shell: > file, >> file, >file, > "./file", etc.
@@ -289,7 +312,6 @@ def shell_exec(command: str) -> str:
         )
 
     # Guard anti-interactif : commandes qui bloquent en attendant une entrée utilisateur.
-    # Ces commandes ne peuvent pas tourner dans un pipeline non-interactif.
     _INTERACTIVE_BLOCKLIST = (
         "create-config",   # npx create-config / @eslint/create-config
         "eslint --init",   # ancienne commande d'init ESLint interactive
@@ -333,7 +355,7 @@ def shell_exec(command: str) -> str:
 
     try:
         # shell=True intentionnel : le LLM a besoin de npm, tsc, prisma, etc.
-        # Containment : cwd forcé sur le workdir projet.
+        # Containment : cwd forcé sur le workdir projet (thread-local).
         result = subprocess.run(
             command,
             shell=True,

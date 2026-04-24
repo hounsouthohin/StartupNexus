@@ -355,6 +355,13 @@ WORKFLOW (suis cet ordre STRICTEMENT)
    b. lib/services/<model>.service.ts — un par modèle (voir bloc SERVICES DAL ci-dessus, Rule 26)
    c. app/api/**/route.ts — routes API (peuvent importer prisma directement)
    d. app/**/page.tsx — pages (importent les services via l'objet service, jamais prisma directement)
+
+   ⚠️  STUBS page.tsx PRÉ-GÉNÉRÉS : avant de générer chaque page.tsx, appelle
+       read_file("app/<path>/page.tsx") — un stub avec les imports requis a déjà été
+       écrit. Lis-le, puis écris la version complète en CONSERVANT TOUS LES IMPORTS
+       déjà présents (auth, redirect, notFound). Ne jamais supprimer un import
+       existant dans un stub.
+
    - Ne réécris jamais les fichiers pré-générés (prisma/schema.prisma, lib/prisma.ts)
    - Génère-les TOUS avant d'exécuter la moindre commande shell
 
