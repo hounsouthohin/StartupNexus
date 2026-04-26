@@ -257,32 +257,33 @@ class TodoPilotWorkflow:
                     activity_results=activity_results,
                 )
 
-            # ── 3. QA — génération tests e2e (supervision inline déjà faite dans dev.py) ──
-            # Note : conformity/security/architecture superviseurs retirés de cette phase.
-            # Ils s'exécutent inline dans dev.py via supervision_manager (source unique).
-            workflow.logger.info("[QA] Génération tests e2e")
-
-            qa_input = {
-                "specification": spec_part,
-                "project_name": project_name,
-                "stack_id": stack_id,
-                "generated_files": combined_files,
-            }
-
+            # ── 3. QA — génération tests e2e (uniquement si build success) ──
+            # Skippé si BUILD_FAILED : inutile de générer des tests pour un projet qui ne compile pas.
             e2e_tests: Dict[str, str] = {}
-            try:
-                qa_result_raw: Dict[str, Any] = await workflow.execute_activity(
-                    qa_activity,
-                    args=[qa_input, run_id],
-                    start_to_close_timeout=timedelta(minutes=10),
-                    retry_policy=qa_retry_policy,
-                )
-                e2e_tests = qa_result_raw.get("e2e_tests", {})
-                workflow.logger.info(f"[QA] {len(e2e_tests)} tests générés")
-                activity_results["qa"] = {"status": "COMPLETED", "tests_count": len(e2e_tests)}
-            except Exception as qa_err:
-                workflow.logger.warning(f"[QA] échoué: {qa_err}")
-                activity_results["qa"] = {"status": "FAILED", "error": str(qa_err), "tests_count": 0}
+            if build_status != "BUILD_FAILED":
+                workflow.logger.info("[QA] Génération tests e2e")
+                qa_input = {
+                    "specification": spec_part,
+                    "project_name": project_name,
+                    "stack_id": stack_id,
+                    "generated_files": combined_files,
+                }
+                try:
+                    qa_result_raw: Dict[str, Any] = await workflow.execute_activity(
+                        qa_activity,
+                        args=[qa_input, run_id],
+                        start_to_close_timeout=timedelta(minutes=10),
+                        retry_policy=qa_retry_policy,
+                    )
+                    e2e_tests = qa_result_raw.get("e2e_tests", {})
+                    workflow.logger.info(f"[QA] {len(e2e_tests)} tests générés")
+                    activity_results["qa"] = {"status": "COMPLETED", "tests_count": len(e2e_tests)}
+                except Exception as qa_err:
+                    workflow.logger.warning(f"[QA] échoué: {qa_err}")
+                    activity_results["qa"] = {"status": "FAILED", "error": str(qa_err), "tests_count": 0}
+            else:
+                workflow.logger.info("[QA] Skippé — BUILD_FAILED (0 token dépensé)")
+                activity_results["qa"] = {"status": "SKIPPED_BUILD_FAILED", "tests_count": 0}
 
             # ── 4. GitHub ─────────────────────────────────────────────────
             github_input = {

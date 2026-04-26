@@ -425,6 +425,70 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
         ],
     },
 
+    # ── TS2614 : Module X has no exported member Y (named import on default export) ──
+    "TS2614": {
+        "_pattern": r"error TS2614: Module '([^']+)' has no exported member '([^']+)'",
+        "_extract": lambda m: (m.group(1), m.group(2)),
+        "entries": [
+            {
+                # page-client.tsx : import nommé { XxxClient } sur un export default
+                "condition": lambda mod, name: "page-client" in mod,
+                "context_hint": lambda mod, name: (
+                    f"⚠️  IMPORT NOMMÉ SUR EXPORT DEFAULT (TS2614) : '{mod}' exporte '{name}' en default.\n"
+                    f"  CAUSE : page-client.tsx utilise `export default function {name}` mais page.tsx\n"
+                    f"          utilise `import {{ {name} }} from './page-client'` (import nommé).\n"
+                    f"  FIX dans page.tsx — remplacer par DEFAULT import :\n"
+                    f"    ❌  import {{ {name} }} from './page-client'\n"
+                    f"    ✅  import {name} from './page-client'"
+                ),
+                "rag_query": "TypeScript default export import named export page-client Server Component",
+                "action": "FIX_DEFAULT_IMPORT",
+            },
+            {
+                "condition": lambda mod, name: True,
+                "context_hint": lambda mod, name: (
+                    f"⚠️  IMPORT NOMMÉ SUR EXPORT DEFAULT (TS2614) : '{mod}' exporte '{name}' en default.\n"
+                    f"  FIX : remplacer `import {{ {name} }} from '{mod}'` par `import {name} from '{mod}'`."
+                ),
+                "rag_query": "TypeScript default export named import mismatch",
+                "action": "FIX_DEFAULT_IMPORT",
+            },
+        ],
+    },
+
+    # ── TS2353 : Object literal may only specify known properties ─────────────
+    # Déclenché quand un champ injecté dans Partial<CreateXxxInput> n'est pas dans le type.
+    "TS2353": {
+        "_pattern": r"error TS2353: Object literal may only specify known properties, and '([^']+)' does not exist in type '([^']+)'",
+        "_extract": lambda m: (m.group(1), m.group(2)),
+        "entries": [
+            {
+                "condition": lambda field, type_: "CreateInput" in type_ or "Input" in type_,
+                "context_hint": lambda field, type_: (
+                    f"⚠️  CHAMP ABSENT DU TYPE D'ENTRÉE (TS2353) : '{field}' n'existe pas dans '{type_}'.\n"
+                    f"  CAUSE : le type d'entrée CreateXxxInput ne déclare pas le champ '{field}'.\n"
+                    f"  FIX dans lib/types.ts — ajouter '{field}' au type :\n"
+                    f"    interface {type_.replace('Partial<', '').replace('>', '')} {{\n"
+                    f"      ...  // champs existants\n"
+                    f"      {field}?: <type_correspondant>  // ajouter ici\n"
+                    f"    }}\n"
+                    f"  Règle : CreateXxxInput DOIT inclure TOUS les champs mutables du modèle Prisma."
+                ),
+                "rag_query": "TypeScript CreateInput Partial champs mutables type Prisma model input TS2353",
+                "action": "FIX_INPUT_TYPE",
+            },
+            {
+                "condition": lambda field, type_: True,
+                "context_hint": lambda field, type_: (
+                    f"⚠️  CHAMP INCONNU (TS2353) : '{field}' n'est pas dans le type '{type_}'.\n"
+                    f"  FIX : ajoute '{field}' au type ou retire-le de l'objet littéral."
+                ),
+                "rag_query": "TypeScript object literal property unknown type Prisma input",
+                "action": "FIX_UNKNOWN_PROPERTY",
+            },
+        ],
+    },
+
     # ── TS2345 : Argument of type X is not assignable to Y ───────────────────
     "TS2345": {
         "_pattern": r"error TS2345: Argument of type '([^']+)' is not assignable to parameter of type '([^']+)'",

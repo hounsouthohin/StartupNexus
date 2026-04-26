@@ -419,6 +419,37 @@ async def run_dev_agent(
                 "Identifie la ligne fautive, lis-la avec read_file, corrige-la chirurgicalement."
             )))
 
+        # ── Injection contextuelle juste-à-temps (Context Engineering) ──────────
+        # Les règles de stack sont injectées au moment exact où elles sont pertinentes,
+        # pas seulement dans le system prompt initial (noyé dans le contexte au tour 3+).
+        # Position : fin du HumanMessage courant = zone chaude (LLM priorise les extrémités).
+        _validated_now = state.get("validated_files", [])
+        _has_services = any("lib/services/" in f for f in _validated_now)
+        _has_routes   = any("app/api/" in f and f.endswith("route.ts") for f in _validated_now)
+        _has_pages    = any(f.endswith("page.tsx") and "/api/" not in f for f in _validated_now)
+
+        if _has_services and _has_routes and not _has_pages:
+            # LLM va générer les pages — injecter les règles Server/Client Component
+            messages.append(HumanMessage(content=(
+                "⚡ RÈGLES OBLIGATOIRES pour la génération des pages (app/**/page.tsx) :\n"
+                "1. CLERK V5 — import obligatoire :\n"
+                "   ✅ import { auth } from '@clerk/nextjs/server'   ← Server Component / Route\n"
+                "   ❌ import { auth } from '@clerk/nextjs'           ← INTERDIT — TS2305\n"
+                "2. DATE PRISMA → toujours convertir avant de passer à un Client Component :\n"
+                "   ✅ const items = data.map(i => ({ ...i, createdAt: i.createdAt.toISOString() }))\n"
+                "   ❌ passer l'objet Prisma brut avec createdAt: Date — TS2322\n"
+                "3. PRISMA INCLUDE — si le Client Component attend des relations imbriquées :\n"
+                "   ✅ prisma.project.findUnique({ where: { id }, include: { tasks: { select: {...} } } })\n"
+                "   ❌ prisma.project.findUnique({ where: { id } }) puis passer project.tasks — TS2741"
+            )))
+        elif _has_pages and state.get("file_validation_errors", ""):
+            # LLM corrige des pages — rappel ciblé Clerk en position finale
+            messages.append(HumanMessage(content=(
+                "⚡ RAPPEL CORRECTION pages — règle n°1 :\n"
+                "   import { auth } from '@clerk/nextjs/server'   ← TOUJOURS /server\n"
+                "   import { auth } from '@clerk/nextjs'           ← JAMAIS sans /server (TS2305)"
+            )))
+
         # A1 — Transition génération → build.
         # Ne se déclenche que si les fichiers essentiels de la spec sont présents :
         # au moins une API route ET au moins une page (en plus du service).
@@ -854,6 +885,37 @@ async def run_dev_agent(
         filter_tsc_errors_structured as _filter_tsc_structured,
     )
 
+    def _repair_stack_violations(files: list[str], workdir: str) -> list[str]:
+        """
+        Repair Agent déterministe : corrige les violations de politique de stack invariantes
+        AVANT tsc, évitant les boucles stagnantes sur des patterns LLM récurrents.
+        Règles couvertes :
+          - Clerk V5 : import { auth/currentUser/clerkClient } from '@clerk/nextjs'
+                       → from '@clerk/nextjs/server'  (invariant absolu — jamais valide sans /server)
+        Retourne la liste des fichiers effectivement modifiés.
+        """
+        import re as _re_repair
+        from pathlib import Path as _Path
+        # Cible : import { ...auth... } from '@clerk/nextjs' ou "@clerk/nextjs"
+        # Ne touche PAS : import { ClerkProvider } from '@clerk/nextjs' (valide sans /server)
+        _clerk_bad = _re_repair.compile(
+            r"(import\s*\{[^}]*\b(?:auth|currentUser|clerkClient)\b[^}]*\}\s*from\s*['\"])@clerk/nextjs(['\"])"
+        )
+        fixed = []
+        for rel_path in files:
+            abs_path = os.path.join(workdir, rel_path)
+            if not os.path.exists(abs_path):
+                continue
+            try:
+                content = _Path(abs_path).read_text(encoding="utf-8")
+                new_content = _clerk_bad.sub(r"\1@clerk/nextjs/server\2", content)
+                if new_content != content:
+                    _Path(abs_path).write_text(new_content, encoding="utf-8")
+                    fixed.append(rel_path)
+            except Exception:
+                pass
+        return fixed
+
     async def file_validate_node(state: DevState) -> dict:
         """
         Progressive Validation : tsc --noEmit sur les fichiers TypeScript écrits dans ce tour.
@@ -867,6 +929,13 @@ async def run_dev_agent(
             return {"file_validation_errors": ""}
 
         logger.info("[file_validate] Fichiers TS écrits ce tour : %s", written_files)
+
+        # Repair Agent — violations de politique de stack connues (pré-tsc).
+        # Corrige déterministement les patterns LLM récurrents avant la validation tsc,
+        # évitant les boucles stagnantes sur des règles invariantes (ex: Clerk V5).
+        _repaired = _repair_stack_violations(written_files, project_workdir)
+        if _repaired:
+            logger.info("[file_validate] repair_agent : %d fichier(s) corrigé(s) : %s", len(_repaired), _repaired)
 
         # Vérifie que tsc est disponible (node_modules installé)
         tsc_bin = os.path.join(project_workdir, "node_modules", ".bin", "tsc")

@@ -126,7 +126,7 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         "list-routes":       "pagination findMany skip take PaginatedResponse select minimal",
         "relation-models":   "N+1 prevention include select imbriqué findUnique loop",
         "multi-table":       "transaction prisma $transaction séquentielle interactive rollback",
-        "interactive-pages": "Server Component Client Component onClick use client split interactive buttons",
+        "interactive-pages": "use client directive useState onClick event handlers form Client Component",
     }
 
     snippets: list[str] = []
@@ -225,6 +225,7 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
             detail_str = str(detail).strip()
             if "[INTERACTIVE]" in detail_str:
                 page_slug = path.strip("/").replace("/", "-") or "home"
+                comp_name = page_slug.title().replace("-", "")
                 client_file = (
                     f"app/{path.strip('/')}/page-client.tsx"
                     if path.strip("/") else "app/page-client.tsx"
@@ -233,10 +234,15 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
                     f"\n    ⚠️  SPLIT OBLIGATOIRE : créer {client_file} avec '\"use client\"' "
                     f"en ligne 1 pour les boutons/handlers. "
                     f"app/{path.strip('/') + '/' if path.strip('/') else ''}page.tsx reste Server Component "
-                    f"(fetch données) et rend <{page_slug.title().replace('-', '')}Client ... />."
-                    f"\n    ⚠️  TYPAGE OBLIGATOIRE des props du Client Component (TS7031 sinon) :\n"
-                    f"      interface {page_slug.title().replace('-', '')}ClientProps {{ /* props passées par le Server Component */ }}\n"
-                    f"      export default function {page_slug.title().replace('-', '')}Client({{ ... }}: {page_slug.title().replace('-', '')}ClientProps) {{ ... }}\n"
+                    f"(fetch données) et rend <{comp_name}Client ... />."
+                    f"\n    ⚠️  IMPORT DANS page.tsx (OBLIGATOIRE — DEFAULT import, pas named) :\n"
+                    f"      ✅  import {comp_name}Client from './page-client'    ← CORRECT\n"
+                    f"      ❌  import {{ {comp_name}Client }} from './page-client'  ← INTERDIT — TS2614\n"
+                    f"\n    ⚠️  EXPORT dans {client_file} (OBLIGATOIRE — DEFAULT export) :\n"
+                    f"      ✅  export default function {comp_name}Client({{ ... }}: {comp_name}ClientProps) {{ ... }}\n"
+                    f"      ❌  export function {comp_name}Client  ← INTERDIT — named export incompatible\n"
+                    f"\n    ⚠️  TYPAGE OBLIGATOIRE des props (TS7031 sinon) :\n"
+                    f"      interface {comp_name}ClientProps {{ /* props passées par le Server Component */ }}\n"
                     f"      Ne jamais écrire function Comp({{ prop }}) sans interface de props déclarée."
                 )
             detail_lines.append(f"  {path} :\n    {detail_str}")
@@ -280,6 +286,12 @@ Convention fixe — JAMAIS de fonctions nommées exportées :
   ✅  import {{ modelService }} from '@/lib/services/model.service'
   ✅  const items = await modelService.findMany(userId)
   ❌  import {{ getItems, getItemById }} from '@/lib/services/model.service'
+
+Types d'entrée dans lib/types.ts — CreateXxxInput DOIT inclure TOUS les champs mutables :
+  ✅  interface CreateLeaveRequestInput {{ startDate: Date; endDate: Date; status?: LeaveStatus; reason?: string }}
+  ❌  interface CreateLeaveRequestInput {{ startDate: Date; endDate: Date }}  ← manque status → TS2353
+  Règle : pour chaque champ du modèle Prisma (hors id, createdAt, updatedAt), ajouter le champ
+  correspondant dans CreateXxxInput (obligatoire si @required, optionnel si nullable/default).
 """
 
     # Spec JSON compacte pour référence LLM
@@ -380,6 +392,39 @@ WORKFLOW (suis cet ordre STRICTEMENT)
    - Build success (OK en préfixe) → tu as terminé
    - Build échoué (FAILED en préfixe) → lis l'erreur, identifie fichier + numéro de ligne, appelle read_file(fichier, ligne-5, ligne+20), corrige, rebuild
    - Maximum 3 tentatives de build
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — DÉCOUPAGE page.tsx / page-client.tsx
+══════════════════════════════════════════════════════════════
+Ne JAMAIS créer de fichier page-client.tsx SAUF si la page est explicitement
+marquée [INTERACTIVE] dans les instructions CONTENU ATTENDU PAR PAGE ci-dessus.
+
+Pour toute page NON marquée [INTERACTIVE] :
+  ✅  Inclure 'use client' directement en ligne 1 de page.tsx si des onClick/useState sont nécessaires
+  ❌  JAMAIS générer un page-client.tsx parce que la page semble interactive — TS2307/TS2614
+
+Si la page EST marquée [INTERACTIVE], le seul import autorisé dans page.tsx est :
+  ✅  import XxxClient from './page-client'        ← DEFAULT import (sans accolades)
+  ❌  import {{ XxxClient }} from './page-client'   ← INTERDIT — TS2614 (named import sur default export)
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — SÉRIALISATION DES DATES PRISMA (3 CAS DISTINCTS)
+══════════════════════════════════════════════════════════════
+Date Prisma, props Client Component et corps POST sont trois contextes différents.
+
+CAS 1 — Server Component → Client Component :
+  Sérialise avant de passer en props ET type l'interface en string (jamais Date) :
+  const items = data.map(i => ({{ ...i, createdAt: i.createdAt.toISOString() }}))
+  ✅  interface CardProps {{ createdAt: string; }}    ← string dans l'interface
+  ❌  interface CardProps {{ createdAt: Date; }}      ← TS2322 (string not assignable to Date)
+
+CAS 2 — Route POST : corps JSON arrive en string → convertir avant d'appeler le service :
+  ✅  service.create({{ ...body, startDate: new Date(body.startDate) }})
+  ❌  service.create(body)  ← TS2345 si CreateXxxInput.startDate est Date
+
+CAS 3 — Rendu JSX direct dans Server Component :
+  ✅  {{item.createdAt.toISOString()}}  ou  {{item.createdAt}}  si déjà string
+  ❌  {{item.createdAt}}  si encore objet Date  ← TS2322 (Date not assignable to ReactNode)
 
 {stack_rules_block}
 """.replace("{WORKDIR}", "/app/generated-projects")
