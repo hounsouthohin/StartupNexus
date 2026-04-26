@@ -30,7 +30,6 @@ from agents.dev_tools import write_file, read_file, list_directory, shell_exec, 
 logger = logging.getLogger(__name__)
 
 MAX_BUILD_ATTEMPTS = 3
-MAX_PREBUILD_BLOCKS = 6
 MAX_FILE_VALIDATION_RETRIES = 2
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
@@ -54,9 +53,6 @@ class DevState(TypedDict):
     error_signatures: List[str]
     build_command_executed: bool   # True ssi npm run build a été appelé et a retourné un exit code
     build_exit_code: int           # Exit code réel du dernier npm run build (0 = succès)
-    prebuild_blocking: bool        # True si prebuild_pipeline bloque le build
-    prebuild_report: dict          # Dernier prebuild_report sérialisé
-    prebuild_block_count: int      # Nombre de blocages prebuild consécutifs
     phase: str                     # "generation" → "correction" après premier build (Faille 3)
     # Progressive Validation (Étape 2)
     validated_files: List[str]     # Fichiers .ts/.tsx ayant passé tsc file-level sans erreur
@@ -236,8 +232,7 @@ async def run_dev_agent(
             "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
             "build_attempts": 0, "last_build_error": f"TEMPLATE_FAILURE: {reason}",
             "success": False, "error_signatures": [], "build_command_executed": False,
-            "build_exit_code": -1, "prebuild_blocking": False, "prebuild_report": {},
-            "prebuild_block_count": 0, "phase": "generation", "validated_files": [],
+            "build_exit_code": -1, "phase": "generation", "validated_files": [],
             "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
         }
 
@@ -345,8 +340,7 @@ async def run_dev_agent(
                     "build_attempts": 0,
                     "last_build_error": f"PRISMA_GENERATE_FAILED: {_pg_out[:300]}",
                     "success": False, "error_signatures": [], "build_command_executed": False,
-                    "build_exit_code": -1, "prebuild_blocking": False, "prebuild_report": {},
-                    "prebuild_block_count": 0, "phase": "generation", "validated_files": [],
+                    "build_exit_code": -1, "phase": "generation", "validated_files": [],
                     "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
                 }
         except subprocess.TimeoutExpired:
@@ -504,10 +498,7 @@ async def run_dev_agent(
                         "Ne génère pas d'autres fichiers avant d'avoir lancé le build."
                     )))
 
-        # Injection des erreurs de validation file-level (Progressive Validation Étape 2).
-        # Phase-Aware : les règles de la phase courante sont injectées aux deux extrémités
-        # du message (début = ancre d'attention, fin = récence) — évite la boucle stagnante
-        # où le LLM "oublie" la règle auth guard après le 2e tour de correction.
+        # Injection des erreurs de validation file-level (Progressive Validation).
         file_val_errors = state.get("file_validation_errors", "")
         if file_val_errors:
             retries = int(state.get("file_validation_retries", 0) or 0)
@@ -515,14 +506,7 @@ async def run_dev_agent(
             validated_summary = (
                 f" ({len(validated)} fichiers déjà validés)" if validated else ""
             )
-
-            # Détection de phase depuis les fichiers actuellement en erreur
-            from agents.dev_prompts import get_phase_for_files, PHASE_RULES
-            _errored_now = state.get("errored_files", [])
-            _phase_now = get_phase_for_files(_errored_now)
-            _phase_block_now = PHASE_RULES.get(_phase_now, "") if _phase_now else ""
-
-            _core_correction = (
+            messages.append(HumanMessage(content=(
                 f"ERREURS TypeScript détectées dans les fichiers que tu viens d'écrire "
                 f"(tentative {retries}/{MAX_FILE_VALIDATION_RETRIES}){validated_summary} :\n\n"
                 f"{file_val_errors}\n\n"
@@ -531,33 +515,16 @@ async def run_dev_agent(
                 "2. Corrige uniquement la ligne fautive\n"
                 "3. N'écris PAS d'autres fichiers tant que ces erreurs ne sont pas résolues\n"
                 "4. Importe les types manquants depuis '@/lib/types' si possible"
-            )
+            )))
 
-            if _phase_block_now:
-                # Répétition stratégique aux extrémités : début (ancre) + fin (récence)
-                _full_correction = (
-                    f"{_phase_block_now}\n\n"
-                    f"{_core_correction}\n\n"
-                    f"{_phase_block_now}"
-                )
-            else:
-                _full_correction = _core_correction
-
-            messages.append(HumanMessage(content=_full_correction))
-
-        # Injection ciblée sur TOUTE erreur build — pas seulement à la 2ème répétition.
-        # Réintroduit l'erreur dans le contexte visible après pruning + guide les étapes.
-        # En cas de même erreur répétée : escalade avec avertissement explicite.
+        # Injection ciblée sur TOUTE erreur build.
         last_error = state.get("last_build_error", "")
         if last_error:
             sig = _error_signature(last_error)
             repeat_count = state.get("error_signatures", []).count(sig)
             correction = _build_targeted_correction(last_error)
 
-            # F1 — RAG bridge : recherche automatique du standard correctif Qdrant.
-            # Si le catalogue identifie un code avec rag_query, on effectue la recherche
-            # en Python et on injecte le résultat directement — sans que le LLM ait à
-            # appeler rag_search lui-même (il peut l'ignorer sous pression de correction).
+            # F1 — RAG bridge : standard correctif Qdrant injecté directement.
             from agents.tsc_error_catalog import lookup_error as _catalog_lookup
             for _eline in last_error.splitlines()[:10]:
                 _cmatch = _catalog_lookup(_eline)
@@ -577,9 +544,10 @@ async def run_dev_agent(
             if repeat_count >= 2:
                 correction = (
                     f"⚠️ MÊME ERREUR APRÈS {repeat_count} TENTATIVES — "
-                    "Ne réécris pas le fichier entier. Corrige uniquement la ligne indiquée :\n\n"
+                    "Ne réécris pas le fichier entier. Corrige uniquement la ligne indiquée.\n\n"
                     + correction
                 )
+
             messages.append(HumanMessage(content=correction))
 
         # write_file expose Guard 2 intégré : si errored_files est actif, les fichiers
@@ -596,142 +564,6 @@ async def run_dev_agent(
             "messages": [response],
             "error_signatures": new_sigs,
         }
-
-    # ── Nœud Prebuild Gate (B.1b) ─────────────────────────────────────
-    async def prebuild_gate_node(state: DevState) -> dict:
-        """
-        Intercepte les tool_calls avant exécution.
-        Si un npm run build est demandé, exécute prebuild_pipeline:
-        - blocking=True  -> injecte llm_correction_bundle et saute l'exécution tools
-        - blocking=False -> autorise tools (donc build)
-        """
-        last_msg = state["messages"][-1] if state.get("messages") else None
-        if not isinstance(last_msg, AIMessage):
-            return {"prebuild_blocking": False}
-
-        tool_calls = getattr(last_msg, "tool_calls", None) or []
-        build_requested = False
-        for call in tool_calls:
-            name = str(call.get("name", "") or "")
-            if not (name == "shell_exec" or name.endswith("shell_exec")):
-                continue
-            args = call.get("args", {})
-            command = str(args.get("command", "") or "") if isinstance(args, dict) else str(args or "")
-            if _is_build_command(command):
-                build_requested = True
-                break
-
-        if not build_requested:
-            return {"prebuild_blocking": False}
-
-        try:
-            from agents.prebuild_pipeline import (
-                run_prebuild_pipeline, report_to_dict, PHASE_C_STAGES,
-            )
-
-            # PHASE_C_STAGES inclut ast_use_client — activé dès que _run_ast_use_client est implémenté.
-            # Si tree-sitter absent → stage=skipped automatiquement (non bloquant).
-            report = await run_prebuild_pipeline(
-                project_dir=project_workdir,
-                stack_id=str(spec.get("stack_id", "") or "nextjs-clerk-prisma"),
-                run_id=run_id,
-                project_name=project_name,
-                stages=PHASE_C_STAGES,
-            )
-            report_dict = report_to_dict(report)
-            if report.blocking:
-                block_count = int(state.get("prebuild_block_count", 0) or 0) + 1
-                bundle = report.llm_correction_bundle or (
-                    "[PREBUILD_VIOLATIONS] Corrections obligatoires détectées avant build. "
-                    "Corrige ces violations puis relance le build."
-                )
-                logger.warning(
-                    "[prebuild] blocking=True — build bloqué (%d/%d), %d violation(s), stages_failed=%s",
-                    block_count,
-                    MAX_PREBUILD_BLOCKS,
-                    len(report.violations),
-                    report.stages_failed,
-                )
-                # OpenAI exige qu'un ToolMessage réponde à chaque tool_call_id de l'AIMessage.
-                # Sans cela → HTTP 400 "tool_calls must be followed by tool messages".
-                ack_ids: list[str] = []
-                for call in tool_calls:
-                    cid = str(call.get("id") or call.get("tool_call_id") or "").strip()
-                    if cid:
-                        ack_ids.append(cid)
-
-                # Fallback robuste: certains providers/langchain conservent les ids bruts
-                # dans additional_kwargs.tool_calls au lieu de state.tool_calls normalisé.
-                raw_tool_calls = []
-                if isinstance(getattr(last_msg, "additional_kwargs", None), dict):
-                    raw_tool_calls = last_msg.additional_kwargs.get("tool_calls", []) or []
-                for raw in raw_tool_calls:
-                    if not isinstance(raw, dict):
-                        continue
-                    cid = str(raw.get("id") or "").strip()
-                    if cid:
-                        ack_ids.append(cid)
-
-                # Dédupe en conservant l'ordre
-                dedup_ids: list[str] = []
-                seen_ids: set[str] = set()
-                for cid in ack_ids:
-                    if cid in seen_ids:
-                        continue
-                    seen_ids.add(cid)
-                    dedup_ids.append(cid)
-
-                tool_ack_messages = [
-                    ToolMessage(
-                        content="[PREBUILD_BLOCK] Build non exécuté — violations détectées. Attends les corrections.",
-                        tool_call_id=cid,
-                    )
-                    for cid in dedup_ids
-                ]
-                logger.info(
-                    "[prebuild] Tool acks envoyés: %d/%d",
-                    len(tool_ack_messages),
-                    len(tool_calls),
-                )
-                if block_count >= MAX_PREBUILD_BLOCKS:
-                    logger.warning(
-                        "[prebuild] max blocages atteint (%d) — arrêt pour éviter GraphRecursionError",
-                        MAX_PREBUILD_BLOCKS,
-                    )
-                    hard_stop = (
-                        "PREBUILD_BLOCK_LIMIT: même violation persistante après "
-                        f"{MAX_PREBUILD_BLOCKS} corrections. "
-                        "Arrêt du run pour éviter une boucle infinie."
-                    )
-                    return {
-                        "messages": tool_ack_messages + [HumanMessage(content=bundle)],
-                        "prebuild_blocking": True,
-                        "prebuild_report": report_dict,
-                        "prebuild_block_count": block_count,
-                        "last_build_error": hard_stop,
-                        "success": False,
-                        "build_command_executed": False,
-                        "build_exit_code": -1,
-                    }
-                return {
-                    "messages": tool_ack_messages + [HumanMessage(content=bundle)],
-                    "prebuild_blocking": True,
-                    "prebuild_report": report_dict,
-                    "prebuild_block_count": block_count,
-                }
-
-            logger.info(
-                "[prebuild] blocking=False — build autorisé | stages_passed=%s",
-                report.stages_passed,
-            )
-            return {
-                "prebuild_blocking": False,
-                "prebuild_report": report_dict,
-                "prebuild_block_count": 0,
-            }
-        except Exception as e:
-            logger.warning(f"[prebuild] pipeline non bloquant: {e}")
-            return {"prebuild_blocking": False}
 
     # ── Extraction erreur + détection succès déterministe ────────────
     def extract_build_error_node(state: DevState) -> dict:
@@ -844,19 +676,6 @@ async def run_dev_agent(
         # + l'injection A1 ("build maintenant") dans dev_node qui guide le LLM vers le build.
         return "dev"
 
-    def route_from_dev(state: DevState) -> str:
-        """Routage standard tools_condition, avec passage obligatoire par prebuild_gate."""
-        decision = tools_condition(state)
-        return "prebuild_gate" if decision == "tools" else "__end__"
-
-    def route_after_prebuild(state: DevState) -> str:
-        """Si prebuild bloque, retour au LLM sans exécuter les tool_calls."""
-        if state.get("prebuild_blocking", False):
-            if int(state.get("prebuild_block_count", 0) or 0) >= MAX_PREBUILD_BLOCKS:
-                return "__end__"
-            return "dev"
-        return "tools"
-
     # ── Progressive Validation (Étape 2) ─────────────────────────────
     # Nœud intercalé entre tools et extract_error.
     # Après chaque batch de tool calls, détecte les fichiers .ts/.tsx écrits,
@@ -904,37 +723,6 @@ async def run_dev_agent(
         filter_tsc_errors_structured as _filter_tsc_structured,
     )
 
-    def _repair_stack_violations(files: list[str], workdir: str) -> list[str]:
-        """
-        Repair Agent déterministe : corrige les violations de politique de stack invariantes
-        AVANT tsc, évitant les boucles stagnantes sur des patterns LLM récurrents.
-        Règles couvertes :
-          - Clerk V5 : import { auth/currentUser/clerkClient } from '@clerk/nextjs'
-                       → from '@clerk/nextjs/server'  (invariant absolu — jamais valide sans /server)
-        Retourne la liste des fichiers effectivement modifiés.
-        """
-        import re as _re_repair
-        from pathlib import Path as _Path
-        # Cible : import { ...auth... } from '@clerk/nextjs' ou "@clerk/nextjs"
-        # Ne touche PAS : import { ClerkProvider } from '@clerk/nextjs' (valide sans /server)
-        _clerk_bad = _re_repair.compile(
-            r"(import\s*\{[^}]*\b(?:auth|currentUser|clerkClient)\b[^}]*\}\s*from\s*['\"])@clerk/nextjs(['\"])"
-        )
-        fixed = []
-        for rel_path in files:
-            abs_path = os.path.join(workdir, rel_path)
-            if not os.path.exists(abs_path):
-                continue
-            try:
-                content = _Path(abs_path).read_text(encoding="utf-8")
-                new_content = _clerk_bad.sub(r"\1@clerk/nextjs/server\2", content)
-                if new_content != content:
-                    _Path(abs_path).write_text(new_content, encoding="utf-8")
-                    fixed.append(rel_path)
-            except Exception:
-                pass
-        return fixed
-
     async def file_validate_node(state: DevState) -> dict:
         """
         Progressive Validation : tsc --noEmit sur les fichiers TypeScript écrits dans ce tour.
@@ -948,13 +736,6 @@ async def run_dev_agent(
             return {"file_validation_errors": ""}
 
         logger.info("[file_validate] Fichiers TS écrits ce tour : %s", written_files)
-
-        # Repair Agent — violations de politique de stack connues (pré-tsc).
-        # Corrige déterministement les patterns LLM récurrents avant la validation tsc,
-        # évitant les boucles stagnantes sur des règles invariantes (ex: Clerk V5).
-        _repaired = _repair_stack_violations(written_files, project_workdir)
-        if _repaired:
-            logger.info("[file_validate] repair_agent : %d fichier(s) corrigé(s) : %s", len(_repaired), _repaired)
 
         # Vérifie que tsc est disponible (node_modules installé)
         tsc_bin = os.path.join(project_workdir, "node_modules", ".bin", "tsc")
@@ -1160,19 +941,13 @@ async def run_dev_agent(
     # ── Assemblage du graph ──────────────────────────────────────────
     builder = StateGraph(DevState)
     builder.add_node("dev", dev_node)
-    builder.add_node("prebuild_gate", prebuild_gate_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
     builder.add_node("file_validate", file_validate_node)
     builder.add_node("extract_error", extract_build_error_node)
 
     builder.add_edge(START, "dev")
-    builder.add_conditional_edges("dev", route_from_dev, {
-        "prebuild_gate": "prebuild_gate",
-        "__end__": END,
-    })
-    builder.add_conditional_edges("prebuild_gate", route_after_prebuild, {
+    builder.add_conditional_edges("dev", tools_condition, {
         "tools": "tools",
-        "dev": "dev",
         "__end__": END,
     })
     # tools → file_validate → (dev si erreurs TS) → extract_error (flux normal)
@@ -1216,9 +991,6 @@ async def run_dev_agent(
         "error_signatures": [],
         "build_command_executed": False,
         "build_exit_code": -1,
-        "prebuild_blocking": False,
-        "prebuild_report": {},
-        "prebuild_block_count": 0,
         "phase": "generation",
         "validated_files": [],
         "file_validation_errors": "",
