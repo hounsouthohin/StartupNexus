@@ -173,6 +173,102 @@ Applique-les lors de la génération — ne les ignore pas.
 """
 
 
+# ── Phase-Aware System Prompt ─────────────────────────────────────────────────
+# Règles condensées par phase, injectées aux deux extrémités de chaque HumanMessage
+# de correction (début = ancre d'attention, fin = récence d'attention).
+# Résout la boucle stagnante TS2345 : le LLM ne peut plus "oublier" la règle d'auth
+# guard au tour 5 — elle est réinjectée à chaque message de correction routes.
+#
+# Architecture : 3 phases couvrent 100% des fichiers générés par le LLM.
+#   services → lib/types.ts + lib/services/*.service.ts
+#   routes   → app/api/**/route.ts  (prioritaire : TS2345 dominant)
+#   pages    → app/**/page.tsx + page-client.tsx
+
+PHASE_RULES: dict[str, str] = {
+    "services": (
+        "⚡ RÈGLES — Phase Services (lib/types.ts + lib/services/*.service.ts)\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "R1. CreateXxxInput DOIT inclure TOUS les champs mutables du modèle Prisma :\n"
+        "  ✅ interface CreateTaskInput { title: string; description?: string; status?: string }\n"
+        "  ❌ interface CreateTaskInput { title: string }  ← champs manquants → TS2353 à l'appel\n"
+        "R2. Export service object — jamais de fonctions nommées :\n"
+        "  ✅ export const taskService = { findMany, findById, create, update, remove }\n"
+        "  ❌ export function getTasks()  ← TS2305 lors du import { taskService }\n"
+        "R3. owner_field dans les requêtes — utilise le champ EXACT du schéma Prisma :\n"
+        "  ✅ where: { authorId: ownerId }  (si le champ Prisma s'appelle authorId)\n"
+        "  ❌ where: { userId: ownerId }  ← TS2353 si le champ n'existe pas dans le modèle\n"
+        "R4. Tableaux typés — jamais de tableau implicite :\n"
+        "  ✅ const items: TaskType[] = await prisma.task.findMany(...).catch(() => [])\n"
+        "  ❌ let items = []  ← TypeScript infère never[] → TS2322"
+    ),
+    "routes": (
+        "⚡ RÈGLES — Phase Routes (app/api/**/route.ts)\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "R1. auth() retourne { userId: string | null } — NARROW AVANT tout passage à un service :\n"
+        "  ✅ const { userId } = await auth()\n"
+        "     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })\n"
+        "     // userId est string ici — plus string | null\n"
+        "     await service.create({ ...body, authorId: userId })  ← authorId: string ✓\n"
+        "  ❌ const { userId } = await auth()\n"
+        "     await service.create({ ...body, authorId: userId })  ← TS2345 : string|null ≠ string\n"
+        "R2. Import Clerk — toujours depuis /server dans les route handlers :\n"
+        "  ✅ import { auth } from '@clerk/nextjs/server'\n"
+        "  ❌ import { auth } from '@clerk/nextjs'  ← TS2305\n"
+        "R3. Dates POST — convertir string → Date AVANT le service :\n"
+        "  ✅ service.create({ ...body, startDate: new Date(body.startDate), authorId: userId })\n"
+        "  ❌ service.create({ ...body, authorId: userId })  ← TS2345 si CreateInput.startDate est Date\n"
+        "R4. Imports obligatoires en tête de route handler :\n"
+        "  import { NextResponse } from 'next/server'\n"
+        "  import { auth } from '@clerk/nextjs/server'\n"
+        "  import prisma from '@/lib/prisma'  (si accès Prisma direct)"
+    ),
+    "pages": (
+        "⚡ RÈGLES — Phase Pages (app/**/page.tsx + page-client.tsx)\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "R1. Import Clerk — toujours /server dans les Server Components :\n"
+        "  ✅ import { auth } from '@clerk/nextjs/server'\n"
+        "  ❌ import { auth } from '@clerk/nextjs'  ← TS2305\n"
+        "R2. Redirect si non-authentifié (jamais null) :\n"
+        "  ✅ const { userId } = await auth(); if (!userId) redirect('/sign-in')\n"
+        "  ❌ if (!userId) return null  ← page blanche silencieuse\n"
+        "R3. Dates Prisma → sérialiser AVANT de passer en props Client Component :\n"
+        "  ✅ const items = data.map(i => ({ ...i, createdAt: i.createdAt.toISOString() }))\n"
+        "     interface CardProps { createdAt: string }  ← string, jamais Date\n"
+        "  ❌ passer l'objet Prisma brut → TS2322 (Date not assignable to string/ReactNode)\n"
+        "R4. Accès Prisma depuis les pages — via le service DAL uniquement :\n"
+        "  ✅ import { taskService } from '@/lib/services/task.service'\n"
+        "  ❌ import prisma from '@/lib/prisma'  dans page.tsx  ← contourne le DAL\n"
+        "R5. 'use client' — uniquement dans page-client.tsx (si [INTERACTIVE]) :\n"
+        "  ✅ page.tsx = Server Component async → render <XxxClient items={serialized} />\n"
+        "  ❌ 'use client' dans page.tsx avec await auth() / await service.xxx  ← incompatible"
+    ),
+}
+
+
+def get_phase_for_files(files: list[str]) -> "str | None":
+    """
+    Détecte la phase LLM courante depuis la liste des fichiers en erreur.
+    Routes prioritaires : TS2345 auth guard est le problème dominant.
+    """
+    has_routes = any(
+        "app/api/" in f and f.endswith("route.ts") for f in files
+    )
+    has_pages = any(
+        (f.endswith("page.tsx") or f.endswith("page-client.tsx")) and "/api/" not in f
+        for f in files
+    )
+    has_services = any(
+        "lib/services/" in f or f == "lib/types.ts" for f in files
+    )
+    if has_routes:
+        return "routes"
+    if has_pages:
+        return "pages"
+    if has_services:
+        return "services"
+    return None
+
+
 def build_system_prompt(
     spec: "ProjectSpec",
     pre_written_files: list[str] | None = None,

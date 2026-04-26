@@ -430,25 +430,22 @@ async def run_dev_agent(
         _has_pages    = any(f.endswith("page.tsx") and "/api/" not in f for f in _validated_now)
 
         if _has_services and _has_routes and not _has_pages:
-            # LLM va générer les pages — injecter les règles Server/Client Component
+            # Transition génération → pages : injecter les règles Server/Client Component
+            # avant que le LLM commence à écrire les pages (contexte "chaud").
             messages.append(HumanMessage(content=(
                 "⚡ RÈGLES OBLIGATOIRES pour la génération des pages (app/**/page.tsx) :\n"
-                "1. CLERK V5 — import obligatoire :\n"
-                "   ✅ import { auth } from '@clerk/nextjs/server'   ← Server Component / Route\n"
-                "   ❌ import { auth } from '@clerk/nextjs'           ← INTERDIT — TS2305\n"
-                "2. DATE PRISMA → toujours convertir avant de passer à un Client Component :\n"
+                "1. CLERK — import obligatoire depuis /server :\n"
+                "   ✅ import { auth } from '@clerk/nextjs/server'\n"
+                "   ❌ import { auth } from '@clerk/nextjs'  ← INTERDIT — TS2305\n"
+                "2. DATE PRISMA → sérialiser avant props Client Component :\n"
                 "   ✅ const items = data.map(i => ({ ...i, createdAt: i.createdAt.toISOString() }))\n"
                 "   ❌ passer l'objet Prisma brut avec createdAt: Date — TS2322\n"
-                "3. PRISMA INCLUDE — si le Client Component attend des relations imbriquées :\n"
-                "   ✅ prisma.project.findUnique({ where: { id }, include: { tasks: { select: {...} } } })\n"
-                "   ❌ prisma.project.findUnique({ where: { id } }) puis passer project.tasks — TS2741"
-            )))
-        elif _has_pages and state.get("file_validation_errors", ""):
-            # LLM corrige des pages — rappel ciblé Clerk en position finale
-            messages.append(HumanMessage(content=(
-                "⚡ RAPPEL CORRECTION pages — règle n°1 :\n"
-                "   import { auth } from '@clerk/nextjs/server'   ← TOUJOURS /server\n"
-                "   import { auth } from '@clerk/nextjs'           ← JAMAIS sans /server (TS2305)"
+                "3. PRISMA INCLUDE — relations imbriquées dans le fetch :\n"
+                "   ✅ prisma.project.findUnique({ where: { id }, include: { tasks: true } })\n"
+                "   ❌ fetcher le parent puis accéder à .tasks sans include — TS2741\n"
+                "4. REDIRECT si non-authentifié :\n"
+                "   ✅ if (!userId) redirect('/sign-in')\n"
+                "   ❌ if (!userId) return null  ← page blanche silencieuse"
             )))
 
         # A1 — Transition génération → build.
@@ -508,8 +505,9 @@ async def run_dev_agent(
                     )))
 
         # Injection des erreurs de validation file-level (Progressive Validation Étape 2).
-        # Si file_validate_node a détecté des erreurs TS dans les fichiers écrits ce tour,
-        # on les injecte avant l'appel LLM pour une correction immédiate et ciblée.
+        # Phase-Aware : les règles de la phase courante sont injectées aux deux extrémités
+        # du message (début = ancre d'attention, fin = récence) — évite la boucle stagnante
+        # où le LLM "oublie" la règle auth guard après le 2e tour de correction.
         file_val_errors = state.get("file_validation_errors", "")
         if file_val_errors:
             retries = int(state.get("file_validation_retries", 0) or 0)
@@ -517,7 +515,14 @@ async def run_dev_agent(
             validated_summary = (
                 f" ({len(validated)} fichiers déjà validés)" if validated else ""
             )
-            messages.append(HumanMessage(content=(
+
+            # Détection de phase depuis les fichiers actuellement en erreur
+            from agents.dev_prompts import get_phase_for_files, PHASE_RULES
+            _errored_now = state.get("errored_files", [])
+            _phase_now = get_phase_for_files(_errored_now)
+            _phase_block_now = PHASE_RULES.get(_phase_now, "") if _phase_now else ""
+
+            _core_correction = (
                 f"ERREURS TypeScript détectées dans les fichiers que tu viens d'écrire "
                 f"(tentative {retries}/{MAX_FILE_VALIDATION_RETRIES}){validated_summary} :\n\n"
                 f"{file_val_errors}\n\n"
@@ -526,7 +531,19 @@ async def run_dev_agent(
                 "2. Corrige uniquement la ligne fautive\n"
                 "3. N'écris PAS d'autres fichiers tant que ces erreurs ne sont pas résolues\n"
                 "4. Importe les types manquants depuis '@/lib/types' si possible"
-            )))
+            )
+
+            if _phase_block_now:
+                # Répétition stratégique aux extrémités : début (ancre) + fin (récence)
+                _full_correction = (
+                    f"{_phase_block_now}\n\n"
+                    f"{_core_correction}\n\n"
+                    f"{_phase_block_now}"
+                )
+            else:
+                _full_correction = _core_correction
+
+            messages.append(HumanMessage(content=_full_correction))
 
         # Injection ciblée sur TOUTE erreur build — pas seulement à la 2ème répétition.
         # Réintroduit l'erreur dans le contexte visible après pruning + guide les étapes.
