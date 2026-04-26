@@ -124,12 +124,15 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         contexts.append("interactive-pages")
 
     # ── Requêtes ciblées par contexte ────────────────────────────────────────
+    # Option A — requêtes en anglais technique pour matcher les RULE: des standards reformatés.
+    # Les standards commencent maintenant par RULE: <TECHNOLOGIE> (plus ACTION:/STACK: génériques).
+    # Ces requêtes ciblent les termes techniques distinctifs qui apparaissent en tête de standard.
     CONTEXT_QUERIES: dict[str, str] = {
-        "always":            "sécurité auth ownership CreateInput sans userId logging healthcheck",
-        "list-routes":       "pagination findMany skip take PaginatedResponse select minimal",
-        "relation-models":   "N+1 prevention include select imbriqué findUnique loop",
-        "multi-table":       "transaction prisma $transaction séquentielle interactive rollback",
-        "interactive-pages": "use client directive useState onClick event handlers form Client Component",
+        "always":            "auth() userId null guard before Prisma query ownership check CreateInput without userId security logging healthcheck",
+        "list-routes":       "pagination findMany skip take PaginatedResponse count $transaction GET list route handler API",
+        "relation-models":   "N+1 prevention include select nested relation findUnique loop Promise.all Prisma join",
+        "multi-table":       "prisma $transaction sequential interactive rollback multi-table create invoice items atomic",
+        "interactive-pages": "'use client' directive useState onClick form handler Client Component interactive Server Component split",
     }
 
     snippets: list[str] = []

@@ -1,12 +1,31 @@
 """
 scripts/create_full_standards_v1.py
 
-Standards COMPLETS et PRESCRIPTIFS — stack nextjs-clerk-prisma.
-Couvre les 9 zones critiques d'une app Next.js 14 + Clerk v6 + Prisma 7.
+Standards COMPLETS — stack nextjs-clerk-prisma — SOURCE UNIQUE (v3).
+Zones 1-30 + hard rules. Ce fichier est l'unique source de vérité pour Qdrant.
 
 Ce fichier REMPLACE :
-  - populate_qdrant.py                        (standards descriptifs, buggués)
-  - create_sprint2_prescriptive_standards.py  (5 standards Sprint 2 seulement)
+  - populate_qdrant.py                       (standards descriptifs, buggués)
+  - create_sprint2_prescriptive_standards.py (5 standards Sprint 2 seulement)
+  - migrate_zones_17_18.py                   (ZONE_17B stack patterns + ZONE_18 tsc correctifs)
+  - migrate_zone_19_saas_senior.py           (ZONE_19 SaaS senior patterns)
+  - migrate_zone_20_dal_service.py           (ZONE_20 DAL service pattern)
+  - migrate_zone_21_pagination.py            (ZONE_21 pagination skip/take)
+  - migrate_zone_22_prisma_errors.py         (ZONE_22 codes Prisma P2002/P2025)
+  - migrate_zone_23_create_input.py          (ZONE_23 CreateInput sans userId)
+  - migrate_zone_24_n1_prevention.py         (ZONE_24 N+1 include)
+  - migrate_zone_25_select_minimal.py        (ZONE_25 — NON INCLUS : 2 standards RECOMMANDÉ, hors scope actuel)
+  - migrate_zone_26_transactions.py          (ZONE_26 $transaction)
+  - migrate_zone_27_logging.py               (ZONE_27 Pino logging)
+  - migrate_zone_28_connection_pooling.py    (ZONE_28 globalThis singleton)
+  - migrate_zone_29_soft_delete.py           (ZONE_29 — non inclus, hors scope MVP)
+  - migrate_zone_30_healthcheck.py           (ZONE_30 healthcheck)
+  - enrich_qdrant.py                         (ZONE_HARD_RULES: Clerk, Prisma7, auth guard, etc.)
+
+OPTION A — FORMAT PRESCRIPTIF SEMANTIQUE :
+  Chaque standard commence par RULE: (alias TECHNOLOGIE:) — identifiant technique distinctif.
+  ACTION:/STACK:/STATUS:/VERSION: retirés du page_content → metadata uniquement.
+  Objectif : scores cosinus 0.7-0.9 au lieu de 0.3-0.5 (préfixes génériques uniformes supprimés).
 
 PROCÉDURE D'INJECTION (ordre obligatoire) :
   1. python scripts/reset_qdrant.py               (purge totale)
@@ -274,6 +293,34 @@ def text_to_uuid(text: str) -> str:
     """UUID déterministe basé sur MD5(text) — idempotence garantie."""
     hash_bytes = hashlib.md5(text.encode("utf-8")).digest()
     return str(UUID(bytes=hash_bytes))
+
+
+# =============================================================================
+# OPTION A — REFORMATAGE POUR EMBEDDINGS SEMANTIQUES
+# Problème : ACTION:/STACK: identiques sur tous les standards → embeddings uniformes
+#            → scores cosinus 0.3-0.5 au lieu de 0.7-0.9
+# Solution : retirer les préfixes génériques, commencer par RULE: (contenu technique)
+# =============================================================================
+
+def _reformat_text(text: str) -> str:
+    """Option A: retire les préfixes génériques ACTION:/STACK: du text avant embedding.
+
+    Ces lignes sont identiques sur ~100% des standards et polluent les vecteurs.
+    On les déplace dans metadata (déjà présent : status, stack). Le texte commence
+    maintenant par RULE: (alias de TECHNOLOGIE:), qui est le contenu le plus distinctif.
+    """
+    result = re.sub(r"^ACTION:\s*\S+[^\n]*\n?", "", text, flags=re.MULTILINE)
+    result = re.sub(r"^STACK:\s*\S+[^\n]*\n?", "", result, flags=re.MULTILINE)
+    result = re.sub(r"\nSTATUS:\s*\S+\s*$", "", result.rstrip())
+    result = re.sub(r"\nVERSION:\s*[\d.]+\s*$", "", result.rstrip())
+    result = re.sub(r"^TECHNOLOGIE:", "RULE:", result, flags=re.MULTILINE)
+    result = re.sub(r"^RAISON:", "WHY:", result, flags=re.MULTILINE)
+    result = re.sub(r"^EXEMPLE_INVALIDE:", "BAD:", result, flags=re.MULTILINE)
+    result = re.sub(r"^EXEMPLE_VALIDE:", "GOOD:", result, flags=re.MULTILINE)
+    result = re.sub(r"^ERREUR_ATTENDUE:", "ERROR:", result, flags=re.MULTILINE)
+    result = re.sub(r"^ALTERNATIVE:", "INSTEAD:", result, flags=re.MULTILINE)
+    result = re.sub(r"^DETECTION_REGEX:", "DETECT:", result, flags=re.MULTILINE)
+    return result.strip()
 
 
 # =============================================================================
@@ -2899,6 +2946,1221 @@ VERSION: 1.0""",
 ]
 
 
+# =============================================================================
+# HELPER pour les nouvelles zones (17b-30)
+# =============================================================================
+
+def _s(zone: str, cat: str, text: str, **extra) -> dict:
+    return {
+        "text": text.strip(),
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": zone,
+            "status": "active",
+            "version": "1.0",
+            "category": cat,
+            "source": "factory_standards_v3",
+            "agent_context": "dev",
+            **extra,
+        },
+    }
+
+
+# =============================================================================
+# ZONE 17B — PATTERNS DE CODE STACK PRÉVENTIFS
+# Source : migrate_zones_17_18.py (migrés depuis rules_dev.md)
+# =============================================================================
+
+ZONE_17B_STACK_PATTERNS = [
+    _s("17b-stack-patterns", "nextjs", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: force-dynamic — ordre des déclarations dans un fichier Prisma
+RAISON: export const dynamic doit être la première ligne avant les imports. TypeScript traite les exports de module avant les imports dans certains bundlers — un dynamic placé après les imports peut être ignoré en mode statique.
+DETECTION_REGEX: ^import\\s+(?!.*force-dynamic)
+ALTERNATIVE: Placer export const dynamic = 'force-dynamic' avant tout import
+EXEMPLE_INVALIDE:
+  import { NextResponse } from 'next/server';
+  import prisma from '@/lib/prisma';
+  export const dynamic = 'force-dynamic'; // ❌ trop tard
+EXEMPLE_VALIDE:
+  export const dynamic = 'force-dynamic'; // ✅ première ligne absolue
+  import { NextResponse } from 'next/server';
+  import { auth } from '@clerk/nextjs/server';
+  import prisma from '@/lib/prisma';
+ERREUR_ATTENDUE: PrismaClientInitializationError — ou build statique sans erreur mais crash runtime
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "prisma", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma singleton — import depuis @/lib/prisma uniquement
+RAISON: Instancier PrismaClient directement crée N connexions pool en dev (HMR) et en prod. Le singleton lib/prisma.ts garantit une seule instance partagée via globalThis.
+DETECTION_REGEX: new PrismaClient\\(\\)
+ALTERNATIVE: import prisma from '@/lib/prisma'
+EXEMPLE_INVALIDE:
+  import { PrismaClient } from '@prisma/client';
+  const prisma = new PrismaClient(); // ❌ nouvelle instance à chaque import
+EXEMPLE_VALIDE:
+  import prisma from '@/lib/prisma'; // ✅ singleton partagé
+ERREUR_ATTENDUE: Too many connections — ou — PrismaClientKnownRequestError: connection pool exhausted
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "auth", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Clerk v6 — auth() guard pattern complet dans route handlers et pages server
+RAISON: auth() retourne { userId: string | null }. Prisma attend String (non-nullable). TypeScript refuse de compiler where: { authorId: userId } si le guard est absent. Le guard sert à la fois au narrowing TypeScript ET à la sécurité runtime.
+DETECTION_REGEX: await auth\\(\\)(?![\\s\\S]{0,200}if.*!userId)
+ALTERNATIVE: Guard immédiat après auth()
+EXEMPLE_INVALIDE:
+  const { userId } = await auth();
+  const items = await prisma.item.findMany({ where: { authorId: userId } }); // ❌ userId peut être null
+EXEMPLE_VALIDE:
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // ✅ userId est maintenant string (non-nullable) — TypeScript et Prisma acceptent
+  const items = await prisma.item.findMany({ where: { authorId: userId } });
+ERREUR_ATTENDUE: TS2345 — Argument of type 'string | null' is not assignable to parameter of type 'string'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "auth", """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Clerk — authorId dans le body de la requête
+RAISON: Accepter authorId depuis le body permet à un client malicieux d'associer une ressource à n'importe quel userId. L'authorId DOIT toujours venir de auth() côté serveur.
+DETECTION_REGEX: body\\.authorId|req\\.json\\(\\)[\\s\\S]*authorId|authorId.*body
+ALTERNATIVE: const { userId } = await auth(); puis data: { ...body, authorId: userId }
+EXEMPLE_INVALIDE:
+  const { title, authorId } = await req.json(); // ❌ authorId du client
+  await prisma.post.create({ data: { title, authorId } });
+EXEMPLE_VALIDE:
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { title } = await req.json(); // ✅ pas d'authorId dans le body
+  await prisma.post.create({ data: { title, authorId: userId } }); // ✅ userId de Clerk
+ERREUR_ATTENDUE: Faille de sécurité — IDOR / privilege escalation
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript strict — annotation explicite sur tableaux Prisma
+RAISON: TypeScript infère never[] pour un tableau déclaré vide puis assigné dans un try/catch. La propriété 'id' n'existe pas sur type 'never' → TS2339 à la compilation. Pattern fetchAll avec .catch() résout le problème en une seule ligne.
+DETECTION_REGEX: let \\w+ = \\[\\];[\\s\\S]{0,200}await prisma
+ALTERNATIVE: const items: Model[] = await prisma.model.findMany().catch(() => [])
+EXEMPLE_INVALIDE:
+  let tasks = [];
+  try {
+    tasks = await prisma.task.findMany({ where: { userId } });
+  } catch {
+    tasks = [];
+  }
+  // ❌ TypeScript infère tasks: never[] — tasks[0].title → TS2339
+EXEMPLE_VALIDE:
+  const tasks: Task[] = await prisma.task.findMany({
+    where: { userId },
+  }).catch(() => []); // ✅ type explicite, gestion erreur en ligne
+ERREUR_ATTENDUE: TS2339 — Property 'id' does not exist on type 'never'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript strict — types explicites sur callbacks React et destructurings
+RAISON: TypeScript strict refuse les paramètres implicitement any (TS7006/TS7031). Les événements React et les destructurings de props doivent avoir des types explicites.
+DETECTION_REGEX: onChange=\\{\\(e\\)\\s*=>|onSubmit=\\{\\(e\\)\\s*=>|function \\w+\\(\\{ \\w+ \\}\\)
+ALTERNATIVE: Types explicites sur chaque paramètre de callback et destructuring
+EXEMPLE_INVALIDE:
+  onChange={(e) => setValue(e.target.value)}       // ❌ TS7006
+  onSubmit={(e) => { e.preventDefault(); }}        // ❌ TS7006
+  function Component({ id }) { ... }               // ❌ TS7031
+EXEMPLE_VALIDE:
+  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}   // ✅
+  onSubmit={(e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); }}       // ✅
+  function Component({ id }: { id: string }) { ... }                               // ✅
+ERREUR_ATTENDUE: TS7006 — Parameter 'e' implicitly has an 'any' type
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "nextjs", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — imports obligatoires en tête de route handler
+RAISON: L'absence d'un des trois imports dans un route handler provoque TS2552 (NextResponse non trouvé) ou TS2305 (auth non trouvé) à la compilation.
+DETECTION_REGEX: export (async )?function (GET|POST|PUT|PATCH|DELETE)(?![\\s\\S]{0,300}import.*NextResponse)
+ALTERNATIVE: Toujours présenter les trois imports en tête de fichier
+EXEMPLE_INVALIDE:
+  export const dynamic = 'force-dynamic';
+  // ❌ import { NextResponse } manquant
+  import { auth } from '@clerk/nextjs/server';
+  import prisma from '@/lib/prisma';
+  export async function GET() { return NextResponse.json({}) } // TS2552
+EXEMPLE_VALIDE:
+  export const dynamic = 'force-dynamic';
+  import { NextResponse } from 'next/server';      // ✅
+  import { auth } from '@clerk/nextjs/server';     // ✅
+  import prisma from '@/lib/prisma';               // ✅
+  export async function GET() { ... }
+ERREUR_ATTENDUE: TS2552 — Cannot find name 'NextResponse'. Did you mean 'Response'?
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "auth", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Zod + Prisma — validation body avec authorId depuis auth() uniquement
+RAISON: Deux erreurs fréquentes combinées : (1) passer result.data directement à Prisma expose des champs inattendus et ignore authorId ; (2) accepter authorId depuis le body = faille IDOR. Le pattern correct dissocie les champs validés du body et injecte authorId depuis auth().
+DETECTION_REGEX: prisma\\.\\w+\\.create\\(\\s*\\{\\s*data:\\s*result\\.data\\s*\\}
+ALTERNATIVE: { data: { ...result.data, authorId: userId } } — authorId vient de auth(), jamais du body
+EXEMPLE_INVALIDE:
+  const result = CreateTaskSchema.safeParse(body);
+  if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+  await prisma.task.create({ data: result.data }); // ❌ authorId absent ou potentiellement dans body
+EXEMPLE_VALIDE:
+  const CreateTaskSchema = z.object({ title: z.string().min(1).max(255) });
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const body = await req.json();
+  const result = CreateTaskSchema.safeParse(body);
+  if (!result.success) return NextResponse.json({ error: result.error }, { status: 400 });
+  await prisma.task.create({
+    data: { ...result.data, authorId: userId }, // ✅ authorId de auth(), pas du body
+  });
+  return NextResponse.json(result.data, { status: 201 });
+ERREUR_ATTENDUE: Faille IDOR si authorId du body / PrismaClientValidationError si authorId absent
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "nextjs", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — use client sur composants avec hooks React
+RAISON: Les pages app/**page.tsx sont Server Components par défaut. useState/useEffect ne peuvent s'exécuter que côté client. Sans "use client", Next.js lève une erreur runtime "hooks can only be called inside a function component".
+DETECTION_REGEX: (useState|useEffect|useRef|useCallback)(?![\\s\\S]{0,50}"use client")
+ALTERNATIVE: Ajouter "use client" en première ligne absolue du fichier
+EXEMPLE_INVALIDE:
+  import { useState } from 'react'; // ❌ Server Component par défaut
+  export default function Form() {
+    const [value, setValue] = useState('');
+    return <input value={value} onChange={e => setValue(e.target.value)} />;
+  }
+EXEMPLE_VALIDE:
+  "use client"; // ✅ première ligne
+  import { useState } from 'react';
+  export default function Form() {
+    const [value, setValue] = useState('');
+    return <input value={value} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)} />;
+  }
+ERREUR_ATTENDUE: Error — useState can only be called inside a Client Component. Add the "use client" directive.
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("17b-stack-patterns", "prisma", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — accès aux propriétés déclarées dans schema.prisma uniquement
+RAISON: Accéder à un champ absent du schema Prisma provoque TS2339 à la compilation. TypeScript génère les types depuis le schema — tout champ absent est un type error.
+DETECTION_REGEX: N/A (détection par tsc)
+ALTERNATIVE: Lire prisma/schema.prisma avant d'écrire des accès de champs — n'utiliser que les champs déclarés
+EXEMPLE_INVALIDE:
+  const task = await prisma.task.findUnique({ where: { id } });
+  return task.deadline; // ❌ si 'deadline' absent du schema Task → TS2339
+EXEMPLE_VALIDE:
+  // schema.prisma : Task { id, title, done, dueDate, userId, createdAt }
+  const task = await prisma.task.findUnique({ where: { id } });
+  if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ id: task.id, title: task.title, dueDate: task.dueDate }); // ✅ champs déclarés
+ERREUR_ATTENDUE: TS2339 — Property 'deadline' does not exist on type 'Task'
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 18 — STANDARDS CORRECTIFS PAR CODE D'ERREUR TYPESCRIPT
+# Source : migrate_zones_17_18.py (catalogue tsc_error_catalog.py)
+# =============================================================================
+
+ZONE_18_TSC_CORRECTIVE = [
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS2307 — fichier local manquant (module cannot be found)
+CODE_ERREUR: TS2307
+RAISON: TS2307 sur un chemin local (@/, ./, ../) signifie que le fichier importé n'existe pas sur le disque — pas un problème de npm. Modifier l'import serait une erreur : le chemin est correct, c'est le fichier cible qui manque.
+DETECTION_REGEX: error TS2307: Cannot find module '@/|\\./|\\.\\./'
+DIAGNOSTIC: Identifier le chemin du module → convertir en chemin fichier (@/components/X → components/X.tsx) → créer le fichier avec write_file
+EXEMPLE_INVALIDE:
+  // app/page.tsx importe '@/components/TaskList' mais TaskList.tsx n'existe pas
+  // ❌ Mauvaise réaction : modifier l'import en '@/components/task-list'
+  // ❌ Mauvaise réaction : npm install ...
+EXEMPLE_VALIDE:
+  // ✅ Bonne réaction : créer components/TaskList.tsx
+  write_file('components/TaskList.tsx', `
+  "use client";
+  import { Task } from '@/lib/types';
+  interface Props { tasks: Task[] }
+  export default function TaskList({ tasks }: Props) {
+    return <ul>{tasks.map(t => <li key={t.id}>{t.title}</li>)}</ul>;
+  }
+  `)
+RÈGLE_EXTENSION: .tsx si composant React (nom en majuscule, dans components/ ou app/) | .ts sinon
+ERREUR_ATTENDUE: TS2307 Cannot find module '@/components/TaskList' or its corresponding type declarations.
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS2339 never — annotation de type sur tableau Prisma
+CODE_ERREUR: TS2339
+RAISON: TypeScript infère never[] pour un tableau déclaré vide (let arr = []) puis assigné dans un try/catch. Toute propriété accédée sur never[] provoque TS2339. La solution est d'annoter explicitement le type du tableau au point de déclaration.
+DETECTION_REGEX: error TS2339.*type 'never'
+DIAGNOSTIC: Trouver la déclaration du tableau → ajouter annotation de type Model[] → utiliser pattern .catch(() => [])
+EXEMPLE_INVALIDE:
+  let tasks = []; // ❌ TypeScript infère never[]
+  try {
+    tasks = await prisma.task.findMany({ where: { userId } });
+  } catch {
+    tasks = [];
+  }
+  return tasks[0].id; // ❌ TS2339 : Property 'id' does not exist on type 'never'
+EXEMPLE_VALIDE:
+  // ✅ Option 1 : annotation explicite + catch inline
+  const tasks: Task[] = await prisma.task.findMany({ where: { userId } }).catch(() => []);
+
+  // ✅ Option 2 : annotation + try/catch
+  let tasks: Task[] = [];
+  try {
+    tasks = await prisma.task.findMany({ where: { userId } });
+  } catch {
+    tasks = [];
+  }
+ERREUR_ATTENDUE: TS2339 — Property 'id' does not exist on type 'never'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS2304 — nom introuvable dans lib/types.ts
+CODE_ERREUR: TS2304
+RAISON: TS2304 "Cannot find name X" signifie que le type/interface/classe X n'est pas importé ou exporté dans le scope courant. Dans la factory, cela vise souvent des types générés dans lib/types.ts qui ont un nom différent du nom attendu.
+DETECTION_REGEX: error TS2304: Cannot find name '\\w+'
+DIAGNOSTIC: Lire lib/types.ts → identifier les exports réels → corriger l'utilisation ou l'import
+ÉTAPES:
+  1. read_file('lib/types.ts') — liste les exports réels
+  2. Comparer avec le nom utilisé — souvent typo (CreatePostInput au lieu de CreateTaskInput)
+  3. Corriger l'import ou le nom dans le fichier fautif
+EXEMPLE_INVALIDE:
+  import { CreatePostInput } from '@/lib/types'; // ❌ si lib/types.ts exporte CreateTaskInput
+  const body: CreatePostInput = await req.json(); // TS2304
+EXEMPLE_VALIDE:
+  import { CreateTaskInput } from '@/lib/types'; // ✅ nom exact depuis lib/types.ts
+  const body: CreateTaskInput = await req.json();
+ERREUR_ATTENDUE: TS2304 — Cannot find name 'CreatePostInput'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS7006/TS7031 — type explicite sur paramètre de callback React
+CODE_ERREUR: TS7006
+RAISON: TypeScript strict (noImplicitAny: true) refuse les paramètres de fonction sans type déclaré. Dans les composants React, les callbacks d'événements (onChange, onSubmit) et les destructurings de props doivent avoir des types explicites.
+DETECTION_REGEX: error TS7006.*implicitly has an 'any' type|error TS7031.*implicitly has an 'any' type
+DIAGNOSTIC: Identifier le paramètre non typé → ajouter le type React ou un type inline
+TYPES_REACT_COURANTS:
+  onChange input     → e: React.ChangeEvent<HTMLInputElement>
+  onChange textarea  → e: React.ChangeEvent<HTMLTextAreaElement>
+  onChange select    → e: React.ChangeEvent<HTMLSelectElement>
+  onSubmit form      → e: React.FormEvent<HTMLFormElement>
+  onClick button     → e: React.MouseEvent<HTMLButtonElement>
+  destructuring prop → { id }: { id: string }
+EXEMPLE_INVALIDE:
+  onChange={(e) => setValue(e.target.value)}  // ❌ TS7006
+  function Card({ id }) { ... }              // ❌ TS7031
+EXEMPLE_VALIDE:
+  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}  // ✅
+  function Card({ id }: { id: string }) { ... }                                   // ✅
+ERREUR_ATTENDUE: TS7006 — Parameter 'e' implicitly has an 'any' type
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS2531 — null check avant accès sur résultat Prisma findUnique
+CODE_ERREUR: TS2531
+RAISON: prisma.model.findUnique() retourne Model | null. TypeScript refuse d'accéder à une propriété d'un objet potentiellement null sans guard préalable. Ce guard est aussi une bonne pratique API REST (404 si ressource introuvable).
+DETECTION_REGEX: error TS2531: Object is possibly 'null'
+DIAGNOSTIC: Ajouter un guard null après findUnique → retourner 404 si null
+EXEMPLE_INVALIDE:
+  const task = await prisma.task.findUnique({ where: { id } });
+  return NextResponse.json({ id: task.id, title: task.title }); // ❌ TS2531 : task peut être null
+EXEMPLE_VALIDE:
+  const task = await prisma.task.findUnique({ where: { id } });
+  if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 }); // ✅ guard null
+  return NextResponse.json({ id: task.id, title: task.title }); // ✅ task est Task (non-null)
+ERREUR_ATTENDUE: TS2531 — Object is possibly 'null'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS2345 — type 'string | null' non assignable à 'string' (auth guard)
+CODE_ERREUR: TS2345
+RAISON: auth() retourne { userId: string | null }. Prisma n'accepte pas string | null dans where: { authorId: userId }. Le narrowing TypeScript s'obtient uniquement avec un guard if (!userId) return 401 — après ce guard, userId est string.
+DETECTION_REGEX: error TS2345.*'string \\| null'.*'string'
+DIAGNOSTIC: Vérifier que le guard if (!userId) précède l'accès Prisma — si absent, l'ajouter
+EXEMPLE_INVALIDE:
+  const { userId } = await auth();
+  const items = await prisma.item.findMany({
+    where: { authorId: userId }, // ❌ TS2345 : string | null n'est pas string
+  });
+EXEMPLE_VALIDE:
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); // ✅ narrowing
+  const items = await prisma.item.findMany({
+    where: { authorId: userId }, // ✅ userId est string après le guard
+  });
+ERREUR_ATTENDUE: TS2345 — Argument of type 'string | null' is not assignable to parameter of type 'string'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("18-tsc-corrective", "typescript", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript TS2339 — propriété absente du schema Prisma (champ inexistant)
+CODE_ERREUR: TS2339
+RAISON: Accéder à un champ non déclaré dans prisma/schema.prisma provoque TS2339. TypeScript génère les types Prisma depuis le schema — tout champ absent est une erreur de type. Ce n'est PAS une erreur never[] (cf. standard séparé) mais une vraie propriété manquante.
+DETECTION_REGEX: error TS2339: Property '\\w+' does not exist on type '(?!never)\\w+'
+DIAGNOSTIC: Lire prisma/schema.prisma → vérifier que le champ existe → corriger le nom ou ne pas y accéder
+EXEMPLE_INVALIDE:
+  // schema.prisma : Task { id, title, done, userId, createdAt }
+  const task = await prisma.task.findUnique({ where: { id } });
+  return task.deadline; // ❌ TS2339 : 'deadline' absent du schema
+EXEMPLE_VALIDE:
+  // schema.prisma : Task { id, title, done, dueDate, userId, createdAt }
+  const task = await prisma.task.findUnique({ where: { id } });
+  if (!task) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ id: task.id, title: task.title, dueDate: task.dueDate }); // ✅ champs déclarés
+ERREUR_ATTENDUE: TS2339 — Property 'deadline' does not exist on type 'Task'
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 19 — STANDARDS SAAS SENIOR
+# Source : migrate_zone_19_saas_senior.py
+# =============================================================================
+
+ZONE_19_SAAS_SENIOR = [
+    _s("19-saas-senior", "pages", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — Server Component page liste
+RAISON: Une page listant des entités doit afficher les données réelles depuis Prisma. Retourner un simple <h1> sans données est interdit — l'application serait inutilisable.
+DETECT: return\\s+<h1>[^<]+</h1>
+INSTEAD: Appeler prisma.model.findMany({ where: { userId } }) et mapper les résultats en JSX
+EXEMPLE_INVALIDE:
+  export const dynamic = 'force-dynamic';
+  const InvoicesPage = () => {
+    return <h1>Invoices List</h1>; // ❌ aucune donnée réelle
+  };
+EXEMPLE_VALIDE:
+  export const dynamic = 'force-dynamic';
+  import { auth } from '@clerk/nextjs/server';
+  import { redirect } from 'next/navigation';
+  import prisma from '@/lib/prisma';
+
+  export default async function InvoicesPage() {
+    const { userId } = await auth();
+    if (!userId) redirect('/sign-in');
+    const items = await prisma.invoice.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return (
+      <div>
+        <h1>Mes factures</h1>
+        {items.length === 0 ? (
+          <p>Aucun enregistrement pour le moment.</p>
+        ) : (
+          <ul>{items.map((item) => <li key={item.id}>{item.id}</li>)}</ul>
+        )}
+      </div>
+    );
+  }
+ERREUR_ATTENDUE: Page vide, utilisateur ne voit aucune donnée malgré les enregistrements en base
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "pages", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — Server Component page détail [id]
+RAISON: Une page détail doit récupérer l'entité par son id, vérifier l'ownership, et afficher ses champs réels. notFound() si absent ou non autorisé.
+DETECT: params\\.id
+INSTEAD: findUnique + vérification userId + rendu des champs du modèle
+EXEMPLE_INVALIDE:
+  const Page = ({ params }: { params: { id: string } }) => {
+    return <h1>Item {params.id}</h1>; // ❌ champ id affiché, pas le contenu
+  };
+EXEMPLE_VALIDE:
+  export const dynamic = 'force-dynamic';
+  import { auth } from '@clerk/nextjs/server';
+  import { notFound, redirect } from 'next/navigation';
+  import prisma from '@/lib/prisma';
+
+  export default async function ItemPage({ params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) redirect('/sign-in');
+    const item = await prisma.item.findUnique({ where: { id: params.id } });
+    if (!item || item.userId !== userId) notFound();
+    return <article><h1>{item.title}</h1></article>;
+  }
+ERREUR_ATTENDUE: Page blanche ou données fictives au lieu du contenu réel
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "forms", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — Client Component formulaire de création
+RAISON: Un formulaire doit soumettre les données à la route API correspondante via fetch, gérer les erreurs et rediriger après succès. "use client" DOIT être la ligne 1 absolue.
+DETECT: useState.*handleSubmit
+INSTEAD: "use client" ligne 1, useState pour les champs, fetch vers /api/resource, router.push après succès
+EXEMPLE_INVALIDE:
+  export const dynamic = 'force-dynamic';
+  'use client'; // ❌ use client n'est pas en ligne 1 absolue
+  const NewPage = () => {
+    return <h1>Create New</h1>; // ❌ formulaire absent
+  };
+EXEMPLE_VALIDE:
+  "use client";
+  import { useState } from 'react';
+  import { useRouter } from 'next/navigation';
+
+  export default function NewItemPage() {
+    const router = useRouter();
+    const [title, setTitle] = useState('');
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      const res = await fetch('/api/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) { setError('Erreur lors de la création'); return; }
+      router.push('/items');
+    };
+
+    return (
+      <form onSubmit={handleSubmit}>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+        <input type="text" value={title} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} required />
+        <button type="submit">Créer</button>
+      </form>
+    );
+  }
+ERREUR_ATTENDUE: Formulaire non fonctionnel, données non envoyées à l'API, pas de redirection après succès
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "security", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js API Routes — sécurité ownership PATCH/PUT/DELETE
+RAISON: Tout handler qui modifie ou supprime une ressource doit vérifier que l'enregistrement appartient à l'utilisateur authentifié. Sans ce check, n'importe quel utilisateur connecté peut modifier les données d'un autre (privilege escalation horizontal).
+DETECT: prisma\\.\\w+\\.update|prisma\\.\\w+\\.delete
+INSTEAD: findUnique → vérification userId === record.userId → 403 si différent → puis update/delete
+EXEMPLE_INVALIDE:
+  export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // ❌ pas de vérification ownership
+    const item = await prisma.item.update({ where: { id: params.id }, data: { status: 'done' } });
+    return NextResponse.json(item);
+  }
+EXEMPLE_VALIDE:
+  export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+    const { userId } = await auth();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const existing = await prisma.item.findUnique({ where: { id: params.id } });
+    if (!existing || existing.userId !== userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    const body = await request.json();
+    const result = updateSchema.safeParse(body);
+    if (!result.success) return NextResponse.json({ error: result.error.errors }, { status: 400 });
+    const item = await prisma.item.update({ where: { id: params.id }, data: result.data });
+    return NextResponse.json(item);
+  }
+ERREUR_ATTENDUE: Privilege escalation — utilisateur A peut modifier les données de l'utilisateur B
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "architecture", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js — Data Access Layer lib/services/
+RAISON: Les pages ne doivent pas importer prisma directement. Encapsuler les requêtes Prisma dans lib/services/<model>.service.ts garantit la réutilisabilité, la testabilité et la cohérence de l'ownership check.
+DETECT: import prisma from.*lib/prisma.*page\\.tsx
+INSTEAD: Créer lib/services/<model>.service.ts avec findMany/findUnique/create/update/delete. Les pages importent le service, pas prisma.
+EXEMPLE_INVALIDE:
+  // app/items/page.tsx — ❌ Prisma directement dans la page
+  import prisma from '@/lib/prisma';
+  export default async function ItemsPage() {
+    const items = await prisma.item.findMany({ where: { userId } });
+  }
+EXEMPLE_VALIDE:
+  // lib/services/item.service.ts ✅
+  import prisma from '@/lib/prisma';
+  export const itemService = {
+    findMany: (userId: string) => prisma.item.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+    findUnique: async (id: string, userId: string) => {
+      const r = await prisma.item.findUnique({ where: { id } });
+      if (!r || r.userId !== userId) return null;
+      return r;
+    },
+    create: (data: { title: string }, userId: string) => prisma.item.create({ data: { ...data, userId } }),
+  };
+  // app/items/page.tsx ✅
+  import { itemService } from '@/lib/services/item.service';
+ERREUR_ATTENDUE: Code dupliqué, ownership check oublié dans certaines routes, pages non testables isolément
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "database", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — relations @relation entre modèles liés
+RAISON: Sans @relation explicite, Prisma ne connaît pas le lien entre les modèles. include: { client: true } est impossible, les cascades ne fonctionnent pas, et les requêtes jointes sont impossibles. Un champ clientId sans @relation est une foreign key "fantôme".
+DETECT: \\w+Id\\s+String
+INSTEAD: Déclarer @relation avec fields et references sur le modèle enfant, et le champ tableau sur le modèle parent
+EXEMPLE_INVALIDE:
+  model Invoice {
+    id       String @id @default(uuid())
+    clientId String // ❌ FK sans @relation — Prisma ignore le lien
+  }
+EXEMPLE_VALIDE:
+  model Client {
+    id       String    @id @default(uuid())
+    invoices Invoice[] // ✅ relation inverse déclarée
+  }
+  model Invoice {
+    id       String @id @default(uuid())
+    client   Client @relation(fields: [clientId], references: [id]) // ✅
+    clientId String
+    @@index([userId])
+    @@index([clientId])
+  }
+ERREUR_ATTENDUE: PrismaClientValidationError: Unknown field 'client' — ou jointures impossibles
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "database", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — @@index sur les champs de filtrage fréquents
+RAISON: Sans index, un findMany({ where: { userId } }) fait un full table scan. Avec 10k lignes, la requête prend plusieurs secondes. Tous les champs utilisés dans where, orderBy ou join doivent avoir un index.
+DETECT: userId\\s+String(?!.*@@index)
+INSTEAD: Ajouter @@index([userId]) sur tout modèle avec un champ userId ou filtré fréquemment
+EXEMPLE_INVALIDE:
+  model Task {
+    id     String @id @default(uuid())
+    userId String // ❌ pas d'index — full scan à chaque requête
+  }
+EXEMPLE_VALIDE:
+  model Task {
+    id        String   @id @default(uuid())
+    userId    String
+    createdAt DateTime @default(now())
+    @@index([userId])
+    @@index([userId, createdAt])
+  }
+ERREUR_ATTENDUE: Requêtes lentes en production, dégradation des performances avec la croissance des données
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("19-saas-senior", "auth", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js App Router — redirect() dans les Server Components protégés
+RAISON: Dans un Server Component, auth() peut retourner userId=null pour un visiteur non connecté. Retourner null ou un composant vide expose des erreurs Prisma en production. redirect('/sign-in') est la seule réponse correcte pour une page protégée.
+DETECT: if\\s*\\(!userId\\)\\s*return\\s*null
+INSTEAD: import { redirect } from 'next/navigation' — redirect('/sign-in') si !userId
+EXEMPLE_INVALIDE:
+  export default async function DashboardPage() {
+    const { userId } = await auth();
+    if (!userId) return null; // ❌ page blanche — pas de redirection
+    const data = await prisma.invoice.findMany({ where: { userId } }); // crash si userId null
+  }
+EXEMPLE_VALIDE:
+  import { redirect } from 'next/navigation';
+  export default async function DashboardPage() {
+    const { userId } = await auth();
+    if (!userId) redirect('/sign-in'); // ✅ redirection propre
+    const data = await prisma.invoice.findMany({ where: { userId } });
+    return <div>...</div>;
+  }
+ERREUR_ATTENDUE: Page blanche pour utilisateur non connecté, ou crash Prisma avec userId=null
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 20 — SERVICE DAL PATTERN
+# Source : migrate_zone_20_dal_service.py
+# =============================================================================
+
+ZONE_20_DAL_SERVICE = [
+    _s("20-dal-service", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — lib/services/<model>.service.ts
+RAISON: Centraliser tous les accès Prisma dans un objet service garantit l'ownership check systématique et fournit un contrat stable que les pages peuvent importer. Sans DAL, le LLM oublie les ownership checks dans certaines routes.
+NOMMAGE: Modèle Post → fichier post.service.ts → objet postService. Modèle InvoiceItem → fichier invoice-item.service.ts → objet invoiceItemService (kebab pour le fichier, camelCase pour l'objet).
+DETECT: export\\s+function\\s+get[A-Z]|export\\s+async\\s+function\\s+get[A-Z]
+INSTEAD: Exporter un objet unique avec méthodes (findMany, findUnique, create, update, delete)
+EXEMPLE_INVALIDE:
+  export async function getExpenses(userId: string) { ... }
+  export async function getExpenseById(id: string) { ... }
+  export async function createExpense(data: any) { ... }
+EXEMPLE_VALIDE:
+  import prisma from '@/lib/prisma'
+
+  export const expenseService = {
+    findMany: (userId: string) =>
+      prisma.expense.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } }),
+
+    findUnique: async (id: string, userId: string) => {
+      const r = await prisma.expense.findUnique({ where: { id } })
+      if (!r || r.userId !== userId) return null
+      return r
+    },
+
+    create: (data: { amount: number; category: string; description: string }, userId: string) =>
+      prisma.expense.create({ data: { ...data, userId } }),
+
+    update: async (id: string, data: Partial<{ amount: number; category: string }>, userId: string) => {
+      const r = await prisma.expense.findUnique({ where: { id } })
+      if (!r || r.userId !== userId) throw new Error('Forbidden')
+      return prisma.expense.update({ where: { id }, data })
+    },
+
+    delete: async (id: string, userId: string) => {
+      const r = await prisma.expense.findUnique({ where: { id } })
+      if (!r || r.userId !== userId) throw new Error('Forbidden')
+      await prisma.expense.delete({ where: { id } })
+    },
+  }
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("20-dal-service", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — lib/services/ avec authorId (modèles Blog/CMS)
+RAISON: Certains modèles (Post, Article) utilisent authorId au lieu de userId. Le service doit utiliser le nom de champ exact du schéma Prisma — sinon TS2339 sur r.userId inexistant.
+DETECT: r\\.userId.*authorId|where.*userId.*authorId
+INSTEAD: Utiliser le champ réel du modèle (authorId) dans tous les where et ownership checks
+EXEMPLE_INVALIDE:
+  findMany: (userId: string) => prisma.post.findMany({ where: { userId } })
+  // Erreur : Post n'a pas de champ userId, il a authorId
+EXEMPLE_VALIDE:
+  export const postService = {
+    findMany: (authorId: string) =>
+      prisma.post.findMany({ where: { authorId }, orderBy: { createdAt: 'desc' } }),
+    findUnique: async (id: string, userId: string) => {
+      const r = await prisma.post.findUnique({ where: { id } })
+      if (!r || r.authorId !== userId) return null
+      return r
+    },
+    create: (data: { title: string; content: string; slug: string }, authorId: string) =>
+      prisma.post.create({ data: { ...data, authorId } }),
+  }
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("20-dal-service", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — import du service DAL dans une page (objet, pas fonctions nommées)
+RAISON: Le service DAL exporte un objet unique (expenseService). Importer des fonctions nommées qui n'existent pas (getExpenses, getExpenseById) provoque TS2305 à la compilation. Toujours importer l'objet service et appeler sa méthode.
+DETECT: import\\s+\\{\\s*get[A-Z][a-zA-Z]+\\s*\\}\\s+from\\s+'@/lib/services
+INSTEAD: Importer l'objet service et appeler la méthode appropriée
+EXEMPLE_INVALIDE:
+  import { getExpenses, getExpenseById } from '@/lib/services/expense.service'
+  // TS2305 : ces exports n'existent pas (le fichier exporte expenseService)
+EXEMPLE_VALIDE:
+  import { expenseService } from '@/lib/services/expense.service'
+
+  export default async function ExpensesPage() {
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')
+    const expenses = await expenseService.findMany(userId)
+    return (
+      <ul>{expenses.map(e => <li key={e.id}>{e.id}</li>)}</ul>
+    )
+  }
+ERREUR_ATTENDUE: TS2305 — Module '@/lib/services/expense.service' has no exported member 'getExpenses'
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("20-dal-service", "types", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — lib/types.ts
+RAISON: lib/types.ts centralise les types partagés entre pages, services et routes API. Le LLM doit le générer en premier pour pouvoir l'importer dans les services et pages. Sans ce fichier, les imports depuis '@/lib/types' échouent avec TS2307.
+DETECT: import.*from\\s+'@/lib/types'
+INSTEAD: Générer lib/types.ts en tout premier, avant les services et les pages
+EXEMPLE_VALIDE:
+  // lib/types.ts
+  export type { Expense, Client, Invoice } from '@prisma/client'
+
+  export type CreateExpenseInput = {
+    amount: number
+    category: string
+    description: string
+    date: string
+  }
+  export type UpdateExpenseInput = Partial<CreateExpenseInput>
+
+  export type ApiResponse<T> = { data: T } | { error: string }
+  export type PaginatedResponse<T> = { data: T[]; total: number }
+
+  // Importer dans les services :
+  // import type { CreateExpenseInput, UpdateExpenseInput } from '@/lib/types'
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 21 — PAGINATION
+# Source : migrate_zone_21_pagination.py
+# =============================================================================
+
+ZONE_21_PAGINATION = [
+    _s("21-pagination", "routes", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — pagination findMany skip/take avec PaginatedResponse<T>
+RAISON: Tout findMany() sans skip/take est un bottleneck de scalabilité. Même un MVP doit paginer ses listes dès le départ — corriger après coup casse l'API frontend.
+DETECT: prisma\\.\\w+\\.findMany\\(\\{\\s*where
+INSTEAD: Utiliser skip/take avec pageSize=20 par défaut, plafonné à 100. Toujours retourner { data, total, page, pageSize }.
+EXEMPLE_INVALIDE:
+  const items = await prisma.item.findMany({ where: { userId } })
+  return NextResponse.json(items)
+EXEMPLE_VALIDE:
+  // lib/types.ts
+  export type PaginatedResponse<T> = { data: T[]; total: number; page: number; pageSize: number }
+
+  // app/api/items/route.ts
+  export async function GET(req: Request) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const url = new URL(req.url)
+    const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1'))
+    const pageSize = Math.min(100, parseInt(url.searchParams.get('pageSize') ?? '20'))
+    const skip = (page - 1) * pageSize
+    const [data, total] = await prisma.$transaction([
+      prisma.item.findMany({ where: { userId }, skip, take: pageSize, orderBy: { createdAt: 'desc' } }),
+      prisma.item.count({ where: { userId } }),
+    ])
+    return NextResponse.json({ data, total, page, pageSize } satisfies PaginatedResponse<typeof data[0]>)
+  }
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 22 — GESTION DES ERREURS PRISMA
+# Source : migrate_zone_22_prisma_errors.py
+# =============================================================================
+
+ZONE_22_PRISMA_ERRORS = [
+    _s("22-prisma-errors", "error-handling", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — handlePrismaError() dans les routes API
+RAISON: Sans catch des erreurs Prisma connues, un conflit P2002 retourne une 500 générique au lieu d'un 409 clair. Le client ne peut pas distinguer "doublon" de "panne serveur". lib/prisma-errors.ts est pré-généré par le pipeline — toujours l'importer.
+DETECT: catch.*error.*500|catch.*e.*Internal.server
+INSTEAD: Importer handlePrismaError et déléguer le catch Prisma
+EXEMPLE_INVALIDE:
+  } catch (e) {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+EXEMPLE_VALIDE:
+  import { handlePrismaError } from '@/lib/prisma-errors'
+
+  } catch (error) {
+    const { status, message } = handlePrismaError(error)
+    return NextResponse.json({ error: message }, { status })
+  }
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("22-prisma-errors", "error-handling", """ACTION: INFORMATIF
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — mapping codes Prisma P2002/P2025/P2003 → HTTP
+RAISON: Référence des codes Prisma fréquents dans les apps SaaS — à utiliser dans les catch.
+MAPPING:
+  P2002 → 409 Conflict (unique constraint violated — ex: email déjà utilisé)
+  P2025 → 404 Not Found (record to update/delete does not exist)
+  P2003 → 400 Bad Request (foreign key constraint failed — parent introuvable)
+  P2014 → 400 Bad Request (required relation violation)
+  autres → 500 Internal Server Error
+EXEMPLE_VALIDE:
+  switch (error.code) {
+    case 'P2002': return { status: 409, message: 'A record with this value already exists' }
+    case 'P2025': return { status: 404, message: 'Record not found' }
+    case 'P2003': return { status: 400, message: 'Foreign key constraint failed' }
+    default:      return { status: 500, message: 'Internal server error' }
+  }
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 23 — CreateInput SANS userId (lib/types.ts)
+# Source : migrate_zone_23_create_input.py
+# =============================================================================
+
+ZONE_23_CREATE_INPUT = [
+    _s("23-create-input", "types", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: TypeScript — CreateXxxInput sans userId dans lib/types.ts
+RAISON: CreateXxxInput ne doit jamais contenir userId/authorId — c'est une faille de sécurité (le client contrôlerait l'ownership) et une erreur TS2322 au build (type incompatible avec Prisma input). Le champ owner vient toujours de auth() et est passé séparément au service.
+DETECT: CreateInput.*userId|type Create.*\\{[^}]*userId
+INSTEAD: Déclarer CreateXxxInput avec seulement les champs métier, passer ownerId séparément
+EXEMPLE_INVALIDE:
+  export type CreateExpenseInput = {
+    amount: number
+    category: string
+    userId: string  // ← INTERDIT : TS2322 + faille sécurité
+  }
+EXEMPLE_VALIDE:
+  export type CreateExpenseInput = {
+    amount: number
+    category: string
+    description: string
+    date: string
+  }
+  // Dans le service : prisma.expense.create({ data: { ...data, userId: ownerId } })
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 24 — PRÉVENTION N+1
+# Source : migrate_zone_24_n1_prevention.py
+# =============================================================================
+
+ZONE_24_N1_PREVENTION = [
+    _s("24-n1-prevention", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma include — prévention N+1 avec include au lieu de boucle findUnique
+RAISON: Une boucle findUnique dans un findMany = N+1 requêtes. Avec 100 factures, ça fait 101 requêtes au lieu de 1. Exemple réel production : 1 848 requêtes → 8,9s latence. Après fix include : 2 requêtes → 38ms.
+DETECT: findMany.*\\.map.*findUnique|Promise\\.all.*findUnique
+INSTEAD: Utiliser include pour charger les relations en une seule requête
+EXEMPLE_INVALIDE:
+  const invoices = await prisma.invoice.findMany({ where: { userId } })
+  const enriched = await Promise.all(
+    invoices.map(inv => prisma.client.findUnique({ where: { id: inv.clientId } }))
+  )  // ← N+1 : 1 + N requêtes
+EXEMPLE_VALIDE:
+  const invoices = await prisma.invoice.findMany({
+    where: { userId },
+    include: {
+      client: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })  // ← 1 requête avec JOIN
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("24-n1-prevention", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma include vs select — règle de combinaison
+RAISON: include et select ne peuvent pas être utilisés au même niveau simultanément — Prisma retourne une erreur. Pour sélectionner des champs spécifiques dans une relation, utiliser select imbriqué dans include.
+DETECT: include.*select.*\\{|select.*include.*\\{
+INSTEAD: select imbriqué dans include pour les champs de relation — jamais les deux au niveau racine
+EXEMPLE_INVALIDE:
+  prisma.invoice.findMany({
+    select: { id: true, title: true },
+    include: { client: true },  // ← Erreur Prisma : cannot use both
+  })
+EXEMPLE_VALIDE:
+  prisma.invoice.findMany({
+    where: { userId },
+    include: {
+      client: { select: { id: true, name: true } },
+    },
+  })
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 26 — TRANSACTIONS PRISMA
+# Source : migrate_zone_26_transactions.py
+# =============================================================================
+
+ZONE_26_TRANSACTIONS = [
+    _s("26-transactions", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma $transaction — mutations multi-tables atomiques
+RAISON: Les opérations multi-tables sans transaction laissent la base dans un état incohérent si une étape échoue (ex: Invoice créée mais InvoiceItems non créés). $transaction garantit le rollback automatique si une opération échoue.
+DETECT: prisma\\.\\w+\\.create.*prisma\\.\\w+\\.create|prisma\\.\\w+\\.update.*prisma\\.\\w+
+INSTEAD: $transaction([]) pour les opérations indépendantes, $transaction(async tx =>) pour les opérations conditionnelles
+EXEMPLE_INVALIDE:
+  // Sans transaction : si createMany échoue, l'invoice existe sans items
+  const invoice = await prisma.invoice.create({ data: { userId, title, amount } })
+  await prisma.invoiceItem.createMany({ data: items.map(i => ({ ...i, invoiceId: invoice.id })) })
+EXEMPLE_VALIDE:
+  // Interactive : quand une étape dépend du résultat de la précédente
+  const invoice = await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.create({ data: { userId, title, amount } })
+    await tx.invoiceItem.createMany({
+      data: items.map(item => ({ ...item, invoiceId: inv.id })),
+    })
+    return inv
+  })
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("26-transactions", "services", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma $transaction interactive — règle absolue tx vs prisma dans le callback
+RAISON: Dans une transaction interactive, utiliser l'instance globale prisma au lieu de tx crée un deadlock : la connexion est déjà occupée par la transaction et la requête externe attend indéfiniment jusqu'au timeout. En serverless, ce deadlock est silencieux et difficile à déboguer.
+DETECT: \\$transaction.*async.*tx.*prisma\\.(?!\\$)
+INSTEAD: Toujours remplacer prisma par tx à l'intérieur du callback de $transaction
+EXEMPLE_INVALIDE:
+  await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.create({ data })
+    await prisma.invoiceItem.createMany({ data: items })  // ← prisma au lieu de tx → DEADLOCK
+  })
+EXEMPLE_VALIDE:
+  await prisma.$transaction(async (tx) => {
+    const inv = await tx.invoice.create({ data })
+    await tx.invoiceItem.createMany({ data: items })  // ← tx partout dans le callback
+  })
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 27 — LOGGING STRUCTURÉ (PINO)
+# Source : migrate_zone_27_logging.py
+# =============================================================================
+
+ZONE_27_LOGGING = [
+    _s("27-logging", "routes", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Pino — logging structuré dans les routes API (lib/logger.ts)
+RAISON: console.log en production ne porte aucun contexte (userId, route, durée). Sans logging structuré, déboguer une erreur en production revient à chercher une aiguille dans une botte de foin. lib/logger.ts est pré-généré — toujours l'importer.
+DETECT: console\\.log|console\\.error|console\\.warn
+INSTEAD: Importer logger depuis @/lib/logger et utiliser child logger par route
+EXEMPLE_INVALIDE:
+  } catch (error) {
+    console.error('Erreur:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+EXEMPLE_VALIDE:
+  import logger from '@/lib/logger'
+
+  const log = logger.child({ route: 'POST /api/invoices' })
+
+  export async function POST(req: Request) {
+    const { userId } = await auth()
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    try {
+      const body = await req.json()
+      const result = CreateInvoiceBodySchema.safeParse(body)
+      if (!result.success) {
+        log.warn({ userId, issues: result.error.issues }, 'Validation failed')
+        return NextResponse.json({ error: 'Validation error' }, { status: 400 })
+      }
+      const invoice = await invoiceService.create(result.data, userId)
+      log.info({ userId, invoiceId: invoice.id }, 'Invoice created')
+      return NextResponse.json(invoice, { status: 201 })
+    } catch (error) {
+      const { status, message } = handlePrismaError(error)
+      log.error({ userId, error }, 'Unexpected error')
+      return NextResponse.json({ error: message }, { status })
+    }
+  }
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 28 — CONNECTION POOLING PRISMA (SERVERLESS)
+# Source : migrate_zone_28_connection_pooling.py
+# =============================================================================
+
+ZONE_28_CONNECTION_POOLING = [
+    _s("28-connection-pooling", "infrastructure", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma serverless — connection_limit=1 dans DATABASE_URL
+RAISON: Sans connection_limit=1, chaque instance serverless crée son propre pool. Avec 10 instances × pool par défaut ≈ 10 connexions = 100 connexions simultanées → épuisement PostgreSQL. connection_limit=1 + pool_timeout=20 est le minimum viable pour Vercel/serverless.
+DETECT: DATABASE_URL.*postgresql://(?!.*connection_limit)
+INSTEAD: Ajouter ?connection_limit=1&pool_timeout=20 à la fin de DATABASE_URL
+EXEMPLE_INVALIDE:
+  DATABASE_URL=postgresql://user:password@localhost:5432/mydb
+EXEMPLE_VALIDE:
+  DATABASE_URL=postgresql://user:password@localhost:5432/mydb?connection_limit=1&pool_timeout=20
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("28-connection-pooling", "infrastructure", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Prisma — pattern globalThis singleton dans lib/prisma.ts
+RAISON: Le hot reload Next.js en dev crée une nouvelle instance PrismaClient à chaque modification de fichier. Sans globalThis singleton, on accumule des connexions jusqu'à "too many clients" en dev.
+DETECT: new PrismaClient\\(\\)|globalForPrisma
+INSTEAD: Pattern globalThis pour dev hot reload — lib/prisma.ts est pré-généré, ne pas le réécrire
+EXEMPLE_INVALIDE:
+  // Chaque import crée une nouvelle instance en dev
+  export const prisma = new PrismaClient()
+EXEMPLE_VALIDE:
+  const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
+  export const prisma = globalForPrisma.prisma ?? new PrismaClient({ log: ['error'] })
+  if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+  // Ne JAMAIS appeler prisma.$disconnect() après chaque requête — détruit la connexion réutilisable
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE 30 — HEALTHCHECK ENDPOINT
+# Source : migrate_zone_30_healthcheck.py
+# =============================================================================
+
+ZONE_30_HEALTHCHECK = [
+    _s("30-healthcheck", "routes", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Next.js — app/api/health/route.ts pré-généré (ne pas réécrire)
+RAISON: app/api/health/route.ts est pré-généré par le pipeline — ne pas le réécrire. Il implémente : force-dynamic, $queryRaw SELECT 1 avec Promise.race timeout 3s, retour { status: 'ok', db: 'ok' } en 200 ou { status: 'degraded', db: 'unreachable' } en 503.
+DETECT: app/api/health|healthcheck|health.route
+INSTEAD: Ne PAS écrire app/api/health/route.ts avec write_file — ce fichier est déjà présent dans les fichiers pré-générés
+EXEMPLE_VALIDE:
+  export const dynamic = 'force-dynamic'
+  export async function GET() {
+    try {
+      await Promise.race([
+        prisma.$queryRaw`SELECT 1`,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('DB timeout')), 3000)),
+      ])
+      return NextResponse.json({ status: 'ok', db: 'ok' })
+    } catch {
+      return NextResponse.json({ status: 'degraded', db: 'unreachable' }, { status: 503 })
+    }
+  }
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
+# ZONE HARD RULES — Standards issus de enrich_qdrant.py
+# =============================================================================
+
+ZONE_HARD_RULES = [
+    _s("hard-rules", "clerk", """RULE: Clerk @clerk/nextjs v6 — seul package npm valide, imports server/client
+WHY: Les packages @clerk/clerk-sdk, @clerk/clerk-js, @clerk/sdk, @clerk/react n'existent pas ou sont obsolètes et ne doivent jamais apparaître dans package.json. Clerk v6 — auth() retourne une Promise, toujours await. Dans clerkMiddleware, auth est un OBJET (pas une fonction) : await auth.protect() (INTERDIT: auth().protect()).
+GOOD:
+  "@clerk/nextjs": "^6.0.0"  // dans package.json
+  import { auth, currentUser } from '@clerk/nextjs/server'  // server-side
+  import { useUser, useClerk } from '@clerk/nextjs'  // client-side
+  const { userId } = await auth()  // toujours await
+BAD:
+  "@clerk/clerk-sdk": "..."  // package inexistant
+  import { auth } from '@clerk/nextjs'  // ❌ doit être /server pour server-side
+  auth().protect()  // ❌ auth() retourne une Promise en v6"""),
+
+    _s("hard-rules", "prisma", """RULE: Prisma 7 — prisma.config.ts obligatoire, url INTERDIT dans schema.prisma
+WHY: Prisma 7 breaking change : la propriété url dans datasource de schema.prisma est supprimée. La connexion DATABASE_URL doit être dans prisma.config.ts. Schema.prisma ne contient plus url. Créer prisma.config.ts avec defineConfig({ datasource: { url: process.env.DATABASE_URL } }). Ne jamais écrire url = env('DATABASE_URL') dans schema.prisma avec Prisma 7+.
+BAD:
+  datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")  // ← INTERDIT PRISMA 7
+  }
+GOOD:
+  // prisma/schema.prisma
+  datasource db { provider = "postgresql" }
+  generator client { provider = "prisma-client-js" }
+
+  // prisma.config.ts
+  import 'dotenv/config';
+  import { defineConfig, env } from 'prisma/config';
+  export default defineConfig({
+    schema: 'prisma/schema.prisma',
+    datasource: { url: env('DATABASE_URL') },
+  });
+ERROR: GateBlocked: NOT_BUILT_BY_GATE (prisma_schema_datasource_url)"""),
+
+    _s("hard-rules", "auth", """RULE: auth() userId null guard — OBLIGATOIRE avant tout appel Prisma avec userId
+WHY: Pattern mandatory dans tout route handler app/api/**/route.ts qui utilise userId dans une opération Prisma. Ce guard est OBLIGATOIRE pour TOUS les modèles avec ownership (authorId, userId, ownerId, createdBy). TypeScript strict : userId peut être null si l'utilisateur n'est pas authentifié. Sans ce guard, TypeScript lève TS2345 : 'Argument of type string | null is not assignable to parameter of type string'.
+BAD:
+  const { userId } = await auth();
+  await prisma.item.create({ data: { title, userId } }); // ❌ TS2345 si userId null
+GOOD:
+  const { userId } = await auth();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  await prisma.item.create({ data: { title, userId } }); // ✅ userId est string après guard
+ERROR: TS2345 — Argument of type 'string | null' is not assignable to parameter of type 'string'"""),
+
+    _s("hard-rules", "typescript", """RULE: TypeScript strict — tableau non typé INTERDIT (let data = [] pattern)
+WHY: Le pattern `let data = []` suivi d'une réassignation dans try/catch est invalide en TypeScript strict : le compilateur infère `any[]` et rejette le build avec 'implicitly has type any[]'. Toujours typer explicitement si une variable tableau est déclarée avant son assignation Prisma.
+BAD:
+  let books = [];  // ← TypeScript strict refuse — any[] implicite
+  try { books = await prisma.book.findMany(...) } catch { }
+GOOD:
+  // Forme 1 (préférée)
+  const data = await prisma.model.findMany({...}).catch(() => []);
+
+  // Forme 2 (si try/catch explicite requis)
+  import type { Book } from '@prisma/client';
+  let books: Book[] = [];
+  try { books = await prisma.book.findMany({...}); } catch { books = []; }
+ERROR: TS7034 — Variable 'data' implicitly has type 'any[]' in some locations"""),
+
+    _s("hard-rules", "nextjs", """RULE: Next.js App Router — Server Component vs Client Component split pour pages interactives
+WHY: Un Server Component (sans 'use client') NE PEUT PAS contenir onClick, onChange, useState, useEffect, useRouter, ni aucun handler d'événement. Ces éléments sont silencieusement non-fonctionnels en Server Component — pas d'erreur build, mais l'application est cassée à l'exécution. Si le brief décrit des boutons (Modifier, Supprimer, Ajouter, Valider, Annuler) sur une page qui affiche des données, le pattern Server+Client est OBLIGATOIRE.
+BAD:
+  // app/tasks/page.tsx — ❌ Server Component avec onClick
+  export default async function TasksPage() {
+    const tasks = await prisma.task.findMany({ where: { userId } });
+    return tasks.map(t => <button onClick={() => handleDelete(t.id)}>Supprimer</button>); // ❌ silently broken
+  }
+GOOD:
+  // Fichier 1 — Server Component (app/tasks/page.tsx, sans 'use client')
+  export default async function TasksPage() {
+    const tasks = await taskService.findMany(userId);
+    return <TasksClient tasks={tasks} />;
+  }
+  // Fichier 2 — Client Component (app/tasks/tasks-client.tsx, avec 'use client')
+  'use client';
+  export function TasksClient({ tasks }: { tasks: Task[] }) {
+    return tasks.map(t => <button onClick={() => handleDelete(t.id)}>Supprimer</button>);
+  }"""),
+
+    _s("hard-rules", "nextjs", """RULE: Next.js 14 App Router — routing URL vers fichier (convention stricte)
+WHY: Chaque segment d'URL correspond à un dossier dans app/, la page est page.tsx dans ce dossier. app/page.tsx EST OBLIGATOIRE — c'est la page racine du projet. app/page.tsx doit être un Server Component et doit afficher la liste des entités principales du projet via prisma.<modèle>.findMany.
+GOOD:
+  route '/' → app/page.tsx (OBLIGATOIRE pour tout projet)
+  route '/dashboard' → app/dashboard/page.tsx
+  route '/[slug]' → app/[slug]/page.tsx
+  route '/api/posts/[id]' → app/api/posts/[id]/route.ts
+  app/page.tsx — Server Component, liste les vraies données du brief
+  app/page.tsx — export const dynamic = 'force-dynamic' + try/catch avec fallback []
+BAD:
+  pages/index.tsx  // ❌ conflit fatal avec App Router
+  app/page.tsx vide sans données  // ❌ page inutilisable"""),
+
+    _s("hard-rules", "prisma", """RULE: Prisma schema — structure canonique datasource/generator multi-lignes
+WHY: Dans prisma/schema.prisma, les blocs datasource et generator doivent être explicites et multi-lignes. Eviter les variantes ambiguës/compactées qui déclenchent P1012. Ne pas mettre datasource.url dans schema.prisma avec Prisma 7. Si Prisma retourne 'This line is not a valid definition within a datasource', reconstruire les deux blocs exactement au format canonique.
+GOOD:
+  datasource db {
+    provider = "postgresql"
+  }
+  generator client {
+    provider = "prisma-client-js"
+  }
+ERROR: Prisma P1012 — This line is not a valid definition within a datasource"""),
+]
+
+
 ALL_STANDARDS = (
     # ZONE_0_PLANNING retiré : les templates de domaine (Todo, Blog, Product, Contact, Item)
     # overridaient le brief utilisateur → planner drift confirmé (marketplace→Book, habit→Workout).
@@ -2919,7 +4181,20 @@ ALL_STANDARDS = (
     + ZONE_14_ANTIPATTERNS
     + ZONE_15_CONFORMITY
     + ZONE_16_SECURITY_APPLICATIVE
-    + ZONE_17_ARCHITECTURE  # Sprint 4.6 — cohérence architecturale inter-fichiers
+    + ZONE_17_ARCHITECTURE   # Sprint 4.6 — cohérence architecturale inter-fichiers
+    + ZONE_17B_STACK_PATTERNS  # patterns de code préventifs (ex-migrate_zones_17_18)
+    + ZONE_18_TSC_CORRECTIVE   # correctifs tsc par code d'erreur
+    + ZONE_19_SAAS_SENIOR      # pages réelles, DAL, ownership, relations
+    + ZONE_20_DAL_SERVICE      # lib/services/<model>.service.ts pattern
+    + ZONE_21_PAGINATION       # skip/take + PaginatedResponse<T>
+    + ZONE_22_PRISMA_ERRORS    # handlePrismaError, codes P2002/P2025
+    + ZONE_23_CREATE_INPUT     # CreateXxxInput sans userId
+    + ZONE_24_N1_PREVENTION    # include vs boucle findUnique
+    + ZONE_26_TRANSACTIONS     # $transaction séquentielle et interactive
+    + ZONE_27_LOGGING          # Pino logging structuré
+    + ZONE_28_CONNECTION_POOLING  # globalThis singleton + connection_limit
+    + ZONE_30_HEALTHCHECK      # /api/health pré-généré
+    + ZONE_HARD_RULES          # ex-enrich_qdrant.py : Clerk, Prisma7, auth guard, etc.
 )
 
 
@@ -2928,19 +4203,23 @@ ALL_STANDARDS = (
 # =============================================================================
 
 def upsert_standard(client: QdrantClient, text: str, metadata: dict) -> str:
-    """Embed et upsert — idempotent via UUID déterministe MD5(text)."""
+    """Embed et upsert — Option A: applique _reformat_text() avant embedding.
+
+    UUID basé sur le texte reformaté pour idempotence entre runs post-reset.
+    """
     if EMBEDDINGS is None:
         raise RuntimeError(
             f"Embedding backend indisponible (provider={EMBEDDING_PROVIDER}, model={EMBEDDING_MODEL})"
         ) from _EMBEDDING_INIT_ERROR
-    vector = EMBEDDINGS.embed_query(text)
-    point_id = text_to_uuid(text)
+    formatted = _reformat_text(text)
+    vector = EMBEDDINGS.embed_query(formatted)
+    point_id = text_to_uuid(formatted)
     client.upsert(
         collection_name=COLLECTION_NAME,
         points=[PointStruct(
             id=point_id,
             vector=vector,
-            payload={"text": text, "metadata": metadata},
+            payload={"text": formatted, "metadata": metadata},
         )],
         wait=True,
     )
@@ -2951,7 +4230,8 @@ def main() -> int:
     args = _parse_args()
 
     print("\n" + "=" * 70)
-    print("📚 STANDARDS COMPLETS v1 — Stack nextjs-clerk-prisma (Zone 1-16)")
+    print("📚 STANDARDS COMPLETS v3 — Stack nextjs-clerk-prisma (Zones 1-30 + hard rules)")
+    print("   Option A active : RULE: format, ACTION:/STACK: retirés du texte → metadata")
     print("   Sources: Perplexity 2026-03-01 + runs empiriques + doc officielle")
     print("=" * 70 + "\n")
 

@@ -1,0 +1,753 @@
+[
+  {
+    "index": 19,
+    "zone": "7-prisma",
+    "category": "prisma",
+    "changed": false,
+    "terms_before": [
+      "User"
+    ],
+    "terms_after": [
+      "User"
+    ],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: schema.prisma \u2014 champ password avec Clerk RAISON: Clerk g\u00e8re l'authentification enti\u00e8rement. Un champ password dans Prisma "
+  },
+  {
+    "index": 24,
+    "zone": "8-testing",
+    "category": "testing",
+    "changed": false,
+    "terms_before": [
+      "user"
+    ],
+    "terms_after": [
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Tests React \u2014 mock @clerk/nextjs obligatoire RAISON: Les composants utilisant useAuth, useUser, ClerkProvider \u00e9chouent s"
+  },
+  {
+    "index": 28,
+    "zone": "9-security",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "todo",
+      "user"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: .env.local \u2014 contenu obligatoire (Clerk + Database) RAISON: Sans NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, ClerkProvider crash "
+  },
+  {
+    "index": 30,
+    "zone": "10-security-advanced",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: @clerk/nextjs/server \u2014 auth() dans Route Handlers RAISON: Sans v\u00e9rification auth(), n'importe quel client non authentifi"
+  },
+  {
+    "index": 32,
+    "zone": "10-security-advanced",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "user"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 Route Handlers dynamiques avec auth RAISON: Un Route Handler avec auth() qui n'est pas marqu\u00e9 dynam"
+  },
+  {
+    "index": 33,
+    "zone": "10-security-advanced",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts",
+      "user"
+    ],
+    "terms_after": [
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 ownership check Prisma (IDOR prevention) RAISON: V\u00e9rifier uniquement userId !== null ne suffit pas "
+  },
+  {
+    "index": 34,
+    "zone": "10-security-advanced",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "user"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 lecture userId depuis le body/query params RAISON: Faire confiance \u00e0 un userId envoy\u00e9 par le client pe"
+  },
+  {
+    "index": 35,
+    "zone": "11-error-handling",
+    "category": "error-handling",
+    "changed": true,
+    "terms_before": [
+      "user",
+      "users"
+    ],
+    "terms_after": [
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 gestion PrismaClientKnownRequestError RAISON: Sans catch Prisma typ\u00e9, une violation de contrainte unique (email"
+  },
+  {
+    "index": 36,
+    "zone": "11-error-handling",
+    "category": "error-handling",
+    "changed": true,
+    "terms_before": [
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 exposition du message d'erreur Prisma brut RAISON: Retourner error.message directement expose le sch\u00e9m"
+  },
+  {
+    "index": 37,
+    "zone": "11-error-handling",
+    "category": "error-handling",
+    "changed": true,
+    "terms_before": [
+      "Post",
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 findUnique avec r\u00e9sultat null non g\u00e9r\u00e9 RAISON: findUnique retourne null si l'enregistrement n'existe pas. Acc\u00e9d"
+  },
+  {
+    "index": 38,
+    "zone": "11-error-handling",
+    "category": "error-handling",
+    "changed": true,
+    "terms_before": [
+      "post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 validation body avec Zod avant op\u00e9ration Prisma RAISON: Passer des champs undefined ou de mauvais t"
+  },
+  {
+    "index": 39,
+    "zone": "12-testing-advanced",
+    "category": "testing",
+    "changed": true,
+    "terms_before": [
+      "posts",
+      "user"
+    ],
+    "terms_after": [
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Jest \u2014 mock @clerk/nextjs/server dans les tests Route Handlers RAISON: Sans mock, auth() tente une vraie requ\u00eate Clerk d"
+  },
+  {
+    "index": 40,
+    "zone": "12-testing-advanced",
+    "category": "testing",
+    "changed": true,
+    "terms_before": [
+      "user",
+      "users"
+    ],
+    "terms_after": [
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Jest \u2014 mock PrismaClient (\u00e9viter les vraies requ\u00eates DB) RAISON: Sans mock Prisma, les tests unitaires tentent de se con"
+  },
+  {
+    "index": 41,
+    "zone": "12-testing-advanced",
+    "category": "testing",
+    "changed": true,
+    "terms_before": [
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Jest \u2014 import de NextRequest/NextResponse dans tests jsdom RAISON: NextRequest et NextResponse utilisent l'API Web Fetch qu"
+  },
+  {
+    "index": 42,
+    "zone": "12-testing-advanced",
+    "category": "testing",
+    "changed": false,
+    "terms_before": [
+      "user"
+    ],
+    "terms_after": [
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Jest \u2014 test des erreurs Prisma avec simulation P2002 RAISON: Un test qui v\u00e9rifie uniquement le happy path ne valide pas "
+  },
+  {
+    "index": 44,
+    "zone": "13-business-logic",
+    "category": "business-logic",
+    "changed": true,
+    "terms_before": [
+      "Post",
+      "User",
+      "user"
+    ],
+    "terms_after": [
+      "User",
+      "user"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 lier les entit\u00e9s utilisateur \u00e0 authorId (String Clerk), pas \u00e0 l'id interne RAISON: Stocker l'id Prisma interne "
+  },
+  {
+    "index": 45,
+    "zone": "13-business-logic",
+    "category": "business-logic",
+    "changed": true,
+    "terms_before": [
+      "Post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 champs obligatoires depuis le brief dans le sch\u00e9ma RAISON: G\u00e9n\u00e9rer un mod\u00e8le Prisma incomplet (champs manquants"
+  },
+  {
+    "index": 46,
+    "zone": "13-business-logic",
+    "category": "business-logic",
+    "changed": true,
+    "terms_before": [
+      "article",
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 slug unique dans les routes dynamiques RAISON: Utiliser l'id interne Prisma dans l'URL au lieu du s"
+  },
+  {
+    "index": 47,
+    "zone": "13-business-logic",
+    "category": "business-logic",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: PR\u00c9F\u00c9R\u00c9 STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 toggle boolean via PATCH, pas PUT complet RAISON: Un PUT sur une ressource remplace tous ses champs \u2014 u"
+  },
+  {
+    "index": 48,
+    "zone": "13-business-logic",
+    "category": "business-logic",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 s\u00e9lection des champs retourn\u00e9s par Prisma RAISON: Retourner l'entit\u00e9 Prisma compl\u00e8te depuis une API"
+  },
+  {
+    "index": 49,
+    "zone": "13-business-logic",
+    "category": "business-logic",
+    "changed": true,
+    "terms_before": [
+      "Article",
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 slug g\u00e9n\u00e9r\u00e9 d\u00e9terministement c\u00f4t\u00e9 serveur RAISON: Laisser le client envoyer un slug ou le g\u00e9n\u00e9rer c\u00f4t\u00e9 LLM sans"
+  },
+  {
+    "index": 50,
+    "zone": "14-antipatterns",
+    "category": "antipatterns",
+    "changed": true,
+    "terms_before": [
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: @clerk/nextjs \u2014 SignIn/SignUp components sans routes Catch-All RAISON: Cr\u00e9er manuellement des pages /sign-in et /sign-up sa"
+  },
+  {
+    "index": 51,
+    "zone": "14-antipatterns",
+    "category": "antipatterns",
+    "changed": true,
+    "terms_before": [
+      "Post",
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 Server Components avec useState/useEffect RAISON: Les Server Components Next.js App Router n'ont pas a"
+  },
+  {
+    "index": 52,
+    "zone": "14-antipatterns",
+    "category": "antipatterns",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 redirect() dans un try/catch RAISON: La fonction redirect() de Next.js fonctionne en lan\u00e7ant une excep"
+  },
+  {
+    "index": 53,
+    "zone": "14-antipatterns",
+    "category": "antipatterns",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 appel Prisma direct dans un Client Component RAISON: Les Client Components s'ex\u00e9cutent dans le navigat"
+  },
+  {
+    "index": 54,
+    "zone": "15-conformity",
+    "category": "conformity",
+    "changed": true,
+    "terms_before": [
+      "Book",
+      "Post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Agent Conformit\u00e9 \u2014 coverage d'un mod\u00e8le Prisma RAISON: Un requirement \"Mod\u00e8le Prisma: Post\" est couvert si et seulement "
+  },
+  {
+    "index": 55,
+    "zone": "15-conformity",
+    "category": "conformity",
+    "changed": true,
+    "terms_before": [
+      "Post",
+      "article",
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Agent Conformit\u00e9 \u2014 coverage d'une page dynamique RAISON: Un requirement \"Page: /posts/[id]\" est couvert si app/posts/[id"
+  },
+  {
+    "index": 56,
+    "zone": "15-conformity",
+    "category": "conformity",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Agent Conformit\u00e9 \u2014 coverage d'une route API avec m\u00e9thode RAISON: Un requirement \"API Route: POST /api/posts\" est couvert"
+  },
+  {
+    "index": 57,
+    "zone": "15-conformity",
+    "category": "conformity",
+    "changed": true,
+    "terms_before": [
+      "Post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Agent Conformit\u00e9 \u2014 calcul du conformity_score RAISON: Le conformity_score doit \u00eatre calcul\u00e9 de mani\u00e8re d\u00e9terministe. La "
+  },
+  {
+    "index": 58,
+    "zone": "15-conformity",
+    "category": "conformity",
+    "changed": true,
+    "terms_before": [
+      "Product",
+      "item",
+      "product",
+      "products"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Agent Conformit\u00e9 \u2014 relation mod\u00e8le \u2194 route API RAISON: Un mod\u00e8le Prisma sans aucune route API CRUD correspondante = requ"
+  },
+  {
+    "index": 59,
+    "zone": "16-security-applicative",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Route Handler Next.js App Router \u2014 auth check Clerk v6 obligatoire avant Prisma RAISON: Un handler API qui acc\u00e8de \u00e0 Pris"
+  },
+  {
+    "index": 60,
+    "zone": "16-security-applicative",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts",
+      "users"
+    ],
+    "terms_after": [
+      "users"
+    ],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Route Handler GET liste \u2014 filtrage authorId obligatoire RAISON: Un GET qui liste des ressources sans filtrer par authorI"
+  },
+  {
+    "index": 61,
+    "zone": "16-security-applicative",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Route Handler GET/PUT/DELETE par ID \u2014 v\u00e9rification propri\u00e9t\u00e9 obligatoire RAISON: Acc\u00e9der \u00e0 une ressource par son ID sans"
+  },
+  {
+    "index": 62,
+    "zone": "16-security-applicative",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "user"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Route Handler \u2014 exposition de userId dans la r\u00e9ponse JSON RAISON: Retourner userId (Clerk internal ID) dans la r\u00e9ponse HTTP"
+  },
+  {
+    "index": 63,
+    "zone": "16-security-applicative",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Route Handler POST/PUT \u2014 validation du body avant \u00e9criture Prisma RAISON: Passer le body non-valid\u00e9 directement \u00e0 Prisma"
+  },
+  {
+    "index": 65,
+    "zone": "17-architecture",
+    "category": "architecture",
+    "changed": true,
+    "terms_before": [
+      "post",
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 singleton obligatoire, instanciation directe interdite RAISON: Instancier PrismaClient directement (new PrismaC"
+  },
+  {
+    "index": 71,
+    "zone": "17b-stack-patterns",
+    "category": "auth",
+    "changed": true,
+    "terms_before": [
+      "item",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Clerk v6 \u2014 auth() guard pattern complet dans route handlers et pages server RAISON: auth() retourne { userId: string | n"
+  },
+  {
+    "index": 72,
+    "zone": "17b-stack-patterns",
+    "category": "auth",
+    "changed": true,
+    "terms_before": [
+      "post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: INTERDIT STACK: nextjs-clerk-prisma TECHNOLOGIE: Clerk \u2014 authorId dans le body de la requ\u00eate RAISON: Accepter authorId depuis le body permet \u00e0 un client malicieux d'associe"
+  },
+  {
+    "index": 73,
+    "zone": "17b-stack-patterns",
+    "category": "typescript",
+    "changed": true,
+    "terms_before": [
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript strict \u2014 annotation explicite sur tableaux Prisma RAISON: TypeScript inf\u00e8re never[] pour un tableau d\u00e9clar\u00e9 v"
+  },
+  {
+    "index": 84,
+    "zone": "18-tsc-corrective",
+    "category": "typescript",
+    "changed": true,
+    "terms_before": [
+      "item",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript TS2345 \u2014 type 'string | null' non assignable \u00e0 'string' (auth guard) CODE_ERREUR: TS2345 RAISON: auth() retou"
+  },
+  {
+    "index": 86,
+    "zone": "19-saas-senior",
+    "category": "pages",
+    "changed": true,
+    "terms_before": [
+      "Invoices",
+      "invoice",
+      "item",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 Server Component page liste RAISON: Une page listant des entit\u00e9s doit afficher les donn\u00e9es r\u00e9elles "
+  },
+  {
+    "index": 87,
+    "zone": "19-saas-senior",
+    "category": "pages",
+    "changed": true,
+    "terms_before": [
+      "Item",
+      "article",
+      "item"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 Server Component page d\u00e9tail [id] RAISON: Une page d\u00e9tail doit r\u00e9cup\u00e9rer l'entit\u00e9 par son id, v\u00e9rif"
+  },
+  {
+    "index": 88,
+    "zone": "19-saas-senior",
+    "category": "forms",
+    "changed": true,
+    "terms_before": [
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 Client Component formulaire de cr\u00e9ation RAISON: Un formulaire doit soumettre les donn\u00e9es \u00e0 la route"
+  },
+  {
+    "index": 89,
+    "zone": "19-saas-senior",
+    "category": "security",
+    "changed": true,
+    "terms_before": [
+      "item"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js API Routes \u2014 s\u00e9curit\u00e9 ownership PATCH/PUT/DELETE RAISON: Tout handler qui modifie ou supprime une ressource doit"
+  },
+  {
+    "index": 90,
+    "zone": "19-saas-senior",
+    "category": "architecture",
+    "changed": true,
+    "terms_before": [
+      "item",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js \u2014 Data Access Layer lib/services/ RAISON: Les pages ne doivent pas importer prisma directement. Encapsuler les r"
+  },
+  {
+    "index": 91,
+    "zone": "19-saas-senior",
+    "category": "database",
+    "changed": true,
+    "terms_before": [
+      "Invoice",
+      "invoices"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma \u2014 relations @relation entre mod\u00e8les li\u00e9s RAISON: Sans @relation explicite, Prisma ne conna\u00eet pas le lien entre le"
+  },
+  {
+    "index": 93,
+    "zone": "19-saas-senior",
+    "category": "auth",
+    "changed": true,
+    "terms_before": [
+      "invoice"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Next.js App Router \u2014 redirect() dans les Server Components prot\u00e9g\u00e9s RAISON: Dans un Server Component, auth() peut retour"
+  },
+  {
+    "index": 94,
+    "zone": "20-dal-service",
+    "category": "services",
+    "changed": true,
+    "terms_before": [
+      "Post",
+      "category",
+      "invoice",
+      "item",
+      "post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript \u2014 lib/services/<model>.service.ts RAISON: Centraliser tous les acc\u00e8s Prisma dans un objet service garantit l'"
+  },
+  {
+    "index": 95,
+    "zone": "20-dal-service",
+    "category": "services",
+    "changed": true,
+    "terms_before": [
+      "Article",
+      "Post",
+      "post"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript \u2014 lib/services/ avec authorId (mod\u00e8les Blog/CMS) RAISON: Certains mod\u00e8les (Post, Article) utilisent authorId "
+  },
+  {
+    "index": 97,
+    "zone": "20-dal-service",
+    "category": "types",
+    "changed": true,
+    "terms_before": [
+      "Invoice",
+      "category"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript \u2014 lib/types.ts RAISON: lib/types.ts centralise les types partag\u00e9s entre pages, services et routes API. Le LLM"
+  },
+  {
+    "index": 98,
+    "zone": "21-pagination",
+    "category": "routes",
+    "changed": true,
+    "terms_before": [
+      "item",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript \u2014 pagination findMany skip/take avec PaginatedResponse<T> RAISON: Tout findMany() sans skip/take est un bottl"
+  },
+  {
+    "index": 101,
+    "zone": "23-create-input",
+    "category": "types",
+    "changed": true,
+    "terms_before": [
+      "category"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: TypeScript \u2014 CreateXxxInput sans userId dans lib/types.ts RAISON: CreateXxxInput ne doit jamais contenir userId/authorId"
+  },
+  {
+    "index": 102,
+    "zone": "24-n1-prevention",
+    "category": "services",
+    "changed": true,
+    "terms_before": [
+      "invoice",
+      "invoices"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma include \u2014 pr\u00e9vention N+1 avec include au lieu de boucle findUnique RAISON: Une boucle findUnique dans un findMany"
+  },
+  {
+    "index": 103,
+    "zone": "24-n1-prevention",
+    "category": "services",
+    "changed": true,
+    "terms_before": [
+      "invoice"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma include vs select \u2014 r\u00e8gle de combinaison RAISON: include et select ne peuvent pas \u00eatre utilis\u00e9s au m\u00eame niveau si"
+  },
+  {
+    "index": 104,
+    "zone": "26-transactions",
+    "category": "services",
+    "changed": true,
+    "terms_before": [
+      "Invoice",
+      "invoice",
+      "item",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma $transaction \u2014 mutations multi-tables atomiques RAISON: Les op\u00e9rations multi-tables sans transaction laissent la "
+  },
+  {
+    "index": 105,
+    "zone": "26-transactions",
+    "category": "services",
+    "changed": true,
+    "terms_before": [
+      "invoice",
+      "items"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma $transaction interactive \u2014 r\u00e8gle absolue tx vs prisma dans le callback RAISON: Dans une transaction interactive, "
+  },
+  {
+    "index": 106,
+    "zone": "27-logging",
+    "category": "routes",
+    "changed": true,
+    "terms_before": [
+      "Invoice",
+      "invoice",
+      "invoices"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Pino \u2014 logging structur\u00e9 dans les routes API (lib/logger.ts) RAISON: console.log en production ne porte aucun contexte ("
+  },
+  {
+    "index": 107,
+    "zone": "28-connection-pooling",
+    "category": "infrastructure",
+    "changed": true,
+    "terms_before": [
+      "user"
+    ],
+    "terms_after": [],
+    "excerpt": "ACTION: OBLIGATOIRE STACK: nextjs-clerk-prisma TECHNOLOGIE: Prisma serverless \u2014 connection_limit=1 dans DATABASE_URL RAISON: Sans connection_limit=1, chaque instance serverless cr\u00e9"
+  },
+  {
+    "index": 112,
+    "zone": "hard-rules",
+    "category": "auth",
+    "changed": true,
+    "terms_before": [
+      "item"
+    ],
+    "terms_after": [],
+    "excerpt": "RULE: auth() userId null guard \u2014 OBLIGATOIRE avant tout appel Prisma avec userId WHY: Pattern mandatory dans tout route handler app/api/**/route.ts qui utilise userId dans une op\u00e9r"
+  },
+  {
+    "index": 113,
+    "zone": "hard-rules",
+    "category": "typescript",
+    "changed": true,
+    "terms_before": [
+      "Book",
+      "book",
+      "books"
+    ],
+    "terms_after": [],
+    "excerpt": "RULE: TypeScript strict \u2014 tableau non typ\u00e9 INTERDIT (let data = [] pattern) WHY: Le pattern `let data = []` suivi d'une r\u00e9assignation dans try/catch est invalide en TypeScript stri"
+  },
+  {
+    "index": 115,
+    "zone": "hard-rules",
+    "category": "nextjs",
+    "changed": true,
+    "terms_before": [
+      "posts"
+    ],
+    "terms_after": [],
+    "excerpt": "RULE: Next.js 14 App Router \u2014 routing URL vers fichier (convention stricte) WHY: Chaque segment d'URL correspond \u00e0 un dossier dans app/, la page est page.tsx dans ce dossier. app/p"
+  }
+]
