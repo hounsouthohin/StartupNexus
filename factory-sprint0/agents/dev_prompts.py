@@ -16,7 +16,10 @@ Le LLM sait :
 from __future__ import annotations
 
 import json
+import logging
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from agents.project_spec import ProjectSpec
@@ -144,6 +147,7 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         if not query:
             continue
         try:
+            logger.info("[mandatory-rag] ctx=%-18s | q=%r", ctx, query[:70])
             result = _rag_fn.invoke({"query": query})
             if result and not result.startswith("[RAG]") and result not in seen_texts:
                 seen_texts.add(result)

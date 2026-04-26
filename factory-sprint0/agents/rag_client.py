@@ -134,6 +134,18 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
 
         doc_ids = [str(getattr(d, "id", "") or "") for d, _ in deduped]
         scores = [float(s) for _, s in deduped]
+
+        # Log observabilité : standards retournés au LLM (visibles dans docker compose logs)
+        _hits = " | ".join(
+            "[{cat} {score:.3f}] {title}".format(
+                cat=d.metadata.get("category", "?"),
+                score=s,
+                title=(d.page_content or "").split("\n")[0][:60],
+            )
+            for d, s in deduped
+        )
+        logger.info("[rag] q=%r → %d standards : %s", query[:70], len(deduped), _hits)
+
         results = [
             f"[{d.metadata.get('category', 'general')}] score={s:.3f}\n{(d.page_content or '')[:max_doc_chars]}"
             for d, s in deduped

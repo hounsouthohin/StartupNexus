@@ -388,7 +388,8 @@ async def run_dev_agent(
 
     logger.info(f"[dev_graph] {len(tools)} outils : {[t.name for t in tools]}")
 
-    llm = ChatOpenAI(model="gpt-4o", temperature=0, max_retries=3)
+    _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
     # llm_with_tools est construit dynamiquement dans dev_node selon la phase.
 
     # ── Nœud dev principal ───────────────────────────────────────────
@@ -546,6 +547,7 @@ async def run_dev_agent(
                 if _cmatch and _cmatch.rag_query:
                     try:
                         from agents.shared_tools import rag_search as _rag_fn
+                        logger.info("[rag-bridge:dev_node] erreur matchée → q=%r", _cmatch.rag_query[:60])
                         _rag_result = _rag_fn.invoke({"query": _cmatch.rag_query})
                         if _rag_result and not _rag_result.startswith("[RAG]"):
                             correction += (
@@ -1056,6 +1058,7 @@ async def run_dev_agent(
                 if _cm and _cm.rag_query:
                     try:
                         from agents.shared_tools import rag_search as _rag_fn
+                        logger.info("[rag-bridge:file_validate] erreur matchée → q=%r", _cm.rag_query[:60])
                         _rag_result = _rag_fn.invoke({"query": _cm.rag_query})
                         if _rag_result and not _rag_result.startswith("[RAG]"):
                             enriched_lines.append(
@@ -1236,6 +1239,7 @@ async def run_dev_agent(
             f"| .next/={disk_next} "
             f"| workdir={project_workdir}"
         )
+
         return result
     finally:
         # Toujours réinitialiser — même en cas d'exception
