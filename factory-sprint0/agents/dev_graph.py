@@ -60,6 +60,7 @@ class DevState(TypedDict):
     file_validation_retries: int   # Tentatives de correction sur le batch courant
     stale_error_keys: List[str]    # Clés "file:TSxxxx" vues au fil des tours — détection de boucle
     errored_files: List[str]       # Fichiers avec des erreurs tsc actives (mode correction)
+    file_plan: List[dict]           # Plan ordonné FilePlanEntry (path, role, context_hint)
 
 
 def _error_signature(stderr: str) -> str:
@@ -384,10 +385,32 @@ async def run_dev_agent(
 
     _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
-    # llm_with_tools est construit dynamiquement dans dev_node selon la phase.
+    # llm_with_tools est construit dynamiquement dans executor_node selon la phase.
+
+    # ── Planificateur deterministe (Plan-and-Execute) ─────────────────────
+    def planner_node(state: DevState) -> dict:
+        """Genere le plan une seule fois au demarrage."""
+        if state.get("file_plan"):
+            return {}  # plan deja genere
+        from agents.planner import make_deterministic_plan, validate_plan
+        from agents.project_spec import ProjectSpec as _PS
+        try:
+            _spec_local = _PS(**state.get("spec", {}))
+        except Exception as _pe:
+            logger.error("[planner] ProjectSpec invalide — plan vide : %s", _pe)
+            return {"file_plan": None}  # None = signal d'échec (distinct de [] = plan vide légitime)
+        _tpl = list(template_written.keys())
+        _plan = make_deterministic_plan(_spec_local, _tpl)
+        _missing = validate_plan(_plan, _spec_local, _tpl)
+        if _missing:
+            logger.warning("[planner] fichiers non couverts par le plan : %s", _missing)
+        _plan_dicts = [e.model_dump() for e in _plan]
+        logger.info("[planner] %d fichiers planes : %s", len(_plan_dicts),
+                    [e["path"] for e in _plan_dicts])
+        return {"file_plan": _plan_dicts}
 
     # ── Nœud dev principal ───────────────────────────────────────────
-    def dev_node(state: DevState) -> dict:
+    def executor_node(state: DevState) -> dict:
         # Pruning sémantique : élimine le bruit accumulé (vieux write_file OK,
         # anciens échanges de génération) tout en gardant les éléments critiques
         # (SystemMessage, spec initiale, 3 derniers rounds, dernière correction).
@@ -414,89 +437,11 @@ async def run_dev_agent(
                 "Identifie la ligne fautive, lis-la avec read_file, corrige-la chirurgicalement."
             )))
 
-        # ── Injection contextuelle juste-à-temps (Context Engineering) ──────────
-        # Les règles de stack sont injectées au moment exact où elles sont pertinentes,
-        # pas seulement dans le system prompt initial (noyé dans le contexte au tour 3+).
-        # Position : fin du HumanMessage courant = zone chaude (LLM priorise les extrémités).
-        _validated_now = state.get("validated_files", [])
-        _has_services = any("lib/services/" in f for f in _validated_now)
-        _has_routes   = any("app/api/" in f and f.endswith("route.ts") for f in _validated_now)
-        _has_pages    = any(f.endswith("page.tsx") and "/api/" not in f for f in _validated_now)
-
-        if _has_services and _has_routes and not _has_pages:
-            # Transition génération → pages : injecter les règles Server/Client Component
-            # avant que le LLM commence à écrire les pages (contexte "chaud").
-            messages.append(HumanMessage(content=(
-                "⚡ RÈGLES OBLIGATOIRES pour la génération des pages (app/**/page.tsx) :\n"
-                "1. CLERK — import obligatoire depuis /server :\n"
-                "   ✅ import { auth } from '@clerk/nextjs/server'\n"
-                "   ❌ import { auth } from '@clerk/nextjs'  ← INTERDIT — TS2305\n"
-                "2. DATE PRISMA → sérialiser avant props Client Component :\n"
-                "   ✅ const items = data.map(i => ({ ...i, createdAt: i.createdAt.toISOString() }))\n"
-                "   ❌ passer l'objet Prisma brut avec createdAt: Date — TS2322\n"
-                "3. PRISMA INCLUDE — relations imbriquées dans le fetch :\n"
-                "   ✅ prisma.project.findUnique({ where: { id }, include: { tasks: true } })\n"
-                "   ❌ fetcher le parent puis accéder à .tasks sans include — TS2741\n"
-                "4. REDIRECT si non-authentifié :\n"
-                "   ✅ if (!userId) redirect('/sign-in')\n"
-                "   ❌ if (!userId) return null  ← page blanche silencieuse"
-            )))
-
-        # A1 — Transition génération → build.
-        # Ne se déclenche que si les fichiers essentiels de la spec sont présents :
-        # au moins une API route ET au moins une page (en plus du service).
-        # Sans cette garde, le LLM peut builder après le premier fichier validé.
-        if (
-            not state.get("file_validation_errors", "")
-            and not state.get("build_command_executed", False)
-            and state.get("validated_files")
-        ):
-            validated = state.get("validated_files", [])
-
-            # Vérifie que les catégories essentielles sont couvertes.
-            has_route = any("app/api/" in f and f.endswith("route.ts") for f in validated)
-            has_page  = any(f.endswith("page.tsx") and "/api/" not in f for f in validated)
-
-            # Complément : fichiers écrits mais pas encore validés (erreurs en cours de correction)
-            all_written = _extract_written_ts_files(list(state.get("messages", [])))
-            if not has_route:
-                has_route = any("app/api/" in f and f.endswith("route.ts") for f in all_written)
-            if not has_page:
-                has_page = any(f.endswith("page.tsx") and "/api/" not in f for f in all_written)
-
-            if has_route and has_page:
-                missing = []
-                spec = state.get("spec", {})
-                for r in spec.get("routes", []):
-                    rpath = r.get("path", "")
-                    # Les routes ont souvent un préfixe /api dans le spec (ex: /api/tasks)
-                    # → on le retire pour construire app/api/tasks/route.ts sans double /api/
-                    if rpath.startswith("/api"):
-                        rpath = rpath[4:]
-                    route_file = f"app/api{rpath.rstrip('/')}/route.ts"
-                    if route_file not in validated and route_file not in all_written:
-                        missing.append(route_file)
-                for p in spec.get("pages", []):
-                    page_path = p.get("path", "/").strip("/")
-                    page_file = ("app/page.tsx" if not page_path else f"app/{page_path}/page.tsx")
-                    if page_file not in validated and page_file not in all_written:
-                        missing.append(page_file)
-
-                if missing:
-                    messages.append(HumanMessage(content=(
-                        f"{len(validated)} fichier(s) TypeScript validés. "
-                        f"Avant de lancer le build, génère encore ces fichiers manquants :\n"
-                        + "\n".join(f"  - {f}" for f in missing[:10])
-                    )))
-                else:
-                    messages.append(HumanMessage(content=(
-                        f"{len(validated)} fichier(s) TypeScript validés par tsc. "
-                        "Tous les fichiers essentiels sont présents. "
-                        "Exécute maintenant dans cet ordre EXACT :\n"
-                        "1. shell_exec('npx prisma generate')\n"
-                        "2. shell_exec('npm run build')\n"
-                        "Ne génère pas d'autres fichiers avant d'avoir lancé le build."
-                    )))
+        # Plan cursor : prochain fichier a generer.
+        _plan = state.get("file_plan") or []  # None (échec planner) ou [] traités pareil
+        _plan_failed = state.get("file_plan") is None  # planner a levé une exception
+        _validated_set = set(state.get("validated_files", []))
+        _next_entry = next((e for e in _plan if e["path"] not in _validated_set), None)
 
         # Injection des erreurs de validation file-level (Progressive Validation).
         file_val_errors = state.get("file_validation_errors", "")
@@ -504,54 +449,142 @@ async def run_dev_agent(
             retries = int(state.get("file_validation_retries", 0) or 0)
             validated = state.get("validated_files", [])
             validated_summary = (
-                f" ({len(validated)} fichiers déjà validés)" if validated else ""
+                f" ({len(validated)} fichiers deja valides)" if validated else ""
             )
             messages.append(HumanMessage(content=(
-                f"ERREURS TypeScript détectées dans les fichiers que tu viens d'écrire "
+                f"ERREURS TypeScript detectees dans les fichiers que tu viens d'ecrire "
                 f"(tentative {retries}/{MAX_FILE_VALIDATION_RETRIES}){validated_summary} :\n\n"
                 f"{file_val_errors}\n\n"
-                "Étapes :\n"
-                "1. Lis la ligne indiquée avec read_file(fichier, ligne-3, ligne+10)\n"
+                "Etapes :\n"
+                "1. Lis la ligne indiquee avec read_file(fichier, ligne-3, ligne+10)\n"
                 "2. Corrige uniquement la ligne fautive\n"
-                "3. N'écris PAS d'autres fichiers tant que ces erreurs ne sont pas résolues\n"
+                "3. N'ecris PAS d'autres fichiers tant que ces erreurs ne sont pas resolues\n"
                 "4. Importe les types manquants depuis '@/lib/types' si possible"
             )))
 
-        # Injection ciblée sur TOUTE erreur build.
+        # Injection ciblee sur TOUTE erreur build.
         last_error = state.get("last_build_error", "")
         if last_error:
             sig = _error_signature(last_error)
             repeat_count = state.get("error_signatures", []).count(sig)
             correction = _build_targeted_correction(last_error)
 
-            # F1 — RAG bridge : standard correctif Qdrant injecté directement.
+            # F1 RAG bridge
             from agents.tsc_error_catalog import lookup_error as _catalog_lookup
             for _eline in last_error.splitlines()[:10]:
                 _cmatch = _catalog_lookup(_eline)
                 if _cmatch and _cmatch.rag_query:
                     try:
                         from agents.shared_tools import rag_search as _rag_fn
-                        logger.info("[rag-bridge:dev_node] erreur matchée → q=%r", _cmatch.rag_query[:60])
+                        logger.info("[rag-bridge:executor_node] q=%r", _cmatch.rag_query[:60])
                         _rag_result = _rag_fn.invoke({"query": _cmatch.rag_query})
                         if _rag_result and not _rag_result.startswith("[RAG]"):
                             correction += (
                                 f"\n\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:500]}"
                             )
                     except Exception:
-                        pass  # non-bloquant — Qdrant peut être absent
+                        pass
                     break
 
             if repeat_count >= 2:
                 correction = (
-                    f"⚠️ MÊME ERREUR APRÈS {repeat_count} TENTATIVES — "
-                    "Ne réécris pas le fichier entier. Corrige uniquement la ligne indiquée.\n\n"
+                    f"MEME ERREUR APRES {repeat_count} TENTATIVES -- "
+                    "Ne reecris pas le fichier entier. Corrige la ligne indiquee.\n\n"
                     + correction
                 )
 
             messages.append(HumanMessage(content=correction))
 
-        # write_file expose Guard 2 intégré : si errored_files est actif, les fichiers
-        # validés non-en-erreur retournent BLOCKED automatiquement. Pas de binding distinct.
+        # Plan-and-Execute : guidage fichier par fichier (si pas d'erreurs).
+        elif not file_val_errors:
+            if _plan_failed:
+                # Plan non généré (spec invalide) — ne pas déclencher le build à vide
+                logger.error("[executor] plan_failed=True — run en mode sans plan (LLM libre)")
+            elif _next_entry is None and not _plan:
+                # Plan vide ET aucun fichier validé : anomalie
+                logger.error("[executor] plan vide et aucun fichier validé — run sans guidage")
+            elif _next_entry is None:
+                # Tous les fichiers valides : declencher le build
+                messages.append(HumanMessage(content=(
+                    f"Tous les {len(_plan)} fichiers du plan ont ete valides par tsc. "
+                    "Execute maintenant dans cet ordre EXACT :\n"
+                    "1. shell_exec('npx prisma generate')\n"
+                    "2. shell_exec('npm run build')\n"
+                    "Ne genere pas d'autres fichiers avant d'avoir lance le build."
+                )))
+            else:
+                _role = _next_entry.get("role", "")
+                _hint = _next_entry.get("context_hint", "")
+                _path = _next_entry["path"]
+
+                _role_rules = {
+                    "types": (
+                        "Ecris des interfaces TypeScript pures (pas de classes). "
+                        "Tous les champs Date en string (ISO) pour compatibilite Server→Client."
+                    ),
+                    "service": (
+                        "import prisma from '@/lib/prisma'. "
+                        "Chaque fonction recoit userId: string (jamais string|null) en 1er arg. "
+                        "Retourne des objets serializables (Date → string)."
+                    ),
+                    "route": (
+                        "GUARD AUTH OBLIGATOIRE en debut de chaque handler :\n"
+                        "  import { auth } from '@clerk/nextjs/server';\n"
+                        "  const { userId } = await auth();\n"
+                        "  if (!userId) return NextResponse.json({error:'Unauthorized'},{status:401});\n"
+                        "userId est string apres ce guard -- passe-le directement au service."
+                    ),
+                    "page": (
+                        "Server Component -- pas de 'use client'. "
+                        "import { auth } from '@clerk/nextjs/server'. "
+                        "if (!userId) redirect('/sign-in'). "
+                        "Serialise les Date Prisma : .toISOString() avant props Client."
+                    ),
+                    "page_client": (
+                        "'use client' en 1ere ligne. Pas d'appel Prisma direct. "
+                        "Recoit les donnees via props depuis le Server Component parent."
+                    ),
+                }
+
+                _rule = _role_rules.get(_role, "")
+                _ctx = (
+                    f"CONTEXTE : {_hint}\n\nREGLE {_role.upper()} :\n{_rule}"
+                    if _rule else f"CONTEXTE : {_hint}"
+                )
+
+                # Lecture des dependances utiles depuis le disque (max 500 chars).
+                _dep = ""
+                if _role == "route" and "lib/types.ts" in _validated_set:
+                    try:
+                        with open(os.path.join(project_workdir, "lib", "types.ts"), "r",
+                                  encoding="utf-8") as _f:
+                            _dep = (
+                                f"\nlib/types.ts :\n"
+                                f"```typescript\n{_f.read()[:500]}\n```"
+                            )
+                    except Exception:
+                        pass
+                elif _role == "page":
+                    _seg = _path.split("/")[-2] if _path.count("/") >= 2 else ""
+                    if _seg:
+                        _svc_abs = os.path.join(project_workdir, "lib", "services",
+                                                f"{_seg}.service.ts")
+                        if os.path.exists(_svc_abs):
+                            try:
+                                with open(_svc_abs, "r", encoding="utf-8") as _f:
+                                    _dep = (
+                                        f"\n{_seg}.service.ts :\n"
+                                        f"```typescript\n{_f.read()[:400]}\n```"
+                                    )
+                            except Exception:
+                                pass
+
+                messages.append(HumanMessage(content=(
+                    f"{_ctx}{_dep}\n\n"
+                    f"Ecris maintenant le fichier : {_path}\n"
+                    "Un seul write_file. Rien d'autre."
+                )))
+
         llm_with_tools = llm.bind_tools(tools)
 
         response = llm_with_tools.invoke(messages)
@@ -669,12 +702,12 @@ async def run_dev_agent(
                     MAX_BUILD_ATTEMPTS,
                 )
                 return END
-            return "dev"
+            return "executor"
 
         # LLM n'a pas encore lancé de build — continuer.
         # La sécurité contre les boucles infinies est assurée par recursion_limit=150
         # + l'injection A1 ("build maintenant") dans dev_node qui guide le LLM vers le build.
-        return "dev"
+        return "executor"
 
     # ── Progressive Validation (Étape 2) ─────────────────────────────
     # Nœud intercalé entre tools et extract_error.
@@ -935,30 +968,32 @@ async def run_dev_agent(
         errors = state.get("file_validation_errors", "")
         retries = int(state.get("file_validation_retries", 0) or 0)
         if errors and retries <= MAX_FILE_VALIDATION_RETRIES:
-            return "dev"
+            return "executor"
         return "extract_error"
 
     # ── Assemblage du graph ──────────────────────────────────────────
     builder = StateGraph(DevState)
-    builder.add_node("dev", dev_node)
+    builder.add_node("planner", planner_node)
+    builder.add_node("executor", executor_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
     builder.add_node("file_validate", file_validate_node)
     builder.add_node("extract_error", extract_build_error_node)
 
-    builder.add_edge(START, "dev")
-    builder.add_conditional_edges("dev", tools_condition, {
+    builder.add_edge(START, "planner")
+    builder.add_edge("planner", "executor")
+    builder.add_conditional_edges("executor", tools_condition, {
         "tools": "tools",
         "__end__": END,
     })
     # tools → file_validate → (dev si erreurs TS) → extract_error (flux normal)
     builder.add_edge("tools", "file_validate")
     builder.add_conditional_edges("file_validate", route_after_file_validate, {
-        "dev": "dev",
+        "executor": "executor",
         "extract_error": "extract_error",
         END: END,
     })
     builder.add_conditional_edges("extract_error", route_after_tools, {
-        "dev": "dev",
+        "executor": "executor",
         END: END,
     })
 
@@ -997,10 +1032,11 @@ async def run_dev_agent(
         "file_validation_retries": 0,
         "stale_error_keys": [],
         "errored_files": [],
+        "file_plan": None,  # None = non encore généré; planner_node le remplit
     }
 
     try:
-        result = await graph.ainvoke(initial_state, {"recursion_limit": 150})
+        result = await graph.ainvoke(initial_state, {"recursion_limit": 600})
 
         # ── Signal de succès unique : build_command_executed + build_exit_code == 0 ──
         # Phase B : on ne surcharge plus le résultat depuis .next/ sur disque.
