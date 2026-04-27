@@ -37,7 +37,7 @@ _PRISMA_TO_TS: dict[str, str] = {
 }
 
 # Noms de champs considérés "auto-générés" — exclus des Input types
-_AUTO_FIELDS = {"id", "createdat", "updatedat", "createdat", "deletedat"}
+_AUTO_FIELDS = {"id", "createdat", "updatedat", "deletedat"}
 
 
 @dataclass
@@ -57,8 +57,10 @@ def _prisma_attr_is_auto(attributes: str) -> bool:
 def _prisma_type_to_ts(prisma_type: str) -> str:
     """Convertit un type Prisma (potentiellement avec ?) en TypeScript."""
     optional = prisma_type.endswith("?")
-    base = prisma_type.rstrip("?")
-    ts = _PRISMA_TO_TS.get(base, "unknown")
+    base = prisma_type.rstrip("?").rstrip("[]")
+    # Primitifs connus → mapping direct
+    # Type inconnu commençant par une majuscule → enum Prisma → string
+    ts = _PRISMA_TO_TS.get(base, "string" if base and base[0].isupper() else "unknown")
     return f"{ts} | null" if optional else ts
 
 
@@ -78,6 +80,16 @@ def _is_relation_field(field_name: str, field_type: str, attributes: str) -> boo
     if base_type and base_type[0].isupper():
         return True
     return False
+
+
+def _field_has_non_auto_default(attributes: str) -> bool:
+    """True si le champ a un @default qui n'est pas now() ou uuid() (ex: @default(PENDING))."""
+    if not attributes:
+        return False
+    attrs = attributes.lower()
+    if "@default(now())" in attrs or "@default(uuid())" in attrs or "@default(cuid())" in attrs:
+        return False
+    return "@default(" in attrs
 
 
 def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileResult:  # type: ignore[name-defined]
@@ -133,20 +145,30 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
 
     # ── 3. Input types par modèle ───────────────────────────────────────────────
     for model in spec.models:
-        editable_fields: list[tuple[str, str]] = []  # (nom, type TS)
+        editable_fields: list[tuple[str, str]] = []  # (nom+optionality, type TS)
+        _owner = (model.owner_field or "userId").lower()
 
         for field in model.fields:
-            # Exclure les champs auto-gérés
+            # Exclure les champs auto-gérés (id, createdAt, updatedAt)
             if _prisma_attr_is_auto(field.attributes):
                 continue
             if field.name.lower() in _AUTO_FIELDS:
+                continue
+            # Exclure l'owner_field — il est ajouté par le service depuis auth()
+            if field.name.lower() == _owner:
                 continue
             # Exclure les relations (objets Prisma imbriqués)
             if _is_relation_field(field.name, field.type, field.attributes):
                 continue
             ts_type = _prisma_type_to_ts(field.type)
-            optional_mark = "?" if field.type.endswith("?") or "?" in (field.attributes or "") else ""
-            editable_fields.append((field.name + optional_mark, ts_type.rstrip(" | null") if optional_mark else ts_type))
+            # Optionnel si : type Prisma nullable (?), ou champ avec @default non-auto
+            is_optional = (
+                field.type.endswith("?")
+                or _field_has_non_auto_default(field.attributes)
+            )
+            optional_mark = "?" if is_optional else ""
+            base_ts = ts_type.replace(" | null", "")
+            editable_fields.append((field.name + optional_mark, base_ts))
 
         if not editable_fields:
             # Modèle sans champs éditables détectables → type minimal

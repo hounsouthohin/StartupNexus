@@ -260,10 +260,6 @@ async def run_dev_agent(
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
     # ── Génération déterministe : loading.tsx + stubs page.tsx ──────────────────
-    # loading.tsx : squelettes UI triviaux, jamais incorrects.
-    # page stubs (R6) : page.tsx avec imports Clerk/Next.js pré-remplis.
-    #   Le LLM lit ces stubs avant d'écrire — il voit les imports dès le départ,
-    #   ce qui élimine la boucle de correction sur imports manquants (P1).
     if spec_obj is not None:
         try:
             from agents.dev_pages_generator import generate_loading_files, generate_page_stubs
@@ -350,6 +346,37 @@ async def run_dev_agent(
             logger.warning(f"[dev_graph] prisma generate pre-run exception (non bloquant) : {_pg_err}")
     else:
         logger.warning("[dev_graph] prisma generate skipped — npm install a échoué")
+
+    # ── Génération déterministe : lib/types.ts ───────────────────────
+    # Écrit avant que le LLM démarre — le LLM ne touche plus lib/types.ts.
+    # Source de vérité des DTOs Create/Update pour tous les services et routes.
+    if spec_obj is not None:
+        try:
+            from agents.dev_types_generator import generate_types_file
+            _types_result = generate_types_file(spec_obj, project_workdir)
+            template_written[_types_result.path] = _types_result.content
+            logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
+        except Exception as _tg_err:
+            logger.warning(f"[dev_graph] types generator non bloquant : {_tg_err}")
+
+    # ── Génération déterministe : lib/services/*.ts ──────────────────
+    # Un fichier CRUD par modèle Prisma — le LLM ne touche plus les services.
+    # Élimine les TS2305/TS2724/TS2322 liés aux types de paramètres de service.
+    if spec_obj is not None:
+        try:
+            from agents.dev_service_generator import generate_service_files
+            _svc_files = generate_service_files(spec_obj, project_workdir)
+            template_written.update(_svc_files)
+            logger.info(
+                "[dev_graph] %d services générés de manière déterministe : %s",
+                len(_svc_files), list(_svc_files.keys())
+            )
+        except Exception as _sg_err:
+            logger.warning(f"[dev_graph] service generator non bloquant : {_sg_err}")
+
+    # Protéger types.ts + services contre réécriture LLM (mis à jour après génération).
+    _protected.update(k for k in template_written if k.startswith("lib/"))
+    _dev_tools_module.set_protected_files(_protected)
 
     # ── System prompt ────────────────────────────────────────────────
     if not system_prompt:
@@ -518,15 +545,6 @@ async def run_dev_agent(
                 _path = _next_entry["path"]
 
                 _role_rules = {
-                    "types": (
-                        "Ecris des interfaces TypeScript pures (pas de classes). "
-                        "Tous les champs Date en string (ISO) pour compatibilite Server→Client."
-                    ),
-                    "service": (
-                        "import prisma from '@/lib/prisma'. "
-                        "Chaque fonction recoit userId: string (jamais string|null) en 1er arg. "
-                        "Retourne des objets serializables (Date → string)."
-                    ),
                     "route": (
                         "GUARD AUTH OBLIGATOIRE en debut de chaque handler :\n"
                         "  import { auth } from '@clerk/nextjs/server';\n"
@@ -552,18 +570,46 @@ async def run_dev_agent(
                     if _rule else f"CONTEXTE : {_hint}"
                 )
 
-                # Lecture des dependances utiles depuis le disque (max 500 chars).
+                # Lecture des dependances utiles depuis le disque.
+                # Route : types.ts (800 chars) + service correspondant (600 chars si trouvé).
+                # Page  : service correspondant (400 chars).
+                # types.ts et services sont pré-générés de manière déterministe → pas d'injection LLM.
                 _dep = ""
-                if _role == "route" and "lib/types.ts" in _validated_set:
-                    try:
-                        with open(os.path.join(project_workdir, "lib", "types.ts"), "r",
-                                  encoding="utf-8") as _f:
-                            _dep = (
-                                f"\nlib/types.ts :\n"
-                                f"```typescript\n{_f.read()[:500]}\n```"
-                            )
-                    except Exception:
-                        pass
+                if _role == "route":
+                    # types.ts
+                    if "lib/types.ts" in _validated_set:
+                        try:
+                            with open(os.path.join(project_workdir, "lib", "types.ts"), "r",
+                                      encoding="utf-8") as _f:
+                                _dep = (
+                                    f"\nlib/types.ts :\n"
+                                    f"```typescript\n{_f.read()[:800]}\n```"
+                                )
+                        except Exception:
+                            pass
+                    # Service correspondant : app/api/{seg}/route.ts → lib/services/{seg}.service.ts
+                    _route_seg = _path.split("/")
+                    _seg_candidates = []
+                    for _s in _route_seg:
+                        if _s not in ("app", "api", "route.ts", "") and not _s.startswith("["):
+                            _seg_candidates.append(_s)
+                    for _seg in reversed(_seg_candidates):
+                        _svc_tries = [_seg, _seg.rstrip("s")]
+                        for _sv in _svc_tries:
+                            _svc_abs = os.path.join(project_workdir, "lib", "services",
+                                                    f"{_sv}.service.ts")
+                            if os.path.exists(_svc_abs):
+                                try:
+                                    with open(_svc_abs, "r", encoding="utf-8") as _f:
+                                        _dep += (
+                                            f"\nlib/services/{_sv}.service.ts :\n"
+                                            f"```typescript\n{_f.read()[:600]}\n```"
+                                        )
+                                except Exception:
+                                    pass
+                                break
+                        if _dep and "service.ts" in _dep:
+                            break
                 elif _role == "page":
                     _seg = _path.split("/")[-2] if _path.count("/") >= 2 else ""
                     if _seg:
@@ -722,7 +768,9 @@ async def run_dev_agent(
     #   - On valide le batch (plusieurs fichiers d'un tour) plutôt que chaque write isolé
 
     _TS_EXTENSIONS = {".ts", ".tsx"}
-    _PROTECTED_NAMES = {"lib/prisma.ts", "lib/types.ts", "prisma/schema.prisma",
+    # lib/types.ts est LLM-written — ne PAS le protéger ici (bug stall infini sinon).
+    # Seuls les fichiers écrits par les templates sont exclus de la validation.
+    _PROTECTED_NAMES = {"lib/prisma.ts", "prisma/schema.prisma",
                         "prisma.config.ts", "middleware.ts", ".eslintrc.stack.json"}
 
     def _extract_written_ts_files(messages: list) -> list[str]:

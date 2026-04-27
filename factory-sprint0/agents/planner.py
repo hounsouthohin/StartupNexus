@@ -1,22 +1,28 @@
 # agents/planner.py
 """
-Plan-and-Execute V1 — génération déterministe du plan fichier par fichier.
+Plan-and-Execute V2 — génération déterministe du plan fichier par fichier.
 Aucun LLM impliqué : l'ordre est dérivé directement depuis ProjectSpec.
 
-Ordre canonique :
-  1. lib/types.ts          — interfaces partagées
-  2. lib/services/*.ts     — un fichier par modèle Prisma
-  3. app/api/**/route.ts   — une entrée par ApiRoute
-  4. app/**/page.tsx       — une entrée par AppPage
+lib/types.ts et lib/services/*.ts sont pré-générés de manière déterministe
+par dev_types_generator et dev_service_generator AVANT que le LLM démarre.
+Le plan LLM ne couvre que :
+  1. app/api/**/route.ts   — une entrée par ApiRoute
+  2. app/**/page.tsx       — une entrée par AppPage
 """
 from __future__ import annotations
 
+import re as _re
 from typing import TYPE_CHECKING, List
 
 from pydantic import BaseModel
 
 if TYPE_CHECKING:
     from agents.project_spec import ProjectSpec
+
+
+def _pascal_to_kebab(name: str) -> str:
+    """Convertit PascalCase en kebab-case. Ex: LeaveRequest → leave-request, Task → task."""
+    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
 class FilePlanEntry(BaseModel):
@@ -38,26 +44,11 @@ def make_deterministic_plan(
 
     model_names = [m.name for m in spec.models]
 
-    # 1 — lib/types.ts : interfaces centralisées pour tous les modèles
-    entries.append(FilePlanEntry(
-        path="lib/types.ts",
-        role="types",
-        context_hint=f"Interfaces TypeScript pour : {', '.join(model_names)}",
-    ))
+    # lib/types.ts et lib/services/*.ts sont pré-générés de manière déterministe
+    # par dev_types_generator et dev_service_generator avant que le LLM démarre.
+    # Ils sont ajoutés à template_written → exclus automatiquement du plan ci-dessous.
 
-    # 2 — lib/services/{model}.service.ts : un par modèle Prisma
-    for model in spec.models:
-        entries.append(FilePlanEntry(
-            path=f"lib/services/{model.name.lower()}.service.ts",
-            role="service",
-            context_hint=(
-                f"CRUD Prisma pour {model.name}. "
-                f"owner_field={model.owner_field}. "
-                "Chaque fonction prend userId: string en premier paramètre — jamais string | null."
-            ),
-        ))
-
-    # 3 — app/api/**/route.ts : une entrée par FICHIER (pas par ApiRoute).
+    # 1 — app/api/**/route.ts : une entrée par FICHIER (pas par ApiRoute).
     # Plusieurs méthodes HTTP sur le même chemin → même fichier route.ts.
     # On déduplique en groupant les ApiRoutes par file_path et en fusionnant les context_hints.
     _routes_by_file: dict[str, list[str]] = {}
@@ -120,7 +111,7 @@ def validate_plan(
     missing: list[str] = []
 
     for model in spec.models:
-        svc = f"lib/services/{model.name.lower()}.service.ts"
+        svc = f"lib/services/{_pascal_to_kebab(model.name)}.service.ts"
         if svc not in plan_paths:
             missing.append(svc)
 
