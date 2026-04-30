@@ -43,7 +43,7 @@
   "generation_order": {
     "priority_paths": [
       "app/page.tsx",
-      "app/api/"
+      "actions.ts"
     ]
   },
   "packages": {
@@ -57,6 +57,7 @@
     "pg": "^8.13.0",
     "typescript": "^5.3.3",
     "zod": "^3.23.8",
+    "svix": "^1.21.0",
     "pino": "^9.0.0",
     "pino-pretty": "^11.0.0"
   },
@@ -260,6 +261,7 @@
     "lib/prisma-errors.ts": "templates/lib_prisma_errors.ts",
     "lib/logger.ts": "templates/lib_logger.ts",
     "app/api/health/route.ts": "templates/app_api_health_route.ts",
+    "app/api/webhooks/clerk/route.ts": "templates/webhooks_clerk_route.ts",
     "prisma.config.ts": "templates/prisma_config.ts",
     "prisma/schema.prisma": "templates/prisma_schema.prisma"
   },

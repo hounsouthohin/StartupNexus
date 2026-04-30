@@ -3,16 +3,27 @@
 Plan-and-Execute V2 — génération déterministe du plan fichier par fichier.
 Aucun LLM impliqué : l'ordre est dérivé directement depuis ProjectSpec.
 
-lib/types.ts et lib/services/*.ts sont pré-générés de manière déterministe
-par dev_types_generator et dev_service_generator AVANT que le LLM démarre.
+Fichiers pré-générés de manière déterministe AVANT que le LLM démarre :
+  - lib/types.ts         (dev_types_generator)
+  - lib/schemas.ts       (dev_zod_generator)
+  - lib/services/*.ts    (dev_service_generator)
+Ces fichiers sont dans template_written → exclus automatiquement du plan.
+
 Le plan LLM ne couvre que :
-  1. app/api/**/route.ts   — une entrée par ApiRoute
-  2. app/**/page.tsx       — une entrée par AppPage
+  1. app/**/actions.ts  — Server Actions (mutations) — une par modèle Prisma
+  2. app/**/page.tsx    — Server Components (lecture directe Prisma)
+  3. app/api/**/route.ts — routes conservées uniquement pour : webhooks + toute route
+                           explicitement marquée comme non-mutation (GET public)
+
+Règle Level 1 :
+  - Mutations (POST, PUT, PATCH, DELETE) → Server Actions
+  - Lecture → Server Component lit Prisma directement (pas de GET route)
+  - Webhooks (/api/webhooks/*) → route.ts (obligatoire pour Svix/Stripe)
 """
 from __future__ import annotations
 
 import re as _re
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
@@ -25,9 +36,34 @@ def _pascal_to_kebab(name: str) -> str:
     return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
+def _pascal_to_camel(name: str) -> str:
+    return name[0].lower() + name[1:] if name else name
+
+
+def _route_model_segment(path: str) -> str:
+    """
+    Extrait le segment de modèle depuis un chemin d'API.
+    '/api/projects/[id]' → 'projects'
+    '/api/leave-requests' → 'leave-requests'
+    """
+    clean = path.lstrip("/")
+    if clean.startswith("api/"):
+        clean = clean[4:]
+    parts = clean.split("/")
+    return parts[0] if parts else "unknown"
+
+
+def _is_webhook_route(path: str) -> bool:
+    return "webhook" in path.lower() or "svix" in path.lower() or "stripe" in path.lower()
+
+
+def _is_mutation_method(method: str) -> bool:
+    return method.upper() in ("POST", "PUT", "PATCH", "DELETE")
+
+
 class FilePlanEntry(BaseModel):
     path: str
-    role: str        # "types" | "service" | "route" | "page" | "page_client"
+    role: str        # "actions" | "route" | "page"
     context_hint: str = ""
 
 
@@ -38,42 +74,83 @@ def make_deterministic_plan(
     """
     Retourne la liste ordonnée des fichiers que l'executor doit générer.
     Les fichiers déjà écrits par les templates sont exclus.
+
+    Ordre :
+      1. app/**/actions.ts   (Server Actions — mutations Prisma via service)
+      2. app/**/page.tsx     (Server Components — lecture directe Prisma)
+      3. app/api/**/route.ts (webhooks uniquement)
     """
     template_set = set(template_files)
     entries: list[FilePlanEntry] = []
 
-    model_names = [m.name for m in spec.models]
+    # ── 1. Server Actions — une par segment de modèle avec des mutations ──────
+    # On groupe les routes de mutation par segment de modèle (ex: 'projects').
+    # Les GET routes sont ignorées : les Server Components lisent Prisma directement.
+    _actions_segments: dict[str, list[str]] = {}
 
-    # lib/types.ts et lib/services/*.ts sont pré-générés de manière déterministe
-    # par dev_types_generator et dev_service_generator avant que le LLM démarre.
-    # Ils sont ajoutés à template_written → exclus automatiquement du plan ci-dessous.
-
-    # 1 — app/api/**/route.ts : une entrée par FICHIER (pas par ApiRoute).
-    # Plusieurs méthodes HTTP sur le même chemin → même fichier route.ts.
-    # On déduplique en groupant les ApiRoutes par file_path et en fusionnant les context_hints.
-    _routes_by_file: dict[str, list[str]] = {}
     for route in spec.routes:
+        if _is_webhook_route(route.path):
+            continue
+        if not _is_mutation_method(route.method):
+            continue
+        seg = _route_model_segment(route.path)
+        _actions_segments.setdefault(seg, []).append(
+            f"{route.method.upper()} {route.path}"
+        )
+
+    for seg, mutations in _actions_segments.items():
+        file_path = f"app/{seg}/actions.ts"
+        mutations_str = ", ".join(mutations)
+
+        # Trouver le service associé depuis la spec
+        # Le segment ressemble à 'projects' ou 'leave-requests'
+        service_hint = ""
+        for model in spec.models:
+            if _pascal_to_kebab(model.name) == seg or _pascal_to_kebab(model.name) + "s" == seg:
+                camel = _pascal_to_camel(model.name)
+                owner = model.owner_field or "userId"
+                service_hint = (
+                    f"Service : import {{ {camel}Service }} from '@/lib/services/{_pascal_to_kebab(model.name)}.service' — "
+                    f"Schema : import {{ Create{model.name}Schema, Update{model.name}Schema }} from '@/lib/schemas' — "
+                    f"owner field : {owner}."
+                )
+                break
+
+        entries.append(FilePlanEntry(
+            path=file_path,
+            role="actions",
+            context_hint=(
+                f"'use server' — Server Actions pour : {mutations_str}. "
+                "CHAQUE action DOIT : (1) const { userId } = await auth() — if (!userId) throw new Error('Unauthorized'); "
+                "(2) valider avec le schéma Zod .safeParse(data); "
+                "(3) appeler le service (jamais prisma directement dans les actions). "
+                + service_hint
+            ),
+        ))
+
+    # ── 2. Webhooks routes ─────────────────────────────────────────────────────
+    _webhook_files: set[str] = set()
+    for route in spec.routes:
+        if not _is_webhook_route(route.path):
+            continue
         rpath = route.path
         if rpath.startswith("/api"):
             rpath = rpath[4:]
         file_path = f"app/api{rpath.rstrip('/')}/route.ts"
-        _routes_by_file.setdefault(file_path, []).append(f"{route.method} {route.path}")
-
-    for file_path, methods in _routes_by_file.items():
-        methods_str = ", ".join(methods)
+        if file_path in _webhook_files:
+            continue
+        _webhook_files.add(file_path)
         entries.append(FilePlanEntry(
             path=file_path,
             role="route",
             context_hint=(
-                f"Handlers : {methods_str}. "
-                "OBLIGATOIRE en debut de chaque handler : "
-                "const { userId } = await auth(); "
-                "if (!userId) return NextResponse.json({error:'Unauthorized'},{status:401}); "
-                "— userId est string apres ce guard, jamais string|null."
+                "Webhook handler — POST uniquement. "
+                "Vérifier la signature Svix/Stripe avant de traiter. "
+                "Retourner NextResponse.json({}, {status:200}) si OK."
             ),
         ))
 
-    # 4 — app/**/page.tsx : une par AppPage
+    # ── 3. Pages ───────────────────────────────────────────────────────────────
     for page in spec.pages:
         ppath = page.path.strip("/")
         file_path = "app/page.tsx" if not ppath else f"app/{ppath}/page.tsx"
@@ -84,8 +161,8 @@ def make_deterministic_plan(
                 "const { userId } = await auth(); if (!userId) redirect('/sign-in');"
             )
         hint_parts.append(
-            "Sérialiser les dates Prisma avant de passer aux Client Components : "
-            ".toISOString()"
+            "Récupérer les données DIRECTEMENT avec prisma (pas de fetch vers /api). "
+            "Sérialiser les dates avant Client Components : .toISOString()."
         )
         entries.append(FilePlanEntry(
             path=file_path,
@@ -110,18 +187,26 @@ def validate_plan(
     plan_paths = {e.path for e in plan} | template_set
     missing: list[str] = []
 
+    # Services (pré-générés → dans template_set)
     for model in spec.models:
         svc = f"lib/services/{_pascal_to_kebab(model.name)}.service.ts"
         if svc not in plan_paths:
             missing.append(svc)
 
+    # Actions ou routes
     for route in spec.routes:
-        rpath = route.path
-        if rpath.startswith("/api"):
-            rpath = rpath[4:]
-        rf = f"app/api{rpath.rstrip('/')}/route.ts"
-        if rf not in plan_paths:
-            missing.append(rf)
+        if _is_webhook_route(route.path):
+            rpath = route.path
+            if rpath.startswith("/api"):
+                rpath = rpath[4:]
+            rf = f"app/api{rpath.rstrip('/')}/route.ts"
+            if rf not in plan_paths:
+                missing.append(rf)
+        elif _is_mutation_method(route.method):
+            seg = _route_model_segment(route.path)
+            af = f"app/{seg}/actions.ts"
+            if af not in plan_paths:
+                missing.append(af)
 
     for page in spec.pages:
         ppath = page.path.strip("/")
@@ -129,4 +214,4 @@ def validate_plan(
         if pf not in plan_paths:
             missing.append(pf)
 
-    return missing
+    return list(dict.fromkeys(missing))  # dédupliqué, ordre préservé

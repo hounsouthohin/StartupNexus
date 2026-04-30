@@ -39,12 +39,6 @@ def _pascal_to_kebab(name: str) -> str:
     return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
-def _plural_camel(name: str) -> str:
-    """Forme plurielle simple pour les noms de fonctions. Ex: project → projects"""
-    camel = _pascal_to_camel(name)
-    return camel + "s"
-
-
 def _is_auto_field(field_name: str, attributes: str) -> bool:
     attrs_lower = (attributes or "").lower()
     return (
@@ -83,39 +77,16 @@ def _get_datetime_fields(model) -> list[str]:
 
 
 def _generate_service_for_model(model) -> str:
-    """Génère le contenu complet du fichier .service.ts pour un modèle."""
+    """
+    Génère le contenu complet du fichier .service.ts pour un modèle.
+    Format : objet exporté nommé {camelCase}Service — pattern DAL standard.
+    LLM-agnostic : le contrat est injecté dans le prompt de la route, pas deviné.
+    """
     name = model.name                        # ex: LeaveRequest
     camel = _pascal_to_camel(name)           # ex: leaveRequest
-    plural = _plural_camel(name)             # ex: leaveRequests
     owner = model.owner_field or "userId"    # ex: userId
 
     date_fields = _get_datetime_fields(model)
-
-    # ── Bloc de conversion dates pour create ─────────────────────────
-    # Destructure les champs date hors du spread pour éviter le conflit string/Date
-    if date_fields:
-        destruct_vars = ", ".join(date_fields)
-        create_destruct = f"  const {{ {destruct_vars}, ...rest }} = data\n"
-        create_data_fields = "      ...(rest as any),\n"
-        create_data_fields += f"      {owner},\n"
-        for df in date_fields:
-            create_data_fields += f"      {df}: new Date({df}),\n"
-    else:
-        create_destruct = ""
-        create_data_fields = f"      ...(data as any),\n      {owner},\n"
-
-    # ── Bloc de conversion dates pour update (champs optionnels) ──────
-    if date_fields:
-        update_destruct_vars = ", ".join(date_fields)
-        update_destruct = f"  const {{ {update_destruct_vars}, ...rest }} = data\n"
-        update_data_fields = "      ...(rest as any),\n"
-        for df in date_fields:
-            update_data_fields += (
-                f"      ...({df} !== undefined ? {{ {df}: new Date({df}) }} : {{}}),\n"
-            )
-    else:
-        update_destruct = ""
-        update_data_fields = "      ...(data as any),\n"
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_service_generator.py — NE PAS MODIFIER",
@@ -123,41 +94,69 @@ def _generate_service_for_model(model) -> str:
         f"import type {{ {name} }} from '@prisma/client'",
         f"import type {{ Create{name}Input, Update{name}Input }} from '@/lib/types'",
         "",
-        f"export async function get{name}s({owner}: string): Promise<{name}[]> {{",
-        f"  return prisma.{camel}.findMany({{ where: {{ {owner} }} }})",
-        "}",
+        f"export const {camel}Service = {{",
+        f"  getAll: ({owner}: string): Promise<{name}[]> =>",
+        f"    prisma.{camel}.findMany({{ where: {{ {owner} }} }}),",
         "",
-        f"export async function get{name}ById({owner}: string, id: string): Promise<{name} | null> {{",
-        f"  return prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
-        "}",
+        f"  getById: ({owner}: string, id: string): Promise<{name} | null> =>",
+        f"    prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }}),",
         "",
-        f"export async function create{name}({owner}: string, data: Create{name}Input): Promise<{name}> {{",
+        f"  create: async ({owner}: string, data: Create{name}Input): Promise<{name}> => {{",
     ]
-    if create_destruct:
-        lines.append(create_destruct.rstrip("\n"))
+
+    if date_fields:
+        destruct_vars = ", ".join(date_fields)
+        lines.append(f"    const {{ {destruct_vars}, ...rest }} = data")
+        lines += [
+            f"    return prisma.{camel}.create({{",
+            "      data: {",
+            "        ...(rest as any),",
+            f"        {owner},",
+        ]
+        for df in date_fields:
+            lines.append(f"        {df}: new Date({df}),")
+        lines += ["      }", "    })"]
+    else:
+        lines += [
+            f"    return prisma.{camel}.create({{",
+            f"      data: {{ ...(data as any), {owner} }}",
+            "    })",
+        ]
+
     lines += [
-        f"  return prisma.{camel}.create({{",
-        "    data: {",
-        create_data_fields.rstrip("\n"),
-        "    }",
-        "  })",
-        "}",
+        "  },",
         "",
-        f"export async function update{name}(id: string, data: Update{name}Input): Promise<{name}> {{",
+        f"  update: async (id: string, data: Update{name}Input): Promise<{name}> => {{",
     ]
-    if update_destruct:
-        lines.append(update_destruct.rstrip("\n"))
+
+    if date_fields:
+        destruct_vars = ", ".join(date_fields)
+        lines.append(f"    const {{ {destruct_vars}, ...rest }} = data")
+        lines += [
+            f"    return prisma.{camel}.update({{",
+            "      where: { id },",
+            "      data: {",
+            "        ...(rest as any),",
+        ]
+        for df in date_fields:
+            lines.append(
+                f"        ...({df} !== undefined ? {{ {df}: new Date({df}) }} : {{}}),"
+            )
+        lines += ["      }", "    })"]
+    else:
+        lines += [
+            f"    return prisma.{camel}.update({{",
+            "      where: { id },",
+            "      data: { ...(data as any) }",
+            "    })",
+        ]
+
     lines += [
-        f"  return prisma.{camel}.update({{",
-        "    where: { id },",
-        "    data: {",
-        update_data_fields.rstrip("\n"),
-        "    }",
-        "  })",
-        "}",
+        "  },",
         "",
-        f"export async function delete{name}({owner}: string, id: string): Promise<void> {{",
-        f"  await prisma.{camel}.delete({{ where: {{ id, {owner} }} }})",
+        f"  delete: async ({owner}: string, id: string): Promise<void> => {{",
+        f"    await prisma.{camel}.delete({{ where: {{ id, {owner} }} }})",
+        "  },",
         "}",
         "",
     ]
@@ -190,3 +189,39 @@ def generate_service_files(spec, project_workdir: str) -> dict[str, str]:
             logger.error("[service_generator] ✗ Erreur écriture %s : %s", rel_path, e)
 
     return written
+
+
+def format_service_map_for_prompt(spec) -> str:
+    """
+    Génère un bloc compact (5 lignes/service) injectable dans le prompt LLM.
+    Objectif : le LLM sait exactement quel objet importer et quelles méthodes appeler,
+    sans lire le fichier entier — budget ~60 chars/méthode.
+
+    Format injecté :
+      ### Service Map (DAL pré-généré — NE PAS recréer)
+      **projectService** → import { projectService } from '@/lib/services/project.service'
+        .getAll(userId)  → Promise<Project[]>
+        .getById(userId, id) → Promise<Project | null>
+        .create(userId, data: CreateProjectInput) → Promise<Project>
+        .update(id, data: UpdateProjectInput) → Promise<Project>
+        .delete(userId, id) → Promise<void>
+    """
+    if not spec or not getattr(spec, "models", None):
+        return ""
+
+    lines = ["### Service Map (DAL pré-généré — NE PAS recréer ces fichiers)\n"]
+    for model in spec.models:
+        name = model.name
+        camel = _pascal_to_camel(name)
+        kebab = _pascal_to_kebab(name)
+        owner = model.owner_field or "userId"
+        import_path = f"@/lib/services/{kebab}.service"
+        lines.append(f"**{camel}Service** → `import {{ {camel}Service }} from '{import_path}'`")
+        lines.append(f"  .getAll({owner})  → `Promise<{name}[]>`")
+        lines.append(f"  .getById({owner}, id)  → `Promise<{name} | null>`")
+        lines.append(f"  .create({owner}, data: Create{name}Input)  → `Promise<{name}>`")
+        lines.append(f"  .update(id, data: Update{name}Input)  → `Promise<{name}>`")
+        lines.append(f"  .delete({owner}, id)  → `Promise<void>`")
+        lines.append("")
+
+    return "\n".join(lines)

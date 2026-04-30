@@ -1,17 +1,15 @@
-﻿
+
 # agents/dev_prompts.py
 """
-System prompt du dev agent v4 (Nouvelle Base — Phase 4A, 28 Mars 2026).
+System prompt du dev agent v4 — Option A + Server Actions (30 Avril 2026).
 
-Principe : donner au LLM une boussole claire (objectif, spec, outils, workflow),
-pas une prison (gates bloquantes, state machine forcée).
+Option A : lib/types.ts, lib/schemas.ts et lib/services/*.ts sont générés de
+manière déterministe AVANT que le LLM démarre.  Le LLM ne génère QUE :
+  - app/**/actions.ts   (Server Actions — mutations via service)
+  - app/**/page.tsx     (Server Components — lecture directe Prisma)
+  - app/api/webhooks/**/route.ts  (webhooks Clerk/Stripe seulement)
 
-Le LLM sait :
-- Ce qu'il doit construire (ProjectSpec — noms exacts)
-- Quels fichiers créer (checklist informative)
-- Comment utiliser ses outils (write_file, shell_exec, rag_search)
-- Son workflow cible (générer → vérifier types → build → corriger si besoin)
-- Les règles absolues de la stack (Clerk, App Router, Prisma)
+Level 1 scope : 2-4 modèles, CRUD, userId ownership — pas de RBAC ni logique complexe.
 """
 from __future__ import annotations
 
@@ -27,17 +25,15 @@ if TYPE_CHECKING:
 
 def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     """
-    Checklist déterministe des fichiers à générer depuis la ProjectSpec.
-    Injectée dans le system prompt comme guide, jamais comme gate bloquante.
+    Checklist déterministe des fichiers que le LLM doit générer.
+    Option A : lib/types.ts, lib/schemas.ts et lib/services/*.ts sont exclus
+    car déjà pré-générés de manière déterministe.
     """
-    # Base : checklist native du ProjectSpec (pages/routes + coeur minimal).
-    files = list(spec.expected_files())
+    files = []
 
-    # Complément stack : blueprint.required_files pour inclure les templates critiques
-    # (next.config.js, tsconfig.json, lib/prisma.ts, etc.) sans hardcode.
+    # Blueprint required_files (infrastructure)
     try:
         from agents.stack_config import load_stack_config
-
         stack_id = getattr(spec, "stack_id", "") or "nextjs-clerk-prisma"
         stack_cfg = load_stack_config(stack_id)
         required = stack_cfg.get("blueprint", {}).get("required_files", []) or []
@@ -45,19 +41,40 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
             if isinstance(path, str) and path.strip():
                 files.append(path.strip().replace("\\", "/"))
     except Exception:
-        # Non bloquant : si stack_config est indisponible, on conserve la base spec.
         pass
 
-    # Option B : lib/types.ts et lib/services/ générés par le LLM.
-    # On les ajoute à la checklist pour qu'il n'oublie pas de les créer.
+    # Server Actions — une par segment de modèle avec mutations
     import re as _re
-    files.append("lib/types.ts")
-    for m in spec.models:
-        kebab = _re.sub(r"(?<!^)(?=[A-Z])", "-", m.name).lower()
-        files.append(f"lib/services/{kebab}.service.ts")
+    _planner_actions: set[str] = set()
+    for route in spec.routes:
+        method = (route.method or "").upper()
+        path = route.path or ""
+        is_webhook = "webhook" in path.lower() or "stripe" in path.lower()
+        if not is_webhook and method in ("POST", "PUT", "PATCH", "DELETE"):
+            clean = path.lstrip("/")
+            if clean.startswith("api/"):
+                clean = clean[4:]
+            seg = clean.split("/")[0] if clean else ""
+            if seg:
+                _planner_actions.add(f"app/{seg}/actions.ts")
 
-    # pages-client : pour chaque page marquée [INTERACTIVE] dans pages_detail,
-    # ajouter le fichier page-client.tsx correspondant à la checklist.
+    files.extend(sorted(_planner_actions))
+
+    # Webhooks routes (si présentes dans la spec)
+    for route in spec.routes:
+        path = route.path or ""
+        if "webhook" in path.lower() or "stripe" in path.lower():
+            rpath = path
+            if rpath.startswith("/api"):
+                rpath = rpath[4:]
+            files.append(f"app/api{rpath.rstrip('/')}/route.ts")
+
+    # Pages
+    for page in spec.pages:
+        ppath = page.path.strip("/")
+        files.append("app/page.tsx" if not ppath else f"app/{ppath}/page.tsx")
+
+    # pages-client : pour chaque page [INTERACTIVE]
     pages_detail = getattr(spec, "pages_detail", {}) or {}
     if isinstance(pages_detail, dict):
         for path, detail in pages_detail.items():
@@ -69,7 +86,7 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
                 )
                 files.append(client_file)
 
-    # Déduplique en préservant l'ordre.
+    # Déduplique en préservant l'ordre
     seen: set[str] = set()
     result: list[str] = []
     for f in files:
@@ -84,33 +101,18 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
 def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     """
     Requêtes Qdrant déclenchées en Python AVANT la génération, basées sur le contenu
-    du brief. Les standards les plus pertinents sont injectés directement dans le prompt
-    — sans attendre que le LLM pense à appeler rag_search.
-
-    Logique de déclenchement (déterministe depuis la spec) :
-      - "always"          → toujours (sécurité, fiabilité core)
-      - "list-routes"     → si au moins un GET dans spec.routes
-      - "relation-models" → si au moins un modèle a un champ *Id (foreign key)
-      - "multi-table"     → si spec a 2+ modèles (mutations probables multi-tables)
+    du brief. Standards sélectionnés automatiquement → injectés dans le prompt.
     """
     try:
         from agents.shared_tools import rag_search as _rag_fn
         from agents.stack_config import load_stack_config
     except Exception:
-        return ""  # Qdrant absent → non-bloquant
+        return ""
 
-    # ── Détection des contextes pertinents ───────────────────────────────────
     contexts: list[str] = ["always"]
 
-    has_get_routes = any(r.method == "GET" for r in spec.routes)
-    if has_get_routes:
-        contexts.append("list-routes")
-
     has_relations = any(
-        any(
-            f.name != "id" and f.name.endswith("Id")
-            for f in m.fields
-        )
+        any(f.name != "id" and f.name.endswith("Id") for f in m.fields)
         for m in spec.models
     )
     if has_relations:
@@ -119,20 +121,28 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     if len(spec.models) >= 2:
         contexts.append("multi-table")
 
-    # "interactive-pages" : toujours déclenché car tout brief avec pages a des boutons CRUD
     if spec.pages:
         contexts.append("interactive-pages")
 
-    # ── Requêtes ciblées par contexte ────────────────────────────────────────
-    # Option A — requêtes en anglais technique pour matcher les RULE: des standards reformatés.
-    # Les standards commencent maintenant par RULE: <TECHNOLOGIE> (plus ACTION:/STACK: génériques).
-    # Ces requêtes ciblent les termes techniques distinctifs qui apparaissent en tête de standard.
+    # Requêtes alignées sur le format RULE: des standards Qdrant (post-Option-A).
+    # Termes en français technique pour maximiser le recall avec les standards reformatés.
     CONTEXT_QUERIES: dict[str, str] = {
-        "always":            "auth() userId null guard before Prisma query ownership check CreateInput without userId security logging healthcheck",
-        "list-routes":       "pagination findMany skip take PaginatedResponse count $transaction GET list route handler API",
-        "relation-models":   "N+1 prevention include select nested relation findUnique loop Promise.all Prisma join",
-        "multi-table":       "prisma $transaction sequential interactive rollback multi-table create invoice items atomic",
-        "interactive-pages": "'use client' directive useState onClick form handler Client Component interactive Server Component split",
+        "always": (
+            "auth userId guard obligatoire Prisma ownership Server Action "
+            "sécurité validation Zod revalidatePath throw Unauthorized"
+        ),
+        "relation-models": (
+            "N+1 prevention include select nested relation Prisma findUnique "
+            "boucle Promise.all jointure optimisée"
+        ),
+        "multi-table": (
+            "prisma transaction séquentiel rollback multi-table create "
+            "atomic update plusieurs modèles"
+        ),
+        "interactive-pages": (
+            "'use client' directive useState onClick formulaire handler "
+            "Client Component interactif Server Component split revalidatePath"
+        ),
     }
 
     snippets: list[str] = []
@@ -156,7 +166,7 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
                 seen_texts.add(result)
                 snippets.append(f"[contexte: {ctx}]\n{result[:600]}")
         except Exception:
-            pass  # Qdrant absent → non-bloquant
+            pass
 
     if not snippets:
         return ""
@@ -176,22 +186,22 @@ Applique-les lors de la génération — ne les ignore pas.
 def build_system_prompt(
     spec: "ProjectSpec",
     pre_written_files: list[str] | None = None,
+    service_map: str = "",
 ) -> str:
     """
-    Construit le system prompt complet pour le dev agent v4.
-    Reçoit un ProjectSpec typé — les noms sont garantis exacts.
-    pre_written_files : fichiers déjà écrits depuis les templates (le LLM ne doit pas les réécrire).
+    Construit le system prompt complet pour le dev agent v4 — Option A.
 
-    Option B (Avril 2026) : lib/types.ts et lib/services/ sont générés par le LLM.
-    Le LLM est auteur unique du code applicatif → cohérence garantie, fossé d'auteur éliminé.
+    Option A :
+      - lib/types.ts, lib/schemas.ts, lib/services/*.ts → PRÉ-GÉNÉRÉS (ne pas réécrire)
+      - Le LLM génère uniquement : actions.ts, page.tsx, webhooks/route.ts
+      - service_map : bloc compact des services disponibles (inject depuis dev_graph)
     """
     pre_written: set[str] = set(pre_written_files or [])
     expected_files = _expected_files_from_spec(spec)
-    # Checklist : seuls les fichiers que le LLM doit GÉNÉRER (pas les templates déjà écrits)
     files_to_generate = [f for f in expected_files if f not in pre_written]
     files_checklist = "\n".join(f"  - {f}" for f in files_to_generate)
 
-    # Règles stack depuis rules_dev.md — source de vérité technique (prisma singleton, auth guard, etc.)
+    # Règles stack depuis rules_dev.md
     stack_rules_block = ""
     try:
         from utils.prompt_loader import load_stack_rules_only
@@ -205,26 +215,23 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
 {stack_rules}
 """
     except Exception:
-        pass  # Non bloquant
+        pass
 
-    # Bloc Prisma schema attendu — critique pour éviter les modèles fantômes
     prisma_block = spec.to_prisma_schema_block()
 
-    # Résumé des routes pour référence rapide
-    routes_summary = "\n".join(
-        f"  - {r.method} {r.path}"
-        for r in spec.routes
-    )
-
-    # Pages
     pages_summary = "\n".join(
         f"  - {p.path}{' (publique)' if not p.auth_required else ''}"
         for p in spec.pages
     )
 
+    # Routes (webhooks seulement — les mutations sont maintenant des Server Actions)
+    webhook_routes = [r for r in spec.routes if "webhook" in r.path.lower() or "stripe" in r.path.lower()]
+    routes_summary = "\n".join(
+        f"  - {r.method} {r.path}  [webhook]"
+        for r in webhook_routes
+    ) or "  (aucune route API — mutations gérées par les Server Actions)"
+
     # pages_detail — instructions d'affichage précises pour chaque page
-    # Sans ce bloc, le LLM invente le contenu des pages au lieu de suivre le brief.
-    # Les pages marquées [INTERACTIVE] reçoivent une instruction explicite de split Server+Client.
     pages_detail_block = ""
     if spec.pages_detail and isinstance(spec.pages_detail, dict):
         detail_lines = []
@@ -242,15 +249,14 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
                     f"en ligne 1 pour les boutons/handlers. "
                     f"app/{path.strip('/') + '/' if path.strip('/') else ''}page.tsx reste Server Component "
                     f"(fetch données) et rend <{comp_name}Client ... />."
-                    f"\n    ⚠️  IMPORT DANS page.tsx (OBLIGATOIRE — DEFAULT import, pas named) :\n"
-                    f"      ✅  import {comp_name}Client from './page-client'    ← CORRECT\n"
-                    f"      ❌  import {{ {comp_name}Client }} from './page-client'  ← INTERDIT — TS2614\n"
-                    f"\n    ⚠️  EXPORT dans {client_file} (OBLIGATOIRE — DEFAULT export) :\n"
-                    f"      ✅  export default function {comp_name}Client({{ ... }}: {comp_name}ClientProps) {{ ... }}\n"
-                    f"      ❌  export function {comp_name}Client  ← INTERDIT — named export incompatible\n"
-                    f"\n    ⚠️  TYPAGE OBLIGATOIRE des props (TS7031 sinon) :\n"
-                    f"      interface {comp_name}ClientProps {{ /* props passées par le Server Component */ }}\n"
-                    f"      Ne jamais écrire function Comp({{ prop }}) sans interface de props déclarée."
+                    f"\n    ⚠️  IMPORT dans page.tsx (DEFAULT import, pas named) :\n"
+                    f"      ✅  import {comp_name}Client from './page-client'\n"
+                    f"      ❌  import {{ {comp_name}Client }} from './page-client'  ← INTERDIT TS2614\n"
+                    f"\n    ⚠️  EXPORT dans {client_file} (DEFAULT export obligatoire) :\n"
+                    f"      ✅  export default function {comp_name}Client({{ ... }}: {comp_name}ClientProps) {{ }}\n"
+                    f"      ❌  export function {comp_name}Client  ← INTERDIT\n"
+                    f"\n    ⚠️  TYPAGE OBLIGATOIRE des props :\n"
+                    f"      interface {comp_name}ClientProps {{ /* props du Server Component */ }}"
                 )
             detail_lines.append(f"  {path} :\n    {detail_str}")
         if detail_lines:
@@ -262,46 +268,30 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
                 + "\n"
             )
 
-    # Bloc services DAL — noms exacts des services à créer (un par modèle métier).
-    # Le LLM génère ces fichiers lui-même (Option B) — on lui donne uniquement les noms
-    # pour qu'il n'invente pas de variantes (getExpenses, getAllTasks...).
-    _service_names = []
-    for m in spec.models:
-        import re as _re
-        kebab = _re.sub(r"(?<!^)(?=[A-Z])", "-", m.name).lower()
-        camel = m.name[0].lower() + m.name[1:] if m.name else m.name
-        owner = getattr(m, "owner_field", "userId")
-        _service_names.append((m.name, camel + "Service", f"lib/services/{kebab}.service.ts", owner))
-
-    services_block = ""
-    if _service_names:
-        lines = "\n".join(
-            f"  {name} → {svc_obj}  ({path})  [owner_field: {owner}]"
-            for name, svc_obj, path, owner in _service_names
-        )
-        services_block = f"""
+    # Service Map — bloc compact des services pré-générés
+    service_map_block = ""
+    if service_map:
+        service_map_block = f"""
 ══════════════════════════════════════════════════════════════
-SERVICES DAL À CRÉER (Rule 26 — un par modèle métier)
+SERVICES DAL PRÉ-GÉNÉRÉS — UTILISE-LES, NE LES RECRÉE PAS
 ══════════════════════════════════════════════════════════════
-{lines}
-
-owner_field = champ d'ownership du modèle dans le schéma Prisma.
-  - userId/authorId → ownership direct : utilise ce champ dans findMany/findUnique/create/update/delete
-  - xxxId (ex: boardId) → modèle enfant : utilise l'id du parent comme filtre, vérifie l'ownership du parent dans la route API
-
-Convention fixe — JAMAIS de fonctions nommées exportées :
-  ✅  import {{ modelService }} from '@/lib/services/model.service'
-  ✅  const items = await modelService.findMany(userId)
-  ❌  import {{ getItems, getItemById }} from '@/lib/services/model.service'
-
-Types d'entrée dans lib/types.ts — CreateXxxInput DOIT inclure TOUS les champs mutables :
-  ✅  interface CreateLeaveRequestInput {{ startDate: Date; endDate: Date; status?: LeaveStatus; reason?: string }}
-  ❌  interface CreateLeaveRequestInput {{ startDate: Date; endDate: Date }}  ← manque status → TS2353
-  Règle : pour chaque champ du modèle Prisma (hors id, createdAt, updatedAt), ajouter le champ
-  correspondant dans CreateXxxInput (obligatoire si @required, optionnel si nullable/default).
+{service_map}
+⚠️  Ces fichiers sont déjà écrits et protégés.
+JAMAIS prisma directement dans actions.ts ou page.tsx — toujours via le service.
+JAMAIS de fonctions nommées : ✅ projectService.create()  ❌ createProject()
+"""
+    else:
+        # Fallback si service_map non disponible
+        service_map_block = """
+══════════════════════════════════════════════════════════════
+SERVICES DAL (pré-générés dans lib/services/)
+══════════════════════════════════════════════════════════════
+Les services sont dans lib/services/<model>.service.ts — NE PAS LES RÉÉCRIRE.
+Convention : import { projectService } from '@/lib/services/project.service'
+Méthodes : .getAll(userId), .getById(userId, id), .create(userId, data), .update(id, data), .delete(userId, id)
 """
 
-    # Spec JSON compacte pour référence LLM
+    # Spec JSON compacte
     spec_json = json.dumps({
         "models": [m.name for m in spec.models],
         "pages": [p.path for p in spec.pages],
@@ -309,13 +299,9 @@ Types d'entrée dans lib/types.ts — CreateXxxInput DOIT inclure TOUS les champ
         "fingerprint": spec.spec_fingerprint,
     }, ensure_ascii=False)
 
-    # ── Bloc RAG obligatoire spec-aware ──────────────────────────────────────
-    # Requêtes Qdrant déclenchées AVANT la génération selon le contenu du brief.
-    # Garantit que les standards qualité (pagination, N+1, transactions) sont
-    # visibles dans le prompt — sans dépendre de l'initiative du LLM.
     mandatory_rag_block = _build_mandatory_rag_block(spec)
 
-    # Bloc fichiers pré-générés (affiché uniquement si la liste est non vide)
+    # Fichiers pré-générés (à ne pas réécrire)
     pre_written_block = ""
     if pre_written:
         pre_written_list = "\n".join(f"  - {f}" for f in sorted(pre_written))
@@ -323,15 +309,20 @@ Types d'entrée dans lib/types.ts — CreateXxxInput DOIT inclure TOUS les champ
 ══════════════════════════════════════════════════════════════
 FICHIERS PRÉ-GÉNÉRÉS — NE PAS RÉÉCRIRE
 ══════════════════════════════════════════════════════════════
-Ces fichiers ont été générés automatiquement depuis les templates de la stack.
-Ils sont CORRECTS et COMPLETS — ne les réécrits JAMAIS avec write_file :
+Ces fichiers sont CORRECTS et COMPLETS — ne les réécrits JAMAIS :
 {pre_written_list}
 """
 
-    return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7.
+    return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7 — OPTION A.
 {mandatory_rag_block}
 Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
-{services_block}{pre_written_block}
+
+ARCHITECTURE OPTION A :
+  - lib/types.ts, lib/schemas.ts, lib/services/*.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
+  - Tu génères UNIQUEMENT : app/**/actions.ts, app/**/page.tsx, webhooks si présents
+  - Les mutations passent par des Server Actions (jamais app/api/** pour le CRUD)
+  - Les pages lisent les données directement avec prisma (pas de fetch vers /api)
+{service_map_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
 SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 ══════════════════════════════════════════════════════════════
@@ -340,15 +331,15 @@ SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 PAGES À CRÉER :
 {pages_summary}
 {pages_detail_block}
-ROUTES API À CRÉER :
+ROUTES API (webhooks seulement) :
 {routes_summary}
 
 ══════════════════════════════════════════════════════════════
-SCHÉMA PRISMA EXACT (copie-le tel quel dans prisma/schema.prisma)
+SCHÉMA PRISMA EXACT (déjà écrit dans prisma/schema.prisma — NE PAS RÉÉCRIRE)
 ══════════════════════════════════════════════════════════════
 {prisma_block}
-⚠️  Chaque route qui appelle `prisma.X` DOIT avoir le modèle X dans ce schéma.
-    Ne jamais appeler `prisma.audit`, `prisma.booking` etc. si le modèle n'est pas ci-dessus.
+⚠️  Chaque appel prisma.X doit correspondre à un modèle ci-dessus.
+    Ne jamais inventer prisma.audit, prisma.booking si non déclaré.
 
 ══════════════════════════════════════════════════════════════
 FICHIERS À GÉNÉRER PAR LE LLM (checklist — génère-les tous)
@@ -358,80 +349,71 @@ FICHIERS À GÉNÉRER PAR LE LLM (checklist — génère-les tous)
 ══════════════════════════════════════════════════════════════
 TES OUTILS
 ══════════════════════════════════════════════════════════════
-write_file(path, content)   → écrire un fichier (contenu brut UNIQUEMENT — jamais de ```json, ```tsx ou autre balise markdown)
-read_file(path)                      → métadonnées + aperçu 30 lignes (pour découvrir un fichier)
-read_file(path, start_line, end_line) → lire une plage précise de lignes
-list_directory(path)        → lister le contenu d'un dossier
-shell_exec(command)         → exécuter une commande shell
-file_exists(path)           → vérifier si un fichier existe (retourne EXISTS ou ABSENT)
-rag_search(query)           → chercher des standards d'implémentation
+write_file(path, content)             → écrire un fichier (contenu brut, jamais de balises markdown)
+read_file(path)                       → aperçu 30 lignes
+read_file(path, start_line, end_line) → plage précise de lignes
+list_directory(path)                  → lister un dossier
+shell_exec(command)                   → commande shell
+file_exists(path)                     → EXISTS ou ABSENT
+rag_search(query)                     → standards d'implémentation Qdrant
 
 ══════════════════════════════════════════════════════════════
-WORKFLOW (suis cet ordre STRICTEMENT)
+WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
-1. Génère les fichiers dans cet ordre :
-   a. lib/types.ts — types partagés (modèles Prisma re-exportés, CreateXxxInput, ApiResponse<T>)
-   b. lib/services/<model>.service.ts — un par modèle (voir bloc SERVICES DAL ci-dessus, Rule 26)
-   c. app/api/**/route.ts — routes API (peuvent importer prisma directement)
-   d. app/**/page.tsx — pages (importent les services via l'objet service, jamais prisma directement)
+1. Génère les Server Actions (app/**/actions.ts) :
+   - PREMIERE LIGNE obligatoire : 'use server'
+   - Importe { auth } from '@clerk/nextjs/server'
+   - Importe { revalidatePath } from 'next/cache'
+   - Importe le service depuis '@/lib/services/<model>.service'
+   - Importe les schémas depuis '@/lib/schemas'
+   - Pattern obligatoire dans chaque action :
+       const {{ userId }} = await auth();
+       if (!userId) throw new Error('Unauthorized');
+       const parsed = CreateXxxSchema.safeParse(data);
+       if (!parsed.success) throw new Error(parsed.error.message);
+       await xxxService.create(userId, parsed.data);
+       revalidatePath('/xxx');
 
-   ⚠️  STUBS page.tsx PRÉ-GÉNÉRÉS : avant de générer chaque page.tsx, appelle
-       read_file("app/<path>/page.tsx") — un stub avec les imports requis a déjà été
-       écrit. Lis-le, puis écris la version complète en CONSERVANT TOUS LES IMPORTS
-       déjà présents (auth, redirect, notFound). Ne jamais supprimer un import
-       existant dans un stub.
+2. Génère les pages (app/**/page.tsx) :
+   - Server Component (pas de 'use client' sauf si interaction pure)
+   - Lit les données : prisma.xxx.findMany({{ where: {{ userId }} }}) directement
+   - Si auth_required : const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
+   - Sérialise les dates Prisma avant Client Components : .toISOString()
+   - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
 
-   - Ne réécris jamais les fichiers pré-générés (prisma/schema.prisma, lib/prisma.ts)
-   - Génère-les TOUS avant d'exécuter la moindre commande shell
+3. Si webhooks présents → génère app/api/webhooks/**/route.ts
 
-1b. Génère le client Prisma OBLIGATOIRE — sans cette étape tsc échouera avec "PrismaClient introuvable" :
-    shell_exec("npx prisma generate")
-    ⚠️  Si la commande retourne FAILED → lis l'erreur et corrige schema.prisma avant de continuer.
-    ⚠️  Ne JAMAIS passer à l'étape 2 si prisma generate a échoué.
-
-2. Vérifie les types TypeScript :
-   shell_exec("npx tsc --noEmit")
-   - Si erreurs → lis la zone concernée avec read_file(fichier, ligne_erreur-5, ligne_erreur+20), corrige, puis revérifie
-   - Ne pas lancer npm build tant que tsc --noEmit a des erreurs
-
-3. Lance le build :
-   shell_exec("npm run build")
-   - Build success (OK en préfixe) → tu as terminé
-   - Build échoué (FAILED en préfixe) → lis l'erreur, identifie fichier + numéro de ligne, appelle read_file(fichier, ligne-5, ligne+20), corrige, rebuild
-   - Maximum 3 tentatives de build
+4. Lance le build :
+   shell_exec('npm run build')
+   - Build success (OK en préfixe) → terminé
+   - Build échoué → lis l'erreur, corriger, rebuild (max 3 tentatives)
+   - Si erreur tsc → shell_exec('npx tsc --noEmit') puis corriger
 
 ══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — DÉCOUPAGE page.tsx / page-client.tsx
 ══════════════════════════════════════════════════════════════
-Ne JAMAIS créer de fichier page-client.tsx SAUF si la page est explicitement
-marquée [INTERACTIVE] dans les instructions CONTENU ATTENDU PAR PAGE ci-dessus.
+Ne JAMAIS créer page-client.tsx SAUF si la page est marquée [INTERACTIVE].
 
-Pour toute page NON marquée [INTERACTIVE] :
-  ✅  Inclure 'use client' directement en ligne 1 de page.tsx si des onClick/useState sont nécessaires
-  ❌  JAMAIS générer un page-client.tsx parce que la page semble interactive — TS2307/TS2614
+Pour pages NON [INTERACTIVE] :
+  ✅  'use client' directement en ligne 1 de page.tsx si onClick/useState requis
+  ❌  JAMAIS page-client.tsx sans marquage explicite [INTERACTIVE]
 
-Si la page EST marquée [INTERACTIVE], le seul import autorisé dans page.tsx est :
-  ✅  import XxxClient from './page-client'        ← DEFAULT import (sans accolades)
-  ❌  import {{ XxxClient }} from './page-client'   ← INTERDIT — TS2614 (named import sur default export)
+Si [INTERACTIVE] :
+  ✅  import XxxClient from './page-client'    ← DEFAULT import
+  ❌  import {{ XxxClient }} from './page-client'  ← INTERDIT TS2614
 
 ══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — SÉRIALISATION DES DATES PRISMA (3 CAS DISTINCTS)
+RÈGLE ABSOLUE — SÉRIALISATION DATES PRISMA
 ══════════════════════════════════════════════════════════════
-Date Prisma, props Client Component et corps POST sont trois contextes différents.
-
-CAS 1 — Server Component → Client Component :
-  Sérialise avant de passer en props ET type l'interface en string (jamais Date) :
+CAS 1 — Server Component → Client Component props :
   const items = data.map(i => ({{ ...i, createdAt: i.createdAt.toISOString() }}))
-  ✅  interface CardProps {{ createdAt: string; }}    ← string dans l'interface
-  ❌  interface CardProps {{ createdAt: Date; }}      ← TS2322 (string not assignable to Date)
+  interface Props {{ createdAt: string; }}   ← toujours string dans l'interface props
 
-CAS 2 — Route POST : corps JSON arrive en string → convertir avant d'appeler le service :
-  ✅  service.create({{ ...body, startDate: new Date(body.startDate) }})
-  ❌  service.create(body)  ← TS2345 si CreateXxxInput.startDate est Date
+CAS 2 — Server Action reçoit une date string → envoyer string (schemas.ts gère string ISO)
+  Les schémas Zod utilisent z.string().datetime() → pas de new Date() dans les actions
 
-CAS 3 — Rendu JSX direct dans Server Component :
+CAS 3 — Rendu JSX direct :
   ✅  {{item.createdAt.toISOString()}}  ou  {{item.createdAt}}  si déjà string
-  ❌  {{item.createdAt}}  si encore objet Date  ← TS2322 (Date not assignable to ReactNode)
 
 {stack_rules_block}
 """.replace("{WORKDIR}", "/app/generated-projects")

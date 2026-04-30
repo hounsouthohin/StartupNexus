@@ -259,12 +259,13 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
-    # ── Génération déterministe : loading.tsx + stubs page.tsx ──────────────────
+    # ── Génération déterministe : loading.tsx ───────────────────────────────────
+    # generate_page_stubs retiré : les stubs étaient écrasés par le LLM de toute façon.
+    # generate_loading_files produit app/<path>/loading.tsx pour les pages protégées.
     if spec_obj is not None:
         try:
-            from agents.dev_pages_generator import generate_loading_files, generate_page_stubs
+            from agents.dev_pages_generator import generate_loading_files
             generate_loading_files(spec_obj, project_workdir)
-            generate_page_stubs(spec_obj, project_workdir)
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
@@ -362,11 +363,13 @@ async def run_dev_agent(
     # ── Génération déterministe : lib/services/*.ts ──────────────────
     # Un fichier CRUD par modèle Prisma — le LLM ne touche plus les services.
     # Élimine les TS2305/TS2724/TS2322 liés aux types de paramètres de service.
+    _service_map_str = ""
     if spec_obj is not None:
         try:
-            from agents.dev_service_generator import generate_service_files
+            from agents.dev_service_generator import generate_service_files, format_service_map_for_prompt
             _svc_files = generate_service_files(spec_obj, project_workdir)
             template_written.update(_svc_files)
+            _service_map_str = format_service_map_for_prompt(spec_obj)
             logger.info(
                 "[dev_graph] %d services générés de manière déterministe : %s",
                 len(_svc_files), list(_svc_files.keys())
@@ -374,7 +377,31 @@ async def run_dev_agent(
         except Exception as _sg_err:
             logger.warning(f"[dev_graph] service generator non bloquant : {_sg_err}")
 
-    # Protéger types.ts + services contre réécriture LLM (mis à jour après génération).
+    # ── Génération déterministe : lib/schemas.ts ─────────────────────
+    # Schémas Zod alignés sur lib/types.ts — utilisés dans les Server Actions.
+    if spec_obj is not None:
+        try:
+            from agents.dev_zod_generator import generate_schemas_file
+            _schemas_result = generate_schemas_file(spec_obj, project_workdir)
+            if _schemas_result:
+                template_written[_schemas_result.path] = _schemas_result.content
+                logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
+        except Exception as _zg_err:
+            logger.warning(f"[dev_graph] zod generator non bloquant : {_zg_err}")
+
+    # ── Extraction du Type Map Prisma réel ───────────────────────────
+    # Après prisma generate, lit node_modules/.prisma/client/index.d.ts
+    # pour fournir les types RÉELS au LLM (pas notre reconstruction).
+    _prisma_type_map: dict = {}
+    if _npm_prerun_ok:
+        try:
+            from agents.dev_prisma_extractor import extract_prisma_type_map
+            _prisma_type_map = extract_prisma_type_map(project_workdir)
+            logger.info("[dev_graph] Type Map Prisma extrait : %d modèles", len(_prisma_type_map))
+        except Exception as _pe_err:
+            logger.warning(f"[dev_graph] prisma_extractor non bloquant : {_pe_err}")
+
+    # Protéger types.ts + schemas.ts + services contre réécriture LLM.
     _protected.update(k for k in template_written if k.startswith("lib/"))
     _dev_tools_module.set_protected_files(_protected)
 
@@ -389,6 +416,7 @@ async def run_dev_agent(
             system_prompt = build_system_prompt(
                 spec_obj,
                 pre_written_files=list(template_written.keys()),
+                service_map=_service_map_str,
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
         except Exception as e:
@@ -545,6 +573,21 @@ async def run_dev_agent(
                 _path = _next_entry["path"]
 
                 _role_rules = {
+                    "actions": (
+                        "'use server' EN PREMIERE LIGNE — obligatoire.\n"
+                        "Chaque exported async function est une Server Action.\n"
+                        "PATTERN OBLIGATOIRE dans chaque action :\n"
+                        "  import { auth } from '@clerk/nextjs/server';\n"
+                        "  import { revalidatePath } from 'next/cache';\n"
+                        "  const { userId } = await auth();\n"
+                        "  if (!userId) throw new Error('Unauthorized');\n"
+                        "  const parsed = CreateXxxSchema.safeParse(data);\n"
+                        "  if (!parsed.success) throw new Error(parsed.error.message);\n"
+                        "  await xxxService.create(userId, parsed.data);\n"
+                        "  revalidatePath('/xxx');\n"
+                        "JAMAIS prisma directement dans une action — toujours via le service.\n"
+                        "JAMAIS NextResponse dans les actions — ce sont des fonctions, pas des handlers HTTP."
+                    ),
                     "route": (
                         "GUARD AUTH OBLIGATOIRE en debut de chaque handler :\n"
                         "  import { auth } from '@clerk/nextjs/server';\n"
@@ -571,16 +614,49 @@ async def run_dev_agent(
                 )
 
                 # Lecture des dependances utiles depuis le disque.
-                # Route : types.ts (800 chars) + service correspondant (600 chars si trouvé).
-                # Page  : service correspondant (400 chars).
-                # types.ts et services sont pré-générés de manière déterministe → pas d'injection LLM.
+                # Actions : schemas.ts + service correspondant + types.ts (1er fichier du plan).
+                # Route   : types.ts (800 chars) + service correspondant (600 chars si trouvé).
+                # Page    : service correspondant (400 chars).
+                # types.ts, schemas.ts et services sont pré-générés → pas d'injection LLM.
                 _dep = ""
-                if _role == "route":
-                    # types.ts
-                    if "lib/types.ts" in _validated_set:
+                if _role == "actions":
+                    # Service Map compact (closure — toujours disponible si services générés)
+                    if _service_map_str:
+                        _dep += f"\n{_service_map_str}"
+                    # schemas.ts (schémas Zod pour la validation dans les actions)
+                    _schemas_abs = os.path.join(project_workdir, "lib", "schemas.ts")
+                    if os.path.exists(_schemas_abs):
                         try:
-                            with open(os.path.join(project_workdir, "lib", "types.ts"), "r",
-                                      encoding="utf-8") as _f:
+                            with open(_schemas_abs, "r", encoding="utf-8") as _f:
+                                _dep += (
+                                    f"\nlib/schemas.ts :\n"
+                                    f"```typescript\n{_f.read()[:600]}\n```"
+                                )
+                        except Exception:
+                            pass
+                    # Chercher le service correspondant au segment du fichier actions.ts
+                    # ex: app/projects/actions.ts → lib/services/project.service.ts
+                    _act_seg = _path.split("/")[-2] if "/" in _path else ""
+                    _svc_candidates = [_act_seg, _act_seg.rstrip("s")]
+                    for _sv in _svc_candidates:
+                        _svc_abs = os.path.join(project_workdir, "lib", "services",
+                                                f"{_sv}.service.ts")
+                        if os.path.exists(_svc_abs):
+                            try:
+                                with open(_svc_abs, "r", encoding="utf-8") as _f:
+                                    _dep += (
+                                        f"\nlib/services/{_sv}.service.ts :\n"
+                                        f"```typescript\n{_f.read()[:500]}\n```"
+                                    )
+                            except Exception:
+                                pass
+                            break
+                elif _role == "route":
+                    # types.ts — pré-généré sur disque, pas dans validated_files
+                    _types_abs = os.path.join(project_workdir, "lib", "types.ts")
+                    if os.path.exists(_types_abs):
+                        try:
+                            with open(_types_abs, "r", encoding="utf-8") as _f:
                                 _dep = (
                                     f"\nlib/types.ts :\n"
                                     f"```typescript\n{_f.read()[:800]}\n```"
@@ -625,8 +701,30 @@ async def run_dev_agent(
                             except Exception:
                                 pass
 
+                # Phase 8 — Example-anchored prompting.
+                # Injecte le dernier fichier validé du même rôle comme exemple concret.
+                # Ancre le LLM sur un pattern déjà validé plutôt qu'une règle abstraite.
+                _example_anchor = ""
+                if _validated_set:
+                    _same_role_candidates = [
+                        e for e in _plan
+                        if e.get("role") == _role and e["path"] in _validated_set
+                    ]
+                    if _same_role_candidates:
+                        _example_path = _same_role_candidates[-1]["path"]
+                        _example_abs = os.path.join(project_workdir, _example_path)
+                        try:
+                            with open(_example_abs, "r", encoding="utf-8") as _ef:
+                                _example_content = _ef.read()[:500]
+                            _example_anchor = (
+                                f"\nEXEMPLE VALIDE ({_example_path} — pattern à réutiliser) :\n"
+                                f"```typescript\n{_example_content}\n```\n"
+                            )
+                        except Exception:
+                            pass
+
                 messages.append(HumanMessage(content=(
-                    f"{_ctx}{_dep}\n\n"
+                    f"{_ctx}{_dep}{_example_anchor}\n\n"
                     f"Ecris maintenant le fichier : {_path}\n"
                     "Un seul write_file. Rien d'autre."
                 )))
@@ -768,8 +866,9 @@ async def run_dev_agent(
     #   - On valide le batch (plusieurs fichiers d'un tour) plutôt que chaque write isolé
 
     _TS_EXTENSIONS = {".ts", ".tsx"}
-    # lib/types.ts est LLM-written — ne PAS le protéger ici (bug stall infini sinon).
-    # Seuls les fichiers écrits par les templates sont exclus de la validation.
+    # lib/types.ts et lib/services/*.ts sont pré-générés (Option A) — le LLM ne les écrit pas.
+    # Ils ne peuvent donc pas apparaître dans written_files (write_file retourne "ERREUR" pour eux).
+    # Seuls les fichiers infrastructure templates sont listés ici pour exclusion explicite.
     _PROTECTED_NAMES = {"lib/prisma.ts", "prisma/schema.prisma",
                         "prisma.config.ts", "middleware.ts", ".eslintrc.stack.json"}
 
@@ -893,6 +992,23 @@ async def run_dev_agent(
                 logger.info("[file_validate] tsc errors but not in newly written files — skip")
                 return {"file_validation_errors": ""}
 
+            # Axe C — Limiter à 3 erreurs max : le LLM corrige atomiquement.
+            # Envoyer 20 erreurs d'un coup génère des corrections en cascade ; 3 suffit.
+            import re as _re_top3
+            _err_lines_all = errors_for_written.splitlines()
+            _top3_lines: list[str] = []
+            _top3_count = 0
+            for _l in _err_lines_all:
+                if _re_top3.match(r"^[^\s].*\(\d+,\d+\): error TS", _l):
+                    if _top3_count >= 3:
+                        break
+                    _top3_count += 1
+                _top3_lines.append(_l)
+            errors_for_written = "\n".join(_top3_lines)
+            if _top3_count >= 3 and len(_err_lines_all) > len(_top3_lines):
+                errors_for_written += f"\n... ({len(_err_lines_all) - len(_top3_lines)} lignes supplémentaires masquées — corriger les 3 ci-dessus d'abord)"
+                logger.info("[file_validate] top-3 filter : %d erreurs tronquées à 3", len(_err_lines_all))
+
             # A2 + Catalogue : enrichissement ciblé par erreur.
             # A2 : lit les lignes fautives (correction chirurgicale, évite blog-anchor).
             # Catalogue : injecte un context_hint actionnable spécifique à chaque code d'erreur.
@@ -952,7 +1068,7 @@ async def run_dev_agent(
 
             # Circuit breaker — same-file loop detector.
             # Accumule les clés "file:TSxxxx" vues à chaque tour (un ajout par tour, pas par ligne).
-            # Si la même clé apparaît 3+ tours → boucle stagnante détectée.
+            # Si la même clé apparaît 5+ tours → boucle stagnante détectée.
             import re as _re3
             stale_keys = list(state.get("stale_error_keys", []))
             new_keys_this_turn: set[str] = set()
@@ -1006,7 +1122,7 @@ async def run_dev_agent(
             from collections import Counter
             counts = Counter(stale_keys)
             worst_key, worst_count = counts.most_common(1)[0]
-            if worst_count >= 3:
+            if worst_count >= 5:
                 logger.error(
                     "[file_validate] BOUCLE STAGNANTE détectée : '%s' vue %d fois — arrêt anticipé.",
                     worst_key, worst_count,
