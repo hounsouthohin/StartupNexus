@@ -171,7 +171,8 @@ def format_type_map_for_prompt(type_map: dict[str, list[dict]]) -> str:
         if datetime_required:
             dt_names = ", ".join(f["name"] for f in datetime_required)
             model_lines.append(
-                f"  ⚠ DateTime requis → new Date(value) dans le service : {dt_names}"
+                f"  ⚠ DateTime requis (z.coerce.date() coerce string→Date) : {dt_names}"
+                f" — sérialiser pour JSX : .toISOString()"
             )
 
         if optional_non_relation:

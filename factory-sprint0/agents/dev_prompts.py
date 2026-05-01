@@ -421,8 +421,8 @@ CAS 1 — Server Component → Client Component props :
   const items = data.map(i => ({{ ...i, createdAt: i.createdAt.toISOString() }}))
   interface Props {{ createdAt: string; }}   ← toujours string dans l'interface props
 
-CAS 2 — Server Action reçoit une date string → envoyer string (schemas.ts gère string ISO)
-  Les schémas Zod utilisent z.string().datetime() → pas de new Date() dans les actions
+CAS 2 — Server Action reçoit une date string → z.coerce.date() dans le schéma la coerce en Date
+  parsed.data.dateField est déjà un Date — passer directement au service, pas de new Date() dans les actions
 
 CAS 3 — Rendu JSX direct :
   ✅  {{item.createdAt.toISOString()}}  ou  {{item.createdAt}}  si déjà string

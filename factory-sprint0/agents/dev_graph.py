@@ -259,6 +259,25 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
+    # ── Suppression conditionnelle du template clerk webhook ────────────────────
+    # Le template est écrit pour tous les projets, mais prisma.user n'existe que si
+    # le schema a un modèle User. Si la spec n'a aucune route webhook, on supprime
+    # le fichier pour éviter TS2307 (svix) et TS2339 (prisma.user inexistant).
+    _CLERK_WH_KEY = "app/api/webhooks/clerk/route.ts"
+    if spec_obj is not None and _CLERK_WH_KEY in template_written:
+        _has_webhook_routes = any(
+            "webhook" in (r.path or "").lower() or "stripe" in (r.path or "").lower()
+            for r in spec_obj.routes
+        )
+        if not _has_webhook_routes:
+            del template_written[_CLERK_WH_KEY]
+            _wh_disk = os.path.join(project_workdir, "app", "api", "webhooks", "clerk", "route.ts")
+            try:
+                os.remove(_wh_disk)
+                logger.info("[dev_graph] clerk webhook template supprimé — pas de routes webhook dans la spec")
+            except OSError:
+                pass
+
     # ── Génération déterministe : loading.tsx ───────────────────────────────────
     # generate_page_stubs retiré : les stubs étaient écrasés par le LLM de toute façon.
     # generate_loading_files produit app/<path>/loading.tsx pour les pages protégées.
