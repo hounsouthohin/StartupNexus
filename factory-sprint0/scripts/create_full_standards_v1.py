@@ -2282,20 +2282,20 @@ EXEMPLE_INVALIDE:
   }
 EXEMPLE_VALIDE:
   // app/dashboard/page.tsx ✅ — Server Component pour les données
-  import { DashboardClient } from './DashboardClient';
+  import DashboardClient from './page-client';
   import { auth } from '@clerk/nextjs/server';
+  import { postService } from '@/lib/services/post.service';
   export default async function DashboardPage() {
     const { userId } = await auth();
     if (!userId) redirect('/sign-in');
-    const posts = await prisma.post.findMany({ where: { authorId: userId } });
-    return <DashboardClient posts={posts} />;
+    const posts = await postService.getAll(userId); // ✅ via service, JAMAIS prisma direct
+    return <DashboardClient posts={posts.map(p => ({ ...p, createdAt: p.createdAt.toISOString() }))} />;
   }
-  // app/dashboard/DashboardClient.tsx
+  // app/dashboard/page-client.tsx
   'use client';
   import { useState } from 'react';
-  import type { Post } from '@/lib/types';
-  interface DashboardClientProps { posts: Post[] }
-  export function DashboardClient({ posts }: DashboardClientProps) {
+  interface DashboardClientProps { posts: { id: string; createdAt: string }[] }
+  export default function DashboardClient({ posts }: DashboardClientProps) {
     const [filter, setFilter] = useState('all');
   }
 ERREUR_ATTENDUE: Error: useState only works in Client Components. Add the "use client" directive at the top of the file to use it.

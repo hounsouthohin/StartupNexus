@@ -1,20 +1,22 @@
 """
 brief_catalog.py — Source unique des briefs de test structurés.
 
-Format v3 — chaque brief contient :
+Format v4 (Option A — Server Actions, Avril 2026) — chaque brief contient :
 - description   : description humaine de l'app (contexte métier)
 - architecture  : intent SaaS, multi-tenant, public/private, workflow
 - models        : Prisma DSL verbatim
 - pages         : [{"path": "/...", "auth": bool}]
 - pages_detail  : {"path": "QUOI afficher, quels champs, quelles actions, état vide"}
                   Les pages avec boutons/formulaires d'action sont marquées [INTERACTIVE].
-- routes        : [{"method": "...", "path": "/api/..."}]
+                  Mutations : "Server Action createXxx({...})" (jamais "POST /api/...").
+                  Select lists pré-chargées : "Server Component charge via xxxService.getAll(userId)
+                  et passe en props au formulaire Client."
+- routes        : mutations uniquement (POST/PATCH/DELETE → planner génère actions.ts).
+                  Les routes GET sont supprimées — Server Components lisent via service DAL.
 - user_flows    : flux utilisateur principaux
 
-pages_detail est le champ le plus critique : il dit au spec_writer exactement
-quoi afficher sur chaque page, ce que le LLM ne peut pas deviner seul.
-[INTERACTIVE] déclenche la génération d'un Client Component séparé (page-client.tsx)
-pour les éléments interactifs — les boutons/handlers ne peuvent pas être dans un Server Component.
+[INTERACTIVE] déclenche la génération d'un Client Component séparé pour les éléments
+interactifs (boutons, formulaires avec hooks React).
 """
 from __future__ import annotations
 
@@ -43,7 +45,8 @@ PHASE0_BRIEFS: List[Dict] = [
                 "Task est liée à Project via projectId. Comment est liée à Task via taskId "
                 "avec authorId (= userId Clerk). "
                 "Workflow statut Task : todo → in-progress → done. "
-                "CRUD complet sur projets, tâches et commentaires."
+                "CRUD complet sur projets, tâches et commentaires. "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
             ),
             "models": [
                 (
@@ -78,82 +81,81 @@ PHASE0_BRIEFS: List[Dict] = [
                     "Chaque carte affiche : nom du projet, description courte (60 chars max), "
                     "badge statut (active=vert, archived=gris), date de création. "
                     "Lien cliquable → /projects/[id]. "
-                    "Bouton 'Archiver' (PATCH /api/projects/[id] { status: 'archived' }) si active. "
-                    "Bouton 'Réactiver' (PATCH { status: 'active' }) si archived. "
-                    "Bouton 'Supprimer' (DELETE /api/projects/[id]). "
+                    "Bouton 'Archiver' → Server Action updateProject(id, { status: 'archived' }) si active. "
+                    "Bouton 'Réactiver' → Server Action updateProject(id, { status: 'active' }) si archived. "
+                    "Bouton 'Supprimer' → Server Action deleteProject(id). "
                     "Bouton 'Nouveau projet' en haut à droite → /projects/new. "
                     "Si liste vide : 'Aucun projet. Créez votre premier projet !'. "
                     "[INTERACTIVE]"
                 ),
                 "/projects/new": (
-                    "Formulaire de création de projet (Client Component). "
+                    "Formulaire de création de projet. "
                     "Champs : nom (input text, required, placeholder 'Nom du projet'), "
                     "description (textarea, optionnel, placeholder 'Description du projet'). "
                     "Bouton 'Créer le projet'. "
-                    "Submit → POST /api/projects { name, description } → redirect /projects/[id]. "
-                    "Erreur inline si nom vide."
+                    "Submit → Server Action createProject({ name, description }) → redirect /projects/[id]. "
+                    "Erreur inline si nom vide. "
+                    "[INTERACTIVE]"
                 ),
                 "/projects/[id]": (
                     "Page du projet. Titre en H1, description, badge statut. "
                     "3 colonnes côte à côte : 'À faire' (todo), 'En cours' (in-progress), 'Terminé' (done). "
                     "Chaque colonne liste les tâches filtrées par statut. "
                     "Chaque tâche affiche : titre, badge priorité (high=rouge, medium=jaune, low=gris), "
-                    "lien → /tasks/[id], bouton 'Supprimer' (DELETE /api/tasks/[id]). "
-                    "Bouton de transition par tâche : 'Démarrer' (todo→in-progress, PATCH /api/tasks/[id] { status: 'in-progress' }), "
-                    "'Terminer' (in-progress→done, PATCH { status: 'done' }). "
+                    "lien → /tasks/[id], bouton 'Supprimer' → Server Action deleteTask(id). "
+                    "Bouton de transition par tâche : "
+                    "'Démarrer' (todo→in-progress, Server Action updateTask(id, { status: 'in-progress' })), "
+                    "'Terminer' (in-progress→done, Server Action updateTask(id, { status: 'done' })). "
                     "Bouton 'Nouvelle tâche' → /projects/[id]/tasks/new. "
                     "Bouton retour '← Mes projets'. "
                     "notFound() si projet introuvable ou n'appartient pas à l'utilisateur. "
                     "[INTERACTIVE]"
                 ),
                 "/projects/[id]/tasks/new": (
-                    "Formulaire de création de tâche (Client Component). "
+                    "Formulaire de création de tâche. "
                     "Champs : titre (input text, required), "
                     "description (textarea, optionnel), "
                     "priorité (select : low / medium / high, défaut : medium). "
                     "Bouton 'Créer la tâche'. "
-                    "Submit → POST /api/projects/[id]/tasks { title, description, priority } "
+                    "Submit → Server Action createTask({ title, description, priority, projectId }) "
                     "→ redirect /projects/[id]. "
-                    "Erreur inline si titre vide."
+                    "Erreur inline si titre vide. "
+                    "[INTERACTIVE]"
                 ),
                 "/tasks/[id]": (
                     "Détail d'une tâche. Titre en H1, description, badge priorité, badge statut. "
                     "Boutons de transition de statut : "
-                    "'Démarrer' si todo (PATCH /api/tasks/[id] { status: 'in-progress' }), "
-                    "'Terminer' si in-progress (PATCH { status: 'done' }), "
-                    "'Réouvrir' si done (PATCH { status: 'todo' }). "
+                    "'Démarrer' si todo (Server Action updateTask(id, { status: 'in-progress' })), "
+                    "'Terminer' si in-progress (Server Action updateTask(id, { status: 'done' })), "
+                    "'Réouvrir' si done (Server Action updateTask(id, { status: 'todo' })). "
                     "Section 'Commentaires' : liste des commentaires triés par date croissante "
                     "(contenu, auteur=authorId tronqué, date formatée). "
                     "Bouton 'Supprimer' par commentaire si authorId = userId connecté "
-                    "(DELETE /api/comments/[id]). "
+                    "→ Server Action deleteComment(id). "
                     "Formulaire inline en bas : textarea placeholder 'Ajouter un commentaire' "
-                    "+ bouton 'Commenter' (POST /api/tasks/[id]/comments { content }). "
+                    "+ bouton 'Commenter' → Server Action createComment({ content, taskId }). "
                     "Bouton retour '← Projet'. "
                     "notFound() si tâche introuvable. "
                     "[INTERACTIVE]"
                 ),
             },
             "routes": [
-                {"method": "GET",    "path": "/api/projects"},
                 {"method": "POST",   "path": "/api/projects"},
-                {"method": "GET",    "path": "/api/projects/[id]"},
                 {"method": "PATCH",  "path": "/api/projects/[id]"},
                 {"method": "DELETE", "path": "/api/projects/[id]"},
-                {"method": "GET",    "path": "/api/projects/[id]/tasks"},
                 {"method": "POST",   "path": "/api/projects/[id]/tasks"},
-                {"method": "GET",    "path": "/api/tasks/[id]"},
                 {"method": "PATCH",  "path": "/api/tasks/[id]"},
                 {"method": "DELETE", "path": "/api/tasks/[id]"},
                 {"method": "POST",   "path": "/api/tasks/[id]/comments"},
                 {"method": "DELETE", "path": "/api/comments/[id]"},
             ],
             "user_flows": [
-                "L'utilisateur crée un projet : /projects/new → POST /api/projects → redirect /projects/[id]",
-                "L'utilisateur ajoute une tâche : /projects/[id]/tasks/new → POST /api/projects/[id]/tasks → redirect /projects/[id]",
-                "L'utilisateur déplace une tâche en 'En cours' : bouton sur /projects/[id] → PATCH /api/tasks/[id] { status: 'in-progress' }",
-                "L'utilisateur consulte une tâche et ajoute un commentaire : /tasks/[id] → POST /api/tasks/[id]/comments",
-                "L'utilisateur archive un projet terminé : bouton sur /projects → PATCH /api/projects/[id] { status: 'archived' }",
-                "L'utilisateur supprime une tâche : bouton sur /projects/[id] → DELETE /api/tasks/[id]",
+                "L'utilisateur crée un projet : /projects/new → Server Action createProject() → redirect /projects/[id]",
+                "L'utilisateur ajoute une tâche : /projects/[id]/tasks/new → Server Action createTask() → redirect /projects/[id]",
+                "L'utilisateur déplace une tâche en 'En cours' : bouton sur /projects/[id] → Server Action updateTask(id, { status: 'in-progress' })",
+                "L'utilisateur consulte une tâche et ajoute un commentaire : /tasks/[id] → Server Action createComment()",
+                "L'utilisateur archive un projet terminé : bouton sur /projects → Server Action updateProject(id, { status: 'archived' })",
+                "L'utilisateur supprime une tâche : bouton sur /projects/[id] → Server Action deleteTask(id)",
             ],
         },
     },
@@ -161,13 +163,13 @@ PHASE0_BRIEFS: List[Dict] = [
     # ──────────────────────────────────────────────────────────────────
     # Projet 2 — CRM contact (contact-crm)
     # 3 modèles : Company, Contact, Interaction
-    # Complexité : dashboard agrégé, fetch côté Client Component,
+    # Complexité : dashboard agrégé, pré-chargement Server Component,
     #              relations Company→Contact→Interaction, query params pré-sélection
     # ──────────────────────────────────────────────────────────────────
     {
         "project_name": "contact-crm",
         "family": "crm",
-        "tags": ["multi_model", "dashboard", "aggregation", "relations", "client_fetch"],
+        "tags": ["multi_model", "dashboard", "aggregation", "relations", "server_preload"],
         "brief": {
             "description": (
                 "Mini CRM de gestion de contacts professionnels. "
@@ -180,7 +182,9 @@ PHASE0_BRIEFS: List[Dict] = [
                 "Interaction est liée à Contact via contactId. "
                 "Tous les modèles ont userId pour l'ownership direct. "
                 "Dashboard avec métriques agrégées calculées côté serveur. "
-                "Les formulaires de création chargent les listes de sélection via fetch côté client."
+                "Les formulaires de création reçoivent les listes de sélection "
+                "pré-chargées côté serveur (Server Component → props Client Component). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
             ),
             "models": [
                 (
@@ -228,19 +232,20 @@ PHASE0_BRIEFS: List[Dict] = [
                     "Chaque ligne : nom, secteur (badge coloré), site web (lien externe si renseigné), "
                     "date d'ajout. "
                     "Lien → /companies/[id]. "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/companies/[id]). "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteCompany(id). "
                     "Bouton 'Nouvelle entreprise' en haut → /companies/new. "
                     "Si vide : 'Aucune entreprise. Ajoutez votre premier client !'. "
                     "[INTERACTIVE]"
                 ),
                 "/companies/new": (
-                    "Formulaire de création d'entreprise (Client Component). "
+                    "Formulaire de création d'entreprise. "
                     "Champs : nom (input text, required), "
                     "secteur (select : Tech / Finance / Santé / Retail / Éducation / Autre, required), "
                     "site web (input url, optionnel, placeholder 'https://'). "
                     "Bouton 'Ajouter l'entreprise'. "
-                    "Submit → POST /api/companies { name, industry, website } → redirect /companies. "
-                    "Erreur inline si champ requis manquant."
+                    "Submit → Server Action createCompany({ name, industry, website }) → redirect /companies. "
+                    "Erreur inline si champ requis manquant. "
+                    "[INTERACTIVE]"
                 ),
                 "/companies/[id]": (
                     "Détail d'une entreprise. Nom en H1, secteur badge, site web cliquable. "
@@ -248,31 +253,31 @@ PHASE0_BRIEFS: List[Dict] = [
                     "(prénom+nom, email, téléphone, lien → /contacts/[id]). "
                     "Bouton 'Nouveau contact pour cette entreprise' → /contacts/new?companyId=[id]. "
                     "Bouton retour '← Entreprises'. "
-                    "notFound() si entreprise introuvable ou n'appartient pas à l'utilisateur. "
-                    "[INTERACTIVE]"
+                    "notFound() si entreprise introuvable ou n'appartient pas à l'utilisateur."
                 ),
                 "/contacts": (
                     "Liste de tous les contacts. "
                     "Chaque ligne : prénom+nom, email, téléphone (ou '-'), "
                     "entreprise (nom via include, lien → /companies/[id]). "
                     "Lien → /contacts/[id]. "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/contacts/[id]). "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteContact(id). "
                     "Bouton 'Nouveau contact' en haut → /contacts/new. "
                     "Si vide : 'Aucun contact.'. "
                     "[INTERACTIVE]"
                 ),
                 "/contacts/new": (
-                    "Formulaire de création de contact (Client Component). "
+                    "Formulaire de création de contact. "
+                    "page.tsx (Server Component) pré-charge les entreprises via "
+                    "companyService.getAll(userId) et passe companies[] en props au formulaire Client. "
                     "Champs : prénom (input text, required), nom (input text, required), "
                     "email (input email, required), téléphone (input tel, optionnel), "
-                    "entreprise (select parmi les entreprises de l'utilisateur, required — "
+                    "entreprise (select parmi companies[], required — "
                     "pré-sélectionné si ?companyId= présent en query param). "
-                    "Charger la liste des entreprises via GET /api/companies au montage du composant "
-                    "(useEffect + fetch). "
                     "Bouton 'Ajouter le contact'. "
-                    "Submit → POST /api/contacts { firstName, lastName, email, phone, companyId } "
+                    "Submit → Server Action createContact({ firstName, lastName, email, phone, companyId }) "
                     "→ redirect /contacts. "
-                    "Erreur inline si champ requis manquant."
+                    "Erreur inline si champ requis manquant. "
+                    "[INTERACTIVE]"
                 ),
                 "/contacts/[id]": (
                     "Profil du contact. Prénom+Nom en H1, email (lien mailto:), téléphone, "
@@ -281,47 +286,43 @@ PHASE0_BRIEFS: List[Dict] = [
                     "triées par date décroissante (type badge coloré : "
                     "Appel=bleu, Email=vert, Réunion=orange, Démo=violet, Autre=gris ; "
                     "notes en texte ; date formatée). "
-                    "Bouton 'Supprimer' par interaction (DELETE /api/interactions/[id]). "
+                    "Bouton 'Supprimer' par interaction → Server Action deleteInteraction(id). "
                     "Bouton 'Ajouter une interaction' → /interactions/new?contactId=[id]. "
                     "Bouton retour '← Contacts'. "
                     "notFound() si contact introuvable. "
                     "[INTERACTIVE]"
                 ),
                 "/interactions/new": (
-                    "Formulaire d'ajout d'interaction (Client Component). "
+                    "Formulaire d'ajout d'interaction. "
+                    "page.tsx (Server Component) pré-charge les contacts via "
+                    "contactService.getAll(userId) et passe contacts[] en props au formulaire Client. "
                     "Champs : type (select : Appel téléphonique / Email / Réunion / Démo / Autre, required), "
                     "notes (textarea, required, placeholder 'Résumé de l'échange...'), "
                     "date (input date, required, défaut = aujourd'hui), "
-                    "contact (select parmi tous les contacts de l'utilisateur, required — "
+                    "contact (select parmi contacts[], required — "
                     "pré-sélectionné si ?contactId= présent en query param). "
-                    "Charger la liste des contacts via GET /api/contacts au montage du composant "
-                    "(useEffect + fetch). "
                     "Bouton 'Enregistrer l'interaction'. "
-                    "Submit → POST /api/interactions { type, notes, date, contactId } "
+                    "Submit → Server Action createInteraction({ type, notes, date, contactId }) "
                     "→ redirect /contacts/[contactId] si contactId connu, sinon /contacts. "
-                    "Erreur inline si champ requis manquant."
+                    "Erreur inline si champ requis manquant. "
+                    "[INTERACTIVE]"
                 ),
             },
             "routes": [
-                {"method": "GET",    "path": "/api/companies"},
                 {"method": "POST",   "path": "/api/companies"},
-                {"method": "GET",    "path": "/api/companies/[id]"},
                 {"method": "DELETE", "path": "/api/companies/[id]"},
-                {"method": "GET",    "path": "/api/contacts"},
                 {"method": "POST",   "path": "/api/contacts"},
-                {"method": "GET",    "path": "/api/contacts/[id]"},
                 {"method": "DELETE", "path": "/api/contacts/[id]"},
-                {"method": "GET",    "path": "/api/interactions"},
                 {"method": "POST",   "path": "/api/interactions"},
                 {"method": "DELETE", "path": "/api/interactions/[id]"},
             ],
             "user_flows": [
-                "L'utilisateur ajoute une entreprise : /companies/new → POST /api/companies → redirect /companies",
-                "L'utilisateur ajoute un contact dans une entreprise : /contacts/new?companyId=[id] → POST /api/contacts → redirect /contacts",
-                "L'utilisateur enregistre un appel avec un contact : /interactions/new?contactId=[id] → POST /api/interactions → redirect /contacts/[id]",
+                "L'utilisateur ajoute une entreprise : /companies/new → Server Action createCompany() → redirect /companies",
+                "L'utilisateur ajoute un contact dans une entreprise : /contacts/new?companyId=[id] → Server Action createContact() → redirect /contacts",
+                "L'utilisateur enregistre un appel avec un contact : /interactions/new?contactId=[id] → Server Action createInteraction() → redirect /contacts/[id]",
                 "L'utilisateur consulte le profil d'un contact et voit son historique : /contacts/[id]",
                 "L'utilisateur consulte le dashboard et voit les 5 dernières interactions : /",
-                "L'utilisateur supprime une entreprise sans contacts : bouton Supprimer → DELETE /api/companies/[id]",
+                "L'utilisateur supprime une entreprise sans contacts : bouton Supprimer → Server Action deleteCompany(id)",
             ],
         },
     },
@@ -330,12 +331,12 @@ PHASE0_BRIEFS: List[Dict] = [
     # Projet 3 — Gestion des congés (leave-manager)
     # 3 modèles : Department, Employee, LeaveRequest
     # Complexité : workflow d'approbation multi-statut, calcul de durée,
-    #              dashboard avec pending, fetch Client Component pour select
+    #              dashboard avec pending, pré-chargement Server Component pour selects
     # ──────────────────────────────────────────────────────────────────
     {
         "project_name": "leave-manager",
         "family": "hr_workflow",
-        "tags": ["multi_model", "workflow", "approval", "dashboard", "date_calculations", "client_fetch"],
+        "tags": ["multi_model", "workflow", "approval", "dashboard", "date_calculations", "server_preload"],
         "brief": {
             "description": (
                 "Application RH de gestion des demandes de congé. "
@@ -349,8 +350,9 @@ PHASE0_BRIEFS: List[Dict] = [
                 "LeaveRequest est liée à Employee via employeeId. "
                 "Tous les modèles ont userId (le manager connecté via Clerk). "
                 "Workflow statut LeaveRequest : pending → approved | rejected. "
-                "Les formulaires de création chargent les listes (départements, employés) "
-                "via fetch côté Client Component au montage."
+                "Les formulaires de création reçoivent les listes (départements, employés) "
+                "pré-chargées côté serveur (Server Component → props Client Component). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
             ),
             "models": [
                 (
@@ -390,8 +392,8 @@ PHASE0_BRIEFS: List[Dict] = [
                     "demandes approuvées ce mois. "
                     "Section 'Demandes en attente' : liste de toutes les LeaveRequest avec status=pending — "
                     "prénom+nom de l'employé (via include), type de congé badge, "
-                    "dates (du X au Y), bouton 'Approuver' (PATCH /api/leaves/[id] { status: 'approved' }) "
-                    "et bouton 'Rejeter' (PATCH { status: 'rejected' }). "
+                    "dates (du X au Y), bouton 'Approuver' → Server Action updateLeaveRequest(id, { status: 'approved' }) "
+                    "et bouton 'Rejeter' → Server Action updateLeaveRequest(id, { status: 'rejected' }). "
                     "Si aucune demande en attente : 'Aucune demande en attente.'. "
                     "Section 'Employés récents' : 3 derniers employés ajoutés (prénom+nom, poste). "
                     "[INTERACTIVE]"
@@ -399,39 +401,41 @@ PHASE0_BRIEFS: List[Dict] = [
                 "/departments": (
                     "Liste des départements. "
                     "Chaque ligne : nom du département, nombre d'employés (via _count si possible). "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/departments/[id]). "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteDepartment(id). "
                     "Bouton 'Nouveau département' → /departments/new. "
                     "Si vide : 'Aucun département créé.'. "
                     "[INTERACTIVE]"
                 ),
                 "/departments/new": (
-                    "Formulaire de création de département (Client Component). "
+                    "Formulaire de création de département. "
                     "Champ : nom (input text, required, placeholder 'Ex: Ingénierie, RH, Finance'). "
                     "Bouton 'Créer le département'. "
-                    "Submit → POST /api/departments { name } → redirect /departments. "
-                    "Erreur inline si nom vide."
+                    "Submit → Server Action createDepartment({ name }) → redirect /departments. "
+                    "Erreur inline si nom vide. "
+                    "[INTERACTIVE]"
                 ),
                 "/employees": (
                     "Liste de tous les employés. "
                     "Chaque ligne : prénom+nom, poste, département (badge via include), "
                     "date d'embauche formatée. "
                     "Lien → /employees/[id]. "
-                    "Bouton 'Supprimer' par ligne (DELETE /api/employees/[id]). "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteEmployee(id). "
                     "Bouton 'Nouvel employé' → /employees/new. "
                     "Si vide : 'Aucun employé.'. "
                     "[INTERACTIVE]"
                 ),
                 "/employees/new": (
-                    "Formulaire d'ajout d'employé (Client Component). "
+                    "Formulaire d'ajout d'employé. "
+                    "page.tsx (Server Component) pré-charge les départements via "
+                    "departmentService.getAll(userId) et passe departments[] en props au formulaire Client. "
                     "Champs : prénom (input text, required), nom (input text, required), "
                     "poste (input text, required, placeholder 'Ex: Développeur, Designer'), "
-                    "département (select parmi les départements, required). "
-                    "Charger la liste des départements via GET /api/departments au montage "
-                    "(useEffect + fetch). "
+                    "département (select parmi departments[], required). "
                     "Bouton 'Ajouter l'employé'. "
-                    "Submit → POST /api/employees { firstName, lastName, position, departmentId } "
+                    "Submit → Server Action createEmployee({ firstName, lastName, position, departmentId }) "
                     "→ redirect /employees. "
-                    "Erreur inline si champ requis manquant."
+                    "Erreur inline si champ requis manquant. "
+                    "[INTERACTIVE]"
                 ),
                 "/employees/[id]": (
                     "Profil d'un employé. Prénom+Nom en H1, poste, département badge. "
@@ -454,52 +458,48 @@ PHASE0_BRIEFS: List[Dict] = [
                     "[INTERACTIVE]"
                 ),
                 "/leaves/new": (
-                    "Formulaire de demande de congé (Client Component). "
-                    "Champs : employé (select parmi tous les employés, required — "
+                    "Formulaire de demande de congé. "
+                    "page.tsx (Server Component) pré-charge les employés via "
+                    "employeeService.getAll(userId) et passe employees[] en props au formulaire Client. "
+                    "Champs : employé (select parmi employees[], required — "
                     "pré-sélectionné si ?employeeId= présent en query param), "
                     "type (select : Congé annuel / Congé maladie / Autre, required), "
                     "date de début (input date, required), "
                     "date de fin (input date, required, >= date de début), "
                     "motif (textarea, required, placeholder 'Motif de la demande...'). "
-                    "Charger la liste des employés via GET /api/employees au montage "
-                    "(useEffect + fetch). "
                     "Bouton 'Soumettre la demande'. "
-                    "Submit → POST /api/leaves { type, startDate, endDate, reason, employeeId } "
+                    "Submit → Server Action createLeaveRequest({ type, startDate, endDate, reason, employeeId }) "
                     "→ redirect /leaves. "
-                    "Erreur inline si champ requis manquant ou date fin < date début."
+                    "Erreur inline si champ requis manquant ou date fin < date début. "
+                    "[INTERACTIVE]"
                 ),
                 "/leaves/[id]": (
                     "Détail d'une demande de congé. "
                     "Prénom+Nom de l'employé en H1, type badge, dates (du X au Y), "
                     "durée calculée en jours, motif, badge statut, date de soumission. "
-                    "Si status=pending : bouton 'Approuver' (PATCH /api/leaves/[id] { status: 'approved' }) "
-                    "et bouton 'Rejeter' (PATCH { status: 'rejected' }). "
-                    "Bouton 'Supprimer' si status=pending (DELETE /api/leaves/[id] → redirect /leaves). "
+                    "Si status=pending : bouton 'Approuver' → Server Action updateLeaveRequest(id, { status: 'approved' }) "
+                    "et bouton 'Rejeter' → Server Action updateLeaveRequest(id, { status: 'rejected' }). "
+                    "Bouton 'Supprimer' si status=pending → Server Action deleteLeaveRequest(id) → redirect /leaves. "
                     "Bouton retour '← Demandes de congé'. "
                     "notFound() si demande introuvable. "
                     "[INTERACTIVE]"
                 ),
             },
             "routes": [
-                {"method": "GET",    "path": "/api/departments"},
                 {"method": "POST",   "path": "/api/departments"},
                 {"method": "DELETE", "path": "/api/departments/[id]"},
-                {"method": "GET",    "path": "/api/employees"},
                 {"method": "POST",   "path": "/api/employees"},
-                {"method": "GET",    "path": "/api/employees/[id]"},
                 {"method": "DELETE", "path": "/api/employees/[id]"},
-                {"method": "GET",    "path": "/api/leaves"},
                 {"method": "POST",   "path": "/api/leaves"},
-                {"method": "GET",    "path": "/api/leaves/[id]"},
                 {"method": "PATCH",  "path": "/api/leaves/[id]"},
                 {"method": "DELETE", "path": "/api/leaves/[id]"},
             ],
             "user_flows": [
-                "Le manager crée les départements : /departments/new → POST /api/departments → redirect /departments",
-                "Le manager ajoute un employé dans un département : /employees/new → POST /api/employees → redirect /employees",
-                "Le manager soumet une demande de congé pour un employé : /leaves/new → POST /api/leaves → redirect /leaves",
-                "Le manager approuve une demande en attente : bouton sur / (dashboard) → PATCH /api/leaves/[id] { status: 'approved' }",
-                "Le manager rejette une demande : bouton sur /leaves/[id] → PATCH /api/leaves/[id] { status: 'rejected' }",
+                "Le manager crée les départements : /departments/new → Server Action createDepartment() → redirect /departments",
+                "Le manager ajoute un employé dans un département : /employees/new → Server Action createEmployee() → redirect /employees",
+                "Le manager soumet une demande de congé pour un employé : /leaves/new → Server Action createLeaveRequest() → redirect /leaves",
+                "Le manager approuve une demande en attente : bouton sur / (dashboard) → Server Action updateLeaveRequest(id, { status: 'approved' })",
+                "Le manager rejette une demande : bouton sur /leaves/[id] → Server Action updateLeaveRequest(id, { status: 'rejected' })",
                 "Le manager consulte l'historique des congés d'un employé : /employees/[id]",
             ],
         },

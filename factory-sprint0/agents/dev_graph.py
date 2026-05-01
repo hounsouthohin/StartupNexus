@@ -360,22 +360,18 @@ async def run_dev_agent(
         except Exception as _tg_err:
             logger.warning(f"[dev_graph] types generator non bloquant : {_tg_err}")
 
-    # ── Génération déterministe : lib/services/*.ts ──────────────────
-    # Un fichier CRUD par modèle Prisma — le LLM ne touche plus les services.
-    # Élimine les TS2305/TS2724/TS2322 liés aux types de paramètres de service.
+    # ── Service Map (contrat d'interface) ────────────────────────────
+    # Les services sont désormais générés par le LLM (pas pré-écrits).
+    # On calcule uniquement le service_map string pour l'injecter dans le prompt :
+    # le LLM connaît le contrat avant d'écrire chaque service.
     _service_map_str = ""
     if spec_obj is not None:
         try:
-            from agents.dev_service_generator import generate_service_files, format_service_map_for_prompt
-            _svc_files = generate_service_files(spec_obj, project_workdir)
-            template_written.update(_svc_files)
+            from agents.dev_service_generator import format_service_map_for_prompt
             _service_map_str = format_service_map_for_prompt(spec_obj)
-            logger.info(
-                "[dev_graph] %d services générés de manière déterministe : %s",
-                len(_svc_files), list(_svc_files.keys())
-            )
+            logger.info("[dev_graph] Service map calculé (%d modèles)", len(spec_obj.models))
         except Exception as _sg_err:
-            logger.warning(f"[dev_graph] service generator non bloquant : {_sg_err}")
+            logger.warning(f"[dev_graph] service map non bloquant : {_sg_err}")
 
     # ── Génération déterministe : lib/schemas.ts ─────────────────────
     # Schémas Zod alignés sur lib/types.ts — utilisés dans les Server Actions.
@@ -417,6 +413,7 @@ async def run_dev_agent(
                 spec_obj,
                 pre_written_files=list(template_written.keys()),
                 service_map=_service_map_str,
+                prisma_type_map=_prisma_type_map,
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
         except Exception as e:
@@ -599,11 +596,29 @@ async def run_dev_agent(
                         "Server Component -- pas de 'use client'. "
                         "import { auth } from '@clerk/nextjs/server'. "
                         "if (!userId) redirect('/sign-in'). "
+                        "Lit les donnees VIA LE SERVICE : xxxService.getAll(userId) -- JAMAIS prisma directement. "
                         "Serialise les Date Prisma : .toISOString() avant props Client."
                     ),
                     "page_client": (
                         "'use client' en 1ere ligne. Pas d'appel Prisma direct. "
                         "Recoit les donnees via props depuis le Server Component parent."
+                    ),
+                    "service": (
+                        "Service DAL — couche entre Prisma et le reste de l'app.\n"
+                        "INTERFACE OBLIGATOIRE (respecter les noms exacts) :\n"
+                        "  export const xxxService = {\n"
+                        "    getAll(userId: string): Promise<Model[]>\n"
+                        "    getById(userId: string, id: string): Promise<Model | null>\n"
+                        "    create(userId: string, data: CreateModelInput): Promise<Model>\n"
+                        "    update(id: string, data: UpdateModelInput): Promise<Model>\n"
+                        "    delete(userId: string, id: string): Promise<void>\n"
+                        "  }\n"
+                        "Imports OBLIGATOIRES : import prisma from '@/lib/prisma' — "
+                        "import type { CreateXxxInput, UpdateXxxInput } from '@/lib/types'.\n"
+                        "DateTime string ISO → new Date(value) avant prisma.create/update.\n"
+                        "Tu PEUX ajouter des méthodes enrichies (ex: getByIdWithTasks avec "
+                        "include: { tasks: true }) si les pages en ont besoin.\n"
+                        "JAMAIS de logique métier au-delà du CRUD dans le service."
                     ),
                 }
 
@@ -614,12 +629,33 @@ async def run_dev_agent(
                 )
 
                 # Lecture des dependances utiles depuis le disque.
-                # Actions : schemas.ts + service correspondant + types.ts (1er fichier du plan).
-                # Route   : types.ts (800 chars) + service correspondant (600 chars si trouvé).
+                # Service : lib/types.ts + lib/prisma.ts.
+                # Actions : schemas.ts + service correspondant (LLM-généré ou disque).
+                # Route   : types.ts (800 chars) + service correspondant.
                 # Page    : service correspondant (400 chars).
-                # types.ts, schemas.ts et services sont pré-générés → pas d'injection LLM.
                 _dep = ""
-                if _role == "actions":
+                if _role == "service":
+                    _types_abs = os.path.join(project_workdir, "lib", "types.ts")
+                    if os.path.exists(_types_abs):
+                        try:
+                            with open(_types_abs, "r", encoding="utf-8") as _f:
+                                _dep += (
+                                    f"\nlib/types.ts :\n"
+                                    f"```typescript\n{_f.read()[:800]}\n```"
+                                )
+                        except Exception:
+                            pass
+                    _prisma_abs = os.path.join(project_workdir, "lib", "prisma.ts")
+                    if os.path.exists(_prisma_abs):
+                        try:
+                            with open(_prisma_abs, "r", encoding="utf-8") as _f:
+                                _dep += (
+                                    f"\nlib/prisma.ts :\n"
+                                    f"```typescript\n{_f.read()[:250]}\n```"
+                                )
+                        except Exception:
+                            pass
+                elif _role == "actions":
                     # Service Map compact (closure — toujours disponible si services générés)
                     if _service_map_str:
                         _dep += f"\n{_service_map_str}"
@@ -989,8 +1025,23 @@ async def run_dev_agent(
                             "file_validation_errors": still_broken,
                             "errored_files": list(existing_errored),
                         }
-                logger.info("[file_validate] tsc errors but not in newly written files — skip")
-                return {"file_validation_errors": ""}
+                # Les fichiers écrits ce tour sont propres → les marquer comme validés.
+                # Sans cette mise à jour, validated_files reste vide et le curseur du plan
+                # recalcule toujours le même fichier (boucle infinie).
+                new_validated = list(state.get("validated_files", []))
+                for f in written_files:
+                    if f not in new_validated:
+                        new_validated.append(f)
+                _dev_tools_module.add_validated_files(written_files)
+                logger.info(
+                    "[file_validate] tsc errors elsewhere, not in written files "
+                    "— fichiers validés : %s",
+                    written_files,
+                )
+                return {
+                    "file_validation_errors": "",
+                    "validated_files": new_validated,
+                }
 
             # Axe C — Limiter à 3 erreurs max : le LLM corrige atomiquement.
             # Envoyer 20 erreurs d'un coup génère des corrections en cascade ; 3 suffit.

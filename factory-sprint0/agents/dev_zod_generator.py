@@ -29,7 +29,7 @@ _PRISMA_TO_ZOD: dict[str, str] = {
     "Float":    "z.number()",
     "Decimal":  "z.number()",
     "Boolean":  "z.boolean()",
-    "DateTime": "z.string().datetime({ offset: true })",
+    "DateTime": "z.coerce.date()",   # accepte ISO strings des forms, produit un Date pour Prisma
     "Json":     "z.unknown()",
     "Bytes":    "z.string()",
     "BigInt":   "z.bigint()",
@@ -110,7 +110,8 @@ def _generate_create_schema(model) -> list[str]:
         zod_type = _prisma_type_to_zod(field.type, field.attributes)
         # Champs avec @default non-auto → optionnel dans le schéma Create
         if _field_has_non_auto_default(field.attributes):
-            zod_type = zod_type.rstrip(")") + ".optional()" if not zod_type.endswith(".optional()") else zod_type
+            if not zod_type.endswith(".optional()"):
+                zod_type = f"{zod_type}.optional()"
 
         fields_lines.append(f"  {field.name}: {zod_type},")
 
@@ -134,8 +135,6 @@ def generate_schemas_file(spec, project_workdir: str) -> SchemasFileResult | Non
         "// Schémas Zod alignés sur lib/types.ts et ProjectSpec.",
         "// Utilisé dans les Server Actions pour valider les données entrantes.",
         "import { z } from 'zod'",
-        "",
-        "export type { z }",
         "",
     ]
 

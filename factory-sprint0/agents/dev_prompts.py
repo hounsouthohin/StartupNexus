@@ -187,6 +187,7 @@ def build_system_prompt(
     spec: "ProjectSpec",
     pre_written_files: list[str] | None = None,
     service_map: str = "",
+    prisma_type_map: dict | None = None,
 ) -> str:
     """
     Construit le system prompt complet pour le dev agent v4 — Option A.
@@ -195,6 +196,7 @@ def build_system_prompt(
       - lib/types.ts, lib/schemas.ts, lib/services/*.ts → PRÉ-GÉNÉRÉS (ne pas réécrire)
       - Le LLM génère uniquement : actions.ts, page.tsx, webhooks/route.ts
       - service_map : bloc compact des services disponibles (inject depuis dev_graph)
+      - prisma_type_map : DMMF extrait après prisma generate — types réels par modèle
     """
     pre_written: set[str] = set(pre_written_files or [])
     expected_files = _expected_files_from_spec(spec)
@@ -291,6 +293,15 @@ Convention : import { projectService } from '@/lib/services/project.service'
 Méthodes : .getAll(userId), .getById(userId, id), .create(userId, data), .update(id, data), .delete(userId, id)
 """
 
+    # DMMF Prisma — types réels des champs (extrait après prisma generate)
+    dmmf_block = ""
+    if prisma_type_map:
+        try:
+            from agents.dev_prisma_extractor import format_type_map_for_prompt
+            dmmf_block = format_type_map_for_prompt(prisma_type_map)
+        except Exception:
+            pass
+
     # Spec JSON compacte
     spec_json = json.dumps({
         "models": [m.name for m in spec.models],
@@ -321,8 +332,8 @@ ARCHITECTURE OPTION A :
   - lib/types.ts, lib/schemas.ts, lib/services/*.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
   - Tu génères UNIQUEMENT : app/**/actions.ts, app/**/page.tsx, webhooks si présents
   - Les mutations passent par des Server Actions (jamais app/api/** pour le CRUD)
-  - Les pages lisent les données directement avec prisma (pas de fetch vers /api)
-{service_map_block}{pre_written_block}
+  - Les pages lisent les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx
+{service_map_block}{dmmf_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
 SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 ══════════════════════════════════════════════════════════════
@@ -362,8 +373,8 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
 1. Génère les Server Actions (app/**/actions.ts) :
    - PREMIERE LIGNE obligatoire : 'use server'
-   - Importe { auth } from '@clerk/nextjs/server'
-   - Importe { revalidatePath } from 'next/cache'
+   - Importe {{ auth }} from '@clerk/nextjs/server'
+   - Importe {{ revalidatePath }} from 'next/cache'
    - Importe le service depuis '@/lib/services/<model>.service'
    - Importe les schémas depuis '@/lib/schemas'
    - Pattern obligatoire dans chaque action :
@@ -376,7 +387,8 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 
 2. Génère les pages (app/**/page.tsx) :
    - Server Component (pas de 'use client' sauf si interaction pure)
-   - Lit les données : prisma.xxx.findMany({{ where: {{ userId }} }}) directement
+   - Lit les données VIA LE SERVICE : `const items = await xxxService.getAll(userId)`
+   - JAMAIS prisma directement dans page.tsx — import {{ xxxService }} from '@/lib/services/xxx.service'
    - Si auth_required : const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
    - Sérialise les dates Prisma avant Client Components : .toISOString()
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx

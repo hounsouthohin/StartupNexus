@@ -76,12 +76,68 @@ def make_deterministic_plan(
     Les fichiers déjà écrits par les templates sont exclus.
 
     Ordre :
-      1. app/**/actions.ts   (Server Actions — mutations Prisma via service)
-      2. app/**/page.tsx     (Server Components — lecture directe Prisma)
-      3. app/api/**/route.ts (webhooks uniquement)
+      0. lib/services/*.ts   (DAL — générés par le LLM avec contrat d'interface)
+      1. app/**/actions.ts   (Server Actions — mutations via service)
+      2. app/api/**/route.ts (webhooks uniquement)
+      3. app/**/page.tsx     (Server Components — lecture via service)
     """
     template_set = set(template_files)
     entries: list[FilePlanEntry] = []
+
+    # ── 0. Services lib/services/{model}.service.ts ────────────────────────────
+    # Générés par le LLM AVANT les actions (les actions importent depuis les services).
+    # Chaque service expose : getAll, getById, create, update, delete + méthodes enrichies.
+    for model in spec.models:
+        kebab = _pascal_to_kebab(model.name)
+        camel = _pascal_to_camel(model.name)
+        file_path = f"lib/services/{kebab}.service.ts"
+        if file_path in template_set:
+            continue
+
+        owner = model.owner_field or "userId"
+
+        # Champs DateTime non auto (nécessitent new Date() côté service)
+        _datetime_fields = [
+            f.name for f in model.fields
+            if f.type.rstrip("?").rstrip("[]") == "DateTime"
+            and "@default(now())" not in (f.attributes or "").lower()
+            and "@updatedat" not in (f.attributes or "").lower().replace(" ", "")
+            and f.name.lower() not in {"id", "createdat", "updatedat", "deletedat"}
+            and f.name.lower() != owner.lower()
+        ]
+
+        # Relations disponibles pour include
+        _relation_names = [
+            f.name for f in model.fields
+            if "@relation" in (f.attributes or "")
+        ]
+
+        _dt_hint = (
+            f" Champs DateTime : {', '.join(_datetime_fields)} → new Date(value) avant Prisma."
+            if _datetime_fields else ""
+        )
+        _rel_hint = (
+            f" Relations disponibles pour include : {', '.join(_relation_names)}."
+            if _relation_names else ""
+        )
+
+        entries.append(FilePlanEntry(
+            path=file_path,
+            role="service",
+            context_hint=(
+                f"Service DAL pour {model.name}. owner_field='{owner}'. "
+                f"INTERFACE OBLIGATOIRE : "
+                f"export const {camel}Service = {{ "
+                f"getAll({owner}), getById({owner}, id), "
+                f"create({owner}, data: Create{model.name}Input), "
+                f"update(id, data: Update{model.name}Input), "
+                f"delete({owner}, id) }}. "
+                f"Imports : import prisma from '@/lib/prisma' — "
+                f"import type {{ {model.name} }} from '@prisma/client' — "
+                f"import type {{ Create{model.name}Input, Update{model.name}Input }} from '@/lib/types'."
+                f"{_dt_hint}{_rel_hint}"
+            ),
+        ))
 
     # ── 1. Server Actions — une par segment de modèle avec des mutations ──────
     # On groupe les routes de mutation par segment de modèle (ex: 'projects').
@@ -161,7 +217,7 @@ def make_deterministic_plan(
                 "const { userId } = await auth(); if (!userId) redirect('/sign-in');"
             )
         hint_parts.append(
-            "Récupérer les données DIRECTEMENT avec prisma (pas de fetch vers /api). "
+            "Récupérer les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx. "
             "Sérialiser les dates avant Client Components : .toISOString()."
         )
         entries.append(FilePlanEntry(
@@ -187,7 +243,7 @@ def validate_plan(
     plan_paths = {e.path for e in plan} | template_set
     missing: list[str] = []
 
-    # Services (pré-générés → dans template_set)
+    # Services (générés par le LLM → dans le plan, pas dans template_set)
     for model in spec.models:
         svc = f"lib/services/{_pascal_to_kebab(model.name)}.service.ts"
         if svc not in plan_paths:

@@ -206,9 +206,11 @@ class ProjectSpec(BaseModel):
             path = page.path.strip("/")
             if path:
                 files.append(f"app/{path}/page.tsx")
+        # Option A (Avril 2026) : mutations → Server Actions (actions.ts).
+        # Seules les routes webhook génèrent un route.ts.
         for route in self.routes:
             path = route.path.strip("/")
-            if path:
+            if path and ("webhook" in route.path.lower() or "stripe" in route.path.lower()):
                 files.append(f"app/{path}/route.ts")
         # Déduplique en préservant l'ordre
         seen: set[str] = set()

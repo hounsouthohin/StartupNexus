@@ -30,7 +30,7 @@ _PRISMA_TO_TS: dict[str, str] = {
     "Float":    "number",
     "Decimal":  "number",
     "Boolean":  "boolean",
-    "DateTime": "string",   # ISO string — plus safe que Date dans les props React/JSON
+    "DateTime": "Date",      # Prisma 7 CreateInput attend Date, pas string
     "Json":     "unknown",
     "Bytes":    "string",
     "BigInt":   "bigint",

@@ -124,7 +124,7 @@
       "Chaque modele Prisma mentionne dans le brief doit apparaitre dans data_models.",
       "Chaque champ et contrainte explicite d'un modele Prisma du brief doit etre conserve a l'identique.",
       "Chaque page demandee dans le brief doit apparaitre dans pages avec son chemin exact.",
-      "Chaque route API demandee dans le brief doit apparaitre dans api_routes avec methode et chemin exacts.",
+      "Les mutations (create/update/delete) sont implementees comme Server Actions dans app/**/actions.ts, pas comme routes API. Seuls les webhooks (Clerk, Stripe) utilisent app/api/**/route.ts.",
       "requirements[] doit contenir un item explicite pour chaque modele, page, route et feature demandes.",
       "La spec doit rester metier et specifique au brief; les specs auth-only generiques sont interdites."
     ],
@@ -140,7 +140,7 @@
       "app/layout.tsx doit envelopper <html> avec <ClerkProvider>.",
       "middleware.ts (racine) doit importer clerkMiddleware depuis @clerk/nextjs/server.",
       "Dans server components et route handlers, auth() doit toujours etre await.",
-      "Dans app/api/**/route.ts, si authorId utilise userId, ajouter `if (!userId) return 401` avant Prisma.",
+      "Dans les Server Actions (app/**/actions.ts), const { userId } = await auth(); if (!userId) throw new Error('Unauthorized'); — AVANT toute operation Prisma.",
       "Dans client components ('use client'), interdiction d'importer @clerk/nextjs/server.",
       "useAuth() ne doit jamais etre utilise pour lire l'objet user; utiliser useUser()."
     ],
@@ -160,14 +160,14 @@
       "Prisma 7: datasource db dans schema.prisma ne doit pas declarer url = env(...).",
       "generator client doit utiliser provider = \"prisma-client-js\".",
       "lib/prisma.ts doit instancier PrismaClient avec PrismaPg adapter.",
-      "Dans app/api/**/route.*, l'acces Prisma doit passer par import prisma from '@/lib/prisma'.",
+      "Dans les Server Actions et Server Components, l'acces Prisma passe par import prisma from '@/lib/prisma'. JAMAIS prisma direct dans les Server Actions — toujours via le service DAL (lib/services/).",
       "Tous les champs et contraintes Prisma demandes par le requirement sont obligatoires a l'identique."
     ],
     "security_rules": [
       "Toutes les entrees utilisateur doivent etre validees avec Zod.",
       ".env.local doit contenir NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY et DATABASE_URL.",
       "NEXT_PUBLIC_CLERK_SECRET_KEY est interdit.",
-      "Pattern canonique TOUT handler (GET, POST, PUT, PATCH, DELETE) utilisant userId : const { userId } = await auth(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }); — obligatoire avant toute operation Prisma utilisant userId (findMany, findUnique, create, update, delete). Cela inclut les GET qui filtrent par where: { authorId: userId }."
+      "Pattern canonique Server Action : const { userId } = await auth(); if (!userId) throw new Error('Unauthorized'); — avant toute operation service/Prisma. Pattern canonique webhook handler uniquement : if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });"
     ],
     "test_rules": [
       "jest.config.js doit etre base sur next/jest (createJestConfig).",
@@ -212,7 +212,7 @@
       "## structure des pages",
       "## schéma prisma",
       "## authentification clerk",
-      "## api routes",
+      "## server actions",
       "## composants tailwind"
     ]
   },
