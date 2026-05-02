@@ -245,6 +245,57 @@
       "radix"
     ]
   },
+  "code_role_hints": {
+    "actions": [
+      "'use server' EN PREMIERE LIGNE — obligatoire.",
+      "Chaque exported async function est une Server Action.",
+      "PATTERN OBLIGATOIRE dans chaque action :",
+      "  import { auth } from '@clerk/nextjs/server';",
+      "  import { revalidatePath } from 'next/cache';",
+      "  const { userId } = await auth();",
+      "  if (!userId) throw new Error('Unauthorized');",
+      "  const parsed = CreateXxxSchema.safeParse(data);",
+      "  if (!parsed.success) throw new Error(parsed.error.message);",
+      "  await xxxService.create(userId, parsed.data);",
+      "  revalidatePath('/xxx');",
+      "JAMAIS prisma directement dans une action — toujours via le service.",
+      "JAMAIS NextResponse dans les actions — ce sont des fonctions, pas des handlers HTTP."
+    ],
+    "route": [
+      "GUARD AUTH OBLIGATOIRE en debut de chaque handler :",
+      "  import { auth } from '@clerk/nextjs/server';",
+      "  const { userId } = await auth();",
+      "  if (!userId) return NextResponse.json({error:'Unauthorized'},{status:401});",
+      "userId est string apres ce guard -- passe-le directement au service."
+    ],
+    "page": [
+      "Server Component -- pas de 'use client'.",
+      "import { auth } from '@clerk/nextjs/server'.",
+      "if (!userId) redirect('/sign-in').",
+      "Lit les donnees VIA LE SERVICE : xxxService.getAll(userId) -- JAMAIS prisma directement.",
+      "Serialise les Date Prisma : .toISOString() avant props Client.",
+      "Pages dynamiques ([id] dans le chemin) : TYPER params OBLIGATOIREMENT. Pattern exact : export default async function Page({ params }: { params: { id: string } }) { const { id } = params; ... } — TypeScript strict rejette tout binding element sans type explicite (TS7031).",
+      "Si la page affiche des champs d'un modele lie (ex: item.contact.name, item.project.title) : utiliser xxxService.getAllWithRelations(userId) au lieu de getAll() — la methode getAllWithRelations inclut les relations via Prisma include et est pre-generee dans le service."
+    ],
+    "page_client": [
+      "'use client' en 1ere ligne. Pas d'appel Prisma direct.",
+      "Recoit les donnees via props depuis le Server Component parent."
+    ],
+    "service": [
+      "Service DAL — couche entre Prisma et le reste de l'app.",
+      "Base CRUD pre-generee par Python — NE PAS réécrire getAll/getById/create/update/delete.",
+      "Tu PEUX ajouter des methodes enrichies (ex: getByIdWithTasks avec include: { tasks: true }) si les pages en ont besoin.",
+      "Imports OBLIGATOIRES : import prisma from '@/lib/prisma' — import type { CreateXxxInput, UpdateXxxInput } from '@/lib/types'.",
+      "Les champs DateTime sont deja Date (z.coerce.date() dans les schemas) — passer directement a Prisma, pas de new Date().",
+      "JAMAIS de logique metier au-dela du CRUD dans le service."
+    ]
+  },
+  "conditional_templates": {
+    "app/api/webhooks/clerk/route.ts": {
+      "condition": "has_webhook_routes",
+      "description": "Webhook Clerk/Svix — écrit seulement si la spec contient des routes /api/webhooks/* ou Stripe"
+    }
+  },
   "templated_files": {
     "package.json": "templates/package.json",
     "middleware.ts": "templates/middleware.ts",

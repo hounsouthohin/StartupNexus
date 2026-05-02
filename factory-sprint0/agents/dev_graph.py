@@ -29,8 +29,17 @@ from agents.dev_tools import write_file, read_file, list_directory, shell_exec, 
 
 logger = logging.getLogger(__name__)
 
+import re as _re_utils
+
+
+def _pascal_to_kebab_local(name: str) -> str:
+    """PascalCase → kebab-case. Ex: LeaveRequest → leave-request."""
+    return _re_utils.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
+
+
 MAX_BUILD_ATTEMPTS = 3
 MAX_FILE_VALIDATION_RETRIES = 2
+MAX_GENERATION_TURNS = 35
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
 
@@ -54,6 +63,7 @@ class DevState(TypedDict):
     build_command_executed: bool   # True ssi npm run build a été appelé et a retourné un exit code
     build_exit_code: int           # Exit code réel du dernier npm run build (0 = succès)
     phase: str                     # "generation" → "correction" après premier build (Faille 3)
+    generation_turns: int          # tours d'executor — circuit breaker anti-boucle infinie
     # Progressive Validation (Étape 2)
     validated_files: List[str]     # Fichiers .ts/.tsx ayant passé tsc file-level sans erreur
     file_validation_errors: str    # Erreurs tsc du dernier tour — injectées en HumanMessage si non vides
@@ -215,7 +225,8 @@ async def run_dev_agent(
         from agents.stack_config import load_stack_config
         stack_id = spec.get("stack_id", "") or "nextjs-clerk-prisma"
         stack_cfg = load_stack_config(stack_id)
-        template_written = write_template_files(project_workdir, stack_cfg, project_name, stack_id)
+        _dev_tools_module.set_forbidden_imports(stack_cfg.get("forbidden_imports", []))
+        template_written = write_template_files(project_workdir, stack_cfg, project_name, stack_id, spec=spec)
         logger.info(
             f"[dev_graph] {len(template_written)} fichiers pré-générés depuis templates : "
             f"{list(template_written.keys())}"
@@ -235,6 +246,7 @@ async def run_dev_agent(
             "success": False, "error_signatures": [], "build_command_executed": False,
             "build_exit_code": -1, "phase": "generation", "validated_files": [],
             "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
+            "generation_turns": 0, "errored_files": [], "file_plan": None,
         }
 
     # ── Materialisation déterministe de schema.prisma depuis ProjectSpec ─────
@@ -258,25 +270,6 @@ async def run_dev_agent(
         )
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
-
-    # ── Suppression conditionnelle du template clerk webhook ────────────────────
-    # Le template est écrit pour tous les projets, mais prisma.user n'existe que si
-    # le schema a un modèle User. Si la spec n'a aucune route webhook, on supprime
-    # le fichier pour éviter TS2307 (svix) et TS2339 (prisma.user inexistant).
-    _CLERK_WH_KEY = "app/api/webhooks/clerk/route.ts"
-    if spec_obj is not None and _CLERK_WH_KEY in template_written:
-        _has_webhook_routes = any(
-            "webhook" in (r.path or "").lower() or "stripe" in (r.path or "").lower()
-            for r in spec_obj.routes
-        )
-        if not _has_webhook_routes:
-            del template_written[_CLERK_WH_KEY]
-            _wh_disk = os.path.join(project_workdir, "app", "api", "webhooks", "clerk", "route.ts")
-            try:
-                os.remove(_wh_disk)
-                logger.info("[dev_graph] clerk webhook template supprimé — pas de routes webhook dans la spec")
-            except OSError:
-                pass
 
     # ── Génération déterministe : loading.tsx ───────────────────────────────────
     # generate_page_stubs retiré : les stubs étaient écrasés par le LLM de toute façon.
@@ -359,6 +352,7 @@ async def run_dev_agent(
                     "success": False, "error_signatures": [], "build_command_executed": False,
                     "build_exit_code": -1, "phase": "generation", "validated_files": [],
                     "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
+                    "generation_turns": 0, "errored_files": [], "file_plan": None,
                 }
         except subprocess.TimeoutExpired:
             logger.warning("[dev_graph] prisma generate pre-run TIMEOUT (>120s) — non bloquant")
@@ -403,6 +397,19 @@ async def run_dev_agent(
                 logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
         except Exception as _zg_err:
             logger.warning(f"[dev_graph] zod generator non bloquant : {_zg_err}")
+
+    # ── Génération déterministe : lib/services/*.ts ───────────────────
+    # Base CRUD pré-générée pour chaque modèle Prisma — socle correct garanti par Python.
+    # NON protégé : le LLM peut ajouter des méthodes enrichies (ex: getTasksByProject).
+    # Le planner exclut automatiquement ces fichiers car ils sont dans template_written.
+    if spec_obj is not None:
+        try:
+            from agents.dev_service_generator import generate_service_files
+            _svc_written = generate_service_files(spec_obj, project_workdir)
+            template_written.update(_svc_written)
+            logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
+        except Exception as _svc_err:
+            logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
 
     # ── Extraction du Type Map Prisma réel ───────────────────────────
     # Après prisma generate, lit node_modules/.prisma/client/index.d.ts
@@ -453,6 +460,13 @@ async def run_dev_agent(
         logger.warning(f"[dev_graph] rag_search non disponible : {_e}")
 
     logger.info(f"[dev_graph] {len(tools)} outils : {[t.name for t in tools]}")
+
+    # ── Règles de rôle depuis la config stack (SSoT) ─────────────────
+    # code_role_hints dans nextjs-clerk-prisma.json — chaque valeur est une liste de strings.
+    _hints_raw = stack_cfg.get("code_role_hints", {})
+    _role_rules_from_config: dict[str, str] = {
+        role: "\n".join(lines) for role, lines in _hints_raw.items()
+    } if _hints_raw else {}
 
     _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
@@ -512,7 +526,8 @@ async def run_dev_agent(
         _plan = state.get("file_plan") or []  # None (échec planner) ou [] traités pareil
         _plan_failed = state.get("file_plan") is None  # planner a levé une exception
         _validated_set = set(state.get("validated_files", []))
-        _next_entry = next((e for e in _plan if e["path"] not in _validated_set), None)
+        _validated_norm = {v.lower() for v in _validated_set}  # F-06: insensible à la casse (Windows/Linux)
+        _next_entry = next((e for e in _plan if e["path"].lower() not in _validated_norm), None)
 
         # Injection des erreurs de validation file-level (Progressive Validation).
         file_val_errors = state.get("file_validation_errors", "")
@@ -588,60 +603,7 @@ async def run_dev_agent(
                 _hint = _next_entry.get("context_hint", "")
                 _path = _next_entry["path"]
 
-                _role_rules = {
-                    "actions": (
-                        "'use server' EN PREMIERE LIGNE — obligatoire.\n"
-                        "Chaque exported async function est une Server Action.\n"
-                        "PATTERN OBLIGATOIRE dans chaque action :\n"
-                        "  import { auth } from '@clerk/nextjs/server';\n"
-                        "  import { revalidatePath } from 'next/cache';\n"
-                        "  const { userId } = await auth();\n"
-                        "  if (!userId) throw new Error('Unauthorized');\n"
-                        "  const parsed = CreateXxxSchema.safeParse(data);\n"
-                        "  if (!parsed.success) throw new Error(parsed.error.message);\n"
-                        "  await xxxService.create(userId, parsed.data);\n"
-                        "  revalidatePath('/xxx');\n"
-                        "JAMAIS prisma directement dans une action — toujours via le service.\n"
-                        "JAMAIS NextResponse dans les actions — ce sont des fonctions, pas des handlers HTTP."
-                    ),
-                    "route": (
-                        "GUARD AUTH OBLIGATOIRE en debut de chaque handler :\n"
-                        "  import { auth } from '@clerk/nextjs/server';\n"
-                        "  const { userId } = await auth();\n"
-                        "  if (!userId) return NextResponse.json({error:'Unauthorized'},{status:401});\n"
-                        "userId est string apres ce guard -- passe-le directement au service."
-                    ),
-                    "page": (
-                        "Server Component -- pas de 'use client'. "
-                        "import { auth } from '@clerk/nextjs/server'. "
-                        "if (!userId) redirect('/sign-in'). "
-                        "Lit les donnees VIA LE SERVICE : xxxService.getAll(userId) -- JAMAIS prisma directement. "
-                        "Serialise les Date Prisma : .toISOString() avant props Client."
-                    ),
-                    "page_client": (
-                        "'use client' en 1ere ligne. Pas d'appel Prisma direct. "
-                        "Recoit les donnees via props depuis le Server Component parent."
-                    ),
-                    "service": (
-                        "Service DAL — couche entre Prisma et le reste de l'app.\n"
-                        "INTERFACE OBLIGATOIRE (respecter les noms exacts) :\n"
-                        "  export const xxxService = {\n"
-                        "    getAll(userId: string): Promise<Model[]>\n"
-                        "    getById(userId: string, id: string): Promise<Model | null>\n"
-                        "    create(userId: string, data: CreateModelInput): Promise<Model>\n"
-                        "    update(id: string, data: UpdateModelInput): Promise<Model>\n"
-                        "    delete(userId: string, id: string): Promise<void>\n"
-                        "  }\n"
-                        "Imports OBLIGATOIRES : import prisma from '@/lib/prisma' — "
-                        "import type { CreateXxxInput, UpdateXxxInput } from '@/lib/types'.\n"
-                        "DateTime string ISO → new Date(value) avant prisma.create/update.\n"
-                        "Tu PEUX ajouter des méthodes enrichies (ex: getByIdWithTasks avec "
-                        "include: { tasks: true }) si les pages en ont besoin.\n"
-                        "JAMAIS de logique métier au-delà du CRUD dans le service."
-                    ),
-                }
-
-                _rule = _role_rules.get(_role, "")
+                _rule = _role_rules_from_config.get(_role, "")
                 _ctx = (
                     f"CONTEXTE : {_hint}\n\nREGLE {_role.upper()} :\n{_rule}"
                     if _rule else f"CONTEXTE : {_hint}"
@@ -692,7 +654,17 @@ async def run_dev_agent(
                     # Chercher le service correspondant au segment du fichier actions.ts
                     # ex: app/projects/actions.ts → lib/services/project.service.ts
                     _act_seg = _path.split("/")[-2] if "/" in _path else ""
-                    _svc_candidates = [_act_seg, _act_seg.rstrip("s")]
+                    # F-04: utiliser l'index modèles pour une correspondance stable
+                    _act_match = next(
+                        (m for m in (spec_obj.models if spec_obj else [])
+                         if _pascal_to_kebab_local(m.name) == _act_seg
+                         or _pascal_to_kebab_local(m.name) + "s" == _act_seg),
+                        None,
+                    )
+                    _svc_candidates = (
+                        [_pascal_to_kebab_local(_act_match.name)]
+                        if _act_match else [_act_seg, _act_seg.rstrip("s")]
+                    )
                     for _sv in _svc_candidates:
                         _svc_abs = os.path.join(project_workdir, "lib", "services",
                                                 f"{_sv}.service.ts")
@@ -795,6 +767,7 @@ async def run_dev_agent(
         return {
             "messages": [response],
             "error_signatures": new_sigs,
+            "generation_turns": int(state.get("generation_turns", 0) or 0) + 1,
         }
 
     # ── Extraction erreur + détection succès déterministe ────────────
@@ -886,7 +859,27 @@ async def run_dev_agent(
 
     # ── Routage ──────────────────────────────────────────────────────
     def route_after_tools(state: DevState) -> str:
+        # Action 5 : validation légère des champs critiques du state.
+        # Un type inattendu (ex: str au lieu d'int) causerait une boucle silencieuse.
+        for _field, _expected in (("build_attempts", int), ("generation_turns", int)):
+            _val = state.get(_field)
+            if _val is not None and not isinstance(_val, _expected):
+                logger.error(
+                    "[route_after_tools] state['%s'] type invalide : %s (attendu %s) — arrêt",
+                    _field, type(_val).__name__, _expected.__name__,
+                )
+                return END
+
         if state.get("success", False):
+            return END
+
+        # F-08: circuit breaker — limite le nombre de tours de génération (hors correction build)
+        turns = int(state.get("generation_turns", 0) or 0)
+        if turns >= MAX_GENERATION_TURNS:
+            logger.warning(
+                "[dev_graph] MAX_GENERATION_TURNS=%d atteint — arrêt boucle génération",
+                MAX_GENERATION_TURNS,
+            )
             return END
 
         last_error = state.get("last_build_error", "")
@@ -986,10 +979,9 @@ async def run_dev_agent(
             if tsc_diagnostics is not None:
                 tsc_ok = len(tsc_diagnostics) == 0
             else:
-                # Fallback : npx tsc + regex (tsc_check.mjs indisponible)
+                # Fallback : npx tsc (liste — pas de shell=True pour éviter l'injection)
                 _fb = subprocess.run(
-                    "npx tsc --noEmit 2>&1",
-                    shell=True,
+                    ["npx", "tsc", "--noEmit"],
                     capture_output=True,
                     text=True,
                     cwd=project_workdir,
@@ -1133,6 +1125,25 @@ async def run_dev_agent(
                     except Exception:
                         pass  # non-bloquant — Qdrant peut être absent
 
+            # F-10: fallback RAG pour les erreurs non cataloguées — évite que le LLM
+            # corrige sans contexte quand le catalogue TSC ne couvre pas le code d'erreur.
+            if not _rag_injected:
+                import re as _re_fb
+                _code_m = _re_fb.search(r"error (TS\d+):", errors_for_written)
+                if _code_m:
+                    _ts_code = _code_m.group(1)
+                    try:
+                        from agents.shared_tools import rag_search as _rag_fn
+                        _q = f"TypeScript {_ts_code} fix Next.js Prisma"
+                        logger.info("[rag-bridge:file_validate:fallback] q=%r", _q)
+                        _rag_result = _rag_fn.invoke({"query": _q})
+                        if _rag_result and not _rag_result.startswith("[RAG]"):
+                            enriched_lines.append(
+                                f"\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:600]}"
+                            )
+                    except Exception:
+                        pass
+
             errors_enriched = "\n".join(enriched_lines)
             retries = int(state.get("file_validation_retries", 0) or 0) + 1
 
@@ -1261,6 +1272,7 @@ async def run_dev_agent(
         "build_command_executed": False,
         "build_exit_code": -1,
         "phase": "generation",
+        "generation_turns": 0,
         "validated_files": [],
         "file_validation_errors": "",
         "file_validation_retries": 0,

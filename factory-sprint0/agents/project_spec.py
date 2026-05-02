@@ -54,6 +54,37 @@ class PrismaModel(BaseModel):
         )
     )
 
+    def resolved_owner(self) -> str:
+        """
+        Retourne l'owner_field validé contre les champs réels du modèle.
+        Ordre de résolution :
+          1. owner_field déclaré par l'architect s'il existe dans les champs → direct
+          2. Pattern sémantique d'ownership (userId, authorId, ownerId, createdById)
+          3. Premier champ *Id (hors 'id') — dernier recours avec warning
+        """
+        import logging as _log
+        raw = self.owner_field or "userId"
+        field_names = {f.name for f in self.fields}
+        if raw in field_names:
+            return raw
+        # Priorité aux patterns sémantiques d'ownership avant les foreign-keys arbitraires
+        _OWNER_PATTERNS = ("userId", "authorId", "ownerId", "createdById", "memberId")
+        for _pat in _OWNER_PATTERNS:
+            if _pat in field_names:
+                _log.getLogger(__name__).warning(
+                    "[project_spec] owner_field '%s' absent de %s — semantic fallback : '%s'",
+                    raw, self.name, _pat,
+                )
+                return _pat
+        candidates = [f.name for f in self.fields if f.name.endswith("Id") and f.name != "id"]
+        if candidates:
+            _log.getLogger(__name__).warning(
+                "[project_spec] owner_field '%s' absent de %s — fallback *Id : '%s'",
+                raw, self.name, candidates[0],
+            )
+            return candidates[0]
+        return raw
+
 
 class ApiRoute(BaseModel):
     method: HTTP_METHOD = Field(description="Méthode HTTP")
@@ -115,13 +146,14 @@ class ProjectSpec(BaseModel):
     )
 
     def compute_fingerprint(self) -> str:
-        """Hash déterministe des noms modèles + chemins pages + chemins routes."""
-        names = sorted(
-            [m.name for m in self.models]
+        """Hash déterministe : noms modèles + owner_fields + pages + routes + pages_detail."""
+        elements = sorted(
+            [f"{m.name}:{m.resolved_owner()}" for m in self.models]
             + [p.path for p in self.pages]
             + [f"{r.method} {r.path}" for r in self.routes]
         )
-        raw = json.dumps(names, ensure_ascii=False, sort_keys=True)
+        detail_raw = json.dumps(self.pages_detail, ensure_ascii=False, sort_keys=True)
+        raw = json.dumps({"e": elements, "d": detail_raw}, ensure_ascii=False)
         return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
     def with_fingerprint(self) -> "ProjectSpec":
@@ -177,8 +209,14 @@ class ProjectSpec(BaseModel):
 
         lines = []
         model_names = {m.name for m in self.models}
-        # User est géré ici — ne pas le dupliquer si le brief l'inclut déjà
-        if "User" not in model_names:
+        # Injecte User seulement si des modèles l'utilisent réellement (ownership direct
+        # ou relation explicite). Evite d'ajouter une table orpheline pour les apps sans auth user.
+        _needs_user = any(
+            m.resolved_owner().lower() == "userid"
+            or any(f.type == "User" for f in m.fields)
+            for m in self.models
+        )
+        if "User" not in model_names and _needs_user:
             lines.append(user_model_block)
 
         for model in self.models:

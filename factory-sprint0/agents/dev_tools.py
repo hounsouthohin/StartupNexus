@@ -33,6 +33,7 @@ _workdir_cv:   ContextVar[str | None]        = ContextVar("factory_workdir",   d
 _protected_cv: ContextVar[frozenset[str]]    = ContextVar("factory_protected",  default=frozenset())
 _validated_cv: ContextVar[frozenset[str]]    = ContextVar("factory_validated",  default=frozenset())
 _errored_cv:   ContextVar[frozenset[str] | None] = ContextVar("factory_errored", default=None)
+_forbidden_cv: ContextVar[frozenset[str]]        = ContextVar("factory_forbidden", default=frozenset())
 
 # ── Dict globaux keyed par run_id ─────────────────────────────────────────────
 # Les ContextVar _errored_cv et _validated_cv ne traversent pas les frontières
@@ -139,6 +140,11 @@ def set_protected_files(paths: list[str] | set[str] | None) -> None:
     ))
 
 
+def set_forbidden_imports(tokens: list[str]) -> None:
+    """Charge les tokens d'import interdits depuis la stack config (forbidden_imports[])."""
+    _forbidden_cv.set(frozenset(t.lower() for t in tokens if t))
+
+
 def _safe_path(path: str) -> str:
     """Résout un chemin relatif dans le workdir actif. Refuse les path traversal."""
     base = Path(_get_workdir()).resolve()
@@ -182,6 +188,25 @@ def write_file(path: str, content: str) -> str:
             return (
                 f"BLOCKED: '{norm_path}' est déjà validé par tsc — réécriture interdite.{suffix}"
             )
+
+        # Guard 3 : imports interdits par la stack config (forbidden_imports[]).
+        # Vérifié uniquement dans les fichiers .ts/.tsx, sur les lignes d'import.
+        if norm_path.endswith((".ts", ".tsx")):
+            _forbidden = _forbidden_cv.get()
+            if _forbidden:
+                _import_lines = [
+                    ln for ln in (content or "").splitlines()
+                    if ln.lstrip().startswith("import ")
+                ]
+                for _il in _import_lines:
+                    _il_lower = _il.lower()
+                    for _tok in _forbidden:
+                        if _tok in _il_lower:
+                            return (
+                                f"ERREUR write_file({path}): import interdit détecté — '{_tok}'.\n"
+                                f"Ligne : {_il.strip()}\n"
+                                "Supprime cet import et utilise l'alternative stack (Clerk, Prisma, Zod)."
+                            )
 
         # Validation package.json : JSON strict requis.
         if norm_path == "package.json":

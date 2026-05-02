@@ -42,8 +42,8 @@ PHASE0_BRIEFS: List[Dict] = [
             ),
             "architecture": (
                 "SaaS single-tenant — toutes les pages protégées par Clerk. "
-                "Task est liée à Project via projectId. Comment est liée à Task via taskId "
-                "avec authorId (= userId Clerk). "
+                "Task est liée à Project via projectId (owner_field=userId). "
+                "Comment est liée à Task via taskId, son owner_field est authorId (= userId Clerk, pas userId). "
                 "Workflow statut Task : todo → in-progress → done. "
                 "CRUD complet sur projets, tâches et commentaires. "
                 "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
@@ -219,9 +219,11 @@ PHASE0_BRIEFS: List[Dict] = [
             ],
             "pages_detail": {
                 "/": (
-                    "Dashboard récapitulatif (Server Component). "
-                    "3 métriques en haut : nombre total d'entreprises, nombre total de contacts, "
-                    "nombre total d'interactions. "
+                    "Dashboard récapitulatif (Server Component, auth_required=true). "
+                    "const { userId } = await auth(); if (!userId) redirect('/sign-in'). "
+                    "3 métriques en haut : nombre total d'entreprises (companyService.getAll(userId).length), "
+                    "nombre total de contacts (contactService.getAll(userId).length), "
+                    "nombre total d'interactions (interactionService.getAll(userId).length). "
                     "Section 'Interactions récentes' : 5 dernières interactions triées par date "
                     "(type badge, notes tronquées à 80 chars, prénom+nom du contact via include, date formatée). "
                     "Section 'Accès rapides' : liens vers /companies/new, /contacts/new, /interactions/new. "
@@ -387,7 +389,8 @@ PHASE0_BRIEFS: List[Dict] = [
             ],
             "pages_detail": {
                 "/": (
-                    "Dashboard RH (Server Component). "
+                    "Dashboard RH (Server Component, auth_required=true). "
+                    "const { userId } = await auth(); if (!userId) redirect('/sign-in'). "
                     "3 métriques en haut : total employés, demandes en attente (status=pending), "
                     "demandes approuvées ce mois. "
                     "Section 'Demandes en attente' : liste de toutes les LeaveRequest avec status=pending — "
@@ -490,14 +493,14 @@ PHASE0_BRIEFS: List[Dict] = [
                 {"method": "DELETE", "path": "/api/departments/[id]"},
                 {"method": "POST",   "path": "/api/employees"},
                 {"method": "DELETE", "path": "/api/employees/[id]"},
-                {"method": "POST",   "path": "/api/leaves"},
-                {"method": "PATCH",  "path": "/api/leaves/[id]"},
-                {"method": "DELETE", "path": "/api/leaves/[id]"},
+                {"method": "POST",   "path": "/api/leave-requests"},
+                {"method": "PATCH",  "path": "/api/leave-requests/[id]"},
+                {"method": "DELETE", "path": "/api/leave-requests/[id]"},
             ],
             "user_flows": [
                 "Le manager crée les départements : /departments/new → Server Action createDepartment() → redirect /departments",
                 "Le manager ajoute un employé dans un département : /employees/new → Server Action createEmployee() → redirect /employees",
-                "Le manager soumet une demande de congé pour un employé : /leaves/new → Server Action createLeaveRequest() → redirect /leaves",
+                "Le manager soumet une demande de congé pour un employé : /leaves/new → Server Action createLeaveRequest() → redirect /leaves — actions dans app/leave-requests/actions.ts",
                 "Le manager approuve une demande en attente : bouton sur / (dashboard) → Server Action updateLeaveRequest(id, { status: 'approved' })",
                 "Le manager rejette une demande : bouton sur /leaves/[id] → Server Action updateLeaveRequest(id, { status: 'rejected' })",
                 "Le manager consulte l'historique des congés d'un employé : /employees/[id]",

@@ -146,7 +146,7 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
     # ── 3. Input types par modèle ───────────────────────────────────────────────
     for model in spec.models:
         editable_fields: list[tuple[str, str]] = []  # (nom+optionality, type TS)
-        _owner = (model.owner_field or "userId").lower()
+        _owner = model.resolved_owner().lower()
 
         for field in model.fields:
             # Exclure les champs auto-gérés (id, createdAt, updatedAt)

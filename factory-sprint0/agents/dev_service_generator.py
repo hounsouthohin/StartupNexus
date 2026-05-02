@@ -10,7 +10,8 @@ Chaque service expose 5 fonctions CRUD standard :
   update       — update par id (pas d'owner check, la route le fait)
   remove       — delete par id + owner_field
 
-Les champs DateTime du DTO (string ISO) sont convertis en Date avant Prisma.
+Les champs DateTime du DTO sont des Date (z.coerce.date() dans lib/schemas.ts) —
+passés directement à Prisma, pas de new Date() nécessaire.
 Les enums Prisma sont castés via (rest as any) pour éviter les conflits de types.
 
 Intégration dans dev_graph.py (après generate_types_file) :
@@ -25,9 +26,6 @@ import re as _re
 
 logger = logging.getLogger(__name__)
 
-# Types Prisma qui sont des DateTime → nécessitent new Date() avant Prisma
-_DATETIME_PRISMA_TYPES = {"DateTime"}
-
 
 def _pascal_to_camel(name: str) -> str:
     """PascalCase → camelCase. Ex: LeaveRequest → leaveRequest"""
@@ -39,41 +37,14 @@ def _pascal_to_kebab(name: str) -> str:
     return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
-def _is_auto_field(field_name: str, attributes: str) -> bool:
-    attrs_lower = (attributes or "").lower()
-    return (
-        "@id" in attrs_lower
-        or "@default(now())" in attrs_lower
-        or "@updatedat" in attrs_lower.replace(" ", "")
-        or field_name.lower() in {"id", "createdat", "updatedat", "deletedat"}
-    )
+def _resolve_owner(model) -> str:
+    """Délègue à model.resolved_owner() — SSoT dans PrismaModel."""
+    return model.resolved_owner()
 
 
-def _is_relation_field(field_name: str, field_type: str, attributes: str) -> bool:
-    if "@relation" in (attributes or ""):
-        return True
-    base = field_type.rstrip("?").rstrip("[]")
-    from agents.dev_types_generator import _PRISMA_TO_TS
-    if base in _PRISMA_TO_TS:
-        return False
-    return bool(base) and base[0].isupper()
-
-
-def _get_datetime_fields(model) -> list[str]:
-    """Retourne les noms de champs DateTime du modèle (hors auto-gérés)."""
-    result = []
-    owner = (model.owner_field or "userId").lower()
-    for field in model.fields:
-        if _is_auto_field(field.name, field.attributes):
-            continue
-        if field.name.lower() == owner:
-            continue
-        if _is_relation_field(field.name, field.type, field.attributes):
-            continue
-        base_type = field.type.rstrip("?").rstrip("[]")
-        if base_type in _DATETIME_PRISMA_TYPES:
-            result.append(field.name)
-    return result
+def _relation_fields(model) -> list[str]:
+    """Retourne les noms des champs portant un @relation dans le modèle."""
+    return [f.name for f in model.fields if "@relation" in (f.attributes or "")]
 
 
 def _generate_service_for_model(model) -> str:
@@ -82,11 +53,10 @@ def _generate_service_for_model(model) -> str:
     Format : objet exporté nommé {camelCase}Service — pattern DAL standard.
     LLM-agnostic : le contrat est injecté dans le prompt de la route, pas deviné.
     """
-    name = model.name                        # ex: LeaveRequest
-    camel = _pascal_to_camel(name)           # ex: leaveRequest
-    owner = model.owner_field or "userId"    # ex: userId
-
-    date_fields = _get_datetime_fields(model)
+    name = model.name                   # ex: LeaveRequest
+    camel = _pascal_to_camel(name)      # ex: leaveRequest
+    owner = _resolve_owner(model)       # ex: userId (validé)
+    relations = _relation_fields(model)
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_service_generator.py — NE PAS MODIFIER",
@@ -100,58 +70,29 @@ def _generate_service_for_model(model) -> str:
         "",
         f"  getById: ({owner}: string, id: string): Promise<{name} | null> =>",
         f"    prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }}),",
-        "",
-        f"  create: async ({owner}: string, data: Create{name}Input): Promise<{name}> => {{",
     ]
 
-    if date_fields:
-        destruct_vars = ", ".join(date_fields)
-        lines.append(f"    const {{ {destruct_vars}, ...rest }} = data")
-        lines += [
-            f"    return prisma.{camel}.create({{",
-            "      data: {",
-            "        ...(rest as any),",
-            f"        {owner},",
-        ]
-        for df in date_fields:
-            lines.append(f"        {df}: new Date({df}),")
-        lines += ["      }", "    })"]
-    else:
-        lines += [
-            f"    return prisma.{camel}.create({{",
-            f"      data: {{ ...(data as any), {owner} }}",
-            "    })",
-        ]
+    if relations:
+        include_block = ", ".join(f"{r}: true" for r in relations)
+        lines.extend([
+            "",
+            f"  getAllWithRelations: ({owner}: string) =>",
+            f"    prisma.{camel}.findMany({{ where: {{ {owner} }}, include: {{ {include_block} }} }}),",
+        ])
 
-    lines += [
+    lines.extend([
+        "",
+        f"  create: async ({owner}: string, data: Create{name}Input): Promise<{name}> => {{",
+        f"    return prisma.{camel}.create({{",
+        f"      data: {{ ...(data as any), {owner} }}",
+        "    })",
         "  },",
         "",
         f"  update: async (id: string, data: Update{name}Input): Promise<{name}> => {{",
-    ]
-
-    if date_fields:
-        destruct_vars = ", ".join(date_fields)
-        lines.append(f"    const {{ {destruct_vars}, ...rest }} = data")
-        lines += [
-            f"    return prisma.{camel}.update({{",
-            "      where: { id },",
-            "      data: {",
-            "        ...(rest as any),",
-        ]
-        for df in date_fields:
-            lines.append(
-                f"        ...({df} !== undefined ? {{ {df}: new Date({df}) }} : {{}}),"
-            )
-        lines += ["      }", "    })"]
-    else:
-        lines += [
-            f"    return prisma.{camel}.update({{",
-            "      where: { id },",
-            "      data: { ...(data as any) }",
-            "    })",
-        ]
-
-    lines += [
+        f"    return prisma.{camel}.update({{",
+        "      where: { id },",
+        "      data: { ...(data as any) }",
+        "    })",
         "  },",
         "",
         f"  delete: async ({owner}: string, id: string): Promise<void> => {{",
@@ -159,7 +100,7 @@ def _generate_service_for_model(model) -> str:
         "  },",
         "}",
         "",
-    ]
+    ])
 
     return "\n".join(lines)
 
@@ -214,11 +155,18 @@ def format_service_map_for_prompt(spec) -> str:
         name = model.name
         camel = _pascal_to_camel(name)
         kebab = _pascal_to_kebab(name)
-        owner = model.owner_field or "userId"
+        owner = _resolve_owner(model)  # validé — F-13
+        relations = _relation_fields(model)
         import_path = f"@/lib/services/{kebab}.service"
         lines.append(f"**{camel}Service** → `import {{ {camel}Service }} from '{import_path}'`")
         lines.append(f"  .getAll({owner})  → `Promise<{name}[]>`")
         lines.append(f"  .getById({owner}, id)  → `Promise<{name} | null>`")
+        if relations:
+            rel_list = ", ".join(relations)
+            lines.append(
+                f"  .getAllWithRelations({owner})  → retourne {name}[] avec include: {{ {rel_list} }}"
+                f" ← UTILISER quand la page affiche des champs relationnels (ex: item.{relations[0]}.xxx)"
+            )
         lines.append(f"  .create({owner}, data: Create{name}Input)  → `Promise<{name}>`")
         lines.append(f"  .update(id, data: Update{name}Input)  → `Promise<{name}>`")
         lines.append(f"  .delete({owner}, id)  → `Promise<void>`")

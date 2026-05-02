@@ -94,7 +94,7 @@ def make_deterministic_plan(
         if file_path in template_set:
             continue
 
-        owner = model.owner_field or "userId"
+        owner = model.resolved_owner()
 
         # Champs DateTime non auto (nécessitent new Date() côté service)
         _datetime_fields = [
@@ -113,7 +113,7 @@ def make_deterministic_plan(
         ]
 
         _dt_hint = (
-            f" Champs DateTime : {', '.join(_datetime_fields)} → new Date(value) avant Prisma."
+            f" Champs DateTime : {', '.join(_datetime_fields)} — déjà Date (z.coerce.date()) — passer directement à Prisma."
             if _datetime_fields else ""
         )
         _rel_hint = (
@@ -139,6 +139,14 @@ def make_deterministic_plan(
             ),
         ))
 
+    # F-04: index stable segment→modèle (évite rstrip("s") fragile sur "address", "news"...)
+    # Couvre : "project" → Project, "projects" → Project, "leave-requests" → LeaveRequest
+    _model_by_seg: dict[str, object] = {}
+    for _bm in spec.models:
+        _bk = _pascal_to_kebab(_bm.name)
+        _model_by_seg[_bk] = _bm
+        _model_by_seg[_bk + "s"] = _bm
+
     # ── 1. Server Actions — une par segment de modèle avec des mutations ──────
     # On groupe les routes de mutation par segment de modèle (ex: 'projects').
     # Les GET routes sont ignorées : les Server Components lisent Prisma directement.
@@ -158,19 +166,40 @@ def make_deterministic_plan(
         file_path = f"app/{seg}/actions.ts"
         mutations_str = ", ".join(mutations)
 
-        # Trouver le service associé depuis la spec
-        # Le segment ressemble à 'projects' ou 'leave-requests'
+        # F-05: collecter TOUS les modèles impliqués — segment primaire + segments imbriqués
+        # Ex: /api/tasks/[id]/comments → primary=tasks(Task), nested=comments(Comment)
+        _relevant_models = []
+        _primary = _model_by_seg.get(seg)
+        if _primary:
+            _relevant_models.append(_primary)
+
+        for route_str in mutations:
+            route_path = route_str.split(" ", 1)[1] if " " in route_str else route_str
+            nested_parts = route_path.lstrip("/").split("/")
+            # skip "api" + primary segment + dynamic segments ([id])
+            for ns in nested_parts[2:]:
+                if not ns.startswith("[") and ns:
+                    _secondary = _model_by_seg.get(ns)
+                    if _secondary and _secondary not in _relevant_models:
+                        _relevant_models.append(_secondary)
+
         service_hint = ""
-        for model in spec.models:
-            if _pascal_to_kebab(model.name) == seg or _pascal_to_kebab(model.name) + "s" == seg:
-                camel = _pascal_to_camel(model.name)
-                owner = model.owner_field or "userId"
-                service_hint = (
-                    f"Service : import {{ {camel}Service }} from '@/lib/services/{_pascal_to_kebab(model.name)}.service' — "
-                    f"Schema : import {{ Create{model.name}Schema, Update{model.name}Schema }} from '@/lib/schemas' — "
-                    f"owner field : {owner}."
+        if _relevant_models:
+            svc_parts = []
+            for _rm in _relevant_models:
+                _rc = _pascal_to_camel(_rm.name)
+                _rk = _pascal_to_kebab(_rm.name)
+                _ro = _rm.resolved_owner()
+                svc_parts.append(
+                    f"import {{ {_rc}Service }} from '@/lib/services/{_rk}.service' (owner: {_ro})"
                 )
-                break
+            service_hint = "Services : " + " | ".join(svc_parts) + "."
+            # Schemas du modèle primaire
+            _pm = _relevant_models[0]
+            service_hint += (
+                f" Schema : import {{ Create{_pm.name}Schema, Update{_pm.name}Schema }}"
+                f" from '@/lib/schemas'."
+            )
 
         entries.append(FilePlanEntry(
             path=file_path,
@@ -207,6 +236,16 @@ def make_deterministic_plan(
         ))
 
     # ── 3. Pages ───────────────────────────────────────────────────────────────
+    # Modèles ayant des champs de relation — calculé une fois pour tous les hints de pages
+    _models_with_relations = [
+        m for m in spec.models
+        if any("@relation" in (f.attributes or "") for f in m.fields)
+    ]
+    _relation_svc_calls = " | ".join(
+        f"{_pascal_to_camel(m.name)}Service.getAllWithRelations({m.resolved_owner()})"
+        for m in _models_with_relations
+    )
+
     for page in spec.pages:
         ppath = page.path.strip("/")
         file_path = "app/page.tsx" if not ppath else f"app/{ppath}/page.tsx"
@@ -220,6 +259,28 @@ def make_deterministic_plan(
             "Récupérer les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx. "
             "Sérialiser les dates avant Client Components : .toISOString()."
         )
+
+        # Hint params pour les pages dynamiques (ex: app/projects/[id]/page.tsx)
+        _dynamic_segments = [seg[1:-1] for seg in ppath.split("/") if seg.startswith("[") and seg.endswith("]")]
+        if _dynamic_segments:
+            _params_type = ", ".join(f"{seg}: string" for seg in _dynamic_segments)
+            _params_destructure = ", ".join(_dynamic_segments)
+            hint_parts.append(
+                f"PAGE DYNAMIQUE — TYPER params OBLIGATOIREMENT : "
+                f"export default async function Page({{ params }}: {{ params: {{ {_params_type} }} }}) "
+                f"{{ const {{ {_params_destructure} }} = params; — "
+                f"NE PAS laisser params non typé (TS7031 fatal)."
+            )
+
+        # Hint relations : si des modèles ont des champs relationnels
+        if _models_with_relations:
+            hint_parts.append(
+                f"Si la page affiche des champs d'un modèle lié (ex: item.contact.name), "
+                f"utiliser getAllWithRelations au lieu de getAll : {_relation_svc_calls}. "
+                f"NE PAS accéder aux propriétés relationnelles sur un objet retourné par getAll() "
+                f"— Prisma ne les inclut pas sans include (TS2551 fatal)."
+            )
+
         entries.append(FilePlanEntry(
             path=file_path,
             role="page",

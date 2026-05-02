@@ -33,10 +33,31 @@ def clean_project_workdir(workdir: str, extra_keep: set[str] | None = None) -> N
         logger.warning(f"[pre-run cleanup] Erreur listage workdir '{workdir}': {e}")
 
 
-def write_template_files(workdir: str, stack_cfg: dict, project_name: str, stack_id: str) -> dict:
+def _evaluate_template_condition(condition: str, spec: dict) -> bool:
+    """Évalue si un template conditionnel doit être écrit selon les données de la spec."""
+    if condition == "has_webhook_routes":
+        return any(
+            "webhook" in (r.get("path") or "").lower()
+            or "stripe" in (r.get("path") or "").lower()
+            for r in (spec.get("routes") or [])
+        )
+    logger.warning("[templates] Condition '%s' inconnue — template écrit par défaut", condition)
+    return True
+
+
+def write_template_files(
+    workdir: str,
+    stack_cfg: dict,
+    project_name: str,
+    stack_id: str,
+    spec: dict | None = None,
+) -> dict:
     import pathlib
 
     templated = stack_cfg.get("templated_files", {})
+    conditional = stack_cfg.get("conditional_templates", {})
+    spec_dict = spec or {}
+
     if not templated or not workdir:
         return {}
 
@@ -44,6 +65,16 @@ def write_template_files(workdir: str, stack_cfg: dict, project_name: str, stack
 
     written = {}
     for dest_filename, template_rel_path in templated.items():
+        # F-09: évalue la condition avant d'écrire si ce template est conditionnel
+        if dest_filename in conditional:
+            condition = conditional[dest_filename].get("condition", "")
+            if not _evaluate_template_condition(condition, spec_dict):
+                logger.info(
+                    "[templates] %s ignoré — condition '%s' non remplie par la spec",
+                    dest_filename, condition,
+                )
+                continue
+
         try:
             template_path = base_dir / template_rel_path
             if not template_path.exists():

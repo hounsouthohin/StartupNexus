@@ -95,7 +95,7 @@ def _prisma_type_to_zod(prisma_type: str, attributes: str = "") -> str:
 
 def _generate_create_schema(model) -> list[str]:
     """Génère les lignes du schéma Create{Name}Schema (champs mutables, sans owner)."""
-    owner = (model.owner_field or "userId").lower()
+    owner = model.resolved_owner().lower()
     fields_lines: list[str] = []
 
     for field in model.fields:
