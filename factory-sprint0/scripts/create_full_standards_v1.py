@@ -2288,13 +2288,14 @@ EXEMPLE_VALIDE:
   export default async function DashboardPage() {
     const { userId } = await auth();
     if (!userId) redirect('/sign-in');
-    const posts = await postService.getAll(userId); // ✅ via service, JAMAIS prisma direct
-    return <DashboardClient posts={posts.map(p => ({ ...p, createdAt: p.createdAt.toISOString() }))} />;
+    const posts = await postService.getAll(userId); // ✅ SerializedPost[] — dates déjà string
+    return <DashboardClient posts={posts} />;  // ✅ pas de .toISOString() — déjà fait par le service
   }
   // app/dashboard/page-client.tsx
   'use client';
   import { useState } from 'react';
-  interface DashboardClientProps { posts: { id: string; createdAt: string }[] }
+  import type { SerializedPost } from '@/lib/types';
+  interface DashboardClientProps { posts: SerializedPost[] }
   export default function DashboardClient({ posts }: DashboardClientProps) {
     const [filter, setFilter] = useState('all');
   }

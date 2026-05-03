@@ -17,7 +17,7 @@
 
 6. **TAILWIND ONLY** : INTERDIT `shadcn/ui`, `@radix-ui`, `@headlessui`, `@/components/ui/*`.
 
-7. **TABLEAUX TYPÉS** : `const items: ModelType[] = await modelService.getAll(userId)` — JAMAIS `let items = []` (TypeScript infère `never[]`). Typer explicitement les tableaux.
+7. **TABLEAUX TYPÉS** : `const items: SerializedModelType[] = await modelService.getAll(userId)` — JAMAIS `let items = []` (TypeScript infère `never[]`). Le service retourne `SerializedXxx` (dates = string), NE PAS annoter avec le type Prisma brut (TS2345 fatal).
 
 8. **FICHIERS PROTÉGÉS** : JAMAIS `write_file` sur `prisma/schema.prisma`, `lib/prisma.ts`, `prisma.config.ts`, `lib/types.ts`, `lib/schemas.ts`, `lib/services/*` — pré-générés par le pipeline. Écrire UNIQUEMENT `app/**/actions.ts` et `app/**/page.tsx`.
 
@@ -77,8 +77,8 @@
     ```ts
     // Import : import { modelNameService } from '@/lib/services/model-name.service'
 
-    modelNameService.getAll(ownerId: string)           → Promise<ModelName[]>
-    modelNameService.getById(ownerId: string, id: string) → Promise<ModelName | null>
+    modelNameService.getAll(ownerId: string)           → Promise<SerializedModelName[]>
+    modelNameService.getById(ownerId: string, id: string) → Promise<SerializedModelName | null>
     modelNameService.create(ownerId: string, data: CreateModelNameInput) → Promise<ModelName>
     modelNameService.update(id: string, data: UpdateModelNameInput) → Promise<ModelName>
     modelNameService.delete(ownerId: string, id: string) → Promise<void>

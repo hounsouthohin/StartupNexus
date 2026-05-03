@@ -436,19 +436,17 @@ async def run_dev_agent(
         # (SystemMessage, spec initiale, 3 derniers rounds, dernière correction).
         messages = _prune_messages(list(state["messages"]))
 
-        # Resync validated_files state → dicts globaux (cross-nœuds).
-        _state_validated = state.get("validated_files", [])
-        _dev_tools_module.set_validated_files(_state_validated)
-
         # Plan cursor : prochain fichier a generer.
+        # Source de vérité = filesystem : si le fichier existe sur disque, il a été écrit.
+        # Indépendant de validated_files (supprimé avec PV) — robuste aux redémarrages.
         _plan = state.get("file_plan") or []  # None (échec planner) ou [] traités pareil
         _plan_failed = state.get("file_plan") is None  # planner a levé une exception
-        _validated_set = set(state.get("validated_files", []))
-        _validated_norm = {v.lower() for v in _validated_set}
         _next_entry = next(
-            (e for e in _plan if e["path"].lower() not in _validated_norm),
+            (e for e in _plan if not os.path.exists(os.path.join(project_workdir, e["path"]))),
             None,
         )
+        # Pour example-anchor : fichiers du plan déjà présents sur disque
+        _written_set = {e["path"] for e in _plan if os.path.exists(os.path.join(project_workdir, e["path"]))}
 
         # Injection sur erreur build.
         last_error = state.get("last_build_error", "")
@@ -608,13 +606,13 @@ async def run_dev_agent(
                                 pass
 
                 # Phase 8 — Example-anchored prompting.
-                # Injecte le dernier fichier validé du même rôle comme exemple concret.
-                # Ancre le LLM sur un pattern déjà validé plutôt qu'une règle abstraite.
+                # Injecte le dernier fichier écrit du même rôle comme exemple concret.
+                # Ancre le LLM sur un pattern déjà produit plutôt qu'une règle abstraite.
                 _example_anchor = ""
-                if _validated_set:
+                if _written_set:
                     _same_role_candidates = [
                         e for e in _plan
-                        if e.get("role") == _role and e["path"] in _validated_set
+                        if e.get("role") == _role and e["path"] in _written_set
                     ]
                     if _same_role_candidates:
                         _example_path = _same_role_candidates[-1]["path"]
@@ -870,5 +868,4 @@ async def run_dev_agent(
     finally:
         # Toujours réinitialiser — même en cas d'exception
         _dev_tools_module.set_protected_files(None)
-        _dev_tools_module.reset_write_authority()
         _dev_tools_module.set_workdir(None)

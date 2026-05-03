@@ -31,17 +31,7 @@ _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 # ── ContextVar state — propagé par asyncio.run_in_executor aux threads outils ─
 _workdir_cv:   ContextVar[str | None]        = ContextVar("factory_workdir",   default=None)
 _protected_cv: ContextVar[frozenset[str]]    = ContextVar("factory_protected",  default=frozenset())
-_validated_cv: ContextVar[frozenset[str]]    = ContextVar("factory_validated",  default=frozenset())
-_errored_cv:   ContextVar[frozenset[str] | None] = ContextVar("factory_errored", default=None)
-_forbidden_cv: ContextVar[frozenset[str]]        = ContextVar("factory_forbidden", default=frozenset())
-
-# ── Dict globaux keyed par run_id ─────────────────────────────────────────────
-# Les ContextVar _errored_cv et _validated_cv ne traversent pas les frontières
-# de nœuds LangGraph (isolation asyncio par nœud). Ces dicts globaux sont la
-# seule façon de partager l'état entre file_validate_node et write_file (ToolNode).
-# Clé = run_id (ContextVar prouvé fonctionnel car setté avant le graph start).
-_errored_by_run:   dict[str, frozenset[str] | None] = {}
-_validated_by_run: dict[str, frozenset[str]]        = {}
+_forbidden_cv: ContextVar[frozenset[str]]    = ContextVar("factory_forbidden",  default=frozenset())
 
 
 # ── Accesseurs internes ───────────────────────────────────────────────────────
@@ -54,75 +44,11 @@ def _get_protected_files() -> frozenset[str]:
     return _protected_cv.get()
 
 
-def _get_validated_files() -> frozenset[str]:
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    if run_id in _validated_by_run:
-        return _validated_by_run[run_id]
-    return _validated_cv.get()
-
-
-def _get_errored_files() -> frozenset[str] | None:
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    # Dict global en priorité (visible cross-nœuds LangGraph).
-    # Fallback ContextVar pour compatibilité avec les appelants hors-graph.
-    if run_id in _errored_by_run:
-        return _errored_by_run[run_id]
-    return _errored_cv.get()
-
-
 # ── API publique de gestion d'état ────────────────────────────────────────────
 
 def set_workdir(path: str | None) -> None:
     """Fixe le workdir pour le run courant. Passer None pour réinitialiser."""
     _workdir_cv.set(path)
-
-
-def add_validated_files(paths: list[str]) -> None:
-    """Marque des fichiers comme validés par tsc. Appelé par file_validate_node (tsc OK)."""
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    normalized = frozenset(str(p).strip().replace("\\", "/").lstrip("/") for p in paths)
-    current = _validated_by_run.get(run_id, frozenset())
-    _validated_by_run[run_id] = current | normalized
-    _validated_cv.set(_validated_cv.get() | normalized)
-
-
-def set_validated_files(paths: list[str]) -> None:
-    """Resync complet des fichiers validés depuis le graph state. Appelé par dev_node."""
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    value = frozenset(str(p).strip().replace("\\", "/").lstrip("/") for p in paths)
-    _validated_by_run[run_id] = value
-    _validated_cv.set(value)
-
-
-def set_errored_files(paths: list[str]) -> None:
-    """Active le mode correction : seuls ces fichiers sont modifiables via write_file."""
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    value = frozenset(str(p).strip().replace("\\", "/").lstrip("/") for p in paths)
-    _errored_by_run[run_id] = value
-    _errored_cv.set(value)  # ContextVar maintenu pour backward compat
-
-
-def clear_errored_files() -> None:
-    """Désactive le mode correction (retour autorité totale)."""
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    _errored_by_run[run_id] = None
-    _errored_cv.set(None)
-
-
-def reset_write_authority() -> None:
-    """Réinitialise l'état d'autorité complet à la fin d'un run."""
-    from agents.context import get_run_id
-    run_id = get_run_id() or "default"
-    _errored_by_run.pop(run_id, None)
-    _validated_by_run.pop(run_id, None)
-    _validated_cv.set(frozenset())
-    _errored_cv.set(None)
 
 
 def set_protected_files(paths: list[str] | set[str] | None) -> None:
@@ -174,22 +100,7 @@ def write_file(path: str, content: str) -> str:
                 "Lis-le avec read_file() et évite toute réécriture."
             )
 
-        # Guard 2 : protection permanente des fichiers validés.
-        # Un fichier ayant passé tsc NE PEUT PAS être réécrit, que le mode soit
-        # correction (errored != None) ou génération libre (errored = None).
-        # Exception : le fichier est explicitement dans errored_files (correction ciblée).
-        # Sans cette protection, le LLM entre dans une boucle circulaire services↔routes
-        # même quand tout passe tsc — causant une RecursionError à 150 nœuds.
-        errored = _get_errored_files()
-        validated = _get_validated_files()
-        if norm_path in validated and (errored is None or norm_path not in errored):
-            allowed = sorted(errored)[:6] if errored else []
-            suffix = f" Corrige uniquement : {allowed}" if allowed else " Continue avec les fichiers restants à générer."
-            return (
-                f"BLOCKED: '{norm_path}' est déjà validé par tsc — réécriture interdite.{suffix}"
-            )
-
-        # Guard 3 : imports interdits par la stack config (forbidden_imports[]).
+        # Guard 2 : imports interdits par la stack config (forbidden_imports[]).
         # Vérifié uniquement dans les fichiers .ts/.tsx, sur les lignes d'import.
         if norm_path.endswith((".ts", ".tsx")):
             _forbidden = _forbidden_cv.get()

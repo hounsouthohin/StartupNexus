@@ -252,7 +252,7 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
                     f"      ✅  export default function {comp_name}Client({{ ... }}: {comp_name}ClientProps) {{ }}\n"
                     f"      ❌  export function {comp_name}Client  ← INTERDIT\n"
                     f"\n    ⚠️  TYPAGE OBLIGATOIRE des props :\n"
-                    f"      interface {comp_name}ClientProps {{ /* props du Server Component */ }}"
+                    f"      interface {comp_name}ClientProps {{ /* utiliser SerializedXxx depuis '@/lib/types' — dates sont string */ }}"
                 )
             detail_lines.append(f"  {path} :\n    {detail_str}")
         if detail_lines:
