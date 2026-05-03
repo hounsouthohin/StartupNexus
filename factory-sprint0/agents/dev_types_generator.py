@@ -161,14 +161,19 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
             if _is_relation_field(field.name, field.type, field.attributes):
                 continue
             ts_type = _prisma_type_to_ts(field.type)
-            # Optionnel si : type Prisma nullable (?), ou champ avec @default non-auto
-            is_optional = (
-                field.type.endswith("?")
-                or _field_has_non_auto_default(field.attributes)
-            )
-            optional_mark = "?" if is_optional else ""
-            base_ts = ts_type.replace(" | null", "")
-            editable_fields.append((field.name + optional_mark, base_ts))
+            is_nullable = field.type.endswith("?")
+            has_default = _field_has_non_auto_default(field.attributes)
+
+            if is_nullable:
+                # description?: string | null — optionnel ET nullable
+                # undefined ⊆ string|null|undefined → LLM passe `description?: string` sans TS2345
+                # string|null ⊆ string|null|undefined → page passe données Prisma sans TS2322
+                editable_fields.append((field.name + "?", ts_type))
+            elif has_default:
+                # Champ optionnel à la création (a un @default) mais non nullable
+                editable_fields.append((field.name + "?", ts_type))
+            else:
+                editable_fields.append((field.name, ts_type))
 
         if not editable_fields:
             # Modèle sans champs éditables détectables → type minimal
@@ -184,6 +189,26 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
             lines.append(f"  {fname}: {ftype}")
         lines.append("}")
         lines.append(f"export type {update_type_name} = Partial<{create_type_name}>")
+        lines.append("")
+
+        # SerializedXxx — comme le type Prisma mais tous les champs DateTime → string.
+        # C'est le type de retour des méthodes de lecture du service (getAll, getById, etc.).
+        # Évite TS2345 (LLM annote callback avec Company) et TS2551 (.toISOString sur string).
+        _dt_fields: list[tuple[str, bool]] = [
+            (f.name, f.type.endswith("?"))
+            for f in model.fields
+            if f.type.rstrip("?").rstrip("[]") == "DateTime"
+        ]
+        serialized_name = f"Serialized{model.name}"
+        if not _dt_fields:
+            lines.append(f"export type {serialized_name} = {model.name}")
+        else:
+            _omit_keys = " | ".join(f"'{fname}'" for fname, _ in _dt_fields)
+            lines.append(f"// {model.name} avec DateTime → string (retour du service — NE PAS appeler .toISOString())")
+            lines.append(f"export type {serialized_name} = Omit<{model.name}, {_omit_keys}> & {{")
+            for fname, nullable in _dt_fields:
+                lines.append(f"  {fname}: {'string | null' if nullable else 'string'}")
+            lines.append("}")
         lines.append("")
 
     # ── 4. Route param types pour les pages dynamiques ─────────────────────────

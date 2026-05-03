@@ -330,6 +330,173 @@ PHASE0_BRIEFS: List[Dict] = [
     },
 
     # ──────────────────────────────────────────────────────────────────
+    # Projet 4 — Suivi de facturation (invoice-tracker)
+    # 3 modèles : Client, Invoice, InvoiceItem
+    # Complexité : @relation Invoice→Client (getAllWithRelations), InvoiceItem
+    #              sans userId direct (owner_field=invoiceId), workflow statut
+    #              paiement draft→sent→paid, métriques financières dashboard
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "invoice-tracker",
+        "family": "billing",
+        "tags": ["billing", "relations", "nested_items", "status_workflow", "financial_metrics", "server_preload"],
+        "brief": {
+            "description": (
+                "Application SaaS de suivi de facturation. "
+                "L'utilisateur gère ses clients, crée des factures avec leurs lignes de détail, "
+                "et suit le statut de paiement (brouillon, envoyée, payée). "
+                "Dashboard avec indicateurs financiers clés."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Invoice est lié à Client via clientId (owner_field=userId sur Invoice). "
+                "Le champ 'client Client @relation(fields: [clientId], references: [id])' "
+                "dans Invoice permet invoice.client.name via include. "
+                "InvoiceItem est lié à Invoice via invoiceId "
+                "(owner_field=invoiceId — pas userId direct sur InvoiceItem). "
+                "Workflow statut Invoice : draft → sent → paid. "
+                "Formulaire /invoices/new pré-charge les clients via clientService.getAll(userId) "
+                "(Server Component → props Client Component). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Client { id String @id @default(uuid()), name String, email String, "
+                    "phone String?, address String?, "
+                    "invoices Invoice[], "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Invoice { id String @id @default(uuid()), number String, "
+                    "status String @default(\"draft\"), dueDate DateTime, "
+                    "clientId String, "
+                    "client Client @relation(fields: [clientId], references: [id]), "
+                    "userId String, createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([clientId]) }"
+                ),
+                (
+                    "InvoiceItem { id String @id @default(uuid()), description String, "
+                    "quantity Int @default(1), unitPrice Float, "
+                    "invoiceId String, "
+                    "@@index([invoiceId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/",               "auth": True},
+                {"path": "/clients",        "auth": True},
+                {"path": "/clients/new",    "auth": True},
+                {"path": "/clients/[id]",   "auth": True},
+                {"path": "/invoices",       "auth": True},
+                {"path": "/invoices/new",   "auth": True},
+                {"path": "/invoices/[id]",  "auth": True},
+            ],
+            "pages_detail": {
+                "/": (
+                    "Dashboard de facturation (Server Component, auth_required=true). "
+                    "const { userId } = await auth(); if (!userId) redirect('/sign-in'). "
+                    "3 métriques en haut : nombre total de clients (clientService.getAll(userId).length), "
+                    "nombre de factures envoyées non payées (status='sent'), "
+                    "nombre de factures payées (status='paid'). "
+                    "Section 'Factures récentes' : 5 dernières factures triées par createdAt décroissant. "
+                    "Utiliser invoiceService.getAllWithRelations(userId) pour avoir invoice.client.name "
+                    "(Invoice a @relation vers Client). "
+                    "Chaque ligne : numéro, nom du client, badge statut (draft=gris, sent=bleu, paid=vert), "
+                    "date d'échéance formatée. "
+                    "Section 'Accès rapides' : boutons vers /clients/new et /invoices/new. "
+                    "Si aucune facture : 'Aucune facture. Créez votre première facture !'."
+                ),
+                "/clients": (
+                    "Liste de tous les clients. "
+                    "Chaque ligne : nom, email (lien mailto:), téléphone (ou '-'), date d'ajout. "
+                    "Lien → /clients/[id]. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteClient(id). "
+                    "Bouton 'Nouveau client' en haut → /clients/new. "
+                    "Si vide : 'Aucun client. Ajoutez votre premier client !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/clients/new": (
+                    "Formulaire de création de client. "
+                    "Champs : nom (input text, required), email (input email, required), "
+                    "téléphone (input tel, optionnel), adresse (textarea, optionnel). "
+                    "Bouton 'Ajouter le client'. "
+                    "Submit → Server Action createClient({ name, email, phone, address }) → redirect /clients. "
+                    "Erreur inline si champ requis manquant. "
+                    "[INTERACTIVE]"
+                ),
+                "/clients/[id]": (
+                    "Profil d'un client. Nom en H1, email (lien mailto:), téléphone, adresse. "
+                    "Section 'Factures' : "
+                    "invoiceService.getAll(userId) filtré par clientId === id (côté serveur). "
+                    "Chaque ligne : numéro de facture, badge statut (draft=gris, sent=bleu, paid=vert), "
+                    "date d'échéance formatée, lien → /invoices/[id]. "
+                    "Bouton 'Nouvelle facture pour ce client' → /invoices/new?clientId=[id]. "
+                    "Bouton retour '← Clients'. "
+                    "notFound() si client introuvable ou n'appartient pas à l'utilisateur."
+                ),
+                "/invoices": (
+                    "Liste de toutes les factures. "
+                    "Utiliser invoiceService.getAllWithRelations(userId) pour avoir invoice.client.name. "
+                    "Chaque ligne : numéro, nom du client, badge statut (draft=gris, sent=bleu, paid=vert), "
+                    "date d'échéance. "
+                    "Lien → /invoices/[id]. "
+                    "Bouton 'Nouvelle facture' en haut → /invoices/new. "
+                    "Si vide : 'Aucune facture.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/invoices/new": (
+                    "Formulaire de création de facture. "
+                    "page.tsx (Server Component) pré-charge les clients via "
+                    "clientService.getAll(userId) et passe clients[] en props au formulaire Client. "
+                    "Champs : numéro de facture (input text, required, placeholder 'FAC-001'), "
+                    "client (select parmi clients[], required — "
+                    "pré-sélectionné si ?clientId= présent en query param), "
+                    "date d'échéance (input date, required). "
+                    "Bouton 'Créer la facture'. "
+                    "Submit → Server Action createInvoice({ number, clientId, dueDate }) "
+                    "→ redirect /invoices/[id]. "
+                    "Erreur inline si champ requis manquant. "
+                    "[INTERACTIVE]"
+                ),
+                "/invoices/[id]": (
+                    "Détail d'une facture. Numéro en H1, badge statut, date d'échéance. "
+                    "Nom du client via invoiceService.getById(userId, id) avec include client "
+                    "(ou invoiceService.getAllWithRelations(userId) filtré par id). "
+                    "Section 'Lignes de détail' : "
+                    "invoiceItemService.getAll(id) — ATTENTION : owner_field de InvoiceItem = invoiceId, "
+                    "donc appeler invoiceItemService.getAll(id) où 'id' est l'invoiceId (pas userId). "
+                    "Table : description, quantité, prix unitaire (€), total ligne (qty × unitPrice). "
+                    "Total général en bas. "
+                    "Si status=draft : bouton 'Marquer comme envoyée' "
+                    "→ Server Action updateInvoice(id, { status: 'sent' }). "
+                    "Si status=sent : bouton 'Marquer comme payée' "
+                    "→ Server Action updateInvoice(id, { status: 'paid' }). "
+                    "Bouton 'Supprimer' si status=draft "
+                    "→ Server Action deleteInvoice(id) → redirect /invoices. "
+                    "Bouton retour '← Factures'. "
+                    "notFound() si facture introuvable. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/clients"},
+                {"method": "DELETE", "path": "/api/clients/[id]"},
+                {"method": "POST",   "path": "/api/invoices"},
+                {"method": "PATCH",  "path": "/api/invoices/[id]"},
+                {"method": "DELETE", "path": "/api/invoices/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur ajoute un client : /clients/new → Server Action createClient() → redirect /clients",
+                "L'utilisateur crée une facture pour un client : /invoices/new?clientId=[id] → Server Action createInvoice() → redirect /invoices/[id]",
+                "L'utilisateur marque une facture comme envoyée : bouton sur /invoices/[id] → Server Action updateInvoice(id, { status: 'sent' })",
+                "L'utilisateur marque une facture comme payée : bouton sur /invoices/[id] → Server Action updateInvoice(id, { status: 'paid' })",
+                "L'utilisateur consulte le dashboard et voit les factures récentes avec le nom du client : /",
+                "L'utilisateur consulte le profil d'un client et liste ses factures : /clients/[id]",
+                "L'utilisateur supprime une facture brouillon : bouton sur /invoices/[id] → Server Action deleteInvoice(id) → redirect /invoices",
+            ],
+        },
+    },
+
+    # ──────────────────────────────────────────────────────────────────
     # Projet 3 — Gestion des congés (leave-manager)
     # 3 modèles : Department, Employee, LeaveRequest
     # Complexité : workflow d'approbation multi-statut, calcul de durée,
@@ -510,7 +677,7 @@ PHASE0_BRIEFS: List[Dict] = [
 ]
 
 
-def get_batch_projects(batch_size: int = 3) -> List[Dict]:
+def get_batch_projects(batch_size: int = 4) -> List[Dict]:
     base = [{"project_name": b["project_name"], "brief": b["brief"]} for b in PHASE0_BRIEFS]
     if batch_size <= len(base):
         return base[:batch_size]

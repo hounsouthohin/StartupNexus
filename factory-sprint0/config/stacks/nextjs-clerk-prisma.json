@@ -270,16 +270,18 @@
     ],
     "page": [
       "Server Component -- pas de 'use client'.",
+      "LECTURE SEULE -- zéro mutation dans ce fichier : pas de prisma.create/update/delete, pas de Server Action appelée directement. Les mutations se font UNIQUEMENT depuis le fichier actions.ts correspondant.",
       "import { auth } from '@clerk/nextjs/server'.",
       "if (!userId) redirect('/sign-in').",
       "Lit les donnees VIA LE SERVICE : xxxService.getAll(userId) -- JAMAIS prisma directement.",
-      "Serialise les Date Prisma : .toISOString() avant props Client.",
+      "Le service retourne SerializedXxx (dates DateTime déjà string) — NE PAS appeler .toISOString() sur ces données (TS2551 fatal).",
       "Pages dynamiques ([id] dans le chemin) : TYPER params OBLIGATOIREMENT. Pattern exact : export default async function Page({ params }: { params: { id: string } }) { const { id } = params; ... } — TypeScript strict rejette tout binding element sans type explicite (TS7031).",
-      "Si la page affiche des champs d'un modele lie (ex: item.contact.name, item.project.title) : utiliser xxxService.getAllWithRelations(userId) au lieu de getAll() — la methode getAllWithRelations inclut les relations via Prisma include et est pre-generee dans le service."
+      "Variables dans .map()/.filter() : laisser TypeScript inférer le type depuis le retour du service (SerializedXxx) — NE PAS annoter manuellement avec le type Prisma brut (TS2345 fatal)."
     ],
     "page_client": [
       "'use client' en 1ere ligne. Pas d'appel Prisma direct.",
-      "Recoit les donnees via props depuis le Server Component parent."
+      "Recoit les donnees via props depuis le Server Component parent.",
+      "Types des props : utiliser SerializedXxx depuis '@/lib/types' — les dates sont string (pas Date). Champs nullable → string | null (jamais string | undefined)."
     ],
     "service": [
       "Service DAL — couche entre Prisma et le reste de l'app.",

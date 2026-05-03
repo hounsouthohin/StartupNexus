@@ -17,3 +17,5 @@ pytest-asyncio
 instructor
 tree-sitter
 tree-sitter-typescript
+ddgs
+httpx

@@ -11,7 +11,6 @@ Phase 5 : outils Python natifs — MCP retiré du chemin critique
 """
 from __future__ import annotations
 
-import hashlib
 import logging
 import operator
 import os
@@ -26,6 +25,7 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 import agents.dev_tools as _dev_tools_module
 from agents.dev_tools import write_file, read_file, list_directory, shell_exec, file_exists
+from agents.web_search import web_search
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +37,8 @@ def _pascal_to_kebab_local(name: str) -> str:
     return _re_utils.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
-MAX_BUILD_ATTEMPTS = 3
-MAX_FILE_VALIDATION_RETRIES = 2
-MAX_GENERATION_TURNS = 35
+MAX_BUILD_ATTEMPTS = 2
+MAX_GENERATION_TURNS = 15
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
 
@@ -59,82 +58,31 @@ class DevState(TypedDict):
     build_attempts: int
     last_build_error: str
     success: bool
-    error_signatures: List[str]
-    build_command_executed: bool   # True ssi npm run build a été appelé et a retourné un exit code
-    build_exit_code: int           # Exit code réel du dernier npm run build (0 = succès)
-    phase: str                     # "generation" → "correction" après premier build (Faille 3)
-    generation_turns: int          # tours d'executor — circuit breaker anti-boucle infinie
-    # Progressive Validation (Étape 2)
-    validated_files: List[str]     # Fichiers .ts/.tsx ayant passé tsc file-level sans erreur
-    file_validation_errors: str    # Erreurs tsc du dernier tour — injectées en HumanMessage si non vides
-    file_validation_retries: int   # Tentatives de correction sur le batch courant
-    stale_error_keys: List[str]    # Clés "file:TSxxxx" vues au fil des tours — détection de boucle
-    errored_files: List[str]       # Fichiers avec des erreurs tsc actives (mode correction)
-    file_plan: List[dict]           # Plan ordonné FilePlanEntry (path, role, context_hint)
+    build_command_executed: bool
+    build_exit_code: int
+    generation_turns: int
+    validated_files: List[str]
+    file_plan: List[dict]
 
 
-def _error_signature(stderr: str) -> str:
-    """Hash stable des 200 premiers chars d'une erreur — détection de boucle."""
-    return hashlib.md5(stderr[:200].encode()).hexdigest()[:8]
-
-
-# ── Faille 4 : Correction ciblée + Pruning sémantique ────────────────────────
-
-
-def _build_targeted_correction(error: str) -> str:
-    """
-    Construit le message de correction post-build pour le LLM.
-
-    Deux branches :
-      - Erreur cataloguée  → diagnostic ciblé (context_hint) + 1 ligne workflow
-      - Erreur inconnue    → fallback minimal (ne pas laisser le LLM sans guidance)
-
-    Le RAG est injecté en amont par dev_node (rag_search.invoke) — pas ici.
-    """
-    from agents.tsc_error_catalog import lookup_error as _lookup_error
-
-    first_lines = "\n".join(error.splitlines()[:10])
-
-    for line in error.splitlines()[:10]:
-        match = _lookup_error(line)
-        if match:
-            return (
-                f"ERREUR BUILD à corriger :\n{first_lines[:400]}\n"
-                f"\nDIAGNOSTIC ({match.code} — {match.action}) :\n{match.context_hint}\n\n"
-                "Après correction : shell_exec(\"npx tsc --noEmit\") — si OK → shell_exec(\"npm run build\")"
-            )
-
-    # Fallback minimal — erreur non encore cataloguée
-    return (
-        f"ERREUR BUILD à corriger :\n{first_lines[:400]}\n\n"
-        "Corrige uniquement la ligne indiquée — ne réécris pas le fichier entier.\n"
-        "shell_exec(\"npx tsc --noEmit\") — si OK → shell_exec(\"npm run build\")"
-    )
+# ── Pruning sémantique ───────────────────────────────────────────────────────
 
 
 def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
-    """
-    Élagage sémantique du contexte LLM (Faille 4 fix — Context Window Management).
-
-    Garde :
-      - SystemMessage(s)                         → toujours (règles stack)
-      - Premier HumanMessage                     → toujours (spec initiale)
-      - Dernier HumanMessage                     → toujours (correction en cours)
-      - 3 dernières paires AIMessage+ToolMessage → fenêtre d'action récente
-
-    Élimine : vieux ToolMessage "OK: X écrit", anciens échanges de génération,
-    HumanMessage d'injection obsolètes — tout ce qui est devenu du bruit.
-    """
+    """Garde system messages + premier HumanMessage (spec) + 5 derniers rounds."""
     if len(messages) <= 8:
-        return messages  # contexte court → rien à élaguer
+        return messages
 
     system_msgs = [m for m in messages if isinstance(m, SystemMessage)]
-    human_msgs  = [m for m in messages if isinstance(m, HumanMessage)]
 
-    first_human = [human_msgs[0]] if human_msgs else []
-    last_human  = [human_msgs[-1]] if len(human_msgs) > 1 else []
+    # Premier HumanMessage = spec initiale
+    first_human: list[BaseMessage] = []
+    for m in messages:
+        if isinstance(m, HumanMessage):
+            first_human = [m]
+            break
 
-    # Reconstruit les "rounds" : AIMessage + ToolMessage(s) suivants
+    # Reconstruit les rounds : AIMessage + ToolMessage(s)/HumanMessage(s) suivants
     rounds: list[list[BaseMessage]] = []
     current: list[BaseMessage] = []
     for msg in messages:
@@ -142,18 +90,13 @@ def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
             if current:
                 rounds.append(current)
             current = [msg]
-        elif isinstance(msg, ToolMessage) and current:
+        elif isinstance(msg, (ToolMessage, HumanMessage)) and current:
             current.append(msg)
-        elif isinstance(msg, HumanMessage) and current:
-            rounds.append(current)
-            current = []
     if current:
         rounds.append(current)
 
-    # Garde les 3 derniers rounds (actions récentes)
-    recent = [m for round_ in rounds[-3:] for m in round_]
+    recent = [m for round_ in rounds[-5:] for m in round_]
 
-    # Assemble sans doublons : system → first_human → recent → last_human
     seen: set[int] = set()
     result: list[BaseMessage] = []
 
@@ -165,7 +108,6 @@ def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     for m in system_msgs:  _add(m)
     for m in first_human:  _add(m)
     for m in recent:       _add(m)
-    for m in last_human:   _add(m)
 
     return result
 
@@ -243,10 +185,9 @@ async def run_dev_agent(
         return {  # type: ignore[return-value]
             "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
             "build_attempts": 0, "last_build_error": f"TEMPLATE_FAILURE: {reason}",
-            "success": False, "error_signatures": [], "build_command_executed": False,
-            "build_exit_code": -1, "phase": "generation", "validated_files": [],
-            "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
-            "generation_turns": 0, "errored_files": [], "file_plan": None,
+            "success": False, "build_command_executed": False,
+            "build_exit_code": -1, "validated_files": [],
+            "generation_turns": 0, "file_plan": None,
         }
 
     # ── Materialisation déterministe de schema.prisma depuis ProjectSpec ─────
@@ -349,10 +290,9 @@ async def run_dev_agent(
                     "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
                     "build_attempts": 0,
                     "last_build_error": f"PRISMA_GENERATE_FAILED: {_pg_out[:300]}",
-                    "success": False, "error_signatures": [], "build_command_executed": False,
-                    "build_exit_code": -1, "phase": "generation", "validated_files": [],
-                    "file_validation_errors": "", "file_validation_retries": 0, "stale_error_keys": [],
-                    "generation_turns": 0, "errored_files": [], "file_plan": None,
+                    "success": False, "build_command_executed": False,
+                    "build_exit_code": -1, "validated_files": [],
+                    "generation_turns": 0, "file_plan": None,
                 }
         except subprocess.TimeoutExpired:
             logger.warning("[dev_graph] prisma generate pre-run TIMEOUT (>120s) — non bloquant")
@@ -452,12 +392,7 @@ async def run_dev_agent(
             )
 
     # ── Outils ───────────────────────────────────────────────────────
-    tools = list(DEV_TOOLS)
-    try:
-        from agents.shared_tools import rag_search
-        tools = tools + [rag_search]
-    except Exception as _e:
-        logger.warning(f"[dev_graph] rag_search non disponible : {_e}")
+    tools = list(DEV_TOOLS) + [web_search]
 
     logger.info(f"[dev_graph] {len(tools)} outils : {[t.name for t in tools]}")
 
@@ -468,7 +403,7 @@ async def run_dev_agent(
         role: "\n".join(lines) for role, lines in _hints_raw.items()
     } if _hints_raw else {}
 
-    _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o")
     llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
     # llm_with_tools est construit dynamiquement dans executor_node selon la phase.
 
@@ -501,88 +436,32 @@ async def run_dev_agent(
         # (SystemMessage, spec initiale, 3 derniers rounds, dernière correction).
         messages = _prune_messages(list(state["messages"]))
 
-        # Resync errored_files + validated_files state → dicts globaux (cross-nœuds).
-        # Guard 2 dans write_file lit _get_errored_files() / _get_validated_files() depuis
-        # _errored_by_run/_validated_by_run. Ces dicts traversent les frontières asyncio ;
-        # les ContextVar seuls ne suffisent pas (isolation par nœud LangGraph).
-        _state_errored = state.get("errored_files", [])
-        if _state_errored:
-            _dev_tools_module.set_errored_files(_state_errored)
-        else:
-            _dev_tools_module.clear_errored_files()
+        # Resync validated_files state → dicts globaux (cross-nœuds).
         _state_validated = state.get("validated_files", [])
         _dev_tools_module.set_validated_files(_state_validated)
-
-        # En phase "correction" : rappel explicite que le LLM ne doit pas repartir
-        # de zéro — corrige uniquement la ligne indiquée, ne réécrit pas les fichiers entiers.
-        if state.get("phase", "generation") == "correction" and not state.get("last_build_error", ""):
-            messages.append(HumanMessage(content=(
-                "Tu es en phase correction. "
-                "Ne régénère pas les fichiers depuis zéro. "
-                "Identifie la ligne fautive, lis-la avec read_file, corrige-la chirurgicalement."
-            )))
 
         # Plan cursor : prochain fichier a generer.
         _plan = state.get("file_plan") or []  # None (échec planner) ou [] traités pareil
         _plan_failed = state.get("file_plan") is None  # planner a levé une exception
         _validated_set = set(state.get("validated_files", []))
-        _validated_norm = {v.lower() for v in _validated_set}  # F-06: insensible à la casse (Windows/Linux)
-        _next_entry = next((e for e in _plan if e["path"].lower() not in _validated_norm), None)
+        _validated_norm = {v.lower() for v in _validated_set}
+        _next_entry = next(
+            (e for e in _plan if e["path"].lower() not in _validated_norm),
+            None,
+        )
 
-        # Injection des erreurs de validation file-level (Progressive Validation).
-        file_val_errors = state.get("file_validation_errors", "")
-        if file_val_errors:
-            retries = int(state.get("file_validation_retries", 0) or 0)
-            validated = state.get("validated_files", [])
-            validated_summary = (
-                f" ({len(validated)} fichiers deja valides)" if validated else ""
-            )
-            messages.append(HumanMessage(content=(
-                f"ERREURS TypeScript detectees dans les fichiers que tu viens d'ecrire "
-                f"(tentative {retries}/{MAX_FILE_VALIDATION_RETRIES}){validated_summary} :\n\n"
-                f"{file_val_errors}\n\n"
-                "Etapes :\n"
-                "1. Lis la ligne indiquee avec read_file(fichier, ligne-3, ligne+10)\n"
-                "2. Corrige uniquement la ligne fautive\n"
-                "3. N'ecris PAS d'autres fichiers tant que ces erreurs ne sont pas resolues\n"
-                "4. Importe les types manquants depuis '@/lib/types' si possible"
-            )))
-
-        # Injection ciblee sur TOUTE erreur build.
+        # Injection sur erreur build.
         last_error = state.get("last_build_error", "")
         if last_error:
-            sig = _error_signature(last_error)
-            repeat_count = state.get("error_signatures", []).count(sig)
-            correction = _build_targeted_correction(last_error)
+            first_lines = "\n".join(last_error.splitlines()[:10])
+            messages.append(HumanMessage(content=(
+                f"ERREUR BUILD à corriger :\n{first_lines[:600]}\n\n"
+                "Corrige uniquement la ligne indiquée.\n"
+                "shell_exec('npx tsc --noEmit') — si OK → shell_exec('npm run build')"
+            )))
 
-            # F1 RAG bridge
-            from agents.tsc_error_catalog import lookup_error as _catalog_lookup
-            for _eline in last_error.splitlines()[:10]:
-                _cmatch = _catalog_lookup(_eline)
-                if _cmatch and _cmatch.rag_query:
-                    try:
-                        from agents.shared_tools import rag_search as _rag_fn
-                        logger.info("[rag-bridge:executor_node] q=%r", _cmatch.rag_query[:60])
-                        _rag_result = _rag_fn.invoke({"query": _cmatch.rag_query})
-                        if _rag_result and not _rag_result.startswith("[RAG]"):
-                            correction += (
-                                f"\n\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:500]}"
-                            )
-                    except Exception:
-                        pass
-                    break
-
-            if repeat_count >= 2:
-                correction = (
-                    f"MEME ERREUR APRES {repeat_count} TENTATIVES -- "
-                    "Ne reecris pas le fichier entier. Corrige la ligne indiquee.\n\n"
-                    + correction
-                )
-
-            messages.append(HumanMessage(content=correction))
-
-        # Plan-and-Execute : guidage fichier par fichier (si pas d'erreurs).
-        elif not file_val_errors:
+        # Plan-and-Execute : guidage fichier par fichier.
+        else:
             if _plan_failed:
                 # Plan non généré (spec invalide) — ne pas déclencher le build à vide
                 logger.error("[executor] plan_failed=True — run en mode sans plan (LLM libre)")
@@ -592,7 +471,7 @@ async def run_dev_agent(
             elif _next_entry is None:
                 # Tous les fichiers valides : declencher le build
                 messages.append(HumanMessage(content=(
-                    f"Tous les {len(_plan)} fichiers du plan ont ete valides par tsc. "
+                    f"Tous les {len(_plan)} fichiers du plan ont ete ecrits. "
                     "Execute maintenant dans cet ordre EXACT :\n"
                     "1. shell_exec('npx prisma generate')\n"
                     "2. shell_exec('npm run build')\n"
@@ -760,13 +639,8 @@ async def run_dev_agent(
 
         response = llm_with_tools.invoke(messages)
 
-        new_sigs = list(state.get("error_signatures", []))
-        if last_error:
-            new_sigs.append(_error_signature(last_error))
-
         return {
             "messages": [response],
-            "error_signatures": new_sigs,
             "generation_turns": int(state.get("generation_turns", 0) or 0) + 1,
         }
 
@@ -845,8 +719,6 @@ async def run_dev_agent(
                     break
 
         new_attempts = int(state.get("build_attempts", 0) or 0) + (1 if build_executed else 0)
-        # Dès que le build a tourné (réussi ou non) → phase "correction"
-        new_phase = "correction" if build_executed else state.get("phase", "generation")
 
         return {
             "last_build_error": last_error,
@@ -854,7 +726,6 @@ async def run_dev_agent(
             "build_command_executed": build_executed,
             "build_exit_code": build_exit,
             "build_attempts": new_attempts,
-            "phase": new_phase,
         }
 
     # ── Routage ──────────────────────────────────────────────────────
@@ -913,315 +784,11 @@ async def run_dev_agent(
     #   - Un nœud LangGraph est le seul endroit correct pour décider du routage
     #   - On valide le batch (plusieurs fichiers d'un tour) plutôt que chaque write isolé
 
-    _TS_EXTENSIONS = {".ts", ".tsx"}
-    # lib/types.ts et lib/services/*.ts sont pré-générés (Option A) — le LLM ne les écrit pas.
-    # Ils ne peuvent donc pas apparaître dans written_files (write_file retourne "ERREUR" pour eux).
-    # Seuls les fichiers infrastructure templates sont listés ici pour exclusion explicite.
-    _PROTECTED_NAMES = {"lib/prisma.ts", "prisma/schema.prisma",
-                        "prisma.config.ts", "middleware.ts", ".eslintrc.stack.json"}
-
-    def _extract_written_ts_files(messages: list) -> list[str]:
-        """
-        Parcourt les ToolMessages du dernier tour pour trouver les fichiers écrits.
-        Retourne uniquement les .ts/.tsx non-protégés.
-        write_file retourne : "OK: path écrit (N chars)"
-        """
-        import re as _re
-        written = []
-        for msg in reversed(messages):
-            if not isinstance(msg, ToolMessage):
-                # On s'arrête au premier non-ToolMessage : on ne veut que le dernier tour
-                break
-            content = str(getattr(msg, "content", "") or "")
-            m = _re.match(r"OK:\s+(.+?)\s+écrit", content)
-            if not m:
-                continue
-            path = m.group(1).strip().replace("\\", "/").lstrip("./")
-            _, ext = os.path.splitext(path)
-            if ext not in _TS_EXTENSIONS:
-                continue
-            if path in _PROTECTED_NAMES:
-                continue
-            written.append(path)
-        return written
-
-    from agents.error_parser import (
-        filter_tsc_errors_for_files as _parse_tsc_errors_for_files,
-        run_tsc_structured as _run_tsc_structured,
-        filter_tsc_errors_structured as _filter_tsc_structured,
-    )
-
-    async def file_validate_node(state: DevState) -> dict:
-        """
-        Progressive Validation : tsc --noEmit sur les fichiers TypeScript écrits dans ce tour.
-        Non bloquant si tsc indisponible (node_modules absent, première itération).
-        """
-        messages = list(state.get("messages", []))
-        written_files = _extract_written_ts_files(messages)
-
-        if not written_files:
-            # Rien d'écrit en TS dans ce tour (shell_exec, fichiers non-TS, etc.)
-            return {"file_validation_errors": ""}
-
-        logger.info("[file_validate] Fichiers TS écrits ce tour : %s", written_files)
-
-        # Vérifie que tsc est disponible (node_modules installé)
-        tsc_bin = os.path.join(project_workdir, "node_modules", ".bin", "tsc")
-        tsc_available = os.path.exists(tsc_bin) or os.path.exists(tsc_bin + ".cmd")
-        if not tsc_available:
-            logger.info("[file_validate] tsc non disponible (npm install pas encore lancé) — skip")
-            return {"file_validation_errors": ""}
-
-        try:
-            # R1 — ts-morph structured diagnostics (pas de regex sur du texte)
-            tsc_diagnostics = _run_tsc_structured(project_workdir, timeout_s=60)
-
-            if tsc_diagnostics is not None:
-                tsc_ok = len(tsc_diagnostics) == 0
-            else:
-                # Fallback : npx tsc (liste — pas de shell=True pour éviter l'injection)
-                _fb = subprocess.run(
-                    ["npx", "tsc", "--noEmit"],
-                    capture_output=True,
-                    text=True,
-                    cwd=project_workdir,
-                    timeout=60,
-                )
-                tsc_stdout_fb = (_fb.stdout or "") + (_fb.stderr or "")
-                tsc_ok = _fb.returncode == 0
-
-            if tsc_ok:
-                # tsc clean → fichiers validés + désactivation du mode correction
-                new_validated = list(state.get("validated_files", []))
-                for f in written_files:
-                    if f not in new_validated:
-                        new_validated.append(f)
-                _dev_tools_module.add_validated_files(written_files)
-                _dev_tools_module.clear_errored_files()
-                logger.info("[file_validate] ✓ tsc OK — fichiers validés : %s", written_files)
-                return {
-                    "file_validation_errors": "",
-                    "validated_files": new_validated,
-                    "file_validation_retries": 0,
-                    "errored_files": [],
-                }
-
-            # tsc a des erreurs → filtrer sur les fichiers écrits ce tour
-            if tsc_diagnostics is not None:
-                errors_for_written = _filter_tsc_structured(tsc_diagnostics, written_files, project_workdir)
-            else:
-                errors_for_written = _parse_tsc_errors_for_files(tsc_stdout_fb, written_files)
-
-            if not errors_for_written:
-                # tsc a des erreurs, mais pas dans les fichiers nouvellement écrits.
-                # Si des fichiers étaient déjà marqués en erreur, réinjecter leur contrainte —
-                # sinon le LLM perd le contexte et réécrit des fichiers déjà OK au lieu de corriger.
-                # Lecture depuis graph state (pas ContextVar) : LangGraph isole les contextes
-                # asyncio entre nœuds, donc _get_errored_files() retourne None ici.
-                existing_errored = frozenset(state.get("errored_files", []))
-                if existing_errored:
-                    if tsc_diagnostics is not None:
-                        still_broken = _filter_tsc_structured(
-                            tsc_diagnostics, list(existing_errored), project_workdir
-                        )
-                    else:
-                        still_broken = _parse_tsc_errors_for_files(tsc_stdout_fb, list(existing_errored))
-                    if still_broken:
-                        logger.warning(
-                            "[file_validate] tsc errors dans fichiers précédemment en erreur"
-                            " — réinjection contrainte : %s",
-                            sorted(existing_errored),
-                        )
-                        return {
-                            "file_validation_errors": still_broken,
-                            "errored_files": list(existing_errored),
-                        }
-                # Les fichiers écrits ce tour sont propres → les marquer comme validés.
-                # Sans cette mise à jour, validated_files reste vide et le curseur du plan
-                # recalcule toujours le même fichier (boucle infinie).
-                new_validated = list(state.get("validated_files", []))
-                for f in written_files:
-                    if f not in new_validated:
-                        new_validated.append(f)
-                _dev_tools_module.add_validated_files(written_files)
-                logger.info(
-                    "[file_validate] tsc errors elsewhere, not in written files "
-                    "— fichiers validés : %s",
-                    written_files,
-                )
-                return {
-                    "file_validation_errors": "",
-                    "validated_files": new_validated,
-                }
-
-            # Axe C — Limiter à 3 erreurs max : le LLM corrige atomiquement.
-            # Envoyer 20 erreurs d'un coup génère des corrections en cascade ; 3 suffit.
-            import re as _re_top3
-            _err_lines_all = errors_for_written.splitlines()
-            _top3_lines: list[str] = []
-            _top3_count = 0
-            for _l in _err_lines_all:
-                if _re_top3.match(r"^[^\s].*\(\d+,\d+\): error TS", _l):
-                    if _top3_count >= 3:
-                        break
-                    _top3_count += 1
-                _top3_lines.append(_l)
-            errors_for_written = "\n".join(_top3_lines)
-            if _top3_count >= 3 and len(_err_lines_all) > len(_top3_lines):
-                errors_for_written += f"\n... ({len(_err_lines_all) - len(_top3_lines)} lignes supplémentaires masquées — corriger les 3 ci-dessus d'abord)"
-                logger.info("[file_validate] top-3 filter : %d erreurs tronquées à 3", len(_err_lines_all))
-
-            # A2 + Catalogue : enrichissement ciblé par erreur.
-            # A2 : lit les lignes fautives (correction chirurgicale, évite blog-anchor).
-            # Catalogue : injecte un context_hint actionnable spécifique à chaque code d'erreur.
-            from agents.tsc_error_catalog import lookup_error as _lookup_error
-            import re as _re2
-            enriched_lines: list[str] = []
-            for err_line in errors_for_written.splitlines():
-                enriched_lines.append(err_line)
-
-                # A2 — Lire les lignes fautives pour correction chirurgicale.
-                m = _re2.match(r"^([^(]+)\((\d+),\d+\):", err_line)
-                if m:
-                    err_file = m.group(1).strip().replace("\\", "/").lstrip("./")
-                    err_lineno = int(m.group(2))
-                    try:
-                        abs_file = os.path.join(project_workdir, err_file)
-                        with open(abs_file, "r", encoding="utf-8") as _f:
-                            file_lines = _f.readlines()
-                        start = max(0, err_lineno - 4)
-                        end = min(len(file_lines), err_lineno + 3)
-                        snippet = "".join(file_lines[start:end])
-                        enriched_lines.append(
-                            f"  ↳ Contenu actuel lignes {start+1}-{end} de {err_file} :\n"
-                            f"```typescript\n{snippet.rstrip()}\n```"
-                        )
-                    except Exception:
-                        pass  # non bloquant si lecture impossible
-
-                # Catalogue — context_hint actionnable pour chaque code d'erreur catalogué.
-                catalog_match = _lookup_error(err_line)
-                if catalog_match:
-                    enriched_lines.append(f"  {catalog_match.context_hint}")
-
-            # F1 RAG bridge (file_validate) — même pattern que la correction post-build.
-            # Pour la première erreur cataloguée avec rag_query, recherche le standard
-            # Qdrant et l'injecte directement — sans attendre que le LLM appelle rag_search.
-            _rag_injected = False
-            for _rl in errors_for_written.splitlines():
-                if _rag_injected:
-                    break
-                _cm = _lookup_error(_rl)
-                if _cm and _cm.rag_query:
-                    try:
-                        from agents.shared_tools import rag_search as _rag_fn
-                        logger.info("[rag-bridge:file_validate] erreur matchée → q=%r", _cm.rag_query[:60])
-                        _rag_result = _rag_fn.invoke({"query": _cm.rag_query})
-                        if _rag_result and not _rag_result.startswith("[RAG]"):
-                            enriched_lines.append(
-                                f"\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:600]}"
-                            )
-                            _rag_injected = True
-                    except Exception:
-                        pass  # non-bloquant — Qdrant peut être absent
-
-            # F-10: fallback RAG pour les erreurs non cataloguées — évite que le LLM
-            # corrige sans contexte quand le catalogue TSC ne couvre pas le code d'erreur.
-            if not _rag_injected:
-                import re as _re_fb
-                _code_m = _re_fb.search(r"error (TS\d+):", errors_for_written)
-                if _code_m:
-                    _ts_code = _code_m.group(1)
-                    try:
-                        from agents.shared_tools import rag_search as _rag_fn
-                        _q = f"TypeScript {_ts_code} fix Next.js Prisma"
-                        logger.info("[rag-bridge:file_validate:fallback] q=%r", _q)
-                        _rag_result = _rag_fn.invoke({"query": _q})
-                        if _rag_result and not _rag_result.startswith("[RAG]"):
-                            enriched_lines.append(
-                                f"\nSTANDARD TECHNIQUE APPLICABLE :\n{_rag_result[:600]}"
-                            )
-                    except Exception:
-                        pass
-
-            errors_enriched = "\n".join(enriched_lines)
-            retries = int(state.get("file_validation_retries", 0) or 0) + 1
-
-            # Circuit breaker — same-file loop detector.
-            # Accumule les clés "file:TSxxxx" vues à chaque tour (un ajout par tour, pas par ligne).
-            # Si la même clé apparaît 5+ tours → boucle stagnante détectée.
-            import re as _re3
-            stale_keys = list(state.get("stale_error_keys", []))
-            new_keys_this_turn: set[str] = set()
-            for _eline in errors_for_written.splitlines():
-                _m = _re3.match(r"^([^(]+)\(\d+,\d+\): error (TS\d+):", _eline)
-                if _m:
-                    _key = f"{_m.group(1).strip().replace(chr(92), '/')}:{_m.group(2)}"
-                    new_keys_this_turn.add(_key)
-            stale_keys.extend(sorted(new_keys_this_turn))
-
-            # Extrait les chemins des fichiers en erreur pour alimenter l'autorité de correction.
-            import re as _re4
-            errored_paths: list[str] = []
-            for _eline_e in errors_for_written.splitlines():
-                _me = _re4.match(r"^([^(]+)\(\d+,\d+\):", _eline_e)
-                if _me:
-                    _ep = _me.group(1).strip().replace("\\", "/").lstrip("./")
-                    if _ep not in errored_paths:
-                        errored_paths.append(_ep)
-            _dev_tools_module.set_errored_files(errored_paths)
-
-            logger.warning(
-                "[file_validate] TS errors dans fichiers écrits (retry %d/%d) : %s",
-                retries, MAX_FILE_VALIDATION_RETRIES, written_files,
-            )
-            return {
-                "file_validation_errors": errors_enriched,
-                "file_validation_retries": retries,
-                "stale_error_keys": stale_keys,
-                "errored_files": errored_paths,
-            }
-
-        except subprocess.TimeoutExpired:
-            logger.warning("[file_validate] tsc timeout (>60s) — skip")
-            return {"file_validation_errors": ""}
-        except Exception as _e:
-            logger.warning("[file_validate] non bloquant : %s", _e)
-            return {"file_validation_errors": ""}
-
-    def route_after_file_validate(state: DevState) -> str:
-        """
-        Si des erreurs TS ont été détectées sur les fichiers écrits ce tour :
-          → retour au LLM pour correction immédiate (avant de continuer)
-          → après MAX_FILE_VALIDATION_RETRIES échecs, on laisse passer (non-bloquant)
-          → si la même erreur (file:TSxxxx) a été vue 3+ fois → boucle stagnante → END
-        Sinon → extract_error (flux normal).
-        """
-        # Circuit breaker — détection de boucle stagnante.
-        stale_keys = state.get("stale_error_keys", [])
-        if stale_keys:
-            from collections import Counter
-            counts = Counter(stale_keys)
-            worst_key, worst_count = counts.most_common(1)[0]
-            if worst_count >= 5:
-                logger.error(
-                    "[file_validate] BOUCLE STAGNANTE détectée : '%s' vue %d fois — arrêt anticipé.",
-                    worst_key, worst_count,
-                )
-                return END
-
-        errors = state.get("file_validation_errors", "")
-        retries = int(state.get("file_validation_retries", 0) or 0)
-        if errors and retries <= MAX_FILE_VALIDATION_RETRIES:
-            return "executor"
-        return "extract_error"
-
     # ── Assemblage du graph ──────────────────────────────────────────
     builder = StateGraph(DevState)
     builder.add_node("planner", planner_node)
     builder.add_node("executor", executor_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
-    builder.add_node("file_validate", file_validate_node)
     builder.add_node("extract_error", extract_build_error_node)
 
     builder.add_edge(START, "planner")
@@ -1230,13 +797,7 @@ async def run_dev_agent(
         "tools": "tools",
         "__end__": END,
     })
-    # tools → file_validate → (dev si erreurs TS) → extract_error (flux normal)
-    builder.add_edge("tools", "file_validate")
-    builder.add_conditional_edges("file_validate", route_after_file_validate, {
-        "executor": "executor",
-        "extract_error": "extract_error",
-        END: END,
-    })
+    builder.add_edge("tools", "extract_error")
     builder.add_conditional_edges("extract_error", route_after_tools, {
         "executor": "executor",
         END: END,
@@ -1268,16 +829,10 @@ async def run_dev_agent(
         "build_attempts": 0,
         "last_build_error": "",
         "success": False,
-        "error_signatures": [],
         "build_command_executed": False,
         "build_exit_code": -1,
-        "phase": "generation",
         "generation_turns": 0,
         "validated_files": [],
-        "file_validation_errors": "",
-        "file_validation_retries": 0,
-        "stale_error_keys": [],
-        "errored_files": [],
         "file_plan": None,  # None = non encore généré; planner_node le remplit
     }
 

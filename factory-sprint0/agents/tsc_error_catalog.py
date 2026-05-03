@@ -13,7 +13,6 @@ Structure d'une entrée :
       {
         "condition": lambda extracted → bool,
         "context_hint": lambda extracted → str  (instruction actionnable pour le LLM),
-        "rag_query": str | None  (query RAG vers Qdrant pour standard correctif),
         "action": str           (code sémantique pour métriques/debug),
       },
       ...  # dernier entry = fallback (condition toujours True)
@@ -22,6 +21,9 @@ Structure d'une entrée :
 
 Ajouter une nouvelle classe d'erreur = ajouter un bloc ici.
 Aucune logique ne change dans file_validate_node ou _build_targeted_correction.
+
+Note : le champ rag_query a été supprimé — la correction web est désormais gérée
+par web_search.py (Tavily/DuckDuckGo) injectée automatiquement par Python.
 """
 from __future__ import annotations
 
@@ -59,7 +61,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  ACTION OBLIGATOIRE : crée '{_mod_to_path(mod)}' avec write_file(...).\n"
                     f"  NE modifie PAS l'import — le chemin est correct, c'est le fichier qui manque."
                 ),
-                "rag_query": "créer composant React fichier manquant Next.js TypeScript",
                 "action": "CREATE_FILE",
             },
             {
@@ -68,7 +69,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  MODULE NPM MANQUANT (TS2307) : '{mod}' n'est pas installé.\n"
                     f"  ACTION : ajoute '{mod}' dans package.json dependencies et réinstalle."
                 ),
-                "rag_query": None,
                 "action": "NPM_INSTALL",
             },
         ],
@@ -87,7 +87,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  CORRECTION IMMÉDIATE : remplace '{wrong}' par '{correct}' dans ce fichier.\n"
                     f"  NE réécris PAS le service — adapte l'appelant (la route) au contrat du service."
                 ),
-                "rag_query": "service method naming contract findManyByProject findUnique TypeScript route",
                 "action": "FIX_METHOD_NAME",
             },
         ],
@@ -114,7 +113,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  aux méthodes réellement disponibles dans le service.\n"
                     f"  Méthodes standard : findManyBy<Relation>(id), findUnique(id, userId), create(...), update(...), delete(...)"
                 ),
-                "rag_query": "service method contract route findManyByProject findUnique TypeScript TS2339",
                 "action": "FIX_ROUTE_METHOD_CALL",
             },
             {
@@ -126,7 +124,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  FIX : `const items: ModelType[] = await prisma.model.findMany().catch(() => []);`\n"
                     f"  INTERDIT : `let items = []; try {{ items = await ...; }} catch {{ items = []; }}`"
                 ),
-                "rag_query": "TypeScript never tableau non typé annotation Prisma findMany",
                 "action": "ADD_TYPE_ANNOTATION",
             },
             {
@@ -137,7 +134,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  CAUSE : champ absent de prisma/schema.prisma ou typo dans le nom.\n"
                     f"  FIX : vérifie prisma/schema.prisma — utilise uniquement les champs déclarés."
                 ),
-                "rag_query": "TypeScript propriété Prisma inexistante schéma champs déclarés",
                 "action": "CHECK_SCHEMA",
             },
         ],
@@ -170,7 +166,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                         "permanentRedirect":"  import {{ permanentRedirect }} from 'next/navigation'",
                     }.get(name, f"  import {{ {name} }} from 'next/navigation'")
                 ),
-                "rag_query": "Next.js import Link Image useRouter usePathname next/link next/navigation",
                 "action": "FIX_NEXTJS_IMPORT",
             },
             # Clerk V5/V6 : fonctions serveur utilisées sans import @clerk/nextjs/server
@@ -187,7 +182,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  ⚠️  JAMAIS : import {{ {name} }} from '@clerk/nextjs' (syntaxe V4 — interdit)\n"
                     f"  S'applique aux routes API (app/api/**/route.ts) et Server Components."
                 ),
-                "rag_query": "clerk auth currentUser server import nextjs/server API route",
                 "action": "FIX_CLERK_SERVER_IMPORT",
             },
             # Fallback générique : type/interface absent de lib/types.ts
@@ -198,7 +192,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  CAUSE : type ou interface absent de lib/types.ts, ou import manquant.\n"
                     f"  FIX : vérifie lib/types.ts — utilise uniquement les noms exportés."
                 ),
-                "rag_query": "TypeScript types lib exportés Prisma modèles noms introuvables",
                 "action": "CHECK_TYPES_FILE",
             },
         ],
@@ -215,7 +208,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  EXPORT INEXISTANT (TS2724) : '{mod}' n'exporte pas '{name}'.\n"
                     f"  FIX : vérifie lib/types.ts — les noms exportés sont ceux définis dans la spec."
                 ),
-                "rag_query": "TypeScript types lib exportés Prisma modèles noms introuvables",
                 "action": "CHECK_TYPES_FILE",
             },
         ],
@@ -234,7 +226,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    callback React → {name}: React.ChangeEvent<HTMLInputElement>\n"
                     f"    destructuring  → {{ {name} }}: {{ {name}: string }}"
                 ),
-                "rag_query": "TypeScript paramètre type explicite React event handler callback",
                 "action": "ADD_EXPLICIT_TYPE",
             },
         ],
@@ -251,7 +242,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  DESTRUCTURING NON TYPÉ (TS7031) : '{name}' n'a pas de type déclaré.\n"
                     f"  FIX : `function Component({{ {name} }}: {{ {name}: string }}) {{ ... }}`"
                 ),
-                "rag_query": "TypeScript destructuring paramètre type explicite composant Next.js",
                 "action": "ADD_EXPLICIT_TYPE",
             },
         ],
@@ -270,7 +260,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     "    `const item = await prisma.model.findUnique({ where: { id } });`\n"
                     "    `if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 });`"
                 ),
-                "rag_query": "TypeScript null check guard Prisma findUnique NextResponse 404",
                 "action": "ADD_NULL_CHECK",
             },
         ],
@@ -294,7 +283,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  FIX option B — rendre la prop optionnelle dans le composant client :\n"
                     f"    {prop}?: {{ id: string; ... }}[]"
                 ),
-                "rag_query": "Prisma include nested relations server component client component props TypeScript TS2741",
                 "action": "ADD_PRISMA_INCLUDE",
             },
         ],
@@ -319,7 +307,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  Si status a un @default dans schema.prisma, TypeScript l'exige quand même\n"
                     f"  dans TaskUncheckedCreateInput — le passer explicitement."
                 ),
-                "rag_query": "Prisma create required fields TaskUncheckedCreateInput userId status TypeScript TS2322",
                 "action": "FIX_PRISMA_CREATE_FIELDS",
             },
             {
@@ -332,7 +319,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    const dto = {{ ...item, createdAt: item.createdAt.toISOString() }}\n"
                     f"  OU (conversion complète) : const dto = JSON.parse(JSON.stringify(item))"
                 ),
-                "rag_query": "Prisma Date toISOString DTO serialisation Server Component Client Component Next.js TS2322",
                 "action": "FIX_DATE_SERIALIZATION",
             },
             {
@@ -346,7 +332,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    if (!userId) return NextResponse.json({{ error: 'Unauthorized' }}, {{ status: 401 }});\n"
                     f"  Après ce guard, userId est string (non-nullable) — Prisma accepte."
                 ),
-                "rag_query": "Clerk auth userId null guard NextResponse Prisma TypeScript",
                 "action": "FIX_AUTH_GUARD",
             },
             {
@@ -362,7 +347,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  Dans le service : ajouter le champ owner séparément lors du create :\n"
                     f"    prisma.model.create({{ data: {{ ...data, <owner_field>: ownerId }} }})"
                 ),
-                "rag_query": "CreateInput sans userId authorId auth() Prisma service TypeScript",
                 "action": "FIX_CREATEINPUT_OWNER",
             },
             {
@@ -371,7 +355,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  TYPE INCOMPATIBLE (TS2322) : '{got}' n'est pas assignable à '{expected}'.\n"
                     f"  FIX : aligne le type de la valeur assignée avec le type attendu."
                 ),
-                "rag_query": "TypeScript type incompatible assignable propriété Next.js Prisma",
                 "action": "FIX_TYPE_MISMATCH",
             },
         ],
@@ -396,7 +379,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    CORRECT   → import {{ {name} }} from '@clerk/nextjs/server'\n"
                     f"  S'applique à : app/api/**/route.ts et tous les Server Components."
                 ),
-                "rag_query": "clerk auth currentUser server import nextjs/server API route",
                 "action": "FIX_CLERK_SERVER_IMPORT",
             },
             {
@@ -410,7 +392,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    const data = await {_service_obj_name(mod)}.findMany(userId)\n"
                     f"  JAMAIS : import {{ getAll, getById }} from '{mod}' — ces exports n'existent pas."
                 ),
-                "rag_query": "service DAL objet TypeScript Prisma findMany export nommé",
                 "action": "FIX_SERVICE_IMPORT",
             },
             {
@@ -419,7 +400,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  EXPORT INEXISTANT (TS2305) : '{mod}' n'exporte pas '{name}'.\n"
                     f"  FIX : vérifie les exports du module — utilise uniquement les noms déclarés."
                 ),
-                "rag_query": "TypeScript export inexistant module import nommé",
                 "action": "CHECK_EXPORTS",
             },
         ],
@@ -441,7 +421,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    ❌  import {{ {name} }} from './page-client'\n"
                     f"    ✅  import {name} from './page-client'"
                 ),
-                "rag_query": "TypeScript default export import named export page-client Server Component",
                 "action": "FIX_DEFAULT_IMPORT",
             },
             {
@@ -450,7 +429,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  IMPORT NOMMÉ SUR EXPORT DEFAULT (TS2614) : '{mod}' exporte '{name}' en default.\n"
                     f"  FIX : remplacer `import {{ {name} }} from '{mod}'` par `import {name} from '{mod}'`."
                 ),
-                "rag_query": "TypeScript default export named import mismatch",
                 "action": "FIX_DEFAULT_IMPORT",
             },
         ],
@@ -474,7 +452,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"    }}\n"
                     f"  Règle : CreateXxxInput DOIT inclure TOUS les champs mutables du modèle Prisma."
                 ),
-                "rag_query": "TypeScript CreateInput Partial champs mutables type Prisma model input TS2353",
                 "action": "FIX_INPUT_TYPE",
             },
             {
@@ -483,7 +460,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  CHAMP INCONNU (TS2353) : '{field}' n'est pas dans le type '{type_}'.\n"
                     f"  FIX : ajoute '{field}' au type ou retire-le de l'objet littéral."
                 ),
-                "rag_query": "TypeScript object literal property unknown type Prisma input",
                 "action": "FIX_UNKNOWN_PROPERTY",
             },
         ],
@@ -502,7 +478,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"  CAUSE PROBABLE : userId non-narrowé après auth().\n"
                     f"  FIX : `const {{ userId }} = await auth(); if (!userId) return 401;` AVANT l'accès Prisma."
                 ),
-                "rag_query": "TypeScript auth guard userId null check Clerk Prisma",
                 "action": "FIX_AUTH_GUARD",
             },
             {
@@ -511,7 +486,6 @@ TSC_ERROR_CATALOG: dict[str, dict[str, Any]] = {
                     f"⚠️  TYPE INCOMPATIBLE (TS2345) : reçu '{got}', attendu '{expected}'.\n"
                     f"  FIX : corrige le type de la valeur passée ou du paramètre attendu."
                 ),
-                "rag_query": "TypeScript type mismatch incompatible assignable Prisma",
                 "action": "FIX_TYPE_MISMATCH",
             },
         ],
@@ -546,20 +520,19 @@ def _mod_to_path(mod: str) -> str:
 
 class CatalogMatch:
     """Résultat d'un lookup dans le catalogue."""
-    __slots__ = ("code", "action", "context_hint", "rag_query")
+    __slots__ = ("code", "action", "context_hint")
 
-    def __init__(self, code: str, action: str, context_hint: str, rag_query: str | None) -> None:
+    def __init__(self, code: str, action: str, context_hint: str) -> None:
         self.code = code
         self.action = action
         self.context_hint = context_hint
-        self.rag_query = rag_query
 
 
 def lookup_error(err_line: str) -> CatalogMatch | None:
     """
     Cherche err_line dans le catalogue TSC_ERROR_CATALOG.
 
-    Retourne un CatalogMatch (context_hint + rag_query + action) si un pattern
+    Retourne un CatalogMatch (context_hint + action) si un pattern
     correspond, None si l'erreur n'est pas cataloguée.
 
     Complexité : O(nb_codes) sur le code d'erreur, O(nb_entries) sur les sous-cas.
@@ -592,7 +565,6 @@ def lookup_error(err_line: str) -> CatalogMatch | None:
                     code=code,
                     action=entry["action"],
                     context_hint=hint,
-                    rag_query=entry.get("rag_query"),
                 )
         break  # code trouvé mais aucune condition matchée → stop
     return None

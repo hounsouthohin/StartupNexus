@@ -4,15 +4,15 @@ agents/dev_service_generator.py
 Génération DÉTERMINISTE des fichiers lib/services/{model}.service.ts depuis ProjectSpec.
 
 Chaque service expose 5 fonctions CRUD standard :
-  getAll       — findMany filtré par owner_field
-  getById      — findFirst par id + owner_field
-  create       — create avec owner_field ajouté depuis auth()
-  update       — update par id (pas d'owner check, la route le fait)
-  remove       — delete par id + owner_field
+  getAll       — findMany filtré par owner_field → SerializedXxx[] (dates string)
+  getById      — findFirst par id + owner_field → SerializedXxx | null
+  create       — create avec owner_field ajouté depuis auth() → Xxx (Prisma brut)
+  update       — update par id → Xxx (Prisma brut)
+  remove       — delete par id + owner_field → void
 
-Les champs DateTime du DTO sont des Date (z.coerce.date() dans lib/schemas.ts) —
-passés directement à Prisma, pas de new Date() nécessaire.
-Les enums Prisma sont castés via (rest as any) pour éviter les conflits de types.
+Les méthodes de lecture retournent SerializedXxx (dates DateTime déjà converties en string
+via _serialize). Les méthodes d'écriture retournent le type Prisma brut car elles sont
+appelées depuis les Server Actions, pas depuis les Client Components.
 
 Intégration dans dev_graph.py (après generate_types_file) :
     service_files = generate_service_files(spec_obj, project_workdir)
@@ -47,37 +47,78 @@ def _relation_fields(model) -> list[str]:
     return [f.name for f in model.fields if "@relation" in (f.attributes or "")]
 
 
+def _datetime_fields(model) -> list[tuple[str, bool]]:
+    """Retourne les champs DateTime du modèle sous forme (nom, est_nullable)."""
+    return [
+        (f.name, f.type.endswith("?"))
+        for f in model.fields
+        if f.type.rstrip("?").rstrip("[]") == "DateTime"
+    ]
+
+
 def _generate_service_for_model(model) -> str:
     """
     Génère le contenu complet du fichier .service.ts pour un modèle.
-    Format : objet exporté nommé {camelCase}Service — pattern DAL standard.
-    LLM-agnostic : le contrat est injecté dans le prompt de la route, pas deviné.
+    Les méthodes de lecture retournent SerializedXxx — dates déjà string via _serialize.
+    Les méthodes d'écriture retournent le type Prisma brut (Server Actions, pas Client Components).
     """
-    name = model.name                   # ex: LeaveRequest
-    camel = _pascal_to_camel(name)      # ex: leaveRequest
-    owner = _resolve_owner(model)       # ex: userId (validé)
+    name = model.name
+    camel = _pascal_to_camel(name)
+    owner = _resolve_owner(model)
     relations = _relation_fields(model)
+    serialized_name = f"Serialized{name}"
+    dt_fields = _datetime_fields(model)
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_service_generator.py — NE PAS MODIFIER",
         "import prisma from '@/lib/prisma'",
         f"import type {{ {name} }} from '@prisma/client'",
-        f"import type {{ Create{name}Input, Update{name}Input }} from '@/lib/types'",
+        f"import type {{ Create{name}Input, Update{name}Input, {serialized_name} }} from '@/lib/types'",
         "",
-        f"export const {camel}Service = {{",
-        f"  getAll: ({owner}: string): Promise<{name}[]> =>",
-        f"    prisma.{camel}.findMany({{ where: {{ {owner} }} }}),",
-        "",
-        f"  getById: ({owner}: string, id: string): Promise<{name} | null> =>",
-        f"    prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }}),",
     ]
+
+    # Sérialiseur local — convertit les champs DateTime en string une seule fois.
+    # Toutes les méthodes de lecture passent par lui → TS2551 impossible (string n'a pas .toISOString()).
+    if dt_fields:
+        serialize_lines = ["  ...item,"]
+        for fname, nullable in dt_fields:
+            if nullable:
+                serialize_lines.append(f"  {fname}: item.{fname} ? item.{fname}.toISOString() : null,")
+            else:
+                serialize_lines.append(f"  {fname}: item.{fname}.toISOString(),")
+        lines.extend([
+            f"const _serialize = (item: {name}): {serialized_name} => ({{",
+            *serialize_lines,
+            "})",
+            "",
+        ])
+    else:
+        lines.extend([
+            f"const _serialize = (item: {name}): {serialized_name} => item as unknown as {serialized_name}",
+            "",
+        ])
+
+    lines.extend([
+        f"export const {camel}Service = {{",
+        f"  getAll: async ({owner}: string): Promise<{serialized_name}[]> => {{",
+        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }} }})",
+        "    return items.map(_serialize)",
+        "  },",
+        "",
+        f"  getById: async ({owner}: string, id: string): Promise<{serialized_name} | null> => {{",
+        f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
+        "    return item ? _serialize(item) : null",
+        "  },",
+    ])
 
     if relations:
         include_block = ", ".join(f"{r}: true" for r in relations)
         lines.extend([
             "",
-            f"  getAllWithRelations: ({owner}: string) =>",
-            f"    prisma.{camel}.findMany({{ where: {{ {owner} }}, include: {{ {include_block} }} }}),",
+            f"  getAllWithRelations: async ({owner}: string): Promise<{serialized_name}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, include: {{ {include_block} }} }})",
+            "    return items.map(_serialize)",
+            "  },",
         ])
 
     lines.extend([
@@ -125,7 +166,7 @@ def generate_service_files(spec, project_workdir: str) -> dict[str, str]:
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(content)
             written[rel_path] = content
-            logger.info("[service_generator] ✓ %s généré (%d modèle champs)", rel_path, len(model.fields))
+            logger.info("[service_generator] ✓ %s généré (%d champs)", rel_path, len(model.fields))
         except Exception as e:
             logger.error("[service_generator] ✗ Erreur écriture %s : %s", rel_path, e)
 
@@ -137,15 +178,6 @@ def format_service_map_for_prompt(spec) -> str:
     Génère un bloc compact (5 lignes/service) injectable dans le prompt LLM.
     Objectif : le LLM sait exactement quel objet importer et quelles méthodes appeler,
     sans lire le fichier entier — budget ~60 chars/méthode.
-
-    Format injecté :
-      ### Service Map (DAL pré-généré — NE PAS recréer)
-      **projectService** → import { projectService } from '@/lib/services/project.service'
-        .getAll(userId)  → Promise<Project[]>
-        .getById(userId, id) → Promise<Project | null>
-        .create(userId, data: CreateProjectInput) → Promise<Project>
-        .update(id, data: UpdateProjectInput) → Promise<Project>
-        .delete(userId, id) → Promise<void>
     """
     if not spec or not getattr(spec, "models", None):
         return ""
@@ -155,16 +187,17 @@ def format_service_map_for_prompt(spec) -> str:
         name = model.name
         camel = _pascal_to_camel(name)
         kebab = _pascal_to_kebab(name)
-        owner = _resolve_owner(model)  # validé — F-13
+        owner = _resolve_owner(model)
         relations = _relation_fields(model)
+        serialized_name = f"Serialized{name}"
         import_path = f"@/lib/services/{kebab}.service"
         lines.append(f"**{camel}Service** → `import {{ {camel}Service }} from '{import_path}'`")
-        lines.append(f"  .getAll({owner})  → `Promise<{name}[]>`")
-        lines.append(f"  .getById({owner}, id)  → `Promise<{name} | null>`")
+        lines.append(f"  .getAll({owner})  → `Promise<{serialized_name}[]>` (dates déjà string)")
+        lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name} | null>` (dates déjà string)")
         if relations:
             rel_list = ", ".join(relations)
             lines.append(
-                f"  .getAllWithRelations({owner})  → retourne {name}[] avec include: {{ {rel_list} }}"
+                f"  .getAllWithRelations({owner})  → `Promise<{serialized_name}[]>` avec include: {{ {rel_list} }}"
                 f" ← UTILISER quand la page affiche des champs relationnels (ex: item.{relations[0]}.xxx)"
             )
         lines.append(f"  .create({owner}, data: Create{name}Input)  → `Promise<{name}>`")

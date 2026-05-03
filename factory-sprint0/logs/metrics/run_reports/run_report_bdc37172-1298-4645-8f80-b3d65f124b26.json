@@ -1,0 +1,50 @@
+{
+  "run_id": "bdc37172-1298-4645-8f80-b3d65f124b26",
+  "workflow_id": "todo-pilot-contact-crm",
+  "project_name": "contact-crm",
+  "generated_at": "2026-05-02T22:49:59.707720+00:00",
+  "duration_seconds": 304.159373,
+  "build_success": false,
+  "build_attempted": true,
+  "build_attempts": 3,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "FAILED (exit 1)\n> contact-crm@0.1.0 build\n> next build\n\n⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache\n  ▲ Next.js 14.",
+  "spec_coverage": 0.647,
+  "requirements_met": 11,
+  "requirements_unmet": 6,
+  "requirements_unknown": 0,
+  "requirements_total": 17,
+  "requirements_unmet_list": [
+    "API Route: POST /api/companies",
+    "API Route: DELETE /api/companies/[id]",
+    "API Route: POST /api/contacts",
+    "API Route: DELETE /api/contacts/[id]",
+    "API Route: POST /api/interactions",
+    "API Route: DELETE /api/interactions/[id]"
+  ],
+  "requirements_unknown_list": [],
+  "files_generated": 43,
+  "dev_files_count": 43,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_egq2hisy/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_egq2hisy/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": false,
+  "tsc_errors_count": 2,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "tests_passed": false,
+  "clerk_compliant": false,
+  "error": "BuildFailed: FAILED (exit 1)\n> contact-crm@0.1.0 build\n> next build\n\n⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache\n  ▲ Next.js 14."
+}

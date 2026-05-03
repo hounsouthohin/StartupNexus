@@ -44,7 +44,6 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         pass
 
     # Server Actions — une par segment de modèle avec mutations
-    import re as _re
     _planner_actions: set[str] = set()
     for route in spec.routes:
         method = (route.method or "").upper()
@@ -149,11 +148,6 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     seen_texts: set[str] = set()
 
     stack_id = getattr(spec, "stack_id", "nextjs-clerk-prisma")
-    try:
-        stack_cfg = load_stack_config(stack_id)
-        qdrant_filter = stack_cfg.get("qdrant_filter", {}).get("filter", {})
-    except Exception:
-        qdrant_filter = {}
 
     for ctx in contexts:
         query = CONTEXT_QUERIES.get(ctx, "")
@@ -366,7 +360,7 @@ read_file(path, start_line, end_line) → plage précise de lignes
 list_directory(path)                  → lister un dossier
 shell_exec(command)                   → commande shell
 file_exists(path)                     → EXISTS ou ABSENT
-rag_search(query)                     → standards d'implémentation Qdrant
+web_search(query)                     → recherche doc/fix TypeScript ou Next.js — utilise UNIQUEMENT si bloqué après 1-2 tentatives de correction infructueuses — formule une requête ciblée : code TS + message d'erreur + stack (ex: "TS2322 null not assignable undefined props Next.js 14 fix")
 
 ══════════════════════════════════════════════════════════════
 WORKFLOW (Option A — suis cet ordre STRICTEMENT)
@@ -390,7 +384,7 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
    - Lit les données VIA LE SERVICE : `const items = await xxxService.getAll(userId)`
    - JAMAIS prisma directement dans page.tsx — import {{ xxxService }} from '@/lib/services/xxx.service'
    - Si auth_required : const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
-   - Sérialise les dates Prisma avant Client Components : .toISOString()
+   - NE PAS appeler .toISOString() sur les données du service — les dates sont déjà string (SerializedXxx)
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
 
 3. Si webhooks présents → génère app/api/webhooks/**/route.ts
@@ -400,6 +394,16 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
    - Build success (OK en préfixe) → terminé
    - Build échoué → lis l'erreur, corriger, rebuild (max 3 tentatives)
    - Si erreur tsc → shell_exec('npx tsc --noEmit') puis corriger
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — TYPES PROPS CLIENT COMPONENTS (champs nullable Prisma)
+══════════════════════════════════════════════════════════════
+Prisma retourne string | null pour les champs optionnels (String? dans le schéma).
+Dans les interfaces props de Client Components, utiliser string | null, JAMAIS string | undefined :
+  ✅  description?: string | null   ← compatible avec Prisma (TS2322 évité)
+  ❌  description?: string          ← refuse null → TS2322 fatal
+  ❌  description?: string | undefined  ← idem, refuse null
+Règle : pour CHAQUE champ nullable dans les props → ajouter | null explicitement.
 
 ══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — DÉCOUPAGE page.tsx / page-client.tsx
@@ -417,15 +421,18 @@ Si [INTERACTIVE] :
 ══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — SÉRIALISATION DATES PRISMA
 ══════════════════════════════════════════════════════════════
-CAS 1 — Server Component → Client Component props :
-  const items = data.map(i => ({{ ...i, createdAt: i.createdAt.toISOString() }}))
-  interface Props {{ createdAt: string; }}   ← toujours string dans l'interface props
+CAS 1 — Données lues via le service (getAll, getById, getAllWithRelations) :
+  Le service sérialise les DateTime en string via _serialize — type de retour SerializedXxx.
+  ✅  const items = await xxxService.getAll(userId)   ← items[0].createdAt est déjà string
+  ❌  items.map(i => ({{ ...i, createdAt: i.createdAt.toISOString() }}))  ← TS2551 fatal
+  Les props Client Components qui reçoivent ces données utilisent SerializedXxx ou string pour les dates.
 
 CAS 2 — Server Action reçoit une date string → z.coerce.date() dans le schéma la coerce en Date
   parsed.data.dateField est déjà un Date — passer directement au service, pas de new Date() dans les actions
 
 CAS 3 — Rendu JSX direct :
-  ✅  {{item.createdAt.toISOString()}}  ou  {{item.createdAt}}  si déjà string
+  ✅  {{item.createdAt}}  ← déjà string (SerializedXxx)
+  ❌  {{item.createdAt.toISOString()}}  ← TS2551 si item vient du service
 
 {stack_rules_block}
 """.replace("{WORKDIR}", "/app/generated-projects")

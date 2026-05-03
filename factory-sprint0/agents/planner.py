@@ -194,10 +194,13 @@ def make_deterministic_plan(
                     f"import {{ {_rc}Service }} from '@/lib/services/{_rk}.service' (owner: {_ro})"
                 )
             service_hint = "Services : " + " | ".join(svc_parts) + "."
-            # Schemas du modèle primaire
-            _pm = _relevant_models[0]
+            # Schemas de TOUS les modèles impliqués (primary + nested)
+            _schema_imports = ", ".join(
+                f"Create{_rm.name}Schema, Update{_rm.name}Schema"
+                for _rm in _relevant_models
+            )
             service_hint += (
-                f" Schema : import {{ Create{_pm.name}Schema, Update{_pm.name}Schema }}"
+                f" Schema : import {{ {_schema_imports} }}"
                 f" from '@/lib/schemas'."
             )
 
@@ -236,15 +239,11 @@ def make_deterministic_plan(
         ))
 
     # ── 3. Pages ───────────────────────────────────────────────────────────────
-    # Modèles ayant des champs de relation — calculé une fois pour tous les hints de pages
+    # Modèles ayant des @relation — pour le fallback page racine (/)
     _models_with_relations = [
         m for m in spec.models
         if any("@relation" in (f.attributes or "") for f in m.fields)
     ]
-    _relation_svc_calls = " | ".join(
-        f"{_pascal_to_camel(m.name)}Service.getAllWithRelations({m.resolved_owner()})"
-        for m in _models_with_relations
-    )
 
     for page in spec.pages:
         ppath = page.path.strip("/")
@@ -256,8 +255,13 @@ def make_deterministic_plan(
                 "const { userId } = await auth(); if (!userId) redirect('/sign-in');"
             )
         hint_parts.append(
+            "LECTURE SEULE — zéro mutation dans ce fichier : "
+            "pas de prisma.create/update/delete, pas de Server Action appelée directement. "
+            "Les mutations se font UNIQUEMENT depuis actions.ts."
+        )
+        hint_parts.append(
             "Récupérer les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx. "
-            "Sérialiser les dates avant Client Components : .toISOString()."
+            "Le service retourne SerializedXxx (dates déjà string) — NE PAS appeler .toISOString() sur ces données."
         )
 
         # Hint params pour les pages dynamiques (ex: app/projects/[id]/page.tsx)
@@ -272,13 +276,52 @@ def make_deterministic_plan(
                 f"NE PAS laisser params non typé (TS7031 fatal)."
             )
 
-        # Hint relations : si des modèles ont des champs relationnels
-        if _models_with_relations:
+        # Hint getAllWithRelations : SPÉCIFIQUE au modèle primaire de la page
+        # Dérivé des segments statiques du chemin via _model_by_seg — jamais générique
+        _static_segs = [s for s in ppath.split("/") if s and not s.startswith("[")]
+        _primary_model = _model_by_seg.get(_static_segs[0]) if _static_segs else None
+        if _primary_model is not None:
+            _prel = [f.name for f in _primary_model.fields if "@relation" in (f.attributes or "")]
+            if _prel:
+                _pcamel = _pascal_to_camel(_primary_model.name)
+                _powner = _primary_model.resolved_owner()
+                hint_parts.append(
+                    f"Ce modèle ({_primary_model.name}) a des relations : {', '.join(_prel)}. "
+                    f"Si la page affiche ces champs, utiliser {_pcamel}Service.getAllWithRelations({_powner}) "
+                    f"au lieu de getAll() — Prisma ne retourne pas les relations sans include (TS2551 fatal). "
+                    f"NE PAS appeler getAllWithRelations sur un service qui n'est pas {_pcamel}Service."
+                )
+            else:
+                # Pas de @relation explicite — détecter les FK implicites (projectId → Project)
+                _spec_names_lower = {m.name.lower(): m.name for m in spec.models}
+                _implicit_fk = [
+                    (f.name, _spec_names_lower[f.name[:-2].lower()])
+                    for f in _primary_model.fields
+                    if f.type.rstrip("?") == "String"
+                    and f.name.endswith("Id")
+                    and f.name[:-2].lower() in _spec_names_lower
+                ]
+                if _implicit_fk:
+                    _fk_warn = " | ".join(
+                        f"`{_primary_model.name.lower()}.{mn[0].lower() + mn[1:]}` N'EXISTE PAS"
+                        f" — utiliser `{fk}` (ID scalaire uniquement, pas l'objet)"
+                        for fk, mn in _implicit_fk
+                    )
+                    hint_parts.append(
+                        f"ATTENTION FK IMPLICITES : {_primary_model.name} a "
+                        f"{', '.join(fk for fk, _ in _implicit_fk)} sans @relation Prisma. "
+                        f"Prisma retourne UNIQUEMENT les champs scalaires — NE PAS accéder aux objets reliés. "
+                        f"{_fk_warn}."
+                    )
+        elif _models_with_relations:
+            # Page racine (/) : segment non identifiable depuis le chemin
+            _rel_calls = " | ".join(
+                f"{_pascal_to_camel(m.name)}Service.getAllWithRelations({m.resolved_owner()})"
+                for m in _models_with_relations
+            )
             hint_parts.append(
-                f"Si la page affiche des champs d'un modèle lié (ex: item.contact.name), "
-                f"utiliser getAllWithRelations au lieu de getAll : {_relation_svc_calls}. "
-                f"NE PAS accéder aux propriétés relationnelles sur un objet retourné par getAll() "
-                f"— Prisma ne les inclut pas sans include (TS2551 fatal)."
+                f"Si la page affiche des champs relationnels, utiliser getAllWithRelations : {_rel_calls} — "
+                f"chaque service ne l'a que si son modèle Prisma a un champ @relation (TS2551 fatal sinon)."
             )
 
         entries.append(FilePlanEntry(
@@ -286,6 +329,28 @@ def make_deterministic_plan(
             role="page",
             context_hint=" ".join(hint_parts),
         ))
+
+        # Page-client pour les pages marquées [INTERACTIVE] dans pages_detail
+        _pages_detail = getattr(spec, "pages_detail", {}) or {}
+        _page_detail_str = str(_pages_detail.get(page.path, ""))
+        if "[INTERACTIVE]" in _page_detail_str:
+            client_file = "app/page-client.tsx" if not ppath else f"app/{ppath}/page-client.tsx"
+            if client_file not in template_set:
+                _comp_name = (ppath.replace("/", "-") or "home").title().replace("-", "")
+                entries.append(FilePlanEntry(
+                    path=client_file,
+                    role="page_client",
+                    context_hint=(
+                        f"'use client' LIGNE 1 OBLIGATOIRE. Client Component pour {file_path}. "
+                        f"export default function {_comp_name}Client(props: {_comp_name}ClientProps). "
+                        f"PROPS INTERFACE : utiliser SerializedXxx depuis '@/lib/types' comme type de base "
+                        f"(les dates sont string, pas Date — le service a déjà sérialisé). "
+                        f"Champs nullable → string | null (JAMAIS string | undefined) : "
+                        f"  ✅ description?: string | null  ❌ description?: string. "
+                        f"Importé depuis {file_path} avec DEFAULT import : "
+                        f"import {_comp_name}Client from './page-client'."
+                    ),
+                ))
 
     # Exclure les fichiers déjà écrits par les templates
     return [e for e in entries if e.path not in template_set]
