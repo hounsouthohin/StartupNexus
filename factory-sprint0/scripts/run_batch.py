@@ -41,7 +41,7 @@ TS_CODE_RE = re.compile(r"\bTS(?P<code>\d{4,5})\b")
 
 # Briefs importés depuis le catalogue partagé — ne pas dupliquer ici.
 # Source : scripts/brief_catalog.py (PHASE0_BRIEFS)
-BATCH_PROJECTS: List[Dict[str, Any]] = get_batch_projects(4)
+BATCH_PROJECTS: List[Dict[str, Any]] = get_batch_projects(10)
 
 
 def _learner_events_count() -> int:

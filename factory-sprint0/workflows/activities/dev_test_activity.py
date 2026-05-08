@@ -628,6 +628,8 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         build_command_executed = bool(dev_result.get("build_command_executed", False))
         build_exit_code = int(dev_result.get("build_exit_code", -1))
         final_message = "BUILD_SUCCESS" if success else "BUILD_FAILED"
+        quality_violations: list[dict] = dev_result.get("quality_violations") or []
+        quality_violations_count: int = int(dev_result.get("quality_violations_count") or 0)
 
         # ── Scan disque → combined_files réels ──────────────────────────────
         # Le workdir est isolé par projet dans FACTORY_WORKDIR/<project_name>
@@ -796,6 +798,8 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 "security_score": 1.0 if _check_clerk_compliant({"combined_files": combined_files}) else 0.0,
                 "architecture_score": round(journey_metrics.get("user_flows_coverage", 0.0), 3),
                 "build_corrections_count": build_attempts,
+                "quality_violations_count": quality_violations_count,
+                "quality_violations": quality_violations,
             },
         }
 
@@ -921,6 +925,8 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "prisma_validate": prisma_validate_details,
             "build_command_executed": build_command_executed,
             "build_exit_code": build_exit_code,
+            "quality_violations_count": quality_violations_count,
+            "quality_violations": quality_violations,
             "error": runtime_error,
             "root_cause_category": _classify_root_cause(
                 last_build_error=last_build_error_full or last_build_error,

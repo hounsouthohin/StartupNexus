@@ -76,21 +76,34 @@ def _find_service_for_segment(segment: str, spec_obj) -> tuple[str, str]:
     return segment, segment + "Service"
 
 
-def _rag_for_role(role: str) -> str:
-    """Déclenche une requête Qdrant ciblée sur le rôle, retourne le bloc à injecter."""
+def _rag_for_role(role: str, cache: dict[str, str] | None = None) -> str:
+    """Déclenche une requête Qdrant ciblée sur le rôle, retourne le bloc à injecter.
+
+    cache — dict partagé par le run (clé = role). Evite N requêtes Qdrant identiques
+    pour N fichiers du même rôle. Lifetime = un run (créé dans run_dev_agent).
+    """
     query = _ROLE_RAG_QUERIES.get(role, "")
     if not query:
         return ""
+
+    # Cache hit — même rôle déjà résolu dans ce run
+    if cache is not None and role in cache:
+        logger.debug("[role-rag] role=%-12s | cache hit", role)
+        return cache[role]
+
     try:
         from agents.shared_tools import rag_search as _rag_fn
         result = _rag_fn.invoke({"query": query})
         if result and not result.startswith("[RAG]"):
             _n = len([s for s in result.split("---") if s.strip()])
-            logger.info("[role-rag] role=%-12s | %d standard(s) injectés", role, _n)
-            return (
+            logger.info("[role-rag] role=%-12s | %d standard(s) injectés (miss)", role, _n)
+            block = (
                 f"\n\nSTANDARDS PERTINENTS POUR CE RÔLE ({role}) :\n"
                 f"{result[:500]}"
             )
+            if cache is not None:
+                cache[role] = block
+            return block
     except Exception:
         pass
     return ""
@@ -104,6 +117,7 @@ def build_role_context(
     spec_obj,
     workdir: str,
     service_map_str: str = "",
+    cache: dict[str, str] | None = None,
 ) -> str:
     """
     Construit le bloc de dépendances injecté dans le HumanMessage pour un fichier.
@@ -112,12 +126,13 @@ def build_role_context(
       - Dépendances disque exactes (types.ts, service.ts, schemas.ts, actions.ts…)
       - Standard RAG ciblé sur ce type de fichier (chronologie correcte)
 
-    Retourne une string prête à être concaténée au bloc _ctx dans executor_node.
+    cache — dict partagé pour le run courant (évite N requêtes Qdrant identiques
+    pour N fichiers du même rôle). Passé depuis run_dev_agent via closure.
     """
     dep = _build_dep(role, path, spec_obj, workdir, service_map_str)
 
     # P2.1 — standard Qdrant injecté au bon moment (pas au démarrage du run)
-    rag_block = _rag_for_role(role)
+    rag_block = _rag_for_role(role, cache=cache)
     if rag_block:
         dep += rag_block
 

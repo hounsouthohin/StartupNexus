@@ -323,6 +323,7 @@ PHASE0_BRIEFS: List[Dict] = [
     # ──────────────────────────────────────────────────────────────────
     # Projet 4 — Gestion des congés (leave-manager) — L1
     # 3 modèles : Department, Employee, LeaveRequest
+    # Test : noms de modèles longs, segment URL "leaves" ≠ "leave-requests"
     # ──────────────────────────────────────────────────────────────────
     {
         "project_name": "leave-manager",
@@ -415,13 +416,611 @@ PHASE0_BRIEFS: List[Dict] = [
             ],
         },
     },
+
+    # ──────────────────────────────────────────────────────────────────
+    # Projet 5 — Suivi de dépenses (expense-tracker) — L1
+    # 3 modèles : Category, Expense, Receipt
+    # Test : champs Float (amount, amount), FK categoryId en input text
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "expense-tracker",
+        "family": "finance",
+        "tags": ["finance", "relations"],
+        "brief": {
+            "description": (
+                "Application SaaS de suivi de dépenses personnelles ou professionnelles. "
+                "L'utilisateur catégorise ses dépenses et conserve les justificatifs."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Expense est lié à Category via categoryId (owner_field=userId sur Expense). "
+                "Receipt est lié à Expense via expenseId (pas userId direct sur Receipt). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Category { id String @id @default(uuid()), name String, "
+                    "color String @default(\"#6366f1\"), "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Expense { id String @id @default(uuid()), "
+                    "description String, amount Float, "
+                    "date DateTime @default(now()), "
+                    "categoryId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([categoryId]) }"
+                ),
+                (
+                    "Receipt { id String @id @default(uuid()), "
+                    "note String?, fileUrl String?, "
+                    "expenseId String, "
+                    "createdAt DateTime @default(now()), @@index([expenseId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/categories",      "auth": True},
+                {"path": "/categories/new",  "auth": True},
+                {"path": "/expenses",        "auth": True},
+                {"path": "/expenses/new",    "auth": True},
+            ],
+            "pages_detail": {
+                "/categories": (
+                    "Liste des catégories de dépenses de l'utilisateur. "
+                    "Affiche : nom, couleur (pastille colorée), date de création. "
+                    "Bouton 'Nouvelle catégorie' en haut → /categories/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteCategory(id). "
+                    "État vide : 'Aucune catégorie. Créez votre première catégorie !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/categories/new": (
+                    "Formulaire de création de catégorie. "
+                    "Champs : nom (input text, required), "
+                    "couleur (input text, optionnel, placeholder '#6366f1'). "
+                    "Bouton 'Créer la catégorie'. "
+                    "Submit → Server Action createCategory({ name, color }) → redirect /categories. "
+                    "[INTERACTIVE]"
+                ),
+                "/expenses": (
+                    "Liste de toutes les dépenses de l'utilisateur. "
+                    "Affiche : description, montant (formaté en €), date, date de création. "
+                    "Bouton 'Nouvelle dépense' en haut → /expenses/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteExpense(id). "
+                    "État vide : 'Aucune dépense enregistrée.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/expenses/new": (
+                    "Formulaire d'ajout de dépense. "
+                    "Champs : description (input text, required), "
+                    "montant (input number, required, step 0.01, min 0), "
+                    "date (input date, required), "
+                    "categoryId (input text, required, placeholder 'ID de la catégorie'). "
+                    "Bouton 'Ajouter la dépense'. "
+                    "Submit → Server Action createExpense({ description, amount, date, categoryId }) → redirect /expenses. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/categories"},
+                {"method": "DELETE", "path": "/api/categories/[id]"},
+                {"method": "POST",   "path": "/api/expenses"},
+                {"method": "DELETE", "path": "/api/expenses/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur crée une catégorie : /categories/new → Server Action createCategory() → redirect /categories",
+                "L'utilisateur ajoute une dépense : /expenses/new → Server Action createExpense() → redirect /expenses",
+                "L'utilisateur supprime une catégorie : bouton Supprimer → Server Action deleteCategory(id)",
+                "L'utilisateur supprime une dépense : bouton Supprimer → Server Action deleteExpense(id)",
+            ],
+        },
+    },
+
+    # ──────────────────────────────────────────────────────────────────
+    # Projet 6 — Bibliothèque personnelle (book-library) — L1
+    # 3 modèles : Author, Book, ReadingSession
+    # Test : champs Int (publishedYear, pagesRead), DateTime optionnel
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "book-library",
+        "family": "personal",
+        "tags": ["content", "relations"],
+        "brief": {
+            "description": (
+                "Application SaaS de gestion de bibliothèque personnelle. "
+                "L'utilisateur catalogue ses auteurs, ses livres et suit ses sessions de lecture."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Book est lié à Author via authorId (owner_field=userId sur Book). "
+                "ReadingSession est liée à Book via bookId (owner_field=userId sur ReadingSession). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Author { id String @id @default(uuid()), "
+                    "firstName String, lastName String, "
+                    "nationality String?, "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Book { id String @id @default(uuid()), "
+                    "title String, genre String, "
+                    "publishedYear Int, "
+                    "authorId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([authorId]) }"
+                ),
+                (
+                    "ReadingSession { id String @id @default(uuid()), "
+                    "startedAt DateTime @default(now()), "
+                    "finishedAt DateTime?, "
+                    "pagesRead Int @default(0), "
+                    "bookId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([bookId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/authors",       "auth": True},
+                {"path": "/authors/new",   "auth": True},
+                {"path": "/books",         "auth": True},
+                {"path": "/books/new",     "auth": True},
+            ],
+            "pages_detail": {
+                "/authors": (
+                    "Liste des auteurs de la bibliothèque. "
+                    "Affiche : prénom + nom, nationalité (ou '-'), date d'ajout. "
+                    "Bouton 'Ajouter un auteur' en haut → /authors/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteAuthor(id). "
+                    "État vide : 'Aucun auteur. Ajoutez votre premier auteur !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/authors/new": (
+                    "Formulaire d'ajout d'auteur. "
+                    "Champs : prénom (input text, required), nom (input text, required), "
+                    "nationalité (input text, optionnel). "
+                    "Bouton 'Ajouter l'auteur'. "
+                    "Submit → Server Action createAuthor({ firstName, lastName, nationality }) → redirect /authors. "
+                    "[INTERACTIVE]"
+                ),
+                "/books": (
+                    "Liste de tous les livres de la bibliothèque. "
+                    "Affiche : titre, genre (badge), année de publication, date d'ajout. "
+                    "Bouton 'Ajouter un livre' en haut → /books/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteBook(id). "
+                    "État vide : 'Aucun livre. Ajoutez votre premier livre !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/books/new": (
+                    "Formulaire d'ajout de livre. "
+                    "Champs : titre (input text, required), genre (input text, required), "
+                    "année de publication (input number, required, min 1000, max 2100), "
+                    "authorId (input text, required, placeholder 'ID de l'auteur'). "
+                    "Bouton 'Ajouter le livre'. "
+                    "Submit → Server Action createBook({ title, genre, publishedYear, authorId }) → redirect /books. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/authors"},
+                {"method": "DELETE", "path": "/api/authors/[id]"},
+                {"method": "POST",   "path": "/api/books"},
+                {"method": "DELETE", "path": "/api/books/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur ajoute un auteur : /authors/new → Server Action createAuthor() → redirect /authors",
+                "L'utilisateur ajoute un livre : /books/new → Server Action createBook() → redirect /books",
+                "L'utilisateur supprime un auteur : bouton Supprimer → Server Action deleteAuthor(id)",
+                "L'utilisateur supprime un livre : bouton Supprimer → Server Action deleteBook(id)",
+            ],
+        },
+    },
+
+    # ──────────────────────────────────────────────────────────────────
+    # Projet 7 — Organisation d'événements (event-planner) — L1
+    # 3 modèles : Venue, Event, Guest
+    # Test : champ Int (capacity), DateTime pour la date d'événement
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "event-planner",
+        "family": "events",
+        "tags": ["events", "relations"],
+        "brief": {
+            "description": (
+                "Application SaaS d'organisation d'événements. "
+                "L'utilisateur gère ses salles et crée des événements avec leurs invités."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Event est lié à Venue via venueId (owner_field=userId sur Event). "
+                "Guest est lié à Event via eventId (owner_field=userId sur Guest). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Venue { id String @id @default(uuid()), "
+                    "name String, address String, "
+                    "capacity Int @default(50), "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Event { id String @id @default(uuid()), "
+                    "title String, description String?, "
+                    "eventDate DateTime, "
+                    "venueId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([venueId]) }"
+                ),
+                (
+                    "Guest { id String @id @default(uuid()), "
+                    "firstName String, lastName String, email String, "
+                    "eventId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([eventId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/venues",       "auth": True},
+                {"path": "/venues/new",   "auth": True},
+                {"path": "/events",       "auth": True},
+                {"path": "/events/new",   "auth": True},
+            ],
+            "pages_detail": {
+                "/venues": (
+                    "Liste des salles disponibles. "
+                    "Affiche : nom, adresse, capacité (badge avec nombre), date d'ajout. "
+                    "Bouton 'Nouvelle salle' en haut → /venues/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteVenue(id). "
+                    "État vide : 'Aucune salle. Ajoutez votre première salle !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/venues/new": (
+                    "Formulaire d'ajout de salle. "
+                    "Champs : nom (input text, required), adresse (input text, required), "
+                    "capacité (input number, required, min 1, défaut 50). "
+                    "Bouton 'Ajouter la salle'. "
+                    "Submit → Server Action createVenue({ name, address, capacity }) → redirect /venues. "
+                    "[INTERACTIVE]"
+                ),
+                "/events": (
+                    "Liste de tous les événements. "
+                    "Affiche : titre, description (tronquée à 60 chars ou '-'), "
+                    "date de l'événement (formatée), date de création. "
+                    "Bouton 'Nouvel événement' en haut → /events/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteEvent(id). "
+                    "État vide : 'Aucun événement planifié.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/events/new": (
+                    "Formulaire de création d'événement. "
+                    "Champs : titre (input text, required), "
+                    "description (textarea, optionnel), "
+                    "date de l'événement (input datetime-local, required), "
+                    "venueId (input text, required, placeholder 'ID de la salle'). "
+                    "Bouton 'Créer l'événement'. "
+                    "Submit → Server Action createEvent({ title, description, eventDate, venueId }) → redirect /events. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/venues"},
+                {"method": "DELETE", "path": "/api/venues/[id]"},
+                {"method": "POST",   "path": "/api/events"},
+                {"method": "DELETE", "path": "/api/events/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur ajoute une salle : /venues/new → Server Action createVenue() → redirect /venues",
+                "L'utilisateur crée un événement : /events/new → Server Action createEvent() → redirect /events",
+                "L'utilisateur supprime une salle : bouton Supprimer → Server Action deleteVenue(id)",
+                "L'utilisateur supprime un événement : bouton Supprimer → Server Action deleteEvent(id)",
+            ],
+        },
+    },
+
+    # ──────────────────────────────────────────────────────────────────
+    # Projet 8 — Support client (support-tickets) — L1
+    # 3 modèles : Category, Ticket, Message
+    # Test : modèle "Category" réutilisé (conflit potentiel de nommage)
+    #        statut multi-valeurs sur Ticket (open/pending/closed)
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "support-tickets",
+        "family": "support",
+        "tags": ["support", "relations"],
+        "brief": {
+            "description": (
+                "Application SaaS de gestion de tickets de support. "
+                "L'utilisateur crée des catégories de problèmes et ouvre des tickets."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Ticket est lié à Category via categoryId (owner_field=userId sur Ticket). "
+                "Message est lié à Ticket via ticketId (owner_field=authorId — pas userId direct sur Message). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Category { id String @id @default(uuid()), "
+                    "name String, description String?, "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Ticket { id String @id @default(uuid()), "
+                    "subject String, "
+                    "status String @default(\"open\"), "
+                    "priority String @default(\"medium\"), "
+                    "categoryId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([categoryId]) }"
+                ),
+                (
+                    "Message { id String @id @default(uuid()), "
+                    "content String, "
+                    "ticketId String, authorId String, "
+                    "createdAt DateTime @default(now()), @@index([ticketId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/categories",      "auth": True},
+                {"path": "/categories/new",  "auth": True},
+                {"path": "/tickets",         "auth": True},
+                {"path": "/tickets/new",     "auth": True},
+            ],
+            "pages_detail": {
+                "/categories": (
+                    "Liste des catégories de support. "
+                    "Affiche : nom, description (tronquée ou '-'), date de création. "
+                    "Bouton 'Nouvelle catégorie' en haut → /categories/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteCategory(id). "
+                    "État vide : 'Aucune catégorie.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/categories/new": (
+                    "Formulaire de création de catégorie. "
+                    "Champs : nom (input text, required), description (textarea, optionnel). "
+                    "Bouton 'Créer la catégorie'. "
+                    "Submit → Server Action createCategory({ name, description }) → redirect /categories. "
+                    "[INTERACTIVE]"
+                ),
+                "/tickets": (
+                    "Liste de tous les tickets de support. "
+                    "Affiche : sujet, priorité (badge : high=rouge, medium=jaune, low=gris), "
+                    "statut (badge : open=bleu, pending=jaune, closed=gris), date de création. "
+                    "Bouton 'Nouveau ticket' en haut → /tickets/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteTicket(id). "
+                    "État vide : 'Aucun ticket ouvert.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/tickets/new": (
+                    "Formulaire d'ouverture de ticket. "
+                    "Champs : sujet (input text, required), "
+                    "priorité (select : low / medium / high, défaut medium), "
+                    "categoryId (input text, required, placeholder 'ID de la catégorie'). "
+                    "Bouton 'Ouvrir le ticket'. "
+                    "Submit → Server Action createTicket({ subject, priority, categoryId }) → redirect /tickets. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/categories"},
+                {"method": "DELETE", "path": "/api/categories/[id]"},
+                {"method": "POST",   "path": "/api/tickets"},
+                {"method": "DELETE", "path": "/api/tickets/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur crée une catégorie : /categories/new → Server Action createCategory() → redirect /categories",
+                "L'utilisateur ouvre un ticket : /tickets/new → Server Action createTicket() → redirect /tickets",
+                "L'utilisateur supprime une catégorie : bouton Supprimer → Server Action deleteCategory(id)",
+                "L'utilisateur supprime un ticket : bouton Supprimer → Server Action deleteTicket(id)",
+            ],
+        },
+    },
+
+    # ──────────────────────────────────────────────────────────────────
+    # Projet 9 — Inventaire d'actifs (asset-inventory) — L1
+    # 3 modèles : Location, Asset, MaintenanceRecord
+    # Test : Float sur MaintenanceRecord.cost, DateTime sur scheduledAt
+    #        segment "maintenances" → service "maintenanceRecord"
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "asset-inventory",
+        "family": "operations",
+        "tags": ["inventory", "relations"],
+        "brief": {
+            "description": (
+                "Application SaaS d'inventaire d'actifs matériels. "
+                "L'utilisateur gère les emplacements de stockage et les équipements associés."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Asset est lié à Location via locationId (owner_field=userId sur Asset). "
+                "MaintenanceRecord est lié à Asset via assetId (owner_field=userId sur MaintenanceRecord). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Location { id String @id @default(uuid()), "
+                    "name String, description String?, "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Asset { id String @id @default(uuid()), "
+                    "name String, serialNumber String, "
+                    "status String @default(\"active\"), "
+                    "locationId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([locationId]) }"
+                ),
+                (
+                    "MaintenanceRecord { id String @id @default(uuid()), "
+                    "description String, cost Float @default(0), "
+                    "scheduledAt DateTime, "
+                    "assetId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([assetId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/locations",         "auth": True},
+                {"path": "/locations/new",     "auth": True},
+                {"path": "/assets",            "auth": True},
+                {"path": "/assets/new",        "auth": True},
+            ],
+            "pages_detail": {
+                "/locations": (
+                    "Liste des emplacements de stockage. "
+                    "Affiche : nom, description (ou '-'), date de création. "
+                    "Bouton 'Nouvel emplacement' en haut → /locations/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteLocation(id). "
+                    "État vide : 'Aucun emplacement. Créez votre premier emplacement !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/locations/new": (
+                    "Formulaire de création d'emplacement. "
+                    "Champs : nom (input text, required), description (textarea, optionnel). "
+                    "Bouton 'Créer l'emplacement'. "
+                    "Submit → Server Action createLocation({ name, description }) → redirect /locations. "
+                    "[INTERACTIVE]"
+                ),
+                "/assets": (
+                    "Liste de tous les actifs. "
+                    "Affiche : nom, numéro de série, statut (badge : active=vert, inactive=gris), date de création. "
+                    "Bouton 'Nouvel actif' en haut → /assets/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteAsset(id). "
+                    "État vide : 'Aucun actif enregistré.'. "
+                    "[INTERACTIVE]"
+                ),
+                "/assets/new": (
+                    "Formulaire d'ajout d'actif. "
+                    "Champs : nom (input text, required), "
+                    "numéro de série (input text, required), "
+                    "locationId (input text, required, placeholder 'ID de l'emplacement'). "
+                    "Bouton 'Ajouter l'actif'. "
+                    "Submit → Server Action createAsset({ name, serialNumber, locationId }) → redirect /assets. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/locations"},
+                {"method": "DELETE", "path": "/api/locations/[id]"},
+                {"method": "POST",   "path": "/api/assets"},
+                {"method": "DELETE", "path": "/api/assets/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur crée un emplacement : /locations/new → Server Action createLocation() → redirect /locations",
+                "L'utilisateur ajoute un actif : /assets/new → Server Action createAsset() → redirect /assets",
+                "L'utilisateur supprime un emplacement : bouton Supprimer → Server Action deleteLocation(id)",
+                "L'utilisateur supprime un actif : bouton Supprimer → Server Action deleteAsset(id)",
+            ],
+        },
+    },
+
+    # ──────────────────────────────────────────────────────────────────
+    # Projet 10 — Carnet de recettes (recipe-book) — L1
+    # 3 modèles : Category, Recipe, Ingredient
+    # Test : Int (prepTime, servings), modèle "Category" répété (conflit)
+    #        segment "ingredients" → service "ingredient" (singulier)
+    # ──────────────────────────────────────────────────────────────────
+    {
+        "project_name": "recipe-book",
+        "family": "personal",
+        "tags": ["content", "relations"],
+        "brief": {
+            "description": (
+                "Application SaaS de carnet de recettes culinaires. "
+                "L'utilisateur classe ses recettes par catégorie et liste les ingrédients."
+            ),
+            "architecture": (
+                "SaaS single-tenant — toutes les pages protégées par Clerk. "
+                "Recipe est lié à Category via categoryId (owner_field=userId sur Recipe). "
+                "Ingredient est lié à Recipe via recipeId (pas userId direct sur Ingredient). "
+                "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
+            ),
+            "models": [
+                (
+                    "Category { id String @id @default(uuid()), "
+                    "name String, "
+                    "userId String, createdAt DateTime @default(now()), @@index([userId]) }"
+                ),
+                (
+                    "Recipe { id String @id @default(uuid()), "
+                    "title String, description String?, "
+                    "prepTime Int @default(30), servings Int @default(4), "
+                    "categoryId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([userId]), @@index([categoryId]) }"
+                ),
+                (
+                    "Ingredient { id String @id @default(uuid()), "
+                    "name String, quantity String, unit String, "
+                    "recipeId String, "
+                    "createdAt DateTime @default(now()), @@index([recipeId]) }"
+                ),
+            ],
+            "pages": [
+                {"path": "/categories",      "auth": True},
+                {"path": "/categories/new",  "auth": True},
+                {"path": "/recipes",         "auth": True},
+                {"path": "/recipes/new",     "auth": True},
+            ],
+            "pages_detail": {
+                "/categories": (
+                    "Liste des catégories de recettes. "
+                    "Affiche : nom, date de création. "
+                    "Bouton 'Nouvelle catégorie' en haut → /categories/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteCategory(id). "
+                    "État vide : 'Aucune catégorie. Créez votre première catégorie !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/categories/new": (
+                    "Formulaire de création de catégorie. "
+                    "Champ : nom (input text, required, placeholder 'Ex: Entrées, Plats, Desserts'). "
+                    "Bouton 'Créer la catégorie'. "
+                    "Submit → Server Action createCategory({ name }) → redirect /categories. "
+                    "[INTERACTIVE]"
+                ),
+                "/recipes": (
+                    "Liste de toutes les recettes. "
+                    "Affiche : titre, temps de préparation (en min), nombre de portions, date de création. "
+                    "Bouton 'Nouvelle recette' en haut → /recipes/new. "
+                    "Bouton 'Supprimer' par ligne → Server Action deleteRecipe(id). "
+                    "État vide : 'Aucune recette. Ajoutez votre première recette !'. "
+                    "[INTERACTIVE]"
+                ),
+                "/recipes/new": (
+                    "Formulaire de création de recette. "
+                    "Champs : titre (input text, required), "
+                    "description (textarea, optionnel), "
+                    "temps de préparation en minutes (input number, required, min 1, défaut 30), "
+                    "nombre de portions (input number, required, min 1, défaut 4), "
+                    "categoryId (input text, required, placeholder 'ID de la catégorie'). "
+                    "Bouton 'Créer la recette'. "
+                    "Submit → Server Action createRecipe({ title, description, prepTime, servings, categoryId }) → redirect /recipes. "
+                    "[INTERACTIVE]"
+                ),
+            },
+            "routes": [
+                {"method": "POST",   "path": "/api/categories"},
+                {"method": "DELETE", "path": "/api/categories/[id]"},
+                {"method": "POST",   "path": "/api/recipes"},
+                {"method": "DELETE", "path": "/api/recipes/[id]"},
+            ],
+            "user_flows": [
+                "L'utilisateur crée une catégorie : /categories/new → Server Action createCategory() → redirect /categories",
+                "L'utilisateur crée une recette : /recipes/new → Server Action createRecipe() → redirect /recipes",
+                "L'utilisateur supprime une catégorie : bouton Supprimer → Server Action deleteCategory(id)",
+                "L'utilisateur supprime une recette : bouton Supprimer → Server Action deleteRecipe(id)",
+            ],
+        },
+    },
 ]
 
 
-def get_batch_projects(batch_size: int = 4) -> List[Dict]:
+def get_batch_projects(batch_size: int = 10) -> List[Dict]:
     base = [{"project_name": b["project_name"], "brief": b["brief"]} for b in PHASE0_BRIEFS]
     if batch_size <= len(base):
         return base[:batch_size]
+    # Si batch_size > catalogue, on cycle avec suffixe numérique pour éviter les collisions workdir
     out: List[Dict] = []
     for i in range(batch_size):
         entry = dict(base[i % len(base)])

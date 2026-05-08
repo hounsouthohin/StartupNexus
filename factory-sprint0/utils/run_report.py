@@ -85,6 +85,8 @@ def write_run_report(
             "contradiction_flags": run_metric.get("contradiction_flags", []),
             # ── Qualité ────────────────────────────────────────────────────
             "semantic_violations_count": len(run_metric.get("semantic_violations", [])),
+            "quality_violations_count": int(run_metric.get("quality_violations_count", 0)),
+            "quality_violations": run_metric.get("quality_violations", []),
             "tests_passed": bool(run_metric.get("tests_passed", False)),
             "clerk_compliant": bool(run_metric.get("clerk_compliant", False)),
             "error": str(run_metric.get("error", "") or ""),

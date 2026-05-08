@@ -451,6 +451,11 @@ async def run_dev_agent(
     llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
     # llm_with_tools est construit dynamiquement dans executor_node selon la phase.
 
+    # Cache RAG par rôle — lifetime = ce run. Partagé par toutes les invocations
+    # d'executor_node via closure. Évite N requêtes Qdrant identiques pour N fichiers
+    # du même rôle (ex: 8 pages → 1 seule requête Qdrant au lieu de 8).
+    _rag_cache: dict[str, str] = {}
+
     # ── Planificateur deterministe (Plan-and-Execute) ─────────────────────
     def planner_node(state: DevState) -> dict:
         """Genere le plan une seule fois au demarrage."""
@@ -554,7 +559,7 @@ async def run_dev_agent(
                 )
 
                 # Dépendances disque + standard RAG ciblé sur ce rôle (dev_context.py).
-                _dep = build_role_context(_role, _path, spec_obj, project_workdir, _service_map_str)
+                _dep = build_role_context(_role, _path, spec_obj, project_workdir, _service_map_str, cache=_rag_cache)
 
                 # Phase 8 — Example-anchored prompting.
                 # Injecte le dernier fichier écrit du même rôle comme exemple concret.
@@ -800,6 +805,42 @@ async def run_dev_agent(
         # .next/ est logué comme signal secondaire uniquement (détection d'anomalie).
         disk_next = _check_next_dir_on_disk()
         final_success = bool(result.get("success", False))
+
+        # ── Quality check AST (non bloquant) ────────────────────────────────────
+        # Lancé seulement si le build a réussi (node_modules + code final disponibles).
+        # Détecte Z21-Z26 : N+1, pagination, select manquant, transaction manquante.
+        quality_violations: list[dict] = []
+        quality_violations_count = 0
+        if final_success:
+            try:
+                from agents.quality_validator import run_quality_check
+                _qr = await run_quality_check(project_workdir)
+                if _qr.status == "failed":
+                    quality_violations = [
+                        {
+                            "rule": v.rule_id,
+                            "file": v.file,
+                            "line": v.line,
+                            "reason": v.reason,
+                        }
+                        for v in (_qr.violations or [])
+                    ]
+                    quality_violations_count = len(quality_violations)
+                    logger.info(
+                        "[quality_check] %d violation(s) — %s",
+                        quality_violations_count,
+                        [v["rule"] for v in quality_violations],
+                    )
+                elif _qr.status == "ok":
+                    logger.info("[quality_check] aucune violation qualité détectée")
+                else:
+                    logger.info("[quality_check] status=%s — %s", _qr.status, (_qr.evidence or "")[:120])
+            except Exception as _qe:
+                logger.warning("[quality_check] échec non bloquant : %s", _qe)
+
+        result = dict(result)
+        result["quality_violations"] = quality_violations
+        result["quality_violations_count"] = quality_violations_count
         build_executed = bool(result.get("build_command_executed", False))
 
         if disk_next and not final_success:
