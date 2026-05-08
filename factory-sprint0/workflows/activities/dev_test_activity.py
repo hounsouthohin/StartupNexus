@@ -15,8 +15,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 from utils.run_report import write_run_report as _write_run_report
 
-# Validation progressive supprimée (causait TS2307 + boucles). Validation unique à npm run build.
-MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 0
+# 1 retry TSC activé : les erreurs résiduelles post-génération (ex: import manquant) sont corrigibles
+# en un tour. Au-delà de 1, le LLM boucle sans convergence (observé sur runs 02-05/2026).
+MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 1
 
 
 def _classify_root_cause(
@@ -54,6 +55,10 @@ def _classify_root_cause(
     if tsc_errors_by_activity > 0 and not last_build_error:
         return "tsc_error_loop"
 
+    # ── 2b. TS2304 détecté dans last_build_error (import manquant, ex: notFound) ──
+    if "ts2304" in (last_build_error or "").lower():
+        return "typescript_missing_import"
+
     # ── 3. Prebuild report — violations structurées (source de vérité Phase B+) ──
     if prebuild_report and isinstance(prebuild_report, dict):
         violations = prebuild_report.get("violations") or []
@@ -72,7 +77,7 @@ def _classify_root_cause(
             return "typescript_property_error"
         if "ts2345" in rule_ids:
             return "typescript_type_mismatch"
-        if "ts2552" in rule_ids or "ts2305" in rule_ids:
+        if "ts2304" in rule_ids or "ts2552" in rule_ids or "ts2305" in rule_ids:
             return "typescript_missing_import"
         if any(r.startswith("ts") and r[2:].isdigit() for r in rule_ids):
             return "typescript_error"
@@ -115,9 +120,7 @@ def _classify_root_cause(
         return "typescript_property_error"
     if "ts2345" in err or "is not assignable to parameter of type" in err:
         return "typescript_type_mismatch"
-    if "ts2552" in err or "ts2305" in err or (
-        "cannot find name" in err and ("nextresponse" in err or "response" in err)
-    ):
+    if "ts2304" in err or "ts2552" in err or "ts2305" in err or "cannot find name" in err:
         return "typescript_missing_import"
     if re.search(r"ts\d{4}", err):
         return "typescript_error"

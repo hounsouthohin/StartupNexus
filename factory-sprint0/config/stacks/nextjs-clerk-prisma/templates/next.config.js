@@ -7,6 +7,5 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  serverExternalPackages: ['pino', 'pino-pretty'],
 };
 module.exports = nextConfig;

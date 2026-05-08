@@ -43,21 +43,31 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     except Exception:
         pass
 
-    # Server Actions — une par segment de modèle avec mutations
-    _planner_actions: set[str] = set()
-    for route in spec.routes:
-        method = (route.method or "").upper()
-        path = route.path or ""
-        is_webhook = "webhook" in path.lower() or "stripe" in path.lower()
-        if not is_webhook and method in ("POST", "PUT", "PATCH", "DELETE"):
-            clean = path.lstrip("/")
-            if clean.startswith("api/"):
-                clean = clean[4:]
-            seg = clean.split("/")[0] if clean else ""
-            if seg:
-                _planner_actions.add(f"app/{seg}/actions.ts")
-
-    files.extend(sorted(_planner_actions))
+    # Server Actions — chemin dérivé via _find_list_page (même logique que dev_actions_generator)
+    # Garantit que les paths ici == paths dans template_written → exclusion correcte du plan LLM.
+    try:
+        from agents.dev_actions_generator import _find_list_page as _flp
+        _action_paths: set[str] = set()
+        for model in spec.models:
+            list_page = _flp(model.name, spec)
+            route_dir = list_page.lstrip("/")
+            _action_paths.add(f"app/{route_dir}/actions.ts")
+        files.extend(sorted(_action_paths))
+    except Exception:
+        # Fallback route-based si dev_actions_generator non disponible
+        _planner_actions: set[str] = set()
+        for route in spec.routes:
+            method = (route.method or "").upper()
+            path = route.path or ""
+            is_webhook = "webhook" in path.lower() or "stripe" in path.lower()
+            if not is_webhook and method in ("POST", "PUT", "PATCH", "DELETE"):
+                clean = path.lstrip("/")
+                if clean.startswith("api/"):
+                    clean = clean[4:]
+                seg = clean.split("/")[0] if clean else ""
+                if seg:
+                    _planner_actions.add(f"app/{seg}/actions.ts")
+        files.extend(sorted(_planner_actions))
 
     # Webhooks routes (si présentes dans la spec)
     for route in spec.routes:
@@ -123,6 +133,10 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     if spec.pages:
         contexts.append("interactive-pages")
 
+    has_dynamic_pages = any("[" in p.path for p in spec.pages)
+    if has_dynamic_pages:
+        contexts.append("dynamic-pages")
+
     # Requêtes alignées sur le format RULE: des standards Qdrant (post-Option-A).
     # Termes en français technique pour maximiser le recall avec les standards reformatés.
     CONTEXT_QUERIES: dict[str, str] = {
@@ -141,6 +155,10 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         "interactive-pages": (
             "'use client' directive useState onClick formulaire handler "
             "Client Component interactif Server Component split revalidatePath"
+        ),
+        "dynamic-pages": (
+            "notFound import next/navigation page dynamique [id] params "
+            "Server Component getById service null absent redirect 404"
         ),
     }
 
@@ -177,20 +195,58 @@ Applique-les lors de la génération — ne les ignore pas.
 """
 
 
+def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
+    """
+    Retourne le bloc pages_detail pour une page spécifique.
+    Injecté par executor_node au moment de générer cette page (Phase-Aware).
+    Retourne "" si aucun détail n'est défini pour ce chemin.
+    """
+    pages_detail = getattr(spec, "pages_detail", {}) or {}
+    if not isinstance(pages_detail, dict):
+        return ""
+    detail = pages_detail.get(page_path) or pages_detail.get("/" + page_path.strip("/"))
+    if not detail:
+        return ""
+    detail_str = str(detail).strip()
+    if "[INTERACTIVE]" in detail_str:
+        page_slug = page_path.strip("/").replace("/", "-") or "home"
+        comp_name = page_slug.title().replace("-", "")
+        client_file = (
+            f"app/{page_path.strip('/')}/page-client.tsx"
+            if page_path.strip("/") else "app/page-client.tsx"
+        )
+        detail_str += (
+            f"\n⚠️  SPLIT OBLIGATOIRE : créer {client_file} avec '\"use client\"' en ligne 1. "
+            f"page.tsx reste Server Component (fetch données) et rend <{comp_name}Client ... />. "
+            f"Import DEFAULT : import {comp_name}Client from './page-client' (jamais named). "
+            f"Export DEFAULT dans {client_file} : export default function {comp_name}Client(...)."
+        )
+    return (
+        f"CONTENU ATTENDU POUR {page_path} :\n"
+        f"{detail_str}"
+    )
+
+
 def build_system_prompt(
     spec: "ProjectSpec",
     pre_written_files: list[str] | None = None,
     service_map: str = "",
     prisma_type_map: dict | None = None,
+    action_map: str = "",
 ) -> str:
     """
-    Construit le system prompt complet pour le dev agent v4 — Option A.
+    Construit le system prompt compact pour le dev agent v4 — Option A (Phase-Aware).
+
+    Phase-Aware : pages_detail et action_map sont EXCLUS du system prompt (trop lourds).
+    Ils sont injectés par executor_node via HumanMessage au moment de générer chaque page.
+    Budget system prompt visé : ≤ 4 000 tokens.
 
     Option A :
-      - lib/types.ts, lib/schemas.ts, lib/services/*.ts → PRÉ-GÉNÉRÉS (ne pas réécrire)
-      - Le LLM génère uniquement : actions.ts, page.tsx, webhooks/route.ts
-      - service_map : bloc compact des services disponibles (inject depuis dev_graph)
-      - prisma_type_map : DMMF extrait après prisma generate — types réels par modèle
+      - lib/types.ts, lib/schemas.ts, lib/services/*.ts, app/**/actions.ts → PRÉ-GÉNÉRÉS
+      - Le LLM génère uniquement : page.tsx (et webhooks/route.ts si présents)
+      - service_map : injecté ici (DAL — toujours pertinent)
+      - action_map  : injecté par executor_node au moment de chaque page
+      - prisma_type_map : DMMF extrait après prisma generate
     """
     pre_written: set[str] = set(pre_written_files or [])
     expected_files = _expected_files_from_spec(spec)
@@ -227,42 +283,9 @@ RÈGLES TECHNIQUES STACK (source : rules_dev.md — priorité absolue)
         for r in webhook_routes
     ) or "  (aucune route API — mutations gérées par les Server Actions)"
 
-    # pages_detail — instructions d'affichage précises pour chaque page
-    pages_detail_block = ""
-    if spec.pages_detail and isinstance(spec.pages_detail, dict):
-        detail_lines = []
-        for path, detail in spec.pages_detail.items():
-            detail_str = str(detail).strip()
-            if "[INTERACTIVE]" in detail_str:
-                page_slug = path.strip("/").replace("/", "-") or "home"
-                comp_name = page_slug.title().replace("-", "")
-                client_file = (
-                    f"app/{path.strip('/')}/page-client.tsx"
-                    if path.strip("/") else "app/page-client.tsx"
-                )
-                detail_str += (
-                    f"\n    ⚠️  SPLIT OBLIGATOIRE : créer {client_file} avec '\"use client\"' "
-                    f"en ligne 1 pour les boutons/handlers. "
-                    f"app/{path.strip('/') + '/' if path.strip('/') else ''}page.tsx reste Server Component "
-                    f"(fetch données) et rend <{comp_name}Client ... />."
-                    f"\n    ⚠️  IMPORT dans page.tsx (DEFAULT import, pas named) :\n"
-                    f"      ✅  import {comp_name}Client from './page-client'\n"
-                    f"      ❌  import {{ {comp_name}Client }} from './page-client'  ← INTERDIT TS2614\n"
-                    f"\n    ⚠️  EXPORT dans {client_file} (DEFAULT export obligatoire) :\n"
-                    f"      ✅  export default function {comp_name}Client({{ ... }}: {comp_name}ClientProps) {{ }}\n"
-                    f"      ❌  export function {comp_name}Client  ← INTERDIT\n"
-                    f"\n    ⚠️  TYPAGE OBLIGATOIRE des props :\n"
-                    f"      interface {comp_name}ClientProps {{ /* utiliser SerializedXxx depuis '@/lib/types' — dates sont string */ }}"
-                )
-            detail_lines.append(f"  {path} :\n    {detail_str}")
-        if detail_lines:
-            pages_detail_block = (
-                "\n══════════════════════════════════════════════════════════════\n"
-                "CONTENU ATTENDU PAR PAGE (instructions précises — à implémenter tel quel)\n"
-                "══════════════════════════════════════════════════════════════\n"
-                + "\n\n".join(detail_lines)
-                + "\n"
-            )
+    # pages_detail retiré du system prompt (Phase-Aware).
+    # Injecté par executor_node via get_page_detail_hint() au moment de générer chaque page.
+    # Gain : ~2000 tokens économisés sur le system prompt.
 
     # Service Map — bloc compact des services pré-générés
     service_map_block = ""
@@ -284,7 +307,13 @@ SERVICES DAL (pré-générés dans lib/services/)
 ══════════════════════════════════════════════════════════════
 Les services sont dans lib/services/<model>.service.ts — NE PAS LES RÉÉCRIRE.
 Convention : import { projectService } from '@/lib/services/project.service'
-Méthodes : .getAll(userId), .getById(userId, id), .create(userId, data), .update(id, data), .delete(userId, id)
+Méthodes :
+  .getAll(userId)              → Promise<SerializedXxx[]>
+  .getById(userId, id)         → Promise<SerializedXxx>  (notFound() si absent — jamais null)
+  .create(userId, data)        → Promise<Xxx>
+  .update(id, data)            → Promise<Xxx>
+  .delete(userId, id)          → Promise<void>
+⚠️ getById ne retourne JAMAIS null — pas besoin de null-check ni de notFound() dans la page.
 """
 
     # DMMF Prisma — types réels des champs (extrait après prisma generate)
@@ -296,11 +325,15 @@ Méthodes : .getAll(userId), .getById(userId, id), .create(userId, data), .updat
         except Exception:
             pass
 
-    # Spec JSON compacte
+    # Spec JSON compacte — routes CRUD exclues (ce sont des Server Actions, pas des route.ts)
+    _webhook_routes_only = [
+        f"{r.method} {r.path}" for r in spec.routes
+        if "webhook" in r.path.lower() or "stripe" in r.path.lower()
+    ]
     spec_json = json.dumps({
         "models": [m.name for m in spec.models],
         "pages": [p.path for p in spec.pages],
-        "routes": [f"{r.method} {r.path}" for r in spec.routes],
+        **({"webhooks": _webhook_routes_only} if _webhook_routes_only else {}),
         "fingerprint": spec.spec_fingerprint,
     }, ensure_ascii=False)
 
@@ -318,16 +351,28 @@ Ces fichiers sont CORRECTS et COMPLETS — ne les réécrits JAMAIS :
 {pre_written_list}
 """
 
+    # Action Map — Server Actions pré-générées (inject depuis dev_graph)
+    action_map_block = ""
+    if action_map:
+        action_map_block = f"""
+══════════════════════════════════════════════════════════════
+SERVER ACTIONS PRÉ-GÉNÉRÉES — IMPORTE-LES, NE LES RECRÉE PAS
+══════════════════════════════════════════════════════════════
+{action_map}
+⚠️  Ces fichiers sont déjà écrits et protégés — NE PAS réécrire actions.ts.
+Pour IMPORTER dans page.tsx : import {{ createXxx, updateXxx, deleteXxx }} from './actions'
+"""
+
     return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7 — OPTION A.
 {mandatory_rag_block}
 Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
 
 ARCHITECTURE OPTION A :
-  - lib/types.ts, lib/schemas.ts, lib/services/*.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
-  - Tu génères UNIQUEMENT : app/**/actions.ts, app/**/page.tsx, webhooks si présents
-  - Les mutations passent par des Server Actions (jamais app/api/** pour le CRUD)
+  - lib/types.ts, lib/schemas.ts, lib/services/*.ts, app/**/actions.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
+  - Tu génères UNIQUEMENT : app/**/page.tsx (Server Components) et webhooks si présents
+  - Les mutations passent par des Server Actions PRÉ-GÉNÉRÉES — IMPORTER depuis './actions', NE PAS recréer
   - Les pages lisent les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx
-{service_map_block}{dmmf_block}{pre_written_block}
+{service_map_block}{action_map_block}{dmmf_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
 SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 ══════════════════════════════════════════════════════════════
@@ -335,7 +380,7 @@ SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 
 PAGES À CRÉER :
 {pages_summary}
-{pages_detail_block}
+
 ROUTES API (webhooks seulement) :
 {routes_summary}
 
@@ -365,27 +410,24 @@ web_search(query)                     → recherche doc/fix TypeScript ou Next.j
 ══════════════════════════════════════════════════════════════
 WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
-1. Génère les Server Actions (app/**/actions.ts) :
-   - PREMIERE LIGNE obligatoire : 'use server'
-   - Importe {{ auth }} from '@clerk/nextjs/server'
-   - Importe {{ revalidatePath }} from 'next/cache'
-   - Importe le service depuis '@/lib/services/<model>.service'
-   - Importe les schémas depuis '@/lib/schemas'
-   - Pattern obligatoire dans chaque action :
-       const {{ userId }} = await auth();
-       if (!userId) throw new Error('Unauthorized');
-       const parsed = CreateXxxSchema.safeParse(data);
-       if (!parsed.success) throw new Error(parsed.error.message);
-       await xxxService.create(userId, parsed.data);
-       revalidatePath('/xxx');
+1. Les Server Actions (app/**/actions.ts) sont PRÉ-GÉNÉRÉES — NE PAS LES RÉÉCRIRE.
+   - Importe-les directement dans page.tsx : import {{ createXxx, updateXxx, deleteXxx }} from './actions'
+   - Si le fichier actions.ts est dans un autre répertoire (voir Action Map), utilise le chemin relatif correct.
+   - NE PAS créer app/**/actions.ts manuellement — ces fichiers sont déjà présents et protégés.
 
 2. Génère les pages (app/**/page.tsx) :
    - Server Component (pas de 'use client' sauf si interaction pure)
    - Lit les données VIA LE SERVICE : `const items = await xxxService.getAll(userId)`
    - JAMAIS prisma directement dans page.tsx — import {{ xxxService }} from '@/lib/services/xxx.service'
    - Si auth_required : const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
+   - Pour les pages dynamiques [id] : `const item = await xxxService.getById(userId, params.id)`
+     ↳ getById appelle notFound() automatiquement si absent → NE PAS ajouter de null-check
+     ↳ item est toujours SerializedXxx après getById — pas de `| null`, pas d'import notFound
    - NE PAS appeler .toISOString() sur les données du service — les dates sont déjà string (SerializedXxx)
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
+   - Client Component navigation : TOUJOURS useRouter depuis 'next/navigation' — JAMAIS 'next/router' (Pages Router)
+     ✅  import {{ useRouter }} from 'next/navigation'   → router.refresh() disponible
+     ❌  import {{ useRouter }} from 'next/router'       → INTERDIT (App Router) + router.refresh() absent → TS2339
 
 3. Si webhooks présents → génère app/api/webhooks/**/route.ts
 
@@ -394,6 +436,22 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
    - Build success (OK en préfixe) → terminé
    - Build échoué → lis l'erreur, corriger, rebuild (max 3 tentatives)
    - Si erreur tsc → shell_exec('npx tsc --noEmit') puis corriger
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — APPEL SERVER ACTION DEPUIS CLIENT COMPONENT
+══════════════════════════════════════════════════════════════
+create/update attendent `formData: FormData` — PAS un objet plain.
+delete attend `id: string` — PAS FormData.
+
+Appels corrects depuis un Client Component :
+  ✅  create/update :
+      const fd = new FormData()
+      fd.set('name', nameValue)
+      await createXxx(fd)
+  ✅  delete :
+      await deleteXxx(item.id)   ← id string direct, PAS new FormData()
+  ❌  await createXxx({{ name: nameValue }})   ← TS2353 fatal (objet ≠ FormData)
+  ❌  await deleteXxx(new FormData(...))     ← TS2345 fatal (FormData ≠ string)
 
 ══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — TYPES PROPS CLIENT COMPONENTS (champs nullable Prisma)

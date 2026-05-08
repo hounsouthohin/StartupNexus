@@ -164,15 +164,14 @@ class ProjectSpec(BaseModel):
     def to_requirements(self) -> List[str]:
         """
         Convertit la spec en requirements[] pour compatibilité avec dev_test_activity.
-        Format identique à celui de brief_parser / requirements_engine.
+        Seuls les modèles et pages sont trackés — les routes API ont été remplacées
+        par des Server Actions et ne peuvent pas être vérifiées de la même façon.
         """
         reqs: List[str] = []
         for m in self.models:
             reqs.append(f"Modèle Prisma: {m.name}")
         for p in self.pages:
             reqs.append(f"Page: {p.path}")
-        for r in self.routes:
-            reqs.append(f"API Route: {r.method} {r.path}")
         return reqs
 
     def to_prisma_schema_block(self) -> str:

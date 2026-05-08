@@ -116,6 +116,126 @@ def _gen_page_stub(page_path: str) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _gen_error_tsx() -> str:
+    """Client Component obligatoire pour Next.js error boundaries."""
+    return "\n".join([
+        "'use client'",
+        "",
+        "export default function Error({",
+        "  error,",
+        "  reset,",
+        "}: {",
+        "  error: Error & { digest?: string }",
+        "  reset: () => void",
+        "}) {",
+        "  return (",
+        '    <main className="container mx-auto p-6 text-center">',
+        '      <h2 className="text-xl font-semibold text-red-600 mb-4">',
+        "        Une erreur est survenue",
+        "      </h2>",
+        '      <p className="text-gray-500 mb-6">{error.message}</p>',
+        "      <button",
+        "        onClick={reset}",
+        '        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"',
+        "      >",
+        "        Réessayer",
+        "      </button>",
+        "    </main>",
+        "  )",
+        "}",
+    ]) + "\n"
+
+
+def _gen_not_found_tsx() -> str:
+    """Page 404 globale — affichée quand notFound() est appelé."""
+    return "\n".join([
+        "import Link from 'next/link'",
+        "",
+        "export default function NotFound() {",
+        "  return (",
+        '    <main className="container mx-auto p-6 text-center">',
+        '      <h2 className="text-2xl font-semibold mb-4">Page introuvable</h2>',
+        '      <p className="text-gray-500 mb-6">',
+        "        La ressource demandée n'existe pas ou a été supprimée.",
+        "      </p>",
+        '      <Link href="/" className="text-blue-600 hover:underline">',
+        "        Retour à l'accueil",
+        "      </Link>",
+        "    </main>",
+        "  )",
+        "}",
+    ]) + "\n"
+
+
+def generate_root_page_if_needed(spec: "ProjectSpec", project_workdir: str) -> bool:  # type: ignore[name-defined]
+    """
+    Génère un app/page.tsx déterministe (redirect) quand '/' est dans spec.pages
+    mais absent de pages_detail — c'est-à-dire quand l'architect l'a injectée
+    automatiquement sans que le brief ne la définisse.
+
+    Sans ce guard, le LLM improvise un dashboard complet sur '/' et accède à des
+    relations (invoice.client.name) qui n'existent pas dans SerializedXxx → TS2551.
+
+    Retourne True si un fichier a été écrit, False sinon.
+    """
+    root_page = next((p for p in spec.pages if p.path == "/"), None)
+    if root_page is None:
+        return False
+
+    # Si pages_detail définit un contenu pour '/', le LLM doit la générer librement
+    pages_detail = getattr(spec, "pages_detail", {}) or {}
+    if pages_detail.get("/") or pages_detail.get(""):
+        return False
+
+    # '/' présente sans pages_detail → redirect déterministe vers la première page réelle
+    app_dir = os.path.join(project_workdir, "app")
+    os.makedirs(app_dir, exist_ok=True)
+    page_path = os.path.join(app_dir, "page.tsx")
+
+    if os.path.exists(page_path):
+        return False
+
+    first_real_page = next(
+        (p.path for p in spec.pages if p.path != "/" and "[" not in p.path),
+        None,
+    )
+    redirect_target = first_real_page or "/sign-in"
+
+    content = "\n".join([
+        "import { redirect } from 'next/navigation'",
+        "",
+        "export default function Home() {",
+        f"  redirect('{redirect_target}')",
+        "}",
+        "",
+    ])
+
+    with open(page_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    logger.info("[pages_gen] ✓ app/page.tsx racine déterministe → redirect('%s')", redirect_target)
+    return True
+
+
+def generate_error_files(spec: "ProjectSpec", project_workdir: str) -> None:  # type: ignore[name-defined]
+    """
+    Écrit app/error.tsx et app/not-found.tsx si absents.
+    Invariants pour toutes les apps de la stack — jamais générés par le LLM.
+    """
+    app_dir = os.path.join(project_workdir, "app")
+    os.makedirs(app_dir, exist_ok=True)
+
+    for filename, content_fn in (
+        ("error.tsx", _gen_error_tsx),
+        ("not-found.tsx", _gen_not_found_tsx),
+    ):
+        abs_path = os.path.join(app_dir, filename)
+        if os.path.exists(abs_path):
+            continue
+        with open(abs_path, "w", encoding="utf-8") as f:
+            f.write(content_fn())
+        logger.info("[pages_gen] ✓ %s", f"app/{filename}")
+
+
 def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> None:  # type: ignore[name-defined]
     """
     Écrit app/<path>/page.tsx pour chaque page du spec si le fichier n'existe pas.

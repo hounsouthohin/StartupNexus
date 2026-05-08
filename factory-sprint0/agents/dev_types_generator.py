@@ -191,24 +191,26 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
         lines.append(f"export type {update_type_name} = Partial<{create_type_name}>")
         lines.append("")
 
-        # SerializedXxx — comme le type Prisma mais tous les champs DateTime → string.
-        # C'est le type de retour des méthodes de lecture du service (getAll, getById, etc.).
-        # Évite TS2345 (LLM annote callback avec Company) et TS2551 (.toISOString sur string).
-        _dt_fields: list[tuple[str, bool]] = [
-            (f.name, f.type.endswith("?"))
-            for f in model.fields
-            if f.type.rstrip("?").rstrip("[]") == "DateTime"
-        ]
+        # SerializedXxx — type explicite (tous les champs scalaires), DateTime → string.
+        # N'utilise PAS Omit<PrismaType, K> : en Prisma v7 les types modèles sont des
+        # génériques complexes (runtime.Types.DefaultSelection<...>) que TypeScript résout
+        # incorrectement avec Omit → tous les scalaires disparaissent, reste {} uniquement.
+        # Type auto-suffisant : ne dépend pas de la forme interne de @prisma/client.
         serialized_name = f"Serialized{model.name}"
-        if not _dt_fields:
-            lines.append(f"export type {serialized_name} = {model.name}")
-        else:
-            _omit_keys = " | ".join(f"'{fname}'" for fname, _ in _dt_fields)
-            lines.append(f"// {model.name} avec DateTime → string (retour du service — NE PAS appeler .toISOString())")
-            lines.append(f"export type {serialized_name} = Omit<{model.name}, {_omit_keys}> & {{")
-            for fname, nullable in _dt_fields:
-                lines.append(f"  {fname}: {'string | null' if nullable else 'string'}")
-            lines.append("}")
+        lines.append(f"// {model.name} — retour service (DateTime → string, NE PAS appeler .toISOString())")
+        lines.append(f"export type {serialized_name} = {{")
+        for _sf in model.fields:
+            if _is_relation_field(_sf.name, _sf.type, _sf.attributes):
+                continue
+            _base = _sf.type.rstrip("?").rstrip("[]")
+            _nullable = _sf.type.endswith("?")
+            # DateTime → string dans SerializedXxx (sérialisé par _serialize dans le service)
+            if _base == "DateTime":
+                _ts = "string | null" if _nullable else "string"
+            else:
+                _ts = _prisma_type_to_ts(_sf.type)
+            lines.append(f"  {_sf.name}: {_ts}")
+        lines.append("}")
         lines.append("")
 
     # ── 4. Route param types pour les pages dynamiques ─────────────────────────

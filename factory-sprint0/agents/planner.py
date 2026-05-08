@@ -147,36 +147,47 @@ def make_deterministic_plan(
         _model_by_seg[_bk] = _bm
         _model_by_seg[_bk + "s"] = _bm
 
-    # ── 1. Server Actions — une par segment de modèle avec des mutations ──────
-    # On groupe les routes de mutation par segment de modèle (ex: 'projects').
-    # Les GET routes sont ignorées : les Server Components lisent Prisma directement.
-    _actions_segments: dict[str, list[str]] = {}
+    # ── 1. Server Actions — une par modèle (chemin via _find_list_page, même logique que dev_actions_generator)
+    # Dériver le path depuis la page liste garantit l'alignement avec les fichiers pré-générés.
+    # Si le fichier est dans template_set (pré-généré), il est sauté → LLM ne le réécrit pas.
+    # Si le générateur a échoué (non-bloquant), le planner le planifie avec le bon chemin.
+    try:
+        from agents.dev_actions_generator import _find_list_page as _flp
+        _actions_by_page: dict[str, list] = {}
+        for _bm in spec.models:
+            _lp = _flp(_bm.name, spec)
+            _route_dir = _lp.lstrip("/")
+            _actions_by_page.setdefault(_route_dir, []).append(_bm)
+    except Exception:
+        # Fallback route-based si dev_actions_generator non disponible
+        _actions_by_page = {}
+        for route in spec.routes:
+            if _is_webhook_route(route.path) or not _is_mutation_method(route.method):
+                continue
+            seg = _route_model_segment(route.path)
+            _m = _model_by_seg.get(seg)
+            if _m:
+                _actions_by_page.setdefault(seg, []).append(_m)
 
-    for route in spec.routes:
-        if _is_webhook_route(route.path):
-            continue
-        if not _is_mutation_method(route.method):
-            continue
-        seg = _route_model_segment(route.path)
-        _actions_segments.setdefault(seg, []).append(
-            f"{route.method.upper()} {route.path}"
-        )
-
-    for seg, mutations in _actions_segments.items():
+    for seg, _seg_models in _actions_by_page.items():
         file_path = f"app/{seg}/actions.ts"
+        if file_path in template_set:
+            continue  # pré-généré par dev_actions_generator — ne pas replanifier
+        mutations = [
+            f"{r.method.upper()} {r.path}"
+            for r in spec.routes
+            if not _is_webhook_route(r.path) and _is_mutation_method(r.method)
+            and _route_model_segment(r.path) == seg
+        ]
+        mutations_str = ", ".join(mutations) if mutations else "create / update / delete"
         mutations_str = ", ".join(mutations)
 
-        # F-05: collecter TOUS les modèles impliqués — segment primaire + segments imbriqués
-        # Ex: /api/tasks/[id]/comments → primary=tasks(Task), nested=comments(Comment)
-        _relevant_models = []
-        _primary = _model_by_seg.get(seg)
-        if _primary:
-            _relevant_models.append(_primary)
-
+        # Modèles impliqués : ceux du groupe (déjà déterminés par _find_list_page)
+        # + modèles imbriqués détectés dans les routes (ex: /api/tasks/[id]/comments → Comment)
+        _relevant_models = list(_seg_models)
         for route_str in mutations:
             route_path = route_str.split(" ", 1)[1] if " " in route_str else route_str
             nested_parts = route_path.lstrip("/").split("/")
-            # skip "api" + primary segment + dynamic segments ([id])
             for ns in nested_parts[2:]:
                 if not ns.startswith("[") and ns:
                     _secondary = _model_by_seg.get(ns)
@@ -324,13 +335,10 @@ def make_deterministic_plan(
                 f"chaque service ne l'a que si son modèle Prisma a un champ @relation (TS2551 fatal sinon)."
             )
 
-        entries.append(FilePlanEntry(
-            path=file_path,
-            role="page",
-            context_hint=" ".join(hint_parts),
-        ))
-
-        # Page-client pour les pages marquées [INTERACTIVE] dans pages_detail
+        # Page-client générée AVANT page.tsx (F3) :
+        # page-client.tsx définit son interface de props → page.tsx peut ensuite
+        # lire ce fichier (injecté par executor_node) et passer exactement les bonnes props.
+        # Sans cet ordre, page.tsx est écrit en premier et ignore les props du client → TS2741.
         _pages_detail = getattr(spec, "pages_detail", {}) or {}
         _page_detail_str = str(_pages_detail.get(page.path, ""))
         if "[INTERACTIVE]" in _page_detail_str:
@@ -343,14 +351,22 @@ def make_deterministic_plan(
                     context_hint=(
                         f"'use client' LIGNE 1 OBLIGATOIRE. Client Component pour {file_path}. "
                         f"export default function {_comp_name}Client(props: {_comp_name}ClientProps). "
-                        f"PROPS INTERFACE : utiliser SerializedXxx depuis '@/lib/types' comme type de base "
-                        f"(les dates sont string, pas Date — le service a déjà sérialisé). "
-                        f"Champs nullable → string | null (JAMAIS string | undefined) : "
-                        f"  ✅ description?: string | null  ❌ description?: string. "
+                        f"PROPS INTERFACE : déclarer UNIQUEMENT les props que le Server Component "
+                        f"parent peut concrètement passer (données chargées côté serveur). "
+                        f"Pour un formulaire de création simple, les props sont vides ou minimales — "
+                        f"NE PAS inventer de props required pour des données pré-chargées si le brief "
+                        f"ne le demande pas explicitement. "
+                        f"Champs nullable → string | null (JAMAIS string | undefined). "
                         f"Importé depuis {file_path} avec DEFAULT import : "
                         f"import {_comp_name}Client from './page-client'."
                     ),
                 ))
+
+        entries.append(FilePlanEntry(
+            path=file_path,
+            role="page",
+            context_hint=" ".join(hint_parts),
+        ))
 
     # Exclure les fichiers déjà écrits par les templates
     return [e for e in entries if e.path not in template_set]

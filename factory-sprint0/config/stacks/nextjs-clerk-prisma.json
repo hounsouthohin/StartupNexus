@@ -101,7 +101,8 @@
     "/api/auth/login",
     "shadcn/ui",
     "@shadcn/ui",
-    "react-hook-form"
+    "react-hook-form",
+    "next/router"
   ],
   "forbidden_auth_patterns": [
     "bcrypt",

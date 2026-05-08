@@ -37,7 +37,7 @@ def _pascal_to_kebab_local(name: str) -> str:
     return _re_utils.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
-MAX_BUILD_ATTEMPTS = 2
+MAX_BUILD_ATTEMPTS = 3
 MAX_GENERATION_TURNS = 15
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
 
@@ -110,6 +110,28 @@ def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     for m in recent:       _add(m)
 
     return result
+
+
+def _extract_error_file(error: str) -> str | None:
+    """
+    Extrait le chemin du premier fichier TS/TSX cité dans une erreur de build.
+    Couvre les formats Next.js et tsc :
+      - './app/projects/page.tsx'
+      - 'app/projects/page.tsx(15,3):'
+      - '× app/projects/page.tsx'
+    Retourne un chemin relatif (sans ./) ou None.
+    """
+    import re as _re_err
+    patterns = [
+        r"\./?(app/[^\s:(]+\.tsx?)",   # ./app/xxx.tsx ou app/xxx.tsx
+        r"\./?(lib/[^\s:(]+\.tsx?)",   # ./lib/xxx.ts
+        r"\./?(pages/[^\s:(]+\.tsx?)", # ./pages/xxx.tsx (rare)
+    ]
+    for pat in patterns:
+        m = _re_err.search(pat, error)
+        if m:
+            return m.group(1)
+    return None
 
 
 def _is_build_command(command: str) -> bool:
@@ -217,8 +239,22 @@ async def run_dev_agent(
     # generate_loading_files produit app/<path>/loading.tsx pour les pages protégées.
     if spec_obj is not None:
         try:
-            from agents.dev_pages_generator import generate_loading_files
+            from agents.dev_pages_generator import (
+                generate_loading_files,
+                generate_error_files,
+                generate_root_page_if_needed,
+            )
             generate_loading_files(spec_obj, project_workdir)
+            generate_error_files(spec_obj, project_workdir)
+            # Page racine déterministe : si '/' est dans le spec sans pages_detail,
+            # on génère un redirect Python pour éviter que le LLM improvise un dashboard
+            # qui accèderait à des relations inexistantes dans SerializedXxx (→ TS2551).
+            if generate_root_page_if_needed(spec_obj, project_workdir):
+                try:
+                    with open(os.path.join(project_workdir, "app", "page.tsx"), "r", encoding="utf-8") as _rp:
+                        template_written["app/page.tsx"] = _rp.read()
+                except Exception:
+                    pass
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
@@ -351,6 +387,21 @@ async def run_dev_agent(
         except Exception as _svc_err:
             logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
 
+    # ── Génération déterministe : app/**/actions.ts ───────────────────
+    # Server Actions CRUD pré-générées par modèle : auth guard + Zod + service call.
+    # Élimine TS2304 (import manquants), TS2345 (types incompatibles) et auth oubliés.
+    # Protégées contre réécriture LLM — le LLM peut en AJOUTER d'autres mais pas écraser.
+    _action_map_str = ""
+    if spec_obj is not None:
+        try:
+            from agents.dev_actions_generator import generate_action_files, format_action_map_for_prompt
+            _act_written = generate_action_files(spec_obj, project_workdir)
+            template_written.update(_act_written)
+            _action_map_str = format_action_map_for_prompt(spec_obj)
+            logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
+        except Exception as _act_err:
+            logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
+
     # ── Extraction du Type Map Prisma réel ───────────────────────────
     # Après prisma generate, lit node_modules/.prisma/client/index.d.ts
     # pour fournir les types RÉELS au LLM (pas notre reconstruction).
@@ -363,8 +414,11 @@ async def run_dev_agent(
         except Exception as _pe_err:
             logger.warning(f"[dev_graph] prisma_extractor non bloquant : {_pe_err}")
 
-    # Protéger types.ts + schemas.ts + services contre réécriture LLM.
-    _protected.update(k for k in template_written if k.startswith("lib/"))
+    # Protéger lib/ (types, schemas, services) + app/**/actions.ts contre réécriture LLM.
+    _protected.update(
+        k for k in template_written
+        if k.startswith("lib/") or k.endswith("/actions.ts")
+    )
     _dev_tools_module.set_protected_files(_protected)
 
     # ── System prompt ────────────────────────────────────────────────
@@ -379,6 +433,7 @@ async def run_dev_agent(
                 spec_obj,
                 pre_written_files=list(template_written.keys()),
                 service_map=_service_map_str,
+                action_map=_action_map_str,
                 prisma_type_map=_prisma_type_map,
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
@@ -451,11 +506,33 @@ async def run_dev_agent(
         # Injection sur erreur build.
         last_error = state.get("last_build_error", "")
         if last_error:
-            first_lines = "\n".join(last_error.splitlines()[:10])
+            # Extrait les lignes d'erreur TS (filtre le bruit webpack/Next)
+            _ts_lines = [
+                l for l in last_error.splitlines()
+                if any(kw in l for kw in ("error TS", "Type error", "×", "⨯", "→", ".tsx", ".ts"))
+            ]
+            _err_excerpt = "\n".join((_ts_lines or last_error.splitlines())[:12])[:700]
+
+            # Lit le contenu du fichier incriminé pour donner au LLM le contexte complet
+            _file_ctx = ""
+            _err_file = _extract_error_file(last_error)
+            if _err_file:
+                _err_abs = os.path.join(project_workdir, _err_file)
+                if os.path.exists(_err_abs):
+                    try:
+                        with open(_err_abs, "r", encoding="utf-8") as _ef:
+                            _file_lines = _ef.readlines()[:40]
+                        _numbered = "".join(f"{i+1:3} | {l}" for i, l in enumerate(_file_lines))
+                        _file_ctx = f"\nContenu actuel de {_err_file} :\n```typescript\n{_numbered}```\n"
+                    except Exception:
+                        pass
+
             messages.append(HumanMessage(content=(
-                f"ERREUR BUILD à corriger :\n{first_lines[:600]}\n\n"
-                "Corrige uniquement la ligne indiquée.\n"
-                "shell_exec('npx tsc --noEmit') — si OK → shell_exec('npm run build')"
+                f"ERREUR BUILD à corriger :\n{_err_excerpt}"
+                f"{_file_ctx}\n"
+                "1. Identifie la ligne exacte dans le fichier ci-dessus.\n"
+                "2. Corrige avec write_file (réécriture complète du fichier uniquement si nécessaire).\n"
+                "3. shell_exec('npx tsc --noEmit') — si OK → shell_exec('npm run build')"
             )))
 
         # Plan-and-Execute : guidage fichier par fichier.
@@ -590,20 +667,135 @@ async def run_dev_agent(
                                 break
                         if _dep and "service.ts" in _dep:
                             break
-                elif _role == "page":
-                    _seg = _path.split("/")[-2] if _path.count("/") >= 2 else ""
-                    if _seg:
-                        _svc_abs = os.path.join(project_workdir, "lib", "services",
-                                                f"{_seg}.service.ts")
-                        if os.path.exists(_svc_abs):
+                elif _role == "page_client":
+                    # Injection du actions.ts parent : le LLM DOIT voir la signature ET
+                    # le chemin d'import relatif EXACT avant d'écrire le Client Component.
+                    # Ex: app/projects/new/page-client.tsx → actions à app/projects/actions.ts
+                    # → chemin relatif = '../actions' (1 niveau au-dessus), PAS './actions'.
+                    _client_dir_parts = _path.split("/")[:-1]  # ['app', 'projects', 'new']
+                    # Remonte l'arborescence jusqu'à trouver un actions.ts
+                    for _depth in range(len(_client_dir_parts), 1, -1):
+                        _act_rel = "/".join(_client_dir_parts[:_depth]) + "/actions.ts"
+                        _act_abs = os.path.join(project_workdir, _act_rel)
+                        if os.path.exists(_act_abs):
                             try:
-                                with open(_svc_abs, "r", encoding="utf-8") as _f:
-                                    _dep = (
-                                        f"\n{_seg}.service.ts :\n"
-                                        f"```typescript\n{_f.read()[:400]}\n```"
+                                # Chemin d'import relatif selon profondeur de la page-client
+                                _depth_diff = len(_client_dir_parts) - _depth
+                                _rel_import = ("../" * _depth_diff + "actions") if _depth_diff > 0 else "./actions"
+                                with open(_act_abs, "r", encoding="utf-8") as _af:
+                                    _dep += (
+                                        f"\nactions.ts (chemin d'import relatif EXACT : '{_rel_import}') :\n"
+                                        f"```typescript\n{_af.read()[:600]}\n```\n"
+                                        f"⚠️  IMPORT OBLIGATOIRE : import {{ createXxx, deleteXxx }} from '{_rel_import}'\n"
+                                        f"⚠️  APPELS CORRECTS :\n"
+                                        f"  create/update → FormData : const fd = new FormData(); fd.set('field', val); await createXxx(fd)\n"
+                                        f"  delete → ID string : await deleteXxx(item.id)   ← PAS FormData, PAS objet plain"
                                     )
                             except Exception:
                                 pass
+
+                            # Injection du type SerializedXxx correspondant depuis lib/types.ts.
+                            # Le LLM doit voir les champs EXACTS disponibles pour éviter
+                            # d'inventer des champs (ex: submissionDate) qui n'existent pas → TS2339.
+                            try:
+                                from agents.dev_actions_generator import _find_list_page as _flp_client
+                                _act_segment = _act_rel.split("/")[-2]  # "projects" depuis app/projects/actions.ts
+                                _client_model = next(
+                                    (m for m in (spec_obj.models if spec_obj else [])
+                                     if _flp_client(m.name, spec_obj).lstrip("/") == _act_segment),
+                                    None,
+                                )
+                                if _client_model:
+                                    _types_abs = os.path.join(project_workdir, "lib", "types.ts")
+                                    if os.path.exists(_types_abs):
+                                        with open(_types_abs, "r", encoding="utf-8") as _tf:
+                                            _types_content = _tf.read()
+                                        _serial_key = f"export type Serialized{_client_model.name}"
+                                        _t_start = _types_content.find(_serial_key)
+                                        if _t_start >= 0:
+                                            _t_end = _types_content.find("export type ", _t_start + len(_serial_key))
+                                            _serial_type = _types_content[_t_start: _t_end if _t_end > _t_start else _t_start + 400].strip()
+                                            _dep += (
+                                                f"\n\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
+                                                f"```typescript\n{_serial_type}\n```"
+                                            )
+                            except Exception:
+                                pass
+                            break
+
+                    # Injection du page_detail_hint pour ce page-client
+                    if spec_obj is not None:
+                        try:
+                            from agents.dev_prompts import get_page_detail_hint
+                            _page_route = "/" + "/".join(_path.split("/")[1:-1])  # app/{...}/page-client.tsx → /{...}
+                            _page_route = _page_route.replace("/page-client", "")
+                            _detail_hint = get_page_detail_hint(spec_obj, _page_route)
+                            if _detail_hint:
+                                _dep += f"\n\n{_detail_hint}"
+                        except Exception:
+                            pass
+
+                elif _role == "page":
+                    _seg = _path.split("/")[-2] if _path.count("/") >= 2 else ""
+                    if _seg:
+                        # Utilise _find_list_page (même logique que l'actions generator) pour
+                        # retrouver le modèle dont la list_page correspond à ce segment d'URL.
+                        # Cela gère correctement company→/companies, leave→/leaves, etc.
+                        try:
+                            from agents.dev_actions_generator import _find_list_page as _flp_page
+                            _page_model_match = next(
+                                (m for m in (spec_obj.models if spec_obj else [])
+                                 if _flp_page(m.name, spec_obj).lstrip("/") == _seg),
+                                None,
+                            )
+                        except Exception:
+                            _page_model_match = None
+                        _sv_cands = (
+                            [_pascal_to_kebab_local(_page_model_match.name)]
+                            if _page_model_match else [_seg, _seg.rstrip("s")]
+                        )
+                        for _sv in _sv_cands:
+                            _svc_abs = os.path.join(project_workdir, "lib", "services",
+                                                    f"{_sv}.service.ts")
+                            if os.path.exists(_svc_abs):
+                                try:
+                                    # Camelcase du service : "project" → "projectService"
+                                    _svc_camel = _re_utils.sub(
+                                        r"-(.)", lambda m: m.group(1).upper(), _sv
+                                    ) + "Service"
+                                    with open(_svc_abs, "r", encoding="utf-8") as _f:
+                                        _dep = (
+                                            f"\nlib/services/{_sv}.service.ts"
+                                            f" (import : import {{ {_svc_camel} }} from '@/lib/services/{_sv}.service') :\n"
+                                            f"```typescript\n{_f.read()[:400]}\n```"
+                                        )
+                                except Exception:
+                                    pass
+                                break
+                    # F3 : page-client.tsx généré AVANT page.tsx (ordre inversé dans planner).
+                    # Si page-client.tsx est sur disque, l'injecter pour que page.tsx passe
+                    # les bonnes props — évite TS2741 (props required non passées).
+                    _client_sibling = _path.replace("/page.tsx", "/page-client.tsx")
+                    _client_sibling_abs = os.path.join(project_workdir, _client_sibling)
+                    if os.path.exists(_client_sibling_abs):
+                        try:
+                            with open(_client_sibling_abs, "r", encoding="utf-8") as _cf:
+                                _dep += (
+                                    f"\npage-client.tsx (props à passer depuis ce Server Component) :\n"
+                                    f"```typescript\n{_cf.read()[:500]}\n```"
+                                )
+                        except Exception:
+                            pass
+                    # Phase-Aware : injection du détail de cette page spécifiquement.
+                    if spec_obj is not None:
+                        try:
+                            from agents.dev_prompts import get_page_detail_hint
+                            _page_route = "/" + "/".join(_path.split("/")[1:-1])
+                            _detail_hint = get_page_detail_hint(spec_obj, _page_route)
+                            if _detail_hint:
+                                _dep += f"\n\n{_detail_hint}"
+                        except Exception:
+                            pass
 
                 # Phase 8 — Example-anchored prompting.
                 # Injecte le dernier fichier écrit du même rôle comme exemple concret.
@@ -806,7 +998,13 @@ async def run_dev_agent(
     # ── State initial ─────────────────────────────────────────────────
     spec_models = [m.get("name", "") for m in spec.get("models", [])]
     spec_pages = [p.get("path", "") for p in spec.get("pages", [])]
-    spec_routes = [f"{r.get('method','')} {r.get('path','')}" for r in spec.get("routes", [])]
+    # Webhooks seulement — les routes CRUD sont des Server Actions.
+    # Les montrer ici ferait croire au LLM qu'il doit créer des route.ts pour chaque mutation.
+    spec_webhooks = [
+        f"{r.get('method','')} {r.get('path','')}"
+        for r in spec.get("routes", [])
+        if "webhook" in r.get("path", "").lower() or "stripe" in r.get("path", "").lower()
+    ]
 
     initial_state: DevState = {
         "messages": [
@@ -814,10 +1012,11 @@ async def run_dev_agent(
             HumanMessage(content=(
                 f"Génère le projet '{project_name}'.\n\n"
                 f"Modèles Prisma : {spec_models}\n"
-                f"Pages : {spec_pages}\n"
-                f"Routes API : {spec_routes}\n\n"
-                f"Fingerprint spec : {spec.get('spec_fingerprint', 'n/a')}\n"
-                f"Suis le workflow du system prompt."
+                f"Pages à générer : {spec_pages}\n"
+                + (f"Webhooks (route.ts requis) : {spec_webhooks}\n" if spec_webhooks else "")
+                + f"\nFingerprint spec : {spec.get('spec_fingerprint', 'n/a')}\n"
+                "⚠️ Les Server Actions (app/**/actions.ts) sont PRÉ-GÉNÉRÉES — "
+                "NE PAS les réécrire. Génère uniquement les pages (app/**/page.tsx)."
             )),
             *([HumanMessage(content=extra_feedback)] if extra_feedback else []),
         ],

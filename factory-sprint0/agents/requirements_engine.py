@@ -5,11 +5,14 @@ Source de vérité unique pour le mapping et la validation des requirements.
 `_requirements_gate()` dans dev.py et `compute_spec_coverage()` dans
 spec_coverage.py appellent ce module. Plus de logique dupliquée.
 
-Règles de mapping (A→D) :
+Règles de mapping (A, C, D) :
   A — Modèle Prisma → schema.prisma
-  B — Route API (METHOD /path) → app/path/route.ts (exact)
   C — Page /path → app/path/page.tsx (exact)
   D — Chemin explicite dans le texte du requirement → existence fichier
+
+Règle B (Route API → route.ts) supprimée : les mutations sont des Server Actions
+pré-générées (app/**/actions.ts). to_requirements() ne génère plus d'items
+"API Route: ..." depuis project_spec.py (Avr 2026).
 
 Non-mappables : requirements sans marqueur connu → unknown (satisfied=None).
 Exclus du calcul spec_coverage : coverage = met / (total - unknown).
@@ -398,17 +401,6 @@ def check_requirement_verbose(req: str, files_dict: dict) -> tuple[bool, bool, s
                 details.append("contraintes @unique manquantes: " + ", ".join(missing_unique))
             return True, False, "; ".join(details)
         return True, True, "Modèle Prisma conforme."
-
-    # -- Règle B : route API (METHOD /path) --------------------------------
-    route_match = re.search(
-        r'(GET|POST|PUT|PATCH|DELETE)\s+(/[\w/\[\]-]+)', req, re.IGNORECASE
-    )
-    if route_match:
-        api_path = route_match.group(2).strip("/")
-        expected = _norm_path("app/" + api_path + "/route.ts")
-        ok = expected in file_set
-        reason = "Route API présente." if ok else f"Route API manquante: {expected}"
-        return True, ok, reason
 
     # -- Règle C : page mentionnée avec chemin (/path) ---------------------
     if "page" in req_lower:

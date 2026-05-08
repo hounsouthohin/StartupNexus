@@ -71,6 +71,7 @@ def _generate_service_for_model(model) -> str:
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_service_generator.py — NE PAS MODIFIER",
+        "import { notFound } from 'next/navigation'",
         "import prisma from '@/lib/prisma'",
         f"import type {{ {name} }} from '@prisma/client'",
         f"import type {{ Create{name}Input, Update{name}Input, {serialized_name} }} from '@/lib/types'",
@@ -89,7 +90,7 @@ def _generate_service_for_model(model) -> str:
         lines.extend([
             f"const _serialize = (item: {name}): {serialized_name} => ({{",
             *serialize_lines,
-            "})",
+            f"}}) as {serialized_name}",
             "",
         ])
     else:
@@ -105,9 +106,10 @@ def _generate_service_for_model(model) -> str:
         "    return items.map(_serialize)",
         "  },",
         "",
-        f"  getById: async ({owner}: string, id: string): Promise<{serialized_name} | null> => {{",
+        f"  getById: async ({owner}: string, id: string): Promise<{serialized_name}> => {{",
         f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
-        "    return item ? _serialize(item) : null",
+        "    if (!item) notFound()",
+        "    return _serialize(item)",
         "  },",
     ])
 
@@ -193,7 +195,7 @@ def format_service_map_for_prompt(spec) -> str:
         import_path = f"@/lib/services/{kebab}.service"
         lines.append(f"**{camel}Service** → `import {{ {camel}Service }} from '{import_path}'`")
         lines.append(f"  .getAll({owner})  → `Promise<{serialized_name}[]>` (dates déjà string)")
-        lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name} | null>` (dates déjà string)")
+        lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name}>` (notFound() si absent — jamais null)")
         if relations:
             rel_list = ", ".join(relations)
             lines.append(
