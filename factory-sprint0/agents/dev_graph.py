@@ -29,14 +29,6 @@ from agents.web_search import web_search
 
 logger = logging.getLogger(__name__)
 
-import re as _re_utils
-
-
-def _pascal_to_kebab_local(name: str) -> str:
-    """PascalCase → kebab-case. Ex: LeaveRequest → leave-request."""
-    return _re_utils.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
 MAX_BUILD_ATTEMPTS = 3
 MAX_GENERATION_TURNS = 15
 _BASE_WORKDIR = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
@@ -391,13 +383,11 @@ async def run_dev_agent(
     # Server Actions CRUD pré-générées par modèle : auth guard + Zod + service call.
     # Élimine TS2304 (import manquants), TS2345 (types incompatibles) et auth oubliés.
     # Protégées contre réécriture LLM — le LLM peut en AJOUTER d'autres mais pas écraser.
-    _action_map_str = ""
     if spec_obj is not None:
         try:
-            from agents.dev_actions_generator import generate_action_files, format_action_map_for_prompt
+            from agents.dev_actions_generator import generate_action_files
             _act_written = generate_action_files(spec_obj, project_workdir)
             template_written.update(_act_written)
-            _action_map_str = format_action_map_for_prompt(spec_obj)
             logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
         except Exception as _act_err:
             logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
@@ -433,7 +423,6 @@ async def run_dev_agent(
                 spec_obj,
                 pre_written_files=list(template_written.keys()),
                 service_map=_service_map_str,
-                action_map=_action_map_str,
                 prisma_type_map=_prisma_type_map,
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
@@ -553,6 +542,7 @@ async def run_dev_agent(
                     "Ne genere pas d'autres fichiers avant d'avoir lance le build."
                 )))
             else:
+                from agents.dev_context import build_role_context
                 _role = _next_entry.get("role", "")
                 _hint = _next_entry.get("context_hint", "")
                 _path = _next_entry["path"]
@@ -563,239 +553,8 @@ async def run_dev_agent(
                     if _rule else f"CONTEXTE : {_hint}"
                 )
 
-                # Lecture des dependances utiles depuis le disque.
-                # Service : lib/types.ts + lib/prisma.ts.
-                # Actions : schemas.ts + service correspondant (LLM-généré ou disque).
-                # Route   : types.ts (800 chars) + service correspondant.
-                # Page    : service correspondant (400 chars).
-                _dep = ""
-                if _role == "service":
-                    _types_abs = os.path.join(project_workdir, "lib", "types.ts")
-                    if os.path.exists(_types_abs):
-                        try:
-                            with open(_types_abs, "r", encoding="utf-8") as _f:
-                                _dep += (
-                                    f"\nlib/types.ts :\n"
-                                    f"```typescript\n{_f.read()[:800]}\n```"
-                                )
-                        except Exception:
-                            pass
-                    _prisma_abs = os.path.join(project_workdir, "lib", "prisma.ts")
-                    if os.path.exists(_prisma_abs):
-                        try:
-                            with open(_prisma_abs, "r", encoding="utf-8") as _f:
-                                _dep += (
-                                    f"\nlib/prisma.ts :\n"
-                                    f"```typescript\n{_f.read()[:250]}\n```"
-                                )
-                        except Exception:
-                            pass
-                elif _role == "actions":
-                    # Service Map compact (closure — toujours disponible si services générés)
-                    if _service_map_str:
-                        _dep += f"\n{_service_map_str}"
-                    # schemas.ts (schémas Zod pour la validation dans les actions)
-                    _schemas_abs = os.path.join(project_workdir, "lib", "schemas.ts")
-                    if os.path.exists(_schemas_abs):
-                        try:
-                            with open(_schemas_abs, "r", encoding="utf-8") as _f:
-                                _dep += (
-                                    f"\nlib/schemas.ts :\n"
-                                    f"```typescript\n{_f.read()[:600]}\n```"
-                                )
-                        except Exception:
-                            pass
-                    # Chercher le service correspondant au segment du fichier actions.ts
-                    # ex: app/projects/actions.ts → lib/services/project.service.ts
-                    _act_seg = _path.split("/")[-2] if "/" in _path else ""
-                    # F-04: utiliser l'index modèles pour une correspondance stable
-                    _act_match = next(
-                        (m for m in (spec_obj.models if spec_obj else [])
-                         if _pascal_to_kebab_local(m.name) == _act_seg
-                         or _pascal_to_kebab_local(m.name) + "s" == _act_seg),
-                        None,
-                    )
-                    _svc_candidates = (
-                        [_pascal_to_kebab_local(_act_match.name)]
-                        if _act_match else [_act_seg, _act_seg.rstrip("s")]
-                    )
-                    for _sv in _svc_candidates:
-                        _svc_abs = os.path.join(project_workdir, "lib", "services",
-                                                f"{_sv}.service.ts")
-                        if os.path.exists(_svc_abs):
-                            try:
-                                with open(_svc_abs, "r", encoding="utf-8") as _f:
-                                    _dep += (
-                                        f"\nlib/services/{_sv}.service.ts :\n"
-                                        f"```typescript\n{_f.read()[:500]}\n```"
-                                    )
-                            except Exception:
-                                pass
-                            break
-                elif _role == "route":
-                    # types.ts — pré-généré sur disque, pas dans validated_files
-                    _types_abs = os.path.join(project_workdir, "lib", "types.ts")
-                    if os.path.exists(_types_abs):
-                        try:
-                            with open(_types_abs, "r", encoding="utf-8") as _f:
-                                _dep = (
-                                    f"\nlib/types.ts :\n"
-                                    f"```typescript\n{_f.read()[:800]}\n```"
-                                )
-                        except Exception:
-                            pass
-                    # Service correspondant : app/api/{seg}/route.ts → lib/services/{seg}.service.ts
-                    _route_seg = _path.split("/")
-                    _seg_candidates = []
-                    for _s in _route_seg:
-                        if _s not in ("app", "api", "route.ts", "") and not _s.startswith("["):
-                            _seg_candidates.append(_s)
-                    for _seg in reversed(_seg_candidates):
-                        _svc_tries = [_seg, _seg.rstrip("s")]
-                        for _sv in _svc_tries:
-                            _svc_abs = os.path.join(project_workdir, "lib", "services",
-                                                    f"{_sv}.service.ts")
-                            if os.path.exists(_svc_abs):
-                                try:
-                                    with open(_svc_abs, "r", encoding="utf-8") as _f:
-                                        _dep += (
-                                            f"\nlib/services/{_sv}.service.ts :\n"
-                                            f"```typescript\n{_f.read()[:600]}\n```"
-                                        )
-                                except Exception:
-                                    pass
-                                break
-                        if _dep and "service.ts" in _dep:
-                            break
-                elif _role == "page_client":
-                    # Injection du actions.ts parent : le LLM DOIT voir la signature ET
-                    # le chemin d'import relatif EXACT avant d'écrire le Client Component.
-                    # Ex: app/projects/new/page-client.tsx → actions à app/projects/actions.ts
-                    # → chemin relatif = '../actions' (1 niveau au-dessus), PAS './actions'.
-                    _client_dir_parts = _path.split("/")[:-1]  # ['app', 'projects', 'new']
-                    # Remonte l'arborescence jusqu'à trouver un actions.ts
-                    for _depth in range(len(_client_dir_parts), 1, -1):
-                        _act_rel = "/".join(_client_dir_parts[:_depth]) + "/actions.ts"
-                        _act_abs = os.path.join(project_workdir, _act_rel)
-                        if os.path.exists(_act_abs):
-                            try:
-                                # Chemin d'import relatif selon profondeur de la page-client
-                                _depth_diff = len(_client_dir_parts) - _depth
-                                _rel_import = ("../" * _depth_diff + "actions") if _depth_diff > 0 else "./actions"
-                                with open(_act_abs, "r", encoding="utf-8") as _af:
-                                    _dep += (
-                                        f"\nactions.ts (chemin d'import relatif EXACT : '{_rel_import}') :\n"
-                                        f"```typescript\n{_af.read()[:600]}\n```\n"
-                                        f"⚠️  IMPORT OBLIGATOIRE : import {{ createXxx, deleteXxx }} from '{_rel_import}'\n"
-                                        f"⚠️  APPELS CORRECTS :\n"
-                                        f"  create/update → FormData : const fd = new FormData(); fd.set('field', val); await createXxx(fd)\n"
-                                        f"  delete → ID string : await deleteXxx(item.id)   ← PAS FormData, PAS objet plain"
-                                    )
-                            except Exception:
-                                pass
-
-                            # Injection du type SerializedXxx correspondant depuis lib/types.ts.
-                            # Le LLM doit voir les champs EXACTS disponibles pour éviter
-                            # d'inventer des champs (ex: submissionDate) qui n'existent pas → TS2339.
-                            try:
-                                from agents.dev_actions_generator import _find_list_page as _flp_client
-                                _act_segment = _act_rel.split("/")[-2]  # "projects" depuis app/projects/actions.ts
-                                _client_model = next(
-                                    (m for m in (spec_obj.models if spec_obj else [])
-                                     if _flp_client(m.name, spec_obj).lstrip("/") == _act_segment),
-                                    None,
-                                )
-                                if _client_model:
-                                    _types_abs = os.path.join(project_workdir, "lib", "types.ts")
-                                    if os.path.exists(_types_abs):
-                                        with open(_types_abs, "r", encoding="utf-8") as _tf:
-                                            _types_content = _tf.read()
-                                        _serial_key = f"export type Serialized{_client_model.name}"
-                                        _t_start = _types_content.find(_serial_key)
-                                        if _t_start >= 0:
-                                            _t_end = _types_content.find("export type ", _t_start + len(_serial_key))
-                                            _serial_type = _types_content[_t_start: _t_end if _t_end > _t_start else _t_start + 400].strip()
-                                            _dep += (
-                                                f"\n\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
-                                                f"```typescript\n{_serial_type}\n```"
-                                            )
-                            except Exception:
-                                pass
-                            break
-
-                    # Injection du page_detail_hint pour ce page-client
-                    if spec_obj is not None:
-                        try:
-                            from agents.dev_prompts import get_page_detail_hint
-                            _page_route = "/" + "/".join(_path.split("/")[1:-1])  # app/{...}/page-client.tsx → /{...}
-                            _page_route = _page_route.replace("/page-client", "")
-                            _detail_hint = get_page_detail_hint(spec_obj, _page_route)
-                            if _detail_hint:
-                                _dep += f"\n\n{_detail_hint}"
-                        except Exception:
-                            pass
-
-                elif _role == "page":
-                    _seg = _path.split("/")[-2] if _path.count("/") >= 2 else ""
-                    if _seg:
-                        # Utilise _find_list_page (même logique que l'actions generator) pour
-                        # retrouver le modèle dont la list_page correspond à ce segment d'URL.
-                        # Cela gère correctement company→/companies, leave→/leaves, etc.
-                        try:
-                            from agents.dev_actions_generator import _find_list_page as _flp_page
-                            _page_model_match = next(
-                                (m for m in (spec_obj.models if spec_obj else [])
-                                 if _flp_page(m.name, spec_obj).lstrip("/") == _seg),
-                                None,
-                            )
-                        except Exception:
-                            _page_model_match = None
-                        _sv_cands = (
-                            [_pascal_to_kebab_local(_page_model_match.name)]
-                            if _page_model_match else [_seg, _seg.rstrip("s")]
-                        )
-                        for _sv in _sv_cands:
-                            _svc_abs = os.path.join(project_workdir, "lib", "services",
-                                                    f"{_sv}.service.ts")
-                            if os.path.exists(_svc_abs):
-                                try:
-                                    # Camelcase du service : "project" → "projectService"
-                                    _svc_camel = _re_utils.sub(
-                                        r"-(.)", lambda m: m.group(1).upper(), _sv
-                                    ) + "Service"
-                                    with open(_svc_abs, "r", encoding="utf-8") as _f:
-                                        _dep = (
-                                            f"\nlib/services/{_sv}.service.ts"
-                                            f" (import : import {{ {_svc_camel} }} from '@/lib/services/{_sv}.service') :\n"
-                                            f"```typescript\n{_f.read()[:400]}\n```"
-                                        )
-                                except Exception:
-                                    pass
-                                break
-                    # F3 : page-client.tsx généré AVANT page.tsx (ordre inversé dans planner).
-                    # Si page-client.tsx est sur disque, l'injecter pour que page.tsx passe
-                    # les bonnes props — évite TS2741 (props required non passées).
-                    _client_sibling = _path.replace("/page.tsx", "/page-client.tsx")
-                    _client_sibling_abs = os.path.join(project_workdir, _client_sibling)
-                    if os.path.exists(_client_sibling_abs):
-                        try:
-                            with open(_client_sibling_abs, "r", encoding="utf-8") as _cf:
-                                _dep += (
-                                    f"\npage-client.tsx (props à passer depuis ce Server Component) :\n"
-                                    f"```typescript\n{_cf.read()[:500]}\n```"
-                                )
-                        except Exception:
-                            pass
-                    # Phase-Aware : injection du détail de cette page spécifiquement.
-                    if spec_obj is not None:
-                        try:
-                            from agents.dev_prompts import get_page_detail_hint
-                            _page_route = "/" + "/".join(_path.split("/")[1:-1])
-                            _detail_hint = get_page_detail_hint(spec_obj, _page_route)
-                            if _detail_hint:
-                                _dep += f"\n\n{_detail_hint}"
-                        except Exception:
-                            pass
+                # Dépendances disque + standard RAG ciblé sur ce rôle (dev_context.py).
+                _dep = build_role_context(_role, _path, spec_obj, project_workdir, _service_map_str)
 
                 # Phase 8 — Example-anchored prompting.
                 # Injecte le dernier fichier écrit du même rôle comme exemple concret.

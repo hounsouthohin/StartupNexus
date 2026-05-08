@@ -177,6 +177,10 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
             if result and not result.startswith("[RAG]") and result not in seen_texts:
                 seen_texts.add(result)
                 snippets.append(f"[contexte: {ctx}]\n{result[:600]}")
+                _n_stds = len([s for s in result.split("---") if s.strip()])
+                logger.info("[mandatory-rag] ctx=%-18s | %d standard(s) injectés", ctx, _n_stds)
+            elif result and result.startswith("[RAG]"):
+                logger.warning("[mandatory-rag] ctx=%-18s | RAG indisponible ou vide", ctx)
         except Exception:
             pass
 
@@ -232,7 +236,6 @@ def build_system_prompt(
     pre_written_files: list[str] | None = None,
     service_map: str = "",
     prisma_type_map: dict | None = None,
-    action_map: str = "",
 ) -> str:
     """
     Construit le system prompt compact pour le dev agent v4 — Option A (Phase-Aware).
@@ -351,18 +354,6 @@ Ces fichiers sont CORRECTS et COMPLETS — ne les réécrits JAMAIS :
 {pre_written_list}
 """
 
-    # Action Map — Server Actions pré-générées (inject depuis dev_graph)
-    action_map_block = ""
-    if action_map:
-        action_map_block = f"""
-══════════════════════════════════════════════════════════════
-SERVER ACTIONS PRÉ-GÉNÉRÉES — IMPORTE-LES, NE LES RECRÉE PAS
-══════════════════════════════════════════════════════════════
-{action_map}
-⚠️  Ces fichiers sont déjà écrits et protégés — NE PAS réécrire actions.ts.
-Pour IMPORTER dans page.tsx : import {{ createXxx, updateXxx, deleteXxx }} from './actions'
-"""
-
     return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7 — OPTION A.
 {mandatory_rag_block}
 Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
@@ -372,7 +363,7 @@ ARCHITECTURE OPTION A :
   - Tu génères UNIQUEMENT : app/**/page.tsx (Server Components) et webhooks si présents
   - Les mutations passent par des Server Actions PRÉ-GÉNÉRÉES — IMPORTER depuis './actions', NE PAS recréer
   - Les pages lisent les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx
-{service_map_block}{action_map_block}{dmmf_block}{pre_written_block}
+{service_map_block}{dmmf_block}{pre_written_block}
 ══════════════════════════════════════════════════════════════
 SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
 ══════════════════════════════════════════════════════════════
@@ -411,8 +402,7 @@ web_search(query)                     → recherche doc/fix TypeScript ou Next.j
 WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
 1. Les Server Actions (app/**/actions.ts) sont PRÉ-GÉNÉRÉES — NE PAS LES RÉÉCRIRE.
-   - Importe-les directement dans page.tsx : import {{ createXxx, updateXxx, deleteXxx }} from './actions'
-   - Si le fichier actions.ts est dans un autre répertoire (voir Action Map), utilise le chemin relatif correct.
+   - Pour les pages [INTERACTIVE] : le Client Component (page-client.tsx) les importe — le chemin d'import exact et les signatures sont injectés au moment de générer ce fichier.
    - NE PAS créer app/**/actions.ts manuellement — ces fichiers sont déjà présents et protégés.
 
 2. Génère les pages (app/**/page.tsx) :

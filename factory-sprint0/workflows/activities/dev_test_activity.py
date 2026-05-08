@@ -320,6 +320,9 @@ def _check_clerk_compliant(result: dict) -> bool:
     """
     files = result.get("dev_output", {}).get("files", {})
     if not files:
+        # Accepte aussi {"combined_files": {...}} passé directement
+        files = result.get("combined_files", {})
+    if not files:
         return False
 
     all_content = " ".join(str(v) for v in files.values()).lower()
@@ -328,9 +331,14 @@ def _check_clerk_compliant(result: dict) -> bool:
     has_clerk_provider = "clerkprovider" in all_content
     has_middleware = "clerk" in all_content and "middleware" in all_content
 
-    # Vérifications négatives (custom auth interdit)
+    # Vérifications négatives — seulement sur les fichiers TS/TSX
+    # (exclut .eslintrc.stack.json qui liste ces termes comme patterns interdits)
+    ts_content = " ".join(
+        str(v) for k, v in files.items()
+        if k.endswith((".ts", ".tsx"))
+    ).lower()
     forbidden = ["bcrypt", "jsonwebtoken", "password_hash", "passport"]
-    no_custom_auth = not any(term in all_content for term in forbidden)
+    no_custom_auth = not any(term in ts_content for term in forbidden)
 
     return has_clerk_provider and has_middleware and no_custom_auth
 
@@ -784,9 +792,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 "is_useful_app": is_useful_app,
                 "supervisor_files_reviewed": 0,
                 "supervisor_corrections_count": 0,
-                "conformity_score": 0.0,
-                "security_score": 0.0,
-                "architecture_score": 0.0,
+                "conformity_score": round(spec_coverage, 3),
+                "security_score": 1.0 if _check_clerk_compliant({"combined_files": combined_files}) else 0.0,
+                "architecture_score": round(journey_metrics.get("user_flows_coverage", 0.0), 3),
                 "build_corrections_count": build_attempts,
             },
         }
