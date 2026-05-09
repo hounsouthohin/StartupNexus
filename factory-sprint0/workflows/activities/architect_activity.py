@@ -234,6 +234,23 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         output_dict["spec_validation_status"] = spec_validation_status
         output_dict["spec_unmatched_requirements"] = unmatched
 
+        # ── 7c. Forbidden keywords (spec_validation.forbidden_keywords dans le JSON stack) ─
+        # Vérifie que la spec générée ne mentionne pas de technos ou patterns interdits.
+        # Rend ce champ JSON actif (runtime param) au lieu de documentation morte.
+        _spec_text = str(output_dict.get("specification") or "").lower()
+        try:
+            from agents.stack_config import load_stack_config as _lsc
+            _fk = [str(k).lower() for k in _lsc(stack_id).get("spec_validation", {}).get("forbidden_keywords", [])]
+            _found = [k for k in _fk if k in _spec_text]
+            if _found:
+                activity.logger.warning("[architect] spec_forbidden_keywords détectés : %s", _found)
+                output_dict["spec_forbidden_keywords"] = _found
+                if output_dict["spec_validation_status"] == "OK":
+                    output_dict["spec_validation_status"] = "DEGRADED"
+                    spec_validation_status = "DEGRADED"
+        except Exception:
+            pass
+
         # ── 8. Validation contrat de sortie ──────────────────────────────────
         validate_output("architect_agent", output_dict)
 

@@ -48,7 +48,7 @@ from config.factory_config import (
 from agents.context import set_run_id, get_run_id, set_stack_id, get_stack_id  # noqa: F401
 from agents.observability import logger, _append_rag_usage_event, _write_learner_event  # noqa: F401
 from agents.rag_client import rag_search  # noqa: F401
-from agents.error_parser import parse_tsc_errors as _parse_tsc_errors, parse_eslint_errors_json as _parse_eslint_errors_json  # noqa: F401
+from agents.core.error_parser import parse_tsc_errors as _parse_tsc_errors, parse_eslint_errors_json as _parse_eslint_errors_json  # noqa: F401
 
 
 def _get_node_env() -> dict:

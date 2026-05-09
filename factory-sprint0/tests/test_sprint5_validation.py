@@ -139,7 +139,7 @@ class TestSpecCoverageRouteMatching:
     """Vérifie que compute_spec_coverage exige un chemin API exact."""
 
     def _coverage(self, requirements, files):
-        from agents.spec_coverage import compute_spec_coverage
+        from agents.core.spec_coverage import compute_spec_coverage
         return compute_spec_coverage(requirements, files)
 
     def test_route_exacte_satisfait(self):
@@ -347,7 +347,7 @@ class TestSpecCoverageRootPage:
     """Vérifie que compute_spec_coverage gère la racine '/' correctement."""
 
     def _coverage(self, requirements, files):
-        from agents.spec_coverage import compute_spec_coverage
+        from agents.core.spec_coverage import compute_spec_coverage
         return compute_spec_coverage(requirements, files)
 
     def test_page_racine_satisfaite_par_app_page_tsx(self):

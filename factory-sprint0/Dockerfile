@@ -47,5 +47,10 @@ COPY . .
 # Install ts-morph locally for tsc_check.mjs (R1 — structured TS diagnostics)
 RUN cd /app/tools/ts && npm install --production
 
+# T4 — Pre-install Next.js/Clerk/Prisma stack deps so each project run uses cp (~3s) instead of npm install (~40s)
+# The template package.json is stack-specific but dependency-pinned — all generated projects share the same deps.
+COPY config/stacks/nextjs-clerk-prisma/templates/package.json /app/npm_cache/package.json
+RUN cd /app/npm_cache && npm install
+
 # Commande de démarrage
 CMD ["python", "run/worker.py"]

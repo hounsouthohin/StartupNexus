@@ -35,7 +35,7 @@ _DOUBLE_N_RATIO_THRESHOLD = 0.01
 def normalize_file_content(path: str, content: str) -> str:
     """
     Normalisation ciblée : si le contenu est stocké avec des \\n littéraux
-    (double-encodage LLM) au lieu de vrais sauts de ligne (U+000A), les garde
+    (double-encodage LLM) au lieu de vrais sauts de ligne (U+000A), les gardes
     regex échouent silencieusement.
 
     Conditions pour normaliser :

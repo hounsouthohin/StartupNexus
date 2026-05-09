@@ -1,5 +1,5 @@
 """
-agents/spec_coverage.py
+agents/core/spec_coverage.py
 Calcul déterministe de la couverture spec (requirements vs fichiers générés).
 
 T003 — Délègue à requirements_engine (source de vérité unique, T002).

@@ -42,13 +42,13 @@ class TestPrismaDoubleEncoding:
     def test_normalize_file_content_importable(self):
         """normalize_file_content() doit être importable depuis agents.requirements_engine."""
         try:
-            from agents.requirements_engine import normalize_file_content
+            from agents.core.requirements_engine import normalize_file_content
         except ImportError as e:
             pytest.fail(f"Import échoué: {e}")
 
     def test_normalize_skips_json_files(self):
         """Les fichiers .json ne doivent jamais être normalisés (risque de corruption)."""
-        from agents.requirements_engine import normalize_file_content
+        from agents.core.requirements_engine import normalize_file_content
         content_with_literal_n = r'{"key": "line1\nline2"}'
         result = normalize_file_content("package.json", content_with_literal_n)
         assert result == content_with_literal_n, \
@@ -56,7 +56,7 @@ class TestPrismaDoubleEncoding:
 
     def test_normalize_detects_double_encoded_prisma(self):
         """Un schema.prisma avec \\n littéraux doit être normalisé vers de vrais sauts."""
-        from agents.requirements_engine import normalize_file_content
+        from agents.core.requirements_engine import normalize_file_content
         # Simuler le double-encodage LLM : \\n à la place de vrais newlines
         raw = r"model User {\n  id String @id\n  name String\n}"
         assert "\n" not in raw, "Précondition : pas de vrai newline"
@@ -70,7 +70,7 @@ class TestPrismaDoubleEncoding:
 
     def test_normalize_preserves_already_correct_content(self):
         """Un contenu avec de vrais newlines ne doit pas être modifié."""
-        from agents.requirements_engine import normalize_file_content
+        from agents.core.requirements_engine import normalize_file_content
         correct = "model User {\n  id String @id\n  name String\n}"
         result = normalize_file_content("prisma/schema.prisma", correct)
         assert result == correct, \
@@ -85,7 +85,7 @@ class TestPrismaDoubleEncoding:
 
         Avec normalisation intégrée dans _model_in_schema : gate passe correctement.
         """
-        from agents.requirements_engine import gate_check
+        from agents.core.requirements_engine import gate_check
 
         # Schema double-encodé comme un LLM pourrait le produire
         double_encoded_schema = (
@@ -313,11 +313,11 @@ class TestGateCoverageDivergence:
     """
 
     def _gate(self, requirements, files):
-        from agents.requirements_engine import gate_check
+        from agents.core.requirements_engine import gate_check
         return gate_check(requirements, files)
 
     def _coverage(self, requirements, files):
-        from agents.requirements_engine import compute_coverage
+        from agents.core.requirements_engine import compute_coverage
         return compute_coverage(requirements, files)
 
     def test_gate_blocks_on_missing_mappable_requirement(self):
@@ -489,14 +489,14 @@ class TestGateCoverageDivergence:
     def test_requirements_engine_gate_check_importable(self):
         """gate_check doit être importable depuis agents.requirements_engine (T002)."""
         try:
-            from agents.requirements_engine import gate_check
+            from agents.core.requirements_engine import gate_check
         except ImportError as e:
             pytest.fail(f"gate_check non importable — requirements_engine.py manquant ou cassé: {e}")
 
     def test_requirements_engine_compute_coverage_importable(self):
         """compute_coverage doit être importable depuis agents.requirements_engine (T003)."""
         try:
-            from agents.requirements_engine import compute_coverage
+            from agents.core.requirements_engine import compute_coverage
         except ImportError as e:
             pytest.fail(f"compute_coverage non importable — requirements_engine.py manquant ou cassé: {e}")
 

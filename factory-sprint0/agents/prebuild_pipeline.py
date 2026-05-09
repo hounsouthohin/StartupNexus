@@ -18,7 +18,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from agents.pipeline_types import Violation, StageResult, PrebuildReport  # noqa: F401
+from agents.core.pipeline_types import Violation, StageResult, PrebuildReport  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -321,7 +321,7 @@ async def _run_tsc(project_dir: str) -> StageResult:
         return StageResult(STAGE_TSC, "tsc", "skipped", int((time.perf_counter() - started) * 1000), evidence="tsconfig absent")
 
     # R1 — ts-morph structured diagnostics (pas de regex, pas de parsing texte)
-    from agents.error_parser import run_tsc_structured as _run_tsc_structured
+    from agents.core.error_parser import run_tsc_structured as _run_tsc_structured
 
     loop = asyncio.get_running_loop()
     diagnostics = await loop.run_in_executor(None, lambda: _run_tsc_structured(project_dir, timeout_s=120))
@@ -512,7 +512,7 @@ async def run_prebuild_pipeline(
     async def _run_quality_rules_lazy(project_dir: str) -> StageResult:
         # Lazy import pour éviter la dépendance circulaire
         # (quality_validator importe StageResult depuis ce module)
-        from agents.quality_validator import run_quality_check  # noqa: PLC0415
+        from agents.core.quality_validator import run_quality_check  # noqa: PLC0415
         return await run_quality_check(project_dir)
 
     runners = {

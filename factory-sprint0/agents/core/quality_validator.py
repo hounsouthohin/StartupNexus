@@ -1,3 +1,4 @@
+
 """
 quality_validator.py
 
@@ -23,10 +24,10 @@ import tempfile
 import time
 from pathlib import Path
 
-from agents.pipeline_types import StageResult, Violation
+from .pipeline_types import StageResult, Violation
 
 STAGE_QUALITY_RULES = "quality_rules"
-CHECKER_SCRIPT = Path(__file__).resolve().parents[1] / "quality_checker" / "quality_check.mjs"
+CHECKER_SCRIPT = Path(__file__).resolve().parents[2] / "quality_checker" / "quality_check.mjs"
 
 # Fichiers à analyser (seulement le code applicatif LLM)
 ANALYSED_GLOBS = ["app/api/**/*.ts", "app/api/**/*.tsx", "lib/services/**/*.ts"]

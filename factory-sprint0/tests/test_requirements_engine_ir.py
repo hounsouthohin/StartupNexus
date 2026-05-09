@@ -1,4 +1,4 @@
-from agents.requirements_engine import compute_coverage, gate_check
+from agents.core.requirements_engine import compute_coverage, gate_check
 
 
 def _files_ok() -> dict:

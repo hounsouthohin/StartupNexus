@@ -600,12 +600,14 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         # Legacy path kept only for rollback/tests:
         #   agents.dev, agents.dev_loop, agents.pre_build_validator,
         #   agents.file_supervision_loop, agents.build_state_manager
-        # ── Nouvelle Base — dev_graph (LangGraph + outils Python natifs) ────
-        from agents.dev_graph import run_dev_agent
+        # ── Nouvelle Base — StackAdapter (multi-stack ready) ────────────────
+        from agents.stacks.base import get_adapter_for_stack
         from langgraph.errors import GraphRecursionError
+        _stack_id = input_data.get("stack_id") or "nextjs-clerk-prisma"
+        _adapter = get_adapter_for_stack(_stack_id)
         spec_dict = input_data.get("project_spec") or {}
         try:
-            dev_result = await run_dev_agent(
+            dev_result = await _adapter.run_dev_agent(
                 spec=spec_dict,
                 project_name=project_name,
                 run_id=run_id,
@@ -673,7 +675,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                     "[TSC_FEEDBACK] retry unique active (errors=%s)",
                     tsc_activity_details.get("errors_count", 0),
                 )
-                retry_result = await run_dev_agent(
+                retry_result = await _adapter.run_dev_agent(
                     spec=spec_dict,
                     project_name=project_name,
                     run_id=run_id,
@@ -707,7 +709,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         # ── Métriques réelles via spec_coverage ─────────────────────────────
         requirements = input_data.get("requirements", []) or []
         try:
-            from agents.spec_coverage import compute_spec_coverage
+            from agents.core.spec_coverage import compute_spec_coverage
             cov = compute_spec_coverage(requirements, combined_files)
             spec_coverage = float(cov.get("spec_coverage", 0.0))
             requirements_met = int(cov.get("requirements_met", 0))
@@ -738,7 +740,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "is_useful_app": False,
         }
         try:
-            from agents.journey_validator import validate_user_flows
+            from agents.core.journey_validator import validate_user_flows
 
             _jm = validate_user_flows(user_flows, combined_files)
             if isinstance(_jm, dict):

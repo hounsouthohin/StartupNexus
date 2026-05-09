@@ -152,7 +152,7 @@ def make_deterministic_plan(
     # Si le fichier est dans template_set (pré-généré), il est sauté → LLM ne le réécrit pas.
     # Si le générateur a échoué (non-bloquant), le planner le planifie avec le bon chemin.
     try:
-        from agents.dev_actions_generator import _find_list_page as _flp
+        from agents.stacks.nextjs_clerk_prisma.dev_actions_generator import _find_list_page as _flp
         _actions_by_page: dict[str, list] = {}
         for _bm in spec.models:
             _lp = _flp(_bm.name, spec)

@@ -121,6 +121,12 @@
         "items": {"type": "string"},
         "description": "Requirements dont les termes-clés sont absents de la spec générée (dérive spec_writer détectée)"
       },
+      "spec_forbidden_keywords": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Mots-clés interdits (spec_validation.forbidden_keywords) détectés dans la spec générée",
+        "default": []
+      },
       "user_flows": {
         "type": "array",
         "description": "Liste des flux utilisateur extraits du brief (action → route/page). Utilisé par le Journey Validator.",

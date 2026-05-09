@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 # ── RAG ciblé par rôle (P2.1) ─────────────────────────────────────────────────
-# Une requête Qdrant par type de fichier, injectée dans le HumanMessage
-# au moment exact où le LLM écrit ce fichier — pas au démarrage du run.
-_ROLE_RAG_QUERIES: dict[str, str] = {
+# Source de vérité : clé "role_rag_queries" dans nextjs-clerk-prisma.json (T0 refactor).
+# Ce dict est le fallback statique utilisé si la stack config n'est pas accessible.
+_ROLE_RAG_QUERIES_FALLBACK: dict[str, str] = {
     "service": (
         "N+1 prevention include select nested findUnique loop boucle Prisma Promise.all"
     ),
@@ -61,7 +61,7 @@ def _find_service_for_segment(segment: str, spec_obj) -> tuple[str, str]:
     Retourne (segment, segment+"Service") en fallback si aucun modèle trouvé.
     """
     try:
-        from agents.dev_actions_generator import _find_list_page as _flp
+        from .dev_actions_generator import _find_list_page as _flp
         match = next(
             (m for m in (spec_obj.models if spec_obj else [])
              if _flp(m.name, spec_obj).lstrip("/") == segment),
@@ -82,7 +82,13 @@ def _rag_for_role(role: str, cache: dict[str, str] | None = None) -> str:
     cache — dict partagé par le run (clé = role). Evite N requêtes Qdrant identiques
     pour N fichiers du même rôle. Lifetime = un run (créé dans run_dev_agent).
     """
-    query = _ROLE_RAG_QUERIES.get(role, "")
+    try:
+        from agents.stack_config import load_stack_config
+        from agents.context import get_stack_id
+        _queries = load_stack_config(get_stack_id()).get("role_rag_queries") or _ROLE_RAG_QUERIES_FALLBACK
+    except Exception:
+        _queries = _ROLE_RAG_QUERIES_FALLBACK
+    query = _queries.get(role, "")
     if not query:
         return ""
 
@@ -236,7 +242,7 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
 
         # SerializedXxx type — champs EXACTS pour éviter les hallucinations (TS2339)
         try:
-            from agents.dev_actions_generator import _find_list_page as _flp
+            from .dev_actions_generator import _find_list_page as _flp
             act_segment = act_rel.split("/")[-2]
             client_model = next(
                 (m for m in (spec_obj.models if spec_obj else [])
@@ -262,7 +268,7 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
         # page_detail_hint pour ce page-client
         if spec_obj is not None:
             try:
-                from agents.dev_prompts import get_page_detail_hint
+                from .dev_prompts import get_page_detail_hint
                 page_route = "/" + "/".join(path.split("/")[1:-1])
                 page_route = page_route.replace("/page-client", "")
                 detail_hint = get_page_detail_hint(spec_obj, page_route)
@@ -303,7 +309,7 @@ def _dep_page(path: str, spec_obj, workdir: str) -> str:
     # page_detail_hint — contenu attendu pour cette page spécifiquement
     if spec_obj is not None:
         try:
-            from agents.dev_prompts import get_page_detail_hint
+            from .dev_prompts import get_page_detail_hint
             page_route = "/" + "/".join(path.split("/")[1:-1])
             detail_hint = get_page_detail_hint(spec_obj, page_route)
             if detail_hint:

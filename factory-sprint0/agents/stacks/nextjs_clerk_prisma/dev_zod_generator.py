@@ -9,7 +9,7 @@ Rôle : écrire lib/schemas.ts AVANT que le LLM commence, de façon à ce que :
   3. Les Server Actions importent et utilisent des schémas cohérents sans guess
 
 Intégration dans dev_graph.py :
-    from agents.dev_zod_generator import generate_schemas_file
+    from agents.stacks.nextjs_clerk_prisma.dev_zod_generator import generate_schemas_file
     schemas_result = generate_schemas_file(spec_obj, project_workdir)
     if schemas_result:
         template_written[schemas_result.path] = schemas_result.content

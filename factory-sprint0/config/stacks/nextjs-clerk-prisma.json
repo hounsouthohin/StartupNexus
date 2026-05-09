@@ -466,5 +466,34 @@
   "supervision": {
     "batch_size": 3,
     "supervisor_timeout_ms": 30000
+  },
+  "pre_run_commands": [
+    {
+      "cmd": "cp -r /app/npm_cache/node_modules ./node_modules 2>/dev/null || npm install",
+      "shell": true,
+      "timeout": 300,
+      "blocking": true,
+      "requires_prev": false
+    },
+    {
+      "cmd": "npx prisma generate",
+      "shell": true,
+      "timeout": 120,
+      "blocking": true,
+      "requires_prev": true
+    }
+  ],
+  "protected_files": [
+    "lib/prisma.ts",
+    "prisma.config.ts",
+    "prisma/schema.prisma",
+    ".eslintrc.stack.json"
+  ],
+  "role_rag_queries": {
+    "service":     "N+1 prevention include select nested findUnique loop boucle Prisma Promise.all",
+    "actions":     "auth userId guard obligatoire Zod validation safeParse revalidatePath throw Unauthorized",
+    "route":       "auth guard NextResponse userId ownership API route handler",
+    "page":        "Server Component auth redirect notFound dynamic params service getAll getById",
+    "page_client": "'use client' useState FormData handler Client Component interaction interactif"
   }
 }

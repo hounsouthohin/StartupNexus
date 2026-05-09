@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage
 
-from agents.dev_graph import (
+from agents.stacks.nextjs_clerk_prisma.dev_graph import (
     _extract_tool_calls_from_text,
     _normalize_ai_message_tool_calls,
 )

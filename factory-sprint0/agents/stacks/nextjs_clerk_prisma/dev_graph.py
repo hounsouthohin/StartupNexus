@@ -23,8 +23,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 
-import agents.dev_tools as _dev_tools_module
-from agents.dev_tools import write_file, read_file, list_directory, shell_exec, file_exists
+from . import dev_tools as _dev_tools_module
+from .dev_tools import write_file, read_file, list_directory, shell_exec, file_exists
 from agents.web_search import web_search
 
 logger = logging.getLogger(__name__)
@@ -177,9 +177,12 @@ async def run_dev_agent(
     template_written: dict = {}
     _template_error: str = ""
     try:
-        from agents.dev_file_ops import write_template_files
+        from .dev_file_ops import write_template_files
         from agents.stack_config import load_stack_config
-        stack_id = spec.get("stack_id", "") or "nextjs-clerk-prisma"
+        stack_id = spec.get("stack_id", "") or ""
+        if not stack_id:
+            stack_id = "nextjs-clerk-prisma"
+            logger.warning("[dev_graph] stack_id absent de la spec — fallback sur '%s'", stack_id)
         stack_cfg = load_stack_config(stack_id)
         _dev_tools_module.set_forbidden_imports(stack_cfg.get("forbidden_imports", []))
         template_written = write_template_files(project_workdir, stack_cfg, project_name, stack_id, spec=spec)
@@ -231,7 +234,7 @@ async def run_dev_agent(
     # generate_loading_files produit app/<path>/loading.tsx pour les pages protégées.
     if spec_obj is not None:
         try:
-            from agents.dev_pages_generator import (
+            from .dev_pages_generator import (
                 generate_loading_files,
                 generate_error_files,
                 generate_root_page_if_needed,
@@ -250,91 +253,76 @@ async def run_dev_agent(
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
-    # Protéger uniquement l'infrastructure — le code applicatif appartient au LLM.
-    _protected = {
-        "lib/prisma.ts",
-        "prisma.config.ts",
-        "prisma/schema.prisma",
-        ".eslintrc.stack.json",
-    }
+    # Protéger uniquement l'infrastructure — liste lue depuis la stack config (T0 refactor).
+    # Fallback statique si la clé est absente pour rétrocompatibilité.
+    _protected = set(stack_cfg.get("protected_files", [
+        "lib/prisma.ts", "prisma.config.ts", "prisma/schema.prisma", ".eslintrc.stack.json",
+    ]))
     _dev_tools_module.set_protected_files(_protected)
 
-    # ── npm install (Python pre-run, hors LLM) ──────────────────────
-    # npm install est de l'infrastructure — trop critique pour être déléguée au LLM.
-    # Exécutée ici avec un timeout généreux (5 min) avant que le LLM démarre.
-    # Le LLM garde uniquement `node_modules/.bin/prisma generate` (après schema.prisma).
-    _npm_prerun_ok = False
-    try:
-        logger.info(f"[dev_graph] npm install pre-run dans {project_workdir} ...")
-        _npm_result = subprocess.run(
-            "npm install",
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=300,
-            cwd=project_workdir,
-        )
-        if _npm_result.returncode == 0:
-            _npm_prerun_ok = True
-            logger.info("[dev_graph] npm install pre-run OK")
-        else:
-            logger.warning(
-                f"[dev_graph] npm install pre-run FAILED (exit {_npm_result.returncode}): "
-                f"{(_npm_result.stdout + _npm_result.stderr)[:400]}"
-            )
-    except subprocess.TimeoutExpired:
-        logger.warning("[dev_graph] npm install pre-run TIMEOUT (>300s)")
-    except Exception as _npm_err:
-        logger.warning(f"[dev_graph] npm install pre-run exception : {_npm_err}")
-
-    # ── prisma generate (Python pre-run, hors LLM) ───────────────────
-    # prisma generate est BLOQUANT si npm install a réussi :
-    # sans @prisma/client généré, tout import 'from @prisma/client' échoue (TS2305).
-    if _npm_prerun_ok:
+    # ── Pre-run commands (T0 refactor — lus depuis stack config) ────────
+    # La liste "pre_run_commands" dans nextjs-clerk-prisma.json définit toutes les
+    # commandes d'infrastructure pré-LLM. La logique Python ici est stack-agnostique :
+    # elle itère, gère les timeouts/erreurs et respecte blocking + requires_prev.
+    _pre_run_env = os.environ.copy()
+    _pre_run_env["CI"] = "true"
+    _pre_run_env.setdefault("DATABASE_URL", "postgresql://user:CHANGEME@localhost:5432/db_placeholder")
+    _prev_cmd_ok = True
+    for _cmd_spec in stack_cfg.get("pre_run_commands", []):
+        _cmd        = _cmd_spec.get("cmd", "")
+        _shell      = _cmd_spec.get("shell", True)
+        _tout       = _cmd_spec.get("timeout", 120)
+        _block      = _cmd_spec.get("blocking", False)
+        _needs_prev = _cmd_spec.get("requires_prev", False)
+        if not _cmd:
+            continue
+        if _needs_prev and not _prev_cmd_ok:
+            logger.warning("[dev_graph] pre-run '%s' skipped — commande précédente échouée", _cmd)
+            continue
         try:
-            logger.info(f"[dev_graph] prisma generate pre-run dans {project_workdir} ...")
-            _prisma_env = os.environ.copy()
-            _prisma_env["CI"] = "true"
-            _prisma_env.setdefault("DATABASE_URL", "postgresql://user:CHANGEME@localhost:5432/db_placeholder")
-            _prisma_result = subprocess.run(
-                "npx prisma generate",
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=project_workdir,
-                timeout=120,
-                env=_prisma_env,
+            logger.info("[dev_graph] pre-run : %s ...", _cmd)
+            _pr = subprocess.run(
+                _cmd, shell=_shell, capture_output=True, text=True,
+                timeout=_tout, cwd=project_workdir, env=_pre_run_env,
             )
-            if _prisma_result.returncode == 0:
-                logger.info("[dev_graph] prisma generate pre-run OK")
+            if _pr.returncode == 0:
+                _prev_cmd_ok = True
+                logger.info("[dev_graph] pre-run OK : %s", _cmd)
             else:
-                _pg_out = (_prisma_result.stdout + _prisma_result.stderr)[:600]
-                logger.error(
-                    f"[dev_graph] prisma generate FAILED (exit {_prisma_result.returncode}): {_pg_out}"
-                )
+                _prev_cmd_ok = False
+                _out = (_pr.stdout + _pr.stderr)[:400]
+                logger.warning("[dev_graph] pre-run FAILED '%s' (exit %d): %s", _cmd, _pr.returncode, _out)
+                if _block:
+                    _dev_tools_module.set_protected_files(None)
+                    _dev_tools_module.set_workdir(None)
+                    return {  # type: ignore[return-value]
+                        "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
+                        "build_attempts": 0, "last_build_error": f"PRE_RUN_FAILED ({_cmd}): {_out[:300]}",
+                        "success": False, "build_command_executed": False,
+                        "build_exit_code": -1, "validated_files": [], "generation_turns": 0, "file_plan": None,
+                    }
+        except subprocess.TimeoutExpired:
+            _prev_cmd_ok = False
+            logger.warning("[dev_graph] pre-run TIMEOUT '%s' (>%ds)", _cmd, _tout)
+            if _block:
                 _dev_tools_module.set_protected_files(None)
                 _dev_tools_module.set_workdir(None)
                 return {  # type: ignore[return-value]
                     "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
-                    "build_attempts": 0,
-                    "last_build_error": f"PRISMA_GENERATE_FAILED: {_pg_out[:300]}",
+                    "build_attempts": 0, "last_build_error": f"PRE_RUN_TIMEOUT ({_cmd})",
                     "success": False, "build_command_executed": False,
-                    "build_exit_code": -1, "validated_files": [],
-                    "generation_turns": 0, "file_plan": None,
+                    "build_exit_code": -1, "validated_files": [], "generation_turns": 0, "file_plan": None,
                 }
-        except subprocess.TimeoutExpired:
-            logger.warning("[dev_graph] prisma generate pre-run TIMEOUT (>120s) — non bloquant")
-        except Exception as _pg_err:
-            logger.warning(f"[dev_graph] prisma generate pre-run exception (non bloquant) : {_pg_err}")
-    else:
-        logger.warning("[dev_graph] prisma generate skipped — npm install a échoué")
+        except Exception as _cmd_err:
+            _prev_cmd_ok = False
+            logger.warning("[dev_graph] pre-run exception '%s': %s", _cmd, _cmd_err)
 
     # ── Génération déterministe : lib/types.ts ───────────────────────
     # Écrit avant que le LLM démarre — le LLM ne touche plus lib/types.ts.
     # Source de vérité des DTOs Create/Update pour tous les services et routes.
     if spec_obj is not None:
         try:
-            from agents.dev_types_generator import generate_types_file
+            from .dev_types_generator import generate_types_file
             _types_result = generate_types_file(spec_obj, project_workdir)
             template_written[_types_result.path] = _types_result.content
             logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
@@ -348,7 +336,7 @@ async def run_dev_agent(
     _service_map_str = ""
     if spec_obj is not None:
         try:
-            from agents.dev_service_generator import format_service_map_for_prompt
+            from .dev_service_generator import format_service_map_for_prompt
             _service_map_str = format_service_map_for_prompt(spec_obj)
             logger.info("[dev_graph] Service map calculé (%d modèles)", len(spec_obj.models))
         except Exception as _sg_err:
@@ -358,7 +346,7 @@ async def run_dev_agent(
     # Schémas Zod alignés sur lib/types.ts — utilisés dans les Server Actions.
     if spec_obj is not None:
         try:
-            from agents.dev_zod_generator import generate_schemas_file
+            from .dev_zod_generator import generate_schemas_file
             _schemas_result = generate_schemas_file(spec_obj, project_workdir)
             if _schemas_result:
                 template_written[_schemas_result.path] = _schemas_result.content
@@ -372,7 +360,7 @@ async def run_dev_agent(
     # Le planner exclut automatiquement ces fichiers car ils sont dans template_written.
     if spec_obj is not None:
         try:
-            from agents.dev_service_generator import generate_service_files
+            from .dev_service_generator import generate_service_files
             _svc_written = generate_service_files(spec_obj, project_workdir)
             template_written.update(_svc_written)
             logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
@@ -385,7 +373,7 @@ async def run_dev_agent(
     # Protégées contre réécriture LLM — le LLM peut en AJOUTER d'autres mais pas écraser.
     if spec_obj is not None:
         try:
-            from agents.dev_actions_generator import generate_action_files
+            from .dev_actions_generator import generate_action_files
             _act_written = generate_action_files(spec_obj, project_workdir)
             template_written.update(_act_written)
             logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
@@ -396,9 +384,9 @@ async def run_dev_agent(
     # Après prisma generate, lit node_modules/.prisma/client/index.d.ts
     # pour fournir les types RÉELS au LLM (pas notre reconstruction).
     _prisma_type_map: dict = {}
-    if _npm_prerun_ok:
+    if _prev_cmd_ok:
         try:
-            from agents.dev_prisma_extractor import extract_prisma_type_map
+            from .dev_prisma_extractor import extract_prisma_type_map
             _prisma_type_map = extract_prisma_type_map(project_workdir)
             logger.info("[dev_graph] Type Map Prisma extrait : %d modèles", len(_prisma_type_map))
         except Exception as _pe_err:
@@ -414,7 +402,7 @@ async def run_dev_agent(
     # ── System prompt ────────────────────────────────────────────────
     if not system_prompt:
         try:
-            from agents.dev_prompts import build_system_prompt
+            from .dev_prompts import build_system_prompt
             if spec_obj is None:
                 from agents.project_spec import ProjectSpec
 
@@ -547,7 +535,7 @@ async def run_dev_agent(
                     "Ne genere pas d'autres fichiers avant d'avoir lance le build."
                 )))
             else:
-                from agents.dev_context import build_role_context
+                from .dev_context import build_role_context
                 _role = _next_entry.get("role", "")
                 _hint = _next_entry.get("context_hint", "")
                 _path = _next_entry["path"]
@@ -813,7 +801,7 @@ async def run_dev_agent(
         quality_violations_count = 0
         if final_success:
             try:
-                from agents.quality_validator import run_quality_check
+                from agents.core.quality_validator import run_quality_check
                 _qr = await run_quality_check(project_workdir)
                 if _qr.status == "failed":
                     quality_violations = [

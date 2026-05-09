@@ -74,7 +74,7 @@ def filter_tsc_errors_for_files(tsc_output: str, target_files: list[str], max_li
 
 
 # ── ts-morph structured diagnostics (R1) ─────────────────────────────────────
-_TOOLS_TS_DIR = Path(__file__).resolve().parent.parent / "tools" / "ts"
+_TOOLS_TS_DIR = Path(__file__).resolve().parent.parent.parent / "tools" / "ts"
 _TSC_CHECK_MJS = _TOOLS_TS_DIR / "tsc_check.mjs"
 
 

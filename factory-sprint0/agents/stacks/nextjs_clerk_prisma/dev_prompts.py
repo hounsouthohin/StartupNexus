@@ -46,7 +46,7 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     # Server Actions — chemin dérivé via _find_list_page (même logique que dev_actions_generator)
     # Garantit que les paths ici == paths dans template_written → exclusion correcte du plan LLM.
     try:
-        from agents.dev_actions_generator import _find_list_page as _flp
+        from .dev_actions_generator import _find_list_page as _flp
         _action_paths: set[str] = set()
         for model in spec.models:
             list_page = _flp(model.name, spec)
@@ -323,7 +323,7 @@ Méthodes :
     dmmf_block = ""
     if prisma_type_map:
         try:
-            from agents.dev_prisma_extractor import format_type_map_for_prompt
+            from .dev_prisma_extractor import format_type_map_for_prompt
             dmmf_block = format_type_map_for_prompt(prisma_type_map)
         except Exception:
             pass

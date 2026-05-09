@@ -1,5 +1,5 @@
 from workflows.activities.dev_test_activity import _run_prisma_validate
-from agents.journey_validator import validate_user_flows
+from agents.core.journey_validator import validate_user_flows
 
 
 def test_prisma_validate_skip_when_no_schema(monkeypatch):
