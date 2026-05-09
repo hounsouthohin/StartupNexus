@@ -88,6 +88,10 @@ def write_run_report(
             "quality_violations_count": int(run_metric.get("quality_violations_count", 0)),
             "quality_violations": run_metric.get("quality_violations", []),
             "tests_passed": bool(run_metric.get("tests_passed", False)),
+            "user_flows_total": int(metadata.get("user_flows_total", 0)),
+            "user_flows_covered": int(metadata.get("user_flows_covered", 0)),
+            "user_flows_coverage": float(metadata.get("user_flows_coverage", 0.0)),
+            "is_useful_app": bool(metadata.get("is_useful_app", False)),
             "clerk_compliant": bool(run_metric.get("clerk_compliant", False)),
             "error": str(run_metric.get("error", "") or ""),
         }

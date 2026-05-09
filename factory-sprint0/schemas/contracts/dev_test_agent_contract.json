@@ -154,7 +154,9 @@
           "conformity_score":             { "type": "number", "minimum": 0, "maximum": 1 },
           "security_score":               { "type": "number", "minimum": 0, "maximum": 1 },
           "architecture_score":           { "type": "number", "minimum": 0, "maximum": 1 },
-          "build_corrections_count":      { "type": "integer" }
+          "build_corrections_count":      { "type": "integer" },
+          "quality_violations_count":     { "type": "integer" },
+          "quality_violations":           { "type": "array" }
         }
       }
     }

@@ -1,0 +1,92 @@
+{
+  "run_id": "e47a59ce-b8fa-490a-ba88-5a28f85f57bb",
+  "workflow_id": "todo-pilot-project-hub",
+  "project_name": "project-hub",
+  "generated_at": "2026-05-09T04:00:37.100450+00:00",
+  "duration_seconds": 149.5338,
+  "build_success": true,
+  "build_attempted": true,
+  "build_attempts": 1,
+  "final_message": "BUILD_SUCCESS",
+  "root_cause_category": "unknown",
+  "last_build_error": "",
+  "spec_coverage": 1.0,
+  "requirements_met": 8,
+  "requirements_unmet": 0,
+  "requirements_unknown": 0,
+  "requirements_total": 8,
+  "requirements_unmet_list": [],
+  "requirements_unknown_list": [],
+  "files_generated": 42,
+  "dev_files_count": 42,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_wc80towf/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_wc80towf/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [],
+  "semantic_violations_count": 0,
+  "quality_violations_count": 8,
+  "quality_violations": [
+    {
+      "rule": "Z21-pagination-missing",
+      "file": "lib/services/comment.service.ts",
+      "line": 14,
+      "reason": "findMany() sans take/skip — ajouter la pagination (pageSize=20 par défaut)"
+    },
+    {
+      "rule": "Z25-select-missing",
+      "file": "lib/services/comment.service.ts",
+      "line": 14,
+      "reason": "findMany() sans select dans un service — spécifier seulement les champs nécessaires."
+    },
+    {
+      "rule": "Z21-pagination-missing",
+      "file": "lib/services/comment.service.ts",
+      "line": 25,
+      "reason": "findMany() sans take/skip — ajouter la pagination (pageSize=20 par défaut)"
+    },
+    {
+      "rule": "Z21-pagination-missing",
+      "file": "lib/services/task.service.ts",
+      "line": 14,
+      "reason": "findMany() sans take/skip — ajouter la pagination (pageSize=20 par défaut)"
+    },
+    {
+      "rule": "Z25-select-missing",
+      "file": "lib/services/task.service.ts",
+      "line": 14,
+      "reason": "findMany() sans select dans un service — spécifier seulement les champs nécessaires."
+    },
+    {
+      "rule": "Z21-pagination-missing",
+      "file": "lib/services/task.service.ts",
+      "line": 25,
+      "reason": "findMany() sans take/skip — ajouter la pagination (pageSize=20 par défaut)"
+    },
+    {
+      "rule": "Z21-pagination-missing",
+      "file": "lib/services/project.service.ts",
+      "line": 14,
+      "reason": "findMany() sans take/skip — ajouter la pagination (pageSize=20 par défaut)"
+    },
+    {
+      "rule": "Z25-select-missing",
+      "file": "lib/services/project.service.ts",
+      "line": 14,
+      "reason": "findMany() sans select dans un service — spécifier seulement les champs nécessaires."
+    }
+  ],
+  "tests_passed": false,
+  "clerk_compliant": true,
+  "error": ""
+}

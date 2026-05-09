@@ -1118,11 +1118,11 @@ class TestT007Fallback:
                 f"{agent} doit vérifier la variable d'env LLM_FALLBACK_ENABLED (T007)"
             )
 
-    def test_fallback_model_is_gpt4o(self):
-        """Le fallback model doit être gpt-4o dans les 3 agents."""
+    def test_fallback_model_is_gpt4o_mini(self):
+        """Le fallback model doit être gpt-4o-mini dans les 3 agents."""
         for agent in ("architect.py", "qa.py", "test_coverage.py"):
             src = self._src(agent)
-            assert "gpt-4o" in src, f"{agent} doit définir gpt-4o comme fallback (T007)"
+            assert "gpt-4o-mini" in src, f"{agent} doit définir gpt-4o-mini comme fallback (T007)"
 
     def test_with_fallbacks_guarded_by_flag(self):
         """with_fallbacks() ne doit être appelé que sous le bloc LLM_FALLBACK_ENABLED."""

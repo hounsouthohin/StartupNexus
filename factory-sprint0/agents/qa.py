@@ -49,7 +49,7 @@ def qa_agent_node(state: AgentState) -> dict:
     )
     if os.getenv("LLM_FALLBACK_ENABLED", "0") == "1":
         llm = _llm_base.with_fallbacks(
-            [ChatOpenAI(model="gpt-4o", temperature=0.2, max_retries=1)]
+            [ChatOpenAI(model="gpt-4o-mini", temperature=0.2, max_retries=1)]
         )
     else:
         llm = _llm_base

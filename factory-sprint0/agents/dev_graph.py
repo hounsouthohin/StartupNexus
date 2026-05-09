@@ -447,7 +447,7 @@ async def run_dev_agent(
         role: "\n".join(lines) for role, lines in _hints_raw.items()
     } if _hints_raw else {}
 
-    _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o")
+    _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
     # llm_with_tools est construit dynamiquement dans executor_node selon la phase.
 

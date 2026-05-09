@@ -47,6 +47,16 @@ def _relation_fields(model) -> list[str]:
     return [f.name for f in model.fields if "@relation" in (f.attributes or "")]
 
 
+def _scalar_fields(model) -> list[str]:
+    """Retourne les noms des champs scalaires (non-relation, non-array) — utilisés pour select."""
+    return [
+        f.name
+        for f in model.fields
+        if not f.type.endswith("[]")
+        and "@relation" not in (f.attributes or "")
+    ]
+
+
 def _datetime_fields(model) -> list[tuple[str, bool]]:
     """Retourne les champs DateTime du modèle sous forme (nom, est_nullable)."""
     return [
@@ -99,10 +109,13 @@ def _generate_service_for_model(model) -> str:
             "",
         ])
 
+    scalar_fields = _scalar_fields(model)
+    select_block = ", ".join(f"{fname}: true" for fname in scalar_fields)
+
     lines.extend([
         f"export const {camel}Service = {{",
         f"  getAll: async ({owner}: string): Promise<{serialized_name}[]> => {{",
-        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }} }})",
+        f"    const items = (await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0, select: {{ {select_block} }} }}) as unknown as {name}[])",
         "    return items.map(_serialize)",
         "  },",
         "",
@@ -118,7 +131,7 @@ def _generate_service_for_model(model) -> str:
         lines.extend([
             "",
             f"  getAllWithRelations: async ({owner}: string): Promise<{serialized_name}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, include: {{ {include_block} }} }})",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0, include: {{ {include_block} }} }})",
             "    return items.map(_serialize)",
             "  },",
         ])

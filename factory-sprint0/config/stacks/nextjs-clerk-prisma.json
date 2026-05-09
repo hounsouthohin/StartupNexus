@@ -6,7 +6,7 @@
   "framework": "nextjs",
   "llm_models": {
     "architect_base": "gpt-4o-mini",
-    "architect_planner": "gpt-4o"
+    "architect_planner": "gpt-4o-mini"
   },
   "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
   "root_file": "package.json",
