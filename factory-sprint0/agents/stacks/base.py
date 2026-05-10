@@ -28,7 +28,7 @@ class StackAdapter(ABC):
         spec: dict[str, Any],
         project_name: str,
         run_id: str,
-        project_workdir: str,
+        project_workdir: str = "",
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Lance le dev agent pour cette stack, retourne le résultat brut."""

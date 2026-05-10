@@ -64,8 +64,8 @@ ZONES :
   Zone 12 — Tests avancés
   Zone 13 — Logique métier
   Zone 14 — Anti-patterns
-  Zone 15 — Conformité : examples de requirements bien/mal couverts (Sprint 4.6)
-  Zone 16 — Sécurité applicative : patterns valides/invalides route handlers (Sprint 4.6)
+  Zone 15 — Conformité : coverage requirements + cohérence brief↔entités + page stubs (Sprint 4.6 + Sprint 4.8)
+  Zone 16 — Sécurité applicative : Route Handlers + Server Actions + Service DAL ownership (Sprint 4.6 + Sprint 4.8)
 """
 
 from __future__ import annotations
@@ -2577,6 +2577,83 @@ VERSION: 1.0""",
             "agent_context": "conformity",
         },
     },
+
+    # ── Reviewer-specific: cohérence brief ↔ production ──────────────────────
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Reviewer — cohérence entités brief vs entités générées (ghost success)
+RAISON: Le reviewer doit vérifier que les entités Prisma générées correspondent aux entités du brief, pas à des entités génériques. Si le brief demande "Project + Task + Comment" et que schema.prisma contient "Post + Book", l'app compile mais n'implémente pas la demande. C'est un ghost success.
+RÈGLE_REVIEWER:
+  1. Extraire les noms de modèles du brief (des champs models[] du ProjectSpec)
+  2. Extraire les noms de modèles de schema.prisma
+  3. Si intersection < 80% des modèles du brief → verdict INCOHERENT
+  4. Si intersection 50-80% → verdict DEGRADED
+  5. Si intersection ≥ 80% → cohérence modèles OK
+BAD:
+  // brief : {"models": ["Project", "Task", "Comment"]}
+  // schema.prisma généré :
+  model Post { id String @id ... }     // ← mauvaise entité
+  model Book { id String @id ... }     // ← mauvaise entité
+  // verdict : INCOHERENT (0/3 entités du brief présentes)
+GOOD:
+  // brief : {"models": ["Project", "Task", "Comment"]}
+  // schema.prisma généré :
+  model Project { id String @id ... }  // ✅
+  model Task    { id String @id ... }  // ✅
+  model Comment { id String @id ... }  // ✅
+  // verdict : COHERENT (3/3 entités du brief présentes)
+ERREUR_ATTENDUE: App buildée avec de mauvaises entités — ghost success
+SEVERITY: critical
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "reviewer_sprint48",
+            "agent_context": "reviewer",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Reviewer — page stub sans données réelles (app sans sens pour l'utilisateur)
+RAISON: Une page qui existe dans app/ mais qui n'affiche pas les données du brief compile correctement mais n'a aucune valeur pour l'utilisateur. Si app/projects/page.tsx retourne un div vide ou un texte statique sans appel au service, la page est un stub.
+RÈGLE_REVIEWER:
+  Pour chaque page dans ir_pages du ProjectSpec, vérifier que page.tsx :
+  1. Importe et appelle le service correspondant (ex: projectService.getAll)
+  2. Passe les données à un composant (n'est pas un stub vide)
+  Si page.tsx fait uniquement return <div>Projects</div> sans data → verdict DEGRADED
+BAD:
+  // app/projects/page.tsx — stub sans données ❌
+  export default async function ProjectsPage() {
+    return <div>Projects</div>  // ← aucune donnée — app inutilisable
+  }
+GOOD:
+  // app/projects/page.tsx ✅
+  export default async function ProjectsPage() {
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')
+    const projects = await projectService.getAll(userId)
+    return <ProjectsClient projects={projects} />
+  }
+ERREUR_ATTENDUE: Page buildée sans données — l'utilisateur voit une page vide en production
+SEVERITY: medium
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "15-conformity",
+            "status": "active",
+            "version": "1.0",
+            "category": "conformity",
+            "source": "reviewer_sprint48",
+            "agent_context": "reviewer",
+        },
+    },
 ]
 
 
@@ -2780,6 +2857,110 @@ VERSION: 1.0""",
             "category": "security",
             "source": "sprint46",
             "agent_context": "security",
+        },
+    },
+
+    # ── Reviewer-specific: Server Actions + Service layer ─────────────────────
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Service DAL update() — userId OBLIGATOIRE dans le where pour éviter IDOR
+RAISON: La méthode update() du service DAL (lib/services/*.service.ts) DOIT filtrer par userId dans le where Prisma. Sans ce filtre, tout utilisateur authentifié peut écraser les données d'un autre utilisateur en connaissant l'UUID de la ressource. Ce bug est invisible au compilateur (TypeScript compile sans erreur) mais est une faille IDOR critique en production.
+DETECTION_REGEX: prisma\\.\\w+\\.update\\(\\{\\s*where:\\s*\\{\\s*id[^}]*\\}(?![\\s\\S]{0,50}userId)
+ALTERNATIVE: Toujours inclure userId dans le where de update() et delete().
+BAD:
+  // lib/services/project.service.ts — IDOR critique ❌
+  update: async (id: string, data: UpdateProjectInput): Promise<Project> => {
+    return prisma.project.update({
+      where: { id },      // ← IDOR : n'importe qui peut écraser ce projet
+      data: { ...(data as any) }
+    })
+  }
+GOOD:
+  // lib/services/project.service.ts ✅
+  update: async (userId: string, id: string, data: UpdateProjectInput): Promise<Project> => {
+    return prisma.project.update({
+      where: { id, userId },  // ← filtre propriété obligatoire
+      data: { ...(data as any) }
+    })
+  }
+ERREUR_ATTENDUE: Utilisateur B modifie les données de l'utilisateur A sans erreur TypeScript ni build failure
+SEVERITY: critical
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "reviewer_sprint48",
+            "agent_context": "reviewer",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Server Action — userId transmis au service pour update() et delete()
+RAISON: Les Server Actions (app/*/actions.ts) appellent auth() et obtiennent userId. Ce userId DOIT être transmis au service DAL pour les opérations mutantes (update, delete). Si le service reçoit uniquement l'id de la ressource sans userId, il ne peut pas enforcer l'ownership — IDOR garanti.
+DETECTION_REGEX: await\\s+\\w+Service\\.(?:update|delete)\\([^,)]*\\)(?![\\s\\S]{0,30}userId)
+ALTERNATIVE: Passer userId comme premier argument de toute méthode service mutante.
+BAD:
+  // app/projects/actions.ts — IDOR ❌
+  export async function updateProject(id: string, formData: FormData) {
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')
+    await projectService.update(id, validated)  // ← userId non transmis au service
+  }
+GOOD:
+  // app/projects/actions.ts ✅
+  export async function updateProject(id: string, formData: FormData) {
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')
+    await projectService.update(userId, id, validated)  // ← userId transmis
+  }
+ERREUR_ATTENDUE: Service update() sans userId dans where — IDOR silencieux
+SEVERITY: critical
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "reviewer_sprint48",
+            "agent_context": "reviewer",
+        },
+    },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Service DAL getAll() — filtrage userId OBLIGATOIRE pour isolation des données
+RAISON: La méthode getAll()/findMany() du service DAL DOIT filtrer par userId. Sans ce filtre, un utilisateur authentifié voit toutes les ressources de tous les utilisateurs. Ce bug est invisible au compilateur.
+DETECTION_REGEX: prisma\\.\\w+\\.findMany\\(\\s*\\{(?![\\s\\S]{0,100}userId)
+BAD:
+  // lib/services/project.service.ts ❌
+  getAll: async (): Promise<SerializedProject[]> => {
+    return prisma.project.findMany()  // ← expose TOUS les projets de tous les users
+  }
+GOOD:
+  // lib/services/project.service.ts ✅
+  getAll: async (userId: string): Promise<SerializedProject[]> => {
+    return prisma.project.findMany({ where: { userId } })  // ← isolé par user
+  }
+ERREUR_ATTENDUE: Utilisateur A voit les données de l'utilisateur B
+SEVERITY: critical
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "reviewer_sprint48",
+            "agent_context": "reviewer",
         },
     },
 ]

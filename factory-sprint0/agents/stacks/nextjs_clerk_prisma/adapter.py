@@ -22,7 +22,7 @@ class NextjsClerkPrismaAdapter(StackAdapter):
         spec: dict[str, Any],
         project_name: str,
         run_id: str,
-        project_workdir: str,
+        project_workdir: str = "",
         **kwargs: Any,
     ) -> dict[str, Any]:
         from .dev_graph import run_dev_agent
@@ -30,7 +30,6 @@ class NextjsClerkPrismaAdapter(StackAdapter):
             spec=spec,
             project_name=project_name,
             run_id=run_id,
-            project_workdir=project_workdir,
             **kwargs,
         )
 

@@ -452,6 +452,7 @@ async def _run_one(
     project_name: str,
     result_timeout_seconds: float | None = None,
     sanity_mode: bool = False,
+    review_mode: bool = False,
 ) -> Dict[str, Any]:
     workflow_id = f"todo-pilot-{project_name}-{uuid.uuid4().hex[:8]}"
     started_at = datetime.now(timezone.utc).isoformat()
@@ -460,7 +461,12 @@ async def _run_one(
 
     handle = await client.start_workflow(
         TodoPilotWorkflow.run,
-        {"brief": brief, "project_name": project_name, "sanity_mode": bool(sanity_mode)},
+        {
+            "brief": brief,
+            "project_name": project_name,
+            "sanity_mode": bool(sanity_mode),
+            "review_mode": bool(review_mode),
+        },
         id=workflow_id,
         task_queue=TASK_QUEUE,
     )
@@ -570,6 +576,7 @@ async def run_batch(
     projects: List[Dict[str, Any]],
     result_timeout_seconds: float | None = None,
     sanity_mode: bool = False,
+    review_mode: bool = False,
 ) -> Dict[str, Any]:
     client = await Client.connect(TEMPORAL_ADDRESS)
     runs: List[Dict[str, Any]] = []
@@ -581,6 +588,7 @@ async def run_batch(
             project_name=item["project_name"],
             result_timeout_seconds=result_timeout_seconds,
             sanity_mode=sanity_mode,
+            review_mode=review_mode,
         )
         runs.append(run_data)
 
@@ -684,6 +692,11 @@ def _parse_args() -> argparse.Namespace:
         help="Active le mode sanity: arrêt du workflow après dev_test_activity (skip QA/GitHub/Learner).",
     )
     parser.add_argument(
+        "--review-mode",
+        action="store_true",
+        help="Active le mode review: arrêt après review+correction_pass (skip QA/GitHub/Learner).",
+    )
+    parser.add_argument(
         "--briefs",
         type=str,
         default="",
@@ -732,6 +745,7 @@ if __name__ == "__main__":
             projects=projects,
             result_timeout_seconds=args.result_timeout_seconds,
             sanity_mode=bool(args.sanity_mode),
+            review_mode=bool(args.review_mode),
         )
     )
     print(json.dumps(result, ensure_ascii=True))

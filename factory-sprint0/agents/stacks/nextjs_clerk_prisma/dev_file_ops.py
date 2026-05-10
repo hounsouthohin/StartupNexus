@@ -61,7 +61,7 @@ def write_template_files(
     if not templated or not workdir:
         return {}
 
-    base_dir = pathlib.Path(__file__).parent.parent / "config" / "stacks" / stack_id
+    base_dir = pathlib.Path(__file__).parent.parent.parent.parent / "config" / "stacks" / stack_id
 
     written = {}
     for dest_filename, template_rel_path in templated.items():

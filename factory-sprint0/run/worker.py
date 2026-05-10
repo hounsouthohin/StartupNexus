@@ -18,6 +18,8 @@ from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
 from workflows.activities.architect_activity import architect_activity
 from workflows.activities.dev_test_activity import dev_test_activity
+from workflows.activities.review_activity import review_activity
+from workflows.activities.correction_pass_activity import correction_pass_activity
 from workflows.activities.qa_activity import qa_activity
 from workflows.activities.github_activity import github_activity
 from workflows.activities.learner_activity import learner_activity
@@ -61,6 +63,8 @@ async def main():
         activities=[
             architect_activity,
             dev_test_activity,
+            review_activity,
+            correction_pass_activity,
             qa_activity,
             github_activity,
             learner_activity,

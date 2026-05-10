@@ -24,6 +24,7 @@ class TodoPilotRequest:
     project_name: str
     stack_id: str = "nextjs-clerk-prisma"
     sanity_mode: bool = False
+    review_mode: bool = False  # arrêt après review+correction_pass, avant QA/GitHub/Learner
 
 
 @dataclass
@@ -43,6 +44,8 @@ class TodoPilotOutput:
 with workflow.unsafe.imports_passed_through():
     from workflows.activities.architect_activity import architect_activity
     from workflows.activities.dev_test_activity import dev_test_activity
+    from workflows.activities.review_activity import review_activity
+    from workflows.activities.correction_pass_activity import correction_pass_activity
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
     from workflows.activities.learner_activity import learner_activity
@@ -64,12 +67,14 @@ class TodoPilotWorkflow:
                 project_name=request.get("project_name", "todo-pilot-sprint05"),
                 stack_id=request.get("stack_id", "nextjs-clerk-prisma"),
                 sanity_mode=bool(request.get("sanity_mode", False)),
+                review_mode=bool(request.get("review_mode", False)),
             )
 
         brief = request.brief if isinstance(request.brief, dict) else {}
         project_name = request.project_name
         stack_id = request.stack_id or "nextjs-clerk-prisma"
         sanity_mode = bool(request.sanity_mode)
+        review_mode = bool(request.review_mode)
 
         workflow.logger.info(f"TodoPilot démarré – Projet: {project_name} | Brief: {brief.get('description', '')[:80]} | Stack: {stack_id}")
 
@@ -257,10 +262,149 @@ class TodoPilotWorkflow:
                     activity_results=activity_results,
                 )
 
-            # ── 3. QA — génération tests e2e (uniquement si build success) ──
-            # Skippé si BUILD_FAILED : inutile de générer des tests pour un projet qui ne compile pas.
+            # ── 3. Review sémantique post-build ──────────────────────────────
+            # Skippé si BUILD_FAILED ou SEMANTIC_VIOLATION — un build cassé ne mérite pas une revue.
+            # Logique : COHERENT → continue | DEGRADED/INCOHERENT → correction_pass → re-review.
+            review_verdict = "SKIPPED"
+            if build_status in ("SUCCESS", "PARTIAL"):
+                review_input: Dict[str, Any] = {
+                    "project_name": project_name,
+                    "stack_id": stack_id,
+                    "brief": brief.get("description", "") if isinstance(brief, dict) else str(brief),
+                    "spec": project_spec_part,
+                    "user_flows": user_flows_part,
+                    "generated_files": combined_files,
+                    "build_status": "BUILD_SUCCESS",
+                }
+                try:
+                    review_result: Dict[str, Any] = await workflow.execute_activity(
+                        review_activity,
+                        args=[review_input, run_id],
+                        start_to_close_timeout=timedelta(minutes=10),
+                        retry_policy=RetryPolicy(maximum_attempts=1),
+                    )
+                    review_verdict = review_result.get("review_verdict", "SKIPPED")
+                    review_report: Dict[str, Any] = review_result.get("review_report", {})
+
+                    workflow.logger.info(
+                        f"[REVIEW] verdict={review_verdict} "
+                        f"sec={review_report.get('security_score')} "
+                        f"coh={review_report.get('coherence_score')} "
+                        f"findings={len(review_report.get('findings', []))}"
+                    )
+                    activity_results["review"] = {
+                        "status": "COMPLETED",
+                        "verdict": review_verdict,
+                        "security_score": review_report.get("security_score"),
+                        "coherence_score": review_report.get("coherence_score"),
+                        "findings_count": len(review_report.get("findings", [])),
+                        "summary": review_report.get("summary", ""),
+                    }
+
+                    # ── Correction pass si DEGRADED ou INCOHERENT ─────────────
+                    if review_verdict in ("DEGRADED", "INCOHERENT"):
+                        targeted_fixes = review_report.get("targeted_fixes", []) or []
+                        if targeted_fixes:
+                            correction_input: Dict[str, Any] = {
+                                "project_name": project_name,
+                                "stack_id": stack_id,
+                                "targeted_fixes": targeted_fixes,
+                                "review_verdict": review_verdict,
+                            }
+                            try:
+                                correction_result: Dict[str, Any] = await workflow.execute_activity(
+                                    correction_pass_activity,
+                                    args=[correction_input, run_id],
+                                    start_to_close_timeout=timedelta(minutes=15),
+                                    retry_policy=RetryPolicy(maximum_attempts=1),
+                                )
+                                correction_applied = bool(correction_result.get("correction_applied", False))
+                                new_build_status = str(correction_result.get("new_build_status", ""))
+                                updated_files: Dict[str, str] = correction_result.get("updated_files", {}) or {}
+
+                                if correction_applied and updated_files:
+                                    combined_files = {**combined_files, **updated_files}
+
+                                activity_results["correction_pass"] = {
+                                    "status": "COMPLETED",
+                                    "applied": correction_applied,
+                                    "files_modified": correction_result.get("files_modified", []),
+                                    "new_build_status": new_build_status,
+                                }
+
+                                # Re-review après correction (max 1 fois)
+                                if correction_applied and new_build_status == "BUILD_SUCCESS":
+                                    try:
+                                        review_input2 = {**review_input, "generated_files": combined_files}
+                                        review_result2: Dict[str, Any] = await workflow.execute_activity(
+                                            review_activity,
+                                            args=[review_input2, run_id],
+                                            start_to_close_timeout=timedelta(minutes=10),
+                                            retry_policy=RetryPolicy(maximum_attempts=1),
+                                        )
+                                        review_verdict = review_result2.get("review_verdict", review_verdict)
+                                        review_report2: Dict[str, Any] = review_result2.get("review_report", {})
+                                        workflow.logger.info(
+                                            f"[REVIEW] post-correction verdict={review_verdict} "
+                                            f"sec={review_report2.get('security_score')}"
+                                        )
+                                        activity_results["review"]["post_correction_verdict"] = review_verdict
+                                        activity_results["review"]["post_correction_security_score"] = review_report2.get("security_score")
+                                        activity_results["review"]["post_correction_coherence_score"] = review_report2.get("coherence_score")
+                                    except Exception as rev2_err:
+                                        workflow.logger.warning(f"[REVIEW] Re-review post-correction échoué (non-bloquant): {rev2_err}")
+                                elif correction_applied and new_build_status != "BUILD_SUCCESS":
+                                    workflow.logger.warning(
+                                        f"[CORRECTION_PASS] Re-build échoué après correction — "
+                                        f"status={new_build_status[:80]}"
+                                    )
+
+                            except Exception as corr_err:
+                                workflow.logger.warning(f"[CORRECTION_PASS] échoué (non-bloquant): {corr_err}")
+                                activity_results["correction_pass"] = {"status": "FAILED", "error": str(corr_err)}
+                        else:
+                            workflow.logger.warning(
+                                f"[REVIEW] verdict={review_verdict} mais targeted_fixes vide — correction ignorée"
+                            )
+                            activity_results["correction_pass"] = {"status": "SKIPPED_NO_FIXES"}
+
+                    # Downgrade build_status si INCOHERENT persistant après correction
+                    if review_verdict == "INCOHERENT":
+                        workflow.logger.warning(
+                            "[REVIEW] App INCOHERENT après correction — build_status downgradé"
+                        )
+                        build_status = "REVIEW_INCOHERENT"
+
+                except Exception as review_err:
+                    workflow.logger.warning(f"[REVIEW] échoué (non-bloquant): {review_err}")
+                    activity_results["review"] = {"status": "FAILED", "error": str(review_err)}
+            else:
+                workflow.logger.info(f"[REVIEW] Skippé — build_status={build_status}")
+                activity_results["review"] = {"status": f"SKIPPED_{build_status}"}
+
+            # Mode review : arrêt après review+correction_pass, avant QA/GitHub/Learner
+            if review_mode:
+                total_time = (workflow.now() - start_time).total_seconds()
+                metadata = dev_test_result.get("metadata", {})
+                workflow.logger.info("[REVIEW_MODE] Early return after review+correction_pass")
+                return TodoPilotOutput(
+                    workflow_status="COMPLETED",
+                    build_status=build_status,
+                    project_name=project_name,
+                    generated_files_count=int(metadata.get("total_files", 0)),
+                    pr_url="N/A",
+                    repo_url="N/A",
+                    dev_files_count=int(metadata.get("dev_files_count", 0)),
+                    test_files_count=int(metadata.get("test_files_count", 0)),
+                    duration_seconds=float(total_time),
+                    error_message=None,
+                    activity_results=activity_results,
+                )
+
+            # ── 4. QA — génération tests e2e (uniquement si build success) ──
+            # Skippé si BUILD_FAILED ou REVIEW_INCOHERENT : app trop dégradée pour générer des tests utiles.
             e2e_tests: Dict[str, str] = {}
-            if build_status != "BUILD_FAILED":
+            if build_status not in ("BUILD_FAILED", "SEMANTIC_VIOLATION", "REVIEW_INCOHERENT"):
                 workflow.logger.info("[QA] Génération tests e2e")
                 qa_input = {
                     "specification": spec_part,
@@ -282,10 +426,10 @@ class TodoPilotWorkflow:
                     workflow.logger.warning(f"[QA] échoué: {qa_err}")
                     activity_results["qa"] = {"status": "FAILED", "error": str(qa_err), "tests_count": 0}
             else:
-                workflow.logger.info("[QA] Skippé — BUILD_FAILED (0 token dépensé)")
-                activity_results["qa"] = {"status": "SKIPPED_BUILD_FAILED", "tests_count": 0}
+                workflow.logger.info(f"[QA] Skippé — build_status={build_status} (0 token dépensé)")
+                activity_results["qa"] = {"status": f"SKIPPED_{build_status}", "tests_count": 0}
 
-            # ── 4. GitHub ─────────────────────────────────────────────────
+            # ── 5. GitHub ─────────────────────────────────────────────────
             github_input = {
                 "files": {**combined_files, **e2e_tests},
                 "project_name": project_name,
@@ -320,7 +464,7 @@ class TodoPilotWorkflow:
                     "pr_url": "N/A",
                 }
 
-            # ── 5. Learner — best-effort ───────────────────────────────────
+            # ── 6. Learner — best-effort ───────────────────────────────────
             try:
                 learner_result: Dict[str, Any] = await workflow.execute_activity(
                     learner_activity,
