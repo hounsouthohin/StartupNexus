@@ -401,27 +401,45 @@ web_search(query)                     → recherche doc/fix TypeScript ou Next.j
 ══════════════════════════════════════════════════════════════
 WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
-1. Les Server Actions (app/**/actions.ts) sont PRÉ-GÉNÉRÉES — NE PAS LES RÉÉCRIRE.
-   - Pour les pages [INTERACTIVE] : le Client Component (page-client.tsx) les importe — le chemin d'import exact et les signatures sont injectés au moment de générer ce fichier.
-   - NE PAS créer app/**/actions.ts manuellement — ces fichiers sont déjà présents et protégés.
+1. Les fichiers PRÉ-GÉNÉRÉS suivants sont VERROUILLÉS — NE PAS LES RÉÉCRIRE :
+   - app/**/actions.ts       : Server Actions CRUD déterministes
+   - app/**/page.tsx         : Server Components avec data-fetching déterministe
+     ↳ Ces fichiers passent déjà <XxxClient items={items} /> au Client Component.
+     ↳ Ne PAS modifier le nom du prop (toujours `items`), ne PAS recréer page.tsx.
+   - lib/services/*.service.ts, lib/types.ts, prisma/schema.prisma : idem
 
-2. Génère les pages (app/**/page.tsx) :
+2. Les fichiers page-client.tsx sont PRÉ-SCAFFOLDÉS avec l'interface props correcte.
+   NE PAS modifier l'interface existante — compléter UNIQUEMENT le JSX body.
+   Exemple : si tu trouves `interface DashboardClientProps { items: SerializedPost[] }`,
+   le composant DOIT accepter `{ items }: DashboardClientProps` — ne pas changer en `{}`.
+   Pour les pages [INTERACTIVE] : le Client Component (page-client.tsx) importe les Server Actions
+   depuis './actions' — le chemin d'import exact et les signatures sont injectés au moment de générer ce fichier.
+
+3. Génère les pages (app/**/page.tsx) — uniquement celles SANS `model` (non verrouillées) :
    - Server Component (pas de 'use client' sauf si interaction pure)
-   - Lit les données VIA LE SERVICE : `const items = await xxxService.getAll(userId)`
    - JAMAIS prisma directement dans page.tsx — import {{ xxxService }} from '@/lib/services/xxx.service'
-   - Si auth_required : const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
+   - NE PAS appeler .toISOString() sur les données du service — les dates sont déjà string (SerializedXxx)
+
+   PAGES PROTÉGÉES (auth_required = true) :
+   - const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
+   - Lit les données VIA LE SERVICE : `const items = await xxxService.getAll(userId)`
    - Pour les pages dynamiques [id] : `const item = await xxxService.getById(userId, params.id)`
      ↳ getById appelle notFound() automatiquement si absent → NE PAS ajouter de null-check
      ↳ item est toujours SerializedXxx après getById — pas de `| null`, pas d'import notFound
-   - NE PAS appeler .toISOString() sur les données du service — les dates sont déjà string (SerializedXxx)
+
+   PAGES PUBLIQUES (marquées "(publique)" dans la liste des pages) :
+   - NE PAS importer auth, NE PAS appeler auth(), NE PAS appeler redirect('/sign-in')
+   - NE PAS utiliser userId — il n'existe pas sur ces pages
+   - Utilise la méthode sans userId du service (ex: xxxService.getPublished() si disponible dans la Service Map)
+   - Si aucune méthode sans userId n'existe dans la Service Map → génère juste le JSX sans fetch de données
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
    - Client Component navigation : TOUJOURS useRouter depuis 'next/navigation' — JAMAIS 'next/router' (Pages Router)
      ✅  import {{ useRouter }} from 'next/navigation'   → router.refresh() disponible
      ❌  import {{ useRouter }} from 'next/router'       → INTERDIT (App Router) + router.refresh() absent → TS2339
 
-3. Si webhooks présents → génère app/api/webhooks/**/route.ts
+4. Si webhooks présents → génère app/api/webhooks/**/route.ts
 
-4. Lance le build :
+5. Lance le build :
    shell_exec('npm run build')
    - Build success (OK en préfixe) → terminé
    - Build échoué → lis l'erreur, corriger, rebuild (max 3 tentatives)

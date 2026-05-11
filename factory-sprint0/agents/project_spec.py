@@ -108,6 +108,15 @@ class AppPage(BaseModel):
         default=True,
         description="True si la page nécessite une authentification Clerk"
     )
+    model: Optional[str] = Field(
+        default=None,
+        description=(
+            "Nom PascalCase du modèle Prisma principal affiché sur cette page. "
+            "Obligatoire pour les pages de liste et de détail. "
+            "Omis pour les pages de création (/new) et les pages sans données. "
+            "Ex: 'Post' pour /dashboard, 'Category' pour /categories"
+        )
+    )
 
 
 class ProjectSpec(BaseModel):

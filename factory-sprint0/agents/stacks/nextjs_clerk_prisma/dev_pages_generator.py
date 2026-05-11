@@ -3,12 +3,16 @@ agents/dev_pages_generator.py
 ──────────────────────────────
 Génération déterministe des fichiers de scaffold.
 
-- loading.tsx : squelette UI trivial, jamais incorrect.
-- page.tsx stubs (R6 — Avril 2026) : scaffolds préventifs avec les imports
-  requis pré-remplis (auth Clerk, redirect, notFound). Le LLM complète la
-  logique métier en lisant le stub existant — il voit les imports dès le départ.
-  Sans ces stubs, le LLM générait parfois des pages sans imports, forçant une
-  boucle de correction sous throttling 429.
+Architecture (Mai 2026) :
+- loading.tsx      : squelette UI trivial, jamais incorrect.
+- error/not-found  : invariants de stack, jamais générés par le LLM.
+- page.tsx         : ENTIÈREMENT DÉTERMINISTE pour les pages avec champ `model`.
+                     Écrit dans template_written → LLM ne peut pas écraser.
+                     Pattern : auth guard (si requis) + appel service + <XxxClient items={items} />
+                     Pour les pages sans `model` : stub auth-guard uniquement (LLM complète).
+- page-client.tsx  : stub pré-scaffoldé avec interface props correcte.
+                     PAS dans template_written → LLM complète le JSX body.
+                     Garantit la cohérence entre page.tsx (locked) et page-client.tsx (stub).
 """
 from __future__ import annotations
 
@@ -17,6 +21,50 @@ import os
 import re
 
 logger = logging.getLogger(__name__)
+
+# ── Helpers service naming (dupliqués depuis dev_service_generator pour éviter import circulaire) ──
+
+def _pascal_to_camel(name: str) -> str:
+    return name[0].lower() + name[1:] if name else name
+
+
+def _pascal_to_kebab(name: str) -> str:
+    return re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
+
+
+def _client_name(page_path: str) -> str:
+    """'/dashboard' → 'DashboardClient', '/categories/new' → 'CategoriesNewClient'"""
+    parts = [p for p in page_path.strip("/").split("/") if p]
+    cleaned = []
+    for p in parts:
+        p = re.sub(r"[\[\]\.]+", "", p)
+        p = re.sub(r"[^a-zA-Z0-9]", " ", p).title().replace(" ", "")
+        if p:
+            cleaned.append(p)
+    return ("".join(cleaned) or "Home") + "Client"
+
+
+def _is_create_page(page_path: str) -> bool:
+    return page_path.rstrip("/").endswith("/new")
+
+
+def _is_detail_page(page_path: str) -> bool:
+    return "[" in page_path
+
+
+def _model_has_status(model_obj) -> bool:
+    return any(f.name.lower() == "status" for f in model_obj.fields)
+
+
+def _model_has_relations(model_obj) -> bool:
+    return any("@relation" in (f.attributes or "") for f in model_obj.fields)
+
+
+def _find_model_by_name(spec, name: str):
+    for m in spec.models:
+        if m.name == name:
+            return m
+    return None
 
 
 def _gen_loading_tsx() -> str:
@@ -79,19 +127,22 @@ def _component_name(page_path: str) -> str:
     return ("".join(cleaned) or "Home") + "Page"
 
 
-def _gen_page_stub(page_path: str) -> str:
+def _gen_page_stub(page_path: str, auth_required: bool = True) -> str:
     """
-    Génère un stub page.tsx pour un Server Component Next.js avec auth Clerk.
-    Le stub contient les imports obligatoires pré-remplis. Le LLM lit ce fichier
-    et complète la logique métier sans risquer d'oublier les imports.
+    Génère un stub page.tsx pour un Server Component Next.js.
+    - auth_required=True  → imports Clerk + guard auth() + redirect
+    - auth_required=False → pas d'imports Clerk, page publique sans guard
+    Le LLM lit ce fichier et complète la logique métier sans risquer d'altérer
+    le régime d'authentification fixé ici de façon déterministe.
     """
     dynamic_params = re.findall(r"\[([^\]]+)\]", page_path)
     component = _component_name(page_path)
 
-    lines: list[str] = [
-        "import { auth } from '@clerk/nextjs/server';",
-        "import { redirect } from 'next/navigation';",
-    ]
+    lines: list[str] = []
+
+    if auth_required:
+        lines.append("import { auth } from '@clerk/nextjs/server';")
+        lines.append("import { redirect } from 'next/navigation';")
     if dynamic_params:
         lines.append("import { notFound } from 'next/navigation';")
 
@@ -105,9 +156,13 @@ def _gen_page_stub(page_path: str) -> str:
     else:
         lines.append(f"export default async function {component}() {{")
 
+    if auth_required:
+        lines.extend([
+            "  const { userId } = await auth();",
+            "  if (!userId) redirect('/sign-in');",
+        ])
+
     lines.extend([
-        "  const { userId } = await auth();",
-        "  if (!userId) redirect('/sign-in');",
         "",
         "  return <div />;",
         "}",
@@ -236,22 +291,178 @@ def generate_error_files(spec: "ProjectSpec", project_workdir: str) -> None:  # 
         logger.info("[pages_gen] ✓ %s", f"app/{filename}")
 
 
-def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> None:  # type: ignore[name-defined]
+def _gen_page_full(page, model_obj) -> str:
     """
-    Écrit app/<path>/page.tsx pour chaque page du spec si le fichier n'existe pas.
-    Les stubs sont intentionnellement minimalistes : imports corrects + export vide.
-    Le LLM les lira (read_file) et écrira la version complète en conservant les imports.
+    Génère un page.tsx ENTIÈREMENT DÉTERMINISTE pour une page avec champ `model`.
+    Le fichier résultant est ajouté à template_written → le LLM ne peut pas l'écraser.
+
+    Patterns générés :
+    - Liste privée  : auth() + getAll(userId) ou getAllWithRelations(userId) → <XxxClient items={items} />
+    - Liste publique: getPublished() sans userId                             → <XxxClient items={items} />
+    - Création (auth=True) : auth() + <XxxClient />  (sans données)
+    - Création (auth=False): <XxxClient />            (sans données ni auth)
     """
-    count = 0
+    name = model_obj.name
+    camel = _pascal_to_camel(name)
+    kebab = _pascal_to_kebab(name)
+    client = _client_name(page.path)
+    component = _component_name(page.path)
+    is_create = _is_create_page(page.path)
+    has_relations = _model_has_relations(model_obj)
+    has_status = _model_has_status(model_obj)
+
+    lines: list[str] = []
+
+    if page.auth_required:
+        lines += [
+            "import { auth } from '@clerk/nextjs/server'",
+            "import { redirect } from 'next/navigation'",
+        ]
+
+    lines += [
+        f"import {client} from './page-client'",
+    ]
+
+    if not is_create:
+        lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
+
+    lines += [
+        "",
+        "export const dynamic = 'force-dynamic'",
+        "",
+        f"export default async function {component}() {{",
+    ]
+
+    if page.auth_required:
+        lines += [
+            "  const { userId } = await auth()",
+            "  if (!userId) redirect('/sign-in')",
+        ]
+
+    if not is_create:
+        if page.auth_required:
+            service_call = (
+                f"{camel}Service.getAllWithRelations(userId)"
+                if has_relations else
+                f"{camel}Service.getAll(userId)"
+            )
+        else:
+            service_call = (
+                f"{camel}Service.getPublished()"
+                if has_status else
+                f"{camel}Service.getAll()"
+            )
+        lines += [
+            f"  const items = await {service_call}",
+            f"  return <{client} items={{items}} />",
+        ]
+    else:
+        lines.append(f"  return <{client} />")
+
+    lines += ["}", ""]
+    return "\n".join(lines)
+
+
+def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, str]:  # type: ignore[name-defined]
+    """
+    Génère app/<path>/page.tsx pour chaque page du spec.
+
+    Deux régimes :
+    - Page avec `model` → page.tsx ENTIÈREMENT DÉTERMINISTE (retourné dans le dict
+      pour ajout dans template_written par dev_graph → LLM ne peut pas écraser).
+    - Page sans `model` → stub auth-guard minimal (LLM peut compléter librement,
+      non retourné dans le dict template_written).
+
+    Retourne {rel_path: content} pour les pages fully-deterministic uniquement.
+    """
+    written: dict[str, str] = {}
+
     for page in spec.pages:
         page_rel = f"app/{page.path.strip('/')}/page.tsx" if page.path.strip("/") else "app/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
-        if os.path.exists(page_abs):
-            continue
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)
-        with open(page_abs, "w", encoding="utf-8") as f:
-            f.write(_gen_page_stub(page.path))
-        count += 1
-        logger.info("[pages_gen] ✓ stub : %s", page_rel)
 
-    logger.info("[pages_gen] %d page stubs écrits", count)
+        model_name = getattr(page, "model", None)
+        model_obj = _find_model_by_name(spec, model_name) if model_name else None
+
+        if model_obj is not None:
+            content = _gen_page_full(page, model_obj)
+            with open(page_abs, "w", encoding="utf-8") as f:
+                f.write(content)
+            written[page_rel] = content
+            logger.info("[pages_gen] ✓ page déterministe : %s (model=%s)", page_rel, model_name)
+        else:
+            if not os.path.exists(page_abs):
+                stub = _gen_page_stub(page.path, page.auth_required)
+                with open(page_abs, "w", encoding="utf-8") as f:
+                    f.write(stub)
+                logger.info("[pages_gen] ✓ stub auth-guard : %s", page_rel)
+
+    logger.info("[pages_gen] %d pages déterministes écrites", len(written))
+    return written
+
+
+def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, str]:  # type: ignore[name-defined]
+    """
+    Génère app/<path>/page-client.tsx avec l'interface props correcte pour chaque
+    page ayant un champ `model`. Le fichier N'EST PAS dans template_written — le LLM
+    complète le JSX body tout en conservant l'interface déjà définie.
+
+    Garantit la cohérence avec page.tsx (locked) :
+    page.tsx passe   <XxxClient items={items} />
+    page-client.tsx  interface XxxClientProps { items: SerializedXxx[] }
+
+    Retourne {rel_path: content} pour traçabilité.
+    """
+    written: dict[str, str] = {}
+
+    for page in spec.pages:
+        model_name = getattr(page, "model", None)
+        model_obj = _find_model_by_name(spec, model_name) if model_name else None
+        is_create = _is_create_page(page.path)
+
+        client_rel = (
+            f"app/{page.path.strip('/')}/page-client.tsx"
+            if page.path.strip("/") else
+            "app/page-client.tsx"
+        )
+        client_abs = os.path.join(project_workdir, client_rel.replace("/", os.sep))
+
+        if os.path.exists(client_abs):
+            continue
+
+        os.makedirs(os.path.dirname(client_abs), exist_ok=True)
+        client = _client_name(page.path)
+
+        if model_obj is not None and not is_create:
+            serialized = f"Serialized{model_obj.name}"
+            content = "\n".join([
+                "'use client'",
+                f"import type {{ {serialized} }} from '@/lib/types'",
+                "",
+                f"interface {client}Props {{",
+                f"  items: {serialized}[]",
+                "}",
+                "",
+                f"export default function {client}({{ items }}: {client}Props) {{",
+                "  return <div />",
+                "}",
+                "",
+            ])
+        else:
+            content = "\n".join([
+                "'use client'",
+                "",
+                f"export default function {client}() {{",
+                "  return <div />",
+                "}",
+                "",
+            ])
+
+        with open(client_abs, "w", encoding="utf-8") as f:
+            f.write(content)
+        written[client_rel] = content
+        logger.info("[pages_gen] ✓ page-client stub : %s", client_rel)
+
+    logger.info("[pages_gen] %d page-client stubs écrits", len(written))
+    return written

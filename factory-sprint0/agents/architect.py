@@ -173,11 +173,13 @@ async def planner_node(state: AgentState) -> dict:
     seen_paths: set[str] = set()
     for pg in brief_pages:
         if isinstance(pg, dict):
-            path, auth = str(pg.get("path", "/")), bool(pg.get("auth", True))
+            path = str(pg.get("path", "/"))
+            auth = bool(pg.get("auth", True))
+            model = pg.get("model") or None
         else:
-            path, auth = str(pg), True
+            path, auth, model = str(pg), True, None
         if path not in seen_paths:
-            pages.append(AppPage(path=path, auth_required=auth))
+            pages.append(AppPage(path=path, auth_required=auth, model=model))
             seen_paths.add(path)
     if not any(pg.path == "/" for pg in pages):
         pages.insert(0, AppPage(path="/", auth_required=False))

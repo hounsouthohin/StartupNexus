@@ -42,6 +42,11 @@ def _resolve_owner(model) -> str:
     return model.resolved_owner()
 
 
+def _has_status_field(model) -> bool:
+    """Retourne True si le modèle a un champ 'status' — indique une visibilité publique possible."""
+    return any(f.name.lower() == "status" for f in model.fields)
+
+
 def _relation_fields(model) -> list[str]:
     """Retourne les noms des champs portant un @relation dans le modèle."""
     return [f.name for f in model.fields if "@relation" in (f.attributes or "")]
@@ -112,12 +117,26 @@ def _generate_service_for_model(model) -> str:
     scalar_fields = _scalar_fields(model)
     select_block = ", ".join(f"{fname}: true" for fname in scalar_fields)
 
+    has_status = _has_status_field(model)
+
     lines.extend([
         f"export const {camel}Service = {{",
         f"  getAll: async ({owner}: string): Promise<{serialized_name}[]> => {{",
         f"    const items = (await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0, select: {{ {select_block} }} }}) as unknown as {name}[])",
         "    return items.map(_serialize)",
         "  },",
+    ])
+
+    if has_status:
+        lines.extend([
+            "",
+            f"  getPublished: async (): Promise<{serialized_name}[]> => {{",
+            f"    const items = (await prisma.{camel}.findMany({{ where: {{ status: 'published' }}, take: 50, skip: 0, select: {{ {select_block} }} }}) as unknown as {name}[])",
+            "    return items.map(_serialize)",
+            "  },",
+        ])
+
+    lines.extend([
         "",
         f"  getById: async ({owner}: string, id: string): Promise<{serialized_name}> => {{",
         f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
@@ -208,6 +227,8 @@ def format_service_map_for_prompt(spec) -> str:
         import_path = f"@/lib/services/{kebab}.service"
         lines.append(f"**{camel}Service** → `import {{ {camel}Service }} from '{import_path}'`")
         lines.append(f"  .getAll({owner})  → `Promise<{serialized_name}[]>` (dates déjà string)")
+        if _has_status_field(model):
+            lines.append(f"  .getPublished()  → `Promise<{serialized_name}[]>` SANS userId — à utiliser sur les pages publiques (auth: false)")
         lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name}>` (notFound() si absent — jamais null)")
         if relations:
             rel_list = ", ".join(relations)

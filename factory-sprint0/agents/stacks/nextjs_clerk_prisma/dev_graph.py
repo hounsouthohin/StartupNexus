@@ -229,16 +229,28 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
-    # ── Génération déterministe : loading.tsx ───────────────────────────────────
-    # generate_page_stubs retiré : les stubs étaient écrasés par le LLM de toute façon.
-    # generate_loading_files produit app/<path>/loading.tsx pour les pages protégées.
+    # ── Génération déterministe : pages + loading + error ───────────────────────
+    # generate_page_stubs : page.tsx entièrement déterministe pour les pages avec
+    #   champ `model` → ajouté à template_written (LLM ne peut pas écraser).
+    #   Pour les pages sans `model` : stub auth-guard minimal (LLM peut compléter).
+    # generate_page_client_stubs : page-client.tsx avec interface props correcte.
+    #   PAS dans template_written → LLM complète le JSX body.
     if spec_obj is not None:
         try:
             from .dev_pages_generator import (
                 generate_loading_files,
                 generate_error_files,
                 generate_root_page_if_needed,
+                generate_page_stubs,
+                generate_page_client_stubs,
             )
+            # Pages entièrement déterministes (model field présent) → template_written
+            _page_files = generate_page_stubs(spec_obj, project_workdir)
+            template_written.update(_page_files)
+
+            # Stubs page-client avec interface correcte → pré-écrits, LLM peut compléter
+            generate_page_client_stubs(spec_obj, project_workdir)
+
             generate_loading_files(spec_obj, project_workdir)
             generate_error_files(spec_obj, project_workdir)
             # Page racine déterministe : si '/' est dans le spec sans pages_detail,
