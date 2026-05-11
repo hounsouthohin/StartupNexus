@@ -1,0 +1,37 @@
+[
+  {
+    "project_name": "invoice-tracker",
+    "brief": {
+      "description": "Application SaaS de suivi de facturation. L'utilisateur gère ses clients et crée des factures.",
+      "architecture": "SaaS single-tenant — toutes les pages protégées par Clerk. Invoice est lié à Client via clientId (owner_field=userId sur Invoice). Le champ 'client Client @relation(fields: [clientId], references: [id])' dans Invoice permet invoice.client.name via include. InvoiceItem est lié à Invoice via invoiceId (owner_field=userId sur InvoiceItem). Tous les modèles ont userId directement pour un ownership uniforme. Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations.",
+      "models": [
+        "Client { id String @id @default(uuid()), name String, email String, phone String?, address String?, invoices Invoice[], userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+        "Invoice { id String @id @default(uuid()), number String, status String @default(\"draft\"), dueDate DateTime, clientId String, client Client @relation(fields: [clientId], references: [id]), userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([clientId]) }",
+        "InvoiceItem { id String @id @default(uuid()), description String, quantity Int @default(1), unitPrice Float, invoiceId String, userId String, createdAt DateTime @default(now()), @@index([invoiceId]), @@index([userId]) }"
+      ],
+      "pages": [
+        {"path": "/clients",      "auth": true},
+        {"path": "/clients/new",  "auth": true},
+        {"path": "/invoices",     "auth": true},
+        {"path": "/invoices/new", "auth": true}
+      ],
+      "pages_detail": {
+        "/clients": "Liste de tous les clients. Affiche : nom, email (lien mailto:), téléphone (ou '-'), date d'ajout. Bouton 'Nouveau client' en haut → /clients/new. Bouton 'Supprimer' par ligne → Server Action deleteClient(id). État vide : 'Aucun client. Ajoutez votre premier client !'. [INTERACTIVE]",
+        "/clients/new": "Formulaire de création de client. Champs : nom (input text, required), email (input email, required), téléphone (input tel, optionnel), adresse (textarea, optionnel). Bouton 'Ajouter le client'. Submit → Server Action createClient({ name, email, phone, address }) → redirect /clients. [INTERACTIVE]",
+        "/invoices": "Liste de toutes les factures. Affiche : numéro, statut (badge : draft=gris, sent=bleu, paid=vert), date d'échéance, date de création. Bouton 'Nouvelle facture' en haut → /invoices/new. État vide : 'Aucune facture.'. [INTERACTIVE]",
+        "/invoices/new": "Formulaire de création de facture. Champs : numéro (input text, required, placeholder 'FAC-001'), clientId (input text, required, placeholder 'ID du client'), date d'échéance (input date, required). Bouton 'Créer la facture'. Submit → Server Action createInvoice({ number, clientId, dueDate }) → redirect /invoices. [INTERACTIVE]"
+      },
+      "routes": [
+        {"method": "POST",   "path": "/api/clients"},
+        {"method": "DELETE", "path": "/api/clients/[id]"},
+        {"method": "POST",   "path": "/api/invoices"},
+        {"method": "DELETE", "path": "/api/invoices/[id]"}
+      ],
+      "user_flows": [
+        "L'utilisateur ajoute un client : /clients/new → Server Action createClient() → redirect /clients",
+        "L'utilisateur crée une facture : /invoices/new → Server Action createInvoice() → redirect /invoices",
+        "L'utilisateur supprime un client : bouton Supprimer → Server Action deleteClient(id)"
+      ]
+    }
+  }
+]

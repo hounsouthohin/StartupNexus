@@ -239,8 +239,8 @@ PHASE0_BRIEFS: List[Dict] = [
                 "Invoice est lié à Client via clientId (owner_field=userId sur Invoice). "
                 "Le champ 'client Client @relation(fields: [clientId], references: [id])' "
                 "dans Invoice permet invoice.client.name via include. "
-                "InvoiceItem est lié à Invoice via invoiceId "
-                "(owner_field=invoiceId — pas userId direct sur InvoiceItem). "
+                "InvoiceItem est lié à Invoice via invoiceId (owner_field=userId sur InvoiceItem). "
+                "Tous les modèles ont userId directement pour un ownership uniforme. "
                 "Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations."
             ),
             "models": [
@@ -261,8 +261,9 @@ PHASE0_BRIEFS: List[Dict] = [
                 (
                     "InvoiceItem { id String @id @default(uuid()), description String, "
                     "quantity Int @default(1), unitPrice Float, "
-                    "invoiceId String, "
-                    "@@index([invoiceId]) }"
+                    "invoiceId String, userId String, "
+                    "createdAt DateTime @default(now()), "
+                    "@@index([invoiceId]), @@index([userId]) }"
                 ),
             ],
             "pages": [

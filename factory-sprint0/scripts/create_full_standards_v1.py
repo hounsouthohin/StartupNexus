@@ -2963,6 +2963,60 @@ VERSION: 1.0""",
             "agent_context": "reviewer",
         },
     },
+    {
+        "text": """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Entités enfant (child entities) — userId OBLIGATOIRE sur tous les modèles Prisma
+RAISON: Les entités enfant sans userId (ex: InvoiceItem avec seulement invoiceId, Receipt avec seulement expenseId, Ingredient avec seulement recipeId) créent une confusion critique dans les Server Actions : l'action reçoit userId via auth() mais le service attend le parentId — les deux sont des strings, TypeScript ne détecte pas l'erreur, et la mutation plante en silence au runtime ou avec un crash Prisma P2025.
+RULE: Tout modèle Prisma, même une entité enfant liée à un parent via FK, DOIT avoir un champ userId String direct. L'ownership s'établit toujours via userId, jamais uniquement via parentId.
+BAD:
+  // Prisma schema ❌ — InvoiceItem sans userId
+  model InvoiceItem {
+    id        String @id @default(uuid())
+    invoiceId String
+    // ← pas de userId : l'action va passer userId où le service attend invoiceId
+  }
+
+  // app/invoices/actions.ts ❌ — bug runtime silencieux
+  export async function deleteInvoiceItem(id: string) {
+    const { userId } = await auth()
+    await invoiceItemService.delete(userId, id)  // userId passé comme invoiceId → P2025 garanti
+  }
+GOOD:
+  // Prisma schema ✅ — userId sur tous les modèles sans exception
+  model InvoiceItem {
+    id        String @id @default(uuid())
+    invoiceId String
+    userId    String   // ← ownership direct, même sur les enfants
+    @@index([invoiceId])
+    @@index([userId])
+  }
+
+  // lib/services/invoice-item.service.ts ✅
+  delete: async (userId: string, id: string): Promise<void> => {
+    await prisma.invoiceItem.delete({ where: { id, userId } })
+  }
+
+  // app/invoices/actions.ts ✅ — chaîne complète et cohérente
+  export async function deleteInvoiceItem(id: string) {
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')
+    await invoiceItemService.delete(userId, id)
+  }
+ERREUR_ATTENDUE: Runtime — Prisma P2025 RecordNotFound (delete avec invoiceId='user_xxx' → jamais trouvé)
+SEVERITY: critical
+STATUS: active
+VERSION: 1.0""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "16-security-applicative",
+            "status": "active",
+            "version": "1.0",
+            "category": "security",
+            "source": "reviewer_sprint48",
+            "agent_context": "dev",
+        },
+    },
 ]
 
 
