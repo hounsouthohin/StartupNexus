@@ -244,6 +244,12 @@ async def run_dev_agent(
                 generate_page_stubs,
                 generate_page_client_stubs,
             )
+            from .dev_middleware_generator import generate_middleware
+
+            # Middleware dynamique : routes publiques injectées depuis spec.get_public_pages()
+            _mw_files = generate_middleware(spec_obj, project_workdir)
+            template_written.update(_mw_files)
+
             # Pages entièrement déterministes (model field présent) → template_written
             _page_files = generate_page_stubs(spec_obj, project_workdir)
             template_written.update(_page_files)

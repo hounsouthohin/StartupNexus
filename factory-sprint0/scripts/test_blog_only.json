@@ -10,11 +10,11 @@
         "Comment { id String @id @default(uuid()), content String, postId String, authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
       ],
       "pages": [
-        { "path": "/blog",           "auth": false, "model": "Post"     },
-        { "path": "/blog/new",       "auth": false                      },
-        { "path": "/dashboard",      "auth": true,  "model": "Post"     },
-        { "path": "/categories",     "auth": true,  "model": "Category" },
-        { "path": "/categories/new", "auth": true                       }
+        { "path": "/blog",           "auth": false, "page_type": "list",   "model": "Post"     },
+        { "path": "/blog/new",       "auth": false, "page_type": "create"                      },
+        { "path": "/dashboard",      "auth": true,  "page_type": "list",   "model": "Post"     },
+        { "path": "/categories",     "auth": true,  "page_type": "list",   "model": "Category" },
+        { "path": "/categories/new", "auth": true,  "page_type": "create"                      }
       ],
       "pages_detail": {
         "/blog": "PAGE PUBLIQUE — aucun auth() requis. Liste des posts avec status='published'. Affiche : titre, extrait (ou '-'), date de création. Lien 'Écrire un article' → /blog/new. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",

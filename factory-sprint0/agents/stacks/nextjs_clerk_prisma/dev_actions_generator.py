@@ -9,9 +9,9 @@ Chaque actions.ts expose 3 Server Actions CRUD standard :
   deleteXxx(id)              — auth guard + service.delete + revalidatePath + redirect
 
 Règle de routage :
-  Le fichier est écrit dans app/{list_page}/actions.ts où list_page est résolu
-  par _find_list_page() : correspondance exacte d'abord, puis starts-with du
-  premier segment kebab. Gère LeaveRequest → /leaves (pas /leave-requests).
+  Le path list_page est résolu via spec.get_list_page_for_model(model.name)
+  (ProjectSpec — source de vérité, voir GENERATOR_CONTRACT.md § 3).
+  L'heuristique est encapsulée dans cette méthode, pas ici.
 
 Intégration dans dev_graph.py (après generate_service_files) :
     action_files = generate_action_files(spec_obj, project_workdir)
@@ -21,73 +21,10 @@ from __future__ import annotations
 
 import logging
 import os
-import re as _re
+
+from .dev_naming import pascal_to_camel, pascal_to_kebab
 
 logger = logging.getLogger(__name__)
-
-
-def _pascal_to_camel(name: str) -> str:
-    """PascalCase → camelCase. Ex: LeaveRequest → leaveRequest"""
-    return name[0].lower() + name[1:] if name else name
-
-
-def _pascal_to_kebab(name: str) -> str:
-    """PascalCase → kebab-case. Ex: LeaveRequest → leave-request"""
-    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
-def _pluralize(word: str) -> str:
-    """
-    Pluralise un mot kebab-case en anglais.
-    Règles par ordre de priorité :
-      1. -y après consonne → -ies  (company→companies, category→categories)
-      2. -s/-sh/-ch/-x/-z  → -es
-      3. défaut             → -s
-    Pas de table : les règles couvrent tous les cas réguliers.
-    """
-    if word.endswith("y") and len(word) > 1 and word[-2] not in "aeiou":
-        return word[:-1] + "ies"
-    if word.endswith(("s", "sh", "ch", "x", "z")):
-        return word + "es"
-    return word + "s"
-
-
-def _find_list_page(model_name: str, spec) -> str:
-    """
-    Résout le chemin de la page liste pour un modèle.
-
-    Ordre de résolution :
-      1. Exact    : /{kebab} ou /{pluralize(kebab)} dans spec.pages
-      2. Segment  : premier segment du chemin de page commence par le radical du kebab
-                    → cherche dans spec.pages (sans [dynamic]) en priorité sur spec
-      3. Fallback : /{pluralize(kebab)}
-
-    Exemples :
-      LeaveRequest → "leave-request" → base "leave" → /leaves ✓
-      Company      → _pluralize("company") = "companies" → /companies ✓
-      Project      → _pluralize("project") = "projects"  → /projects ✓
-    """
-    kebab = _pascal_to_kebab(model_name)
-    plural = _pluralize(kebab)
-
-    list_pages = [p.path for p in spec.pages if "[" not in p.path]
-
-    # 1. Exact match — singulier puis pluriel
-    if f"/{kebab}" in list_pages:
-        return f"/{kebab}"
-    if f"/{plural}" in list_pages:
-        return f"/{plural}"
-
-    # 2. Premier segment du chemin commence par le radical kebab
-    #    Ex: "leave-request" → radical "leave" → /leaves, /leave-requests
-    base = kebab.split("-")[0]
-    for page_path in list_pages:
-        first_seg = page_path.lstrip("/").split("/")[0]
-        if first_seg.startswith(base):
-            return page_path
-
-    # 3. Fallback : pluriel calculé
-    return f"/{plural}"
 
 
 def _generate_actions_for_model(model, list_page: str) -> str:
@@ -99,8 +36,8 @@ def _generate_actions_for_model(model, list_page: str) -> str:
     (le service accepte string; le nom du param est cosmétique).
     """
     name = model.name
-    camel = _pascal_to_camel(name)
-    kebab = _pascal_to_kebab(name)
+    camel = pascal_to_camel(name)
+    kebab = pascal_to_kebab(name)
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER",
@@ -152,7 +89,7 @@ def generate_action_files(spec, project_workdir: str) -> dict[str, str]:
     # Regroupe les modèles par list_page pour gérer les collisions
     page_to_models: dict[str, list] = {}
     for model in spec.models:
-        list_page = _find_list_page(model.name, spec)
+        list_page = spec.get_list_page_for_model(model.name)
         page_to_models.setdefault(list_page, []).append(model)
 
     written: dict[str, str] = {}
@@ -176,8 +113,8 @@ def generate_action_files(spec, project_workdir: str) -> dict[str, str]:
                 "import { revalidatePath } from 'next/cache'",
             ]
             for m in models:
-                camel = _pascal_to_camel(m.name)
-                kebab = _pascal_to_kebab(m.name)
+                camel = pascal_to_camel(m.name)
+                kebab = pascal_to_kebab(m.name)
                 parts.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
             for m in models:
                 parts.append(
@@ -211,8 +148,8 @@ def generate_action_files(spec, project_workdir: str) -> dict[str, str]:
 def _actions_block(model, list_page: str) -> str:
     """Génère uniquement les 3 fonctions d'un modèle (sans header imports) pour fusion."""
     name = model.name
-    camel = _pascal_to_camel(name)
-    kebab = _pascal_to_kebab(name)
+    camel = pascal_to_camel(name)
+    kebab = pascal_to_kebab(name)
 
     lines = [
         f"export async function create{name}(formData: FormData) {{",
@@ -260,7 +197,7 @@ def format_action_map_for_prompt(spec) -> str:
     ]
     for model in spec.models:
         name = model.name
-        list_page = _find_list_page(name, spec)
+        list_page = spec.get_list_page_for_model(name)
         route_dir = list_page.lstrip("/")
         file_path = f"app/{route_dir}/actions.ts"
         lines.append(f"**{file_path}** :")

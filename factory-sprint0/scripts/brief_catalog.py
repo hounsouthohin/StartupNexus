@@ -14,7 +14,7 @@ Format brief :
 - description   : description humaine de l'app (contexte métier)
 - architecture  : intent SaaS, multi-tenant, ownership
 - models        : Prisma DSL verbatim
-- pages         : [{"path": "/...", "auth": bool}]
+- pages         : [{"path": "/...", "auth": bool, "page_type": "list|create|detail|custom", "model": "PascalCase"}]
 - pages_detail  : {"path": "QUOI afficher, quels champs, quelles actions"}
                   [INTERACTIVE] = contient boutons ou formulaire React
 - routes        : mutations POST/DELETE → génération actions.ts
@@ -68,10 +68,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/projects",      "auth": True},
-                {"path": "/projects/new",  "auth": True},
-                {"path": "/tasks",         "auth": True},
-                {"path": "/tasks/new",     "auth": True},
+                {"path": "/projects",      "auth": True, "page_type": "list",   "model": "Project"},
+                {"path": "/projects/new",  "auth": True, "page_type": "create"},
+                {"path": "/tasks",         "auth": True, "page_type": "list",   "model": "Task"},
+                {"path": "/tasks/new",     "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/projects": (
@@ -166,10 +166,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/companies",      "auth": True},
-                {"path": "/companies/new",  "auth": True},
-                {"path": "/contacts",       "auth": True},
-                {"path": "/contacts/new",   "auth": True},
+                {"path": "/companies",      "auth": True, "page_type": "list",   "model": "Company"},
+                {"path": "/companies/new",  "auth": True, "page_type": "create"},
+                {"path": "/contacts",       "auth": True, "page_type": "list",   "model": "Contact"},
+                {"path": "/contacts/new",   "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/companies": (
@@ -267,10 +267,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/clients",       "auth": True},
-                {"path": "/clients/new",   "auth": True},
-                {"path": "/invoices",      "auth": True},
-                {"path": "/invoices/new",  "auth": True},
+                {"path": "/clients",       "auth": True, "page_type": "list",   "model": "Client"},
+                {"path": "/clients/new",   "auth": True, "page_type": "create"},
+                {"path": "/invoices",      "auth": True, "page_type": "list",   "model": "Invoice"},
+                {"path": "/invoices/new",  "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/clients": (
@@ -363,10 +363,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/departments",      "auth": True},
-                {"path": "/departments/new",  "auth": True},
-                {"path": "/leaves",           "auth": True},
-                {"path": "/leaves/new",       "auth": True},
+                {"path": "/departments",      "auth": True, "page_type": "list",   "model": "Department"},
+                {"path": "/departments/new",  "auth": True, "page_type": "create"},
+                {"path": "/leaves",           "auth": True, "page_type": "list",   "model": "LeaveRequest"},
+                {"path": "/leaves/new",       "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/departments": (
@@ -460,10 +460,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/categories",      "auth": True},
-                {"path": "/categories/new",  "auth": True},
-                {"path": "/expenses",        "auth": True},
-                {"path": "/expenses/new",    "auth": True},
+                {"path": "/categories",      "auth": True, "page_type": "list",   "model": "Category"},
+                {"path": "/categories/new",  "auth": True, "page_type": "create"},
+                {"path": "/expenses",        "auth": True, "page_type": "list",   "model": "Expense"},
+                {"path": "/expenses/new",    "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/categories": (
@@ -562,10 +562,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/authors",       "auth": True},
-                {"path": "/authors/new",   "auth": True},
-                {"path": "/books",         "auth": True},
-                {"path": "/books/new",     "auth": True},
+                {"path": "/authors",       "auth": True, "page_type": "list",   "model": "Author"},
+                {"path": "/authors/new",   "auth": True, "page_type": "create"},
+                {"path": "/books",         "auth": True, "page_type": "list",   "model": "Book"},
+                {"path": "/books/new",     "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/authors": (
@@ -661,10 +661,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/venues",       "auth": True},
-                {"path": "/venues/new",   "auth": True},
-                {"path": "/events",       "auth": True},
-                {"path": "/events/new",   "auth": True},
+                {"path": "/venues",       "auth": True, "page_type": "list",   "model": "Venue"},
+                {"path": "/venues/new",   "auth": True, "page_type": "create"},
+                {"path": "/events",       "auth": True, "page_type": "list",   "model": "Event"},
+                {"path": "/events/new",   "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/venues": (
@@ -762,10 +762,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/categories",      "auth": True},
-                {"path": "/categories/new",  "auth": True},
-                {"path": "/tickets",         "auth": True},
-                {"path": "/tickets/new",     "auth": True},
+                {"path": "/categories",      "auth": True, "page_type": "list",   "model": "Category"},
+                {"path": "/categories/new",  "auth": True, "page_type": "create"},
+                {"path": "/tickets",         "auth": True, "page_type": "list",   "model": "Ticket"},
+                {"path": "/tickets/new",     "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/categories": (
@@ -862,10 +862,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/locations",         "auth": True},
-                {"path": "/locations/new",     "auth": True},
-                {"path": "/assets",            "auth": True},
-                {"path": "/assets/new",        "auth": True},
+                {"path": "/locations",         "auth": True, "page_type": "list",   "model": "Location"},
+                {"path": "/locations/new",     "auth": True, "page_type": "create"},
+                {"path": "/assets",            "auth": True, "page_type": "list",   "model": "Asset"},
+                {"path": "/assets/new",        "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/locations": (
@@ -959,10 +959,10 @@ PHASE0_BRIEFS: List[Dict] = [
                 ),
             ],
             "pages": [
-                {"path": "/categories",      "auth": True},
-                {"path": "/categories/new",  "auth": True},
-                {"path": "/recipes",         "auth": True},
-                {"path": "/recipes/new",     "auth": True},
+                {"path": "/categories",      "auth": True, "page_type": "list",   "model": "Category"},
+                {"path": "/categories/new",  "auth": True, "page_type": "create"},
+                {"path": "/recipes",         "auth": True, "page_type": "list",   "model": "Recipe"},
+                {"path": "/recipes/new",     "auth": True, "page_type": "create"},
             ],
             "pages_detail": {
                 "/categories": (

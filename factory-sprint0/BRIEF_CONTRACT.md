@@ -1,5 +1,5 @@
 # Brief Contract — Software Agent Factory
-## Stack : `nextjs-clerk-prisma` · Version du contrat : 1.1 (Mai 2026)
+## Stack : `nextjs-clerk-prisma` · Version du contrat : 1.2 (Mai 2026)
 
 Ce document est le **contrat formel** qui définit comment structurer un brief pour que la factory puisse générer une application. Il est la source de vérité pour tout développeur qui veut soumettre une nouvelle app à la factory.
 
@@ -20,9 +20,10 @@ Ce document est le **contrat formel** qui définit comment structurer un brief p
     "models":        ["string (Prisma DSL inline)"],
     "pages": [
       {
-        "path":  "string (commence par /)",
-        "auth":  "boolean",
-        "model": "string (PascalCase — NOM DU MODÈLE PRISMA, optionnel)"
+        "path":      "string (commence par /)",
+        "auth":      "boolean",
+        "page_type": "\"list\" | \"create\" | \"detail\" | \"custom\"",
+        "model":     "string (PascalCase — NOM DU MODÈLE PRISMA, obligatoire si page_type=list ou detail)"
       }
     ],
     "pages_detail": {
@@ -133,39 +134,48 @@ createdAt DateTime @default(now())
 
 ### `brief.pages` · object[] · **Obligatoire**
 
-Liste des pages de l'application. Chaque entrée a 3 champs :
+Liste des pages de l'application. Chaque entrée a 4 champs :
 
 | Champ | Type | Req. | Description |
 |---|---|---|---|
 | `path` | string | ✅ | Chemin URL commençant par `/`. Segments dynamiques : `[id]`. |
 | `auth` | boolean | ✅ | `true` = page protégée par Clerk. `false` = page publique, aucun `auth()`. |
+| `page_type` | string | ✅ | Type explicite de la page. Voir valeurs ci-dessous. |
 | `model` | string | ⚠️ | Nom PascalCase du modèle Prisma principal affiché sur cette page. |
 
-**Quand `model` est obligatoire :**
-- Page de **liste** (`/projects`, `/invoices`, `/dashboard`) → **obligatoire**
-- Page de **détail** (`/projects/[id]`) → **obligatoire**
-- Page de **création** (`/projects/new`) → *omis* (pas de données à afficher)
+**Valeurs de `page_type` :**
 
-> **Règle de nommage** : si le chemin de la page ne contient pas le nom du modèle (ex: `/dashboard` au lieu de `/posts`), le champ `model` est **obligatoire** — sans lui, le générateur ne peut pas synchroniser les props entre `page.tsx` et `page-client.tsx`.
+| Valeur | Quand l'utiliser | `model` obligatoire |
+|---|---|---|
+| `"list"` | Page affichant une collection d'items (liste, tableau) | ✅ oui |
+| `"create"` | Formulaire de création (path finit en `/new` ou `/create`) | ❌ non |
+| `"detail"` | Vue d'un item unique (path contient `[id]`) | ✅ oui |
+| `"custom"` | Dashboard de stats, page d'accueil, page sans modèle dominant | selon le cas |
+
+> **Règle critique** : `page_type` est **déclaré explicitement dans le brief**, jamais deviné par heuristique sur le chemin URL. Le générateur lit `page_type` directement — il ne fait pas `if path.endswith('/new')`.
+
+> **Règle de validation croisée** : si `page_type` est `"list"` ou `"detail"` et que `model` est absent, le blueprint est rejeté par l'architect avant toute génération.
 
 ```json
 "pages": [
-  { "path": "/projects",      "auth": true,  "model": "Project"  },
-  { "path": "/projects/new",  "auth": true                        },
-  { "path": "/dashboard",     "auth": true,  "model": "Post"      },
-  { "path": "/blog",          "auth": false, "model": "Post"      },
-  { "path": "/blog/new",      "auth": false                       }
+  { "path": "/projects",      "auth": true,  "page_type": "list",   "model": "Project"  },
+  { "path": "/projects/new",  "auth": true,  "page_type": "create"                      },
+  { "path": "/dashboard",     "auth": true,  "page_type": "list",   "model": "Post"     },
+  { "path": "/blog",          "auth": false, "page_type": "list",   "model": "Post"     },
+  { "path": "/blog/new",      "auth": false, "page_type": "create"                      }
 ]
 ```
 
-**Types de pages reconnus par le générateur :**
+**Ce que le générateur produit selon `page_type` :**
 
-| Type | Critères de détection | Ce que le générateur produit |
-|---|---|---|
-| **Liste privée** | `auth: true` + `model` présent + path ne finit pas en `/new` ou `/[id]` | `page.tsx` avec `auth()` + `getAll(userId)` → `<XxxClient items={…} />` |
-| **Liste publique** | `auth: false` + `model` présent + path ne finit pas en `/new` | `page.tsx` sans `auth()` + `getPublished()` → `<XxxClient items={…} />` |
-| **Création** | path finit en `/new` | `page.tsx` minimal → `<XxxNewClient />` (sans données) |
-| **Détail** | path contient `[id]` + `model` présent | `page.tsx` avec `getById(userId, params.id)` → `<XxxDetailClient item={…} />` |
+| `page_type` | `auth` | `page.tsx` généré | `page-client.tsx` stub |
+|---|---|---|---|
+| `"list"` | `true` | `auth()` + `getAll(userId)` → `<XxxClient items={items} />` | `interface XxxClientProps { items: SerializedXxx[] }` |
+| `"list"` | `false` | `getPublished()` sans auth → `<XxxClient items={items} />` | `interface XxxClientProps { items: SerializedXxx[] }` |
+| `"create"` | `true` | `auth()` minimal → `<XxxCreateClient />` | props vides |
+| `"create"` | `false` | minimal sans auth → `<XxxCreateClient />` | props vides |
+| `"detail"` | `true` | `auth()` + `getById(userId, id)` → `<XxxDetailClient item={item} />` | `interface XxxDetailClientProps { item: SerializedXxx }` |
+| `"custom"` | tout | stub minimal, LLM complète | LLM complète |
 
 ---
 
@@ -260,10 +270,10 @@ Liste des flux utilisateurs principaux. Utilisés par le **Journey Validator** p
       "InvoiceItem { id String @id @default(uuid()), description String, quantity Int @default(1), unitPrice Float, invoiceId String, userId String, createdAt DateTime @default(now()), @@index([invoiceId]), @@index([userId]) }"
     ],
     "pages": [
-      { "path": "/clients",      "auth": true,  "model": "Client"  },
-      { "path": "/clients/new",  "auth": true                       },
-      { "path": "/invoices",     "auth": true,  "model": "Invoice"  },
-      { "path": "/invoices/new", "auth": true                       }
+      { "path": "/clients",      "auth": true, "page_type": "list",   "model": "Client"  },
+      { "path": "/clients/new",  "auth": true, "page_type": "create"                     },
+      { "path": "/invoices",     "auth": true, "page_type": "list",   "model": "Invoice" },
+      { "path": "/invoices/new", "auth": true, "page_type": "create"                     }
     ],
     "pages_detail": {
       "/clients":      "Liste de tous les clients. Affiche : nom, email (lien mailto:), téléphone (ou '-'), date d'ajout. Bouton 'Nouveau client' en haut → /clients/new. Bouton 'Supprimer' par ligne → Server Action deleteClient(id). État vide : 'Aucun client. Ajoutez votre premier client !'. [INTERACTIVE]",
@@ -304,11 +314,11 @@ Liste des flux utilisateurs principaux. Utilisés par le **Journey Validator** p
       "Comment { id String @id @default(uuid()), content String, postId String, authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
     ],
     "pages": [
-      { "path": "/blog",           "auth": false, "model": "Post"     },
-      { "path": "/blog/new",       "auth": false                      },
-      { "path": "/dashboard",      "auth": true,  "model": "Post"     },
-      { "path": "/categories",     "auth": true,  "model": "Category" },
-      { "path": "/categories/new", "auth": true                       }
+      { "path": "/blog",           "auth": false, "page_type": "list",   "model": "Post"     },
+      { "path": "/blog/new",       "auth": false, "page_type": "create"                      },
+      { "path": "/dashboard",      "auth": true,  "page_type": "list",   "model": "Post"     },
+      { "path": "/categories",     "auth": true,  "page_type": "list",   "model": "Category" },
+      { "path": "/categories/new", "auth": true,  "page_type": "create"                      }
     ],
     "pages_detail": {
       "/blog":           "PAGE PUBLIQUE — aucun auth() requis. Liste des posts avec status='published'. Affiche : titre, extrait (ou '-'), date. Lien 'Écrire un article' → /blog/new. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
@@ -369,8 +379,9 @@ Liste des flux utilisateurs principaux. Utilisés par le **Journey Validator** p
 [ ] architecture : mentionne ownership + règle mutations + règles auth si pages mixtes
 [ ] models : TOUS ont userId String + createdAt DateTime @default(now()) + @@index([userId])
 [ ] models : @default("...") avec guillemets DOUBLES
-[ ] pages : chaque page de liste a un champ "model" (surtout si le chemin est ambigu)
-[ ] pages : pages /new n'ont PAS de champ "model"
+[ ] pages : chaque page a un champ "page_type" explicite ("list", "create", "detail", "custom")
+[ ] pages : page_type="list" ou "detail" → champ "model" obligatoire
+[ ] pages : page_type="create" → PAS de champ "model"
 [ ] pages_detail : chaque page a son entrée, [INTERACTIVE] si formulaire ou boutons
 [ ] pages_detail : chaque formulaire liste ses champs + Server Action + redirect
 [ ] pages_detail : pages publiques précisent explicitement "PAGE PUBLIQUE — aucun auth()"
@@ -385,3 +396,4 @@ Liste des flux utilisateurs principaux. Utilisés par le **Journey Validator** p
 |---|---|---|
 | 1.0 | Mars 2026 | Structure initiale : description, architecture, models, pages (path+auth), pages_detail, routes, user_flows |
 | 1.1 | Mai 2026 | + champ `pages[].model` (obligatoire pour pages liste/détail) · + support `auth: false` (pages publiques) · + règle entités enfant (userId sur tous les modèles) · + checklist |
+| 1.2 | Mai 2026 | + champ `pages[].page_type` obligatoire (`"list"`, `"create"`, `"detail"`, `"custom"`) — remplace la détection par heuristique sur le path URL · mise à jour des deux exemples (invoice-tracker + personal-blog) · mise à jour checklist · voir `GENERATOR_CONTRACT.md` pour la motivation architecturale |

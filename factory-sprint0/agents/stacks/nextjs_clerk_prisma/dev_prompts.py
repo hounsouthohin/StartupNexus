@@ -411,7 +411,7 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 2. Les fichiers page-client.tsx sont PRÉ-SCAFFOLDÉS avec l'interface props correcte.
    NE PAS modifier l'interface existante — compléter UNIQUEMENT le JSX body.
    Exemple : si tu trouves `interface DashboardClientProps { items: SerializedPost[] }`,
-   le composant DOIT accepter `{ items }: DashboardClientProps` — ne pas changer en `{}`.
+   le composant DOIT accepter `{{ items }}: DashboardClientProps` — ne pas changer en `{{}}`.
    Pour les pages [INTERACTIVE] : le Client Component (page-client.tsx) importe les Server Actions
    depuis './actions' — le chemin d'import exact et les signatures sont injectés au moment de générer ce fichier.
 

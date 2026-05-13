@@ -20,36 +20,14 @@ import logging
 import os
 import re
 
+from .dev_naming import (
+    pascal_to_camel,
+    pascal_to_kebab,
+    path_to_client_component,
+    path_to_page_component,
+)
+
 logger = logging.getLogger(__name__)
-
-# ── Helpers service naming (dupliqués depuis dev_service_generator pour éviter import circulaire) ──
-
-def _pascal_to_camel(name: str) -> str:
-    return name[0].lower() + name[1:] if name else name
-
-
-def _pascal_to_kebab(name: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
-def _client_name(page_path: str) -> str:
-    """'/dashboard' → 'DashboardClient', '/categories/new' → 'CategoriesNewClient'"""
-    parts = [p for p in page_path.strip("/").split("/") if p]
-    cleaned = []
-    for p in parts:
-        p = re.sub(r"[\[\]\.]+", "", p)
-        p = re.sub(r"[^a-zA-Z0-9]", " ", p).title().replace(" ", "")
-        if p:
-            cleaned.append(p)
-    return ("".join(cleaned) or "Home") + "Client"
-
-
-def _is_create_page(page_path: str) -> bool:
-    return page_path.rstrip("/").endswith("/new")
-
-
-def _is_detail_page(page_path: str) -> bool:
-    return "[" in page_path
 
 
 def _model_has_status(model_obj) -> bool:
@@ -58,13 +36,6 @@ def _model_has_status(model_obj) -> bool:
 
 def _model_has_relations(model_obj) -> bool:
     return any("@relation" in (f.attributes or "") for f in model_obj.fields)
-
-
-def _find_model_by_name(spec, name: str):
-    for m in spec.models:
-        if m.name == name:
-            return m
-    return None
 
 
 def _gen_loading_tsx() -> str:
@@ -115,18 +86,6 @@ def generate_loading_files(spec: "ProjectSpec", project_workdir: str) -> None:  
 
 # ── Page stubs (R6) ──────────────────────────────────────────────────────────
 
-def _component_name(page_path: str) -> str:
-    """'dashboard/users/[id]' → 'DashboardUsersIdPage'"""
-    parts = [p for p in page_path.strip("/").split("/") if p]
-    cleaned = []
-    for p in parts:
-        p = re.sub(r"[\[\]\.]+", "", p)   # retire [ ] et points
-        p = re.sub(r"[^a-zA-Z0-9]", " ", p).title().replace(" ", "")
-        if p:
-            cleaned.append(p)
-    return ("".join(cleaned) or "Home") + "Page"
-
-
 def _gen_page_stub(page_path: str, auth_required: bool = True) -> str:
     """
     Génère un stub page.tsx pour un Server Component Next.js.
@@ -136,7 +95,7 @@ def _gen_page_stub(page_path: str, auth_required: bool = True) -> str:
     le régime d'authentification fixé ici de façon déterministe.
     """
     dynamic_params = re.findall(r"\[([^\]]+)\]", page_path)
-    component = _component_name(page_path)
+    component = path_to_page_component(page_path)
 
     lines: list[str] = []
 
@@ -303,11 +262,11 @@ def _gen_page_full(page, model_obj) -> str:
     - Création (auth=False): <XxxClient />            (sans données ni auth)
     """
     name = model_obj.name
-    camel = _pascal_to_camel(name)
-    kebab = _pascal_to_kebab(name)
-    client = _client_name(page.path)
-    component = _component_name(page.path)
-    is_create = _is_create_page(page.path)
+    camel = pascal_to_camel(name)
+    kebab = pascal_to_kebab(name)
+    client = path_to_client_component(page.path)
+    component = path_to_page_component(page.path)
+    is_create = page.page_type == "create"
     has_relations = _model_has_relations(model_obj)
     has_status = _model_has_status(model_obj)
 
@@ -383,7 +342,7 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)
 
         model_name = getattr(page, "model", None)
-        model_obj = _find_model_by_name(spec, model_name) if model_name else None
+        model_obj = spec.get_model_by_name(model_name) if model_name else None
 
         if model_obj is not None:
             content = _gen_page_full(page, model_obj)
@@ -418,8 +377,8 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
 
     for page in spec.pages:
         model_name = getattr(page, "model", None)
-        model_obj = _find_model_by_name(spec, model_name) if model_name else None
-        is_create = _is_create_page(page.path)
+        model_obj = spec.get_model_by_name(model_name) if model_name else None
+        is_create = page.page_type == "create"
 
         client_rel = (
             f"app/{page.path.strip('/')}/page-client.tsx"
@@ -432,7 +391,7 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
             continue
 
         os.makedirs(os.path.dirname(client_abs), exist_ok=True)
-        client = _client_name(page.path)
+        client = path_to_client_component(page.path)
 
         if model_obj is not None and not is_create:
             serialized = f"Serialized{model_obj.name}"

@@ -13,9 +13,10 @@ import hashlib
 import json
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 HTTP_METHOD = Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
+PAGE_TYPE = Literal["list", "create", "detail", "custom"]
 
 
 class PrismaField(BaseModel):
@@ -108,15 +109,36 @@ class AppPage(BaseModel):
         default=True,
         description="True si la page nécessite une authentification Clerk"
     )
+    page_type: PAGE_TYPE = Field(
+        default="custom",
+        description=(
+            "Type explicite de la page — déclaré dans le brief, jamais deviné par heuristique. "
+            "'list'   : page affichant une collection de modèles (model obligatoire). "
+            "'create' : formulaire de création (path finit en /new ou /create). "
+            "'detail' : vue d'un item unique (path contient [id], model obligatoire). "
+            "'custom' : tout autre type (dashboard de stats, landing, etc.)."
+        )
+    )
     model: Optional[str] = Field(
         default=None,
         description=(
             "Nom PascalCase du modèle Prisma principal affiché sur cette page. "
-            "Obligatoire pour les pages de liste et de détail. "
-            "Omis pour les pages de création (/new) et les pages sans données. "
+            "Obligatoire si page_type='list' ou 'detail'. "
+            "Omis pour page_type='create' et 'custom'. "
             "Ex: 'Post' pour /dashboard, 'Category' pour /categories"
         )
     )
+
+    @model_validator(mode="after")
+    def validate_model_required_for_list_detail(self) -> "AppPage":
+        if self.page_type in ("list", "detail") and not self.model:
+            import logging
+            logging.getLogger(__name__).warning(
+                "[AppPage] page_type='%s' sur '%s' sans champ 'model' — "
+                "le générateur ne pourra pas synchroniser les props page.tsx / page-client.tsx.",
+                self.page_type, self.path,
+            )
+        return self
 
 
 class ProjectSpec(BaseModel):
@@ -169,6 +191,75 @@ class ProjectSpec(BaseModel):
         """Retourne une copie avec le fingerprint calculé."""
         self.spec_fingerprint = self.compute_fingerprint()
         return self
+
+    # ── Méthodes de lookup — source de vérité pour tous les générateurs ──────
+
+    def get_model_by_name(self, name: str) -> "Optional[PrismaModel]":
+        """Lookup PascalCase → PrismaModel. Retourne None si absent."""
+        return next((m for m in self.models if m.name == name), None)
+
+    def get_list_page_for_model(self, model_name: str) -> str:
+        """
+        Path de la page liste pour ce modèle.
+
+        Résolution par priorité :
+          1. page.page_type == 'list' ET page.model == model_name  (déclaration explicite)
+          2. Heuristique sur le path (rétrocompat briefs sans page_type)
+          3. Fallback calculé : /{pluralize(kebab(model_name))}
+        """
+        import re as _re
+
+        def _kebab(s: str) -> str:
+            return _re.sub(r"(?<!^)(?=[A-Z])", "-", s).lower()
+
+        def _pluralize(w: str) -> str:
+            if w.endswith("y") and len(w) > 1 and w[-2] not in "aeiou":
+                return w[:-1] + "ies"
+            if w.endswith(("s", "sh", "ch", "x", "z")):
+                return w + "es"
+            return w + "s"
+
+        # 1. Résolution explicite — pages privées prioritaires (mutations → redirect auth)
+        candidates = [p for p in self.pages if p.page_type == "list" and p.model == model_name]
+        if candidates:
+            private = next((p for p in candidates if p.auth_required), None)
+            return (private or candidates[0]).path
+
+        # 2. Heuristique (rétrocompat)
+        kebab = _kebab(model_name)
+        plural = _pluralize(kebab)
+        list_pages = [p.path for p in self.pages if "[" not in p.path and p.path != "/"]
+        if f"/{kebab}" in list_pages:
+            return f"/{kebab}"
+        if f"/{plural}" in list_pages:
+            return f"/{plural}"
+        base = kebab.split("-")[0]
+        for page_path in list_pages:
+            first_seg = page_path.lstrip("/").split("/")[0]
+            if first_seg.startswith(base):
+                return page_path
+
+        # 3. Fallback calculé
+        return f"/{plural}"
+
+    def get_public_pages(self) -> "List[AppPage]":
+        """Pages avec auth_required=False, dans l'ordre du brief."""
+        return [p for p in self.pages if not p.auth_required]
+
+    def get_private_pages(self) -> "List[AppPage]":
+        """Pages avec auth_required=True."""
+        return [p for p in self.pages if p.auth_required]
+
+    def get_pages_for_model(self, model_name: str) -> "List[AppPage]":
+        """Toutes les pages référençant ce modèle via page.model."""
+        return [p for p in self.pages if p.model == model_name]
+
+    def model_has_status_field(self, model_name: str) -> bool:
+        """True si le modèle a un champ nommé 'status'."""
+        m = self.get_model_by_name(model_name)
+        return bool(m and any(f.name.lower() == "status" for f in m.fields))
+
+    # ─────────────────────────────────────────────────────────────────────────
 
     def to_requirements(self) -> List[str]:
         """
