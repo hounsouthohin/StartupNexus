@@ -7,7 +7,7 @@ Chaque service expose 5 fonctions CRUD standard :
   getAll       — findMany filtré par owner_field → SerializedXxx[] (dates string)
   getById      — findFirst par id + owner_field → SerializedXxx | null
   create       — create avec owner_field ajouté depuis auth() → Xxx (Prisma brut)
-  update       — update par id → Xxx (Prisma brut)
+  update       — update par owner + id → Xxx (Prisma brut, IDOR protégé)
   remove       — delete par id + owner_field → void
 
 Les méthodes de lecture retournent SerializedXxx (dates DateTime déjà converties en string
@@ -163,9 +163,9 @@ def _generate_service_for_model(model) -> str:
         "    })",
         "  },",
         "",
-        f"  update: async (id: string, data: Update{name}Input): Promise<{name}> => {{",
+        f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{name}> => {{",
         f"    return prisma.{camel}.update({{",
-        "      where: { id },",
+        f"      where: {{ id, {owner} }},",
         "      data: { ...(data as any) }",
         "    })",
         "  },",
@@ -237,7 +237,7 @@ def format_service_map_for_prompt(spec) -> str:
                 f" ← UTILISER quand la page affiche des champs relationnels (ex: item.{relations[0]}.xxx)"
             )
         lines.append(f"  .create({owner}, data: Create{name}Input)  → `Promise<{name}>`")
-        lines.append(f"  .update(id, data: Update{name}Input)  → `Promise<{name}>`")
+        lines.append(f"  .update({owner}, id, data: Update{name}Input)  → `Promise<{name}>`")
         lines.append(f"  .delete({owner}, id)  → `Promise<void>`")
         lines.append("")
 

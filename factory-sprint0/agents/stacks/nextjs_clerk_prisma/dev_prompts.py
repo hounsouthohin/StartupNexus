@@ -43,31 +43,14 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     except Exception:
         pass
 
-    # Server Actions — chemin dérivé via _find_list_page (même logique que dev_actions_generator)
+    # Server Actions — chemin dérivé via spec.get_list_page_for_model() (source de vérité unique)
     # Garantit que les paths ici == paths dans template_written → exclusion correcte du plan LLM.
-    try:
-        from .dev_actions_generator import _find_list_page as _flp
-        _action_paths: set[str] = set()
-        for model in spec.models:
-            list_page = _flp(model.name, spec)
-            route_dir = list_page.lstrip("/")
-            _action_paths.add(f"app/{route_dir}/actions.ts")
-        files.extend(sorted(_action_paths))
-    except Exception:
-        # Fallback route-based si dev_actions_generator non disponible
-        _planner_actions: set[str] = set()
-        for route in spec.routes:
-            method = (route.method or "").upper()
-            path = route.path or ""
-            is_webhook = "webhook" in path.lower() or "stripe" in path.lower()
-            if not is_webhook and method in ("POST", "PUT", "PATCH", "DELETE"):
-                clean = path.lstrip("/")
-                if clean.startswith("api/"):
-                    clean = clean[4:]
-                seg = clean.split("/")[0] if clean else ""
-                if seg:
-                    _planner_actions.add(f"app/{seg}/actions.ts")
-        files.extend(sorted(_planner_actions))
+    _action_paths: set[str] = set()
+    for model in spec.models:
+        list_page = spec.get_list_page_for_model(model.name)
+        route_dir = list_page.lstrip("/")
+        _action_paths.add(f"app/{route_dir}/actions.ts")
+    files.extend(sorted(_action_paths))
 
     # Webhooks routes (si présentes dans la spec)
     for route in spec.routes:
@@ -404,13 +387,13 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 1. Les fichiers PRÉ-GÉNÉRÉS suivants sont VERROUILLÉS — NE PAS LES RÉÉCRIRE :
    - app/**/actions.ts       : Server Actions CRUD déterministes
    - app/**/page.tsx         : Server Components avec data-fetching déterministe
-     ↳ Ces fichiers passent déjà <XxxClient items={items} /> au Client Component.
+     ↳ Ces fichiers passent déjà <XxxClient items={{items}} /> au Client Component.
      ↳ Ne PAS modifier le nom du prop (toujours `items`), ne PAS recréer page.tsx.
    - lib/services/*.service.ts, lib/types.ts, prisma/schema.prisma : idem
 
 2. Les fichiers page-client.tsx sont PRÉ-SCAFFOLDÉS avec l'interface props correcte.
    NE PAS modifier l'interface existante — compléter UNIQUEMENT le JSX body.
-   Exemple : si tu trouves `interface DashboardClientProps { items: SerializedPost[] }`,
+   Exemple : si tu trouves `interface DashboardClientProps {{ items: SerializedPost[] }}`,
    le composant DOIT accepter `{{ items }}: DashboardClientProps` — ne pas changer en `{{}}`.
    Pour les pages [INTERACTIVE] : le Client Component (page-client.tsx) importe les Server Actions
    depuis './actions' — le chemin d'import exact et les signatures sont injectés au moment de générer ce fichier.
