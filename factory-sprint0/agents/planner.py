@@ -147,27 +147,14 @@ def make_deterministic_plan(
         _model_by_seg[_bk] = _bm
         _model_by_seg[_bk + "s"] = _bm
 
-    # ── 1. Server Actions — une par modèle (chemin via _find_list_page, même logique que dev_actions_generator)
-    # Dériver le path depuis la page liste garantit l'alignement avec les fichiers pré-générés.
+    # ── 1. Server Actions — une par modèle (chemin via spec.get_list_page_for_model, source de vérité unique)
+    # Même logique que dev_actions_generator → alignement garanti avec template_written.
     # Si le fichier est dans template_set (pré-généré), il est sauté → LLM ne le réécrit pas.
-    # Si le générateur a échoué (non-bloquant), le planner le planifie avec le bon chemin.
-    try:
-        from agents.stacks.nextjs_clerk_prisma.dev_actions_generator import _find_list_page as _flp
-        _actions_by_page: dict[str, list] = {}
-        for _bm in spec.models:
-            _lp = _flp(_bm.name, spec)
-            _route_dir = _lp.lstrip("/")
-            _actions_by_page.setdefault(_route_dir, []).append(_bm)
-    except Exception:
-        # Fallback route-based si dev_actions_generator non disponible
-        _actions_by_page = {}
-        for route in spec.routes:
-            if _is_webhook_route(route.path) or not _is_mutation_method(route.method):
-                continue
-            seg = _route_model_segment(route.path)
-            _m = _model_by_seg.get(seg)
-            if _m:
-                _actions_by_page.setdefault(seg, []).append(_m)
+    _actions_by_page: dict[str, list] = {}
+    for _bm in spec.models:
+        _lp = spec.get_list_page_for_model(_bm.name)
+        _route_dir = _lp.lstrip("/")
+        _actions_by_page.setdefault(_route_dir, []).append(_bm)
 
     for seg, _seg_models in _actions_by_page.items():
         file_path = f"app/{seg}/actions.ts"
@@ -391,7 +378,7 @@ def validate_plan(
         if svc not in plan_paths:
             missing.append(svc)
 
-    # Actions ou routes
+    # Webhooks — seuls vrais fichiers route.ts attendus dans le plan
     for route in spec.routes:
         if _is_webhook_route(route.path):
             rpath = route.path
@@ -400,11 +387,17 @@ def validate_plan(
             rf = f"app/api{rpath.rstrip('/')}/route.ts"
             if rf not in plan_paths:
                 missing.append(rf)
-        elif _is_mutation_method(route.method):
-            seg = _route_model_segment(route.path)
-            af = f"app/{seg}/actions.ts"
-            if af not in plan_paths:
-                missing.append(af)
+
+    # Actions — dérivées des pages list (correspondance réelle avec dev_actions_generator)
+    _seen_action_dirs: set[str] = set()
+    for page in spec.pages:
+        if getattr(page, "page_type", "custom") == "list":
+            seg = page.path.lstrip("/")
+            if seg and seg not in _seen_action_dirs:
+                _seen_action_dirs.add(seg)
+                af = f"app/{seg}/actions.ts"
+                if af not in plan_paths:
+                    missing.append(af)
 
     for page in spec.pages:
         ppath = page.path.strip("/")

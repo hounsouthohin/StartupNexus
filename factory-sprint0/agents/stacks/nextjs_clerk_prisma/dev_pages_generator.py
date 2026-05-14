@@ -344,6 +344,10 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
         model_name = getattr(page, "model", None)
         model_obj = spec.get_model_by_name(model_name) if model_name else None
 
+        # Pour les pages create sans model explicite, résoudre via le chemin parent
+        if model_obj is None and getattr(page, "page_type", None) == "create":
+            model_obj = _find_create_model(page, spec)
+
         if model_obj is not None:
             content = _gen_page_full(page, model_obj)
             with open(page_abs, "w", encoding="utf-8") as f:
@@ -361,24 +365,223 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
     return written
 
 
+# ── Helpers générateur stubs UI ──────────────────────────────────────────────
+
+def _form_fields(model_obj) -> list:
+    """
+    Retourne (field_name, input_type, is_required) pour les champs du formulaire Create.
+    Exclut : id, createdAt, updatedAt, owner_field, champs @relation, tableaux.
+    """
+    _TEXTAREA_NAMES = {"content", "description", "body", "notes", "message", "text", "bio", "about", "details"}
+    owner = model_obj.resolved_owner()
+    excluded = {"id", "createdAt", "updatedAt", owner}
+    result = []
+    for field in model_obj.fields:
+        name = field.name
+        if name in excluded:
+            continue
+        if "@relation" in (field.attributes or ""):
+            continue
+        if field.type.endswith("[]"):
+            continue
+        is_required = not field.type.endswith("?")
+        base_type = field.type.rstrip("?")
+        if base_type == "Boolean":
+            input_type = "checkbox"
+        elif base_type in ("Int", "Float"):
+            input_type = "number"
+        elif base_type == "DateTime":
+            input_type = "datetime-local"
+        elif name.lower() in _TEXTAREA_NAMES:
+            input_type = "textarea"
+        else:
+            input_type = "text"
+        result.append((name, input_type, is_required))
+    return result
+
+
+def _display_fields(model_obj) -> list:
+    """Retourne les 2 premiers champs String/Int affichables (non-système)."""
+    owner = model_obj.resolved_owner()
+    excluded = {"id", "createdAt", "updatedAt", owner}
+    result = []
+    for field in model_obj.fields:
+        if field.name in excluded:
+            continue
+        if "@relation" in (field.attributes or ""):
+            continue
+        if field.type.endswith("[]"):
+            continue
+        if field.type.rstrip("?") in ("String", "Int", "Float"):
+            result.append(field.name)
+        if len(result) >= 2:
+            break
+    return result or ["id"]
+
+
+def _find_create_model(page, spec):
+    """
+    Trouve le PrismaModel pour une page create en remontant via le chemin parent.
+    Ex: /blog/new → parent /blog → model Post.
+    """
+    if getattr(page, "model", None):
+        return spec.get_model_by_name(page.model)
+    parts = page.path.strip("/").split("/")
+    if len(parts) >= 2:
+        parent_path = "/" + "/".join(parts[:-1])
+        parent = next((p for p in spec.pages if p.path == parent_path), None)
+        if parent and getattr(parent, "model", None):
+            return spec.get_model_by_name(parent.model)
+    return None
+
+
+def _compute_relative_import(from_file: str, to_module: str) -> str:
+    """
+    Calcule l'import relatif TypeScript entre deux chemins posix.
+    from_file : 'app/blog/new/page-client.tsx'
+    to_module  : 'app/dashboard/actions'
+    Retourne   : '../../dashboard/actions'
+    """
+    from_parts = from_file.replace("\\", "/").split("/")[:-1]
+    to_parts = to_module.replace("\\", "/").split("/")
+    common = 0
+    for a, b in zip(from_parts, to_parts):
+        if a == b:
+            common += 1
+        else:
+            break
+    up = len(from_parts) - common
+    down = to_parts[common:]
+    parts = [".."] * up + down
+    rel = "/".join(parts) if parts else "."
+    return rel if rel.startswith(".") else f"./{rel}"
+
+
+def _gen_page_client_list(page, model_obj) -> str:
+    """page-client.tsx pour une list page — affiche les items sous forme de cards."""
+    name = model_obj.name
+    client = path_to_client_component(page.path)
+    serialized = f"Serialized{name}"
+    display = _display_fields(model_obj)
+
+    lines = [
+        "'use client'",
+        f"import type {{ {serialized} }} from '@/lib/types'",
+        "",
+        f"interface {client}Props {{",
+        f"  items: {serialized}[]",
+        "}",
+        "",
+        f"export default function {client}({{ items }}: {client}Props) {{",
+        "  return (",
+        '    <main className="container mx-auto p-6">',
+        f'      <h1 className="text-2xl font-bold mb-6">{name}s</h1>',
+        "      {items.length === 0 ? (",
+        '        <p className="text-gray-500">Aucun élément.</p>',
+        "      ) : (",
+        '        <ul className="space-y-4">',
+        "          {items.map((item) => (",
+        '            <li key={item.id} className="border rounded p-4 bg-white shadow-sm">',
+    ]
+
+    for field_name in display:
+        lines.append(f'              <p className="font-medium">{{item.{field_name}}}</p>')
+
+    lines += [
+        '              <p className="text-xs text-gray-400">{item.createdAt}</p>',
+        "            </li>",
+        "          ))}",
+        "        </ul>",
+        "      )}",
+        "    </main>",
+        "  )",
+        "}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
+    """page-client.tsx pour une create page — formulaire avec champs du modèle."""
+    name = model_obj.name
+    client = path_to_client_component(page.path)
+    create_fn = f"create{name}"
+
+    list_page = spec.get_list_page_for_model(name)
+    route_dir = list_page.lstrip("/")
+    actions_module = f"app/{route_dir}/actions"
+    import_path = _compute_relative_import(client_rel, actions_module)
+
+    fields = _form_fields(model_obj)
+
+    lines = [
+        "'use client'",
+        f"import {{ {create_fn} }} from '{import_path}'",
+        "",
+        f"export default function {client}() {{",
+        "  return (",
+        '    <main className="container mx-auto p-6 max-w-lg">',
+        f'      <h1 className="text-2xl font-bold mb-6">Nouveau {name}</h1>',
+        f'      <form action={{{create_fn}}} className="space-y-4">',
+    ]
+
+    for field_name, input_type, required in fields:
+        req_attr = " required" if required else ""
+        if input_type == "textarea":
+            lines += [
+                "        <div>",
+                f'          <label className="block text-sm font-medium mb-1">{field_name}</label>',
+                f'          <textarea name="{field_name}" rows={{4}} className="w-full border rounded px-3 py-2"{req_attr} />',
+                "        </div>",
+            ]
+        elif input_type == "checkbox":
+            lines += [
+                '        <div className="flex items-center gap-2">',
+                f'          <input name="{field_name}" type="checkbox" />',
+                f'          <label className="text-sm font-medium">{field_name}</label>',
+                "        </div>",
+            ]
+        else:
+            lines += [
+                "        <div>",
+                f'          <label className="block text-sm font-medium mb-1">{field_name}</label>',
+                f'          <input name="{field_name}" type="{input_type}" className="w-full border rounded px-3 py-2"{req_attr} />',
+                "        </div>",
+            ]
+
+    lines += [
+        '        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
+        "          Créer",
+        "        </button>",
+        "      </form>",
+        "    </main>",
+        "  )",
+        "}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+# ── Stubs page-client (déterministes) ────────────────────────────────────────
+
 def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, str]:  # type: ignore[name-defined]
     """
-    Génère app/<path>/page-client.tsx avec l'interface props correcte pour chaque
-    page ayant un champ `model`. Le fichier N'EST PAS dans template_written — le LLM
-    complète le JSX body tout en conservant l'interface déjà définie.
+    Génère app/<path>/page-client.tsx pour chaque page du spec.
 
-    Garantit la cohérence avec page.tsx (locked) :
-    page.tsx passe   <XxxClient items={items} />
-    page-client.tsx  interface XxxClientProps { items: SerializedXxx[] }
+    Régimes :
+    - list  + model  → list UI (cards) avec SerializedXxx[] props
+    - create + model trouvable → form avec champs + import Server Action
+    - create sans model         → form générique vide (mieux que <div />)
+    - autres                    → stub minimal
 
-    Retourne {rel_path: content} pour traçabilité.
+    Retourne {rel_path: content} — ajouté à template_written dans dev_graph.py
+    pour que le planner exclue ces fichiers et que write_file les protège.
     """
     written: dict[str, str] = {}
 
     for page in spec.pages:
         model_name = getattr(page, "model", None)
-        model_obj = spec.get_model_by_name(model_name) if model_name else None
-        is_create = page.page_type == "create"
+        model_obj  = spec.get_model_by_name(model_name) if model_name else None
 
         client_rel = (
             f"app/{page.path.strip('/')}/page-client.tsx"
@@ -393,22 +596,35 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
         os.makedirs(os.path.dirname(client_abs), exist_ok=True)
         client = path_to_client_component(page.path)
 
-        if model_obj is not None and not is_create:
-            serialized = f"Serialized{model_obj.name}"
-            content = "\n".join([
-                "'use client'",
-                f"import type {{ {serialized} }} from '@/lib/types'",
-                "",
-                f"interface {client}Props {{",
-                f"  items: {serialized}[]",
-                "}",
-                "",
-                f"export default function {client}({{ items }}: {client}Props) {{",
-                "  return <div />",
-                "}",
-                "",
-            ])
+        if page.page_type == "list" and model_obj is not None:
+            content = _gen_page_client_list(page, model_obj)
+
+        elif page.page_type == "create":
+            create_model = model_obj or _find_create_model(page, spec)
+            if create_model is not None:
+                content = _gen_page_client_create(page, create_model, spec, client_rel)
+            else:
+                # Formulaire générique sans champs (pas de model détecté)
+                content = "\n".join([
+                    "'use client'",
+                    "",
+                    f"export default function {client}() {{",
+                    "  return (",
+                    '    <main className="container mx-auto p-6 max-w-lg">',
+                    '      <h1 className="text-2xl font-bold mb-6">Nouveau</h1>',
+                    '      <form className="space-y-4">',
+                    '        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
+                    "          Créer",
+                    "        </button>",
+                    "      </form>",
+                    "    </main>",
+                    "  )",
+                    "}",
+                    "",
+                ])
+
         else:
+            # detail / custom — stub minimal
             content = "\n".join([
                 "'use client'",
                 "",
@@ -421,7 +637,7 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
         with open(client_abs, "w", encoding="utf-8") as f:
             f.write(content)
         written[client_rel] = content
-        logger.info("[pages_gen] ✓ page-client stub : %s", client_rel)
+        logger.info("[pages_gen] ✓ page-client : %s (%s)", client_rel, page.page_type)
 
-    logger.info("[pages_gen] %d page-client stubs écrits", len(written))
+    logger.info("[pages_gen] %d page-client générés de manière déterministe", len(written))
     return written

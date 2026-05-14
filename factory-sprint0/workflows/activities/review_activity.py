@@ -133,6 +133,38 @@ def _fetch_reviewer_standards(stack_id: str) -> str:
         return ""
 
 
+# ── Auth contract (contrainte ferme pour le reviewer) ─────────────────────────
+
+def _build_page_auth_contract(spec: dict) -> str:
+    """
+    Table compacte {path → auth | type | model} construite depuis project_spec.pages.
+    Injectée dans le reviewer comme contrainte non-négociable pour éviter l'oscillation
+    add-auth / remove-auth sur des pages dont le régime est fixé par le brief.
+    """
+    pages = spec.get("pages") or []
+    if not pages:
+        return ""
+    lines = [
+        "### PAGE AUTH CONTRACT (source de vérité — CONTRAINTE NON NÉGOCIABLE)",
+        "NE PAS flagguer ces pages pour leur régime d'auth — il est fixé par le brief.\n",
+    ]
+    for page in pages:
+        if isinstance(page, dict):
+            path   = page.get("path", "?")
+            auth   = page.get("auth_required", True)
+            p_type = page.get("page_type", "custom")
+            model  = page.get("model") or ""
+        else:
+            path   = getattr(page, "path", "?")
+            auth   = getattr(page, "auth_required", True)
+            p_type = getattr(page, "page_type", "custom")
+            model  = getattr(page, "model", None) or ""
+        auth_str  = "auth_required" if auth else "public"
+        model_str = f" | model: {model}" if model else ""
+        lines.append(f"{path} → {auth_str} | type: {p_type}{model_str}")
+    return "\n".join(lines)
+
+
 # ── Temporal Activity ─────────────────────────────────────────────────────────
 
 @activity.defn(name="review_activity")
@@ -179,6 +211,7 @@ async def review_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
     brief = str(input_data.get("brief", ""))
     spec = input_data.get("spec", {}) or {}
     user_flows = input_data.get("user_flows", []) or []
+    page_auth_contract = _build_page_auth_contract(spec)
     generated_files = input_data.get("generated_files", {}) or {}
 
     activity.logger.info(
@@ -215,6 +248,7 @@ async def review_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
             rag_standards=rag_standards,
             run_id=run_id,
             stack_id=stack_id,
+            page_auth_contract=page_auth_contract,
         )
     except Exception as e:
         activity.logger.error(f"[review_activity] run_reviewer échoué: {e}", exc_info=True)

@@ -254,8 +254,10 @@ async def run_dev_agent(
             _page_files = generate_page_stubs(spec_obj, project_workdir)
             template_written.update(_page_files)
 
-            # Stubs page-client avec interface correcte → pré-écrits, LLM peut compléter
-            generate_page_client_stubs(spec_obj, project_workdir)
+            # Stubs page-client déterministes (list UI + create form) → template_written
+            # Le planner les exclut ; write_file les protège via _protected.
+            _client_stubs = generate_page_client_stubs(spec_obj, project_workdir)
+            template_written.update(_client_stubs)
 
             generate_loading_files(spec_obj, project_workdir)
             generate_error_files(spec_obj, project_workdir)
@@ -413,7 +415,9 @@ async def run_dev_agent(
     # Protéger lib/ (types, schemas, services) + app/**/actions.ts contre réécriture LLM.
     _protected.update(
         k for k in template_written
-        if k.startswith("lib/") or k.endswith("/actions.ts")
+        if k.startswith("lib/")
+        or k.endswith("/actions.ts")
+        or k.endswith("page-client.tsx")
     )
     _dev_tools_module.set_protected_files(_protected)
 

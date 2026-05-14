@@ -206,10 +206,6 @@ async def planner_node(state: AgentState) -> dict:
             + [f"L'utilisateur visite {p.path}" for p in pages]
         )
     )
-    architecture_hint = brief.get("architecture", "")
-    if architecture_hint and isinstance(architecture_hint, str):
-        user_flows = [f"[ARCHITECTURE] {architecture_hint}"] + user_flows
-
     brief_description = str(brief.get("description", "")).strip()
     brief_pages_detail = brief.get("pages_detail", {})
     if not isinstance(brief_pages_detail, dict):

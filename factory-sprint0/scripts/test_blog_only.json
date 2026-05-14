@@ -1,9 +1,11 @@
 [
   {
     "project_name": "personal-blog",
+    "family": "blog",
+    "tags": ["public_pages", "mixed_auth"],
     "brief": {
-      "description": "Blog personnel SaaS. L'auteur gère ses articles et catégories depuis son tableau de bord privé. Les visiteurs peuvent lire les articles publiés sans compte.",
-      "architecture": "SaaS single-tenant — tableau de bord protégé par Clerk, lectures publiques sans auth. Post est lié à Category via categoryId (owner_field=userId sur Post). Un Post a un champ status String: 'draft' par défaut, 'published' quand publié — seuls les posts published sont visibles sur /blog. Comment est lié à Post via postId (owner_field=authorId). RÈGLE CRITIQUE : les routes /blog et /blog/new sont publiques — leurs Server Components NE DOIVENT PAS appeler auth() ni redirect('/sign-in'). Les routes /dashboard et /categories sont protégées — elles appellent auth() + redirect. postService.getPublished() filtre where: { status: 'published' } SANS userId. postService.getAll(userId) filtre where: { userId }. Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations.",
+      "description": "Blog personnel. L'auteur gère ses articles et catégories depuis son tableau de bord privé. Les visiteurs lisent les articles publiés sans compte.",
+      "architecture": "SaaS single-tenant. Post lié à Category via categoryId. Comment lié à Post via postId (owner_field=authorId). Tableau de bord privé (auth), lectures publiques sur /blog sans compte.",
       "models": [
         "Category { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
         "Post { id String @id @default(uuid()), title String, excerpt String?, status String @default(\"draft\"), categoryId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }",
@@ -17,11 +19,11 @@
         { "path": "/categories/new", "auth": true,  "page_type": "create"                      }
       ],
       "pages_detail": {
-        "/blog": "PAGE PUBLIQUE — aucun auth() requis. Liste des posts avec status='published'. Affiche : titre, extrait (ou '-'), date de création. Lien 'Écrire un article' → /blog/new. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
-        "/blog/new": "PAGE PUBLIQUE — aucun auth() requis. Formulaire de création d'article. Champs : titre (input text, required), extrait (textarea, optionnel), categoryId (input text, required, placeholder 'ID de la catégorie'). Bouton 'Publier'. Submit → Server Action createPost({ title, excerpt, categoryId }) → redirect /dashboard. [INTERACTIVE]",
-        "/dashboard": "PAGE PROTÉGÉE — auth() + redirect('/sign-in') obligatoires. Liste de TOUS les articles de l'auteur connecté (drafts + published). Affiche : titre, statut (badge : draft=gris, published=vert), date de création. Bouton 'Supprimer' par ligne → Server Action deletePost(id). État vide : 'Aucun article. Créez votre premier article sur /blog/new.'. [INTERACTIVE]",
-        "/categories": "PAGE PROTÉGÉE — auth() + redirect('/sign-in') obligatoires. Liste des catégories de l'auteur. Affiche : nom, date de création. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' par ligne → Server Action deleteCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
-        "/categories/new": "PAGE PROTÉGÉE — auth() + redirect('/sign-in') obligatoires. Formulaire de création de catégorie. Champ : nom (input text, required). Bouton 'Créer la catégorie'. Submit → Server Action createCategory({ name }) → redirect /categories. [INTERACTIVE]"
+        "/blog":           "Liste des posts publiés. Affiche : titre, extrait (ou '-'), date. Lien 'Écrire un article' → /blog/new. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
+        "/blog/new":       "Formulaire de création d'article. Champs : titre (text, required), extrait (textarea, optionnel), categoryId (text, required, placeholder 'ID de la catégorie'). Submit → createPost({ title, excerpt, categoryId }) → redirect /dashboard. [INTERACTIVE]",
+        "/dashboard":      "Liste de TOUS les articles de l'auteur (drafts + published). Affiche : titre, statut (badge : draft=gris, published=vert), date. Bouton 'Supprimer' → deletePost(id). État vide : 'Aucun article.'. [INTERACTIVE]",
+        "/categories":     "Liste des catégories. Affiche : nom, date. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' → deleteCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
+        "/categories/new": "Formulaire de création de catégorie. Champ : nom (text, required). Submit → createCategory({ name }) → redirect /categories. [INTERACTIVE]"
       },
       "routes": [
         { "method": "POST",   "path": "/api/posts" },
@@ -31,10 +33,10 @@
       ],
       "user_flows": [
         "Un visiteur lit les articles publiés : /blog → postService.getPublished() sans auth",
-        "L'auteur écrit un article : /blog/new → Server Action createPost() → redirect /dashboard",
+        "L'auteur écrit un article : /blog/new → createPost() → redirect /dashboard",
         "L'auteur gère ses articles : /dashboard → postService.getAll(userId) avec auth",
-        "L'auteur supprime un article : bouton Supprimer → Server Action deletePost(id)",
-        "L'auteur crée une catégorie : /categories/new → Server Action createCategory() → redirect /categories"
+        "L'auteur supprime un article : bouton Supprimer → deletePost(id)",
+        "L'auteur crée une catégorie : /categories/new → createCategory() → redirect /categories"
       ]
     }
   }

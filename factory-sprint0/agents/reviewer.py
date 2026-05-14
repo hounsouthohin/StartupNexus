@@ -39,10 +39,14 @@ def _build_human_message(
     user_flows: list,
     selected_files: dict[str, str],
     rag_standards: str,
+    page_auth_contract: str = "",
 ) -> str:
     parts: list[str] = []
 
     parts.append("## BRIEF ORIGINAL\n" + (brief or "(absent)"))
+
+    if page_auth_contract:
+        parts.append(page_auth_contract)
 
     entities = spec.get("entities") or spec.get("models") or []
     routes = spec.get("routes") or []
@@ -107,6 +111,7 @@ async def run_reviewer(
     rag_standards: str,
     run_id: str,
     stack_id: str = "nextjs-clerk-prisma",
+    page_auth_contract: str = "",
 ) -> dict[str, Any]:
     """
     Lance la revue sémantique post-build.
@@ -127,7 +132,7 @@ async def run_reviewer(
     from langchain_openai import ChatOpenAI
 
     system_prompt = _load_reviewer_prompt(stack_id)
-    human_content = _build_human_message(brief, spec, user_flows, selected_files, rag_standards)
+    human_content = _build_human_message(brief, spec, user_flows, selected_files, rag_standards, page_auth_contract)
 
     llm = ChatOpenAI(
         model=_REVIEWER_MODEL,
