@@ -317,7 +317,9 @@
     "app/api/health/route.ts": "templates/app_api_health_route.ts",
     "app/api/webhooks/clerk/route.ts": "templates/webhooks_clerk_route.ts",
     "prisma.config.ts": "templates/prisma_config.ts",
-    "prisma/schema.prisma": "templates/prisma_schema.prisma"
+    "prisma/schema.prisma": "templates/prisma_schema.prisma",
+    "app/sign-in/[[...sign-in]]/page.tsx": "templates/app_signin_page.tsx",
+    "app/sign-up/[[...sign-up]]/page.tsx": "templates/app_signup_page.tsx"
   },
   "scaffold_extends": {
     "prisma/schema.prisma": {
@@ -341,6 +343,8 @@
       "lib/logger.ts",
       "app/api/health/route.ts",
       "app/page.tsx",
+      "app/sign-in/[[...sign-in]]/page.tsx",
+      "app/sign-up/[[...sign-up]]/page.tsx",
       "jest.config.js",
       "jest.setup.js"
     ],

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
@@ -40,6 +41,7 @@
     "eslint-config-next": "14.2.25",
     "eslint-plugin-import": "^2.29.1",
     "@typescript-eslint/parser": "^6.0.0",
-    "@typescript-eslint/typescript-estree": "^6.0.0"
+    "@typescript-eslint/typescript-estree": "^6.0.0",
+    "dotenv": "^16.0.0"
   }
 }
