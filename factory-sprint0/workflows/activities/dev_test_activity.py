@@ -15,9 +15,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 from utils.run_report import write_run_report as _write_run_report
 
-# 1 retry TSC activé : les erreurs résiduelles post-génération (ex: import manquant) sont corrigibles
-# en un tour. Au-delà de 1, le LLM boucle sans convergence (observé sur runs 02-05/2026).
-MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 1
+# 0 retry TSC : le retry complet relançait run_dev_agent en intégralité (coûteux, efface workdir).
+# Les erreurs TS résiduelles sont traitées en correction_pass_activity (chirurgicale).
+MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 0
 
 
 def _classify_root_cause(
@@ -799,7 +799,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 "conformity_score": round(spec_coverage, 3),
                 "security_score": 1.0 if _check_clerk_compliant({"combined_files": combined_files}) else 0.0,
                 "architecture_score": round(journey_metrics.get("user_flows_coverage", 0.0), 3),
-                "build_corrections_count": build_attempts,
+                "build_corrections_count": max(0, build_attempts - 1),
                 "quality_violations_count": quality_violations_count,
                 "quality_violations": quality_violations,
             },
@@ -930,7 +930,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "quality_violations_count": quality_violations_count,
             "quality_violations": quality_violations,
             "error": runtime_error,
-            "root_cause_category": _classify_root_cause(
+            "root_cause_category": "success" if build_success else _classify_root_cause(
                 last_build_error=last_build_error_full or last_build_error,
                 last_test_error=last_test_error,
                 semantic_violations=semantic_violations,

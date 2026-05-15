@@ -1,3 +1,5 @@
+> [ARCHIVED] — Inutilisé depuis Option-A (26 Avr 2026). L'architect est désormais entièrement déterministe (planner_node, zéro appel LLM). Ce fichier ne sera jamais chargé par load_stack_prompt("architect", ...).
+
 ## REGLES STACK — nextjs-clerk-prisma
 
 ### CONTEXTE OBLIGATOIRE

@@ -183,9 +183,19 @@ def _is_covered(path: str, combined_files: dict, _route_table: "dict | None" = N
         if c in file_keys:
             return True
 
-    # API routes : pas de route table page — seul route.ts compte
+    # API routes : route.ts introuvable → fallback Server Actions (Option A).
+    # Depuis la migration Option A, les mutations POST/PUT/DELETE sont dans actions.ts
+    # et non plus dans app/api/.../route.ts. Un flow "/api/projects" est couvert si
+    # app/projects/actions.ts existe (premier segment statique du chemin API).
     normalized = path.strip("/")
     if normalized.startswith("api/") or "/api/" in normalized:
+        rest = normalized[4:] if normalized.startswith("api/") else normalized
+        segs = rest.split("/")
+        first_static = next((s for s in segs if s and not s.startswith("[")), None)
+        if first_static:
+            actions_path = f"app/{first_static}/actions.ts"
+            if actions_path in file_keys:
+                return True
         return False
 
     # Route table déterministe — segment exact, pas de substring matching
@@ -272,12 +282,15 @@ def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any
             else:
                 logger.debug(f"[journey_validator][llm] skipped flow='{flow}' reason='{reason}'")
 
-    resolvable_total = len(covered) + len(uncovered)
-    coverage = len(covered) / resolvable_total if resolvable_total > 0 else 1.0
+    # Dénominateur = total flows (unresolvable comptent comme non-couverts).
+    # Utiliser resolvable_total seulement gonflait le ratio : 2 couverts / 2 résolvables = 1.0
+    # alors que 3 flows sur 5 étaient non-résolvables (et donc non-vérifiés).
+    total_flows = len(user_flows)
+    coverage = len(covered) / total_flows if total_flows > 0 else 1.0
     is_useful = coverage >= USER_FLOWS_USEFUL_THRESHOLD
 
     logger.info(
-        f"[journey_validator] {len(covered)}/{resolvable_total} flows couverts "
+        f"[journey_validator] {len(covered)}/{total_flows} flows couverts "
         f"({coverage:.0%}) — is_useful_app={is_useful} "
         f"(seuil={USER_FLOWS_USEFUL_THRESHOLD:.0%}, unresolvable={len(unresolvable)})"
     )

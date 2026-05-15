@@ -61,7 +61,7 @@ class DevState(TypedDict):
 
 
 def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
-    """Garde system messages + premier HumanMessage (spec) + 5 derniers rounds."""
+    """Garde system messages + premier HumanMessage (spec) + 3 derniers rounds."""
     if len(messages) <= 8:
         return messages
 
@@ -87,7 +87,7 @@ def _prune_messages(messages: list[BaseMessage]) -> list[BaseMessage]:
     if current:
         rounds.append(current)
 
-    recent = [m for round_ in rounds[-5:] for m in round_]
+    recent = [m for round_ in rounds[-3:] for m in round_]
 
     seen: set[int] = set()
     result: list[BaseMessage] = []
@@ -250,6 +250,16 @@ async def run_dev_agent(
             _mw_files = generate_middleware(spec_obj, project_workdir)
             template_written.update(_mw_files)
 
+            # Page racine déterministe EN PREMIER : doit précéder generate_page_stubs
+            # pour que le fichier existe et soit ignoré par generate_page_stubs
+            # (qui écrirait sinon un stub `return <div />` non protégé).
+            if generate_root_page_if_needed(spec_obj, project_workdir):
+                try:
+                    with open(os.path.join(project_workdir, "app", "page.tsx"), "r", encoding="utf-8") as _rp:
+                        template_written["app/page.tsx"] = _rp.read()
+                except Exception:
+                    pass
+
             # Pages entièrement déterministes (model field présent) → template_written
             _page_files = generate_page_stubs(spec_obj, project_workdir)
             template_written.update(_page_files)
@@ -261,15 +271,6 @@ async def run_dev_agent(
 
             generate_loading_files(spec_obj, project_workdir)
             generate_error_files(spec_obj, project_workdir)
-            # Page racine déterministe : si '/' est dans le spec sans pages_detail,
-            # on génère un redirect Python pour éviter que le LLM improvise un dashboard
-            # qui accèderait à des relations inexistantes dans SerializedXxx (→ TS2551).
-            if generate_root_page_if_needed(spec_obj, project_workdir):
-                try:
-                    with open(os.path.join(project_workdir, "app", "page.tsx"), "r", encoding="utf-8") as _rp:
-                        template_written["app/page.tsx"] = _rp.read()
-                except Exception:
-                    pass
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
@@ -542,13 +543,20 @@ async def run_dev_agent(
         # Plan-and-Execute : guidage fichier par fichier.
         else:
             if _plan_failed:
-                # Plan non généré (spec invalide) — ne pas déclencher le build à vide
-                logger.error("[executor] plan_failed=True — run en mode sans plan (LLM libre)")
-            elif _next_entry is None and not _plan:
-                # Plan vide ET aucun fichier validé : anomalie
-                logger.error("[executor] plan vide et aucun fichier validé — run sans guidage")
+                # Plan non généré (spec invalide) — arrêt immédiat sans appel LLM.
+                # tools_condition verra un HumanMessage comme dernier message → __end__.
+                logger.error("[executor] plan_failed=True — arrêt immédiat BUILD_FAILED")
+                return {
+                    "last_build_error": "PLAN_FAILED: spec invalide — plan non généré",
+                    "build_command_executed": True,
+                    "build_attempts": MAX_BUILD_ATTEMPTS,
+                    "success": False,
+                }
             elif _next_entry is None:
-                # Tous les fichiers valides : declencher le build
+                # Tous les fichiers du plan couverts OU plan vide (Option A : tout pré-généré).
+                # Dans les deux cas → déclencher le build.
+                if not _plan:
+                    logger.info("[executor] plan vide (tout pré-généré par templates) — déclenchement build direct")
                 messages.append(HumanMessage(content=(
                     f"Tous les {len(_plan)} fichiers du plan ont ete ecrits. "
                     "Execute maintenant dans cet ordre EXACT :\n"
@@ -808,7 +816,7 @@ async def run_dev_agent(
     }
 
     try:
-        result = await graph.ainvoke(initial_state, {"recursion_limit": 600})
+        result = await graph.ainvoke(initial_state, {"recursion_limit": 100})
 
         # ── Signal de succès unique : build_command_executed + build_exit_code == 0 ──
         # Phase B : on ne surcharge plus le résultat depuis .next/ sur disque.

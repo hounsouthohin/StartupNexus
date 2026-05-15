@@ -73,13 +73,14 @@ def _apply_targeted_fixes(
         if current_code and current_code.strip() in original_content:
             new_content = original_content.replace(current_code.strip(), fix_code.strip(), 1)
         else:
-            # Si current_code introuvable, on écrase le fichier complet avec fix_code
-            # (dernier recours — le reviewer a produit fix_code comme bloc complet)
+            # current_code introuvable → skip pour ne pas écraser le fichier entier
+            # (un remplacement aveugle détruirait du code valide si le reviewer a
+            # produit un fix_code partiel qui ne correspond pas au contenu actuel).
             activity.logger.warning(
                 f"[correction_pass] current_code introuvable dans {rel_path} — "
-                "remplacement fichier complet"
+                "fix ignoré (skip safe)"
             )
-            new_content = fix_code
+            continue
 
         try:
             target.write_text(new_content, encoding="utf-8")

@@ -195,6 +195,18 @@ def _dep_actions(path: str, spec_obj, workdir: str, service_map_str: str) -> str
     return dep
 
 
+def _singularize(word: str) -> list[str]:
+    """Returns candidate singular forms for an English plural path segment."""
+    candidates = [word]
+    if word.endswith("ies"):
+        candidates.append(word[:-3] + "y")   # activities → activity
+    if word.endswith("es") and len(word) > 3:
+        candidates.append(word[:-2])          # invoices → invoic... but also catches -ches/-shes
+    if word.endswith("s") and not word.endswith("ss"):
+        candidates.append(word[:-1])          # projects → project
+    return list(dict.fromkeys(candidates))    # deduplicate, preserve order
+
+
 def _dep_route(path: str, workdir: str) -> str:
     dep = ""
     types_content = _read_file_safe(os.path.join(workdir, "lib", "types.ts"), 800)
@@ -207,7 +219,7 @@ def _dep_route(path: str, workdir: str) -> str:
         if s not in ("app", "api", "route.ts", "") and not s.startswith("[")
     ]
     for seg in reversed(route_segs):
-        for sv in [seg, seg.rstrip("s")]:
+        for sv in _singularize(seg):
             svc_content = _read_file_safe(
                 os.path.join(workdir, "lib", "services", f"{sv}.service.ts"), 600
             )

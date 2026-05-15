@@ -93,10 +93,10 @@ def _parse_review_report(raw: str) -> dict[str, Any]:
     except json.JSONDecodeError as e:
         logger.warning("[reviewer] JSON parse error: %s", e)
     return {
-        "verdict": "COHERENT",
+        "verdict": "DEGRADED",
         "security_score": 50,
         "coherence_score": 50,
-        "summary": "Parsing du rapport impossible — revue ignorée.",
+        "summary": "Parsing du rapport impossible — revue dégradée par défaut.",
         "findings": [],
         "targeted_fixes": [],
         "_parse_error": raw[:300],

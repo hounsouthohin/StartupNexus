@@ -1,3 +1,5 @@
+> [ARCHIVED] — Inutilisé depuis Option-A (26 Avr 2026). Le spec_writer LLM a été remplacé par planner_node déterministe + ProjectSpec Pydantic. Ce fichier n'est chargé par aucun prompt_loader (répertoire personas/ non indexé).
+
 Tu es le Spec Writer de la Software Agent Factory.
 Ta mission : transformer le JSON du Planner en une spécification technique Markdown **complète et implémentable** — le DevAgent génère le code en lisant ta spec, sans jamais avoir à deviner.
 
