@@ -256,9 +256,11 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     Le fichier résultant est ajouté à template_written → le LLM ne peut pas l'écraser.
 
     Patterns générés :
-    - Liste privée  : auth() + getAll(userId) ou getAllWithRelations(userId) → <XxxClient items={items} />
-    - Liste publique: getPublished() sans userId                             → <XxxClient items={items} />
-    - Création      : auth() + fetch FK options si champs FK présents → <XxxClient fkOptions={...} />
+    - Liste privée  : auth() + getAll(userId) → <XxxClient items={items} />
+    - Liste publique: getPublished() / getAll() sans auth → <XxxClient items={items} />
+    - Création      : auth() + fetch FK options → <XxxClient fkOptions={...} />
+    - Détail privé  : auth() + getById(userId, params.id) + notFound() → <XxxClient item={item} />
+    - Détail public : prisma.model.findUnique(params.id) + notFound() → <XxxClient item={item} />
     """
     name = model_obj.name
     camel = pascal_to_camel(name)
@@ -266,6 +268,7 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     client = path_to_client_component(page.path)
     component = path_to_page_component(page.path)
     is_create = page.page_type == "create"
+    is_detail = page.page_type == "detail"
     has_relations = _model_has_relations(model_obj)
     has_status = _model_has_status(model_obj)
 
@@ -276,15 +279,25 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
 
     lines: list[str] = []
 
+    # Auth import
     if page.auth_required:
-        lines += [
-            "import { auth } from '@clerk/nextjs/server'",
-            "import { redirect } from 'next/navigation'",
-        ]
+        lines.append("import { auth } from '@clerk/nextjs/server'")
 
-    lines += [f"import {client} from './page-client'"]
+    # next/navigation : redirect + notFound combinés dans un seul import
+    nav_imports: list[str] = []
+    if page.auth_required:
+        nav_imports.append("redirect")
+    if is_detail:
+        nav_imports.append("notFound")
+    if nav_imports:
+        lines.append(f"import {{ {', '.join(nav_imports)} }} from 'next/navigation'")
 
-    if not is_create:
+    lines.append(f"import {client} from './page-client'")
+
+    # Service selon type de page — detail public : getPublicById (sans owner filter)
+    if is_detail:
+        lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
+    elif not is_create:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
 
     # Imports des services FK pour les selects du formulaire create
@@ -294,11 +307,12 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
             f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
         )
 
+    fn_params = "{ params }: { params: { id: string } }" if is_detail else ""
     lines += [
         "",
         "export const dynamic = 'force-dynamic'",
         "",
-        f"export default async function {component}() {{",
+        f"export default async function {component}({fn_params}) {{",
     ]
 
     if page.auth_required:
@@ -307,7 +321,16 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
             "  if (!userId) redirect('/sign-in')",
         ]
 
-    if not is_create:
+    if is_detail:
+        if page.auth_required:
+            lines.append(f"  const item = await {camel}Service.getById(userId, params.id)")
+        else:
+            lines.append(f"  const item = await {camel}Service.getPublicById(params.id)")
+        lines += [
+            "  if (!item) notFound()",
+            f"  return <{client} item={{item}} />",
+        ]
+    elif not is_create:
         if page.auth_required:
             service_call = (
                 f"{camel}Service.getAllWithRelations(userId)"
@@ -367,6 +390,10 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
         # Pour les pages create sans model explicite, résoudre via le chemin parent
         if model_obj is None and getattr(page, "page_type", None) == "create":
             model_obj = _find_create_model(page, spec)
+
+        # Pour les pages detail sans model explicite, résoudre via le chemin parent
+        if model_obj is None and getattr(page, "page_type", None) == "detail":
+            model_obj = _find_detail_model(page, spec)
 
         if model_obj is not None:
             content = _gen_page_full(page, model_obj, spec=spec)
@@ -472,6 +499,24 @@ def _find_create_model(page, spec):
     parts = page.path.strip("/").split("/")
     if len(parts) >= 2:
         parent_path = "/" + "/".join(parts[:-1])
+        parent = next((p for p in spec.pages if p.path == parent_path), None)
+        if parent and getattr(parent, "model", None):
+            return spec.get_model_by_name(parent.model)
+    return None
+
+
+def _find_detail_model(page, spec):
+    """
+    Trouve le PrismaModel pour une page detail en remontant via le chemin parent.
+    Ex: /blog/[id] → parent /blog → model Post.
+    """
+    if getattr(page, "model", None):
+        return spec.get_model_by_name(page.model)
+    parts = page.path.strip("/").split("/")
+    # Remonte vers les segments statiques (exclut les [id])
+    static_parts = [p for p in parts if not p.startswith("[")]
+    if static_parts:
+        parent_path = "/" + "/".join(static_parts)
         parent = next((p for p in spec.pages if p.path == parent_path), None)
         if parent and getattr(parent, "model", None):
             return spec.get_model_by_name(parent.model)
@@ -678,6 +723,74 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
     return "\n".join(lines)
 
 
+def _gen_page_client_detail(page, model_obj) -> str:
+    """page-client.tsx pour une detail page — affiche tous les champs scalaires d'un item."""
+    name = model_obj.name
+    client = path_to_client_component(page.path)
+    serialized = f"Serialized{name}"
+
+    owner = model_obj.resolved_owner()
+    excluded = {"id", "updatedAt", owner}
+
+    all_display: list[str] = []
+    for field in model_obj.fields:
+        if field.name in excluded:
+            continue
+        if "@relation" in (field.attributes or ""):
+            continue
+        if field.type.endswith("[]"):
+            continue
+        all_display.append(field.name)
+
+    # Premier champ String → titre h1
+    title_field = next(
+        (f.name for f in model_obj.fields
+         if f.name not in excluded
+         and f.type.rstrip("?") == "String"
+         and "@relation" not in (f.attributes or "")),
+        None,
+    )
+    detail_fields = [f for f in all_display if f != title_field]
+
+    lines = [
+        "'use client'",
+        f"import type {{ {serialized} }} from '@/lib/types'",
+        "",
+        f"interface {client}Props {{",
+        f"  item: {serialized}",
+        "}",
+        "",
+        f"export default function {client}({{ item }}: {client}Props) {{",
+        "  return (",
+        '    <main className="container mx-auto p-6 max-w-2xl">',
+    ]
+
+    if title_field:
+        lines.append(f'      <h1 className="text-2xl font-bold mb-6">{{item.{title_field}}}</h1>')
+    else:
+        lines.append(f'      <h1 className="text-2xl font-bold mb-6">{name}</h1>')
+
+    if detail_fields:
+        lines.append('      <dl className="space-y-4">')
+        for field_name in detail_fields:
+            label = _field_label(field_name)
+            lines += [
+                "        <div>",
+                f'          <dt className="text-sm font-medium text-gray-500">{label}</dt>',
+                f'          <dd className="mt-1 text-sm text-gray-900">{{String(item.{field_name} ?? "—")}}</dd>',
+                "        </div>",
+            ]
+        lines.append("      </dl>")
+
+    lines += [
+        "    </main>",
+        "  )",
+        "}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 # ── Stubs page-client (déterministes) ────────────────────────────────────────
 
 def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, str]:  # type: ignore[name-defined]
@@ -739,8 +852,22 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
                     "",
                 ])
 
+        elif page.page_type == "detail":
+            detail_model = model_obj or _find_detail_model(page, spec)
+            if detail_model is not None:
+                content = _gen_page_client_detail(page, detail_model)
+            else:
+                content = "\n".join([
+                    "'use client'",
+                    "",
+                    f"export default function {client}() {{",
+                    "  return <div />",
+                    "}",
+                    "",
+                ])
+
         else:
-            # detail / custom — stub minimal
+            # custom — stub minimal
             content = "\n".join([
                 "'use client'",
                 "",

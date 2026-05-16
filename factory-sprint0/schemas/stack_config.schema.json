@@ -11,9 +11,7 @@
     "blueprint",
     "prompt_rules",
     "technology_categories",
-    "commands",
-    "mandatory_rag_queries",
-    "qdrant_filter"
+    "mandatory_rag_queries"
   ],
   "properties": {
     "id": { "type": "string" },

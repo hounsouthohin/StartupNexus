@@ -30,9 +30,9 @@
         { "method": "DELETE", "path": "/api/invoices/[id]"  }
       ],
       "user_flows": [
-        "L'utilisateur ajoute un client : /clients/new → createClient() → redirect /clients",
-        "L'utilisateur crée une facture : /invoices/new → createInvoice() → redirect /invoices",
-        "L'utilisateur supprime un client : bouton Supprimer → deleteClient(id)"
+        "L'utilisateur ajoute un client → /clients/new",
+        "L'utilisateur crée une facture → /invoices/new",
+        "L'utilisateur supprime un client → /clients"
       ]
     }
   }

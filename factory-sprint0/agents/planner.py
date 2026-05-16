@@ -167,7 +167,6 @@ def make_deterministic_plan(
             and _route_model_segment(r.path) == seg
         ]
         mutations_str = ", ".join(mutations) if mutations else "create / update / delete"
-        mutations_str = ", ".join(mutations)
 
         # Modèles impliqués : ceux du groupe (déjà déterminés par _find_list_page)
         # + modèles imbriqués détectés dans les routes (ex: /api/tasks/[id]/comments → Comment)

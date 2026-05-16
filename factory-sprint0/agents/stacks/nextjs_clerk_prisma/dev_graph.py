@@ -279,9 +279,55 @@ async def run_dev_agent(
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
-    # Protéger uniquement l'infrastructure — liste lue depuis la stack config (T0 refactor).
-    # Fallback statique si la clé est absente pour rétrocompatibilité.
-    _protected = set(stack_cfg.get("protected_files", [
+    # ── Génération déterministe : lib/types.ts ───────────────────────
+    # Avant pre_run_commands : les page stubs importent @/lib/types.
+    # Si prisma generate échoue (early return), les fichiers sont déjà sur disque → TSC correct.
+    if spec_obj is not None:
+        try:
+            from .dev_types_generator import generate_types_file
+            _types_result = generate_types_file(spec_obj, project_workdir)
+            template_written[_types_result.path] = _types_result.content
+            logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
+        except Exception as _tg_err:
+            logger.warning(f"[dev_graph] types generator non bloquant : {_tg_err}")
+
+    # ── Génération déterministe : lib/schemas.ts ─────────────────────
+    if spec_obj is not None:
+        try:
+            from .dev_zod_generator import generate_schemas_file
+            _schemas_result = generate_schemas_file(spec_obj, project_workdir)
+            if _schemas_result:
+                template_written[_schemas_result.path] = _schemas_result.content
+                logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
+        except Exception as _zg_err:
+            logger.warning(f"[dev_graph] zod generator non bloquant : {_zg_err}")
+
+    # ── Génération déterministe : lib/services/*.ts ───────────────────
+    # Avant pre_run_commands : les page stubs importent @/lib/services/*.
+    if spec_obj is not None:
+        try:
+            from .dev_service_generator import generate_service_files
+            _svc_written = generate_service_files(spec_obj, project_workdir)
+            template_written.update(_svc_written)
+            logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
+        except Exception as _svc_err:
+            logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
+
+    # ── Génération déterministe : app/**/actions.ts ───────────────────
+    # Avant pre_run_commands : les page-client stubs importent les actions.
+    if spec_obj is not None:
+        try:
+            from .dev_actions_generator import generate_action_files
+            _act_written = generate_action_files(spec_obj, project_workdir)
+            template_written.update(_act_written)
+            logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
+        except Exception as _act_err:
+            logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
+
+    # Source de vérité unique : tout fichier pré-généré (template_written) est protégé.
+    # protected_files du JSON config étend cette liste pour les cas limites (fichiers
+    # protégés mais non pré-générés). Les deux sont fusionnés — plus de double gestion.
+    _protected = set(template_written.keys()) | set(stack_cfg.get("protected_files", [
         "lib/prisma.ts", "prisma.config.ts", "prisma/schema.prisma", ".eslintrc.stack.json",
     ]))
     _dev_tools_module.set_protected_files(_protected)
@@ -343,18 +389,6 @@ async def run_dev_agent(
             _prev_cmd_ok = False
             logger.warning("[dev_graph] pre-run exception '%s': %s", _cmd, _cmd_err)
 
-    # ── Génération déterministe : lib/types.ts ───────────────────────
-    # Écrit avant que le LLM démarre — le LLM ne touche plus lib/types.ts.
-    # Source de vérité des DTOs Create/Update pour tous les services et routes.
-    if spec_obj is not None:
-        try:
-            from .dev_types_generator import generate_types_file
-            _types_result = generate_types_file(spec_obj, project_workdir)
-            template_written[_types_result.path] = _types_result.content
-            logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
-        except Exception as _tg_err:
-            logger.warning(f"[dev_graph] types generator non bloquant : {_tg_err}")
-
     # ── Service Map (contrat d'interface) ────────────────────────────
     # Les services sont désormais générés par le LLM (pas pré-écrits).
     # On calcule uniquement le service_map string pour l'injecter dans le prompt :
@@ -367,44 +401,6 @@ async def run_dev_agent(
             logger.info("[dev_graph] Service map calculé (%d modèles)", len(spec_obj.models))
         except Exception as _sg_err:
             logger.warning(f"[dev_graph] service map non bloquant : {_sg_err}")
-
-    # ── Génération déterministe : lib/schemas.ts ─────────────────────
-    # Schémas Zod alignés sur lib/types.ts — utilisés dans les Server Actions.
-    if spec_obj is not None:
-        try:
-            from .dev_zod_generator import generate_schemas_file
-            _schemas_result = generate_schemas_file(spec_obj, project_workdir)
-            if _schemas_result:
-                template_written[_schemas_result.path] = _schemas_result.content
-                logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
-        except Exception as _zg_err:
-            logger.warning(f"[dev_graph] zod generator non bloquant : {_zg_err}")
-
-    # ── Génération déterministe : lib/services/*.ts ───────────────────
-    # Base CRUD pré-générée pour chaque modèle Prisma — socle correct garanti par Python.
-    # NON protégé : le LLM peut ajouter des méthodes enrichies (ex: getTasksByProject).
-    # Le planner exclut automatiquement ces fichiers car ils sont dans template_written.
-    if spec_obj is not None:
-        try:
-            from .dev_service_generator import generate_service_files
-            _svc_written = generate_service_files(spec_obj, project_workdir)
-            template_written.update(_svc_written)
-            logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
-        except Exception as _svc_err:
-            logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
-
-    # ── Génération déterministe : app/**/actions.ts ───────────────────
-    # Server Actions CRUD pré-générées par modèle : auth guard + Zod + service call.
-    # Élimine TS2304 (import manquants), TS2345 (types incompatibles) et auth oubliés.
-    # Protégées contre réécriture LLM — le LLM peut en AJOUTER d'autres mais pas écraser.
-    if spec_obj is not None:
-        try:
-            from .dev_actions_generator import generate_action_files
-            _act_written = generate_action_files(spec_obj, project_workdir)
-            template_written.update(_act_written)
-            logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
-        except Exception as _act_err:
-            logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
 
     # ── Extraction du Type Map Prisma réel ───────────────────────────
     # Après prisma generate, lit node_modules/.prisma/client/index.d.ts

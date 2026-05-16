@@ -29,13 +29,13 @@
         {"method": "DELETE", "path": "/api/posts/[id]"}
       ],
       "user_flows": [
-        "Le visiteur consulte les articles publiés sur / (sans connexion)",
-        "Le visiteur lit un article via /blog/[slug] (sans connexion)",
-        "L'auteur se connecte via Clerk → accède à /dashboard",
-        "L'auteur crée un article : /dashboard/posts/new → POST /api/posts → redirect /dashboard",
-        "L'auteur publie un article : bouton sur /dashboard → PUT /api/posts/[id] { published: true }",
-        "L'auteur modifie un article : /dashboard/posts/[id]/edit → PUT /api/posts/[id] → redirect /dashboard",
-        "L'auteur supprime un article : bouton sur /dashboard → DELETE /api/posts/[id]"
+        "Le visiteur consulte les articles publiés → /",
+        "Le visiteur lit un article → /blog/[slug]",
+        "L'auteur accède à son dashboard → /dashboard",
+        "L'auteur crée un article → /dashboard/posts/new",
+        "L'auteur publie un article → /dashboard",
+        "L'auteur modifie un article → /dashboard/posts/[id]/edit",
+        "L'auteur supprime un article → /dashboard"
       ]
     }
   },
@@ -67,11 +67,11 @@
         {"method": "DELETE", "path": "/api/expenses/[id]"}
       ],
       "user_flows": [
-        "L'utilisateur se connecte et accède au /dashboard (totaux par catégorie)",
-        "L'utilisateur consulte la liste de ses dépenses → /expenses",
-        "L'utilisateur ajoute une dépense : /expenses/new → POST /api/expenses → redirect /expenses",
-        "L'utilisateur consulte le détail → /expenses/[id]",
-        "L'utilisateur supprime une dépense → DELETE /api/expenses/[id]"
+        "L'utilisateur consulte ses totaux → /dashboard",
+        "L'utilisateur consulte ses dépenses → /expenses",
+        "L'utilisateur ajoute une dépense → /expenses/new",
+        "L'utilisateur consulte le détail d'une dépense → /expenses/[id]",
+        "L'utilisateur supprime une dépense → /expenses/[id]"
       ]
     }
   },
@@ -113,11 +113,11 @@
         {"method": "DELETE", "path": "/api/invoices/[id]"}
       ],
       "user_flows": [
-        "L'utilisateur crée un client : /clients/new → POST /api/clients → redirect /clients",
-        "L'utilisateur crée une facture : /invoices/new (sélectionne client, saisit montant) → POST /api/invoices → redirect /invoices",
-        "L'utilisateur passe une facture en 'sent' : bouton sur /invoices/[id] → PATCH status:sent",
-        "L'utilisateur passe une facture en 'paid' : bouton sur /invoices/[id] → PATCH status:paid",
-        "L'utilisateur supprime un client → DELETE /api/clients/[id]"
+        "L'utilisateur crée un client → /clients/new",
+        "L'utilisateur crée une facture → /invoices/new",
+        "L'utilisateur passe une facture en 'sent' → /invoices/[id]",
+        "L'utilisateur passe une facture en 'paid' → /invoices/[id]",
+        "L'utilisateur supprime un client → /clients"
       ]
     }
   },
@@ -151,11 +151,11 @@
         {"method": "DELETE", "path": "/api/cards/[id]"}
       ],
       "user_flows": [
-        "L'utilisateur crée un board : /boards/new → POST /api/boards → redirect /boards",
-        "L'utilisateur ouvre un board → /boards/[id] : 3 colonnes avec ses cartes",
-        "L'utilisateur ajoute une carte : formulaire inline → POST /api/boards/[id]/cards",
-        "L'utilisateur déplace une carte : bouton → PATCH /api/cards/[id] { column: 'in-progress' }",
-        "L'utilisateur supprime une carte → DELETE /api/cards/[id]"
+        "L'utilisateur crée un board → /boards/new",
+        "L'utilisateur ouvre un board → /boards/[id]",
+        "L'utilisateur ajoute une carte → /boards/[id]",
+        "L'utilisateur déplace une carte → /boards/[id]",
+        "L'utilisateur supprime une carte → /boards/[id]"
       ]
     }
   }

@@ -2,7 +2,7 @@
   {
     "project_name": "personal-blog",
     "family": "blog",
-    "tags": ["public_pages", "mixed_auth"],
+    "tags": ["public_pages", "mixed_auth", "detail_pages"],
     "brief": {
       "description": "Blog personnel. L'auteur gère ses articles et catégories depuis son tableau de bord privé. Les visiteurs lisent les articles publiés sans compte.",
       "architecture": "SaaS single-tenant. Post lié à Category via categoryId. Comment lié à Post via postId (owner_field=authorId). Tableau de bord privé (auth), lectures publiques sur /blog sans compte.",
@@ -12,18 +12,22 @@
         "Comment { id String @id @default(uuid()), content String, postId String, authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
       ],
       "pages": [
-        { "path": "/blog",           "auth": false, "page_type": "list",   "model": "Post"     },
-        { "path": "/blog/new",       "auth": false, "page_type": "create"                      },
-        { "path": "/dashboard",      "auth": true,  "page_type": "list",   "model": "Post"     },
-        { "path": "/categories",     "auth": true,  "page_type": "list",   "model": "Category" },
-        { "path": "/categories/new", "auth": true,  "page_type": "create"                      }
+        { "path": "/blog",            "auth": false, "page_type": "list",   "model": "Post"     },
+        { "path": "/blog/[id]",       "auth": false, "page_type": "detail", "model": "Post"     },
+        { "path": "/blog/new",        "auth": false, "page_type": "create"                      },
+        { "path": "/dashboard",       "auth": true,  "page_type": "list",   "model": "Post"     },
+        { "path": "/categories",      "auth": true,  "page_type": "list",   "model": "Category" },
+        { "path": "/categories/[id]", "auth": true,  "page_type": "detail", "model": "Category" },
+        { "path": "/categories/new",  "auth": true,  "page_type": "create"                      }
       ],
       "pages_detail": {
-        "/blog":           "Liste des posts publiés. Affiche : titre, extrait (ou '-'), date. Lien 'Écrire un article' → /blog/new. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
-        "/blog/new":       "Formulaire de création d'article. Champs : titre (text, required), extrait (textarea, optionnel), categoryId (text, required, placeholder 'ID de la catégorie'). Submit → createPost({ title, excerpt, categoryId }) → redirect /dashboard. [INTERACTIVE]",
-        "/dashboard":      "Liste de TOUS les articles de l'auteur (drafts + published). Affiche : titre, statut (badge : draft=gris, published=vert), date. Bouton 'Supprimer' → deletePost(id). État vide : 'Aucun article.'. [INTERACTIVE]",
-        "/categories":     "Liste des catégories. Affiche : nom, date. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' → deleteCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
-        "/categories/new": "Formulaire de création de catégorie. Champ : nom (text, required). Submit → createCategory({ name }) → redirect /categories. [INTERACTIVE]"
+        "/blog":            "Liste des posts publiés (status='published'). Affiche : titre, extrait (ou '—'), date. Lien vers /blog/[id] sur chaque card. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
+        "/blog/[id]":       "Page de détail d'un article. Affiche : titre (h1), extrait, statut, catégorie (categoryId), date de création. Pas d'authentification requise. [STATIC]",
+        "/blog/new":        "Formulaire de création d'article. Champs : titre (text, required), extrait (textarea, optionnel), categoryId (text, required, placeholder 'ID de la catégorie'). Submit → createPost({ title, excerpt, categoryId }) → redirect /dashboard. [INTERACTIVE]",
+        "/dashboard":       "Liste de TOUS les articles de l'auteur (drafts + published). Affiche : titre, statut (badge : draft=gris, published=vert), date. Lien vers /blog/[id] sur chaque card. Bouton 'Supprimer' → deletePost(id). État vide : 'Aucun article.'. [INTERACTIVE]",
+        "/categories":      "Liste des catégories. Affiche : nom, date. Lien vers /categories/[id] sur chaque card. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' → deleteCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
+        "/categories/[id]": "Page de détail d'une catégorie. Affiche : nom (h1), date de création. Authentification requise. [STATIC]",
+        "/categories/new":  "Formulaire de création de catégorie. Champ : nom (text, required). Submit → createCategory({ name }) → redirect /categories. [INTERACTIVE]"
       },
       "routes": [
         { "method": "POST",   "path": "/api/posts" },
@@ -32,11 +36,13 @@
         { "method": "DELETE", "path": "/api/categories/[id]" }
       ],
       "user_flows": [
-        "Un visiteur lit les articles publiés : /blog → postService.getPublished() sans auth",
-        "L'auteur écrit un article : /blog/new → createPost() → redirect /dashboard",
-        "L'auteur gère ses articles : /dashboard → postService.getAll(userId) avec auth",
-        "L'auteur supprime un article : bouton Supprimer → deletePost(id)",
-        "L'auteur crée une catégorie : /categories/new → createCategory() → redirect /categories"
+        "Un visiteur lit les articles publiés → /blog",
+        "Un visiteur clique sur un article pour lire son contenu → /blog/[id]",
+        "L'auteur crée un article → /blog/new",
+        "L'auteur gère ses articles → /dashboard",
+        "L'auteur supprime un article → /dashboard",
+        "L'auteur crée une catégorie → /categories/new",
+        "L'auteur consulte le détail d'une catégorie → /categories/[id]"
       ]
     }
   }

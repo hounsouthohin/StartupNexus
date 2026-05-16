@@ -27,18 +27,9 @@
     "base_max_iterations": 14,
     "max_cap_iterations": 24,
     "tiers": [
-      {
-        "min_requirements": 11,
-        "max_iterations": 17
-      },
-      {
-        "min_requirements": 16,
-        "max_iterations": 20
-      },
-      {
-        "min_requirements": 22,
-        "max_iterations": 24
-      }
+      {"min_requirements": 11, "max_iterations": 17},
+      {"min_requirements": 16, "max_iterations": 20},
+      {"min_requirements": 22, "max_iterations": 24}
     ]
   },
   "generation_order": {
@@ -158,8 +149,8 @@
     ],
     "orm_rules": [
       "Le schema Prisma autorise est prisma/schema.prisma; prisma.config.ts reste template de stack.",
-      "schema.prisma DOIT contenir datasource db avec provider = \"postgresql\".",
-      "Prisma 7: datasource db dans schema.prisma ne doit pas declarer url = env(...).",
+      "schema.prisma DOIT contenir datasource db avec provider = \"postgresql\", url = env(\"DATABASE_URL\") et directUrl = env(\"DIRECT_DATABASE_URL\").",
+      "datasource db dans schema.prisma est généré déterministiquement par la factory — NE PAS le modifier, ce fichier est protégé.",
       "generator client doit utiliser provider = \"prisma-client-js\".",
       "lib/prisma.ts doit instancier PrismaClient avec PrismaPg adapter.",
       "Dans les Server Actions et Server Components, l'acces Prisma passe par import prisma from '@/lib/prisma'. JAMAIS prisma direct dans les Server Actions — toujours via le service DAL (lib/services/).",
@@ -366,7 +357,8 @@
       "app/components/*.tsx"
     ]
   },
-  "commands": {
+  "_UNUSED_commands": {
+    "_NOTE": "Jamais lue par le pipeline — supersédée par pre_run_commands. Conservée pour référence.",
     "install": "npm install",
     "install_legacy": "npm install --legacy-peer-deps",
     "build": "npm run build",
@@ -382,38 +374,19 @@
   "_NOTE_mandatory_rag_queries": "migré vers rules_dev.md — section Concepts Stack Obligatoires",
   "mandatory_rag_k": 3,
   "mandatory_rag_snippet_chars": 900,
-  "qdrant_filter": {
+  "_UNUSED_qdrant_filter": {
+    "_NOTE": "Jamais lue par le pipeline. Le filtre RAG réel est construit dynamiquement dans shared_tools.py::_build_architect_rag_filter().",
     "collection": "factory_standards",
     "filter": {
       "must": [
         {
           "should": [
-            {
-              "key": "metadata.stack",
-              "match": {
-                "value": "nextjs-clerk-prisma"
-              }
-            },
-            {
-              "key": "metadata.stack",
-              "match": {
-                "value": "global"
-              }
-            }
+            {"key": "metadata.stack", "match": {"value": "nextjs-clerk-prisma"}},
+            {"key": "metadata.stack", "match": {"value": "global"}}
           ]
         },
-        {
-          "key": "metadata.status",
-          "match": {
-            "value": "active"
-          }
-        },
-        {
-          "key": "metadata.agent_context",
-          "match": {
-            "value": "dev"
-          }
-        }
+        {"key": "metadata.status", "match": {"value": "active"}},
+        {"key": "metadata.agent_context", "match": {"value": "dev"}}
       ]
     }
   },
@@ -436,18 +409,16 @@
       "DATABASE_URL": "^postgresql://"
     }
   },
-  "compatibility_matrix": {
+  "_UNUSED_compatibility_matrix": {
+    "_NOTE": "Jamais lue par le pipeline. Documentation de référence uniquement — les versions sont enforced via package.json.",
     "ts-jest": {
       "required_major": 29,
-      "reason": "ts-jest 29.x est la seule branche supportée avec Jest 29 + TypeScript 5.x; versions 27/28 ciblent TS 4.x (warning de non-support affiché si versions incompatibles)",
-      "incompatible_with": {
-        "jest": ">=30"
-      }
+      "reason": "ts-jest 29.x est la seule branche supportée avec Jest 29 + TypeScript 5.x; versions 27/28 ciblent TS 4.x",
+      "incompatible_with": {"jest": ">=30"}
     },
     "next": {
-      "min_major": 14,
-      "max_major": 14,
-      "reason": "Pinné à Next 14 pour validation Sprint 0-3 (POLICY factory); Next 15 + Clerk V6 est fonctionnel mais non validé par la factory — à promouvoir en matrice expérimentale v2.0"
+      "min_major": 14, "max_major": 14,
+      "reason": "Pinné à Next 14 pour validation Sprint 0-3 (POLICY factory)"
     },
     "jest": {
       "required_major": 29,

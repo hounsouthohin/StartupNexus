@@ -3,12 +3,13 @@ agents/dev_service_generator.py
 ────────────────────────────────
 Génération DÉTERMINISTE des fichiers lib/services/{model}.service.ts depuis ProjectSpec.
 
-Chaque service expose 5 fonctions CRUD standard :
-  getAll       — findMany filtré par owner_field → SerializedXxx[] (dates string)
-  getById      — findFirst par id + owner_field → SerializedXxx | null
-  create       — create avec owner_field ajouté depuis auth() → Xxx (Prisma brut)
-  update       — update par owner + id → Xxx (Prisma brut, IDOR protégé)
-  remove       — delete par id + owner_field → void
+Chaque service expose 6 fonctions CRUD standard :
+  getAll         — findMany filtré par owner_field → SerializedXxx[] (dates string)
+  getById        — findFirst par id + owner_field → SerializedXxx (notFound() si absent — jamais null)
+  getPublicById  — findUnique par id sans owner filter → SerializedXxx (pages publiques, detail auth=false)
+  create         — create avec owner_field ajouté depuis auth() → Xxx (Prisma brut)
+  update         — update par owner + id → Xxx (Prisma brut, IDOR protégé)
+  delete         — delete par id + owner_field → void
 
 Les méthodes de lecture retournent SerializedXxx (dates DateTime déjà converties en string
 via _serialize). Les méthodes d'écriture retournent le type Prisma brut car elles sont
@@ -142,6 +143,12 @@ def _generate_service_for_model(model) -> str:
         "    if (!item) notFound()",
         "    return _serialize(item)",
         "  },",
+        "",
+        f"  getPublicById: async (id: string): Promise<{serialized_name}> => {{",
+        f"    const item = await prisma.{camel}.findUnique({{ where: {{ id }} }})",
+        "    if (!item) notFound()",
+        "    return _serialize(item)",
+        "  },",
     ])
 
     if relations:
@@ -229,6 +236,7 @@ def format_service_map_for_prompt(spec) -> str:
         if _has_status_field(model):
             lines.append(f"  .getPublished()  → `Promise<{serialized_name}[]>` SANS userId — à utiliser sur les pages publiques (auth: false)")
         lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name}>` (notFound() si absent — jamais null)")
+        lines.append(f"  .getPublicById(id)     → `Promise<{serialized_name}>` SANS owner filter — à utiliser sur les pages détail publiques (auth: false)")
         if relations:
             rel_list = ", ".join(relations)
             lines.append(
