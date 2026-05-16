@@ -193,6 +193,41 @@ def _validate_run_metric_consistency(run_metric: dict) -> list:
     return flags
 
 
+def _create_export_zip(project_workdir: str, project_name: str) -> str | None:
+    """
+    Crée un zip propre du projet généré (sans node_modules/.next) dans exports/.
+    Non-bloquant : un échec n'interrompt pas le pipeline.
+    """
+    import zipfile
+    try:
+        factory_workdir = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
+        exports_dir = os.path.join(factory_workdir, "exports")
+        os.makedirs(exports_dir, exist_ok=True)
+        zip_path = os.path.join(exports_dir, f"{project_name}.zip")
+
+        EXCLUDE_DIRS = {"node_modules", ".next", ".git", "dist", ".turbo"}
+        EXCLUDE_EXTS = {".tsbuildinfo"}
+        EXCLUDE_FILES = {"tsconfig.tsbuildinfo"}
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+            for root, dirs, files in os.walk(project_workdir):
+                dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+                for filename in files:
+                    _, ext = os.path.splitext(filename)
+                    if filename in EXCLUDE_FILES or ext in EXCLUDE_EXTS:
+                        continue
+                    full_path = os.path.join(root, filename)
+                    arcname = os.path.relpath(full_path, project_workdir).replace("\\", "/")
+                    zf.write(full_path, arcname)
+
+        zip_size_kb = os.path.getsize(zip_path) // 1024
+        activity.logger.info(f"[export_zip] ✓ {zip_path} ({zip_size_kb} KB)")
+        return zip_path
+    except Exception as e:
+        activity.logger.warning(f"[export_zip] non bloquant : {e}")
+        return None
+
+
 def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
     """
     Sauvegarde un snapshot JSON des fichiers générés avant le push GitHub.
@@ -971,6 +1006,12 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             for flag in contradiction_flags:
                 level = activity.logger.error if "HARD_FAIL" in flag else activity.logger.warning
                 level(f"[METRIC_CONSISTENCY] {flag}")
+
+        # ── Export zip propre (sans node_modules/.next) ──────────────────
+        export_zip_path = None
+        if build_success:
+            export_zip_path = _create_export_zip(project_workdir, project_name)
+        run_metric["export_zip_path"] = export_zip_path or ""
 
         activity.logger.info(
             f"DevTest terminé → {metadata.get('total_files', 0)} fichiers | "

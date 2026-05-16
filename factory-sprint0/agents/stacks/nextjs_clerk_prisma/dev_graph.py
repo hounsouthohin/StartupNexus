@@ -250,6 +250,11 @@ async def run_dev_agent(
             _mw_files = generate_middleware(spec_obj, project_workdir)
             template_written.update(_mw_files)
 
+            # Navigation déterministe : liens depuis spec.pages[] (hors /new et [id])
+            from .dev_navigation_generator import generate_navigation
+            _nav_files = generate_navigation(spec_obj, project_workdir)
+            template_written.update(_nav_files)
+
             # Page racine déterministe EN PREMIER : doit précéder generate_page_stubs
             # pour que le fichier existe et soit ignoré par generate_page_stubs
             # (qui écrirait sinon un stub `return <div />` non protégé).

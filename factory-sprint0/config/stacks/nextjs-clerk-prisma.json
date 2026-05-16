@@ -16,7 +16,8 @@
     "node_modules"
   ],
   "workdir_keep_extra": [
-    ".npm"
+    ".npm",
+    "exports"
   ],
   "token_budgets": {
     "phase1_tokens": 6000,
@@ -319,7 +320,8 @@
     "prisma.config.ts": "templates/prisma_config.ts",
     "prisma/schema.prisma": "templates/prisma_schema.prisma",
     "app/sign-in/[[...sign-in]]/page.tsx": "templates/app_signin_page.tsx",
-    "app/sign-up/[[...sign-up]]/page.tsx": "templates/app_signup_page.tsx"
+    "app/sign-up/[[...sign-up]]/page.tsx": "templates/app_signup_page.tsx",
+    ".env.example": "templates/env.example.template"
   },
   "scaffold_extends": {
     "prisma/schema.prisma": {
@@ -346,7 +348,8 @@
       "app/sign-in/[[...sign-in]]/page.tsx",
       "app/sign-up/[[...sign-up]]/page.tsx",
       "jest.config.js",
-      "jest.setup.js"
+      "jest.setup.js",
+      ".env.example"
     ],
     "critical_files": [
       "package.json",

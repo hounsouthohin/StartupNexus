@@ -286,7 +286,9 @@ class ProjectSpec(BaseModel):
             '}\n'
             '\n'
             'datasource db {\n'
-            '  provider = "postgresql"\n'
+            '  provider  = "postgresql"\n'
+            '  url       = env("DATABASE_URL")\n'
+            '  directUrl = env("DIRECT_DATABASE_URL")\n'
             '}\n'
             '\n'
         )

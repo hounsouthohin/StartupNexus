@@ -250,7 +250,7 @@ def generate_error_files(spec: "ProjectSpec", project_workdir: str) -> None:  # 
         logger.info("[pages_gen] ✓ %s", f"app/{filename}")
 
 
-def _gen_page_full(page, model_obj) -> str:
+def _gen_page_full(page, model_obj, spec=None) -> str:
     """
     Génère un page.tsx ENTIÈREMENT DÉTERMINISTE pour une page avec champ `model`.
     Le fichier résultant est ajouté à template_written → le LLM ne peut pas l'écraser.
@@ -258,8 +258,7 @@ def _gen_page_full(page, model_obj) -> str:
     Patterns générés :
     - Liste privée  : auth() + getAll(userId) ou getAllWithRelations(userId) → <XxxClient items={items} />
     - Liste publique: getPublished() sans userId                             → <XxxClient items={items} />
-    - Création (auth=True) : auth() + <XxxClient />  (sans données)
-    - Création (auth=False): <XxxClient />            (sans données ni auth)
+    - Création      : auth() + fetch FK options si champs FK présents → <XxxClient fkOptions={...} />
     """
     name = model_obj.name
     camel = pascal_to_camel(name)
@@ -270,6 +269,11 @@ def _gen_page_full(page, model_obj) -> str:
     has_relations = _model_has_relations(model_obj)
     has_status = _model_has_status(model_obj)
 
+    # Champs FK pour pages create (Pilier 1 — form generator)
+    fk_list: list[tuple[str, str, str]] = []
+    if is_create and spec is not None:
+        fk_list = _fk_fields(model_obj, spec)
+
     lines: list[str] = []
 
     if page.auth_required:
@@ -278,12 +282,17 @@ def _gen_page_full(page, model_obj) -> str:
             "import { redirect } from 'next/navigation'",
         ]
 
-    lines += [
-        f"import {client} from './page-client'",
-    ]
+    lines += [f"import {client} from './page-client'"]
 
     if not is_create:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
+
+    # Imports des services FK pour les selects du formulaire create
+    for _fk_field, related_model, related_camel in fk_list:
+        related_kebab = pascal_to_kebab(related_model)
+        lines.append(
+            f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
+        )
 
     lines += [
         "",
@@ -316,7 +325,18 @@ def _gen_page_full(page, model_obj) -> str:
             f"  return <{client} items={{items}} />",
         ]
     else:
-        lines.append(f"  return <{client} />")
+        if fk_list:
+            # Fetch des options pour chaque select FK
+            owner_arg = "userId" if page.auth_required else "''"
+            for _fk_field, _related_model, related_camel in fk_list:
+                lines.append(f"  const {related_camel}Options = await {related_camel}Service.getAll({owner_arg})")
+            fk_props = " ".join(
+                f"{related_camel}Options={{{related_camel}Options}}"
+                for _fk_field, _related_model, related_camel in fk_list
+            )
+            lines.append(f"  return <{client} {fk_props} />")
+        else:
+            lines.append(f"  return <{client} />")
 
     lines += ["}", ""]
     return "\n".join(lines)
@@ -349,7 +369,7 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
             model_obj = _find_create_model(page, spec)
 
         if model_obj is not None:
-            content = _gen_page_full(page, model_obj)
+            content = _gen_page_full(page, model_obj, spec=spec)
             with open(page_abs, "w", encoding="utf-8") as f:
                 f.write(content)
             written[page_rel] = content
@@ -397,6 +417,29 @@ def _form_fields(model_obj) -> list:
         else:
             input_type = "text"
         result.append((name, input_type, is_required))
+    return result
+
+
+def _fk_fields(model_obj, spec) -> list[tuple[str, str, str]]:
+    """
+    Retourne les champs FK du modèle sous la forme (field_name, related_model_name, related_camel).
+    Heuristique : champ de type String dont le nom se termine par 'Id' et dont la base correspond
+    à un modèle existant dans la spec (ex: categoryId → Category si Category ∈ spec.models).
+    Ces champs doivent être rendus comme <select> dans les formulaires.
+    """
+    model_names = {m.name for m in spec.models}
+    owner = model_obj.resolved_owner()
+    result: list[tuple[str, str, str]] = []
+    for field in model_obj.fields:
+        name = field.name
+        if name in {owner, "id"} or "@relation" in (field.attributes or ""):
+            continue
+        if not name.endswith("Id"):
+            continue
+        base = name[:-2]  # "categoryId" → "category"
+        related_model = base[0].upper() + base[1:]  # → "Category"
+        if related_model in model_names:
+            result.append((name, related_model, pascal_to_camel(related_model)))
     return result
 
 
@@ -501,8 +544,23 @@ def _gen_page_client_list(page, model_obj) -> str:
     return "\n".join(lines)
 
 
+def _field_label(field_name: str) -> str:
+    """Convertit un nom camelCase en label lisible. Ex: categoryId → Category, firstName → First Name."""
+    # Retirer le suffixe Id si c'est un FK
+    display = field_name[:-2] if field_name.endswith("Id") else field_name
+    # camelCase → mots séparés
+    import re as _re
+    words = _re.sub(r"(?<!^)(?=[A-Z])", " ", display)
+    return words.title()
+
+
 def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
-    """page-client.tsx pour une create page — formulaire avec champs du modèle."""
+    """
+    page-client.tsx pour une create page — formulaire déterministe avec :
+    - Champs scalaires : input typé (text, number, datetime-local, checkbox, textarea)
+    - Champs FK (xxxId) : <select> alimenté par les options passées en props depuis le Server Component
+    - Champ status : <select> avec options draft/published si détecté
+    """
     name = model_obj.name
     client = path_to_client_component(page.path)
     create_fn = f"create{name}"
@@ -513,24 +571,82 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
     import_path = _compute_relative_import(client_rel, actions_module)
 
     fields = _form_fields(model_obj)
+    fk_list = _fk_fields(model_obj, spec)
+
+    # Props interface : une prop xxxOptions par FK
+    fk_prop_lines: list[str] = []
+    fk_prop_args: list[str] = []
+    for _fk_field, related_model, related_camel in fk_list:
+        serialized = f"Serialized{related_model}"
+        fk_prop_lines.append(f"  {related_camel}Options: {serialized}[]")
+        fk_prop_args.append(f"{related_camel}Options")
+
+    # Imports types FK si nécessaire
+    fk_type_imports = ""
+    if fk_list:
+        type_names = ", ".join(f"Serialized{rm}" for _, rm, _ in fk_list)
+        fk_type_imports = f"import type {{ {type_names} }} from '@/lib/types'\n"
+
+    has_props = bool(fk_list)
+    props_interface = ""
+    if has_props:
+        props_body = "\n".join(fk_prop_lines)
+        props_interface = f"\ninterface {client}Props {{\n{props_body}\n}}\n"
+    props_arg = f"{{ {', '.join(fk_prop_args)} }}: {client}Props" if has_props else ""
 
     lines = [
         "'use client'",
         f"import {{ {create_fn} }} from '{import_path}'",
+    ]
+    if fk_type_imports:
+        lines.append(fk_type_imports.rstrip())
+    if props_interface:
+        lines.append(props_interface.rstrip())
+    lines += [
         "",
-        f"export default function {client}() {{",
+        f"export default function {client}({props_arg}) {{",
         "  return (",
         '    <main className="container mx-auto p-6 max-w-lg">',
         f'      <h1 className="text-2xl font-bold mb-6">Nouveau {name}</h1>',
         f'      <form action={{{create_fn}}} className="space-y-4">',
     ]
 
+    # Champs FK en premier (selects)
+    for fk_field_name, related_model, related_camel in fk_list:
+        label = _field_label(fk_field_name)
+        display_field = _display_fields(
+            next((m for m in spec.models if m.name == related_model), None) or model_obj
+        )[0]
+        lines += [
+            "        <div>",
+            f'          <label className="block text-sm font-medium mb-1">{label}</label>',
+            f'          <select name="{fk_field_name}" className="w-full border rounded px-3 py-2" required>',
+            f'            <option value="">Sélectionner un(e) {label.lower()}</option>',
+            f"            {{{related_camel}Options.map((opt) => (",
+            f'              <option key={{opt.id}} value={{opt.id}}>{{opt.{display_field}}}</option>',
+            "            ))}",
+            "          </select>",
+            "        </div>",
+        ]
+
+    # Champs scalaires
     for field_name, input_type, required in fields:
         req_attr = " required" if required else ""
-        if input_type == "textarea":
+        label = _field_label(field_name)
+        if field_name.lower() == "status":
             lines += [
                 "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{field_name}</label>',
+                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
+                f'          <select name="{field_name}" className="w-full border rounded px-3 py-2">',
+                '            <option value="draft">Brouillon</option>',
+                '            <option value="published">Publié</option>',
+                "          </select>",
+                "        </div>",
+            ]
+        elif input_type == "textarea":
+            lines += [
+                "        <div>",
+                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
                 f'          <textarea name="{field_name}" rows={{4}} className="w-full border rounded px-3 py-2"{req_attr} />',
                 "        </div>",
             ]
@@ -538,13 +654,13 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
             lines += [
                 '        <div className="flex items-center gap-2">',
                 f'          <input name="{field_name}" type="checkbox" />',
-                f'          <label className="text-sm font-medium">{field_name}</label>',
+                f'          <label className="text-sm font-medium">{label}</label>',
                 "        </div>",
             ]
         else:
             lines += [
                 "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{field_name}</label>',
+                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
                 f'          <input name="{field_name}" type="{input_type}" className="w-full border rounded px-3 py-2"{req_attr} />',
                 "        </div>",
             ]

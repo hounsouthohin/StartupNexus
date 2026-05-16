@@ -184,18 +184,29 @@ def _is_covered(path: str, combined_files: dict, _route_table: "dict | None" = N
             return True
 
     # API routes : route.ts introuvable → fallback Server Actions (Option A).
-    # Depuis la migration Option A, les mutations POST/PUT/DELETE sont dans actions.ts
-    # et non plus dans app/api/.../route.ts. Un flow "/api/projects" est couvert si
-    # app/projects/actions.ts existe (premier segment statique du chemin API).
+    # Option A place les mutations dans app/{list_page}/actions.ts (pas app/api/).
+    # Le chemin du list_page peut différer du segment API (ex: /api/posts → app/blog/actions.ts).
+    # Stratégie :
+    #   1. Match direct par segment (app/{segment}/actions.ts)
+    #   2. Match par contenu : scanner tous les actions.ts pour trouver createXxx/deleteXxx
+    #      correspondant au modèle inféré depuis le segment API ("posts" → "Post")
     normalized = path.strip("/")
     if normalized.startswith("api/") or "/api/" in normalized:
         rest = normalized[4:] if normalized.startswith("api/") else normalized
         segs = rest.split("/")
         first_static = next((s for s in segs if s and not s.startswith("[")), None)
         if first_static:
-            actions_path = f"app/{first_static}/actions.ts"
-            if actions_path in file_keys:
+            # 1. Match direct
+            if f"app/{first_static}/actions.ts" in file_keys:
                 return True
+            # 2. Match par contenu — "posts" → model "Post", cherche createPost/deletePost
+            model_keyword = first_static.rstrip("s").capitalize()
+            for af in file_keys:
+                if not af.endswith("/actions.ts"):
+                    continue
+                content = combined_files.get(af, "")
+                if f"create{model_keyword}" in content or f"delete{model_keyword}" in content:
+                    return True
         return False
 
     # Route table déterministe — segment exact, pas de substring matching

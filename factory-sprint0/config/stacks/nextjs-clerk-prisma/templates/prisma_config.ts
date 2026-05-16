@@ -1,12 +1,10 @@
 import { defineConfig } from 'prisma/config';
 import { config } from 'dotenv';
-config({ path: '.env.local' });
 
-const databaseUrl =
-  process.env.DATABASE_URL ||
-  'postgresql://user:password@localhost:5432/postgres';
+// Charge .env.local pour les commandes CLI (prisma generate, prisma db push)
+// DATABASE_URL et DIRECT_DATABASE_URL sont définis dans schema.prisma via env()
+config({ path: '.env.local' });
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  datasource: { url: databaseUrl },
 });

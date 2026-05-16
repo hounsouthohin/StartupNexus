@@ -1,5 +1,6 @@
 import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import type { ReactNode } from "react";
+import Navigation from "@/app/components/navigation";
 
 export default function Layout({ children }: { children: ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -22,6 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         <body>
           <header className="flex items-center justify-between px-6 py-3 border-b bg-white">
             <span className="font-semibold text-gray-800">{project_name}</span>
+            <Navigation />
             <div>
               <SignedIn>
                 <UserButton afterSignOutUrl="/" />

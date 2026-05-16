@@ -109,20 +109,19 @@ def _generate_service_for_model(model) -> str:
             "",
         ])
     else:
+        # Aucun champ DateTime : Model et SerializedModel sont structurellement identiques.
+        # Cast simple (pas double) — TypeScript vérifie la compatibilité structurelle.
         lines.extend([
-            f"const _serialize = (item: {name}): {serialized_name} => item as unknown as {serialized_name}",
+            f"const _serialize = (item: {name}): {serialized_name} => item as {serialized_name}",
             "",
         ])
-
-    scalar_fields = _scalar_fields(model)
-    select_block = ", ".join(f"{fname}: true" for fname in scalar_fields)
 
     has_status = _has_status_field(model)
 
     lines.extend([
         f"export const {camel}Service = {{",
         f"  getAll: async ({owner}: string): Promise<{serialized_name}[]> => {{",
-        f"    const items = (await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0, select: {{ {select_block} }} }}) as unknown as {name}[])",
+        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0 }})",
         "    return items.map(_serialize)",
         "  },",
     ])
@@ -131,7 +130,7 @@ def _generate_service_for_model(model) -> str:
         lines.extend([
             "",
             f"  getPublished: async (): Promise<{serialized_name}[]> => {{",
-            f"    const items = (await prisma.{camel}.findMany({{ where: {{ status: 'published' }}, take: 50, skip: 0, select: {{ {select_block} }} }}) as unknown as {name}[])",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: 'published' }}, take: 50, skip: 0 }})",
             "    return items.map(_serialize)",
             "  },",
         ])
@@ -159,14 +158,14 @@ def _generate_service_for_model(model) -> str:
         "",
         f"  create: async ({owner}: string, data: Create{name}Input): Promise<{name}> => {{",
         f"    return prisma.{camel}.create({{",
-        f"      data: {{ ...(data as any), {owner} }}",
+        f"      data: {{ ...data, {owner} }}",
         "    })",
         "  },",
         "",
         f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{name}> => {{",
         f"    return prisma.{camel}.update({{",
         f"      where: {{ id, {owner} }},",
-        "      data: { ...(data as any) }",
+        "      data: { ...data }",
         "    })",
         "  },",
         "",
