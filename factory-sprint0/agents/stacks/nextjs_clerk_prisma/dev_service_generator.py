@@ -3,186 +3,169 @@ agents/dev_service_generator.py
 ────────────────────────────────
 Génération DÉTERMINISTE des fichiers lib/services/{model}.service.ts depuis ProjectSpec.
 
-Chaque service expose 6 fonctions CRUD standard :
-  getAll         — findMany filtré par owner_field → SerializedXxx[] (dates string)
-  getById        — findFirst par id + owner_field → SerializedXxx (notFound() si absent — jamais null)
-  getPublicById  — findUnique par id sans owner filter → SerializedXxx (pages publiques, detail auth=false)
-  create         — create avec owner_field ajouté depuis auth() → Xxx (Prisma brut)
-  update         — update par owner + id → Xxx (Prisma brut, IDOR protégé)
-  delete         — delete par id + owner_field → void
+Chaque service expose des fonctions CRUD standard dont la présence dépend
+du ModelGenerationContext (flags has_public_pages, has_slug, has_relations).
 
-Les méthodes de lecture retournent SerializedXxx (dates DateTime déjà converties en string
-via _serialize). Les méthodes d'écriture retournent le type Prisma brut car elles sont
-appelées depuis les Server Actions, pas depuis les Client Components.
+SÉCURITÉ : getPublicAll() et getPublicById() ne sont générés QUE si le modèle
+a au moins une page publique (auth=False) dans la spec. Sans ce guard, ces méthodes
+exposeront tous les enregistrements sans filtre owner si le LLM les utilise sur un
+modèle admin-only.
 
 Intégration dans dev_graph.py (après generate_types_file) :
-    service_files = generate_service_files(spec_obj, project_workdir)
+    from .dev_model_context import build_all_contexts
+    contexts = build_all_contexts(spec_obj)
+    service_files = generate_service_files(spec_obj, project_workdir, contexts)
     template_written.update(service_files)
 """
 from __future__ import annotations
 
 import logging
 import os
-import re as _re
+
+from .dev_model_context import ModelGenerationContext, build_all_contexts
 
 logger = logging.getLogger(__name__)
 
 
-def _pascal_to_camel(name: str) -> str:
-    """PascalCase → camelCase. Ex: LeaveRequest → leaveRequest"""
-    return name[0].lower() + name[1:] if name else name
-
-
-def _pascal_to_kebab(name: str) -> str:
-    """PascalCase → kebab-case. Ex: LeaveRequest → leave-request"""
-    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
-def _resolve_owner(model) -> str:
-    """Délègue à model.resolved_owner() — SSoT dans PrismaModel."""
-    return model.resolved_owner()
-
-
-def _has_status_field(model) -> bool:
-    """Retourne True si le modèle a un champ 'status' — indique une visibilité publique possible."""
-    return any(f.name.lower() == "status" for f in model.fields)
-
-
-def _has_slug_field(model) -> bool:
-    """Retourne True si le modèle a un champ 'slug' — active getBySlug() (Level D)."""
-    return any(f.name.lower() == "slug" for f in model.fields)
-
-
-def _relation_fields(model) -> list[str]:
-    """Retourne les noms des champs portant un @relation dans le modèle."""
-    return [f.name for f in model.fields if "@relation" in (f.attributes or "")]
-
-
-def _scalar_fields(model) -> list[str]:
-    """Retourne les noms des champs scalaires (non-relation, non-array) — utilisés pour select."""
-    return [
-        f.name
-        for f in model.fields
-        if not f.type.endswith("[]")
-        and "@relation" not in (f.attributes or "")
-    ]
-
-
-def _datetime_fields(model) -> list[tuple[str, bool]]:
-    """Retourne les champs DateTime du modèle sous forme (nom, est_nullable)."""
-    return [
-        (f.name, f.type.endswith("?"))
-        for f in model.fields
-        if f.type.rstrip("?").rstrip("[]") == "DateTime"
-    ]
-
-
-def _generate_service_for_model(model) -> str:
+def _generate_service_for_model(ctx: ModelGenerationContext) -> str:
     """
     Génère le contenu complet du fichier .service.ts pour un modèle.
-    Les méthodes de lecture retournent SerializedXxx — dates déjà string via _serialize.
-    Les méthodes d'écriture retournent le type Prisma brut (Server Actions, pas Client Components).
+
+    Méthodes de lecture → retournent SerializedXxx (dates déjà string via _serialize).
+    Méthodes d'écriture → retournent le type Prisma brut (appelées depuis Server Actions).
+    Méthodes publiques (getPublished, getPublicAll, getPublicById) → générées UNIQUEMENT
+    si ctx.has_public_pages est True.
     """
-    name = model.name
-    camel = _pascal_to_camel(name)
-    owner = _resolve_owner(model)
-    relations = _relation_fields(model)
-    serialized_name = f"Serialized{name}"
-    dt_fields = _datetime_fields(model)
+    name = ctx.name
+    camel = ctx.camel
+    owner = ctx.owner
+    serialized = ctx.serialized_type
+    dt_fields = ctx.datetime_fields
+    relations = ctx.relation_fields
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_service_generator.py — NE PAS MODIFIER",
         "import { notFound } from 'next/navigation'",
         "import prisma from '@/lib/prisma'",
         f"import type {{ {name} }} from '@prisma/client'",
-        f"import type {{ Create{name}Input, Update{name}Input, {serialized_name} }} from '@/lib/types'",
+        f"import type {{ Create{name}Input, Update{name}Input, {serialized} }} from '@/lib/types'",
         "",
     ]
 
-    # Sérialiseur local — convertit les champs DateTime en string une seule fois.
-    # Toutes les méthodes de lecture passent par lui → TS2551 impossible (string n'a pas .toISOString()).
+    # _serialize : convertit les DateTime en string.
+    # Toutes les méthodes de lecture passent par _serialize → TS2551 impossible.
     if dt_fields:
         serialize_lines = ["  ...item,"]
-        for fname, nullable in dt_fields:
-            if nullable:
-                serialize_lines.append(f"  {fname}: item.{fname} ? item.{fname}.toISOString() : null,")
+        for df in dt_fields:
+            if df.is_nullable:
+                serialize_lines.append(
+                    f"  {df.name}: item.{df.name} ? item.{df.name}.toISOString() : null,"
+                )
             else:
-                serialize_lines.append(f"  {fname}: item.{fname}.toISOString(),")
-        lines.extend([
-            f"const _serialize = (item: {name}): {serialized_name} => ({{",
+                serialize_lines.append(
+                    f"  {df.name}: item.{df.name}.toISOString(),"
+                )
+        lines += [
+            f"const _serialize = (item: {name}): {serialized} => ({{",
             *serialize_lines,
-            f"}}) as {serialized_name}",
+            f"}}) as {serialized}",
             "",
-        ])
+        ]
     else:
-        # Aucun champ DateTime : Model et SerializedModel sont structurellement identiques.
-        # Cast simple (pas double) — TypeScript vérifie la compatibilité structurelle.
-        lines.extend([
-            f"const _serialize = (item: {name}): {serialized_name} => item as {serialized_name}",
+        lines += [
+            f"const _serialize = (item: {name}): {serialized} => item as {serialized}",
             "",
-        ])
+        ]
 
-    has_status = _has_status_field(model)
-    has_slug = _has_slug_field(model)
-
-    lines.extend([
+    # ── getAll (privé — filtre owner) ─────────────────────────────────────────
+    lines += [
         f"export const {camel}Service = {{",
-        f"  getAll: async ({owner}: string): Promise<{serialized_name}[]> => {{",
-        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, orderBy: {{ createdAt: 'desc' }}, take: 20, skip: 0 }})",
+        f"  getAll: async ({owner}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
         "    return items.map(_serialize)",
         "  },",
-    ])
+    ]
 
-    if has_status:
-        lines.extend([
+    # ── getPublished (public — filtre sur la valeur "active" de l'enum réel) ──
+    # Généré UNIQUEMENT si le modèle a des pages publiques ET un champ status.
+    # Utilise la vraie valeur "published-like" depuis ctx.spec_enums pour éviter
+    # TS2322 quand l'enum n'a pas de valeur 'published' (ex: ["draft","archived"]).
+    if ctx.has_public_pages and ctx.has_status:
+        _PUBLISHED_LIKE = {"published", "active", "enabled", "approved", "public", "visible"}
+        _status_field = next(
+            (f for f in ctx.model.fields if f.name.lower() == "status"), None  # type: ignore[union-attr]
+        )
+        _published_val = "published"  # fallback
+        if _status_field:
+            _base = _status_field.type.rstrip("?").rstrip("[]")
+            _enum_vals: list[str] = ctx.spec_enums.get(_base, [])
+            _published_val = next(
+                (v for v in _enum_vals if v in _PUBLISHED_LIKE),
+                _enum_vals[0] if _enum_vals else "published",
+            )
+        lines += [
             "",
-            f"  getPublished: async (): Promise<{serialized_name}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: 'published' }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            f"  getPublished: async (): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_published_val}' }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
             "    return items.map(_serialize)",
             "  },",
-        ])
+        ]
 
-    lines.extend([
+    # ── getById (privé — filtre owner + id) ───────────────────────────────────
+    lines += [
         "",
-        f"  getById: async ({owner}: string, id: string): Promise<{serialized_name}> => {{",
+        f"  getById: async ({owner}: string, id: string): Promise<{serialized}> => {{",
         f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
         "    if (!item) notFound()",
         "    return _serialize(item)",
         "  },",
-        "",
-        f"  getPublicById: async (id: string): Promise<{serialized_name}> => {{",
-        f"    const item = await prisma.{camel}.findUnique({{ where: {{ id }} }})",
-        "    if (!item) notFound()",
-        "    return _serialize(item)",
-        "  },",
-        "",
-        f"  getPublicAll: async (): Promise<{serialized_name}[]> => {{",
-        f"    const items = await prisma.{camel}.findMany({{ orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
-        "    return items.map(_serialize)",
-        "  },",
-    ])
+    ]
 
-    if has_slug:
-        lines.extend([
+    # ── getPublicById (public — sans filtre owner) ─────────────────────────────
+    # Généré UNIQUEMENT si le modèle a des pages publiques.
+    # Risque sécurité si généré pour un modèle privé : expose tous les enregistrements.
+    if ctx.has_public_pages:
+        lines += [
             "",
-            f"  getBySlug: async (slug: string): Promise<{serialized_name}> => {{",
+            f"  getPublicById: async (id: string): Promise<{serialized}> => {{",
+            f"    const item = await prisma.{camel}.findUnique({{ where: {{ id }} }})",
+            "    if (!item) notFound()",
+            "    return _serialize(item)",
+            "  },",
+            "",
+            f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            "    return items.map(_serialize)",
+            "  },",
+        ]
+
+    # ── getBySlug (public — champ slug @unique) ───────────────────────────────
+    if ctx.has_slug:
+        lines += [
+            "",
+            f"  getBySlug: async (slug: string): Promise<{serialized}> => {{",
             f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }} }})",
             "    if (!item) notFound()",
             "    return _serialize(item)",
             "  },",
-        ])
+        ]
 
+    # ── getAllWithRelations (privé — include relations) ────────────────────────
+    # JSON.parse/JSON.stringify sérialise les Date imbriquées dans les objets relation.
+    # Le cast SerializedXxx[] est une approximation — les relations imbriquées ne sont
+    # pas déclarées dans SerializedXxx mais existent dans les données runtime.
     if relations:
-        include_block = ", ".join(f"{r}: true" for r in relations)
-        lines.extend([
+        include_block = ", ".join(f"{r.name}: true" for r in relations)
+        lines += [
             "",
-            f"  getAllWithRelations: async ({owner}: string): Promise<{serialized_name}[]> => {{",
+            f"  getAllWithRelations: async ({owner}: string): Promise<{serialized}[]> => {{",
             f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, orderBy: {{ createdAt: 'desc' }}, take: 20, skip: 0, include: {{ {include_block} }} }})",
-            "    return items.map(_serialize)",
+            f"    return JSON.parse(JSON.stringify(items)) as {serialized}[]",
             "  },",
-        ])
+        ]
 
-    lines.extend([
+    # ── create / update / delete ──────────────────────────────────────────────
+    lines += [
         "",
         f"  create: async ({owner}: string, data: Create{name}Input): Promise<{name}> => {{",
         f"    return prisma.{camel}.create({{",
@@ -202,74 +185,104 @@ def _generate_service_for_model(model) -> str:
         "  },",
         "}",
         "",
-    ])
+    ]
 
     return "\n".join(lines)
 
 
-def generate_service_files(spec, project_workdir: str) -> dict[str, str]:
+def generate_service_files(
+    spec,
+    project_workdir: str,
+    contexts: "dict[str, ModelGenerationContext] | None" = None,
+) -> dict[str, str]:
     """
     Génère un fichier .service.ts par modèle Prisma et les écrit sur le disque.
-    Retourne un dict {chemin_relatif: contenu} pour intégration dans template_written.
-    """
-    written: dict[str, str] = {}
 
+    contexts : précalculé par build_all_contexts(spec) dans dev_graph.py.
+               Si absent, calculé ici (compatibilité).
+    Retourne {chemin_relatif: contenu} pour intégration dans template_written.
+    """
+    if contexts is None:
+        contexts = build_all_contexts(spec)
+
+    written: dict[str, str] = {}
     services_dir = os.path.join(project_workdir, "lib", "services")
     os.makedirs(services_dir, exist_ok=True)
 
     for model in spec.models:
-        filename = f"{_pascal_to_kebab(model.name)}.service.ts"
+        ctx = contexts[model.name]
+        filename = f"{ctx.kebab}.service.ts"
         rel_path = f"lib/services/{filename}"
-        content = _generate_service_for_model(model)
+        content = _generate_service_for_model(ctx)
 
-        abs_path = os.path.join(project_workdir, "lib", "services", filename)
+        abs_path = os.path.join(services_dir, filename)
         try:
             with open(abs_path, "w", encoding="utf-8") as f:
                 f.write(content)
             written[rel_path] = content
-            logger.info("[service_generator] ✓ %s généré (%d champs)", rel_path, len(model.fields))
+            logger.info(
+                "[service_generator] ✓ %s | public=%s slug=%s relations=%d",
+                rel_path, ctx.has_public_pages, ctx.has_slug, len(ctx.relation_fields),
+            )
         except Exception as e:
-            logger.error("[service_generator] ✗ Erreur écriture %s : %s", rel_path, e)
+            logger.error("[service_generator] ✗ %s : %s", rel_path, e)
 
     return written
 
 
-def format_service_map_for_prompt(spec) -> str:
+def format_service_map_for_prompt(spec, contexts: "dict[str, ModelGenerationContext] | None" = None) -> str:
     """
-    Génère un bloc compact (5 lignes/service) injectable dans le prompt LLM.
-    Objectif : le LLM sait exactement quel objet importer et quelles méthodes appeler,
-    sans lire le fichier entier — budget ~60 chars/méthode.
+    Génère un bloc compact injectable dans le prompt LLM.
+    Le LLM connaît le contrat exact de chaque service avant d'écrire les pages.
     """
     if not spec or not getattr(spec, "models", None):
         return ""
 
+    if contexts is None:
+        contexts = build_all_contexts(spec)
+
     lines = ["### Service Map (DAL pré-généré — NE PAS recréer ces fichiers)\n"]
+
     for model in spec.models:
-        name = model.name
-        camel = _pascal_to_camel(name)
-        kebab = _pascal_to_kebab(name)
-        owner = _resolve_owner(model)
-        relations = _relation_fields(model)
-        serialized_name = f"Serialized{name}"
-        import_path = f"@/lib/services/{kebab}.service"
-        lines.append(f"**{camel}Service** → `import {{ {camel}Service }} from '{import_path}'`")
-        lines.append(f"  .getAll({owner})  → `Promise<{serialized_name}[]>` (dates déjà string)")
-        if _has_status_field(model):
-            lines.append(f"  .getPublished()  → `Promise<{serialized_name}[]>` SANS userId — à utiliser sur les pages publiques (auth: false)")
-        lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name}>` (notFound() si absent — jamais null)")
-        lines.append(f"  .getPublicById(id)     → `Promise<{serialized_name}>` SANS owner filter — à utiliser sur les pages détail publiques (auth: false)")
-        lines.append(f"  .getPublicAll()        → `Promise<{serialized_name}[]>` SANS owner filter — à utiliser pour fetch options FK sur pages create publiques (auth: false)")
-        if _has_slug_field(model):
-            lines.append(f"  .getBySlug(slug)       → `Promise<{serialized_name}>` par champ slug — pages détail Level D (auth: false, @unique requis)")
-        if relations:
-            rel_list = ", ".join(relations)
+        ctx = contexts[model.name]
+        import_path = f"@/lib/services/{ctx.kebab}.service"
+
+        lines.append(f"**{ctx.camel}Service** → `import {{ {ctx.camel}Service }} from '{import_path}'`")
+        lines.append(f"  .getAll({ctx.owner}, page?)  → `Promise<{ctx.serialized_type}[]>` (dates déjà string, paginé)")
+
+        if ctx.has_public_pages and ctx.has_status:
             lines.append(
-                f"  .getAllWithRelations({owner})  → `Promise<{serialized_name}[]>` avec include: {{ {rel_list} }}"
-                f" ← UTILISER quand la page affiche des champs relationnels (ex: item.{relations[0]}.xxx)"
+                f"  .getPublished()  → `Promise<{ctx.serialized_type}[]>` SANS userId "
+                "— pages publiques status='published'"
             )
-        lines.append(f"  .create({owner}, data: Create{name}Input)  → `Promise<{name}>`")
-        lines.append(f"  .update({owner}, id, data: Update{name}Input)  → `Promise<{name}>`")
-        lines.append(f"  .delete({owner}, id)  → `Promise<void>`")
+
+        lines.append(
+            f"  .getById({ctx.owner}, id)  → `Promise<{ctx.serialized_type}>` (notFound() si absent)"
+        )
+
+        if ctx.has_public_pages:
+            lines.append(
+                f"  .getPublicById(id)  → `Promise<{ctx.serialized_type}>` SANS owner — pages détail publiques"
+            )
+            lines.append(
+                f"  .getPublicAll()  → `Promise<{ctx.serialized_type}[]>` SANS owner — fetch FK options publiques"
+            )
+
+        if ctx.has_slug:
+            lines.append(
+                f"  .getBySlug(slug)  → `Promise<{ctx.serialized_type}>` par slug — pages detail-slug"
+            )
+
+        if ctx.relation_fields:
+            rel_list = ", ".join(r.name for r in ctx.relation_fields)
+            lines.append(
+                f"  .getAllWithRelations({ctx.owner})  → `Promise<{ctx.serialized_type}[]>` "
+                f"avec include: {{ {rel_list} }}"
+            )
+
+        lines.append(f"  .create({ctx.owner}, data: Create{ctx.name}Input)  → `Promise<{ctx.name}>`")
+        lines.append(f"  .update({ctx.owner}, id, data: Update{ctx.name}Input)  → `Promise<{ctx.name}>`")
+        lines.append(f"  .delete({ctx.owner}, id)  → `Promise<void>`")
         lines.append("")
 
     return "\n".join(lines)

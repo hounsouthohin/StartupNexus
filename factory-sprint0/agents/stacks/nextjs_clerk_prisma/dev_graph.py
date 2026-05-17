@@ -229,6 +229,19 @@ async def run_dev_agent(
     except Exception as _se:
         logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
 
+    # ── Contextes modèles (calculés UNE SEULE FOIS, partagés par tous les générateurs) ─
+    # ModelGenerationContext est la source unique de vérité pour la détection de champs,
+    # les flags has_slug/has_status/has_public_pages, la résolution FK, etc.
+    # Doit être calculé AVANT les générateurs de pages, types, schemas et services.
+    _model_contexts: dict = {}
+    if spec_obj is not None:
+        try:
+            from .dev_model_context import build_all_contexts
+            _model_contexts = build_all_contexts(spec_obj)
+            logger.info("[dev_graph] %d ModelGenerationContext calculés", len(_model_contexts))
+        except Exception as _mc_err:
+            logger.warning(f"[dev_graph] build_all_contexts non bloquant : {_mc_err}")
+
     # ── Génération déterministe : pages + loading + error ───────────────────────
     # generate_page_stubs : page.tsx entièrement déterministe pour les pages avec
     #   champ `model` → ajouté à template_written (LLM ne peut pas écraser).
@@ -266,12 +279,12 @@ async def run_dev_agent(
                     pass
 
             # Pages entièrement déterministes (model field présent) → template_written
-            _page_files = generate_page_stubs(spec_obj, project_workdir)
+            _page_files = generate_page_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
             template_written.update(_page_files)
 
             # Stubs page-client déterministes (list UI + create form) → template_written
             # Le planner les exclut ; write_file les protège via _protected.
-            _client_stubs = generate_page_client_stubs(spec_obj, project_workdir)
+            _client_stubs = generate_page_client_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
             template_written.update(_client_stubs)
 
             generate_loading_files(spec_obj, project_workdir)
@@ -280,34 +293,41 @@ async def run_dev_agent(
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
     # ── Génération déterministe : lib/types.ts ───────────────────────
-    # Avant pre_run_commands : les page stubs importent @/lib/types.
-    # Si prisma generate échoue (early return), les fichiers sont déjà sur disque → TSC correct.
+    # BLOQUANT : les page stubs importent @/lib/types. Si ce fichier est absent,
+    # le LLM invente ses propres interfaces → types incorrects → erreurs TS silencieuses.
+    # En cas d'échec : injection dans _template_error pour abort du run (comme package.json).
     if spec_obj is not None:
         try:
             from .dev_types_generator import generate_types_file
-            _types_result = generate_types_file(spec_obj, project_workdir)
+            _types_result = generate_types_file(spec_obj, project_workdir, contexts=_model_contexts or None)
             template_written[_types_result.path] = _types_result.content
             logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
         except Exception as _tg_err:
-            logger.warning(f"[dev_graph] types generator non bloquant : {_tg_err}")
+            # Bloquant — sans types.ts le LLM invente ses propres interfaces
+            _template_error = f"TYPES_GENERATOR_FAILED: {_tg_err}"
+            logger.error(f"[dev_graph] {_template_error}")
 
     # ── Génération déterministe : lib/schemas.ts ─────────────────────
-    if spec_obj is not None:
+    # BLOQUANT : les Server Actions importent les schemas Zod pour valider les inputs.
+    # Si absent, le LLM génère ses propres z.object() incompatibles avec les types.
+    if spec_obj is not None and not _template_error:
         try:
             from .dev_zod_generator import generate_schemas_file
-            _schemas_result = generate_schemas_file(spec_obj, project_workdir)
+            _schemas_result = generate_schemas_file(spec_obj, project_workdir, contexts=_model_contexts or None)
             if _schemas_result:
                 template_written[_schemas_result.path] = _schemas_result.content
                 logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
         except Exception as _zg_err:
-            logger.warning(f"[dev_graph] zod generator non bloquant : {_zg_err}")
+            _template_error = f"ZOD_GENERATOR_FAILED: {_zg_err}"
+            logger.error(f"[dev_graph] {_template_error}")
 
     # ── Génération déterministe : lib/services/*.ts ───────────────────
     # Avant pre_run_commands : les page stubs importent @/lib/services/*.
+    # _model_contexts déjà calculé avant les page generators (voir ci-dessus).
     if spec_obj is not None:
         try:
             from .dev_service_generator import generate_service_files
-            _svc_written = generate_service_files(spec_obj, project_workdir)
+            _svc_written = generate_service_files(spec_obj, project_workdir, contexts=_model_contexts or None)
             template_written.update(_svc_written)
             logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
         except Exception as _svc_err:

@@ -20,6 +20,8 @@ import logging
 import os
 from dataclasses import dataclass
 
+from .dev_model_context import _is_relation, _is_auto_field, _has_non_auto_default
+
 logger = logging.getLogger(__name__)
 
 # Mapping Prisma type → validateur Zod
@@ -54,24 +56,8 @@ def _prisma_attr_is_auto(attributes: str) -> bool:
     )
 
 
-def _is_relation_field(field_name: str, field_type: str, attributes: str, enums: "dict | None" = None) -> bool:
-    if "@relation" in (attributes or ""):
-        return True
-    base = field_type.rstrip("?").rstrip("[]")
-    if base in _PRISMA_TO_ZOD:
-        return False
-    if enums and base in enums:
-        return False  # Enum Prisma — pas une relation
-    return bool(base) and base[0].isupper()
-
-
 def _field_has_non_auto_default(attributes: str) -> bool:
-    if not attributes:
-        return False
-    attrs = attributes.lower()
-    if "@default(now())" in attrs or "@default(uuid())" in attrs or "@default(cuid())" in attrs:
-        return False
-    return "@default(" in attrs
+    return _has_non_auto_default(attributes)
 
 
 def _prisma_type_to_zod(prisma_type: str, attributes: str = "", enums: "dict | None" = None) -> str:
@@ -95,36 +81,52 @@ def _prisma_type_to_zod(prisma_type: str, attributes: str = "", enums: "dict | N
     if is_array:
         zod = f"z.array({zod})"
     if optional:
-        zod = f"{zod}.optional()"
+        # Enum Prisma nullable : UncheckedCreateInput accepte RecipeStatus | null
+        # → z.enum([...]).nullable().optional() pour valider correctement les <select>
+        if enums and base in enums:
+            zod = f"{zod}.nullable().optional()"
+        else:
+            zod = f"{zod}.optional()"
     return zod
 
 
-def _generate_create_schema(model, enums: "dict | None" = None) -> list[str]:
+def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> list[str]:
     """Génère les lignes du schéma Create{Name}Schema (champs mutables, sans owner)."""
-    owner = model.resolved_owner().lower()
     fields_lines: list[str] = []
 
+    if ctx is not None:
+        # Source unique : ctx.editable_fields + ctx.fk_fields
+        for fi in ctx.editable_fields:
+            zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
+            if fi.is_optional or fi.has_default:
+                if not zod_type.endswith(".optional()"):
+                    zod_type = f"{zod_type}.optional()"
+            fields_lines.append(f"  {fi.name}: {zod_type},")
+        for fk in ctx.fk_fields:
+            fields_lines.append(f"  {fk.field_name}: z.string(),")
+        return fields_lines
+
+    # Fallback : recalcul depuis model (compatibilité)
+    owner = model.resolved_owner().lower()
     for field in model.fields:
         fn = field.name.lower()
         if fn in _AUTO_FIELDS or fn == owner:
             continue
         if _prisma_attr_is_auto(field.attributes):
             continue
-        if _is_relation_field(field.name, field.type, field.attributes, enums=enums):
+        if _is_relation(field.type, field.attributes, enums or {}):
             continue
 
         zod_type = _prisma_type_to_zod(field.type, field.attributes, enums=enums)
-        # Champs avec @default non-auto → optionnel dans le schéma Create
         if _field_has_non_auto_default(field.attributes):
             if not zod_type.endswith(".optional()"):
                 zod_type = f"{zod_type}.optional()"
-
         fields_lines.append(f"  {field.name}: {zod_type},")
 
     return fields_lines
 
 
-def generate_schemas_file(spec, project_workdir: str) -> SchemasFileResult | None:
+def generate_schemas_file(spec, project_workdir: str, contexts: "dict | None" = None) -> SchemasFileResult | None:
     """
     Génère lib/schemas.ts depuis ProjectSpec et l'écrit sur le disque.
 
@@ -147,11 +149,12 @@ def generate_schemas_file(spec, project_workdir: str) -> SchemasFileResult | Non
     spec_enums: dict | None = getattr(spec, "enums", None) or None
 
     for model in spec.models:
+        ctx = (contexts or {}).get(model.name)
         name = model.name
         create_name = f"Create{name}Schema"
         update_name = f"Update{name}Schema"
 
-        field_lines = _generate_create_schema(model, enums=spec_enums)
+        field_lines = _generate_create_schema(model, enums=spec_enums, ctx=ctx)
         if not field_lines:
             # Modèle sans champs mutables (rare) — schéma vide pour éviter erreur TS
             field_lines = ["  // aucun champ mutable détecté"]

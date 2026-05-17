@@ -11,8 +11,9 @@ Architecture (Mai 2026) :
                      Pattern : auth guard (si requis) + appel service + <XxxClient items={items} />
                      Pour les pages sans `model` : stub auth-guard uniquement (LLM complète).
 - page-client.tsx  : stub pré-scaffoldé avec interface props correcte.
-                     PAS dans template_written → LLM complète le JSX body.
-                     Garantit la cohérence entre page.tsx (locked) et page-client.tsx (stub).
+                     DANS template_written → LLM ne peut pas écraser (protégé via dev_graph.py).
+                     Généré UNIQUEMENT pour page_type in (list, create, detail, detail-slug).
+                     Les pages custom sont laissées libres pour le LLM.
 """
 from __future__ import annotations
 
@@ -384,7 +385,7 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     return "\n".join(lines)
 
 
-def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, str]:  # type: ignore[name-defined]
+def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "dict | None" = None) -> dict[str, str]:  # type: ignore[name-defined]
     """
     Génère app/<path>/page.tsx pour chaque page du spec.
 
@@ -569,7 +570,7 @@ def _compute_relative_import(from_file: str, to_module: str) -> str:
     return rel if rel.startswith(".") else f"./{rel}"
 
 
-def _gen_page_client_list(page, model_obj, spec=None) -> str:
+def _gen_page_client_list(page, model_obj, spec=None, ctx=None) -> str:
     """
     page-client.tsx pour une list page — Level A complet :
     - Header avec titre + bouton "Nouveau" (si page create détectée dans la spec)
@@ -579,9 +580,9 @@ def _gen_page_client_list(page, model_obj, spec=None) -> str:
     name = model_obj.name
     client = path_to_client_component(page.path)
     serialized = f"Serialized{name}"
-    display = _display_fields(model_obj)
+    display = ctx.display_fields if ctx is not None else _display_fields(model_obj)
     client_rel = f"app/{page.path.strip('/')}/page-client.tsx"
-    has_status = any(f.name.lower() == "status" for f in model_obj.fields)
+    has_status = ctx.has_status if ctx is not None else any(f.name.lower() == "status" for f in model_obj.fields)
 
     # Résolution depuis la spec
     delete_fn = f"delete{name}"
@@ -667,14 +668,40 @@ def _gen_page_client_list(page, model_obj, spec=None) -> str:
             lines.append(f'                <p className="{cls}">{{item.{field_name}}}</p>')
 
     if has_status:
-        lines += [
-            "                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${",
-            "                  item.status === 'published' || item.status === 'active' ? 'bg-green-100 text-green-800' :",
-            "                  item.status === 'draft' ? 'bg-gray-100 text-gray-600' :",
-            "                  item.status === 'archived' ? 'bg-yellow-100 text-yellow-800' :",
-            "                  'bg-blue-100 text-blue-800'",
-            "                }`}>{item.status}</span>",
-        ]
+        # Comparaisons générées UNIQUEMENT depuis les valeurs réelles de l'enum du brief.
+        # Zéro valeur inventée → jamais de TS2367 quelle que soit la spec.
+        _GREEN  = {"published", "active", "enabled", "approved", "public", "visible", "confirmed", "live"}
+        _YELLOW = {"pending", "review", "suspended", "paused", "archived"}
+        _RED    = {"rejected", "cancelled", "canceled", "disabled", "deleted", "banned"}
+        _spec_status_vals: list[str] = []
+        if ctx is not None and ctx.spec_enums:
+            _sf = next((f for f in model_obj.fields if f.name.lower() == "status"), None)
+            if _sf:
+                _base_st = _sf.type.rstrip("?").rstrip("[]")
+                _spec_status_vals = ctx.spec_enums.get(_base_st, [])
+        if _spec_status_vals:
+            _ternary: list[str] = []
+            for _v in _spec_status_vals:
+                if _v in _GREEN:
+                    _cls = "bg-green-100 text-green-800"
+                elif _v in _YELLOW:
+                    _cls = "bg-yellow-100 text-yellow-800"
+                elif _v in _RED:
+                    _cls = "bg-red-100 text-red-800"
+                else:
+                    _cls = "bg-gray-100 text-gray-600"
+                _ternary.append(f"                  item.status === '{_v}' ? '{_cls}' :")
+            _ternary.append("                  'bg-blue-100 text-blue-800'")
+            lines += ["                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${"]
+            lines += _ternary
+            lines += ["                }`}>{item.status}</span>"]
+        else:
+            # Enum inconnu → badge statique, pas de comparaison, jamais de TS2367
+            lines += [
+                '                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">',
+                "                  {item.status}",
+                "                </span>",
+            ]
 
     lines += [
         '                <p className="text-xs text-gray-400">{item.createdAt}</p>',
@@ -713,7 +740,7 @@ def _field_label(field_name: str) -> str:
     return words.title()
 
 
-def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
+def _gen_page_client_create(page, model_obj, spec, client_rel: str, ctx=None) -> str:
     """
     page-client.tsx pour une create page — formulaire déterministe avec :
     - Champs scalaires : input typé (text, number, datetime-local, checkbox, textarea)
@@ -729,9 +756,14 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
     actions_module = f"app/{route_dir}/actions"
     import_path = _compute_relative_import(client_rel, actions_module)
 
-    fk_list = _fk_fields(model_obj, spec)
-    fk_names = {fk_field for fk_field, _, _ in fk_list}
-    fields = _form_fields(model_obj, fk_to_exclude=fk_names)
+    if ctx is not None:
+        # Source unique : ctx.fk_fields + ctx.editable_fields (input_type déjà calculé, enums inclus)
+        fk_list = [(fk.field_name, fk.related_model, fk.related_camel) for fk in ctx.fk_fields]
+        fields = [(fi.name, fi.input_type, not fi.is_optional and not fi.has_default) for fi in ctx.editable_fields]
+    else:
+        fk_list = _fk_fields(model_obj, spec)
+        fk_names = {fk_field for fk_field, _, _ in fk_list}
+        fields = _form_fields(model_obj, fk_to_exclude=fk_names)
 
     # Props interface : une prop xxxOptions par FK
     fk_prop_lines: list[str] = []
@@ -790,19 +822,38 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
         ]
 
     # Champs scalaires
+    spec_enums = (ctx.spec_enums if ctx is not None else None) or {}
     for field_name, input_type, required in fields:
         req_attr = " required" if required else ""
         label = _field_label(field_name)
-        if field_name.lower() == "status":
-            lines += [
-                "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                f'          <select name="{field_name}" className="w-full border rounded px-3 py-2">',
-                '            <option value="draft">Brouillon</option>',
-                '            <option value="published">Publié</option>',
-                "          </select>",
-                "        </div>",
-            ]
+        if input_type == "enum-select":
+            # Enum Prisma → <select> avec les vraies valeurs de la spec.
+            # Si l'enum n'est pas résolu, fallback text input — jamais de valeurs inventées.
+            base_type = field_name[0].upper() + field_name[1:]
+            enum_values: list[str] = next(
+                (v for k, v in spec_enums.items() if k.lower().endswith(field_name.lower()) or field_name.lower() in k.lower()),
+                spec_enums.get(base_type, []),
+            )
+            if enum_values:
+                lines += [
+                    "        <div>",
+                    f'          <label className="block text-sm font-medium mb-1">{label}</label>',
+                    f'          <select name="{field_name}" className="w-full border rounded px-3 py-2">',
+                ]
+                for val in enum_values:
+                    lines.append(f'            <option value="{val}">{val.replace("_", " ").title()}</option>')
+                lines += [
+                    "          </select>",
+                    "        </div>",
+                ]
+            else:
+                # Enum non résolu → text input (safe, le LLM peut affiner)
+                lines += [
+                    "        <div>",
+                    f'          <label className="block text-sm font-medium mb-1">{label}</label>',
+                    f'          <input name="{field_name}" type="text" className="w-full border rounded px-3 py-2"{req_attr} />',
+                    "        </div>",
+                ]
         elif input_type == "textarea":
             lines += [
                 "        <div>",
@@ -936,7 +987,7 @@ def _gen_page_client_detail(page, model_obj, spec=None) -> str:
 
 # ── Stubs page-client (déterministes) ────────────────────────────────────────
 
-def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, str]:  # type: ignore[name-defined]
+def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "dict | None" = None) -> dict[str, str]:  # type: ignore[name-defined]
     """
     Génère app/<path>/page-client.tsx pour chaque page du spec.
 
@@ -952,6 +1003,11 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
     written: dict[str, str] = {}
 
     for page in spec.pages:
+        # Les pages custom n'ont pas de page-client déterministe :
+        # le LLM décide librement de sa structure — un stub <div /> protégé bloquerait.
+        if page.page_type not in ("list", "create", "detail", "detail-slug"):
+            continue
+
         model_name = getattr(page, "model", None)
         model_obj  = spec.get_model_by_name(model_name) if model_name else None
 
@@ -968,13 +1024,16 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
         os.makedirs(os.path.dirname(client_abs), exist_ok=True)
         client = path_to_client_component(page.path)
 
+        ctx = (contexts or {}).get(model_name) if model_name else None
+
         if page.page_type == "list" and model_obj is not None:
-            content = _gen_page_client_list(page, model_obj, spec=spec)
+            content = _gen_page_client_list(page, model_obj, spec=spec, ctx=ctx)
 
         elif page.page_type == "create":
             create_model = model_obj or _find_create_model(page, spec)
             if create_model is not None:
-                content = _gen_page_client_create(page, create_model, spec, client_rel)
+                create_ctx = ctx or (contexts or {}).get(create_model.name)
+                content = _gen_page_client_create(page, create_model, spec, client_rel, ctx=create_ctx)
             else:
                 # Formulaire générique sans champs (pas de model détecté)
                 content = "\n".join([

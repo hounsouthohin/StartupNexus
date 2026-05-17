@@ -21,6 +21,8 @@ import logging
 import os
 from dataclasses import dataclass
 
+from .dev_model_context import _is_relation, _is_auto_field, _has_non_auto_default
+
 logger = logging.getLogger(__name__)
 
 # Mapping Prisma type → TypeScript type
@@ -48,63 +50,47 @@ class TypesFileResult:
     input_types: list[str]
 
 
-def _prisma_attr_is_auto(attributes: str) -> bool:
-    """Retourne True si le champ est auto-géré par Prisma (id, timestamps, auto-default)."""
-    attrs_lower = (attributes or "").lower()
-    return "@id" in attrs_lower or "@default(now())" in attrs_lower or "@updatedAt" in attrs_lower.replace(" ", "")
-
-
-def _prisma_type_to_ts(prisma_type: str) -> str:
+def _prisma_type_to_ts(prisma_type: str, spec_enums: dict | None = None) -> str:
     """Convertit un type Prisma (potentiellement avec ?) en TypeScript."""
     optional = prisma_type.endswith("?")
     base = prisma_type.rstrip("?").rstrip("[]")
-    # Primitifs connus → mapping direct
-    # Type inconnu commençant par une majuscule → enum Prisma → string
+    if spec_enums and base in spec_enums:
+        # Enum Prisma → string literal union des valeurs connues.
+        # Ex: RecipeStatus → "draft" | "published"
+        # Structurellement identique au type Prisma généré → assignable sans import local.
+        # NE PAS utiliser le nom de l'enum (RecipeStatus) : export type { X } from 'mod'
+        # re-exporte vers l'extérieur mais ne lie pas X dans le scope local du fichier.
+        values = spec_enums[base]
+        if isinstance(values, list) and values:
+            inner = " | ".join(f'"{v}"' for v in values)
+        else:
+            inner = "string"
+        ts = f"({inner}) | null" if optional else inner
+        return ts
     ts = _PRISMA_TO_TS.get(base, "string" if base and base[0].isupper() else "unknown")
     return f"{ts} | null" if optional else ts
 
 
-def _is_relation_field(field_name: str, field_type: str, attributes: str, enums: "dict | None" = None) -> bool:
-    """
-    Détecte si un champ est une relation Prisma (à exclure des Input types).
-    Les relations ont @relation dans leurs attributs OU leur type commence par une majuscule
-    et n'est pas un type primitif Prisma ni un enum déclaré.
-    """
-    if "@relation" in (attributes or ""):
-        return True
-    base_type = field_type.rstrip("?").rstrip("[]")
-    # Type primitif connu → pas une relation
-    if base_type in _PRISMA_TO_TS:
-        return False
-    # Enum Prisma déclaré → pas une relation
-    if enums and base_type in enums:
-        return False
-    # Type commence par une majuscule et inconnu → probablement un modèle (relation)
-    if base_type and base_type[0].isupper():
-        return True
-    return False
-
-
-def _field_has_non_auto_default(attributes: str) -> bool:
-    """True si le champ a un @default qui n'est pas now() ou uuid() (ex: @default(PENDING))."""
-    if not attributes:
-        return False
-    attrs = attributes.lower()
-    if "@default(now())" in attrs or "@default(uuid())" in attrs or "@default(cuid())" in attrs:
-        return False
-    return "@default(" in attrs
-
-
-def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileResult:  # type: ignore[name-defined]
+def generate_types_file(
+    spec: "ProjectSpec",  # type: ignore[name-defined]
+    project_workdir: str,
+    contexts: "dict | None" = None,
+) -> "TypesFileResult":
     """
     Génère lib/types.ts depuis ProjectSpec et l'écrit sur le disque.
 
+    contexts : dict[model_name, ModelGenerationContext] pré-calculé par dev_graph.py.
+               Si fourni, utilise ctx.editable_fields + ctx.fk_fields (source unique).
+               Sinon, recalcule depuis spec (fallback de compatibilité).
+
     Contenu :
+      - import type { Prisma }       (binding local → Prisma.XxxUncheckedCreateInput utilisable)
       - Re-exports des types Prisma  (export type { ModelA, ModelB } from '@prisma/client')
-      - Re-export du namespace Prisma (export type { Prisma } from '@prisma/client')
+      - Re-export du namespace Prisma (export type { Prisma })
       - ApiResponse<T>               (type utilitaire standard pour toutes les routes)
-      - CreateXxxInput               (champs éditables du modèle, sans id/timestamps/relations)
+      - CreateXxxInput               (Omit<Prisma.XxxUncheckedCreateInput, auto_fields> — Direction A)
       - UpdateXxxInput               (Partial<CreateXxxInput>)
+      - SerializedXxx                (all scalars, DateTime → string, pour les retours service)
       - XxxPageParams                (paramètres de route pour les pages dynamiques [id])
     """
     model_names = [m.name for m in spec.models]
@@ -119,12 +105,24 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
     ]
 
     # ── 1. Re-exports Prisma ────────────────────────────────────────────────────
+    # import type lie Prisma dans le scope local → Prisma.XxxUncheckedCreateInput utilisable
+    # export type { Prisma } le re-exporte pour les consommateurs de lib/types.ts
+    lines += [
+        "import type { Prisma } from '@prisma/client'",
+        "export type { Prisma }",
+    ]
     if model_names:
         prisma_exports = ", ".join(model_names)
         lines += [
             "// Types Prisma — disponibles après `prisma generate`",
             f"export type {{ {prisma_exports} }} from '@prisma/client'",
-            "export type { Prisma } from '@prisma/client'",
+            "",
+        ]
+    # Enums Prisma — re-exportés pour que le code client puisse les référencer sans import séparé.
+    _enum_names = list((getattr(spec, "enums", None) or {}).keys())
+    if _enum_names:
+        lines += [
+            f"export type {{ {', '.join(_enum_names)} }} from '@prisma/client'",
             "",
         ]
 
@@ -148,55 +146,34 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
 
     # ── 3. Input types par modèle ───────────────────────────────────────────────
     spec_enums: dict = getattr(spec, "enums", None) or {}
+    _spec_models_by_name: dict = {m.name: m for m in spec.models}
 
     for model in spec.models:
-        editable_fields: list[tuple[str, str]] = []  # (nom+optionality, type TS)
-        _owner = model.resolved_owner().lower()
+        ctx = (contexts or {}).get(model.name)
 
-        for field in model.fields:
-            # Exclure les champs auto-gérés (id, createdAt, updatedAt)
-            if _prisma_attr_is_auto(field.attributes):
-                continue
-            if field.name.lower() in _AUTO_FIELDS:
-                continue
-            # Exclure l'owner_field — il est ajouté par le service depuis auth()
-            if field.name.lower() == _owner:
-                continue
-            # Exclure les relations (objets Prisma imbriqués) — pas les enums
-            if _is_relation_field(field.name, field.type, field.attributes, enums=spec_enums):
-                continue
-            ts_type = _prisma_type_to_ts(field.type)
-            is_nullable = field.type.endswith("?")
-            has_default = _field_has_non_auto_default(field.attributes)
+        # Champ propriétaire (userId / ownerId / etc.) — fourni par auth, jamais par le formulaire
+        _owner: str = (ctx.owner if ctx is not None else model.resolved_owner()) or ""
 
-            if is_nullable:
-                # description?: string | null — optionnel ET nullable
-                # undefined ⊆ string|null|undefined → LLM passe `description?: string` sans TS2345
-                # string|null ⊆ string|null|undefined → page passe données Prisma sans TS2322
-                editable_fields.append((field.name + "?", ts_type))
-            elif has_default:
-                # Champ optionnel à la création (a un @default) mais non nullable
-                editable_fields.append((field.name + "?", ts_type))
-            else:
-                editable_fields.append((field.name, ts_type))
-
-        if not editable_fields:
-            # Modèle sans champs éditables détectables → type minimal
-            editable_fields = [("data", "unknown")]
+        # Champs auto-gérés par Prisma à exclure de UncheckedCreateInput
+        _auto_names = {f.name for f in model.fields if _is_auto_field(f.name, f.attributes)}
+        _omit_set: set[str] = {"id"} | _auto_names
+        if _owner:
+            _omit_set.add(_owner)
+        _omit_ts = " | ".join(f"'{fn}'" for fn in sorted(_omit_set))
 
         create_type_name = f"Create{model.name}Input"
         update_type_name = f"Update{model.name}Input"
         input_types_generated.extend([create_type_name, update_type_name])
 
+        # Direction A : Omit<Prisma.XxxUncheckedCreateInput, auto_fields>
+        # → type toujours aligné sur ce que Prisma attend, y compris les enums stricts.
+        # UncheckedCreateInput est un plain TS interface → Omit fonctionne correctement.
         lines.append(f"// Types d'entrée pour {model.name}")
-        lines.append(f"export type {create_type_name} = {{")
-        for fname, ftype in editable_fields:
-            lines.append(f"  {fname}: {ftype}")
-        lines.append("}")
+        lines.append(f"export type {create_type_name} = Omit<Prisma.{model.name}UncheckedCreateInput, {_omit_ts}>")
         lines.append(f"export type {update_type_name} = Partial<{create_type_name}>")
         lines.append("")
 
-        # SerializedXxx — type explicite (tous les champs scalaires), DateTime → string.
+        # SerializedXxx — type explicite (scalaires + relations optionnelles), DateTime → string.
         # N'utilise PAS Omit<PrismaType, K> : en Prisma v7 les types modèles sont des
         # génériques complexes (runtime.Types.DefaultSelection<...>) que TypeScript résout
         # incorrectement avec Omit → tous les scalaires disparaissent, reste {} uniquement.
@@ -205,7 +182,33 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
         lines.append(f"// {model.name} — retour service (DateTime → string, NE PAS appeler .toISOString())")
         lines.append(f"export type {serialized_name} = {{")
         for _sf in model.fields:
-            if _is_relation_field(_sf.name, _sf.type, _sf.attributes, enums=spec_enums):
+            if _is_relation(_sf.type, _sf.attributes, spec_enums):
+                # Relation → type inline dérivé du modèle lié (si présent dans la spec)
+                # Rend item.category.name typé sans TS2551
+                _base_rel = _sf.type.rstrip("?").rstrip("[]")
+                _is_array_rel = "[]" in _sf.type
+                _nullable_rel = _sf.type.endswith("?")
+                _rel_model = _spec_models_by_name.get(_base_rel)
+                if _rel_model is not None:
+                    _rel_field_strs: list[str] = []
+                    for _rf in _rel_model.fields:
+                        if _is_relation(_rf.type, _rf.attributes, spec_enums):
+                            continue
+                        _rb = _rf.type.rstrip("?").rstrip("[]")
+                        if _rb == "DateTime":
+                            _rt = "string | null" if _rf.type.endswith("?") else "string"
+                        else:
+                            _rt = _prisma_type_to_ts(_rf.type, spec_enums)
+                        _rel_field_strs.append(f"{_rf.name}: {_rt}")
+                    _inner = "{ " + "; ".join(_rel_field_strs) + " }" if _rel_field_strs else "{ id: string }"
+                else:
+                    _inner = "{ id: string; [key: string]: unknown }"
+                if _is_array_rel:
+                    lines.append(f"  {_sf.name}?: {_inner}[]")
+                elif _nullable_rel:
+                    lines.append(f"  {_sf.name}?: {_inner} | null")
+                else:
+                    lines.append(f"  {_sf.name}?: {_inner}")
                 continue
             _base = _sf.type.rstrip("?").rstrip("[]")
             _nullable = _sf.type.endswith("?")
@@ -213,7 +216,7 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
             if _base == "DateTime":
                 _ts = "string | null" if _nullable else "string"
             else:
-                _ts = _prisma_type_to_ts(_sf.type)
+                _ts = _prisma_type_to_ts(_sf.type, spec_enums)
             lines.append(f"  {_sf.name}: {_ts}")
         lines.append("}")
         lines.append("")
