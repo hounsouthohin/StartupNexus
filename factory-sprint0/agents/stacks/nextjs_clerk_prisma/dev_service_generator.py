@@ -48,6 +48,11 @@ def _has_status_field(model) -> bool:
     return any(f.name.lower() == "status" for f in model.fields)
 
 
+def _has_slug_field(model) -> bool:
+    """Retourne True si le modèle a un champ 'slug' — active getBySlug() (Level D)."""
+    return any(f.name.lower() == "slug" for f in model.fields)
+
+
 def _relation_fields(model) -> list[str]:
     """Retourne les noms des champs portant un @relation dans le modèle."""
     return [f.name for f in model.fields if "@relation" in (f.attributes or "")]
@@ -118,11 +123,12 @@ def _generate_service_for_model(model) -> str:
         ])
 
     has_status = _has_status_field(model)
+    has_slug = _has_slug_field(model)
 
     lines.extend([
         f"export const {camel}Service = {{",
         f"  getAll: async ({owner}: string): Promise<{serialized_name}[]> => {{",
-        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0 }})",
+        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, orderBy: {{ createdAt: 'desc' }}, take: 20, skip: 0 }})",
         "    return items.map(_serialize)",
         "  },",
     ])
@@ -131,7 +137,7 @@ def _generate_service_for_model(model) -> str:
         lines.extend([
             "",
             f"  getPublished: async (): Promise<{serialized_name}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: 'published' }}, take: 50, skip: 0 }})",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: 'published' }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
             "    return items.map(_serialize)",
             "  },",
         ])
@@ -149,14 +155,29 @@ def _generate_service_for_model(model) -> str:
         "    if (!item) notFound()",
         "    return _serialize(item)",
         "  },",
+        "",
+        f"  getPublicAll: async (): Promise<{serialized_name}[]> => {{",
+        f"    const items = await prisma.{camel}.findMany({{ orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+        "    return items.map(_serialize)",
+        "  },",
     ])
+
+    if has_slug:
+        lines.extend([
+            "",
+            f"  getBySlug: async (slug: string): Promise<{serialized_name}> => {{",
+            f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }} }})",
+            "    if (!item) notFound()",
+            "    return _serialize(item)",
+            "  },",
+        ])
 
     if relations:
         include_block = ", ".join(f"{r}: true" for r in relations)
         lines.extend([
             "",
             f"  getAllWithRelations: async ({owner}: string): Promise<{serialized_name}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, take: 20, skip: 0, include: {{ {include_block} }} }})",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, orderBy: {{ createdAt: 'desc' }}, take: 20, skip: 0, include: {{ {include_block} }} }})",
             "    return items.map(_serialize)",
             "  },",
         ])
@@ -237,6 +258,9 @@ def format_service_map_for_prompt(spec) -> str:
             lines.append(f"  .getPublished()  → `Promise<{serialized_name}[]>` SANS userId — à utiliser sur les pages publiques (auth: false)")
         lines.append(f"  .getById({owner}, id)  → `Promise<{serialized_name}>` (notFound() si absent — jamais null)")
         lines.append(f"  .getPublicById(id)     → `Promise<{serialized_name}>` SANS owner filter — à utiliser sur les pages détail publiques (auth: false)")
+        lines.append(f"  .getPublicAll()        → `Promise<{serialized_name}[]>` SANS owner filter — à utiliser pour fetch options FK sur pages create publiques (auth: false)")
+        if _has_slug_field(model):
+            lines.append(f"  .getBySlug(slug)       → `Promise<{serialized_name}>` par champ slug — pages détail Level D (auth: false, @unique requis)")
         if relations:
             rel_list = ", ".join(relations)
             lines.append(

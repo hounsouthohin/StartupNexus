@@ -30,6 +30,15 @@ from .dev_naming import (
 logger = logging.getLogger(__name__)
 
 
+def _pluralize(name: str) -> str:
+    """Pluriel anglais simple pour les noms de modèles PascalCase."""
+    if name.endswith("y") and len(name) > 1 and name[-2].lower() not in "aeiou":
+        return name[:-1] + "ies"   # Category → Categories
+    if name.endswith(("s", "sh", "ch", "x", "z")):
+        return name + "es"
+    return name + "s"
+
+
 def _model_has_status(model_obj) -> bool:
     return any(f.name.lower() == "status" for f in model_obj.fields)
 
@@ -257,7 +266,7 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
 
     Patterns générés :
     - Liste privée  : auth() + getAll(userId) → <XxxClient items={items} />
-    - Liste publique: getPublished() / getAll() sans auth → <XxxClient items={items} />
+    - Liste publique: getPublished() / getPublicAll() sans auth → <XxxClient items={items} />
     - Création      : auth() + fetch FK options → <XxxClient fkOptions={...} />
     - Détail privé  : auth() + getById(userId, params.id) + notFound() → <XxxClient item={item} />
     - Détail public : prisma.model.findUnique(params.id) + notFound() → <XxxClient item={item} />
@@ -268,7 +277,8 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     client = path_to_client_component(page.path)
     component = path_to_page_component(page.path)
     is_create = page.page_type == "create"
-    is_detail = page.page_type == "detail"
+    is_detail = page.page_type in ("detail", "detail-slug")
+    is_slug_detail = page.page_type == "detail-slug"
     has_relations = _model_has_relations(model_obj)
     has_status = _model_has_status(model_obj)
 
@@ -307,7 +317,12 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
             f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
         )
 
-    fn_params = "{ params }: { params: { id: string } }" if is_detail else ""
+    if is_slug_detail:
+        fn_params = "{ params }: { params: { slug: string } }"
+    elif is_detail:
+        fn_params = "{ params }: { params: { id: string } }"
+    else:
+        fn_params = ""
     lines += [
         "",
         "export const dynamic = 'force-dynamic'",
@@ -322,7 +337,9 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
         ]
 
     if is_detail:
-        if page.auth_required:
+        if is_slug_detail:
+            lines.append(f"  const item = await {camel}Service.getBySlug(params.slug)")
+        elif page.auth_required:
             lines.append(f"  const item = await {camel}Service.getById(userId, params.id)")
         else:
             lines.append(f"  const item = await {camel}Service.getPublicById(params.id)")
@@ -341,7 +358,7 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
             service_call = (
                 f"{camel}Service.getPublished()"
                 if has_status else
-                f"{camel}Service.getAll()"
+                f"{camel}Service.getPublicAll()"
             )
         lines += [
             f"  const items = await {service_call}",
@@ -350,9 +367,11 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     else:
         if fk_list:
             # Fetch des options pour chaque select FK
-            owner_arg = "userId" if page.auth_required else "''"
             for _fk_field, _related_model, related_camel in fk_list:
-                lines.append(f"  const {related_camel}Options = await {related_camel}Service.getAll({owner_arg})")
+                if page.auth_required:
+                    lines.append(f"  const {related_camel}Options = await {related_camel}Service.getAll(userId)")
+                else:
+                    lines.append(f"  const {related_camel}Options = await {related_camel}Service.getPublicAll()")
             fk_props = " ".join(
                 f"{related_camel}Options={{{related_camel}Options}}"
                 for _fk_field, _related_model, related_camel in fk_list
@@ -391,8 +410,8 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
         if model_obj is None and getattr(page, "page_type", None) == "create":
             model_obj = _find_create_model(page, spec)
 
-        # Pour les pages detail sans model explicite, résoudre via le chemin parent
-        if model_obj is None and getattr(page, "page_type", None) == "detail":
+        # Pour les pages detail/detail-slug sans model explicite, résoudre via le chemin parent
+        if model_obj is None and getattr(page, "page_type", None) in ("detail", "detail-slug"):
             model_obj = _find_detail_model(page, spec)
 
         if model_obj is not None:
@@ -414,14 +433,14 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str) -> dict[str, 
 
 # ── Helpers générateur stubs UI ──────────────────────────────────────────────
 
-def _form_fields(model_obj) -> list:
+def _form_fields(model_obj, fk_to_exclude: "set[str] | None" = None) -> list:
     """
     Retourne (field_name, input_type, is_required) pour les champs du formulaire Create.
-    Exclut : id, createdAt, updatedAt, owner_field, champs @relation, tableaux.
+    Exclut : id, createdAt, updatedAt, owner_field, champs @relation, tableaux, champs FK (déjà rendus en <select>).
     """
     _TEXTAREA_NAMES = {"content", "description", "body", "notes", "message", "text", "bio", "about", "details"}
     owner = model_obj.resolved_owner()
-    excluded = {"id", "createdAt", "updatedAt", owner}
+    excluded = {"id", "createdAt", "updatedAt", owner} | (fk_to_exclude or set())
     result = []
     for field in model_obj.fields:
         name = field.name
@@ -545,16 +564,51 @@ def _compute_relative_import(from_file: str, to_module: str) -> str:
     return rel if rel.startswith(".") else f"./{rel}"
 
 
-def _gen_page_client_list(page, model_obj) -> str:
-    """page-client.tsx pour une list page — affiche les items sous forme de cards."""
+def _gen_page_client_list(page, model_obj, spec=None) -> str:
+    """
+    page-client.tsx pour une list page — Level A complet :
+    - Header avec titre + bouton "Nouveau" (si page create détectée dans la spec)
+    - Chaque item : titre cliquable vers detail (si page detail dans la spec) + champs affichables
+    - Bouton Supprimer via Server Action delete{Model}.bind(null, item.id)
+    """
     name = model_obj.name
     client = path_to_client_component(page.path)
     serialized = f"Serialized{name}"
     display = _display_fields(model_obj)
+    client_rel = f"app/{page.path.strip('/')}/page-client.tsx"
+
+    # Résolution depuis la spec
+    delete_fn = f"delete{name}"
+    import_actions_path: str | None = None
+    detail_href_ts: str | None = None   # template literal TS : `/blog/${item.id}`
+    create_path: str | None = None
+
+    if spec is not None:
+        # Delete action : seulement sur les pages privées (auth:true).
+        # Une page publique (/blog) lit sans droits de mutation — le bouton Supprimer ne doit pas apparaître.
+        if page.auth_required:
+            list_page = spec.get_list_page_for_model(name)
+            actions_module = f"app/{list_page.lstrip('/')}/actions"
+            import_actions_path = _compute_relative_import(client_rel, actions_module)
+
+        detail_pages = [p for p in spec.pages if p.page_type == "detail" and p.model == name]
+        if detail_pages:
+            detail_href_ts = re.sub(r"\[(\w+)\]", r"${item.\1}", detail_pages[0].path)
+
+        list_prefix = page.path.rstrip("/")
+        create_pages = [p for p in spec.pages if p.page_type == "create" and p.path.startswith(list_prefix + "/")]
+        if create_pages:
+            create_path = create_pages[0].path
 
     lines = [
         "'use client'",
+        "import Link from 'next/link'",
         f"import type {{ {serialized} }} from '@/lib/types'",
+    ]
+    if import_actions_path:
+        lines.append(f"import {{ {delete_fn} }} from '{import_actions_path}'")
+
+    lines += [
         "",
         f"interface {client}Props {{",
         f"  items: {serialized}[]",
@@ -563,20 +617,49 @@ def _gen_page_client_list(page, model_obj) -> str:
         f"export default function {client}({{ items }}: {client}Props) {{",
         "  return (",
         '    <main className="container mx-auto p-6">',
-        f'      <h1 className="text-2xl font-bold mb-6">{name}s</h1>',
+        '      <div className="flex justify-between items-center mb-6">',
+        f'        <h1 className="text-2xl font-bold">{_pluralize(name)}</h1>',
+    ]
+    if create_path:
+        lines += [
+            f'        <Link href="{create_path}" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
+            f"          Nouveau {name}",
+            "        </Link>",
+        ]
+    lines += [
+        "      </div>",
         "      {items.length === 0 ? (",
         '        <p className="text-gray-500">Aucun élément.</p>',
         "      ) : (",
         '        <ul className="space-y-4">',
         "          {items.map((item) => (",
-        '            <li key={item.id} className="border rounded p-4 bg-white shadow-sm">',
+        '            <li key={item.id} className="border rounded p-4 bg-white shadow-sm flex justify-between items-start">',
+        "              <div>",
     ]
 
-    for field_name in display:
-        lines.append(f'              <p className="font-medium">{{item.{field_name}}}</p>')
+    for i, field_name in enumerate(display):
+        if i == 0 and detail_href_ts:
+            href_attr = "href={`" + detail_href_ts + "`}"
+            lines.append(f'                <Link {href_attr} className="font-medium hover:underline">{{item.{field_name}}}</Link>')
+        else:
+            cls = "font-medium" if i == 0 else "text-sm text-gray-600"
+            lines.append(f'                <p className="{cls}">{{item.{field_name}}}</p>')
 
     lines += [
-        '              <p className="text-xs text-gray-400">{item.createdAt}</p>',
+        '                <p className="text-xs text-gray-400">{item.createdAt}</p>',
+        "              </div>",
+    ]
+
+    if import_actions_path:
+        lines += [
+            f"              <form action={{{delete_fn}.bind(null, item.id)}}>",
+            '                <button type="submit" className="text-red-500 hover:text-red-700 text-sm">',
+            "                  Supprimer",
+            "                </button>",
+            "              </form>",
+        ]
+
+    lines += [
         "            </li>",
         "          ))}",
         "        </ul>",
@@ -615,8 +698,9 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
     actions_module = f"app/{route_dir}/actions"
     import_path = _compute_relative_import(client_rel, actions_module)
 
-    fields = _form_fields(model_obj)
     fk_list = _fk_fields(model_obj, spec)
+    fk_names = {fk_field for fk_field, _, _ in fk_list}
+    fields = _form_fields(model_obj, fk_to_exclude=fk_names)
 
     # Props interface : une prop xxxOptions par FK
     fk_prop_lines: list[str] = []
@@ -723,8 +807,13 @@ def _gen_page_client_create(page, model_obj, spec, client_rel: str) -> str:
     return "\n".join(lines)
 
 
-def _gen_page_client_detail(page, model_obj) -> str:
-    """page-client.tsx pour une detail page — affiche tous les champs scalaires d'un item."""
+def _gen_page_client_detail(page, model_obj, spec=None) -> str:
+    """
+    page-client.tsx pour une detail page — Level A complet :
+    - Lien retour vers la page liste du modèle
+    - Titre h1 (premier champ String)
+    - dl avec tous les champs scalaires affichables
+    """
     name = model_obj.name
     client = path_to_client_component(page.path)
     serialized = f"Serialized{name}"
@@ -732,9 +821,20 @@ def _gen_page_client_detail(page, model_obj) -> str:
     owner = model_obj.resolved_owner()
     excluded = {"id", "updatedAt", owner}
 
+    # FK fields (xxxId → modèle connu) : UUIDs bruts, pas utiles en détail Level A
+    fk_field_names: set[str] = set()
+    if spec is not None:
+        model_names = {m.name for m in spec.models}
+        for field in model_obj.fields:
+            fn = field.name
+            if fn not in excluded and fn.endswith("Id") and "@relation" not in (field.attributes or ""):
+                related = fn[:-2]
+                if (related[0].upper() + related[1:]) in model_names:
+                    fk_field_names.add(fn)
+
     all_display: list[str] = []
     for field in model_obj.fields:
-        if field.name in excluded:
+        if field.name in excluded or field.name in fk_field_names:
             continue
         if "@relation" in (field.attributes or ""):
             continue
@@ -752,8 +852,17 @@ def _gen_page_client_detail(page, model_obj) -> str:
     )
     detail_fields = [f for f in all_display if f != title_field]
 
+    # Lien retour : préférer la liste avec le même régime auth que la page détail
+    back_href = "/"
+    if spec is not None:
+        list_pages = [p for p in spec.pages if p.page_type == "list" and getattr(p, "model", None) == name]
+        if list_pages:
+            same_auth = [p for p in list_pages if p.auth_required == page.auth_required]
+            back_href = (same_auth[0] if same_auth else list_pages[0]).path
+
     lines = [
         "'use client'",
+        "import Link from 'next/link'",
         f"import type {{ {serialized} }} from '@/lib/types'",
         "",
         f"interface {client}Props {{",
@@ -763,12 +872,15 @@ def _gen_page_client_detail(page, model_obj) -> str:
         f"export default function {client}({{ item }}: {client}Props) {{",
         "  return (",
         '    <main className="container mx-auto p-6 max-w-2xl">',
+        f'      <Link href="{back_href}" className="text-blue-600 hover:underline text-sm mb-6 inline-block">',
+        "        ← Retour",
+        "      </Link>",
     ]
 
     if title_field:
-        lines.append(f'      <h1 className="text-2xl font-bold mb-6">{{item.{title_field}}}</h1>')
+        lines.append(f'      <h1 className="text-2xl font-bold mb-4">{{item.{title_field}}}</h1>')
     else:
-        lines.append(f'      <h1 className="text-2xl font-bold mb-6">{name}</h1>')
+        lines.append(f'      <h1 className="text-2xl font-bold mb-4">{name}</h1>')
 
     if detail_fields:
         lines.append('      <dl className="space-y-4">')
@@ -826,7 +938,7 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
         client = path_to_client_component(page.path)
 
         if page.page_type == "list" and model_obj is not None:
-            content = _gen_page_client_list(page, model_obj)
+            content = _gen_page_client_list(page, model_obj, spec=spec)
 
         elif page.page_type == "create":
             create_model = model_obj or _find_create_model(page, spec)
@@ -852,10 +964,10 @@ def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str) -> dic
                     "",
                 ])
 
-        elif page.page_type == "detail":
+        elif page.page_type in ("detail", "detail-slug"):
             detail_model = model_obj or _find_detail_model(page, spec)
             if detail_model is not None:
-                content = _gen_page_client_detail(page, detail_model)
+                content = _gen_page_client_detail(page, detail_model, spec=spec)
             else:
                 content = "\n".join([
                     "'use client'",

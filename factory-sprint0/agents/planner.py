@@ -85,8 +85,8 @@ def make_deterministic_plan(
     entries: list[FilePlanEntry] = []
 
     # ── 0. Services lib/services/{model}.service.ts ────────────────────────────
-    # Générés par le LLM AVANT les actions (les actions importent depuis les services).
-    # Chaque service expose : getAll, getById, create, update, delete + méthodes enrichies.
+    # Pré-générés par dev_service_generator AVANT le LLM (dans template_written).
+    # Skippés ici via `if file_path in template_set`. Listés pour validate_plan uniquement.
     for model in spec.models:
         kebab = _pascal_to_kebab(model.name)
         camel = _pascal_to_camel(model.name)

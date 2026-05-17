@@ -171,6 +171,14 @@ class ProjectSpec(BaseModel):
         default_factory=list,
         description="Flux utilisateur principaux, ex: 'Un utilisateur crée un produit'"
     )
+    enums: dict = Field(
+        default_factory=dict,
+        description=(
+            "Enums Prisma du projet : { 'EnumName': ['value1', 'value2', ...] }. "
+            "Utilisé par le zod generator pour générer z.enum([...]) au lieu de z.string(). "
+            "Exemple : { 'PostStatus': ['draft', 'published', 'archived'] }"
+        )
+    )
     spec_fingerprint: str = Field(
         default="",
         description="Hash SHA256 des noms critiques — calculé automatiquement"

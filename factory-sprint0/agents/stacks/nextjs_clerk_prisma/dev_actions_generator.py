@@ -86,9 +86,19 @@ def generate_action_files(spec, project_workdir: str) -> dict[str, str]:
     Collision : si deux modèles se résolvent vers le même list_page (ex: Contact + Note → /contacts),
     un warning est logué et le second fichier fusionne les actions dans le même fichier.
     """
+    # Modèles ayant au moins une page list ou create dans le spec → seuls ceux-là ont des actions
+    models_with_pages = {
+        getattr(p, "model", None)
+        for p in spec.pages
+        if getattr(p, "model", None) and getattr(p, "page_type", None) in ("list", "create")
+    }
+
     # Regroupe les modèles par list_page pour gérer les collisions
     page_to_models: dict[str, list] = {}
     for model in spec.models:
+        if model.name not in models_with_pages:
+            logger.info("[action_generator] skip %s — aucune page list/create dans le spec", model.name)
+            continue
         list_page = spec.get_list_page_for_model(model.name)
         page_to_models.setdefault(list_page, []).append(model)
 

@@ -72,7 +72,7 @@ def _field_has_non_auto_default(attributes: str) -> bool:
     return "@default(" in attrs
 
 
-def _prisma_type_to_zod(prisma_type: str, attributes: str = "") -> str:
+def _prisma_type_to_zod(prisma_type: str, attributes: str = "", enums: "dict | None" = None) -> str:
     """Convertit un type Prisma en validateur Zod, gère les optionnels et enums."""
     optional = prisma_type.endswith("?")
     is_array = "[]" in prisma_type
@@ -80,8 +80,12 @@ def _prisma_type_to_zod(prisma_type: str, attributes: str = "") -> str:
 
     if base in _PRISMA_TO_ZOD:
         zod = _PRISMA_TO_ZOD[base]
+    elif enums and base in enums:
+        # Enum Prisma avec valeurs connues → z.enum([...]) strict
+        values = ", ".join(f'"{v}"' for v in enums[base])
+        zod = f"z.enum([{values}])"
     elif base and base[0].isupper():
-        # Enum Prisma → z.string() (on ne re-crée pas l'enum Zod)
+        # Enum Prisma sans valeurs connues → z.string() fallback
         zod = "z.string()"
     else:
         zod = "z.unknown()"
@@ -93,7 +97,7 @@ def _prisma_type_to_zod(prisma_type: str, attributes: str = "") -> str:
     return zod
 
 
-def _generate_create_schema(model) -> list[str]:
+def _generate_create_schema(model, enums: "dict | None" = None) -> list[str]:
     """Génère les lignes du schéma Create{Name}Schema (champs mutables, sans owner)."""
     owner = model.resolved_owner().lower()
     fields_lines: list[str] = []
@@ -107,7 +111,7 @@ def _generate_create_schema(model) -> list[str]:
         if _is_relation_field(field.name, field.type, field.attributes):
             continue
 
-        zod_type = _prisma_type_to_zod(field.type, field.attributes)
+        zod_type = _prisma_type_to_zod(field.type, field.attributes, enums=enums)
         # Champs avec @default non-auto → optionnel dans le schéma Create
         if _field_has_non_auto_default(field.attributes):
             if not zod_type.endswith(".optional()"):
@@ -138,12 +142,14 @@ def generate_schemas_file(spec, project_workdir: str) -> SchemasFileResult | Non
         "",
     ]
 
+    spec_enums: dict | None = getattr(spec, "enums", None) or None
+
     for model in spec.models:
         name = model.name
         create_name = f"Create{name}Schema"
         update_name = f"Update{name}Schema"
 
-        field_lines = _generate_create_schema(model)
+        field_lines = _generate_create_schema(model, enums=spec_enums)
         if not field_lines:
             # Modèle sans champs mutables (rare) — schéma vide pour éviter erreur TS
             field_lines = ["  // aucun champ mutable détecté"]
