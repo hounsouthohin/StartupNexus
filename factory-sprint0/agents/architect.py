@@ -211,6 +211,10 @@ async def planner_node(state: AgentState) -> dict:
     if not isinstance(brief_pages_detail, dict):
         brief_pages_detail = {}
 
+    brief_enums = brief.get("enums", {})
+    if not isinstance(brief_enums, dict):
+        brief_enums = {}
+
     spec = ProjectSpec(
         project_name=project_name,
         stack_id=stack_id,
@@ -220,6 +224,7 @@ async def planner_node(state: AgentState) -> dict:
         pages=pages,
         pages_detail=brief_pages_detail,
         user_flows=user_flows,
+        enums=brief_enums,
     ).with_fingerprint()
 
     logger.info(

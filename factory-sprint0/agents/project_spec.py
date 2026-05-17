@@ -16,7 +16,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, model_validator
 
 HTTP_METHOD = Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
-PAGE_TYPE = Literal["list", "create", "detail", "custom"]
+PAGE_TYPE = Literal["list", "create", "detail", "detail-slug", "custom"]
 
 
 class PrismaField(BaseModel):
@@ -325,6 +325,16 @@ class ProjectSpec(BaseModel):
         )
         if "User" not in model_names and _needs_user:
             lines.append(user_model_block)
+
+        # Enums Prisma — OBLIGATOIRE avant les modèles qui les référencent.
+        # Sans ce bloc, prisma validate échoue P1012 "Type X is neither a built-in type..."
+        spec_enums: dict = getattr(self, "enums", None) or {}
+        for enum_name, enum_values in spec_enums.items():
+            lines.append(f"enum {enum_name} {{")
+            for val in enum_values:
+                lines.append(f"  {val}")
+            lines.append("}")
+            lines.append("")
 
         for model in self.models:
             lines.append(f"model {model.name} {{")

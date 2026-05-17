@@ -54,12 +54,14 @@ def _prisma_attr_is_auto(attributes: str) -> bool:
     )
 
 
-def _is_relation_field(field_name: str, field_type: str, attributes: str) -> bool:
+def _is_relation_field(field_name: str, field_type: str, attributes: str, enums: "dict | None" = None) -> bool:
     if "@relation" in (attributes or ""):
         return True
     base = field_type.rstrip("?").rstrip("[]")
     if base in _PRISMA_TO_ZOD:
         return False
+    if enums and base in enums:
+        return False  # Enum Prisma — pas une relation
     return bool(base) and base[0].isupper()
 
 
@@ -108,7 +110,7 @@ def _generate_create_schema(model, enums: "dict | None" = None) -> list[str]:
             continue
         if _prisma_attr_is_auto(field.attributes):
             continue
-        if _is_relation_field(field.name, field.type, field.attributes):
+        if _is_relation_field(field.name, field.type, field.attributes, enums=enums):
             continue
 
         zod_type = _prisma_type_to_zod(field.type, field.attributes, enums=enums)

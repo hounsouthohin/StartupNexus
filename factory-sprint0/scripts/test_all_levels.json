@@ -1,0 +1,186 @@
+[
+  {
+    "project_name": "task-manager",
+    "family": "productivity",
+    "tags": ["level_a_pure", "private_only", "single_model"],
+    "brief": {
+      "description": "Gestionnaire de tâches personnel. L'utilisateur crée, consulte et supprime ses tâches depuis son tableau de bord privé. Aucune page publique.",
+      "architecture": "SaaS single-tenant, tout authentifié. Task lié à l'utilisateur via userId. Priorité (low/medium/high) stockée comme String avec valeur par défaut. Date d'échéance optionnelle.",
+      "models": [
+        "Task { id String @id @default(uuid()), title String, description String?, priority String @default(\"medium\"), dueDate DateTime?, userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt, @@index([userId]) }"
+      ],
+      "pages": [
+        { "path": "/tasks",      "auth": true, "page_type": "list",   "model": "Task" },
+        { "path": "/tasks/[id]", "auth": true, "page_type": "detail", "model": "Task" },
+        { "path": "/tasks/new",  "auth": true, "page_type": "create"                  }
+      ],
+      "pages_detail": {
+        "/tasks":      "Liste des tâches de l'utilisateur. Affiche : titre (lien vers /tasks/[id]), priorité, date d'échéance (ou '—' si absente), date de création. Bouton 'Supprimer' → deleteTask(id). Bouton 'Nouvelle tâche' → /tasks/new. État vide : 'Aucune tâche.'. [INTERACTIVE]",
+        "/tasks/[id]": "Détail d'une tâche. Affiche : titre (h1), description (ou '—'), priorité, date d'échéance, date de création. Authentification requise. [STATIC]",
+        "/tasks/new":  "Formulaire de création de tâche. Champs : titre (text, required), description (textarea, optionnel), priorité (text, optionnel), dueDate (datetime-local, optionnel). Submit → createTask(formData) → redirect /tasks. [INTERACTIVE]"
+      },
+      "routes": [
+        { "method": "POST",   "path": "/api/tasks" },
+        { "method": "DELETE", "path": "/api/tasks/[id]" },
+        { "method": "PATCH",  "path": "/api/tasks/[id]" }
+      ],
+      "user_flows": [
+        "Un utilisateur crée une tâche → /tasks/new",
+        "Un utilisateur consulte la liste de ses tâches → /tasks",
+        "Un utilisateur consulte le détail d'une tâche → /tasks/[id]",
+        "Un utilisateur supprime une tâche → /tasks"
+      ]
+    }
+  },
+  {
+    "project_name": "personal-blog",
+    "family": "blog",
+    "tags": ["level_a_public", "mixed_auth", "detail_pages"],
+    "brief": {
+      "description": "Blog personnel. L'auteur gère ses articles et catégories depuis son tableau de bord privé. Les visiteurs lisent les articles publiés sans compte.",
+      "architecture": "SaaS single-tenant. Post lié à Category via categoryId. Comment lié à Post via postId (owner_field=authorId). Tableau de bord privé (auth), lectures publiques sur /blog sans compte.",
+      "models": [
+        "Category { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+        "Post { id String @id @default(uuid()), title String, excerpt String?, status String @default(\"draft\"), categoryId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }",
+        "Comment { id String @id @default(uuid()), content String, postId String, authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
+      ],
+      "pages": [
+        { "path": "/blog",            "auth": false, "page_type": "list",   "model": "Post"     },
+        { "path": "/blog/[id]",       "auth": false, "page_type": "detail", "model": "Post"     },
+        { "path": "/blog/new",        "auth": false, "page_type": "create"                      },
+        { "path": "/dashboard",       "auth": true,  "page_type": "list",   "model": "Post"     },
+        { "path": "/categories",      "auth": true,  "page_type": "list",   "model": "Category" },
+        { "path": "/categories/[id]", "auth": true,  "page_type": "detail", "model": "Category" },
+        { "path": "/categories/new",  "auth": true,  "page_type": "create"                      }
+      ],
+      "pages_detail": {
+        "/blog":            "Liste des posts publiés (status='published'). Affiche : titre, extrait (ou '—'), date. Lien vers /blog/[id] sur chaque card. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
+        "/blog/[id]":       "Page de détail d'un article. Affiche : titre (h1), extrait, statut, catégorie (categoryId), date de création. Pas d'authentification requise. [STATIC]",
+        "/blog/new":        "Formulaire de création d'article. Champs : titre (text, required), extrait (textarea, optionnel), categoryId (text, required, placeholder 'ID de la catégorie'). Submit → createPost({ title, excerpt, categoryId }) → redirect /dashboard. [INTERACTIVE]",
+        "/dashboard":       "Liste de TOUS les articles de l'auteur (drafts + published). Affiche : titre, statut (badge : draft=gris, published=vert), date. Lien vers /blog/[id] sur chaque card. Bouton 'Supprimer' → deletePost(id). État vide : 'Aucun article.'. [INTERACTIVE]",
+        "/categories":      "Liste des catégories. Affiche : nom, date. Lien vers /categories/[id] sur chaque card. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' → deleteCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
+        "/categories/[id]": "Page de détail d'une catégorie. Affiche : nom (h1), date de création. Authentification requise. [STATIC]",
+        "/categories/new":  "Formulaire de création de catégorie. Champ : nom (text, required). Submit → createCategory({ name }) → redirect /categories. [INTERACTIVE]"
+      },
+      "routes": [
+        { "method": "POST",   "path": "/api/posts" },
+        { "method": "DELETE", "path": "/api/posts/[id]" },
+        { "method": "POST",   "path": "/api/categories" },
+        { "method": "DELETE", "path": "/api/categories/[id]" }
+      ],
+      "user_flows": [
+        "Un visiteur lit les articles publiés → /blog",
+        "Un visiteur clique sur un article pour lire son contenu → /blog/[id]",
+        "L'auteur crée un article → /blog/new",
+        "L'auteur gère ses articles → /dashboard",
+        "L'auteur supprime un article → /dashboard",
+        "L'auteur crée une catégorie → /categories/new",
+        "L'auteur consulte le détail d'une catégorie → /categories/[id]"
+      ]
+    }
+  },
+  {
+    "project_name": "recipe-book",
+    "family": "cms",
+    "tags": ["level_d", "slug_routing", "enums", "mixed_auth"],
+    "brief": {
+      "description": "Livre de recettes en ligne. L'auteur gère ses recettes et catégories depuis un dashboard privé. Les visiteurs parcourent les recettes publiées via une URL lisible (slug). Statut de recette géré via un enum Prisma.",
+      "architecture": "CMS single-tenant. Recipe lié à RecipeCategory via categoryId, status géré via enum RecipeStatus. Les pages publiques utilisent le slug pour les URLs (/recipes/ma-recette). Dashboard privé pour l'auteur.",
+      "models": [
+        "RecipeCategory { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+        "Recipe { id String @id @default(uuid()), title String, description String?, slug String @unique, status RecipeStatus @default(draft), categoryId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }"
+      ],
+      "enums": {
+        "RecipeStatus": ["draft", "published", "archived"]
+      },
+      "pages": [
+        { "path": "/recipes",          "auth": false, "page_type": "list",        "model": "Recipe"         },
+        { "path": "/recipes/[slug]",   "auth": false, "page_type": "detail-slug", "model": "Recipe"         },
+        { "path": "/dashboard",        "auth": true,  "page_type": "list",        "model": "Recipe"         },
+        { "path": "/dashboard/[id]",   "auth": true,  "page_type": "detail",      "model": "Recipe"         },
+        { "path": "/recipes/new",      "auth": true,  "page_type": "create"                                 },
+        { "path": "/categories",       "auth": true,  "page_type": "list",        "model": "RecipeCategory" },
+        { "path": "/categories/new",   "auth": true,  "page_type": "create"                                 },
+        { "path": "/categories/[id]",  "auth": true,  "page_type": "detail",      "model": "RecipeCategory" }
+      ],
+      "pages_detail": {
+        "/recipes":          "Liste des recettes publiées (status='published'). Affiche : titre (lien vers /recipes/[slug]), description courte (ou '—'), date. État vide : 'Aucune recette publiée pour l'instant.'. [INTERACTIVE]",
+        "/recipes/[slug]":   "Page de détail publique d'une recette (URL via slug). Affiche : titre (h1), description, statut, catégorie, date de création. Pas d'authentification requise. Lien retour → /recipes. [STATIC]",
+        "/dashboard":        "Liste de TOUTES les recettes de l'auteur (tous statuts). Affiche : titre, statut (badge coloré : draft=gris, published=vert, archived=orange), date. Lien vers /dashboard/[id] sur chaque card. Bouton 'Supprimer' → deleteRecipe(id). Bouton 'Nouvelle recette' → /recipes/new. État vide : 'Aucune recette.'. [INTERACTIVE]",
+        "/dashboard/[id]":   "Détail privé d'une recette (consultation auteur). Affiche : titre (h1), slug, description, statut, catégorie, date. Authentification requise. [STATIC]",
+        "/recipes/new":      "Formulaire de création de recette. Champs : titre (text, required), slug (text, required, ex: ma-recette), description (textarea, optionnel), status (select : draft/published/archived), categoryId (select alimenté par les catégories disponibles). Submit → createRecipe(formData) → redirect /dashboard. [INTERACTIVE]",
+        "/categories":       "Liste des catégories de recettes. Affiche : nom, date. Lien vers /categories/[id] sur chaque card. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' → deleteRecipeCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
+        "/categories/new":   "Formulaire de création de catégorie. Champ : nom (text, required). Submit → createRecipeCategory({ name }) → redirect /categories. [INTERACTIVE]",
+        "/categories/[id]":  "Détail d'une catégorie. Affiche : nom (h1), date de création. Authentification requise. [STATIC]"
+      },
+      "routes": [
+        { "method": "POST",   "path": "/api/recipes" },
+        { "method": "DELETE", "path": "/api/recipes/[id]" },
+        { "method": "PATCH",  "path": "/api/recipes/[id]" },
+        { "method": "POST",   "path": "/api/categories" },
+        { "method": "DELETE", "path": "/api/categories/[id]" }
+      ],
+      "user_flows": [
+        "Un visiteur parcourt les recettes publiées → /recipes",
+        "Un visiteur clique sur une recette pour lire le détail via son slug → /recipes/[slug]",
+        "L'auteur crée une recette avec statut et catégorie → /recipes/new",
+        "L'auteur consulte et gère toutes ses recettes → /dashboard",
+        "L'auteur supprime une recette → /dashboard",
+        "L'auteur crée une catégorie → /categories/new",
+        "L'auteur consulte le détail d'une catégorie → /categories/[id]"
+      ]
+    }
+  },
+  {
+    "project_name": "dev-articles",
+    "family": "cms",
+    "tags": ["level_d", "slug_routing", "enums", "mixed_auth"],
+    "brief": {
+      "description": "Plateforme d'articles techniques. L'auteur publie des articles sur des sujets tech depuis son dashboard privé. Les lecteurs parcourent les articles publiés via une URL lisible (slug). Statut géré via un enum Prisma.",
+      "architecture": "CMS single-tenant. Article lié à ArticleCategory via categoryId, statut géré via enum ArticleStatus. Pages publiques via slug (/articles/mon-titre). Dashboard privé pour la gestion de l'auteur.",
+      "models": [
+        "ArticleCategory { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+        "Article { id String @id @default(uuid()), title String, content String?, slug String @unique, status ArticleStatus @default(draft), categoryId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }"
+      ],
+      "enums": {
+        "ArticleStatus": ["draft", "published", "archived"]
+      },
+      "pages": [
+        { "path": "/articles",          "auth": false, "page_type": "list",        "model": "Article"         },
+        { "path": "/articles/[slug]",   "auth": false, "page_type": "detail-slug", "model": "Article"         },
+        { "path": "/dashboard",         "auth": true,  "page_type": "list",        "model": "Article"         },
+        { "path": "/dashboard/[id]",    "auth": true,  "page_type": "detail",      "model": "Article"         },
+        { "path": "/articles/new",      "auth": true,  "page_type": "create"                                  },
+        { "path": "/categories",        "auth": true,  "page_type": "list",        "model": "ArticleCategory" },
+        { "path": "/categories/new",    "auth": true,  "page_type": "create"                                  },
+        { "path": "/categories/[id]",   "auth": true,  "page_type": "detail",      "model": "ArticleCategory" }
+      ],
+      "pages_detail": {
+        "/articles":          "Liste des articles publiés (status='published'). Affiche : titre (lien vers /articles/[slug]), extrait du contenu (ou '—'), date. État vide : 'Aucun article publié pour l'instant.'. [INTERACTIVE]",
+        "/articles/[slug]":   "Page de détail publique d'un article (URL via slug). Affiche : titre (h1), contenu, statut, catégorie, date de création. Pas d'authentification requise. Lien retour → /articles. [STATIC]",
+        "/dashboard":         "Liste de TOUS les articles de l'auteur (tous statuts). Affiche : titre, statut (badge coloré : draft=gris, published=vert, archived=orange), date. Lien vers /dashboard/[id] sur chaque card. Bouton 'Supprimer' → deleteArticle(id). Bouton 'Nouvel article' → /articles/new. État vide : 'Aucun article.'. [INTERACTIVE]",
+        "/dashboard/[id]":    "Détail privé d'un article (consultation auteur). Affiche : titre (h1), slug, contenu, statut, catégorie, date. Authentification requise. [STATIC]",
+        "/articles/new":      "Formulaire de création d'article. Champs : titre (text, required), slug (text, required, ex: mon-article-tech), contenu (textarea, optionnel), status (select : draft/published/archived), categoryId (select alimenté par les catégories disponibles). Submit → createArticle(formData) → redirect /dashboard. [INTERACTIVE]",
+        "/categories":        "Liste des catégories d'articles. Affiche : nom, date. Lien vers /categories/[id] sur chaque card. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' → deleteArticleCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
+        "/categories/new":    "Formulaire de création de catégorie. Champ : nom (text, required). Submit → createArticleCategory({ name }) → redirect /categories. [INTERACTIVE]",
+        "/categories/[id]":   "Détail d'une catégorie. Affiche : nom (h1), date de création. Authentification requise. [STATIC]"
+      },
+      "routes": [
+        { "method": "POST",   "path": "/api/articles" },
+        { "method": "DELETE", "path": "/api/articles/[id]" },
+        { "method": "PATCH",  "path": "/api/articles/[id]" },
+        { "method": "POST",   "path": "/api/categories" },
+        { "method": "DELETE", "path": "/api/categories/[id]" }
+      ],
+      "user_flows": [
+        "Un lecteur parcourt les articles publiés → /articles",
+        "Un lecteur clique sur un article pour lire le détail via son slug → /articles/[slug]",
+        "L'auteur crée un article avec statut et catégorie → /articles/new",
+        "L'auteur consulte et gère tous ses articles → /dashboard",
+        "L'auteur supprime un article → /dashboard",
+        "L'auteur crée une catégorie → /categories/new",
+        "L'auteur consulte le détail d'une catégorie → /categories/[id]"
+      ]
+    }
+  }
+]

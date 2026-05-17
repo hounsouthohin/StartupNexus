@@ -55,6 +55,7 @@ def _generate_actions_for_model(model, list_page: str) -> str:
         f"  const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.create(userId, validated)",
         f"  revalidatePath('{list_page}')",
+        f"  redirect('{list_page}')",
         "}",
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",
@@ -63,6 +64,7 @@ def _generate_actions_for_model(model, list_page: str) -> str:
         f"  const validated = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.update(userId, id, validated)",
         f"  revalidatePath('{list_page}')",
+        f"  redirect('{list_page}')",
         "}",
         "",
         f"export async function delete{name}(id: string) {{",
@@ -168,6 +170,7 @@ def _actions_block(model, list_page: str) -> str:
         f"  const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.create(userId, validated)",
         f"  revalidatePath('{list_page}')",
+        f"  redirect('{list_page}')",
         "}",
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",
@@ -176,6 +179,7 @@ def _actions_block(model, list_page: str) -> str:
         f"  const validated = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.update(userId, id, validated)",
         f"  revalidatePath('{list_page}')",
+        f"  redirect('{list_page}')",
         "}",
         "",
         f"export async function delete{name}(id: string) {{",
@@ -211,8 +215,8 @@ def format_action_map_for_prompt(spec) -> str:
         route_dir = list_page.lstrip("/")
         file_path = f"app/{route_dir}/actions.ts"
         lines.append(f"**{file_path}** :")
-        lines.append(f"  create{name}(formData: FormData) → revalidatePath('{list_page}')")
-        lines.append(f"  update{name}(id: string, formData: FormData) → revalidatePath('{list_page}')")
+        lines.append(f"  create{name}(formData: FormData) → revalidatePath + redirect('{list_page}')")
+        lines.append(f"  update{name}(id: string, formData: FormData) → revalidatePath + redirect('{list_page}')")
         lines.append(f"  delete{name}(id: string) → revalidatePath + redirect('{list_page}')")
         lines.append("")
 

@@ -64,17 +64,20 @@ def _prisma_type_to_ts(prisma_type: str) -> str:
     return f"{ts} | null" if optional else ts
 
 
-def _is_relation_field(field_name: str, field_type: str, attributes: str) -> bool:
+def _is_relation_field(field_name: str, field_type: str, attributes: str, enums: "dict | None" = None) -> bool:
     """
     Détecte si un champ est une relation Prisma (à exclure des Input types).
     Les relations ont @relation dans leurs attributs OU leur type commence par une majuscule
-    et n'est pas un type primitif Prisma.
+    et n'est pas un type primitif Prisma ni un enum déclaré.
     """
     if "@relation" in (attributes or ""):
         return True
     base_type = field_type.rstrip("?").rstrip("[]")
     # Type primitif connu → pas une relation
     if base_type in _PRISMA_TO_TS:
+        return False
+    # Enum Prisma déclaré → pas une relation
+    if enums and base_type in enums:
         return False
     # Type commence par une majuscule et inconnu → probablement un modèle (relation)
     if base_type and base_type[0].isupper():
@@ -144,6 +147,8 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
     ]
 
     # ── 3. Input types par modèle ───────────────────────────────────────────────
+    spec_enums: dict = getattr(spec, "enums", None) or {}
+
     for model in spec.models:
         editable_fields: list[tuple[str, str]] = []  # (nom+optionality, type TS)
         _owner = model.resolved_owner().lower()
@@ -157,8 +162,8 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
             # Exclure l'owner_field — il est ajouté par le service depuis auth()
             if field.name.lower() == _owner:
                 continue
-            # Exclure les relations (objets Prisma imbriqués)
-            if _is_relation_field(field.name, field.type, field.attributes):
+            # Exclure les relations (objets Prisma imbriqués) — pas les enums
+            if _is_relation_field(field.name, field.type, field.attributes, enums=spec_enums):
                 continue
             ts_type = _prisma_type_to_ts(field.type)
             is_nullable = field.type.endswith("?")
@@ -200,7 +205,7 @@ def generate_types_file(spec: "ProjectSpec", project_workdir: str) -> TypesFileR
         lines.append(f"// {model.name} — retour service (DateTime → string, NE PAS appeler .toISOString())")
         lines.append(f"export type {serialized_name} = {{")
         for _sf in model.fields:
-            if _is_relation_field(_sf.name, _sf.type, _sf.attributes):
+            if _is_relation_field(_sf.name, _sf.type, _sf.attributes, enums=spec_enums):
                 continue
             _base = _sf.type.rstrip("?").rstrip("[]")
             _nullable = _sf.type.endswith("?")

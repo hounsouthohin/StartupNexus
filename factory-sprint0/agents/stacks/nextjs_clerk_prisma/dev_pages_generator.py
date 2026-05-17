@@ -484,13 +484,18 @@ def _fk_fields(model_obj, spec) -> list[tuple[str, str, str]]:
             continue
         base = name[:-2]  # "categoryId" → "category"
         related_model = base[0].upper() + base[1:]  # → "Category"
+        # Fallback : nom composé (ex: categoryId → "Category" absent mais "RecipeCategory" présent)
+        if related_model not in model_names:
+            suffix_matches = [mn for mn in model_names if mn.endswith(related_model)]
+            if suffix_matches:
+                related_model = suffix_matches[0]
         if related_model in model_names:
             result.append((name, related_model, pascal_to_camel(related_model)))
     return result
 
 
 def _display_fields(model_obj) -> list:
-    """Retourne les 2 premiers champs String/Int affichables (non-système)."""
+    """Retourne jusqu'à 4 champs scalaires affichables (non-système, non-relation)."""
     owner = model_obj.resolved_owner()
     excluded = {"id", "createdAt", "updatedAt", owner}
     result = []
@@ -501,9 +506,9 @@ def _display_fields(model_obj) -> list:
             continue
         if field.type.endswith("[]"):
             continue
-        if field.type.rstrip("?") in ("String", "Int", "Float"):
+        if field.type.rstrip("?") in ("String", "Int", "Float", "Boolean", "DateTime"):
             result.append(field.name)
-        if len(result) >= 2:
+        if len(result) >= 4:
             break
     return result or ["id"]
 
@@ -576,6 +581,7 @@ def _gen_page_client_list(page, model_obj, spec=None) -> str:
     serialized = f"Serialized{name}"
     display = _display_fields(model_obj)
     client_rel = f"app/{page.path.strip('/')}/page-client.tsx"
+    has_status = any(f.name.lower() == "status" for f in model_obj.fields)
 
     # Résolution depuis la spec
     delete_fn = f"delete{name}"
@@ -591,9 +597,22 @@ def _gen_page_client_list(page, model_obj, spec=None) -> str:
             actions_module = f"app/{list_page.lstrip('/')}/actions"
             import_actions_path = _compute_relative_import(client_rel, actions_module)
 
-        detail_pages = [p for p in spec.pages if p.page_type == "detail" and p.model == name]
+        detail_pages = [
+            p for p in spec.pages
+            if p.page_type in ("detail", "detail-slug") and getattr(p, "model", None) == name
+        ]
+        if not detail_pages:
+            # Fallback: infer via path parent matching
+            detail_pages = [
+                p for p in spec.pages
+                if p.page_type in ("detail", "detail-slug")
+                and p.path.startswith(page.path.rstrip("/") + "/")
+            ]
         if detail_pages:
-            detail_href_ts = re.sub(r"\[(\w+)\]", r"${item.\1}", detail_pages[0].path)
+            # Prefer same auth regime (public list → public detail, private list → private detail)
+            same_auth = [p for p in detail_pages if p.auth_required == page.auth_required]
+            chosen_detail = (same_auth[0] if same_auth else detail_pages[0])
+            detail_href_ts = re.sub(r"\[(\w+)\]", r"${item.\1}", chosen_detail.path)
 
         list_prefix = page.path.rstrip("/")
         create_pages = [p for p in spec.pages if p.page_type == "create" and p.path.startswith(list_prefix + "/")]
@@ -638,12 +657,24 @@ def _gen_page_client_list(page, model_obj, spec=None) -> str:
     ]
 
     for i, field_name in enumerate(display):
+        if field_name == "status":
+            continue  # affiché via badge ci-dessous
         if i == 0 and detail_href_ts:
             href_attr = "href={`" + detail_href_ts + "`}"
             lines.append(f'                <Link {href_attr} className="font-medium hover:underline">{{item.{field_name}}}</Link>')
         else:
             cls = "font-medium" if i == 0 else "text-sm text-gray-600"
             lines.append(f'                <p className="{cls}">{{item.{field_name}}}</p>')
+
+    if has_status:
+        lines += [
+            "                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${",
+            "                  item.status === 'published' || item.status === 'active' ? 'bg-green-100 text-green-800' :",
+            "                  item.status === 'draft' ? 'bg-gray-100 text-gray-600' :",
+            "                  item.status === 'archived' ? 'bg-yellow-100 text-yellow-800' :",
+            "                  'bg-blue-100 text-blue-800'",
+            "                }`}>{item.status}</span>",
+        ]
 
     lines += [
         '                <p className="text-xs text-gray-400">{item.createdAt}</p>',
