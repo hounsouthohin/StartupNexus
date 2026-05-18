@@ -55,24 +55,20 @@ def _pascal_to_kebab(name: str) -> str:
 
 def _find_service_for_segment(segment: str, spec_obj) -> tuple[str, str]:
     """
-    Retourne (kebab_name, camelCase_name) du service correspondant à un segment d'URL.
-    Utilise _find_list_page (SSoT) pour une résolution stable — gère les pluriels
-    irréguliers et les segments composés (leave-request → leaves, company → companies).
-    Retourne (segment, segment+"Service") en fallback si aucun modèle trouvé.
+    Retourne (kebab_name, camelCaseService) en résolvant via spec_obj.pages.
+    Compare le segment contre les composants non-dynamiques du chemin des pages
+    ayant un modèle déclaré (AppPage.model). Aucune heuristique de pluriel.
     """
-    try:
-        from .dev_actions_generator import _find_list_page as _flp
-        match = next(
-            (m for m in (spec_obj.models if spec_obj else [])
-             if _flp(m.name, spec_obj).lstrip("/") == segment),
-            None,
-        )
-        if match:
-            kb = _pascal_to_kebab(match.name)
-            camel = _re.sub(r"-(.)", lambda m: m.group(1).upper(), kb) + "Service"
+    if not spec_obj or not segment:
+        return segment, segment + "Service"
+    for page in spec_obj.pages:
+        if not getattr(page, "model", None):
+            continue
+        path_segs = [s for s in page.path.split("/") if s and not s.startswith("[")]
+        if segment in path_segs:
+            kb = _pascal_to_kebab(page.model)
+            camel = page.model[0].lower() + page.model[1:] + "Service"
             return kb, camel
-    except Exception:
-        pass
     return segment, segment + "Service"
 
 
@@ -185,7 +181,6 @@ def _dep_actions(path: str, spec_obj, workdir: str, service_map_str: str) -> str
     if schemas_content:
         dep += f"\nlib/schemas.ts :\n```typescript\n{schemas_content}\n```"
 
-    # Service correspondant via SSoT _find_list_page
     act_seg = path.split("/")[-2] if "/" in path else ""
     kb, _ = _find_service_for_segment(act_seg, spec_obj)
     svc_content = _read_file_safe(os.path.join(workdir, "lib", "services", f"{kb}.service.ts"), 500)
@@ -195,37 +190,11 @@ def _dep_actions(path: str, spec_obj, workdir: str, service_map_str: str) -> str
     return dep
 
 
-def _singularize(word: str) -> list[str]:
-    """Returns candidate singular forms for an English plural path segment."""
-    candidates = [word]
-    if word.endswith("ies"):
-        candidates.append(word[:-3] + "y")   # activities → activity
-    if word.endswith("es") and len(word) > 3:
-        candidates.append(word[:-2])          # invoices → invoic... but also catches -ches/-shes
-    if word.endswith("s") and not word.endswith("ss"):
-        candidates.append(word[:-1])          # projects → project
-    return list(dict.fromkeys(candidates))    # deduplicate, preserve order
-
-
 def _dep_route(path: str, workdir: str) -> str:
     dep = ""
     types_content = _read_file_safe(os.path.join(workdir, "lib", "types.ts"), 800)
     if types_content:
         dep = f"\nlib/types.ts :\n```typescript\n{types_content}\n```"
-
-    # Service correspondant : app/api/{seg}/route.ts → lib/services/{seg}.service.ts
-    route_segs = [
-        s for s in path.split("/")
-        if s not in ("app", "api", "route.ts", "") and not s.startswith("[")
-    ]
-    for seg in reversed(route_segs):
-        for sv in _singularize(seg):
-            svc_content = _read_file_safe(
-                os.path.join(workdir, "lib", "services", f"{sv}.service.ts"), 600
-            )
-            if svc_content:
-                dep += f"\nlib/services/{sv}.service.ts :\n```typescript\n{svc_content}\n```"
-                return dep
     return dep
 
 
@@ -253,14 +222,16 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
         )
 
         # SerializedXxx type — champs EXACTS pour éviter les hallucinations (TS2339)
-        try:
-            from .dev_actions_generator import _find_list_page as _flp
+        if spec_obj:
             act_segment = act_rel.split("/")[-2]
-            client_model = next(
-                (m for m in (spec_obj.models if spec_obj else [])
-                 if _flp(m.name, spec_obj).lstrip("/") == act_segment),
-                None,
-            )
+            client_model = None
+            for page in spec_obj.pages:
+                if not getattr(page, "model", None):
+                    continue
+                path_segs = [s for s in page.path.split("/") if s and not s.startswith("[")]
+                if act_segment in path_segs:
+                    client_model = next((m for m in spec_obj.models if m.name == page.model), None)
+                    break
             if client_model:
                 types_content = _read_file_safe(os.path.join(workdir, "lib", "types.ts"), 9999)
                 serial_key = f"export type Serialized{client_model.name}"
@@ -274,8 +245,6 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
                         f"\n\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
                         f"```typescript\n{serial_type}\n```"
                     )
-        except Exception:
-            pass
 
         # page_detail_hint pour ce page-client
         if spec_obj is not None:

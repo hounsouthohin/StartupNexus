@@ -204,14 +204,30 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         output_dict["spec_fingerprint"] = project_spec_dict.get("spec_fingerprint", "")
 
         # ── 7b. Validation ProjectSpec vs brief (déterministe, honnête) ──────
-        # Vérifie que chaque modèle déclaré dans le brief est présent dans ProjectSpec.
-        # Ne force plus "OK" — le statut réel est propagé au workflow.
-        brief_model_names = []
-        for m in brief.get("models", []):
-            # Extraire le nom : "Task { ... }" → "Task"
-            name = str(m).strip().split()[0].rstrip("{").strip()
-            if name:
-                brief_model_names.append(name.lower())
+        # Deux chemins :
+        # (A) brief.models fourni (déterministe) → vérifier que chaque modèle du brief est dans le spec
+        # (B) brief.models absent (LLM) → modèles générés par brief_writer_node, récupérés depuis final_state
+        original_brief_models = brief.get("models", [])
+        llm_path = not original_brief_models
+
+        if llm_path:
+            # En mode LLM, le brief final (avec models) est dans final_state["brief"]
+            generated_brief = final_state.get("brief", {})
+            models_source = generated_brief.get("models", [])
+            activity.logger.info(
+                "[architect] chemin LLM — brief_writer_node utilisé | %d modèle(s) générés",
+                len(models_source),
+            )
+            # Pas de validation brief→spec possible (source = LLM elle-même) — on vérifie juste que le spec n'est pas vide
+            brief_model_names = []
+        else:
+            models_source = original_brief_models
+            activity.logger.info("[architect] chemin déterministe — models fournis dans le brief")
+            brief_model_names = []
+            for m in models_source:
+                name = str(m).strip().split()[0].rstrip("{").strip()
+                if name:
+                    brief_model_names.append(name.lower())
 
         spec_model_names = [
             str(m.get("name", "") if isinstance(m, dict) else m).lower()

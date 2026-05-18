@@ -256,6 +256,7 @@ async def run_dev_agent(
                 generate_root_page_if_needed,
                 generate_page_stubs,
                 generate_page_client_stubs,
+                generate_edit_page_stubs,
             )
             from .dev_middleware_generator import generate_middleware
 
@@ -286,6 +287,10 @@ async def run_dev_agent(
             # Le planner les exclut ; write_file les protège via _protected.
             _client_stubs = generate_page_client_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
             template_written.update(_client_stubs)
+
+            # Pages edit déterministes (update form) pour les modèles avec intent CRUD.
+            _edit_stubs = generate_edit_page_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
+            template_written.update(_edit_stubs)
 
             generate_loading_files(spec_obj, project_workdir)
             generate_error_files(spec_obj, project_workdir)
@@ -553,9 +558,37 @@ async def run_dev_agent(
                     except Exception:
                         pass
 
+            # Dépendances du fichier cassé — re-injectées à chaque tour de correction.
+            # _prune_messages supprime les rounds anciens : les dépendances injectées lors
+            # de la génération initiale peuvent être perdues dès le 2ème tour de correction.
+            # build_role_context() les reconstitue depuis le disque, borné et sans regex.
+            _deps_ctx = ""
+            if _err_file:
+                _err_entry = next((e for e in _plan if e["path"] == _err_file), None)
+                if _err_entry and _err_entry.get("role"):
+                    try:
+                        from .dev_context import build_role_context as _brc_corr
+                        _deps_ctx = _brc_corr(
+                            _err_entry["role"], _err_file, spec_obj,
+                            project_workdir, _service_map_str, cache=_rag_cache,
+                        )
+                    except Exception:
+                        pass
+                if not _deps_ctx:
+                    # Fallback : fichier hors plan ou rôle absent — lib/types.ts couvre la
+                    # majorité des TS2339 (propriétés inexistantes sur SerializedXxx).
+                    try:
+                        with open(os.path.join(project_workdir, "lib", "types.ts"), "r", encoding="utf-8") as _tf:
+                            _types_content = _tf.read(1200)
+                        if _types_content:
+                            _deps_ctx = f"\nlib/types.ts (contrats réels) :\n```typescript\n{_types_content}\n```"
+                    except Exception:
+                        pass
+
             messages.append(HumanMessage(content=(
                 f"ERREUR BUILD à corriger :\n{_err_excerpt}"
-                f"{_file_ctx}\n"
+                f"{_file_ctx}"
+                f"{_deps_ctx}\n"
                 "1. Identifie la ligne exacte dans le fichier ci-dessus.\n"
                 "2. Corrige avec write_file (réécriture complète du fichier uniquement si nécessaire).\n"
                 "3. shell_exec('npx tsc --noEmit') — si OK → shell_exec('npm run build')"

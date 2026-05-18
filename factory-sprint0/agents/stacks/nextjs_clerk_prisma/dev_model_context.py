@@ -232,15 +232,21 @@ def _resolve_fk_fields(model, model_names: set[str], owner: str) -> list[FKField
     return result
 
 
-def _resolve_display_fields(model, owner: str) -> list[str]:
-    """Jusqu'à 4 champs scalaires affichables (non-système, non-relation)."""
-    excluded = {"id", "createdAt", "updatedAt", owner}
+def _resolve_display_fields(model, owner: str, model_names: "frozenset[str] | None" = None) -> list[str]:
+    """Jusqu'à 4 champs scalaires affichables (non-système, non-relation, non-FK, non-slug)."""
+    excluded = {"id", "createdAt", "updatedAt", "slug", owner}
     result: list[str] = []
     for f in model.fields:
         if f.name in excluded:
             continue
         if "@relation" in (f.attributes or "") or f.type.endswith("[]"):
             continue
+        # Exclure les FK raw (xxxId → UUID illisible en UI)
+        if f.name.endswith("Id") and model_names:
+            base = f.name[:-2]
+            related = base[0].upper() + base[1:] if base else ""
+            if related in model_names or any(mn.endswith(related) for mn in model_names if related):
+                continue
         if f.type.rstrip("?") in ("String", "Int", "Float", "Boolean", "DateTime"):
             result.append(f.name)
         if len(result) >= 4:
@@ -324,7 +330,7 @@ def build_model_context(model, spec) -> ModelGenerationContext:
     private_list = next((p for p in list_pages if p.auth_required), None)
     public_list_page = next((p for p in list_pages if not p.auth_required), None)
     chosen_list = private_list or public_list_page
-    list_page_path = chosen_list.path if chosen_list else f"/{kebab}s"
+    list_page_path = chosen_list.path if chosen_list else ""
 
     ctx = ModelGenerationContext(
         model=model,
@@ -338,7 +344,7 @@ def build_model_context(model, spec) -> ModelGenerationContext:
         fk_fields=fk_fields,
         datetime_fields=datetime_fields,
         relation_fields=relation_fields,
-        display_fields=_resolve_display_fields(model, owner),
+        display_fields=_resolve_display_fields(model, owner, frozenset(model_names)),
         has_slug=has_slug,
         has_status=has_status,
         has_relations=bool(relation_fields),

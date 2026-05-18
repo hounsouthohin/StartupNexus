@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Architect Agent Contract v2.0",
-  "description": "Contract d'interface pour l'Architect Agent (génération specs — Pré-Sprint 4.6 : diagrammer retiré du pipeline, mermaid_diagram optionnel)",
-  "version": "2.0.0",
+  "title": "Architect Agent Contract v3.0",
+  "description": "Contract d'interface pour l'Architect Agent. v3.0 : brief_writer_node LLM ajouté — description seule suffit (models/pages/routes optionnels). Si models fournis, chemin 100% déterministe (planner direct). Si absent, LLM convertit la description en spec structurée.",
+  "version": "3.0.0",
   "agent_id": "architect_agent",
 
   "input_schema": {
@@ -12,29 +12,37 @@
     "properties": {
       "brief": {
         "type": "object",
-        "description": "Brief structuré JSON décrivant le projet SaaS à créer",
+        "description": "Brief du projet SaaS. Deux modes : (A) description seule → LLM génère la spec ; (B) description + models + pages + routes → planner direct 100% déterministe.",
         "required": ["description"],
         "properties": {
           "description": {
             "type": "string",
-            "description": "Description textuelle du projet",
+            "description": "Description textuelle du projet (langage naturel). Seul champ requis — le LLM infère models/pages/routes si absents.",
             "minLength": 10,
-            "maxLength": 2000
+            "maxLength": 4000
+          },
+          "hints": {
+            "type": "object",
+            "description": "Hints optionnels pour guider le LLM (ex: {\"public_pages\": true, \"slug_model\": \"Recipe\", \"auth_model\": \"User\"}). Ignoré si models est fourni.",
+            "additionalProperties": true,
+            "default": {}
           },
           "models": {
             "type": "array",
-            "description": "Modèles Prisma DSL verbatim (ex: 'Task { id String @id, title String, ... }')",
+            "description": "OPTIONNEL — Modèles Prisma DSL verbatim (ex: 'Task { id String @id, title String, ... }'). Si fourni, le LLM est bypassé.",
             "items": {"type": "string"},
             "default": []
           },
           "pages": {
             "type": "array",
-            "description": "Pages Next.js app-router",
+            "description": "OPTIONNEL — Pages Next.js app-router. Requis si models est fourni.",
             "items": {
               "type": "object",
               "properties": {
                 "path": {"type": "string"},
-                "auth": {"type": "boolean"}
+                "auth": {"type": "boolean"},
+                "model": {"type": "string"},
+                "page_type": {"type": "string", "enum": ["list", "create", "detail", "detail-slug", "custom"]}
               },
               "required": ["path"]
             },
@@ -42,7 +50,7 @@
           },
           "routes": {
             "type": "array",
-            "description": "Routes API",
+            "description": "OPTIONNEL — Routes API. La plupart des projets n'en ont pas (CRUD via Server Actions).",
             "items": {
               "type": "object",
               "properties": {
@@ -52,6 +60,12 @@
               "required": ["method", "path"]
             },
             "default": []
+          },
+          "enums": {
+            "type": "object",
+            "description": "OPTIONNEL — Enums Prisma (ex: {\"TaskStatus\": [\"pending\", \"done\"]}). Inférés par le LLM si absent.",
+            "additionalProperties": {"type": "array", "items": {"type": "string"}},
+            "default": {}
           }
         }
       },

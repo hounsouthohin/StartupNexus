@@ -57,34 +57,20 @@ class PrismaModel(BaseModel):
 
     def resolved_owner(self) -> str:
         """
-        Retourne l'owner_field validé contre les champs réels du modèle.
-        Ordre de résolution :
-          1. owner_field déclaré par l'architect s'il existe dans les champs → direct
-          2. Pattern sémantique d'ownership (userId, authorId, ownerId, createdById)
-          3. Premier champ *Id (hors 'id') — dernier recours avec warning
+        Retourne l'owner_field déclaré dans le brief, validé contre les champs réels du modèle.
+        Si le champ déclaré n'existe pas → erreur explicite (brief invalide).
         """
-        import logging as _log
+        from temporalio.exceptions import ApplicationError
         raw = self.owner_field or "userId"
         field_names = {f.name for f in self.fields}
         if raw in field_names:
             return raw
-        # Priorité aux patterns sémantiques d'ownership avant les foreign-keys arbitraires
-        _OWNER_PATTERNS = ("userId", "authorId", "ownerId", "createdById", "memberId")
-        for _pat in _OWNER_PATTERNS:
-            if _pat in field_names:
-                _log.getLogger(__name__).warning(
-                    "[project_spec] owner_field '%s' absent de %s — semantic fallback : '%s'",
-                    raw, self.name, _pat,
-                )
-                return _pat
-        candidates = [f.name for f in self.fields if f.name.endswith("Id") and f.name != "id"]
-        if candidates:
-            _log.getLogger(__name__).warning(
-                "[project_spec] owner_field '%s' absent de %s — fallback *Id : '%s'",
-                raw, self.name, candidates[0],
-            )
-            return candidates[0]
-        return raw
+        raise ApplicationError(
+            f"Brief invalide : owner_field='{raw}' déclaré sur le modèle '{self.name}' "
+            f"mais ce champ n'existe pas. Champs disponibles : {sorted(field_names)}. "
+            "Corriger owner_field dans le brief.",
+            non_retryable=True,
+        )
 
 
 class ApiRoute(BaseModel):
@@ -209,46 +195,15 @@ class ProjectSpec(BaseModel):
     def get_list_page_for_model(self, model_name: str) -> str:
         """
         Path de la page liste pour ce modèle.
-
-        Résolution par priorité :
-          1. page.page_type == 'list' ET page.model == model_name  (déclaration explicite)
-          2. Heuristique sur le path (rétrocompat briefs sans page_type)
-          3. Fallback calculé : /{pluralize(kebab(model_name))}
+        Résolution stricte : page.page_type == 'list' ET page.model == model_name.
+        Pages privées prioritaires (redirect post-mutation → page auth).
+        Retourne "" si aucune page liste déclarée pour ce modèle.
         """
-        import re as _re
-
-        def _kebab(s: str) -> str:
-            return _re.sub(r"(?<!^)(?=[A-Z])", "-", s).lower()
-
-        def _pluralize(w: str) -> str:
-            if w.endswith("y") and len(w) > 1 and w[-2] not in "aeiou":
-                return w[:-1] + "ies"
-            if w.endswith(("s", "sh", "ch", "x", "z")):
-                return w + "es"
-            return w + "s"
-
-        # 1. Résolution explicite — pages privées prioritaires (mutations → redirect auth)
         candidates = [p for p in self.pages if p.page_type == "list" and p.model == model_name]
-        if candidates:
-            private = next((p for p in candidates if p.auth_required), None)
-            return (private or candidates[0]).path
-
-        # 2. Heuristique (rétrocompat)
-        kebab = _kebab(model_name)
-        plural = _pluralize(kebab)
-        list_pages = [p.path for p in self.pages if "[" not in p.path and p.path != "/"]
-        if f"/{kebab}" in list_pages:
-            return f"/{kebab}"
-        if f"/{plural}" in list_pages:
-            return f"/{plural}"
-        base = kebab.split("-")[0]
-        for page_path in list_pages:
-            first_seg = page_path.lstrip("/").split("/")[0]
-            if first_seg.startswith(base):
-                return page_path
-
-        # 3. Fallback calculé
-        return f"/{plural}"
+        if not candidates:
+            return ""
+        private = next((p for p in candidates if p.auth_required), None)
+        return (private or candidates[0]).path
 
     def get_public_pages(self) -> "List[AppPage]":
         """Pages avec auth_required=False, dans l'ordre du brief."""

@@ -178,10 +178,14 @@ def generate_types_file(
         # génériques complexes (runtime.Types.DefaultSelection<...>) que TypeScript résout
         # incorrectement avec Omit → tous les scalaires disparaissent, reste {} uniquement.
         # Type auto-suffisant : ne dépend pas de la forme interne de @prisma/client.
+        # Le champ owner (userId/authorId) est exclu : interne auth, jamais exposé au client.
         serialized_name = f"Serialized{model.name}"
         lines.append(f"// {model.name} — retour service (DateTime → string, NE PAS appeler .toISOString())")
         lines.append(f"export type {serialized_name} = {{")
+        _owner_lower = _owner.lower() if _owner else ""
         for _sf in model.fields:
+            if _owner_lower and _sf.name.lower() == _owner_lower:
+                continue  # champ owner exclu de SerializedXxx — non exposé au client
             if _is_relation(_sf.type, _sf.attributes, spec_enums):
                 # Relation → type inline dérivé du modèle lié (si présent dans la spec)
                 # Rend item.category.name typé sans TS2551

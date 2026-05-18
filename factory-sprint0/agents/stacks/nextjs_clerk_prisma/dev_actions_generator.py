@@ -102,6 +102,13 @@ def generate_action_files(spec, project_workdir: str) -> dict[str, str]:
             logger.info("[action_generator] skip %s — aucune page list/create dans le spec", model.name)
             continue
         list_page = spec.get_list_page_for_model(model.name)
+        if not list_page:
+            logger.warning(
+                "[action_generator] skip %s — aucune page list déclarée (page_type='list' + model='%s'). "
+                "Ajouter cette page dans le brief pour générer les actions.",
+                model.name, model.name,
+            )
+            continue
         page_to_models.setdefault(list_page, []).append(model)
 
     written: dict[str, str] = {}
@@ -212,6 +219,8 @@ def format_action_map_for_prompt(spec) -> str:
     for model in spec.models:
         name = model.name
         list_page = spec.get_list_page_for_model(name)
+        if not list_page:
+            continue
         route_dir = list_page.lstrip("/")
         file_path = f"app/{route_dir}/actions.ts"
         lines.append(f"**{file_path}** :")

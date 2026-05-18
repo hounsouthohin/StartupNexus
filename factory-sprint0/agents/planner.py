@@ -153,6 +153,8 @@ def make_deterministic_plan(
     _actions_by_page: dict[str, list] = {}
     for _bm in spec.models:
         _lp = spec.get_list_page_for_model(_bm.name)
+        if not _lp:
+            continue
         _route_dir = _lp.lstrip("/")
         _actions_by_page.setdefault(_route_dir, []).append(_bm)
 

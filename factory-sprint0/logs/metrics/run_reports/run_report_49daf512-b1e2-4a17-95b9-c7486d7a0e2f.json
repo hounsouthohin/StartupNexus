@@ -1,0 +1,66 @@
+{
+  "run_id": "49daf512-b1e2-4a17-95b9-c7486d7a0e2f",
+  "workflow_id": "todo-pilot-recipe-book",
+  "project_name": "recipe-book",
+  "generated_at": "2026-05-18T04:46:16.094340+00:00",
+  "duration_seconds": 76.557004,
+  "build_success": true,
+  "build_attempted": true,
+  "build_attempts": 1,
+  "final_message": "BUILD_SUCCESS",
+  "root_cause_category": "success",
+  "last_build_error": "",
+  "spec_coverage": 1.0,
+  "requirements_met": 11,
+  "requirements_unmet": 0,
+  "requirements_unknown": 0,
+  "requirements_total": 11,
+  "requirements_unmet_list": [],
+  "requirements_unknown_list": [],
+  "files_generated": 52,
+  "dev_files_count": 52,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_iiae3s44/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_iiae3s44/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [],
+  "semantic_violations_count": 0,
+  "quality_violations_count": 3,
+  "quality_violations": [
+    {
+      "rule": "Z25-select-missing",
+      "file": "lib/services/recipe.service.ts",
+      "line": 17,
+      "reason": "findMany() sans select dans un service — spécifier seulement les champs nécessaires."
+    },
+    {
+      "rule": "Z25-select-missing",
+      "file": "lib/services/recipe.service.ts",
+      "line": 22,
+      "reason": "findMany() sans select dans un service — spécifier seulement les champs nécessaires."
+    },
+    {
+      "rule": "Z25-select-missing",
+      "file": "lib/services/recipe-category.service.ts",
+      "line": 17,
+      "reason": "findMany() sans select dans un service — spécifier seulement les champs nécessaires."
+    }
+  ],
+  "tests_passed": false,
+  "user_flows_total": 7,
+  "user_flows_covered": 7,
+  "user_flows_coverage": 1.0,
+  "is_useful_app": true,
+  "clerk_compliant": true,
+  "error": ""
+}

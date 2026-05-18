@@ -48,8 +48,9 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     _action_paths: set[str] = set()
     for model in spec.models:
         list_page = spec.get_list_page_for_model(model.name)
-        route_dir = list_page.lstrip("/")
-        _action_paths.add(f"app/{route_dir}/actions.ts")
+        if list_page:
+            route_dir = list_page.lstrip("/")
+            _action_paths.add(f"app/{route_dir}/actions.ts")
     files.extend(sorted(_action_paths))
 
     # Webhooks routes (si présentes dans la spec)
@@ -66,7 +67,21 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         ppath = page.path.strip("/")
         files.append("app/page.tsx" if not ppath else f"app/{ppath}/page.tsx")
 
-    # pages-client : pour chaque page [INTERACTIVE]
+    # page-client.tsx pour les pages avec model (list/create/detail/detail-slug) — PRÉ-GÉNÉRÉS
+    # Ces fichiers sont dans template_written → ils seront exclus de files_to_generate
+    # via la soustraction (expected - pre_written), mais doivent figurer ici pour le tracking.
+    _crud_models_with_list: set[str] = set()
+    for page in spec.pages:
+        ptype = getattr(page, "page_type", None)
+        model_name = getattr(page, "model", None)
+        if ptype in ("list", "create", "detail", "detail-slug") and model_name:
+            ppath = page.path.strip("/")
+            client_file = f"app/{ppath}/page-client.tsx" if ppath else "app/page-client.tsx"
+            files.append(client_file)
+            if ptype == "list" and page.auth_required:
+                _crud_models_with_list.add(model_name)
+
+    # pages-client pour les pages custom [INTERACTIVE]
     pages_detail = getattr(spec, "pages_detail", {}) or {}
     if isinstance(pages_detail, dict):
         for path, detail in pages_detail.items():
@@ -77,6 +92,22 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
                     if page_slug else "app/page-client.tsx"
                 )
                 files.append(client_file)
+
+    # Pages edit — PRÉ-GÉNÉRÉES pour les modèles avec intent CRUD (list auth + create)
+    _create_model_names: set[str] = {
+        getattr(p, "model", None)
+        for p in spec.pages
+        if getattr(p, "page_type", None) == "create" and getattr(p, "model", None)
+    }
+    _edit_models = _crud_models_with_list & _create_model_names
+    for model in spec.models:
+        if model.name not in _edit_models:
+            continue
+        list_page = spec.get_list_page_for_model(model.name)
+        if list_page:
+            route_dir = list_page.lstrip("/")
+            files.append(f"app/{route_dir}/[id]/edit/page.tsx")
+            files.append(f"app/{route_dir}/[id]/edit/page-client.tsx")
 
     # Déduplique en préservant l'ordre
     seen: set[str] = set()
@@ -385,11 +416,16 @@ web_search(query)                     → recherche doc/fix TypeScript ou Next.j
 WORKFLOW (Option A — suis cet ordre STRICTEMENT)
 ══════════════════════════════════════════════════════════════
 1. Les fichiers PRÉ-GÉNÉRÉS suivants sont VERROUILLÉS — NE PAS LES RÉÉCRIRE :
-   - app/**/actions.ts       : Server Actions CRUD déterministes
-   - app/**/page.tsx         : Server Components avec data-fetching déterministe
+   - app/**/actions.ts                      : Server Actions CRUD déterministes
+   - app/**/page.tsx (pages avec `model`)   : Server Components avec data-fetching déterministe
      ↳ Ces fichiers passent déjà <XxxClient items={{items}} /> au Client Component.
-     ↳ Ne PAS modifier le nom du prop (toujours `items`), ne PAS recréer page.tsx.
-   - lib/services/*.service.ts, lib/types.ts, prisma/schema.prisma : idem
+     ↳ Ne PAS modifier le nom du prop, ne PAS recréer page.tsx.
+   - app/**/page-client.tsx (pages avec `model`) : stubs UI list/create/detail pré-scaffoldés
+     ↳ Interface props déjà définie et correcte — NE PAS modifier l'interface.
+     ↳ Ces fichiers sont protégés : toute tentative d'écriture sera rejetée.
+   - app/**/[id]/edit/page.tsx              : formulaire update pré-généré (auth + getById)
+   - app/**/[id]/edit/page-client.tsx       : formulaire update pré-rempli (defaultValue)
+   - lib/services/*.service.ts, lib/types.ts, lib/schemas.ts, prisma/schema.prisma : idem
 
 2. Les fichiers page-client.tsx sont PRÉ-SCAFFOLDÉS avec l'interface props correcte.
    NE PAS modifier l'interface existante — compléter UNIQUEMENT le JSX body.
@@ -457,13 +493,20 @@ Règle : pour CHAQUE champ nullable dans les props → ajouter | null explicitem
 ══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — DÉCOUPAGE page.tsx / page-client.tsx
 ══════════════════════════════════════════════════════════════
-Ne JAMAIS créer page-client.tsx SAUF si la page est marquée [INTERACTIVE].
+Deux cas distincts — NE PAS les confondre :
 
-Pour pages NON [INTERACTIVE] :
-  ✅  'use client' directement en ligne 1 de page.tsx si onClick/useState requis
-  ❌  JAMAIS page-client.tsx sans marquage explicite [INTERACTIVE]
+CAS 1 — Pages avec champ `model` (list, create, detail, detail-slug, edit) :
+  page-client.tsx est PRÉ-GÉNÉRÉ et PROTÉGÉ pour ces pages.
+  ✅  Lis le fichier existant (read_file) pour connaître l'interface props
+  ❌  Ne JAMAIS réécrire ou recréer ce fichier — la tentative sera rejetée
+  ❌  Ne JAMAIS modifier l'interface props existante
 
-Si [INTERACTIVE] :
+CAS 2 — Pages custom (page_type="custom", PAS de champ `model`) :
+  - Si marquée [INTERACTIVE] dans pages_detail → créer page-client.tsx
+  - Si NON [INTERACTIVE] → 'use client' directement dans page.tsx si interaction requise
+  ❌  JAMAIS page-client.tsx pour une page custom sans marquage [INTERACTIVE]
+
+Si [INTERACTIVE] (custom uniquement) :
   ✅  import XxxClient from './page-client'    ← DEFAULT import
   ❌  import {{ XxxClient }} from './page-client'  ← INTERDIT TS2614
 

@@ -59,6 +59,19 @@ userId    String
 createdAt DateTime @default(now())
 @@index([userId])
 ```
+
+**Relations Prisma — obligatoires et explicites.**
+La factory ne génère plus les `@relation` automatiquement. Chaque FK doit être accompagné de son `@relation` côté enfant ET du tableau inverse côté parent :
+
+```
+# Côté enfant (modèle portant la FK) :
+categoryId  String
+category    Category  @relation(fields: [categoryId], references: [id])
+
+# Côté parent :
+posts  Post[]
+```
+
 Pièges fréquents : `@default("draft")` (guillemets **doubles**), `String?` (pas `String | null`).
 
 ### `pages`
@@ -97,9 +110,9 @@ Format : `"acteur → action → résultat"`. Prévoir ≥ 1 flow par action pri
     "description": "Blog personnel. L'auteur gère ses articles depuis son tableau de bord privé. Les visiteurs lisent les articles publiés sans compte.",
     "architecture": "SaaS single-tenant. Post lié à Category via categoryId. Comment lié à Post via postId (owner_field=authorId). Tableau de bord privé (auth), lectures publiques sur /blog sans compte.",
     "models": [
-      "Category { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
-      "Post { id String @id @default(uuid()), title String, excerpt String?, status String @default(\"draft\"), categoryId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }",
-      "Comment { id String @id @default(uuid()), content String, postId String, authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
+      "Category { id String @id @default(uuid()), name String, posts Post[], userId String, createdAt DateTime @default(now()), @@index([userId]) }",
+      "Post { id String @id @default(uuid()), title String, excerpt String?, status String @default(\"draft\"), categoryId String, category Category @relation(fields: [categoryId], references: [id]), comments Comment[], userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }",
+      "Comment { id String @id @default(uuid()), content String, postId String, post Post @relation(fields: [postId], references: [id]), authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
     ],
     "pages": [
       { "path": "/blog",           "auth": false, "page_type": "list",   "model": "Post"     },
@@ -165,6 +178,8 @@ Format : `"acteur → action → résultat"`. Prévoir ≥ 1 flow par action pri
 [ ] architecture : ownership + relations uniquement (pas les règles stack invariantes)
 [ ] models : tous ont userId + createdAt + @@index([userId])
 [ ] models : @default("...") avec guillemets DOUBLES
+[ ] models : chaque FK (xxxId) accompagnée de @relation(fields: [...], references: [id]) côté enfant
+[ ] models : tableau inverse (xxx Model[]) déclaré côté parent pour chaque relation
 [ ] pages : page_type explicite sur chaque page
 [ ] pages : page_type=list/detail → model obligatoire
 [ ] pages_detail : entrée pour chaque page + [INTERACTIVE] si boutons/formulaire
@@ -181,3 +196,4 @@ Format : `"acteur → action → résultat"`. Prévoir ≥ 1 flow par action pri
 | 1.0 | Mars 2026 | Structure initiale |
 | 1.1 | Mai 2026 | + `pages[].model`, `auth: false`, règle entités enfant |
 | 1.2 | Mai 2026 | + `page_type` obligatoire · document raccourci · `architecture` simplifiée (stack invariants retirés) |
+| 1.3 | Mai 2026 | `@relation` obligatoire dans le DSL — la factory ne génère plus les relations automatiquement |

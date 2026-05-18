@@ -33,6 +33,3 @@ class NextjsClerkPrismaAdapter(StackAdapter):
             **kwargs,
         )
 
-    def inject_relations(self, models: list) -> list:
-        from .architect_enhancer import inject_prisma_relations
-        return inject_prisma_relations(models)

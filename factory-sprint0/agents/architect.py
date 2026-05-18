@@ -1,6 +1,7 @@
 # agents/architect.py
 from __future__ import annotations
 
+import json
 import logging
 import operator
 from typing import List, TypedDict, Annotated
@@ -11,6 +12,155 @@ from pydantic import BaseModel, Field
 from agents.stack_config import _DEFAULT_STACK_ID
 
 logger = logging.getLogger(__name__)
+
+# ── Prompt LLM pour brief_writer_node ────────────────────────────────────────
+# Hardcodé (pas de RAG) — règles stables qui ne changent pas entre projets.
+# Mise à jour ici si la stack évolue (ex: Prisma 8, Clerk V7).
+
+_BRIEF_WRITER_SYSTEM_PROMPT = """\
+Tu es un architecte logiciel expert de la stack Next.js 14 + Clerk V5 + Prisma 7 + PostgreSQL.
+Ta mission : convertir un brief en langage naturel en une spec JSON structurée prête pour le générateur de code.
+
+## RÈGLES STACK (NON NÉGOCIABLES)
+
+### Auth
+- Auth = Clerk V5 uniquement. JAMAIS : bcrypt, jwt, password, next-auth, /api/auth/register, /api/auth/login
+- Chaque modèle "owned" par un utilisateur a un champ `userId String` (ou `authorId String` pour un CMS/blog)
+- Les sous-modèles enfants (ex: Comment d'une Task) utilisent le FK du parent, PAS userId direct
+
+### Champs obligatoires dans tout modèle
+- `id String @id @default(uuid())`
+- `createdAt DateTime @default(now())`
+
+### Relations — déclaration stricte
+- Le modèle ENFANT déclare : `taskId String` + `task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)`
+- Le modèle PARENT déclare juste : `comments Comment[]`
+- Ne jamais déclarer @relation sur les deux côtés
+
+### Format des modèles (CRITIQUE)
+Chaque modèle est une STRING avec tous les champs séparés par des VIRGULES sur une seule ligne :
+`"ModelName { field1 Type1 attrs1, field2 Type2 attrs2, ... }"`
+Les virgules DANS les attributs comme @relation(..., ...) ne comptent PAS comme séparateurs.
+
+### Enums
+`{ "NomEnum": ["valeur1", "valeur2"] }` — valeurs en snake_case minuscules
+
+### Pages — pattern standard
+- `/` : home publique (auth: false, page_type: "custom")
+- `/{model-kebab}` : liste (auth: true, sauf si contenu public comme un blog)
+- `/{model-kebab}/new` : création (auth: true TOUJOURS)
+- `/{model-kebab}/[id]` : détail par id (auth selon visibilité)
+- `/{model-kebab}/[slug]` : détail par slug si le modèle a un champ `slug` (page_type: "detail-slug", auth: false)
+- Ne PAS générer `/[id]/edit` sauf si le brief le demande explicitement
+
+### Routes API
+Les Server Actions gèrent le CRUD → `"routes": []` dans la grande majorité des cas.
+Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics stateless.
+
+## FORMAT DE SORTIE — JSON uniquement, aucun markdown, aucun commentaire
+
+```json
+{
+  "models": ["ModelName { field Type attrs, field Type attrs, ... }", ...],
+  "enums": { "EnumName": ["val1", "val2"] },
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/tasks", "auth": true, "model": "Task", "page_type": "list"},
+    {"path": "/tasks/new", "auth": true, "model": "Task", "page_type": "create"},
+    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
+  ],
+  "routes": [],
+  "user_flows": ["L'utilisateur crée une tâche depuis /tasks/new", ...]
+}
+```
+
+page_type valeurs autorisées : "list" | "create" | "detail" | "detail-slug" | "custom"
+
+## EXEMPLES
+
+### Exemple 1 — Task Manager avec commentaires
+
+Brief : "Une app de gestion de tâches. Les utilisateurs créent des tâches avec titre, description et statut (pending/in_progress/done). Ils peuvent commenter chaque tâche."
+
+Sortie :
+{
+  "models": [
+    "Task { id String @id @default(uuid()), title String, description String?, status TaskStatus @default(pending), userId String, createdAt DateTime @default(now()), comments Comment[] }",
+    "Comment { id String @id @default(uuid()), content String, taskId String, task Task @relation(fields: [taskId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()) }"
+  ],
+  "enums": {
+    "TaskStatus": ["pending", "in_progress", "done"]
+  },
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/tasks", "auth": true, "model": "Task", "page_type": "list"},
+    {"path": "/tasks/new", "auth": true, "model": "Task", "page_type": "create"},
+    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
+  ],
+  "routes": [],
+  "user_flows": [
+    "L'utilisateur crée une tâche depuis /tasks/new",
+    "L'utilisateur consulte sa liste de tâches à /tasks",
+    "L'utilisateur lit le détail et commente à /tasks/[id]"
+  ]
+}
+
+### Exemple 2 — Blog public avec catégories
+
+Brief : "Un blog avec des articles publics (visibles sans connexion). Chaque article a un titre, contenu, slug unique et une catégorie. Les auteurs gèrent leurs articles depuis leur espace connecté."
+
+Sortie :
+{
+  "models": [
+    "Category { id String @id @default(uuid()), name String @unique, posts Post[], createdAt DateTime @default(now()) }",
+    "Post { id String @id @default(uuid()), title String, content String, slug String @unique, status PostStatus @default(draft), categoryId String, category Category @relation(fields: [categoryId], references: [id]), authorId String, createdAt DateTime @default(now()) }"
+  ],
+  "enums": {
+    "PostStatus": ["draft", "published"]
+  },
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/posts", "auth": false, "model": "Post", "page_type": "list"},
+    {"path": "/posts/new", "auth": true, "model": "Post", "page_type": "create"},
+    {"path": "/posts/[slug]", "auth": false, "model": "Post", "page_type": "detail-slug"}
+  ],
+  "routes": [],
+  "user_flows": [
+    "Un visiteur parcourt les articles à /posts",
+    "Un visiteur lit un article à /posts/[slug]",
+    "Un auteur connecté crée un article depuis /posts/new"
+  ]
+}
+
+### Exemple 3 — SaaS multi-modèle (expense tracker avec catégories)
+
+Brief : "Un gestionnaire de dépenses. Chaque utilisateur crée des dépenses avec montant, description et catégorie. Les catégories sont gérées séparément."
+
+Sortie :
+{
+  "models": [
+    "Category { id String @id @default(uuid()), name String, userId String, expenses Expense[], createdAt DateTime @default(now()) }",
+    "Expense { id String @id @default(uuid()), title String, amount Float, description String?, categoryId String, category Category @relation(fields: [categoryId], references: [id]), userId String, createdAt DateTime @default(now()) }"
+  ],
+  "enums": {},
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/categories", "auth": true, "model": "Category", "page_type": "list"},
+    {"path": "/categories/new", "auth": true, "model": "Category", "page_type": "create"},
+    {"path": "/expenses", "auth": true, "model": "Expense", "page_type": "list"},
+    {"path": "/expenses/new", "auth": true, "model": "Expense", "page_type": "create"},
+    {"path": "/expenses/[id]", "auth": true, "model": "Expense", "page_type": "detail"}
+  ],
+  "routes": [],
+  "user_flows": [
+    "L'utilisateur crée une catégorie depuis /categories/new",
+    "L'utilisateur saisit une dépense depuis /expenses/new",
+    "L'utilisateur consulte ses dépenses à /expenses"
+  ]
+}
+
+Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.\
+"""
 
 
 # ── Output contracts ─────────────────────────────────────────────────────────
@@ -127,6 +277,82 @@ def _parse_model_str(model_str: str):
         name=name,
         fields=[PrismaField(name="id", type="String", attributes="@id @default(uuid())")],
     )
+
+
+# ── Brief writer node (LLM — activé si brief.models absent) ─────────────────
+
+async def brief_writer_node(state: AgentState) -> dict:
+    """
+    Convertit un brief en langage naturel en brief structuré JSON.
+    Activé uniquement si state["brief"]["models"] est absent ou vide.
+    Si models déjà fournis : no-op (chemin déterministe préservé).
+    """
+    brief = state.get("brief", {})
+
+    if brief.get("models"):
+        logger.info("[brief_writer] models déjà fournis → chemin déterministe")
+        return {}
+
+    description = brief.get("description", "").strip()
+    hints = brief.get("hints", {}) or {}
+
+    if not description:
+        raise ApplicationError(
+            "brief_writer: description vide — impossible de générer la spec.",
+            non_retryable=True,
+        )
+
+    from agents.llm_provider import get_chat_llm
+    from langchain_core.messages import SystemMessage, HumanMessage as _HM
+
+    llm = get_chat_llm(temperature=0.0).bind(
+        response_format={"type": "json_object"}
+    )
+
+    hint_str = (
+        f"\n\nHints du développeur :\n{json.dumps(hints, ensure_ascii=False)}"
+        if hints else ""
+    )
+    user_message = f"Brief : {description}{hint_str}"
+
+    messages = [
+        SystemMessage(content=_BRIEF_WRITER_SYSTEM_PROMPT),
+        _HM(content=user_message),
+    ]
+
+    try:
+        response = await llm.ainvoke(messages)
+        generated: dict = json.loads(response.content)
+    except json.JSONDecodeError as e:
+        raise ApplicationError(
+            f"brief_writer: réponse LLM non-JSON — {e}",
+            non_retryable=False,
+        )
+    except Exception as e:
+        raise ApplicationError(
+            f"brief_writer: erreur LLM — {e}",
+            non_retryable=False,
+        )
+
+    if not generated.get("models"):
+        raise ApplicationError(
+            "brief_writer: LLM n'a généré aucun modèle — brief trop vague ?",
+            non_retryable=False,
+        )
+
+    updated_brief = {**brief, **generated}
+
+    model_names = [
+        m.split()[0] for m in generated.get("models", []) if m.split()
+    ]
+    logger.info(
+        "[brief_writer] ✓ %d modèle(s), %d page(s) — %s",
+        len(model_names),
+        len(generated.get("pages", [])),
+        model_names,
+    )
+
+    return {"brief": updated_brief}
 
 
 # ── Planner node (module-level — aucune dépendance closure) ──────────────────
@@ -262,8 +488,25 @@ async def planner_node(state: AgentState) -> dict:
 
 def create_architect_agent():
     from langgraph.graph import StateGraph, START, END
+
+    def _route_entry(state: AgentState) -> str:
+        """
+        Si le brief contient déjà des models → planner directement (chemin déterministe).
+        Sinon → brief_writer pour conversion langage naturel → JSON structuré.
+        """
+        brief = state.get("brief", {})
+        if brief.get("models"):
+            return "planner"
+        return "brief_writer"
+
     workflow = StateGraph(AgentState)
+    workflow.add_node("brief_writer", brief_writer_node)
     workflow.add_node("planner", planner_node)
-    workflow.add_edge(START, "planner")
+    workflow.add_conditional_edges(
+        START,
+        _route_entry,
+        {"brief_writer": "brief_writer", "planner": "planner"},
+    )
+    workflow.add_edge("brief_writer", "planner")
     workflow.add_edge("planner", END)
     return workflow.compile()
