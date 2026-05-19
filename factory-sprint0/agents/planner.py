@@ -10,10 +10,10 @@ Fichiers pré-générés de manière déterministe AVANT que le LLM démarre :
 Ces fichiers sont dans template_written → exclus automatiquement du plan.
 
 Le plan LLM ne couvre que :
-  1. app/**/actions.ts  — Server Actions (mutations) — une par modèle Prisma
-  2. app/**/page.tsx    — Server Components (lecture directe Prisma)
-  3. app/api/**/route.ts — routes conservées uniquement pour : webhooks + toute route
-                           explicitement marquée comme non-mutation (GET public)
+  1. app/**/actions.ts       — Server Actions (mutations) — une par modèle Prisma
+  2. app/**/page.tsx         — Server Components (lecture directe Prisma)
+  3. app/api/**/route.ts     — routes conservées uniquement pour : webhooks
+  4. app/**/page-client.tsx  — Client Components UI (Level B) — list/create/detail/edit
 
 Règle Level 1 :
   - Mutations (POST, PUT, PATCH, DELETE) → Server Actions
@@ -70,6 +70,7 @@ class FilePlanEntry(BaseModel):
 def make_deterministic_plan(
     spec: "ProjectSpec",
     template_files: list[str],
+    contexts: "dict | None" = None,
 ) -> list[FilePlanEntry]:
     """
     Retourne la liste ordonnée des fichiers que l'executor doit générer.
@@ -323,38 +324,212 @@ def make_deterministic_plan(
                 f"chaque service ne l'a que si son modèle Prisma a un champ @relation (TS2551 fatal sinon)."
             )
 
-        # Page-client générée AVANT page.tsx (F3) :
-        # page-client.tsx définit son interface de props → page.tsx peut ensuite
-        # lire ce fichier (injecté par executor_node) et passer exactement les bonnes props.
-        # Sans cet ordre, page.tsx est écrit en premier et ignore les props du client → TS2741.
+        # ── page-client.tsx (Level B) — générée AVANT page.tsx ──────────────────
+        # Pages avec model (list/create/detail/detail-slug) : le LLM génère le UI.
+        # Pages custom [INTERACTIVE] : comportement inchangé.
+        _model_name = getattr(page, "model", None)
+        _page_type = getattr(page, "page_type", None)
         _pages_detail = getattr(spec, "pages_detail", {}) or {}
         _page_detail_str = str(_pages_detail.get(page.path, ""))
-        if "[INTERACTIVE]" in _page_detail_str:
-            client_file = "app/page-client.tsx" if not ppath else f"app/{ppath}/page-client.tsx"
-            if client_file not in template_set:
-                _comp_name = (ppath.replace("/", "-") or "home").title().replace("-", "")
-                entries.append(FilePlanEntry(
-                    path=client_file,
-                    role="page_client",
-                    context_hint=(
-                        f"'use client' LIGNE 1 OBLIGATOIRE. Client Component pour {file_path}. "
-                        f"export default function {_comp_name}Client(props: {_comp_name}ClientProps). "
-                        f"PROPS INTERFACE : déclarer UNIQUEMENT les props que le Server Component "
-                        f"parent peut concrètement passer (données chargées côté serveur). "
-                        f"Pour un formulaire de création simple, les props sont vides ou minimales — "
-                        f"NE PAS inventer de props required pour des données pré-chargées si le brief "
-                        f"ne le demande pas explicitement. "
-                        f"Champs nullable → string | null (JAMAIS string | undefined). "
-                        f"Importé depuis {file_path} avec DEFAULT import : "
-                        f"import {_comp_name}Client from './page-client'."
-                    ),
-                ))
+        _client_file = "app/page-client.tsx" if not ppath else f"app/{ppath}/page-client.tsx"
+        _client_hint = ""
+
+        if _model_name and _page_type in ("list", "create", "detail", "detail-slug"):
+            _serialized = f"Serialized{_model_name}"
+            if _page_type == "list":
+                # Bug 1 fix : pages publiques n'ont pas d'actions.ts → pas de delete button
+                if page.auth_required:
+                    _list_actions_hint = (
+                        f"Bouton 'Supprimer' via delete{_model_name}.bind(null, item.id) "
+                        f"(import depuis ./actions). "
+                    )
+                else:
+                    _list_actions_hint = (
+                        "PAGE PUBLIQUE — PAS de bouton Supprimer, "
+                        "PAS d'import depuis './actions' (fichier inexistant ici). "
+                    )
+                _client_hint = (
+                    f"'use client' LIGNE 1 OBLIGATOIRE. Client Component liste pour {_model_name}. "
+                    f"export default function {_model_name}Client({{ items }}: {{ items: {_serialized}[] }}). "
+                    f"Afficher la liste avec items.map(item => ...). "
+                    f"{_list_actions_hint}"
+                    f"Lien 'Nouveau' vers la page create si elle existe. "
+                    "Champs nullable → string | null dans les types props. "
+                    f"Importé depuis {file_path} : import {_model_name}Client from './page-client'."
+                )
+            elif _page_type == "create":
+                # FK et enum via ModelGenerationContext (Canal A→B) si disponible, sinon fallback
+                _fk_info: list[tuple[str, str]] = []
+                _enum_cast_hint = ""
+                if contexts and _model_name in contexts:
+                    _ctx_m = contexts[_model_name]
+                    _fk_info = [(fk.related_camel, fk.related_model) for fk in _ctx_m.fk_fields]
+                    _enum_fields_c = [f for f in _ctx_m.editable_fields if f.input_type == "enum-select"]
+                    if _enum_fields_c:
+                        _spec_enums_c = getattr(spec, "enums", {}) or {}
+                        _cast_parts_c = []
+                        for _ef in _enum_fields_c:
+                            _vals = _spec_enums_c.get(_ef.base_type, [])
+                            if _vals:
+                                _vals_str = " | ".join(f"'{v}'" for v in _vals)
+                                _cast_parts_c.append(f"{_ef.name}: e.target.value as {_vals_str}")
+                        if _cast_parts_c:
+                            _opts_hints_c = []
+                            for _ef in _enum_fields_c:
+                                _vals = _spec_enums_c.get(_ef.base_type, [])
+                                if _vals:
+                                    _opts = "".join(f'<option value="{v}">{v}</option>' for v in _vals)
+                                    _opts_hints_c.append(
+                                        f'{_ef.name}: <select name="{_ef.name}">{_opts}</select>'
+                                    )
+                            _enum_cast_hint = (
+                                "Champs enum — FORMULAIRE SERVER ACTION"
+                                " (PAS de onChange, PAS de formData.set, PAS de useState) : "
+                                + " | ".join(_opts_hints_c) + ". "
+                            )
+                else:
+                    _spec_names_lower = {m.name.lower(): m.name for m in spec.models}
+                    for _m in spec.models:
+                        if _m.name == _model_name:
+                            for _f in _m.fields:
+                                if (
+                                    _f.name.endswith("Id")
+                                    and _f.type.rstrip("?") == "String"
+                                    and _f.name[:-2].lower() in _spec_names_lower
+                                ):
+                                    _fk_target = _spec_names_lower[_f.name[:-2].lower()]
+                                    _fk_info.append((_f.name[:-2], _fk_target))
+                            break
+
+                if _fk_info:
+                    _fk_params = ", ".join(f"{n}Options" for n, _ in _fk_info)
+                    _fk_types = ", ".join(f"{n}Options: Serialized{m}[]" for n, m in _fk_info)
+                    _create_signature = (
+                        f"export default function {_model_name}CreateClient"
+                        f"({{ {_fk_params} }}: {{ {_fk_types} }}). "
+                    )
+                    _fk_props_hint = (
+                        f"Props FK reçues depuis page.tsx : {_fk_types} — "
+                        f"OBLIGATOIRES (TS2322 fatal si absentes). "
+                    )
+                else:
+                    _create_signature = f"export default function {_model_name}CreateClient(). "
+                    _fk_props_hint = ""
+
+                _client_hint = (
+                    f"'use client' LIGNE 1 OBLIGATOIRE. Client Component formulaire création pour {_model_name}. "
+                    f"{_create_signature}"
+                    f"{_fk_props_hint}"
+                    f"{_enum_cast_hint}"
+                    f"Formulaire <form action={{create{_model_name}}}> avec Server Action importée depuis ./actions. "
+                    "NE PAS inclure userId dans formData — auth côté serveur. "
+                    "Champs nullable → string | null dans les types props. "
+                    f"Importé depuis {file_path} : import {_model_name}CreateClient from './page-client'."
+                )
+            else:  # detail, detail-slug
+                _client_hint = (
+                    f"'use client' LIGNE 1 OBLIGATOIRE. Client Component detail pour {_model_name}. "
+                    f"export default function {_model_name}DetailClient({{ item }}: {{ item: {_serialized} }}). "
+                    f"Afficher les champs scalaires de l'item. "
+                    "Champs nullable → string | null dans les types props. "
+                    f"Importé depuis {file_path} : import {_model_name}DetailClient from './page-client'."
+                )
+        elif "[INTERACTIVE]" in _page_detail_str:
+            _comp_name = (ppath.replace("/", "-") or "home").title().replace("-", "")
+            _client_hint = (
+                f"'use client' LIGNE 1 OBLIGATOIRE. Client Component pour {file_path}. "
+                f"export default function {_comp_name}Client(props: {_comp_name}ClientProps). "
+                f"PROPS INTERFACE : déclarer UNIQUEMENT les props que le Server Component "
+                f"parent peut concrètement passer (données chargées côté serveur). "
+                f"Pour un formulaire de création simple, les props sont vides ou minimales — "
+                f"NE PAS inventer de props required pour des données pré-chargées si le brief "
+                f"ne le demande pas explicitement. "
+                f"Champs nullable → string | null (JAMAIS string | undefined). "
+                f"Importé depuis {file_path} avec DEFAULT import : "
+                f"import {_comp_name}Client from './page-client'."
+            )
+
+        if _client_hint and _client_file not in template_set:
+            entries.append(FilePlanEntry(
+                path=_client_file,
+                role="page_client",
+                context_hint=_client_hint,
+            ))
 
         entries.append(FilePlanEntry(
             path=file_path,
             role="page",
             context_hint=" ".join(hint_parts),
         ))
+
+    # ── 4. Edit page-client.tsx (Level B) ─────────────────────────────────────
+    # page.tsx est pré-généré (generate_edit_page_stubs) → dans template_set → exclu.
+    # page-client.tsx n'est plus pré-généré → doit être dans le plan.
+    _crud_list: set[str] = {
+        getattr(p, "model", None)
+        for p in spec.pages
+        if getattr(p, "page_type", None) == "list"
+        and getattr(p, "model", None)
+        and p.auth_required
+    }
+    _crud_create: set[str] = {
+        getattr(p, "model", None)
+        for p in spec.pages
+        if getattr(p, "page_type", None) == "create"
+        and getattr(p, "model", None)
+    }
+    for model in spec.models:
+        if model.name not in (_crud_list & _crud_create):
+            continue
+        list_page = spec.get_list_page_for_model(model.name)
+        if not list_page:
+            continue
+        route_dir = list_page.lstrip("/")
+        edit_client = f"app/{route_dir}/[id]/edit/page-client.tsx"
+        if edit_client not in template_set:
+            _serialized = f"Serialized{model.name}"
+            _edit_enum_hint = ""
+            if contexts and model.name in contexts:
+                _edit_ctx = contexts[model.name]
+                _edit_enum_fields = [f for f in _edit_ctx.editable_fields if f.input_type == "enum-select"]
+                if _edit_enum_fields:
+                    _spec_enums_e = getattr(spec, "enums", {}) or {}
+                    _cast_parts_e = []
+                    for _ef in _edit_enum_fields:
+                        _vals = _spec_enums_e.get(_ef.base_type, [])
+                        if _vals:
+                            _vals_str = " | ".join(f"'{v}'" for v in _vals)
+                            _cast_parts_e.append(f"{_ef.name}: e.target.value as {_vals_str}")
+                    if _cast_parts_e:
+                        _opts_hints_e = []
+                        for _ef in _edit_enum_fields:
+                            _vals = _spec_enums_e.get(_ef.base_type, [])
+                            if _vals:
+                                _opts = "".join(f'<option value="{v}">{v}</option>' for v in _vals)
+                                _opts_hints_e.append(
+                                    f'{_ef.name}: <select name="{_ef.name}"'
+                                    f' defaultValue={{item.{_ef.name}}}>{_opts}</select>'
+                                )
+                        _edit_enum_hint = (
+                            "Champs enum — FORMULAIRE SERVER ACTION"
+                            " (PAS de onChange, PAS de formData.set, PAS de useState) : "
+                            + " | ".join(_opts_hints_e) + ". "
+                        )
+            entries.append(FilePlanEntry(
+                path=edit_client,
+                role="page_client",
+                context_hint=(
+                    f"'use client' LIGNE 1 OBLIGATOIRE. Client Component formulaire edit pour {model.name}. "
+                    f"export default function {model.name}EditClient({{ item }}: {{ item: {_serialized} }}). "
+                    f"Server Action update{model.name}(id: string, formData: FormData) depuis ./actions. "
+                    f"PATTERN BIND : <form action={{update{model.name}.bind(null, item.id)}}> "
+                    f"— OU appel direct : await update{model.name}(item.id, formData) (2 args, id en 1er). "
+                    f"Chaque champ avec defaultValue={{item.fieldName}}. "
+                    f"{_edit_enum_hint}"
+                    "Champs nullable → string | null dans les types props. "
+                    f"Importé depuis app/{route_dir}/[id]/edit/page.tsx : import {model.name}EditClient from './page-client'."
+                ),
+            ))
 
     # Exclure les fichiers déjà écrits par les templates
     return [e for e in entries if e.path not in template_set]

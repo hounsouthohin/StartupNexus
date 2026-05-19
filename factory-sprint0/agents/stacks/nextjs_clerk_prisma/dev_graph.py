@@ -246,8 +246,7 @@ async def run_dev_agent(
     # generate_page_stubs : page.tsx entièrement déterministe pour les pages avec
     #   champ `model` → ajouté à template_written (LLM ne peut pas écraser).
     #   Pour les pages sans `model` : stub auth-guard minimal (LLM peut compléter).
-    # generate_page_client_stubs : page-client.tsx avec interface props correcte.
-    #   PAS dans template_written → LLM complète le JSX body.
+    # page-client.tsx : généré par le LLM (Level B — dev_ui_generator).
     if spec_obj is not None:
         try:
             from .dev_pages_generator import (
@@ -255,7 +254,6 @@ async def run_dev_agent(
                 generate_error_files,
                 generate_root_page_if_needed,
                 generate_page_stubs,
-                generate_page_client_stubs,
                 generate_edit_page_stubs,
             )
             from .dev_middleware_generator import generate_middleware
@@ -282,11 +280,6 @@ async def run_dev_agent(
             # Pages entièrement déterministes (model field présent) → template_written
             _page_files = generate_page_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
             template_written.update(_page_files)
-
-            # Stubs page-client déterministes (list UI + create form) → template_written
-            # Le planner les exclut ; write_file les protège via _protected.
-            _client_stubs = generate_page_client_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
-            template_written.update(_client_stubs)
 
             # Pages edit déterministes (update form) pour les modèles avec intent CRUD.
             _edit_stubs = generate_edit_page_stubs(spec_obj, project_workdir, contexts=_model_contexts or None)
@@ -339,7 +332,7 @@ async def run_dev_agent(
             logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
 
     # ── Génération déterministe : app/**/actions.ts ───────────────────
-    # Avant pre_run_commands : les page-client stubs importent les actions.
+    # Avant pre_run_commands : les page-client.tsx (Level B — LLM) importent les actions.
     if spec_obj is not None:
         try:
             from .dev_actions_generator import generate_action_files
@@ -444,7 +437,6 @@ async def run_dev_agent(
         k for k in template_written
         if k.startswith("lib/")
         or k.endswith("/actions.ts")
-        or k.endswith("page-client.tsx")
     )
     _dev_tools_module.set_protected_files(_protected)
 
@@ -464,13 +456,8 @@ async def run_dev_agent(
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
         except Exception as e:
-            logger.warning(f"[dev_graph] dev_prompts non disponible ({e}), fallback minimal")
-            system_prompt = (
-                "Tu génères un projet Next.js 14 avec Clerk V6 + Prisma 7. "
-                "Utilise write_file pour écrire les fichiers, "
-                "shell_exec pour tsc et npm build. "
-                "Génère tous les fichiers nécessaires puis build."
-            )
+            logger.error(f"[dev_graph] build_system_prompt() FAILED — run annulé : {e}")
+            raise RuntimeError(f"SYSTEM_PROMPT_BUILD_FAILED: {e}") from e
 
     # ── Outils ───────────────────────────────────────────────────────
     tools = list(DEV_TOOLS) + [web_search]
@@ -506,7 +493,7 @@ async def run_dev_agent(
             logger.error("[planner] ProjectSpec invalide — plan vide : %s", _pe)
             return {"file_plan": None}  # None = signal d'échec (distinct de [] = plan vide légitime)
         _tpl = list(template_written.keys())
-        _plan = make_deterministic_plan(_spec_local, _tpl)
+        _plan = make_deterministic_plan(_spec_local, _tpl, contexts=_model_contexts)
         _missing = validate_plan(_plan, _spec_local, _tpl)
         if _missing:
             logger.warning("[planner] fichiers non couverts par le plan : %s", _missing)

@@ -67,9 +67,7 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         ppath = page.path.strip("/")
         files.append("app/page.tsx" if not ppath else f"app/{ppath}/page.tsx")
 
-    # page-client.tsx pour les pages avec model (list/create/detail/detail-slug) — PRÉ-GÉNÉRÉS
-    # Ces fichiers sont dans template_written → ils seront exclus de files_to_generate
-    # via la soustraction (expected - pre_written), mais doivent figurer ici pour le tracking.
+    # page-client.tsx pour les pages avec model (list/create/detail/detail-slug) — GÉNÉRÉS PAR LE LLM
     _crud_models_with_list: set[str] = set()
     for page in spec.pages:
         ptype = getattr(page, "page_type", None)
@@ -252,19 +250,15 @@ def build_system_prompt(
     prisma_type_map: dict | None = None,
 ) -> str:
     """
-    Construit le system prompt compact pour le dev agent v4 — Option A (Phase-Aware).
+    Construit le system prompt pour le dev agent v4 — Option A (Phase-Aware).
+    Rendu via Jinja2 depuis dev_system_prompt.j2 (StrictUndefined — toute variable
+    manquante lève UndefinedError immédiatement, sans fallback silencieux).
 
     Phase-Aware : pages_detail et action_map sont EXCLUS du system prompt (trop lourds).
     Ils sont injectés par executor_node via HumanMessage au moment de générer chaque page.
-    Budget system prompt visé : ≤ 4 000 tokens.
-
-    Option A :
-      - lib/types.ts, lib/schemas.ts, lib/services/*.ts, app/**/actions.ts → PRÉ-GÉNÉRÉS
-      - Le LLM génère uniquement : page.tsx (et webhooks/route.ts si présents)
-      - service_map : injecté ici (DAL — toujours pertinent)
-      - action_map  : injecté par executor_node au moment de chaque page
-      - prisma_type_map : DMMF extrait après prisma generate
     """
+    import os
+    from jinja2 import Environment, StrictUndefined
     pre_written: set[str] = set(pre_written_files or [])
     expected_files = _expected_files_from_spec(spec)
     files_to_generate = [f for f in expected_files if f not in pre_written]
@@ -360,171 +354,28 @@ Méthodes :
     pre_written_block = ""
     if pre_written:
         pre_written_list = "\n".join(f"  - {f}" for f in sorted(pre_written))
-        pre_written_block = f"""
-══════════════════════════════════════════════════════════════
-FICHIERS PRÉ-GÉNÉRÉS — NE PAS RÉÉCRIRE
-══════════════════════════════════════════════════════════════
-Ces fichiers sont CORRECTS et COMPLETS — ne les réécrits JAMAIS :
-{pre_written_list}
-"""
+        pre_written_block = (
+            "\n══════════════════════════════════════════════════════════════\n"
+            "FICHIERS PRÉ-GÉNÉRÉS — NE PAS RÉÉCRIRE\n"
+            "══════════════════════════════════════════════════════════════\n"
+            f"Ces fichiers sont CORRECTS et COMPLETS — ne les réécrits JAMAIS :\n{pre_written_list}\n"
+        )
 
-    return f"""Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7 — OPTION A.
-{mandatory_rag_block}
-Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
+    _tpl_path = os.path.join(os.path.dirname(__file__), "dev_system_prompt.j2")
+    with open(_tpl_path, encoding="utf-8") as _f:
+        _tpl_source = _f.read()
 
-ARCHITECTURE OPTION A :
-  - lib/types.ts, lib/schemas.ts, lib/services/*.ts, app/**/actions.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
-  - Tu génères UNIQUEMENT : app/**/page.tsx (Server Components) et webhooks si présents
-  - Les mutations passent par des Server Actions PRÉ-GÉNÉRÉES — IMPORTER depuis './actions', NE PAS recréer
-  - Les pages lisent les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx
-{service_map_block}{dmmf_block}{pre_written_block}
-══════════════════════════════════════════════════════════════
-SPEC — SOURCE DE VÉRITÉ (NE PAS MODIFIER LES NOMS)
-══════════════════════════════════════════════════════════════
-{spec_json}
-
-PAGES À CRÉER :
-{pages_summary}
-
-ROUTES API (webhooks seulement) :
-{routes_summary}
-
-══════════════════════════════════════════════════════════════
-SCHÉMA PRISMA EXACT (déjà écrit dans prisma/schema.prisma — NE PAS RÉÉCRIRE)
-══════════════════════════════════════════════════════════════
-{prisma_block}
-⚠️  Chaque appel prisma.X doit correspondre à un modèle ci-dessus.
-    Ne jamais inventer prisma.audit, prisma.booking si non déclaré.
-
-══════════════════════════════════════════════════════════════
-FICHIERS À GÉNÉRER PAR LE LLM (checklist — génère-les tous)
-══════════════════════════════════════════════════════════════
-{files_checklist}
-
-══════════════════════════════════════════════════════════════
-TES OUTILS
-══════════════════════════════════════════════════════════════
-write_file(path, content)             → écrire un fichier (contenu brut, jamais de balises markdown)
-read_file(path)                       → aperçu 30 lignes
-read_file(path, start_line, end_line) → plage précise de lignes
-list_directory(path)                  → lister un dossier
-shell_exec(command)                   → commande shell
-file_exists(path)                     → EXISTS ou ABSENT
-web_search(query)                     → recherche doc/fix TypeScript ou Next.js — utilise UNIQUEMENT si bloqué après 1-2 tentatives de correction infructueuses — formule une requête ciblée : code TS + message d'erreur + stack (ex: "TS2322 null not assignable undefined props Next.js 14 fix")
-
-══════════════════════════════════════════════════════════════
-WORKFLOW (Option A — suis cet ordre STRICTEMENT)
-══════════════════════════════════════════════════════════════
-1. Les fichiers PRÉ-GÉNÉRÉS suivants sont VERROUILLÉS — NE PAS LES RÉÉCRIRE :
-   - app/**/actions.ts                      : Server Actions CRUD déterministes
-   - app/**/page.tsx (pages avec `model`)   : Server Components avec data-fetching déterministe
-     ↳ Ces fichiers passent déjà <XxxClient items={{items}} /> au Client Component.
-     ↳ Ne PAS modifier le nom du prop, ne PAS recréer page.tsx.
-   - app/**/page-client.tsx (pages avec `model`) : stubs UI list/create/detail pré-scaffoldés
-     ↳ Interface props déjà définie et correcte — NE PAS modifier l'interface.
-     ↳ Ces fichiers sont protégés : toute tentative d'écriture sera rejetée.
-   - app/**/[id]/edit/page.tsx              : formulaire update pré-généré (auth + getById)
-   - app/**/[id]/edit/page-client.tsx       : formulaire update pré-rempli (defaultValue)
-   - lib/services/*.service.ts, lib/types.ts, lib/schemas.ts, prisma/schema.prisma : idem
-
-2. Les fichiers page-client.tsx sont PRÉ-SCAFFOLDÉS avec l'interface props correcte.
-   NE PAS modifier l'interface existante — compléter UNIQUEMENT le JSX body.
-   Exemple : si tu trouves `interface DashboardClientProps {{ items: SerializedPost[] }}`,
-   le composant DOIT accepter `{{ items }}: DashboardClientProps` — ne pas changer en `{{}}`.
-   Pour les pages [INTERACTIVE] : le Client Component (page-client.tsx) importe les Server Actions
-   depuis './actions' — le chemin d'import exact et les signatures sont injectés au moment de générer ce fichier.
-
-3. Génère les pages (app/**/page.tsx) — uniquement celles SANS `model` (non verrouillées) :
-   - Server Component (pas de 'use client' sauf si interaction pure)
-   - JAMAIS prisma directement dans page.tsx — import {{ xxxService }} from '@/lib/services/xxx.service'
-   - NE PAS appeler .toISOString() sur les données du service — les dates sont déjà string (SerializedXxx)
-
-   PAGES PROTÉGÉES (auth_required = true) :
-   - const {{ userId }} = await auth(); if (!userId) redirect('/sign-in');
-   - Lit les données VIA LE SERVICE : `const items = await xxxService.getAll(userId)`
-   - Pour les pages dynamiques [id] : `const item = await xxxService.getById(userId, params.id)`
-     ↳ getById appelle notFound() automatiquement si absent → NE PAS ajouter de null-check
-     ↳ item est toujours SerializedXxx après getById — pas de `| null`, pas d'import notFound
-
-   PAGES PUBLIQUES (marquées "(publique)" dans la liste des pages) :
-   - NE PAS importer auth, NE PAS appeler auth(), NE PAS appeler redirect('/sign-in')
-   - NE PAS utiliser userId — il n'existe pas sur ces pages
-   - Utilise la méthode sans userId du service (ex: xxxService.getPublished() si disponible dans la Service Map)
-   - Si aucune méthode sans userId n'existe dans la Service Map → génère juste le JSX sans fetch de données
-   - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
-   - Client Component navigation : TOUJOURS useRouter depuis 'next/navigation' — JAMAIS 'next/router' (Pages Router)
-     ✅  import {{ useRouter }} from 'next/navigation'   → router.refresh() disponible
-     ❌  import {{ useRouter }} from 'next/router'       → INTERDIT (App Router) + router.refresh() absent → TS2339
-
-4. Si webhooks présents → génère app/api/webhooks/**/route.ts
-
-5. Lance le build :
-   shell_exec('npm run build')
-   - Build success (OK en préfixe) → terminé
-   - Build échoué → lis l'erreur, corriger, rebuild (max 3 tentatives)
-   - Si erreur tsc → shell_exec('npx tsc --noEmit') puis corriger
-
-══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — APPEL SERVER ACTION DEPUIS CLIENT COMPONENT
-══════════════════════════════════════════════════════════════
-create/update attendent `formData: FormData` — PAS un objet plain.
-delete attend `id: string` — PAS FormData.
-
-Appels corrects depuis un Client Component :
-  ✅  create/update :
-      const fd = new FormData()
-      fd.set('name', nameValue)
-      await createXxx(fd)
-  ✅  delete :
-      await deleteXxx(item.id)   ← id string direct, PAS new FormData()
-  ❌  await createXxx({{ name: nameValue }})   ← TS2353 fatal (objet ≠ FormData)
-  ❌  await deleteXxx(new FormData(...))     ← TS2345 fatal (FormData ≠ string)
-
-══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — TYPES PROPS CLIENT COMPONENTS (champs nullable Prisma)
-══════════════════════════════════════════════════════════════
-Prisma retourne string | null pour les champs optionnels (String? dans le schéma).
-Dans les interfaces props de Client Components, utiliser string | null, JAMAIS string | undefined :
-  ✅  description?: string | null   ← compatible avec Prisma (TS2322 évité)
-  ❌  description?: string          ← refuse null → TS2322 fatal
-  ❌  description?: string | undefined  ← idem, refuse null
-Règle : pour CHAQUE champ nullable dans les props → ajouter | null explicitement.
-
-══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — DÉCOUPAGE page.tsx / page-client.tsx
-══════════════════════════════════════════════════════════════
-Deux cas distincts — NE PAS les confondre :
-
-CAS 1 — Pages avec champ `model` (list, create, detail, detail-slug, edit) :
-  page-client.tsx est PRÉ-GÉNÉRÉ et PROTÉGÉ pour ces pages.
-  ✅  Lis le fichier existant (read_file) pour connaître l'interface props
-  ❌  Ne JAMAIS réécrire ou recréer ce fichier — la tentative sera rejetée
-  ❌  Ne JAMAIS modifier l'interface props existante
-
-CAS 2 — Pages custom (page_type="custom", PAS de champ `model`) :
-  - Si marquée [INTERACTIVE] dans pages_detail → créer page-client.tsx
-  - Si NON [INTERACTIVE] → 'use client' directement dans page.tsx si interaction requise
-  ❌  JAMAIS page-client.tsx pour une page custom sans marquage [INTERACTIVE]
-
-Si [INTERACTIVE] (custom uniquement) :
-  ✅  import XxxClient from './page-client'    ← DEFAULT import
-  ❌  import {{ XxxClient }} from './page-client'  ← INTERDIT TS2614
-
-══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — SÉRIALISATION DATES PRISMA
-══════════════════════════════════════════════════════════════
-CAS 1 — Données lues via le service (getAll, getById, getAllWithRelations) :
-  Le service sérialise les DateTime en string via _serialize — type de retour SerializedXxx.
-  ✅  const items = await xxxService.getAll(userId)   ← items[0].createdAt est déjà string
-  ❌  items.map(i => ({{ ...i, createdAt: i.createdAt.toISOString() }}))  ← TS2551 fatal
-  Les props Client Components qui reçoivent ces données utilisent SerializedXxx ou string pour les dates.
-
-CAS 2 — Server Action reçoit une date string → z.coerce.date() dans le schéma la coerce en Date
-  parsed.data.dateField est déjà un Date — passer directement au service, pas de new Date() dans les actions
-
-CAS 3 — Rendu JSX direct :
-  ✅  {{item.createdAt}}  ← déjà string (SerializedXxx)
-  ❌  {{item.createdAt.toISOString()}}  ← TS2551 si item vient du service
-
-{stack_rules_block}
-""".replace("{WORKDIR}", "/app/generated-projects")
+    env = Environment(undefined=StrictUndefined)
+    rendered = env.from_string(_tpl_source).render(
+        mandatory_rag_block=mandatory_rag_block,
+        service_map_block=service_map_block,
+        dmmf_block=dmmf_block,
+        pre_written_block=pre_written_block,
+        spec_json=spec_json,
+        pages_summary=pages_summary,
+        routes_summary=routes_summary,
+        prisma_block=prisma_block,
+        files_checklist=files_checklist,
+        stack_rules_block=stack_rules_block,
+    )
+    return rendered.replace("{WORKDIR}", "/app/generated-projects")

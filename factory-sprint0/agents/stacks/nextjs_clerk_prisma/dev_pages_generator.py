@@ -10,10 +10,6 @@ Architecture (Mai 2026) :
                      Écrit dans template_written → LLM ne peut pas écraser.
                      Pattern : auth guard (si requis) + appel service + <XxxClient items={items} />
                      Pour les pages sans `model` : stub auth-guard uniquement (LLM complète).
-- page-client.tsx  : stub pré-scaffoldé avec interface props correcte.
-                     DANS template_written → LLM ne peut pas écraser (protégé via dev_graph.py).
-                     Généré UNIQUEMENT pour page_type in (list, create, detail, detail-slug).
-                     Les pages custom sont laissées libres pour le LLM.
 """
 from __future__ import annotations
 
@@ -260,6 +256,31 @@ def generate_error_files(spec: "ProjectSpec", project_workdir: str) -> None:  # 
         logger.info("[pages_gen] ✓ %s", f"app/{filename}")
 
 
+
+def _fk_fields(model_obj, spec) -> list[tuple[str, str, str]]:
+    """
+    Retourne les champs FK du modèle : (field_name, related_model_name, related_camel).
+    Utilisé par _gen_page_full pour fetcher les options FK côté serveur (create pages).
+    """
+    model_names = {m.name for m in spec.models}
+    owner = model_obj.resolved_owner()
+    result: list[tuple[str, str, str]] = []
+    for field in model_obj.fields:
+        name = field.name
+        if name in {owner, "id"} or "@relation" in (field.attributes or ""):
+            continue
+        if not name.endswith("Id"):
+            continue
+        base = name[:-2]
+        related_model = base[0].upper() + base[1:]
+        if related_model not in model_names:
+            suffix_matches = [mn for mn in model_names if mn.endswith(related_model)]
+            if suffix_matches:
+                related_model = suffix_matches[0]
+        if related_model in model_names:
+            result.append((name, related_model, pascal_to_camel(related_model)))
+    return result
+
 def _gen_page_full(page, model_obj, spec=None) -> str:
     """
     Génère un page.tsx ENTIÈREMENT DÉTERMINISTE pour une page avec champ `model`.
@@ -353,11 +374,20 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
         ]
     elif not is_create:
         if page.auth_required:
-            service_call = (
-                f"{camel}Service.getAllWithRelations(userId)"
-                if has_relations else
-                f"{camel}Service.getAll(userId)"
-            )
+            # Modèles enfants (owner = FK parent comme projectId) : filtrer via parent.userId
+            try:
+                _owner = model_obj.resolved_owner()
+            except Exception:
+                _owner = "userId"
+            _is_child = _owner not in ("userId", "authorId")
+            if _is_child:
+                service_call = f"{camel}Service.getAllByUser(userId)"
+            else:
+                service_call = (
+                    f"{camel}Service.getAllWithRelations(userId)"
+                    if has_relations else
+                    f"{camel}Service.getAll(userId)"
+                )
         else:
             service_call = (
                 f"{camel}Service.getPublished()"
@@ -435,88 +465,6 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
     return written
 
 
-# ── Helpers générateur stubs UI ──────────────────────────────────────────────
-
-def _form_fields(model_obj, fk_to_exclude: "set[str] | None" = None) -> list:
-    """
-    Retourne (field_name, input_type, is_required) pour les champs du formulaire Create.
-    Exclut : id, createdAt, updatedAt, owner_field, champs @relation, tableaux, champs FK (déjà rendus en <select>).
-    """
-    _TEXTAREA_NAMES = {"content", "description", "body", "notes", "message", "text", "bio", "about", "details"}
-    owner = model_obj.resolved_owner()
-    excluded = {"id", "createdAt", "updatedAt", owner} | (fk_to_exclude or set())
-    result = []
-    for field in model_obj.fields:
-        name = field.name
-        if name in excluded:
-            continue
-        if "@relation" in (field.attributes or ""):
-            continue
-        if field.type.endswith("[]"):
-            continue
-        is_required = not field.type.endswith("?")
-        base_type = field.type.rstrip("?")
-        if base_type == "Boolean":
-            input_type = "checkbox"
-        elif base_type in ("Int", "Float"):
-            input_type = "number"
-        elif base_type == "DateTime":
-            input_type = "datetime-local"
-        elif name.lower() in _TEXTAREA_NAMES:
-            input_type = "textarea"
-        else:
-            input_type = "text"
-        result.append((name, input_type, is_required))
-    return result
-
-
-def _fk_fields(model_obj, spec) -> list[tuple[str, str, str]]:
-    """
-    Retourne les champs FK du modèle sous la forme (field_name, related_model_name, related_camel).
-    Heuristique : champ de type String dont le nom se termine par 'Id' et dont la base correspond
-    à un modèle existant dans la spec (ex: categoryId → Category si Category ∈ spec.models).
-    Ces champs doivent être rendus comme <select> dans les formulaires.
-    """
-    model_names = {m.name for m in spec.models}
-    owner = model_obj.resolved_owner()
-    result: list[tuple[str, str, str]] = []
-    for field in model_obj.fields:
-        name = field.name
-        if name in {owner, "id"} or "@relation" in (field.attributes or ""):
-            continue
-        if not name.endswith("Id"):
-            continue
-        base = name[:-2]  # "categoryId" → "category"
-        related_model = base[0].upper() + base[1:]  # → "Category"
-        # Fallback : nom composé (ex: categoryId → "Category" absent mais "RecipeCategory" présent)
-        if related_model not in model_names:
-            suffix_matches = [mn for mn in model_names if mn.endswith(related_model)]
-            if suffix_matches:
-                related_model = suffix_matches[0]
-        if related_model in model_names:
-            result.append((name, related_model, pascal_to_camel(related_model)))
-    return result
-
-
-def _display_fields(model_obj) -> list:
-    """Retourne jusqu'à 4 champs scalaires affichables (non-système, non-relation)."""
-    owner = model_obj.resolved_owner()
-    excluded = {"id", "createdAt", "updatedAt", owner}
-    result = []
-    for field in model_obj.fields:
-        if field.name in excluded:
-            continue
-        if "@relation" in (field.attributes or ""):
-            continue
-        if field.type.endswith("[]"):
-            continue
-        if field.type.rstrip("?") in ("String", "Int", "Float", "Boolean", "DateTime"):
-            result.append(field.name)
-        if len(result) >= 4:
-            break
-    return result or ["id"]
-
-
 def _find_create_model(page, spec):
     """
     Trouve le PrismaModel pour une page create en remontant via le chemin parent.
@@ -549,599 +497,6 @@ def _find_detail_model(page, spec):
         if parent and getattr(parent, "model", None):
             return spec.get_model_by_name(parent.model)
     return None
-
-
-def _compute_relative_import(from_file: str, to_module: str) -> str:
-    """
-    Calcule l'import relatif TypeScript entre deux chemins posix.
-    from_file : 'app/blog/new/page-client.tsx'
-    to_module  : 'app/dashboard/actions'
-    Retourne   : '../../dashboard/actions'
-    """
-    from_parts = from_file.replace("\\", "/").split("/")[:-1]
-    to_parts = to_module.replace("\\", "/").split("/")
-    common = 0
-    for a, b in zip(from_parts, to_parts):
-        if a == b:
-            common += 1
-        else:
-            break
-    up = len(from_parts) - common
-    down = to_parts[common:]
-    parts = [".."] * up + down
-    rel = "/".join(parts) if parts else "."
-    return rel if rel.startswith(".") else f"./{rel}"
-
-
-def _gen_page_client_list(page, model_obj, spec=None, ctx=None) -> str:
-    """
-    page-client.tsx pour une list page — Level A complet :
-    - Header avec titre + bouton "Nouveau" (si page create détectée dans la spec)
-    - Chaque item : titre cliquable vers detail (si page detail dans la spec) + champs affichables
-    - Bouton Supprimer via Server Action delete{Model}.bind(null, item.id)
-    """
-    name = model_obj.name
-    client = path_to_client_component(page.path)
-    serialized = f"Serialized{name}"
-    display = ctx.display_fields if ctx is not None else _display_fields(model_obj)
-    client_rel = f"app/{page.path.strip('/')}/page-client.tsx"
-    has_status = ctx.has_status if ctx is not None else any(f.name.lower() == "status" for f in model_obj.fields)
-
-    # Résolution depuis la spec
-    delete_fn = f"delete{name}"
-    import_actions_path: str | None = None
-    detail_href_ts: str | None = None   # template literal TS : `/blog/${item.id}`
-    create_path: str | None = None
-
-    if spec is not None:
-        # Delete action : seulement sur les pages privées (auth:true).
-        # Une page publique (/blog) lit sans droits de mutation — le bouton Supprimer ne doit pas apparaître.
-        if page.auth_required:
-            list_page = spec.get_list_page_for_model(name)
-            if list_page:
-                actions_module = f"app/{list_page.lstrip('/')}/actions"
-                import_actions_path = _compute_relative_import(client_rel, actions_module)
-
-        detail_pages = [
-            p for p in spec.pages
-            if p.page_type in ("detail", "detail-slug") and getattr(p, "model", None) == name
-        ]
-        if not detail_pages:
-            # Fallback: infer via path parent matching
-            detail_pages = [
-                p for p in spec.pages
-                if p.page_type in ("detail", "detail-slug")
-                and p.path.startswith(page.path.rstrip("/") + "/")
-            ]
-        if detail_pages:
-            # Prefer same auth regime (public list → public detail, private list → private detail)
-            same_auth = [p for p in detail_pages if p.auth_required == page.auth_required]
-            chosen_detail = (same_auth[0] if same_auth else detail_pages[0])
-            detail_href_ts = re.sub(r"\[(\w+)\]", r"${item.\1}", chosen_detail.path)
-
-        list_prefix = page.path.rstrip("/")
-        create_pages = [p for p in spec.pages if p.page_type == "create" and p.path.startswith(list_prefix + "/")]
-        if create_pages:
-            create_path = create_pages[0].path
-
-    lines = [
-        "'use client'",
-        "import Link from 'next/link'",
-        f"import type {{ {serialized} }} from '@/lib/types'",
-    ]
-    if import_actions_path:
-        lines.append(f"import {{ {delete_fn} }} from '{import_actions_path}'")
-
-    lines += [
-        "",
-        f"interface {client}Props {{",
-        f"  items: {serialized}[]",
-        "}",
-        "",
-        f"export default function {client}({{ items }}: {client}Props) {{",
-        "  return (",
-        '    <main className="container mx-auto p-6">',
-        '      <div className="flex justify-between items-center mb-6">',
-        f'        <h1 className="text-2xl font-bold">{_pluralize(name)}</h1>',
-    ]
-    if create_path:
-        lines += [
-            f'        <Link href="{create_path}" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
-            f"          Nouveau {name}",
-            "        </Link>",
-        ]
-    lines += [
-        "      </div>",
-        "      {items.length === 0 ? (",
-        '        <p className="text-gray-500">Aucun élément.</p>',
-        "      ) : (",
-        '        <ul className="space-y-4">',
-        "          {items.map((item) => (",
-        '            <li key={item.id} className="border rounded p-4 bg-white shadow-sm flex justify-between items-start">',
-        "              <div>",
-    ]
-
-    for i, field_name in enumerate(display):
-        if field_name == "status":
-            continue  # affiché via badge ci-dessous
-        if i == 0 and detail_href_ts:
-            href_attr = "href={`" + detail_href_ts + "`}"
-            lines.append(f'                <Link {href_attr} className="font-medium hover:underline">{{item.{field_name}}}</Link>')
-        else:
-            cls = "font-medium" if i == 0 else "text-sm text-gray-600"
-            lines.append(f'                <p className="{cls}">{{item.{field_name}}}</p>')
-
-    if has_status:
-        # Comparaisons générées UNIQUEMENT depuis les valeurs réelles de l'enum du brief.
-        # Zéro valeur inventée → jamais de TS2367 quelle que soit la spec.
-        _GREEN  = {"published", "active", "enabled", "approved", "public", "visible", "confirmed", "live"}
-        _YELLOW = {"pending", "review", "suspended", "paused", "archived"}
-        _RED    = {"rejected", "cancelled", "canceled", "disabled", "deleted", "banned"}
-        _spec_status_vals: list[str] = []
-        if ctx is not None and ctx.spec_enums:
-            _sf = next((f for f in model_obj.fields if f.name.lower() == "status"), None)
-            if _sf:
-                _base_st = _sf.type.rstrip("?").rstrip("[]")
-                _spec_status_vals = ctx.spec_enums.get(_base_st, [])
-        if _spec_status_vals:
-            _ternary: list[str] = []
-            for _v in _spec_status_vals:
-                if _v in _GREEN:
-                    _cls = "bg-green-100 text-green-800"
-                elif _v in _YELLOW:
-                    _cls = "bg-yellow-100 text-yellow-800"
-                elif _v in _RED:
-                    _cls = "bg-red-100 text-red-800"
-                else:
-                    _cls = "bg-gray-100 text-gray-600"
-                _ternary.append(f"                  item.status === '{_v}' ? '{_cls}' :")
-            _ternary.append("                  'bg-blue-100 text-blue-800'")
-            lines += ["                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${"]
-            lines += _ternary
-            lines += ["                }`}>{item.status}</span>"]
-        else:
-            # Enum inconnu → badge statique, pas de comparaison, jamais de TS2367
-            lines += [
-                '                <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">',
-                "                  {item.status}",
-                "                </span>",
-            ]
-
-    lines += [
-        "                <p className=\"text-xs text-gray-400\">{new Date(item.createdAt).toLocaleDateString('fr-FR')}</p>",
-        "              </div>",
-    ]
-
-    if import_actions_path:
-        lines += [
-            f"              <form action={{{delete_fn}.bind(null, item.id)}}>",
-            '                <button type="submit" className="text-red-500 hover:text-red-700 text-sm">',
-            "                  Supprimer",
-            "                </button>",
-            "              </form>",
-        ]
-
-    lines += [
-        "            </li>",
-        "          ))}",
-        "        </ul>",
-        "      )}",
-        "    </main>",
-        "  )",
-        "}",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def _field_label(field_name: str) -> str:
-    """Convertit un nom camelCase en label lisible. Ex: categoryId → Category, firstName → First Name."""
-    # Retirer le suffixe Id si c'est un FK
-    display = field_name[:-2] if field_name.endswith("Id") else field_name
-    # camelCase → mots séparés
-    import re as _re
-    words = _re.sub(r"(?<!^)(?=[A-Z])", " ", display)
-    return words.title()
-
-
-def _gen_page_client_create(page, model_obj, spec, client_rel: str, ctx=None) -> str:
-    """
-    page-client.tsx pour une create page — formulaire déterministe avec :
-    - Champs scalaires : input typé (text, number, datetime-local, checkbox, textarea)
-    - Champs FK (xxxId) : <select> alimenté par les options passées en props depuis le Server Component
-    - Champ status : <select> avec options draft/published si détecté
-    """
-    name = model_obj.name
-    client = path_to_client_component(page.path)
-    create_fn = f"create{name}"
-
-    list_page = spec.get_list_page_for_model(name)
-    if not list_page:
-        logger.warning(
-            "[pages_generator] create page-client skipped for '%s' — aucune page list déclarée.",
-            name,
-        )
-        return ""
-    route_dir = list_page.lstrip("/")
-    actions_module = f"app/{route_dir}/actions"
-    import_path = _compute_relative_import(client_rel, actions_module)
-
-    if ctx is not None:
-        # Source unique : ctx.fk_fields + ctx.editable_fields (input_type déjà calculé, enums inclus)
-        fk_list = [(fk.field_name, fk.related_model, fk.related_camel) for fk in ctx.fk_fields]
-        fields = [(fi.name, fi.input_type, not fi.is_optional and not fi.has_default) for fi in ctx.editable_fields]
-    else:
-        fk_list = _fk_fields(model_obj, spec)
-        fk_names = {fk_field for fk_field, _, _ in fk_list}
-        fields = _form_fields(model_obj, fk_to_exclude=fk_names)
-
-    # Props interface : une prop xxxOptions par FK
-    fk_prop_lines: list[str] = []
-    fk_prop_args: list[str] = []
-    for _fk_field, related_model, related_camel in fk_list:
-        serialized = f"Serialized{related_model}"
-        fk_prop_lines.append(f"  {related_camel}Options: {serialized}[]")
-        fk_prop_args.append(f"{related_camel}Options")
-
-    # Imports types FK si nécessaire
-    fk_type_imports = ""
-    if fk_list:
-        type_names = ", ".join(f"Serialized{rm}" for _, rm, _ in fk_list)
-        fk_type_imports = f"import type {{ {type_names} }} from '@/lib/types'\n"
-
-    has_props = bool(fk_list)
-    props_interface = ""
-    if has_props:
-        props_body = "\n".join(fk_prop_lines)
-        props_interface = f"\ninterface {client}Props {{\n{props_body}\n}}\n"
-    props_arg = f"{{ {', '.join(fk_prop_args)} }}: {client}Props" if has_props else ""
-
-    lines = [
-        "'use client'",
-        f"import {{ {create_fn} }} from '{import_path}'",
-    ]
-    if fk_type_imports:
-        lines.append(fk_type_imports.rstrip())
-    if props_interface:
-        lines.append(props_interface.rstrip())
-    lines += [
-        "",
-        f"export default function {client}({props_arg}) {{",
-        "  return (",
-        '    <main className="container mx-auto p-6 max-w-lg">',
-        f'      <h1 className="text-2xl font-bold mb-6">Nouveau {name}</h1>',
-        f'      <form action={{{create_fn}}} className="space-y-4">',
-    ]
-
-    # Champs FK en premier (selects)
-    for fk_field_name, related_model, related_camel in fk_list:
-        label = _field_label(fk_field_name)
-        display_field = _display_fields(
-            next((m for m in spec.models if m.name == related_model), None) or model_obj
-        )[0]
-        lines += [
-            "        <div>",
-            f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-            f'          <select name="{fk_field_name}" className="w-full border rounded px-3 py-2" required>',
-            f'            <option value="">Sélectionner un(e) {label.lower()}</option>',
-            f"            {{{related_camel}Options.map((opt) => (",
-            f'              <option key={{opt.id}} value={{opt.id}}>{{opt.{display_field}}}</option>',
-            "            ))}",
-            "          </select>",
-            "        </div>",
-        ]
-
-    # Champs scalaires
-    spec_enums = (ctx.spec_enums if ctx is not None else None) or {}
-    for field_name, input_type, required in fields:
-        req_attr = " required" if required else ""
-        label = _field_label(field_name)
-        if input_type == "enum-select":
-            # Enum Prisma → <select> avec les vraies valeurs de la spec.
-            # Si l'enum n'est pas résolu, fallback text input — jamais de valeurs inventées.
-            base_type = field_name[0].upper() + field_name[1:]
-            enum_values: list[str] = next(
-                (v for k, v in spec_enums.items() if k.lower().endswith(field_name.lower()) or field_name.lower() in k.lower()),
-                spec_enums.get(base_type, []),
-            )
-            if enum_values:
-                lines += [
-                    "        <div>",
-                    f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                    f'          <select name="{field_name}" className="w-full border rounded px-3 py-2">',
-                ]
-                for val in enum_values:
-                    lines.append(f'            <option value="{val}">{val.replace("_", " ").title()}</option>')
-                lines += [
-                    "          </select>",
-                    "        </div>",
-                ]
-            else:
-                # Enum non résolu → text input (safe, le LLM peut affiner)
-                lines += [
-                    "        <div>",
-                    f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                    f'          <input name="{field_name}" type="text" className="w-full border rounded px-3 py-2"{req_attr} />',
-                    "        </div>",
-                ]
-        elif input_type == "textarea":
-            lines += [
-                "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                f'          <textarea name="{field_name}" rows={{4}} className="w-full border rounded px-3 py-2"{req_attr} />',
-                "        </div>",
-            ]
-        elif input_type == "checkbox":
-            lines += [
-                '        <div className="flex items-center gap-2">',
-                f'          <input name="{field_name}" type="checkbox" />',
-                f'          <label className="text-sm font-medium">{label}</label>',
-                "        </div>",
-            ]
-        else:
-            lines += [
-                "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                f'          <input name="{field_name}" type="{input_type}" className="w-full border rounded px-3 py-2"{req_attr} />',
-                "        </div>",
-            ]
-
-    lines += [
-        '        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
-        "          Créer",
-        "        </button>",
-        "      </form>",
-        "    </main>",
-        "  )",
-        "}",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-def _gen_page_client_detail(page, model_obj, spec=None) -> str:
-    """
-    page-client.tsx pour une detail page — Level A complet :
-    - Lien retour vers la page liste du modèle
-    - Lien "Modifier" vers la page edit (si page privée avec list auth)
-    - Titre h1 (premier champ String)
-    - dl avec tous les champs scalaires + noms des relations (item.xxx?.name)
-    - DateTime formatés en toLocaleDateString('fr-FR')
-    """
-    name = model_obj.name
-    client = path_to_client_component(page.path)
-    serialized = f"Serialized{name}"
-
-    owner = model_obj.resolved_owner()
-    excluded = {"id", "updatedAt", owner}
-
-    # Détection des champs DateTime pour le formatage
-    datetime_fields: set[str] = {
-        f.name for f in model_obj.fields
-        if f.type.rstrip("?") == "DateTime" and f.name not in excluded
-    }
-
-    # FK fields (xxxId → modèle connu) : affichés via item.xxx?.name au lieu de l'UUID
-    fk_relations: dict[str, str] = {}  # { "categoryId": "category" }
-    model_names: set[str] = set()
-    if spec is not None:
-        model_names = {m.name for m in spec.models}
-        for field in model_obj.fields:
-            fn = field.name
-            if fn in excluded or "@relation" in (field.attributes or ""):
-                continue
-            if not fn.endswith("Id"):
-                continue
-            related_name = fn[:-2]
-            if (related_name[0].upper() + related_name[1:]) in model_names:
-                fk_relations[fn] = related_name
-
-    # Champs scalaires affichables (hors FK UUIDs — affichés via relation)
-    all_display: list[str] = []
-    for field in model_obj.fields:
-        if field.name in excluded or field.name in fk_relations:
-            continue
-        if "@relation" in (field.attributes or ""):
-            continue
-        if field.type.endswith("[]"):
-            continue
-        all_display.append(field.name)
-
-    # Premier champ String → titre h1
-    title_field = next(
-        (f.name for f in model_obj.fields
-         if f.name not in excluded
-         and f.name not in fk_relations
-         and f.type.rstrip("?") == "String"
-         and "@relation" not in (f.attributes or "")),
-        None,
-    )
-    detail_fields = [f for f in all_display if f != title_field]
-
-    # Lien retour : préférer la liste avec le même régime auth que la page détail
-    back_href = "/"
-    edit_href: str | None = None
-    if spec is not None:
-        list_pages = [p for p in spec.pages if p.page_type == "list" and getattr(p, "model", None) == name]
-        if list_pages:
-            same_auth = [p for p in list_pages if p.auth_required == page.auth_required]
-            chosen_list = (same_auth[0] if same_auth else list_pages[0])
-            back_href = chosen_list.path
-            # Lien "Modifier" uniquement pour les pages privées (list auth=True)
-            if chosen_list.auth_required:
-                edit_href = f"{chosen_list.path.rstrip('/')}/${{item.id}}/edit"
-
-    lines = [
-        "'use client'",
-        "import Link from 'next/link'",
-        f"import type {{ {serialized} }} from '@/lib/types'",
-        "",
-        f"interface {client}Props {{",
-        f"  item: {serialized}",
-        "}",
-        "",
-        f"export default function {client}({{ item }}: {client}Props) {{",
-        "  return (",
-        '    <main className="container mx-auto p-6 max-w-2xl">',
-        '      <div className="flex items-center justify-between mb-6">',
-        f'        <Link href="{back_href}" className="text-blue-600 hover:underline text-sm">',
-        "          ← Retour",
-        "        </Link>",
-    ]
-
-    if edit_href:
-        lines += [
-            f'        <Link href={{`{edit_href}`}} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-sm rounded">',
-            "          Modifier",
-            "        </Link>",
-        ]
-
-    lines.append("      </div>")
-
-    if title_field:
-        lines.append(f'      <h1 className="text-2xl font-bold mb-4">{{item.{title_field}}}</h1>')
-    else:
-        lines.append(f'      <h1 className="text-2xl font-bold mb-4">{name}</h1>')
-
-    # dl : scalaires + FK via relation
-    all_dl_fields = list(detail_fields)
-    # Ajoute les FK relations à la fin (item.xxx?.name)
-    fk_display_entries = list(fk_relations.items())  # [(categoryId, category), ...]
-
-    if all_dl_fields or fk_display_entries:
-        lines.append('      <dl className="space-y-4">')
-        for field_name in all_dl_fields:
-            label = _field_label(field_name)
-            if field_name in datetime_fields:
-                val_expr = f"item.{field_name} ? new Date(item.{field_name}).toLocaleDateString('fr-FR') : \"—\""
-            else:
-                val_expr = f"String(item.{field_name} ?? \"—\")"
-            lines += [
-                "        <div>",
-                f'          <dt className="text-sm font-medium text-gray-500">{label}</dt>',
-                f'          <dd className="mt-1 text-sm text-gray-900">{{{val_expr}}}</dd>',
-                "        </div>",
-            ]
-        for fk_field, relation_name in fk_display_entries:
-            label = _field_label(relation_name)  # "category" → "Category"
-            lines += [
-                "        <div>",
-                f'          <dt className="text-sm font-medium text-gray-500">{label}</dt>',
-                f'          <dd className="mt-1 text-sm text-gray-900">{{String(item.{relation_name}?.name ?? "—")}}</dd>',
-                "        </div>",
-            ]
-        lines.append("      </dl>")
-
-    lines += [
-        "    </main>",
-        "  )",
-        "}",
-        "",
-    ]
-    return "\n".join(lines)
-
-
-# ── Stubs page-client (déterministes) ────────────────────────────────────────
-
-def generate_page_client_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "dict | None" = None) -> dict[str, str]:  # type: ignore[name-defined]
-    """
-    Génère app/<path>/page-client.tsx pour chaque page du spec.
-
-    Régimes :
-    - list  + model  → list UI (cards) avec SerializedXxx[] props
-    - create + model trouvable → form avec champs + import Server Action
-    - create sans model         → form générique vide (mieux que <div />)
-    - autres                    → stub minimal
-
-    Retourne {rel_path: content} — ajouté à template_written dans dev_graph.py
-    pour que le planner exclue ces fichiers et que write_file les protège.
-    """
-    written: dict[str, str] = {}
-
-    for page in spec.pages:
-        # Les pages custom n'ont pas de page-client déterministe :
-        # le LLM décide librement de sa structure — un stub <div /> protégé bloquerait.
-        if page.page_type not in ("list", "create", "detail", "detail-slug"):
-            continue
-
-        model_name = getattr(page, "model", None)
-        model_obj  = spec.get_model_by_name(model_name) if model_name else None
-
-        client_rel = (
-            f"app/{page.path.strip('/')}/page-client.tsx"
-            if page.path.strip("/") else
-            "app/page-client.tsx"
-        )
-        client_abs = os.path.join(project_workdir, client_rel.replace("/", os.sep))
-
-        if os.path.exists(client_abs):
-            continue
-
-        os.makedirs(os.path.dirname(client_abs), exist_ok=True)
-        client = path_to_client_component(page.path)
-
-        ctx = (contexts or {}).get(model_name) if model_name else None
-
-        if page.page_type == "list" and model_obj is not None:
-            content = _gen_page_client_list(page, model_obj, spec=spec, ctx=ctx)
-
-        elif page.page_type == "create":
-            create_model = model_obj or _find_create_model(page, spec)
-            if create_model is not None:
-                create_ctx = ctx or (contexts or {}).get(create_model.name)
-                content = _gen_page_client_create(page, create_model, spec, client_rel, ctx=create_ctx)
-            else:
-                # Formulaire générique sans champs (pas de model détecté)
-                content = "\n".join([
-                    "'use client'",
-                    "",
-                    f"export default function {client}() {{",
-                    "  return (",
-                    '    <main className="container mx-auto p-6 max-w-lg">',
-                    '      <h1 className="text-2xl font-bold mb-6">Nouveau</h1>',
-                    '      <form className="space-y-4">',
-                    '        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
-                    "          Créer",
-                    "        </button>",
-                    "      </form>",
-                    "    </main>",
-                    "  )",
-                    "}",
-                    "",
-                ])
-
-        elif page.page_type in ("detail", "detail-slug"):
-            detail_model = model_obj or _find_detail_model(page, spec)
-            if detail_model is not None:
-                content = _gen_page_client_detail(page, detail_model, spec=spec)
-            else:
-                content = "\n".join([
-                    "'use client'",
-                    "",
-                    f"export default function {client}() {{",
-                    "  return <div />",
-                    "}",
-                    "",
-                ])
-
-        else:
-            # custom — stub minimal
-            content = "\n".join([
-                "'use client'",
-                "",
-                f"export default function {client}() {{",
-                "  return <div />",
-                "}",
-                "",
-            ])
-
-        with open(client_abs, "w", encoding="utf-8") as f:
-            f.write(content)
-        written[client_rel] = content
-        logger.info("[pages_gen] ✓ page-client : %s (%s)", client_rel, page.page_type)
-
-    logger.info("[pages_gen] %d page-client générés de manière déterministe", len(written))
-    return written
 
 
 # ── Edit pages (CRUD update form) ────────────────────────────────────────────
@@ -1182,135 +537,13 @@ def _gen_page_full_edit(model_obj, list_path: str, has_fk: bool) -> str:
     return "\n".join(lines)
 
 
-def _gen_page_client_edit(model_obj, list_path: str, spec, client_rel: str, ctx=None) -> str:
-    """
-    page-client.tsx pour la page edit :
-    Formulaire pré-rempli avec defaultValue={item.field} + Server Action update{Model}.bind(null, item.id).
-    """
-    name = model_obj.name
-    client = f"{name}EditClient"
-    update_fn = f"update{name}"
-    serialized = f"Serialized{name}"
-
-    route_dir = list_path.lstrip("/")
-    actions_module = f"app/{route_dir}/actions"
-    import_path = _compute_relative_import(client_rel, actions_module)
-
-    if ctx is not None:
-        fk_list = [(fk.field_name, fk.related_model, fk.related_camel) for fk in ctx.fk_fields]
-        fields = [(fi.name, fi.input_type, not fi.is_optional and not fi.has_default) for fi in ctx.editable_fields]
-    else:
-        fk_list = _fk_fields(model_obj, spec)
-        fk_names = {fk_field for fk_field, _, _ in fk_list}
-        fields = _form_fields(model_obj, fk_to_exclude=fk_names)
-
-    spec_enums = (ctx.spec_enums if ctx is not None else None) or {}
-
-    lines = [
-        "'use client'",
-        f"import {{ {update_fn} }} from '{import_path}'",
-        f"import type {{ {serialized} }} from '@/lib/types'",
-        "",
-        f"interface {client}Props {{",
-        f"  item: {serialized}",
-        "}",
-        "",
-        f"export default function {client}({{ item }}: {client}Props) {{",
-        f"  const action = {update_fn}.bind(null, item.id)",
-        "  return (",
-        '    <main className="container mx-auto p-6 max-w-lg">',
-        f'      <h1 className="text-2xl font-bold mb-6">Modifier {name}</h1>',
-        '      <form action={action} className="space-y-4">',
-    ]
-
-    # Champs FK en premier (selects sans pre-fill — options non chargées en edit Level A)
-    for fk_field_name, _related_model, _related_camel in fk_list:
-        label = _field_label(fk_field_name)
-        lines += [
-            "        <div>",
-            f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-            f'          <input name="{fk_field_name}" type="text" defaultValue={{String(item.{fk_field_name} ?? "")}} className="w-full border rounded px-3 py-2" />',
-            "        </div>",
-        ]
-
-    # Champs scalaires avec defaultValue
-    for field_name, input_type, required in fields:
-        req_attr = " required" if required else ""
-        label = _field_label(field_name)
-        if input_type == "enum-select":
-            base_type = field_name[0].upper() + field_name[1:]
-            enum_values: list[str] = next(
-                (v for k, v in spec_enums.items() if k.lower().endswith(field_name.lower()) or field_name.lower() in k.lower()),
-                spec_enums.get(base_type, []),
-            )
-            if enum_values:
-                lines += [
-                    "        <div>",
-                    f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                    f'          <select name="{field_name}" defaultValue={{item.{field_name} ?? ""}} className="w-full border rounded px-3 py-2">',
-                ]
-                for val in enum_values:
-                    lines.append(f'            <option value="{val}">{val.replace("_", " ").title()}</option>')
-                lines += [
-                    "          </select>",
-                    "        </div>",
-                ]
-            else:
-                lines += [
-                    "        <div>",
-                    f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                    f'          <input name="{field_name}" type="text" defaultValue={{String(item.{field_name} ?? "")}} className="w-full border rounded px-3 py-2"{req_attr} />',
-                    "        </div>",
-                ]
-        elif input_type == "textarea":
-            lines += [
-                "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                f'          <textarea name="{field_name}" rows={{4}} defaultValue={{String(item.{field_name} ?? "")}} className="w-full border rounded px-3 py-2"{req_attr} />',
-                "        </div>",
-            ]
-        elif input_type == "checkbox":
-            lines += [
-                '        <div className="flex items-center gap-2">',
-                f'          <input name="{field_name}" type="checkbox" defaultChecked={{Boolean(item.{field_name})}} />',
-                f'          <label className="text-sm font-medium">{label}</label>',
-                "        </div>",
-            ]
-        elif input_type == "datetime-local":
-            lines += [
-                "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                f'          <input name="{field_name}" type="datetime-local" defaultValue={{item.{field_name} ? String(item.{field_name}).slice(0, 16) : ""}} className="w-full border rounded px-3 py-2"{req_attr} />',
-                "        </div>",
-            ]
-        else:
-            lines += [
-                "        <div>",
-                f'          <label className="block text-sm font-medium mb-1">{label}</label>',
-                f'          <input name="{field_name}" type="{input_type}" defaultValue={{String(item.{field_name} ?? "")}} className="w-full border rounded px-3 py-2"{req_attr} />',
-                "        </div>",
-            ]
-
-    lines += [
-        '        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">',
-        "          Enregistrer",
-        "        </button>",
-        "      </form>",
-        "    </main>",
-        "  )",
-        "}",
-        "",
-    ]
-    return "\n".join(lines)
-
-
 def generate_edit_page_stubs(
     spec: "ProjectSpec",  # type: ignore[name-defined]
     project_workdir: str,
     contexts: "dict | None" = None,
 ) -> dict[str, str]:
     """
-    Génère app/{list_path}/[id]/edit/page.tsx + page-client.tsx pour chaque modèle
+    Génère app/{list_path}/[id]/edit/page.tsx pour chaque modèle
     qui a à la fois une page list privée ET une page create dans le spec (intent CRUD).
 
     Ces pages permettent la mise à jour d'un item existant via le Server Action update{Model}.
@@ -1353,9 +586,7 @@ def generate_edit_page_stubs(
         edit_dir = f"app/{route_dir}/[id]/edit"
 
         page_rel = f"{edit_dir}/page.tsx"
-        client_rel = f"{edit_dir}/page-client.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
-        client_abs = os.path.join(project_workdir, client_rel.replace("/", os.sep))
 
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)
 
@@ -1368,13 +599,6 @@ def generate_edit_page_stubs(
                 f.write(page_content)
             written[page_rel] = page_content
             logger.info("[pages_gen] ✓ edit page.tsx : %s", page_rel)
-
-        if not os.path.exists(client_abs):
-            client_content = _gen_page_client_edit(model, list_path, spec, client_rel, ctx=ctx)
-            with open(client_abs, "w", encoding="utf-8") as f:
-                f.write(client_content)
-            written[client_rel] = client_content
-            logger.info("[pages_gen] ✓ edit page-client.tsx : %s", client_rel)
 
     logger.info("[pages_gen] %d fichiers edit générés de manière déterministe", len(written))
     return written

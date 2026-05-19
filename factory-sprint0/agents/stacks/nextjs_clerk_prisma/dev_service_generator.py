@@ -132,6 +132,10 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             "",
         ]
 
+    # Détecte les modèles enfants (owner = FK parent comme projectId, pas userId/authorId)
+    _is_child_model = owner not in ('userId', 'authorId')
+    _parent_relation = owner[:-2] if _is_child_model and owner.endswith("Id") else ""
+
     # ── getAll (privé — select scalaires, filtre owner) ───────────────────────
     lines += [
         f"export const {camel}Service = {{",
@@ -140,6 +144,18 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         f"    return items.map({_map}) as {serialized}[]",
         "  },",
     ]
+
+    # ── getAllByUser (modèles enfants — filtre via relation parent) ──────────
+    # Généré uniquement pour les modèles enfants (owner = parentId).
+    # Permet aux pages liste de fetcher par userId sans connaître le parentId.
+    if _is_child_model and _parent_relation:
+        lines += [
+            "",
+            f"  getAllByUser: async (userId: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_parent_relation}: {{ userId }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
+            f"    return items.map({_map}) as {serialized}[]",
+            "  },",
+        ]
 
     # ── getPublished (public — select scalaires, filtre sur valeur "active" de l'enum) ──
     if ctx.has_public_pages and ctx.has_status:

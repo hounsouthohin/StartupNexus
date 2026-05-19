@@ -25,8 +25,11 @@ Ta mission : convertir un brief en langage naturel en une spec JSON structurée 
 
 ### Auth
 - Auth = Clerk V5 uniquement. JAMAIS : bcrypt, jwt, password, next-auth, /api/auth/register, /api/auth/login
-- Chaque modèle "owned" par un utilisateur a un champ `userId String` (ou `authorId String` pour un CMS/blog)
-- Les sous-modèles enfants (ex: Comment d'une Task) utilisent le FK du parent, PAS userId direct
+- **TOUS les modèles sans exception** (y compris les lookups : Category, Tag, Type, Label...) DOIVENT avoir `userId String`.
+  La factory est single-tenant : chaque utilisateur possède SES propres catégories, tags, etc.
+  Ne jamais créer un modèle sans `userId String`, même pour les lookups partagés en apparence.
+  Exception autorisée : `authorId String` à la place de `userId String` pour le modèle principal d'un CMS/blog (Post, Article, Recipe).
+- Les sous-modèles enfants (ex: Comment d'une Task) utilisent le FK du parent ET ont aussi `userId String` en propre.
 
 ### Champs obligatoires dans tout modèle
 - `id String @id @default(uuid())`
@@ -112,7 +115,7 @@ Brief : "Un blog avec des articles publics (visibles sans connexion). Chaque art
 Sortie :
 {
   "models": [
-    "Category { id String @id @default(uuid()), name String @unique, posts Post[], createdAt DateTime @default(now()) }",
+    "Category { id String @id @default(uuid()), name String @unique, userId String, posts Post[], createdAt DateTime @default(now()) }",
     "Post { id String @id @default(uuid()), title String, content String, slug String @unique, status PostStatus @default(draft), categoryId String, category Category @relation(fields: [categoryId], references: [id]), authorId String, createdAt DateTime @default(now()) }"
   ],
   "enums": {

@@ -200,9 +200,34 @@ def _dep_route(path: str, workdir: str) -> str:
 
 def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
     dep = ""
-    client_dir_parts = path.split("/")[:-1]  # ['app', 'projects', 'new']
+    client_dir_parts = path.split("/")[:-1]  # ex: ['app', 'dashboard', 'recipes', 'new']
 
-    # Remonte l'arborescence pour trouver le actions.ts parent
+    # ── Route et modèle associé à ce page-client ────────────────────────────────
+    _page_route = "/" + "/".join(client_dir_parts[1:])  # ex: '/dashboard/recipes/new'
+    _client_model = None
+    if spec_obj:
+        for _pg in spec_obj.pages:
+            if _pg.path.rstrip("/") == _page_route.rstrip("/"):
+                if getattr(_pg, "model", None):
+                    _client_model = next(
+                        (m for m in spec_obj.models if m.name == _pg.model), None
+                    )
+                break
+
+    # ── Injection page.tsx sibling (Bug 2B) ─────────────────────────────────────
+    # Le Server Component parent est déjà sur disque (généré déterministe).
+    # Le LLM voit exactement quelles props il passe → évite TS2322 sur FK props.
+    _sibling_page_rel = "/".join(client_dir_parts) + "/page.tsx"
+    _sibling_content = _read_file_safe(os.path.join(workdir, _sibling_page_rel), 500)
+    if _sibling_content:
+        dep += (
+            f"\npage.tsx parent (Server Component qui rend ce Client Component) :\n"
+            f"```typescript\n{_sibling_content}\n```\n"
+            f"⚠️  Tes props DOIVENT correspondre EXACTEMENT à ce que page.tsx passe "
+            f"(props manquantes ou en trop = TS2322 fatal).\n"
+        )
+
+    # ── Remonte l'arborescence pour trouver le actions.ts parent ────────────────
     for depth in range(len(client_dir_parts), 1, -1):
         act_rel = "/".join(client_dir_parts[:depth]) + "/actions.ts"
         act_abs = os.path.join(workdir, act_rel)
@@ -221,43 +246,64 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
             f"  delete → ID string : await deleteXxx(item.id)   ← PAS FormData, PAS objet plain"
         )
 
-        # SerializedXxx type — champs EXACTS pour éviter les hallucinations (TS2339)
-        if spec_obj:
+        # SerializedXxx type — champs EXACTS pour éviter TS2339
+        if spec_obj and _client_model is None:
             act_segment = act_rel.split("/")[-2]
-            client_model = None
             for page in spec_obj.pages:
                 if not getattr(page, "model", None):
                     continue
                 path_segs = [s for s in page.path.split("/") if s and not s.startswith("[")]
                 if act_segment in path_segs:
-                    client_model = next((m for m in spec_obj.models if m.name == page.model), None)
-                    break
-            if client_model:
-                types_content = _read_file_safe(os.path.join(workdir, "lib", "types.ts"), 9999)
-                serial_key = f"export type Serialized{client_model.name}"
-                t_start = types_content.find(serial_key)
-                if t_start >= 0:
-                    t_end = types_content.find("export type ", t_start + len(serial_key))
-                    serial_type = types_content[
-                        t_start: t_end if t_end > t_start else t_start + 400
-                    ].strip()
-                    dep += (
-                        f"\n\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
-                        f"```typescript\n{serial_type}\n```"
+                    _client_model = next(
+                        (m for m in spec_obj.models if m.name == page.model), None
                     )
+                    break
 
-        # page_detail_hint pour ce page-client
-        if spec_obj is not None:
-            try:
-                from .dev_prompts import get_page_detail_hint
-                page_route = "/" + "/".join(path.split("/")[1:-1])
-                page_route = page_route.replace("/page-client", "")
-                detail_hint = get_page_detail_hint(spec_obj, page_route)
-                if detail_hint:
-                    dep += f"\n\n{detail_hint}"
-            except Exception:
-                pass
-        break  # actions.ts trouvé, pas besoin de remonter plus haut
+        if _client_model:
+            _types_raw = _read_file_safe(os.path.join(workdir, "lib", "types.ts"), 9999)
+            _serial_key = f"export type Serialized{_client_model.name}"
+            _t_start = _types_raw.find(_serial_key)
+            if _t_start >= 0:
+                _t_end = _types_raw.find("export type ", _t_start + len(_serial_key))
+                _serial_type = _types_raw[
+                    _t_start: _t_end if _t_end > _t_start else _t_start + 800
+                ].strip()
+                dep += (
+                    f"\n\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
+                    f"```typescript\n{_serial_type}\n```"
+                )
+        break  # actions.ts trouvé
+
+    else:
+        # ── Fallback pages publiques (Bug 3) ────────────────────────────────────
+        # Pas d'actions.ts → page publique. Injecter SerializedXxx depuis types.ts
+        # directement + avertissement explicite : pas d'import ./actions.
+        if _client_model:
+            _types_raw = _read_file_safe(os.path.join(workdir, "lib", "types.ts"), 9999)
+            _serial_key = f"export type Serialized{_client_model.name}"
+            _t_start = _types_raw.find(_serial_key)
+            if _t_start >= 0:
+                _t_end = _types_raw.find("export type ", _t_start + len(_serial_key))
+                _serial_type = _types_raw[
+                    _t_start: _t_end if _t_end > _t_start else _t_start + 800
+                ].strip()
+                dep += (
+                    f"\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
+                    f"```typescript\n{_serial_type}\n```\n"
+                    f"⚠️  PAGE PUBLIQUE : PAS d'import depuis './actions' — "
+                    f"ce fichier n'existe pas ici. NE PAS importer deleteXxx ni createXxx.\n"
+                )
+
+    # ── pages_detail hint — injecté pour TOUS les page-client (Trou B fix) ───────
+    # Précédemment injecté seulement quand actions.ts trouvé → pages publiques l'ignoraient.
+    if spec_obj is not None:
+        try:
+            from .dev_prompts import get_page_detail_hint
+            detail_hint = get_page_detail_hint(spec_obj, _page_route)
+            if detail_hint:
+                dep += f"\n\n{detail_hint}"
+        except Exception:
+            pass
 
     return dep
 

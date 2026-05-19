@@ -19,3 +19,4 @@ tree-sitter
 tree-sitter-typescript
 ddgs
 httpx
+jinja2
