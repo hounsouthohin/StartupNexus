@@ -290,6 +290,20 @@ async def run_dev_agent(
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
+    # ── Génération déterministe : page-client.tsx (Level A) ──────────────────
+    # Tous les page-client.tsx CRUD standard sont maintenant déterministes :
+    # list (table Tailwind), create (form + FK selects), edit (form + defaultValues), detail.
+    # Ces fichiers sont ajoutés à template_written → le LLM ne peut pas les écraser.
+    # Les page-client.tsx custom (dashboard, hub, etc.) restent au LLM (Level B).
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .dev_form_generator import generate_all_page_clients
+            _form_files = generate_all_page_clients(spec_obj, _model_contexts, project_workdir)
+            template_written.update(_form_files)
+            logger.info("[dev_graph] %d page-client.tsx générés de manière déterministe", len(_form_files))
+        except Exception as _fg_err:
+            logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
+
     # ── Génération déterministe : lib/types.ts ───────────────────────
     # BLOQUANT : les page stubs importent @/lib/types. Si ce fichier est absent,
     # le LLM invente ses propres interfaces → types incorrects → erreurs TS silencieuses.
@@ -636,14 +650,15 @@ async def run_dev_agent(
                             with open(_example_abs, "r", encoding="utf-8") as _ef:
                                 _example_content = _ef.read()[:500]
                             _example_anchor = (
-                                f"\nEXEMPLE VALIDE ({_example_path} — pattern à réutiliser) :\n"
+                                f"\nEXEMPLE STRUCTURE SEULEMENT ({_example_path}) :\n"
                                 f"```typescript\n{_example_content}\n```\n"
+                                f"⚠️ Les règles OBLIGATOIRES du CONTEXTE ci-dessous ont priorité absolue sur cet exemple.\n"
                             )
                         except Exception:
                             pass
 
                 messages.append(HumanMessage(content=(
-                    f"{_ctx}{_dep}{_example_anchor}\n\n"
+                    f"{_example_anchor}{_dep}{_ctx}\n\n"
                     f"Ecris maintenant le fichier : {_path}\n"
                     "Un seul write_file. Rien d'autre."
                 )))

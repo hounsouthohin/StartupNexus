@@ -501,10 +501,11 @@ def _find_detail_model(page, spec):
 
 # ── Edit pages (CRUD update form) ────────────────────────────────────────────
 
-def _gen_page_full_edit(model_obj, list_path: str, has_fk: bool) -> str:
+def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]") -> str:
     """
     page.tsx déterministe pour la page edit d'un modèle :
-    auth() + getById(userId, params.id) + fetch FK options + <EditClient item={item} ... />
+    auth() + getById(userId, params.id) + fetch FK options + <EditClient item={item} ...options />
+    fk_list : liste de (field_name, related_model, related_camel) depuis ModelGenerationContext.fk_fields
     """
     name = model_obj.name
     camel = pascal_to_camel(name)
@@ -512,15 +513,20 @@ def _gen_page_full_edit(model_obj, list_path: str, has_fk: bool) -> str:
     client = f"{name}EditClient"
     component = f"{name}EditPage"
 
-    fk_list: list[tuple[str, str, str]] = []
-    if has_fk:
-        # reconstruit depuis les champs du modèle (même heuristique que _fk_fields)
-        pass
-
-    lines = [
+    lines: list[str] = [
         "import { auth } from '@clerk/nextjs/server'",
         "import { redirect, notFound } from 'next/navigation'",
         f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'",
+    ]
+
+    # Imports services FK
+    for _fk_field, related_model, related_camel in fk_list:
+        related_kebab = pascal_to_kebab(related_model)
+        lines.append(
+            f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
+        )
+
+    lines += [
         f"import {client} from './page-client'",
         "",
         "export const dynamic = 'force-dynamic'",
@@ -530,10 +536,23 @@ def _gen_page_full_edit(model_obj, list_path: str, has_fk: bool) -> str:
         "  if (!userId) redirect('/sign-in')",
         f"  const item = await {camel}Service.getById(userId, params.id)",
         "  if (!item) notFound()",
-        f"  return <{client} item={{item}} />",
-        "}",
-        "",
     ]
+
+    # Fetch des options FK
+    for _fk_field, _related_model, related_camel in fk_list:
+        lines.append(f"  const {related_camel}Options = await {related_camel}Service.getAll(userId)")
+
+    # JSX return avec item + fk options
+    if fk_list:
+        fk_props = " ".join(
+            f"{related_camel}Options={{{related_camel}Options}}"
+            for _fk_field, _related_model, related_camel in fk_list
+        )
+        lines.append(f"  return <{client} item={{item}} {fk_props} />")
+    else:
+        lines.append(f"  return <{client} item={{item}} />")
+
+    lines += ["}", ""]
     return "\n".join(lines)
 
 
@@ -591,10 +610,14 @@ def generate_edit_page_stubs(
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)
 
         ctx = (contexts or {}).get(model.name)
-        has_fk = bool(ctx.fk_fields) if ctx else False
+        # Convertit FKFieldInfo → (field_name, related_model, related_camel) pour _gen_page_full_edit
+        fk_list_for_edit: list[tuple[str, str, str]] = [
+            (fk.field_name, fk.related_model, fk.related_camel)
+            for fk in (ctx.fk_fields if ctx else [])
+        ]
 
         if not os.path.exists(page_abs):
-            page_content = _gen_page_full_edit(model, list_path, has_fk)
+            page_content = _gen_page_full_edit(model, fk_list_for_edit)
             with open(page_abs, "w", encoding="utf-8") as f:
                 f.write(page_content)
             written[page_rel] = page_content

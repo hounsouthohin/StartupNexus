@@ -343,6 +343,7 @@ ZONE_1_REQUIRED_FILES = [
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: Next.js 14 App Router — liste des fichiers critiques obligatoires
 RAISON: L'absence d'un de ces fichiers cause des erreurs de build fatales ou un fonctionnement incorrect de l'authentification et des tests.
+STATUS_NOTE: inactive — tous ces fichiers sont des templates Level A pré-générés déterministiquement. Le dev LLM ne les touche jamais.
 FICHIERS_OBLIGATOIRES:
   app/layout.tsx      — RootLayout (ClerkProvider + html + body obligatoires)
   app/page.tsx        — page d'accueil
@@ -368,7 +369,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "1-required-files",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
@@ -389,6 +390,7 @@ ZONE_2_PACKAGES = [
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: package.json — versions épinglées et scripts obligatoires
 RAISON: Les versions non épinglées provoquent des incompatibilités entre next/clerk/prisma/ts-jest lors du npm install. ts-jest@29.2+ est incompatible avec ts-jest@29.1.2, d'où l'épinglage exact.
+STATUS_NOTE: inactive — package.json est un template Level A. Le dev LLM ne l'écrit jamais.
 DEPENDENCIES_OBLIGATOIRES:
   "next": "14.2.25"
   "react": "^18.2.0"
@@ -422,7 +424,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "2-packages",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
@@ -468,6 +470,7 @@ VERSION: 1.0""",
 STACK: nextjs-clerk-prisma
 TECHNOLOGIE: package.json — format JSON strict
 RAISON: npm (EJSONPARSE) rejette tout JSON invalide : commentaires JS, backticks, virgules trailing, texte hors accolades.
+STATUS_NOTE: inactive — package.json est un template Level A. Le dev LLM ne l'écrit jamais.
 DETECTION_REGEX: \/\/.*|`[^`]*`|,\s*\}|\s*,\s*\]
 ALTERNATIVE: JSON pur, validé par json.loads() avant écriture
 EXEMPLE_INVALIDE:
@@ -540,7 +543,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "3-typescript",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "typescript",
             "source": "factory_standards_v2",
@@ -586,7 +589,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "4-nextconfig",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
@@ -626,7 +629,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "4-nextconfig",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
@@ -648,7 +651,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "4-nextconfig",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
@@ -672,7 +675,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "4-nextconfig",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "source": "factory_standards_v2",
@@ -724,7 +727,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "5-layout",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "nextjs",
             "type": "policy",
@@ -1118,7 +1121,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "8-testing",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
@@ -1143,7 +1146,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "8-testing",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
@@ -1166,7 +1169,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "8-testing",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
@@ -1195,7 +1198,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "8-testing",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
@@ -1217,7 +1220,7 @@ VERSION: 1.0""",
         "metadata": {
             "stack": "nextjs-clerk-prisma",
             "zone": "8-testing",
-            "status": "active",
+            "status": "inactive",
             "version": "1.0",
             "category": "testing",
             "source": "factory_standards_v2",
@@ -4397,40 +4400,301 @@ ERROR: Prisma P1012 — This line is not a valid definition within a datasource"
 ]
 
 
+# =============================================================================
+# ZONE_UI — QUALITÉ UI page-client.tsx (Option A — Mai 2026)
+# Standards structurels pour les composants Client générés par le LLM.
+# Comble le gap : aucune règle UI n'existait pour les seuls fichiers que le
+# LLM génère (page-client.tsx, custom pages, webhooks).
+# =============================================================================
+
+ZONE_UI_PAGE_CLIENT = [
+    {
+        "text": """RULE: page-client.tsx list — état vide obligatoire quand items.length === 0
+WHY: Un composant qui ne gère pas le cas vide affiche une page blanche sans indication. L'utilisateur ne sait pas si la liste est vide ou si une erreur s'est produite.
+GOOD:
+  if (items.length === 0) {
+    return <p className="text-gray-500 text-center py-8">Aucun élément pour l'instant.</p>
+  }
+  return <ul className="space-y-4">{items.map(item => ...)}</ul>
+BAD:
+  return <ul>{items.map(item => <li>{item.title}</li>)}</ul>
+ERROR: Page blanche sans message — utilisateur désorienté""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "ui-page-client",
+            "status": "active",
+            "version": "1.0",
+            "category": "ui",
+            "source": "factory_standards_v3",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """RULE: page-client.tsx — bouton Supprimer → deleteX(item.id) string direct, jamais FormData
+WHY: Les Server Actions delete reçoivent un string (id). Passer new FormData() cause TS2345 fatal. Le bouton doit être type="button" pour éviter la soumission de formulaire.
+GOOD:
+  <button
+    type="button"
+    onClick={() => deleteTask(item.id)}
+    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+  >
+    Supprimer
+  </button>
+BAD:
+  const fd = new FormData()
+  fd.set('id', item.id)
+  await deleteTask(fd)
+ERROR: TS2345 Argument of type 'FormData' is not assignable to parameter of type 'string'""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "ui-page-client",
+            "status": "active",
+            "version": "1.0",
+            "category": "ui",
+            "source": "factory_standards_v3",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """RULE: page-client.tsx create form — FK select obligatoire si modèle a une relation foreignKey
+WHY: Si le modèle a un champ categoryId/parentId, le formulaire doit afficher un <select> peuplé depuis la liste des entités parentes. Sans ce select, l'utilisateur ne peut pas assigner la relation — formulaire inutilisable.
+PATTERN:
+  // page.tsx (Server Component) passe les entités parentes via props :
+  const categories = await categoryService.getAll(userId)
+  return <CreateExpenseClient categories={categories} />
+
+  // page-client.tsx reçoit et affiche le select :
+  function CreateExpenseClient({ categories }: { categories: SerializedCategory[] }) {
+    return (
+      <form action={createExpense}>
+        <select name="categoryId" required className="border rounded px-2 py-1">
+          <option value="">Sélectionner une catégorie</option>
+          {categories.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+        <button type="submit">Créer</button>
+      </form>
+    )
+  }
+BAD:
+  <input name="categoryId" type="text" />
+ERROR: Formulaire inutilisable — l'utilisateur doit saisir des IDs manuellement""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "ui-page-client",
+            "status": "active",
+            "version": "1.0",
+            "category": "ui",
+            "source": "factory_standards_v3",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """RULE: page-client.tsx — useState tableau doit être typé explicitement avec SerializedXxx
+WHY: useState([]) sans type générique infère never[]. Passer des items SerializedXxx à un état non typé cause TS2345 à la compilation.
+GOOD:
+  const [items, setItems] = useState<SerializedTask[]>([])
+  const [selected, setSelected] = useState<SerializedTask | null>(null)
+BAD:
+  const [items, setItems] = useState([])
+  const [selected, setSelected] = useState(null)
+ERROR: TS2345 Type 'SerializedTask' is not assignable to type 'never'""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "ui-page-client",
+            "status": "active",
+            "version": "1.0",
+            "category": "ui",
+            "source": "factory_standards_v3",
+            "agent_context": "dev",
+        },
+    },
+    {
+        "text": """RULE: page-client.tsx list — structure Tailwind minimum obligatoire pour les items et boutons d'action
+WHY: Un composant sans classes Tailwind produit une page non stylée. Les boutons d'action (Modifier, Supprimer) doivent avoir des couleurs distinctives pour être utilisables.
+GOOD:
+  <div className="max-w-4xl mx-auto p-6">
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-2xl font-bold">[Titre liste]</h1>
+      <a href="/model/new" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+        Nouveau
+      </a>
+    </div>
+    <ul className="space-y-4">
+      {items.map(item => (
+        <li key={item.id} className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
+          <div className="flex-1">[champs visibles]</div>
+          <div className="flex gap-2 ml-4">
+            <button onClick={...} className="bg-blue-500 text-white px-3 py-1 rounded text-sm">Modifier</button>
+            <button onClick={...} className="bg-red-500 text-white px-3 py-1 rounded text-sm">Supprimer</button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+BAD:
+  <div>{items.map(item => <div>{item.title}<button>X</button></div>)}</div>
+ERROR: UI non stylée — boutons non cliquables visuellement""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "ui-page-client",
+            "status": "active",
+            "version": "1.0",
+            "category": "ui",
+            "source": "factory_standards_v3",
+            "agent_context": "dev",
+        },
+    },
+]
+
+
+# =============================================================================
+# ZONE_ARCHITECT — PATTERNS STRUCTURELS pages_detail (Option A — Mai 2026)
+# Standards pour pages_detail_node (agent_context=architect).
+# Patterns de FORMAT uniquement — pas d'exemples domaine (leçon Zone 0).
+# Isolés du dev LLM via qdrant_filter agent_context=architect.
+# =============================================================================
+
+ZONE_ARCHITECT_PAGES_DETAIL = [
+    {
+        "text": """RULE: pages_detail page_type=list — format obligatoire : champs visuels + labels d'action
+WHY: Sprint 4.7 — page-client.tsx list est généré déterministiquement. Le dev agent n'a pas besoin de [INTERACTIVE] pour générer ce fichier. Décrire les champs affichés aide le dev agent à comprendre le contenu de la page, mais la structure (boutons, état vide, Tailwind) est imposée par le générateur.
+GOOD:
+  "/[model-plural]": "Liste des [entités]. Affiche : [champ1], [champ2], [champ3]."
+BAD:
+  "/[model-plural]": "Liste des [entités]. [INTERACTIVE]"
+NOTE: [INTERACTIVE] sur une page list n'a pas d'effet — page-client.tsx est toujours généré pour les pages avec model.""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "architect-pages-detail",
+            "status": "active",
+            "version": "1.0",
+            "category": "architect",
+            "source": "factory_standards_v3",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """RULE: pages_detail — [INTERACTIVE] réservé aux pages custom uniquement (Sprint 4.7)
+WHY: Les page-client.tsx CRUD (list, create, detail, edit) sont générés déterministiquement depuis Sprint 4.7. [INTERACTIVE] ne déclenche plus la génération pour ces types. Seules les pages custom sans model (dashboard, hub, profil, stats) ont besoin de [INTERACTIVE] pour signaler au dev agent qu'un Client Component est nécessaire.
+QUAND ajouter [INTERACTIVE]:
+  - page_type=custom avec fetch serveur + boutons/état client → OUI
+  - page_type=custom statique (home, landing) → NON
+QUAND NE PAS ajouter [INTERACTIVE]:
+  - page_type=list → NON (page-client.tsx auto-généré)
+  - page_type=create → NON (page-client.tsx auto-généré)
+  - page_type=detail ou detail-slug → NON (page-client.tsx auto-généré)""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "architect-pages-detail",
+            "status": "active",
+            "version": "1.0",
+            "category": "architect",
+            "source": "factory_standards_v3",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """RULE: pages_detail page_type=create — format obligatoire : champs éditables + FK select + submit action — PAS [INTERACTIVE]
+WHY: Le dev agent génère automatiquement un Client Component pour les pages create. Inutile d'ajouter [INTERACTIVE]. Si le modèle a une FK (categoryId, parentId), mentionner le select de la table parente est critique — sinon le formulaire génère un input texte libre au lieu d'un select.
+GOOD:
+  "/[model-plural]/new": "Formulaire de création. Champs : [champ1] (text, required), [champ2] (textarea), [enum_field] (select : val1, val2, val3). [Si FK]: [fk_field] (select depuis /[parent-model-plural]). Submit → create[Model](formData)."
+BAD:
+  "/[model-plural]/new": "Page de création. [INTERACTIVE]"
+ERROR: Formulaire sans select FK → champ FK vide → erreur Prisma NOT NULL constraint""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "architect-pages-detail",
+            "status": "active",
+            "version": "1.0",
+            "category": "architect",
+            "source": "factory_standards_v3",
+            "agent_context": "architect",
+        },
+    },
+    {
+        "text": """RULE: pages_detail nommage Server Actions — correspondance exacte avec les actions pré-générées
+WHY: Le dev agent importe les Server Actions depuis './actions'. Si pages_detail référence deleteExpense() mais l'action s'appelle removeExpense(), le composant généré ne compilera pas.
+PATTERN obligatoire :
+  - create → create[ModelName](formData)    ex: createExpense(formData)
+  - delete → delete[ModelName](id)          ex: deleteExpense(id)
+  - update → update[ModelName](id, formData) ex: updateExpense(id, formData)
+Le ModelName DOIT correspondre exactement au nom déclaré dans models[] du brief.
+BAD:
+  "Bouton 'Supprimer' → remove[Model](id)"  ← préfixe 'remove' inexistant
+  "Bouton 'Effacer' → erase[Model](id)"     ← préfixe 'erase' inexistant
+ERROR: TS2304 Cannot find name 'removeExpense' — Server Action inexistante""",
+        "metadata": {
+            "stack": "nextjs-clerk-prisma",
+            "zone": "architect-pages-detail",
+            "status": "active",
+            "version": "1.0",
+            "category": "architect",
+            "source": "factory_standards_v3",
+            "agent_context": "architect",
+        },
+    },
+]
+
+
+def _zone_inactive(standards: list) -> list:
+    """
+    Marque tous les standards d'une zone comme 'inactive'.
+    Utilisé pour les zones dont les fichiers cibles sont désormais Level A (déterministes).
+    Les standards restent dans Qdrant (pour traçabilité) mais sont exclus des requêtes RAG
+    via le filtre metadata.status = 'active' dans nextjs-clerk-prisma.json.
+
+    Zones Level A (Option A — Mai 2026) :
+      schema.prisma, lib/types.ts, lib/schemas.ts, lib/services/*.ts,
+      app/**/actions.ts, jest.config.js, middleware.ts, lib/prisma.ts, prisma.config.ts
+    Ces fichiers sont générés deterministiquement avant le LLM — les standards les concernant
+    ne sont plus pertinents pour les fichiers Level B (page-client.tsx, custom pages, webhooks).
+    """
+    result = []
+    for s in standards:
+        s = dict(s)
+        s["metadata"] = {**s["metadata"], "status": "inactive"}
+        result.append(s)
+    return result
+
+
 ALL_STANDARDS = (
     # ZONE_0_PLANNING retiré : les templates de domaine (Todo, Blog, Product, Contact, Item)
     # overridaient le brief utilisateur → planner drift confirmé (marketplace→Book, habit→Workout).
     # Le LLM connaît les domaines métier. Le RAG doit enseigner uniquement les patterns stack.
-    ZONE_1_REQUIRED_FILES
-    + ZONE_2_PACKAGES
-    + ZONE_3_TYPESCRIPT
-    + ZONE_4_NEXTCONFIG
-    + ZONE_5_LAYOUT
-    + ZONE_6_CLERK
-    + ZONE_7_PRISMA
-    + ZONE_8_TESTING
-    + ZONE_9_SECURITY
-    + ZONE_10_SECURITY_ADVANCED
-    + ZONE_11_ERROR_HANDLING
-    + ZONE_12_TESTING_ADVANCED
-    + ZONE_13_BUSINESS_LOGIC
-    + ZONE_14_ANTIPATTERNS
-    + ZONE_15_CONFORMITY
-    + ZONE_16_SECURITY_APPLICATIVE
-    + ZONE_17_ARCHITECTURE   # Sprint 4.6 — cohérence architecturale inter-fichiers
-    + ZONE_17B_STACK_PATTERNS  # patterns de code préventifs (ex-migrate_zones_17_18)
-    + ZONE_18_TSC_CORRECTIVE   # correctifs tsc par code d'erreur
-    + ZONE_19_SAAS_SENIOR      # pages réelles, DAL, ownership, relations
-    + ZONE_20_DAL_SERVICE      # lib/services/<model>.service.ts pattern
-    + ZONE_21_PAGINATION       # skip/take + PaginatedResponse<T>
-    + ZONE_22_PRISMA_ERRORS    # handlePrismaError, codes P2002/P2025
-    + ZONE_23_CREATE_INPUT     # CreateXxxInput sans userId
-    + ZONE_24_N1_PREVENTION    # include vs boucle findUnique
-    + ZONE_26_TRANSACTIONS     # $transaction séquentielle et interactive
-    + ZONE_27_LOGGING          # Pino logging structuré
-    + ZONE_28_CONNECTION_POOLING  # globalThis singleton + connection_limit
-    + ZONE_30_HEALTHCHECK      # /api/health pré-généré
-    + ZONE_HARD_RULES          # ex-enrich_qdrant.py : Clerk, Prisma7, auth guard, etc.
+    ZONE_1_REQUIRED_FILES          # inactive (templates Level A — package.json, middleware.ts, layout.tsx)
+    + ZONE_2_PACKAGES              # inactive (package.json = template Level A)
+    + ZONE_3_TYPESCRIPT            # inactive (tsconfig.json = template Level A)
+    + ZONE_4_NEXTCONFIG            # inactive (next.config.js = template Level A)
+    + ZONE_5_LAYOUT                # inactive (app/layout.tsx = template Level A)
+    + ZONE_6_CLERK                 # actif : auth() redirect dans custom pages (Level B)
+    + _zone_inactive(ZONE_7_PRISMA)          # prisma/schema.prisma + prisma.config.ts = Level A
+    + _zone_inactive(ZONE_8_TESTING)         # jest.config.js + jest.setup.js = Level A
+    + ZONE_9_SECURITY              # actif : Zod validation dans page-client + auth redirect
+    + ZONE_10_SECURITY_ADVANCED    # actif : ownership checks dans custom pages/webhooks
+    + ZONE_11_ERROR_HANDLING       # actif : patterns d'erreur dans custom pages/webhooks
+    + _zone_inactive(ZONE_12_TESTING_ADVANCED)  # tests avancés = templates Level A
+    + ZONE_13_BUSINESS_LOGIC       # actif : logique métier dans custom pages Level B
+    + ZONE_14_ANTIPATTERNS         # actif : anti-patterns pertinents pour page-client.tsx
+    + ZONE_15_CONFORMITY           # actif : conformité brief → fichiers générés
+    + ZONE_16_SECURITY_APPLICATIVE # actif : ownership dans pages custom (Level B)
+    + ZONE_17_ARCHITECTURE         # actif : cohérence inter-fichiers (Sprint 4.6)
+    + ZONE_17B_STACK_PATTERNS      # actif : use client directive, client/server boundary
+    + ZONE_18_TSC_CORRECTIVE       # actif : corrections TSC pendant génération Level B
+    + ZONE_19_SAAS_SENIOR          # actif : patterns pages réelles (Level B)
+    + _zone_inactive(ZONE_20_DAL_SERVICE)    # lib/services/*.ts = Level A (dev_service_generator)
+    + _zone_inactive(ZONE_21_PAGINATION)     # pagination dans services = Level A
+    + _zone_inactive(ZONE_22_PRISMA_ERRORS)  # handlePrismaError dans actions.ts = Level A
+    + _zone_inactive(ZONE_23_CREATE_INPUT)   # CreateXxxInput dans lib/schemas.ts = Level A
+    + _zone_inactive(ZONE_24_N1_PREVENTION)  # include dans services = Level A
+    + _zone_inactive(ZONE_26_TRANSACTIONS)   # $transaction dans services = Level A
+    + _zone_inactive(ZONE_27_LOGGING)        # Pino logging dans actions.ts = Level A
+    + _zone_inactive(ZONE_28_CONNECTION_POOLING)  # lib/prisma.ts = Level A
+    + ZONE_30_HEALTHCHECK          # actif : webhooks /api/health pré-générés (Level B)
+    + ZONE_HARD_RULES              # actif : Clerk, Prisma7, auth guard — patterns transversaux
+    + _zone_inactive(ZONE_UI_PAGE_CLIENT)  # inactif Sprint 4.7 — page-client.tsx CRUD = Level A (dev_form_generator)
+    + ZONE_ARCHITECT_PAGES_DETAIL  # Mai 2026 — pages_detail structurel (agent_context=architect)
 )
 
 

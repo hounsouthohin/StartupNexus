@@ -67,31 +67,33 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         ppath = page.path.strip("/")
         files.append("app/page.tsx" if not ppath else f"app/{ppath}/page.tsx")
 
-    # page-client.tsx pour les pages avec model (list/create/detail/detail-slug) — GÉNÉRÉS PAR LE LLM
+    # page-client.tsx pour les pages custom [INTERACTIVE] uniquement (Level B — LLM).
+    # Les page-client.tsx CRUD standard (list/create/detail/edit) sont Level A :
+    # générés par dev_form_generator → dans template_written → filtrés par pre_written.
+    # Le LLM ne les génère jamais. Ne pas les lister ici évite une checklist trompeuse.
     _crud_models_with_list: set[str] = set()
     for page in spec.pages:
         ptype = getattr(page, "page_type", None)
         model_name = getattr(page, "model", None)
-        if ptype in ("list", "create", "detail", "detail-slug") and model_name:
-            ppath = page.path.strip("/")
-            client_file = f"app/{ppath}/page-client.tsx" if ppath else "app/page-client.tsx"
-            files.append(client_file)
-            if ptype == "list" and page.auth_required:
-                _crud_models_with_list.add(model_name)
+        if ptype == "list" and model_name and getattr(page, "auth_required", True):
+            _crud_models_with_list.add(model_name)
 
-    # pages-client pour les pages custom [INTERACTIVE]
     pages_detail = getattr(spec, "pages_detail", {}) or {}
     if isinstance(pages_detail, dict):
         for path, detail in pages_detail.items():
             if "[INTERACTIVE]" in str(detail):
+                # Vérifier que ce n'est pas une page model standard (déjà Level A)
                 page_slug = path.strip("/")
+                page_obj = next((p for p in spec.pages if p.path.strip("/") == page_slug), None)
+                if page_obj and getattr(page_obj, "model", None) and getattr(page_obj, "page_type", None) in ("list", "create", "detail", "detail-slug"):
+                    continue  # Level A — dev_form_generator gère ce fichier
                 client_file = (
                     f"app/{page_slug}/page-client.tsx"
                     if page_slug else "app/page-client.tsx"
                 )
                 files.append(client_file)
 
-    # Pages edit — PRÉ-GÉNÉRÉES pour les modèles avec intent CRUD (list auth + create)
+    # Pages edit — PRÉ-GÉNÉRÉES (Level A) pour les modèles avec intent CRUD.
     _create_model_names: set[str] = {
         getattr(p, "model", None)
         for p in spec.pages
@@ -105,7 +107,6 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         if list_page:
             route_dir = list_page.lstrip("/")
             files.append(f"app/{route_dir}/[id]/edit/page.tsx")
-            files.append(f"app/{route_dir}/[id]/edit/page-client.tsx")
 
     # Déduplique en préservant l'ordre
     seen: set[str] = set()
@@ -149,6 +150,18 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     if has_dynamic_pages:
         contexts.append("dynamic-pages")
 
+    # UI quality — déclenché si la spec a des pages custom [INTERACTIVE] (Level B).
+    # Les page-client.tsx CRUD standard sont Level A — ZONE_UI_PAGE_CLIENT inactive.
+    # Ce contexte cible uniquement les pages custom (dashboard, hub, profil) où le LLM
+    # génère le composant Client depuis les pages_detail du brief.
+    _pages_detail = getattr(spec, "pages_detail", {}) or {}
+    has_custom_interactive = any(
+        "[INTERACTIVE]" in str(v)
+        for v in _pages_detail.values()
+    )
+    if has_custom_interactive:
+        contexts.append("page_client_ui")
+
     # Requêtes alignées sur le format RULE: des standards Qdrant (post-Option-A).
     # Termes en français technique pour maximiser le recall avec les standards reformatés.
     CONTEXT_QUERIES: dict[str, str] = {
@@ -171,6 +184,10 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         "dynamic-pages": (
             "notFound import next/navigation page dynamique [id] params "
             "Server Component getById service null absent redirect 404"
+        ),
+        "page_client_ui": (
+            "custom page-client.tsx dashboard hub profile 'use client' "
+            "Client Component SerializedXxx props useState typed revalidatePath"
         ),
     }
 

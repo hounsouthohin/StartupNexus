@@ -18,13 +18,13 @@ logger = logging.getLogger(__name__)
 # Mise à jour ici si la stack évolue (ex: Prisma 8, Clerk V7).
 
 _BRIEF_WRITER_SYSTEM_PROMPT = """\
-Tu es un architecte logiciel expert de la stack Next.js 14 + Clerk V5 + Prisma 7 + PostgreSQL.
+Tu es un architecte logiciel expert de la stack Next.js 14 + Clerk V6 + Prisma 7 + PostgreSQL.
 Ta mission : convertir un brief en langage naturel en une spec JSON structurée prête pour le générateur de code.
 
 ## RÈGLES STACK (NON NÉGOCIABLES)
 
 ### Auth
-- Auth = Clerk V5 uniquement. JAMAIS : bcrypt, jwt, password, next-auth, /api/auth/register, /api/auth/login
+- Auth = Clerk V6 uniquement. JAMAIS : bcrypt, jwt, password, next-auth, /api/auth/register, /api/auth/login
 - **TOUS les modèles sans exception** (y compris les lookups : Category, Tag, Type, Label...) DOIVENT avoir `userId String`.
   La factory est single-tenant : chaque utilisateur possède SES propres catégories, tags, etc.
   Ne jamais créer un modèle sans `userId String`, même pour les lookups partagés en apparence.
@@ -73,11 +73,14 @@ Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics sta
     {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
   ],
   "routes": [],
-  "user_flows": ["L'utilisateur crée une tâche depuis /tasks/new", ...]
+  "user_flows": ["L'utilisateur crée une tâche depuis /tasks/new", ...],
+  "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
 }
 ```
 
 page_type valeurs autorisées : "list" | "create" | "detail" | "detail-slug" | "custom"
+
+Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.
 
 ## EXEMPLES
 
@@ -105,7 +108,8 @@ Sortie :
     "L'utilisateur crée une tâche depuis /tasks/new",
     "L'utilisateur consulte sa liste de tâches à /tasks",
     "L'utilisateur lit le détail et commente à /tasks/[id]"
-  ]
+  ],
+  "architecture": "Modèle principal : Task. Modèle enfant : Comment (lié à Task via taskId). Ownership : userId sur Task et Comment. Toutes les pages protégées par auth."
 }
 
 ### Exemple 2 — Blog public avec catégories
@@ -132,7 +136,8 @@ Sortie :
     "Un visiteur parcourt les articles à /posts",
     "Un visiteur lit un article à /posts/[slug]",
     "Un auteur connecté crée un article depuis /posts/new"
-  ]
+  ],
+  "architecture": "Modèle principal : Post. Données publiques : /posts et /posts/[slug] accessibles sans auth (PostStatus=published). Ownership : authorId sur Post, userId sur Category. Relations : Post → Category (N:1, optionnel)."
 }
 
 ### Exemple 3 — SaaS multi-modèle (expense tracker avec catégories)
@@ -159,7 +164,8 @@ Sortie :
     "L'utilisateur crée une catégorie depuis /categories/new",
     "L'utilisateur saisit une dépense depuis /expenses/new",
     "L'utilisateur consulte ses dépenses à /expenses"
-  ]
+  ],
+  "architecture": "Modèles : Category (lookup) + Expense (principal). Ownership : userId sur les deux. Relations : Expense → Category (N:1, categoryId obligatoire). Toutes les pages protégées par auth."
 }
 
 Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.\
@@ -358,6 +364,144 @@ async def brief_writer_node(state: AgentState) -> dict:
     return {"brief": updated_brief}
 
 
+# ── Pages detail node (LLM — génère pages_detail depuis brief structuré) ─────
+
+_PAGES_DETAIL_SYSTEM_PROMPT = """\
+Tu génères les descriptions fonctionnelles détaillées (pages_detail) pour chaque page d'une application Next.js 14.
+Ces descriptions guident un agent développeur pour générer les bons composants React.
+
+## DONNÉES QUE TU REÇOIS
+JSON avec : description (brief humain), models (liste Prisma DSL), pages (tableau [{path, auth, page_type, model?}]),
+et optionnellement architecture (contraintes non-dérivables du brief).
+
+## RÈGLES PAR TYPE DE PAGE
+
+### page_type = "list"
+- Affiche les champs visuels du modèle (EXCLURE : id, userId, authorId, xxxId, createdAt, updatedAt, champs relation[])
+- Bouton "Nouveau" → href `/model/new`
+- Bouton "Modifier" → router.push(`/model/${id}/edit`)
+- Bouton "Supprimer" → delete{Model}(id)
+- État vide : "Aucun {entity} pour l'instant."
+- TOUJOURS terminer par [INTERACTIVE] (données serveur + boutons d'action)
+
+### page_type = "create"
+- Formulaire avec champs éditables du modèle (EXCLURE : id, userId, authorId, xxxId, createdAt)
+- Si le modèle a une FK (ex: categoryId), inclure un select pour choisir la catégorie parente
+- Submit → create{Model}(formData)
+- PAS de [INTERACTIVE] (formulaire pur, déjà Client Component)
+
+### page_type = "detail"
+- Affiche tous les champs visuels du modèle
+- Bouton "Modifier" → router.push(`/model/${id}/edit`)
+- Bouton "Supprimer" → delete{Model}(id) puis redirect vers la liste
+- TOUJOURS terminer par [INTERACTIVE] si la page est auth:true
+
+### page_type = "detail-slug" (publique, auth: false)
+- Affiche tous les champs visuels du modèle
+- Lecture seule — aucun bouton d'action côté visiteur anonyme
+- PAS de [INTERACTIVE]
+
+### page_type = "custom"
+- Décris le contenu selon le brief (hero, landing, dashboard métriques, etc.)
+- Ajoute [INTERACTIVE] UNIQUEMENT si la page combine données serveur ET interactions utilisateur
+- Page home statique / landing sans données → PAS de [INTERACTIVE]
+
+## RÈGLE [INTERACTIVE]
+Ajouter [INTERACTIVE] si et seulement si la page COMBINE les deux :
+1. Données lues depuis la base via un service (getAll, getById, etc.)
+2. Au moins un bouton d'action côté client (supprimer, modifier statut, etc.)
+Sans données serveur = pas [INTERACTIVE]. Sans bouton d'action = pas [INTERACTIVE].
+
+## NOMMAGE DES SERVER ACTIONS (CRITIQUE — correspondance exacte)
+Les noms doivent suivre le pattern : {verb}{ModelName}
+- create : createTask(formData), createExpense(formData)
+- delete : deleteTask(id), deleteExpense(id)
+- update : updateTask(id, formData)
+Le nom du modèle DOIT correspondre exactement au nom déclaré dans "models".
+
+## FORMAT DE SORTIE — JSON uniquement, aucun markdown
+```json
+{
+  "/tasks": "Liste des tâches. Affiche : titre, statut, description. Bouton 'Nouveau' → /tasks/new. Bouton 'Modifier' → /tasks/${id}/edit. Bouton 'Supprimer' → deleteTask(id). État vide : 'Aucune tâche.'. [INTERACTIVE]",
+  "/tasks/new": "Formulaire de création. Champs : titre (text), description (textarea), statut (select : pending, in_progress, done). Submit → createTask(formData).",
+  "/tasks/[id]": "Détail d'une tâche. Affiche : titre, statut, description, date de création. Bouton 'Modifier' → /tasks/${id}/edit. Bouton 'Supprimer' → deleteTask(id) puis redirect /tasks. [INTERACTIVE]",
+  "/": "Page d'accueil. Hero avec titre du projet et bouton 'Commencer' → /tasks."
+}
+```
+
+Génère une entrée pour CHAQUE page dans le tableau "pages" reçu. Clés = paths exacts.
+Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.\
+"""
+
+
+async def pages_detail_node(state: AgentState) -> dict:
+    """
+    Génère pages_detail (descriptions fonctionnelles + marqueurs [INTERACTIVE])
+    depuis le brief structuré produit par brief_writer_node.
+    Skip si pages_detail déjà présent dans le brief.
+    Fail-safe : en cas d'erreur LLM, retourne {} sans bloquer le pipeline.
+    """
+    brief = state.get("brief", {})
+
+    existing_pd = brief.get("pages_detail", {})
+    if existing_pd and isinstance(existing_pd, dict) and len(existing_pd) > 0:
+        logger.info("[pages_detail] déjà présent (%d pages) → skip", len(existing_pd))
+        return {}
+
+    pages = brief.get("pages", [])
+    models = brief.get("models", [])
+
+    if not pages or not models:
+        logger.warning("[pages_detail] pages ou models absent → skip")
+        return {}
+
+    from agents.llm_provider import get_chat_llm
+    from langchain_core.messages import SystemMessage, HumanMessage as _HM
+
+    llm = get_chat_llm(temperature=0.0).bind(
+        response_format={"type": "json_object"}
+    )
+
+    context: dict = {
+        "description": brief.get("description", "").strip(),
+        "models": models,
+        "pages": pages,
+    }
+    architecture = brief.get("architecture", "").strip()
+    if architecture:
+        context["architecture"] = architecture
+
+    messages = [
+        SystemMessage(content=_PAGES_DETAIL_SYSTEM_PROMPT),
+        _HM(content=json.dumps(context, ensure_ascii=False)),
+    ]
+
+    try:
+        response = await llm.ainvoke(messages)
+        pages_detail: dict = json.loads(response.content)
+    except json.JSONDecodeError as e:
+        logger.error("[pages_detail] réponse LLM non-JSON — %s", e)
+        return {}
+    except Exception as e:
+        logger.error("[pages_detail] erreur LLM — %s", e)
+        return {}
+
+    if not isinstance(pages_detail, dict):
+        logger.warning("[pages_detail] format inattendu — skip")
+        return {}
+
+    interactive_count = sum(
+        1 for v in pages_detail.values() if "[INTERACTIVE]" in str(v)
+    )
+    logger.info(
+        "[pages_detail] ✓ %d page(s) décrites, %d [INTERACTIVE]",
+        len(pages_detail),
+        interactive_count,
+    )
+
+    return {"brief": {**brief, "pages_detail": pages_detail}}
+
+
 # ── Planner node (module-level — aucune dépendance closure) ──────────────────
 
 async def planner_node(state: AgentState) -> dict:
@@ -494,22 +638,26 @@ def create_architect_agent():
 
     def _route_entry(state: AgentState) -> str:
         """
-        Si le brief contient déjà des models → planner directement (chemin déterministe).
-        Sinon → brief_writer pour conversion langage naturel → JSON structuré.
+        Les deux chemins passent par pages_detail avant planner.
+        Brief structuré (models présents) → pages_detail directement.
+        Brief libre → brief_writer → pages_detail → planner.
+        pages_detail_node est idempotent (skip si pages_detail déjà rempli).
         """
         brief = state.get("brief", {})
         if brief.get("models"):
-            return "planner"
+            return "pages_detail"
         return "brief_writer"
 
     workflow = StateGraph(AgentState)
     workflow.add_node("brief_writer", brief_writer_node)
+    workflow.add_node("pages_detail", pages_detail_node)
     workflow.add_node("planner", planner_node)
     workflow.add_conditional_edges(
         START,
         _route_entry,
-        {"brief_writer": "brief_writer", "planner": "planner"},
+        {"brief_writer": "brief_writer", "pages_detail": "pages_detail"},
     )
-    workflow.add_edge("brief_writer", "planner")
+    workflow.add_edge("brief_writer", "pages_detail")
+    workflow.add_edge("pages_detail", "planner")
     workflow.add_edge("planner", END)
     return workflow.compile()

@@ -17,7 +17,7 @@ from utils.run_report import write_run_report as _write_run_report
 
 # 0 retry TSC : le retry complet relançait run_dev_agent en intégralité (coûteux, efface workdir).
 # Les erreurs TS résiduelles sont traitées en correction_pass_activity (chirurgicale).
-MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 0
+MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 1
 
 
 def _classify_root_cause(

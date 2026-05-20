@@ -272,9 +272,14 @@
       "Variables dans .map()/.filter() : laisser TypeScript inférer le type depuis le retour du service (SerializedXxx) — NE PAS annoter manuellement avec le type Prisma brut (TS2345 fatal)."
     ],
     "page_client": [
-      "'use client' en 1ere ligne. Pas d'appel Prisma direct.",
+      "'use client' en 1ere ligne absolue. Pas d'appel Prisma direct.",
       "Recoit les donnees via props depuis le Server Component parent.",
-      "Types des props : utiliser SerializedXxx depuis '@/lib/types' — les dates sont string (pas Date). Champs nullable → string | null (jamais string | undefined)."
+      "Types des props : utiliser SerializedXxx depuis '@/lib/types' — les dates sont string (pas Date). Champs nullable → string | null (jamais string | undefined).",
+      "useState tableau DOIT etre typé : useState<SerializedXxx[]>([]) — jamais useState([]) (infère never[]).",
+      "ÉTAT VIDE OBLIGATOIRE dans les listes : if (items.length === 0) return <p>Aucun élément.</p>",
+      "Bouton Supprimer → deleteX(item.id) string direct. JAMAIS new FormData() pour delete (TS2345 fatal).",
+      "FK select : si le modèle a categoryId/parentId, afficher un <select> avec les entités parentes reçues en props — JAMAIS un input texte libre.",
+      "Structure Tailwind minimale obligatoire : container max-w-4xl mx-auto p-6, items dans ul space-y-4, chaque item dans li bg-white rounded-lg shadow p-4, boutons avec couleurs (bg-blue-500, bg-red-500)."
     ],
     "service": [
       "Service DAL — couche entre Prisma et le reste de l'app.",
@@ -374,8 +379,8 @@
   "_NOTE_mandatory_rag_queries": "migré vers rules_dev.md — section Concepts Stack Obligatoires",
   "mandatory_rag_k": 3,
   "mandatory_rag_snippet_chars": 900,
-  "_UNUSED_qdrant_filter": {
-    "_NOTE": "Jamais lue par le pipeline. Le filtre RAG réel est construit dynamiquement dans shared_tools.py::_build_architect_rag_filter().",
+  "qdrant_filter": {
+    "_comment": "Lu par rag_client.py::_build_rag_filter() via stack_config.get_qdrant_filter_cfg(). Filtre actif : standards actifs + agent_context dev uniquement. Exclut les standards inactifs (Level A déactivés) et les standards architect (agent_context=architect).",
     "collection": "factory_standards",
     "filter": {
       "must": [
@@ -472,6 +477,6 @@
     "actions":     "auth userId guard obligatoire Zod validation safeParse revalidatePath throw Unauthorized",
     "route":       "auth guard NextResponse userId ownership API route handler",
     "page":        "Server Component auth redirect notFound dynamic params service getAll getById",
-    "page_client": "'use client' useState FormData handler Client Component interaction interactif"
+    "page_client": "page-client.tsx FK select état vide empty state delete button Tailwind list form SerializedXxx useState typed array"
   }
 }

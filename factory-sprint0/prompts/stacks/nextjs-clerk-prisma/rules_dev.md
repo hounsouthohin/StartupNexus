@@ -19,21 +19,11 @@
 
 7. **TABLEAUX TYPÉS** : `const items: SerializedModelType[] = await modelService.getAll(userId)` — JAMAIS `let items = []` (TypeScript infère `never[]`). Le service retourne `SerializedXxx` (dates = string), NE PAS annoter avec le type Prisma brut (TS2345 fatal).
 
-8. **FICHIERS PROTÉGÉS** : JAMAIS `write_file` sur `prisma/schema.prisma`, `lib/prisma.ts`, `prisma.config.ts`, `lib/types.ts`, `lib/schemas.ts`, `lib/services/*` — pré-générés par le pipeline. Écrire UNIQUEMENT `app/**/actions.ts` et `app/**/page.tsx`.
+8. **FICHIERS PROTÉGÉS** : JAMAIS `write_file` sur `prisma/schema.prisma`, `lib/prisma.ts`, `prisma.config.ts`, `lib/types.ts`, `lib/schemas.ts`, `lib/services/*`, `app/**/actions.ts` — pré-générés par le pipeline. Le LLM génère UNIQUEMENT : `app/**/page-client.tsx`, pages custom `app/**/page.tsx` (sans `model`), et `app/api/webhooks/**/route.ts`.
 
 9. **TYPES PARAMÈTRES** : type explicite sur chaque paramètre de callback React (`e: React.ChangeEvent<HTMLInputElement>`) et de destructuring (`{ id }: { id: string }`).
 
 10. **PROPRIÉTÉS SCHEMA** : accéder uniquement aux champs déclarés dans `prisma/schema.prisma`.
-
-11. **IMPORTS SERVER ACTIONS** : dans `app/**/actions.ts`, imports obligatoires :
-    ```ts
-    'use server'
-    import { auth } from '@clerk/nextjs/server'
-    import { revalidatePath } from 'next/cache'
-    import { xxxService } from '@/lib/services/xxx.service'
-    import { CreateXxxSchema, UpdateXxxSchema } from '@/lib/schemas'
-    ```
-    JAMAIS `NextResponse` dans les Server Actions.
 
 12. **NOMS SPEC EXACTS** : noms de modèles, services et composants EXACTEMENT comme dans la spec — pas de traduction ni de synonyme.
 
@@ -44,16 +34,6 @@
 15. **ENV.LOCAL REQUIS** : `.env.local` DOIT exister avec `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `DATABASE_URL`.
 
 16. **PAS DE PASSWORDS** : INTERDIT tout champ `password`/`passwordHash`/`passwordDigest` dans schema — Clerk gère l'authentification.
-
-17. **ZOD VALIDATION DANS SERVER ACTIONS** : toute Server Action de mutation DOIT valider les données avec le schéma Zod pré-généré :
-    ```ts
-    const parsed = CreateXxxSchema.safeParse(data)
-    if (!parsed.success) throw new Error(parsed.error.message)
-    await xxxService.create(userId, parsed.data)
-    ```
-    INTERDIT de passer `data` directement au service sans validation. Le champ `userId` vient toujours de `auth()`, jamais des données validées.
-
-18. **OWNERSHIP VIA SERVICE** : le service DAL pré-généré inclut déjà la vérification d'ownership dans `getById`, `update` et `delete`. Ne PAS re-vérifier manuellement dans les Server Actions — appeler simplement le service.
 
 19. **PAGES AVEC DONNÉES RÉELLES** : toute page listant des entités DOIT appeler le service correspondant et afficher les résultats. Un `<h1>` seul sans données est INTERDIT. Les pages doivent inclure un état vide ("Aucun élément") si la liste est vide :
     ```ts
@@ -115,3 +95,33 @@
     `handlePrismaError` retourne `{ status: 409, message: 'Conflict' }` pour P2002, `{ status: 404, message: 'Not found' }` pour P2025.
 
 30. **HEALTHCHECK + WEBHOOKS PROTÉGÉS** : ne pas créer `app/api/health/route.ts` ni `app/api/webhooks/clerk/route.ts` — ces fichiers sont pré-générés par le pipeline. Ne pas les réécrire avec `write_file`.
+
+31. **PAGE-CLIENT ÉTAT VIDE OBLIGATOIRE** : tout `page-client.tsx` de type list DOIT gérer le cas `items.length === 0` :
+    ```tsx
+    if (items.length === 0) {
+      return <p className="text-gray-500 text-center py-8">Aucun élément pour l'instant.</p>
+    }
+    ```
+    Un composant list qui ne gère pas l'état vide produit une page blanche silencieuse.
+
+32. **PAGE-CLIENT BOUTON DELETE — STRING DIRECT** : appeler `deleteX(item.id)` directement, JAMAIS `new FormData()`. Le bouton doit être `type="button"` pour éviter la soumission implicite :
+    ```tsx
+    // ✅ CORRECT
+    <button type="button" onClick={() => deleteTask(item.id)}>Supprimer</button>
+    // ❌ FATAL TS2345
+    const fd = new FormData(); fd.set('id', item.id); await deleteTask(fd)
+    ```
+
+33. **PAGE-CLIENT FK SELECT OBLIGATOIRE** : si le modèle a un champ `xxxId` (relation FK), le formulaire create DOIT afficher un `<select>` peuplé depuis les entités parentes reçues en props — JAMAIS un input texte :
+    ```tsx
+    // page.tsx passe les entités parentes
+    const categories = await categoryService.getAll(userId)
+    return <CreateExpenseClient categories={categories} />
+
+    // page-client.tsx affiche le select
+    <select name="categoryId" required>
+      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>
+    ```
+
+34. **PAGE-CLIENT USESTATE TYPÉ** : `useState` avec un tableau DOIT avoir un type générique explicite — `useState<SerializedXxx[]>([])`. Sans type générique, TypeScript infère `never[]` → TS2345 fatal sur le premier `push` ou `map`.
