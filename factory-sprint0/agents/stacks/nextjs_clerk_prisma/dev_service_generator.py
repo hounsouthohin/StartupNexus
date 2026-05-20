@@ -198,12 +198,31 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             "    if (!item) notFound()",
             "    return _serialize(item)",
             "  },",
-            "",
-            f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
-            f"    return items.map({_map}) as {serialized}[]",
-            "  },",
         ]
+        if ctx.has_status:
+            # Filtre par statut publié pour éviter l'exposition de brouillons entre utilisateurs
+            _PUBLISHED_LIKE_P = {"published", "active", "enabled", "approved", "public", "visible"}
+            _sf_p = next((f for f in ctx.model.fields if f.name.lower() == "status"), None)
+            _pval = "published"
+            if _sf_p:
+                _base_p = _sf_p.type.rstrip("?").rstrip("[]")
+                _ev_p: list[str] = ctx.spec_enums.get(_base_p, [])
+                _pval = next((v for v in _ev_p if v in _PUBLISHED_LIKE_P), _ev_p[0] if _ev_p else "published")
+            lines += [
+                "",
+                f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
+                f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_pval}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+                f"    return items.map({_map}) as {serialized}[]",
+                "  },",
+            ]
+        else:
+            lines += [
+                "",
+                f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
+                f"    const items = await prisma.{camel}.findMany({{ select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+                f"    return items.map({_map}) as {serialized}[]",
+                "  },",
+            ]
 
     # ── getBySlug (public — findUnique sans select → _serialize) ──────────────
     if ctx.has_slug:

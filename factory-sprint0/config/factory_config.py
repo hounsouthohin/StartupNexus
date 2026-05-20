@@ -21,10 +21,3 @@ SUBPROCESS_TIMEOUT_LONG = 600
 
 TEMPORAL_ADDRESS = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
 
-# --- Temporal Parallel Mode ---
-# Contrôle le mode de supervision utilisé par le pipeline.
-# "inline"   → supervision séquentielle dans dev.py (défaut — M0)
-# "asyncio"  → asyncio.gather dans dev.py, toujours 1 activité (M1)
-# "workflow" → GenerationSessionWorkflow orchestre les activités en parallèle (M2)
-# "signal"   → full signal-driven + continue_as_new (M3)
-TEMPORAL_PARALLEL_MODE = os.getenv("TEMPORAL_PARALLEL_MODE", "inline")

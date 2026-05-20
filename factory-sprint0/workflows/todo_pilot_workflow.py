@@ -14,7 +14,6 @@ from typing import Dict, Any
 from config.factory_config import (
     SPEC_COVERAGE_SUCCESS_THRESHOLD,
     SPEC_COVERAGE_PARTIAL_THRESHOLD,
-    TEMPORAL_PARALLEL_MODE,
 )
 
 
@@ -50,11 +49,6 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.qa_activity import qa_activity
     from workflows.activities.learner_activity import learner_activity
     from utils.run_report import write_run_report_minimal as _write_run_report_minimal
-    # M2 superviseurs post-build retirés — supervision inline dans dev.py (source unique)
-    # conformity/security/architecture restent dans dev.py via supervision_manager
-    # M3 — child workflow GenerationSessionWorkflow (Phase 5, non encore câblé)
-    from workflows.generation_session_workflow import GenerationSessionWorkflow
-
 @workflow.defn
 class TodoPilotWorkflow:
     """Workflow de validation pour le pilote ToDo Sprint 0.5."""
@@ -159,9 +153,6 @@ class TodoPilotWorkflow:
                 )
 
             # ── 2. DevTest (génération + supervision interne + build) ─────
-            run_mode = TEMPORAL_PARALLEL_MODE  # lu une seule fois pour ce run
-            workflow.logger.info(f"[PARALLEL_MODE] run_mode={run_mode}")
-
             dev_test_input = {
                 "spec": spec_part,
                 "mermaid": mermaid_part,
@@ -174,18 +165,9 @@ class TodoPilotWorkflow:
                 "ir_schema": ir_schema_part,
                 "ir_pages": ir_pages_part,
                 "ir_routes": ir_routes_part,
-                "run_mode": run_mode,  # propagé aux activités pour traçabilité
-                "project_spec": project_spec_part,  # Nouvelle Base — ProjectSpec sérialisé
+                "project_spec": project_spec_part,
                 "workflow_id": f"todo-pilot-{project_name}",
             }
-
-            if run_mode == "workflow":
-                # M2 — child workflow GenerationSessionWorkflow (non encore fully opérationnel)
-                # Pour l'instant, fallback inline avec log d'avertissement.
-                workflow.logger.warning(
-                    "[PARALLEL_MODE] run_mode=workflow demandé mais GenerationSessionWorkflow "
-                    "n'est pas encore pleinement câblé — fallback inline."
-                )
 
             dev_test_result: Dict[str, Any] = await workflow.execute_activity(
                 dev_test_activity,

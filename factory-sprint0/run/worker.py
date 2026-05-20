@@ -12,7 +12,6 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-# Imports — pipeline principal
 from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
@@ -23,14 +22,6 @@ from workflows.activities.correction_pass_activity import correction_pass_activi
 from workflows.activities.qa_activity import qa_activity
 from workflows.activities.github_activity import github_activity
 from workflows.activities.learner_activity import learner_activity
-# M2 — workflow parallèle
-from workflows.generation_session_workflow import GenerationSessionWorkflow
-from workflows.activities.generation_session_activities import (
-    generate_batch_activity,
-    aggregate_corrections_activity,
-    apply_corrections_activity,
-    build_activity,
-)
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -41,24 +32,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Queues
-MAIN_QUEUE = "factory-task-queue"    # pipeline principal
-DEV_QUEUE  = "factory-dev-queue"     # M2 — génération + application corrections
-BUILD_QUEUE = "factory-build-queue"  # M2 — build
+MAIN_QUEUE = "factory-task-queue"
 
 
 async def main():
     temporal_address = os.getenv("TEMPORAL_ADDRESS", "localhost:7233")
     client = await Client.connect(temporal_address)
 
-    # ── Worker principal ──────────────────────────────────────────────────────
-    main_worker = Worker(
+    worker = Worker(
         client,
         task_queue=MAIN_QUEUE,
         workflows=[
             SaaSFactoryWorkflow,
             TodoPilotWorkflow,
-            GenerationSessionWorkflow,
         ],
         activities=[
             architect_activity,
@@ -68,50 +54,23 @@ async def main():
             qa_activity,
             github_activity,
             learner_activity,
-            aggregate_corrections_activity,
-        ],
-    )
-
-    # ── Worker dev queue (M2) ─────────────────────────────────────────────────
-    dev_worker = Worker(
-        client,
-        task_queue=DEV_QUEUE,
-        activities=[
-            generate_batch_activity,
-            apply_corrections_activity,
-        ],
-    )
-
-    # ── Worker build queue (M2) ───────────────────────────────────────────────
-    build_worker = Worker(
-        client,
-        task_queue=BUILD_QUEUE,
-        activities=[
-            build_activity,
         ],
     )
 
     logger.info("╔════════════════════════════════════════════════════════╗")
     logger.info("║     Software Agent Factory Worker                      ║")
-    logger.info("║     Queues : main | dev | build                        ║")
     logger.info("╚════════════════════════════════════════════════════════╝")
-    logger.info(f"MAIN  ({MAIN_QUEUE})  : pipeline principal")
-    logger.info(f"DEV   ({DEV_QUEUE})   : generate_batch + apply_corrections")
-    logger.info(f"BUILD ({BUILD_QUEUE}) : build")
-    logger.info("Workers en écoute... (Ctrl+C pour arrêter)")
+    logger.info(f"Queue : {MAIN_QUEUE}")
+    logger.info("Worker en écoute... (Ctrl+C pour arrêter)")
 
-    await asyncio.gather(
-        main_worker.run(),
-        dev_worker.run(),
-        build_worker.run(),
-    )
+    await worker.run()
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Workers arrêtés proprement (Ctrl+C)")
+        logger.info("Worker arrêté proprement (Ctrl+C)")
     except Exception as e:
         logger.exception("Erreur critique dans le worker")
         sys.exit(1)

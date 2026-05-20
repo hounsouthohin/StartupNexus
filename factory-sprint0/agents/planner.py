@@ -489,6 +489,7 @@ def make_deterministic_plan(
         if edit_client not in template_set:
             _serialized = f"Serialized{model.name}"
             _edit_enum_hint = ""
+            _nullable_hint = ""
             if contexts and model.name in contexts:
                 _edit_ctx = contexts[model.name]
                 _edit_enum_fields = [f for f in _edit_ctx.editable_fields if f.input_type == "enum-select"]
@@ -515,6 +516,14 @@ def make_deterministic_plan(
                             " (PAS de onChange, PAS de formData.set, PAS de useState) : "
                             + " | ".join(_opts_hints_e) + ". "
                         )
+                _nullable_fields = [f.name for f in _edit_ctx.editable_fields if f.is_optional]
+                if _nullable_fields:
+                    _null_examples = " | ".join(
+                        f"defaultValue={{item.{fn} ?? ''}}" for fn in _nullable_fields
+                    )
+                    _nullable_hint = (
+                        f"Champs nullable (string | null) — RÈGLE ABSOLUE : {_null_examples}. "
+                    )
             entries.append(FilePlanEntry(
                 path=edit_client,
                 role="page_client",
@@ -526,7 +535,7 @@ def make_deterministic_plan(
                     f"— OU appel direct : await update{model.name}(item.id, formData) (2 args, id en 1er). "
                     f"Chaque champ avec defaultValue={{item.fieldName}}. "
                     f"{_edit_enum_hint}"
-                    "Champs nullable → string | null dans les types props. "
+                    f"{_nullable_hint}"
                     f"Importé depuis app/{route_dir}/[id]/edit/page.tsx : import {model.name}EditClient from './page-client'."
                 ),
             ))
