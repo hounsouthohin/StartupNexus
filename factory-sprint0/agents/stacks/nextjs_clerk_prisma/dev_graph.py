@@ -234,11 +234,18 @@ async def run_dev_agent(
     # les flags has_slug/has_status/has_public_pages, la résolution FK, etc.
     # Doit être calculé AVANT les générateurs de pages, types, schemas et services.
     _model_contexts: dict = {}
+    _enriched_spec = None
     if spec_obj is not None:
         try:
             from .dev_model_context import build_all_contexts
-            _model_contexts = build_all_contexts(spec_obj)
-            logger.info("[dev_graph] %d ModelGenerationContext calculés", len(_model_contexts))
+            from agents.semantic_spec import EnrichedSpec as _EnrichedSpec
+            _enriched_raw = spec.get("enriched_spec") or {}
+            _enriched_spec = _EnrichedSpec(**_enriched_raw) if _enriched_raw else None
+            _model_contexts = build_all_contexts(spec_obj, enriched_spec=_enriched_spec)
+            logger.info(
+                "[dev_graph] %d ModelGenerationContext calculés (enriched_spec=%s)",
+                len(_model_contexts), bool(_enriched_spec),
+            )
         except Exception as _mc_err:
             logger.warning(f"[dev_graph] build_all_contexts non bloquant : {_mc_err}")
 
@@ -304,6 +311,19 @@ async def run_dev_agent(
         except Exception as _fg_err:
             logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
 
+    # ── Feature modules (activés depuis EnrichedSpec.features) ───────────────
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .feature_module import run_feature_modules
+            from . import module_search as _ms       # noqa: F401 — déclenche register()
+            from . import module_status_flow as _msf  # noqa: F401 — déclenche register()
+            _feature_files = run_feature_modules(spec_obj, _model_contexts, _enriched_spec, project_workdir)
+            template_written.update(_feature_files)
+            if _feature_files:
+                logger.info("[dev_graph] %d fichier(s) de feature modules", len(_feature_files))
+        except Exception as _fm_err:
+            logger.warning("[dev_graph] feature_modules non bloquant : %s", _fm_err)
+
     # ── Génération déterministe : lib/types.ts ───────────────────────
     # BLOQUANT : les page stubs importent @/lib/types. Si ce fichier est absent,
     # le LLM invente ses propres interfaces → types incorrects → erreurs TS silencieuses.
@@ -339,7 +359,7 @@ async def run_dev_agent(
     if spec_obj is not None:
         try:
             from .dev_service_generator import generate_service_files
-            _svc_written = generate_service_files(spec_obj, project_workdir, contexts=_model_contexts or None)
+            _svc_written = generate_service_files(spec_obj, project_workdir, contexts=_model_contexts or None, enriched_spec=_enriched_spec)
             template_written.update(_svc_written)
             logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
         except Exception as _svc_err:
@@ -783,6 +803,18 @@ async def run_dev_agent(
 
         last_error = state.get("last_build_error", "")
         if last_error:
+            # Détection generator_bug : si l'erreur TSC est dans un fichier template_written,
+            # le LLM ne peut pas le modifier — inutile de retenter, c'est un bug générateur.
+            _err_file = _extract_error_file(last_error)
+            if _err_file and _err_file in template_written:
+                logger.error(
+                    "[dev_graph] GENERATOR_BUG — erreur TSC dans fichier déterministe '%s' "
+                    "(présent dans template_written). Le LLM ne peut pas corriger ce fichier. "
+                    "Corriger le générateur Python correspondant.",
+                    _err_file,
+                )
+                return END
+
             # Boucle de correction : le LLM reçoit la correction ciblée (Faille 4)
             # et corrige dans la phase "correction" (Faille 3).
             # Limite : MAX_BUILD_ATTEMPTS tentatives avant d'abandonner.

@@ -72,7 +72,86 @@ def _relation_nested_select(r: "RelationFieldInfo", ctx: "ModelGenerationContext
     return f"{r.name}: {{ select: {{ {nested} }} }}"
 
 
-def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict | None" = None) -> str:
+def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
+    """
+    Compile une QueryDeclaration en méthode TypeScript.
+    Retourne les lignes à insérer dans le service object, ou [] si pattern inconnu.
+    """
+    name = ctx.name
+    camel = ctx.camel
+    owner = ctx.owner
+    serialized = ctx.serialized_type
+    _sel = _scalar_select_block(ctx)
+    _map = _dt_inline_map(ctx)
+
+    method_name = q.name or f"getBy{q.field[0].upper() + q.field[1:] if q.field else 'Unknown'}"
+    param = q.param_name or (q.field if q.field else "value")
+    ret_type = f"{serialized}[]" if q.return_many else serialized
+    find_op = "findMany" if q.return_many else "findFirst"
+
+    if q.pattern == "filter_by_field":
+        prisma_call = (
+            f"prisma.{camel}.{find_op}({{ "
+            f"where: {{ {owner}, {q.field}: {param} }}, "
+            f"select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 "
+            f"}})"
+        )
+        if q.return_many:
+            return [
+                "",
+                f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
+                f"    const items = await {prisma_call}",
+                f"    return items.map({_map}) as {ret_type}",
+                "  },",
+            ]
+        else:
+            return [
+                "",
+                f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
+                f"    const item = await {prisma_call}",
+                "    if (!item) notFound()",
+                f"    return ({_map})(item) as {ret_type}",
+                "  },",
+            ]
+
+    elif q.pattern == "search_text":
+        return [
+            "",
+            f"  {method_name}: async ({owner}: string, q: string): Promise<{ret_type}> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ "
+            f"where: {{ {owner}, {q.field}: {{ contains: q, mode: 'insensitive' }} }}, "
+            f"select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            f"    return items.map({_map}) as {ret_type}",
+            "  },",
+        ]
+
+    elif q.pattern == "count_by_field":
+        return [
+            "",
+            f"  {method_name}: async ({owner}: string): Promise<{{ {q.field}: string, count: number }}[]> => {{",
+            f"    const rows = await prisma.{camel}.groupBy({{ by: ['{q.field}'], where: {{ {owner} }}, _count: {{ _all: true }} }})",
+            f"    return rows.map(r => ({{ {q.field}: r.{q.field} as string, count: r._count._all }}))",
+            "  },",
+        ]
+
+    elif q.pattern == "filter_by_relation":
+        # field = FK field like "assigneeId" → relation "assignee", param "assigneeId"
+        rel = q.field[:-2] if q.field.endswith("Id") else q.field
+        return [
+            "",
+            f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ "
+            f"where: {{ {owner}, {rel}: {{ id: {param} }} }}, "
+            f"select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            f"    return items.map({_map}) as {ret_type}",
+            "  },",
+        ]
+
+    logger.warning("[service_generator] pattern inconnu '%s' pour query '%s' — ignoré", q.pattern, method_name)
+    return []
+
+
+def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict | None" = None, required_queries: "list | None" = None) -> str:
     """
     Génère le contenu complet du fichier .service.ts pour un modèle.
 
@@ -282,6 +361,10 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             "  },",
         ]
 
+    # ── Queries métier custom (depuis EnrichedSpec.required_queries) ─────────
+    for q in (required_queries or []):
+        lines += _compile_query(ctx, q)
+
     # ── create / update / delete ──────────────────────────────────────────────
     lines += [
         "",
@@ -312,12 +395,14 @@ def generate_service_files(
     spec,
     project_workdir: str,
     contexts: "dict[str, ModelGenerationContext] | None" = None,
+    enriched_spec=None,
 ) -> dict[str, str]:
     """
     Génère un fichier .service.ts par modèle Prisma et les écrit sur le disque.
 
-    contexts : précalculé par build_all_contexts(spec) dans dev_graph.py.
-               Si absent, calculé ici (compatibilité).
+    contexts      : précalculé par build_all_contexts(spec) dans dev_graph.py.
+                    Si absent, calculé ici (compatibilité).
+    enriched_spec : EnrichedSpec optionnel — injecte les required_queries custom.
     Retourne {chemin_relatif: contenu} pour intégration dans template_written.
     """
     if contexts is None:
@@ -329,9 +414,18 @@ def generate_service_files(
 
     for model in spec.models:
         ctx = contexts[model.name]
+
+        # Filtre les queries déclarées pour ce modèle spécifique
+        model_queries = []
+        if enriched_spec and getattr(enriched_spec, "required_queries", None):
+            model_queries = [
+                q for q in enriched_spec.required_queries
+                if q.model == ctx.name
+            ]
+
         filename = f"{ctx.kebab}.service.ts"
         rel_path = f"lib/services/{filename}"
-        content = _generate_service_for_model(ctx, all_contexts=contexts)
+        content = _generate_service_for_model(ctx, all_contexts=contexts, required_queries=model_queries)
 
         abs_path = os.path.join(services_dir, filename)
         try:
@@ -339,8 +433,8 @@ def generate_service_files(
                 f.write(content)
             written[rel_path] = content
             logger.info(
-                "[service_generator] ✓ %s | public=%s slug=%s relations=%d",
-                rel_path, ctx.has_public_pages, ctx.has_slug, len(ctx.relation_fields),
+                "[service_generator] ✓ %s | public=%s slug=%s relations=%d queries=%d",
+                rel_path, ctx.has_public_pages, ctx.has_slug, len(ctx.relation_fields), len(model_queries),
             )
         except Exception as e:
             logger.error("[service_generator] ✗ %s : %s", rel_path, e)

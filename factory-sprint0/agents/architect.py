@@ -209,6 +209,7 @@ class AgentState(TypedDict):
     user_flows: list
     spec_structured: dict
     project_spec: dict
+    enriched_spec: dict  # produit par semantic_annotator_node
 
 
 # ── Prisma DSL helpers (module-level — pas de dépendance closure) ─────────────
@@ -362,6 +363,145 @@ async def brief_writer_node(state: AgentState) -> dict:
     )
 
     return {"brief": updated_brief}
+
+
+# ── Semantic Annotator node (LLM — enrichit la spec avec annotations sémantiques) ──
+
+_SEMANTIC_ANNOTATOR_SYSTEM_PROMPT = """\
+Tu es un annotateur sémantique. Tu reçois un brief applicatif et sa liste de modèles Prisma.
+Ta mission : produire un JSON compact d'annotations sémantiques pour guider les générateurs de code.
+
+## CE QUE TU ANNOTES
+
+### field_annotations
+Annote uniquement les champs dont le type sémantique est NON-DÉRIVABLE du nom ou du type Prisma seul.
+Clé = nom exact du champ Prisma. Valeur = objet avec "semantic_type" et optionnellement "values".
+
+Types à annoter :
+- "textarea"       → champs texte long (bio, description longue, content, notes, instructions, body)
+- "status-enum"    → enum de statut workflow. Inclure "values" dans l'ordre logique du workflow.
+- "priority-enum"  → enum de priorité. Inclure "values" du plus faible au plus fort.
+- "currency"       → montant monétaire (amount, price, cost, budget, salary)
+- "date"           → date sans heure (birthDate, dueDate, startDate, endDate — type String ou DateTime)
+- "url"            → lien web (website, url, link, avatar, imageUrl)
+- "email"          → adresse email (email, contactEmail)
+
+NE PAS annoter : id, createdAt, updatedAt, userId, authorId, xxxId (FK), slug, champs bool, champs Int/Float standards.
+
+### required_queries
+Déclare les queries métier clairement nécessaires d'après le brief — AU-DELÀ des 7 méthodes CRUD standard déjà générées (getAll, getById, create, update, delete, getPublished, getBySlug).
+Patterns disponibles :
+- "filter_by_field"    → findMany where { field: value }        (ex: getByStatus, getByCategory)
+- "search_text"        → findMany where { field: contains: q }  (ex: searchByTitle)
+- "filter_by_relation" → findMany where { relation: { field } } (ex: getByProject)
+
+Ne déclare une query que si le brief la mentionne explicitement ou si elle est évidente pour le domaine métier.
+
+### features
+Liste les features actives parmi : "status_flow", "slug_routing", "public_pages", "search", "pagination", "file_upload", "calendar_view".
+Déduis-les du brief — ne liste que ce qui est clairement présent.
+
+## FORMAT DE SORTIE — JSON uniquement, aucun markdown
+
+Exemple pour un gestionnaire de tâches avec statut workflow :
+{
+  "field_annotations": {
+    "description": {"semantic_type": "textarea"},
+    "status": {"semantic_type": "status-enum", "values": ["todo", "in_progress", "done"]},
+    "priority": {"semantic_type": "priority-enum", "values": ["low", "medium", "high"]},
+    "dueDate": {"semantic_type": "date"}
+  },
+  "required_queries": [
+    {"name": "getByStatus", "pattern": "filter_by_field", "field": "status", "return_many": true}
+  ],
+  "features": ["status_flow"]
+}
+
+Exemple pour un blog public avec slug :
+{
+  "field_annotations": {
+    "content": {"semantic_type": "textarea"},
+    "excerpt": {"semantic_type": "textarea"},
+    "status": {"semantic_type": "status-enum", "values": ["draft", "published"]}
+  },
+  "required_queries": [],
+  "features": ["slug_routing", "public_pages", "status_flow"]
+}
+
+Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": []}.\
+"""
+
+
+async def semantic_annotator_node(state: AgentState) -> dict:
+    """
+    Enrichit la spec avec des annotations sémantiques (semantic_type par champ,
+    queries métier, features actives).
+
+    Activé après brief_writer_node — les modèles doivent être présents.
+    Fail-safe : toute erreur LLM retourne {} sans bloquer le pipeline.
+    Le résultat est stocké dans brief["enriched_spec"] et state["enriched_spec"].
+    """
+    brief = state.get("brief", {})
+
+    if brief.get("enriched_spec"):
+        logger.info("[semantic_annotator] déjà présent → skip")
+        return {}
+
+    models = brief.get("models", [])
+    if not models:
+        logger.warning("[semantic_annotator] models absent → skip")
+        return {}
+
+    from agents.llm_provider import get_chat_llm
+    from langchain_core.messages import SystemMessage, HumanMessage as _HM
+
+    llm = get_chat_llm(temperature=0.0).bind(
+        response_format={"type": "json_object"}
+    )
+
+    context = {
+        "description": brief.get("description", "").strip(),
+        "models": models,
+        "enums": brief.get("enums", {}),
+    }
+
+    messages = [
+        SystemMessage(content=_SEMANTIC_ANNOTATOR_SYSTEM_PROMPT),
+        _HM(content=json.dumps(context, ensure_ascii=False)),
+    ]
+
+    try:
+        response = await llm.ainvoke(messages)
+        enriched: dict = json.loads(response.content)
+    except json.JSONDecodeError as e:
+        logger.error("[semantic_annotator] réponse non-JSON — %s", e)
+        return {}
+    except Exception as e:
+        logger.error("[semantic_annotator] erreur LLM — %s", e)
+        return {}
+
+    if not isinstance(enriched, dict):
+        logger.warning("[semantic_annotator] format inattendu — skip")
+        return {}
+
+    # Validation légère avec le schéma Pydantic
+    try:
+        from agents.semantic_spec import EnrichedSpec
+        validated = EnrichedSpec(**enriched)
+        enriched = validated.model_dump()
+    except Exception as _ve:
+        logger.warning("[semantic_annotator] validation Pydantic échouée (%s) — raw conservé", _ve)
+
+    field_count = len(enriched.get("field_annotations", {}))
+    query_count = len(enriched.get("required_queries", []))
+    features = enriched.get("features", [])
+    logger.info(
+        "[semantic_annotator] ✓ %d champ(s) annoté(s), %d query(ies), features=%s",
+        field_count, query_count, features,
+    )
+
+    updated_brief = {**brief, "enriched_spec": enriched}
+    return {"brief": updated_brief, "enriched_spec": enriched}
 
 
 # ── Pages detail node (LLM — génère pages_detail depuis brief structuré) ─────
@@ -622,12 +762,19 @@ async def planner_node(state: AgentState) -> dict:
         spec_structured=SpecOutput(),
     )
 
+    # Propage enriched_spec dans project_spec pour que dev_graph.py puisse le lire
+    enriched_spec = brief.get("enriched_spec") or state.get("enriched_spec") or {}
+    spec_dict = spec.model_dump()
+    if enriched_spec:
+        spec_dict["enriched_spec"] = enriched_spec
+
     return {
-        "plan": spec.model_dump(),
+        "plan": spec_dict,
         "requirements": spec.to_requirements(),
         "user_flows": spec.user_flows,
-        "project_spec": spec.model_dump(),
+        "project_spec": spec_dict,
         "architect_output": architect_output,
+        "enriched_spec": enriched_spec,
     }
 
 
@@ -638,26 +785,27 @@ def create_architect_agent():
 
     def _route_entry(state: AgentState) -> str:
         """
-        Les deux chemins passent par pages_detail avant planner.
-        Brief structuré (models présents) → pages_detail directement.
-        Brief libre → brief_writer → pages_detail → planner.
-        pages_detail_node est idempotent (skip si pages_detail déjà rempli).
+        Brief libre  → brief_writer → semantic_annotator → pages_detail → planner
+        Brief structuré (models présents) → semantic_annotator → pages_detail → planner
+        Tous les nœuds sont idempotents (skip si déjà rempli).
         """
         brief = state.get("brief", {})
         if brief.get("models"):
-            return "pages_detail"
+            return "semantic_annotator"
         return "brief_writer"
 
     workflow = StateGraph(AgentState)
     workflow.add_node("brief_writer", brief_writer_node)
+    workflow.add_node("semantic_annotator", semantic_annotator_node)
     workflow.add_node("pages_detail", pages_detail_node)
     workflow.add_node("planner", planner_node)
     workflow.add_conditional_edges(
         START,
         _route_entry,
-        {"brief_writer": "brief_writer", "pages_detail": "pages_detail"},
+        {"brief_writer": "brief_writer", "semantic_annotator": "semantic_annotator"},
     )
-    workflow.add_edge("brief_writer", "pages_detail")
+    workflow.add_edge("brief_writer", "semantic_annotator")
+    workflow.add_edge("semantic_annotator", "pages_detail")
     workflow.add_edge("pages_detail", "planner")
     workflow.add_edge("planner", END)
     return workflow.compile()

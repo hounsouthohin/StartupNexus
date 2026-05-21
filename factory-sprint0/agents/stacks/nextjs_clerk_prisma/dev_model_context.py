@@ -184,8 +184,35 @@ def _is_relation(field_type: str, attributes: str, spec_enums: dict) -> bool:
     return bool(base) and base[0].isupper()
 
 
-def _detect_input_type(field_name: str, base_type: str, spec_enums: dict) -> str:
-    """Détermine le type d'input HTML pour un champ scalaire."""
+_SEMANTIC_TO_INPUT: dict[str, str] = {
+    "textarea":      "textarea",
+    "status-enum":   "enum-select",
+    "priority-enum": "enum-select",
+    "currency":      "number",
+    "date":          "date",
+    "datetime":      "datetime-local",
+    "url":           "url",
+    "email":         "email",
+    "color":         "color",
+    "text":          "text",
+}
+
+
+def _detect_input_type(
+    field_name: str,
+    base_type: str,
+    spec_enums: dict,
+    enriched_type: str = "",
+) -> str:
+    """
+    Détermine le type d'input HTML pour un champ scalaire.
+    Priorité 1 : annotation sémantique LLM (enriched_type).
+    Priorité 2 : heuristiques existantes (fallback Level A).
+    """
+    if enriched_type:
+        mapped = _SEMANTIC_TO_INPUT.get(enriched_type, "")
+        if mapped:
+            return mapped
     if base_type in spec_enums:
         return "enum-select"
     if base_type == "Boolean":
@@ -256,7 +283,7 @@ def _resolve_display_fields(model, owner: str, model_names: "frozenset[str] | No
 
 # ── Factory principale ────────────────────────────────────────────────────────
 
-def build_model_context(model, spec) -> ModelGenerationContext:
+def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationContext:
     """
     Calcule ModelGenerationContext pour un modèle depuis la spec.
     Appeler UNE SEULE FOIS par modèle (en général dans dev_graph.py).
@@ -314,7 +341,10 @@ def build_model_context(model, spec) -> ModelGenerationContext:
             base_type=base_type,
             is_optional=is_optional,
             has_default=_has_non_auto_default(f.attributes),
-            input_type=_detect_input_type(f.name, base_type, spec_enums),
+            input_type=_detect_input_type(
+                f.name, base_type, spec_enums,
+                enriched_type=enriched_spec.get_semantic_type(f.name) if enriched_spec else "",
+            ),
             attributes=f.attributes or "",
         ))
 
@@ -363,9 +393,9 @@ def build_model_context(model, spec) -> ModelGenerationContext:
     return ctx
 
 
-def build_all_contexts(spec) -> dict[str, ModelGenerationContext]:
+def build_all_contexts(spec, enriched_spec=None) -> dict[str, ModelGenerationContext]:
     """
     Calcule ModelGenerationContext pour tous les modèles de la spec.
     Retourne {model_name: ctx} — à appeler une fois dans dev_graph.py.
     """
-    return {m.name: build_model_context(m, spec) for m in spec.models}
+    return {m.name: build_model_context(m, spec, enriched_spec=enriched_spec) for m in spec.models}
