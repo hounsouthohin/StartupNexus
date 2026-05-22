@@ -2,9 +2,6 @@
 
 import { useActionState } from 'react'
 import Link from 'next/link'
-{% if type_imports %}
-import type { {{ type_imports }} } from '@/lib/types'
-{% endif %}
 import { create{{ name }} } from '{{ actions_import }}'
 {% for fk in fk_fields %}
 import type { Serialized{{ fk.related_model }} } from '@/lib/types'
@@ -73,8 +70,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             type="{{ field.input_type }}"
             id="{{ field.name }}"
             name="{{ field.name }}"
-            {% if not field.is_optional and not field.has_default %}required{% endif %}
-            {% if field.input_type == 'number' %}step="any"{% endif %}
+            {% if not field.is_optional and not field.has_default %}required {% endif %}{% if field.input_type == 'number' %}step="any"{% endif %}
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {% endif %}
@@ -93,7 +89,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Sélectionner…</option>
-            {{{ fk.related_camel }}Options.map(opt => (
+            {{ '{' }}{{ fk.related_camel }}Options.map(opt => (
               <option key={opt.id} value={opt.id}>{String(opt.{{ fk.related_display }} ?? opt.id)}</option>
             ))}
           </select>

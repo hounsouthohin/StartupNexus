@@ -101,7 +101,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Sélectionner…</option>
-            {{{ fk.related_camel }}Options.map(opt => (
+            {{ '{' }}{{ fk.related_camel }}Options.map(opt => (
               <option key={opt.id} value={opt.id}>{String(opt.{{ fk.related_display }} ?? opt.id)}</option>
             ))}
           </select>
