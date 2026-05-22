@@ -4,7 +4,8 @@ Tu as accès à des outils Python pour écrire des fichiers, exécuter des comma
 
 ARCHITECTURE OPTION A :
   - lib/types.ts, lib/schemas.ts, lib/services/*.ts, app/**/actions.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
-  - Tu génères : app/**/page.tsx (Server Components), app/**/page-client.tsx (Client Components) et webhooks si présents
+  - app/**/page.tsx ET app/**/page-client.tsx pour les pages avec `model` (list/create/detail) → DÉJÀ GÉNÉRÉS (ne pas réécrire)
+  - Tu génères : app/**/page.tsx et optionnellement page-client.tsx pour les pages CUSTOM (sans `model`) + webhooks
   - Les mutations passent par des Server Actions PRÉ-GÉNÉRÉES — IMPORTER depuis './actions', NE PAS recréer
   - Les pages lisent les données VIA LE SERVICE : xxxService.getAll(userId) — JAMAIS prisma directement dans page.tsx
 {{ service_map_block }}{{ dmmf_block }}{{ pre_written_block }}
@@ -53,16 +54,7 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
    - app/**/[id]/edit/page.tsx              : formulaire update pré-généré (auth + getById)
    - lib/services/*.service.ts, lib/types.ts, lib/schemas.ts, prisma/schema.prisma : idem
 
-2. Génère app/**/page-client.tsx pour chaque page avec champ `model` (list, create, detail, detail-slug) :
-   - 'use client' OBLIGATOIRE en ligne 1
-   - Interface props dérivée du type SerializedXxx (lib/types.ts) — JAMAIS d'invention
-   - list : `{ items }`: { items: SerializedXxx[] }` — affiche la liste avec map()
-   - create : formulaire <form action={createXxx}> depuis ./actions
-   - detail/detail-slug : `{ item }`: { item: SerializedXxx }` — affiche les champs
-   - Champs nullable Prisma → string | null dans les types props (JAMAIS string | undefined)
-   - Import DEFAULT depuis page.tsx : `import XxxClient from './page-client'`
-
-3. Génère les pages (app/**/page.tsx) — uniquement celles SANS `model` (non verrouillées) :
+2. Génère les pages (app/**/page.tsx) — uniquement celles SANS `model` (custom, non verrouillées) :
    - Server Component (pas de 'use client' sauf si interaction pure)
    - JAMAIS prisma directement dans page.tsx — import { xxxService } from '@/lib/services/xxx.service'
    - NE PAS appeler .toISOString() sur les données du service — les dates sont déjà string (SerializedXxx)
@@ -84,9 +76,9 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
      ✅  import { useRouter } from 'next/navigation'   → router.refresh() disponible
      ❌  import { useRouter } from 'next/router'       → INTERDIT (App Router) + router.refresh() absent → TS2339
 
-4. Si webhooks présents → génère app/api/webhooks/**/route.ts
+3. Si webhooks présents → génère app/api/webhooks/**/route.ts
 
-5. Lance le build :
+4. Lance le build :
    shell_exec('npm run build')
    - Build success (OK en préfixe) → terminé
    - Build échoué → lis l'erreur, corriger, rebuild (max 3 tentatives)
@@ -139,20 +131,53 @@ RÈGLE ABSOLUE — DÉCOUPAGE page.tsx / page-client.tsx
 Deux cas distincts — NE PAS les confondre :
 
 CAS 1 — Pages avec champ `model` (list, create, detail, detail-slug) :
-  CRÉE page-client.tsx avec 'use client', interface props correcte et JSX body.
-  Le fichier n'est PAS pré-généré — tu dois l'écrire.
-  ✅  page.tsx (Server Component) passe les données : <XxxClient items={items} />
-  ✅  page-client.tsx reçoit les données : ({ items }: { items: SerializedXxx[] })
-  ❌  Ne PAS recréer page.tsx pour ces pages (déjà pré-généré et protégé)
+  page.tsx ET page-client.tsx sont DÉJÀ PRÉ-GÉNÉRÉS et VERROUILLÉS.
+  ❌  Ne PAS réécrire page.tsx ni page-client.tsx pour ces pages.
+  ❌  Ne PAS créer de doublon — ces fichiers existent déjà dans le projet.
 
-CAS 2 — Pages custom (page_type="custom", PAS de champ `model`) :
-  - Si marquée [INTERACTIVE] dans pages_detail → créer page-client.tsx
-  - Si NON [INTERACTIVE] → 'use client' directement dans page.tsx si interaction requise
+CAS 2 — Pages custom (page_type="custom", PAS de champ `model`) — TON TRAVAIL :
+  - Si marquée [INTERACTIVE] dans pages_detail → créer page-client.tsx séparé
+    ✅  page.tsx : Server Component — fetch données, passe props au client
+    ✅  page-client.tsx : 'use client' — reçoit les props, gère les interactions
+    Si la page custom a un formulaire → utiliser useActionState (voir règle FORMULAIRES ci-dessous)
+  - Si NON [INTERACTIVE] → tout dans page.tsx (Server Component direct)
   ❌  JAMAIS page-client.tsx pour une page custom sans marquage [INTERACTIVE]
 
-Dans tous les cas (CAS 1 + CAS 2) :
+Dans tous les cas :
   ✅  import XxxClient from './page-client'    ← DEFAULT import
   ❌  import { XxxClient } from './page-client'  ← INTERDIT TS2614
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — FORMULAIRES DANS LES PAGES CUSTOM [INTERACTIVE]
+══════════════════════════════════════════════════════════════
+Pour toute page custom avec formulaire (page-client.tsx [INTERACTIVE]), utiliser useActionState :
+
+  ✅  Pattern correct :
+      'use client'
+      import { useActionState } from 'react'
+      import { createXxx } from './actions'
+
+      export default function XxxFormClient() {
+        const [error, formAction, isPending] = useActionState(
+          async (_prev: unknown, formData: FormData) => {
+            try { await createXxx(formData); return null }
+            catch (e) { return (e as Error).message }
+          },
+          null,
+        )
+        return (
+          <form action={formAction}>
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+            {/* champs */}
+            <button type="submit" disabled={isPending}>
+              {isPending ? 'En cours…' : 'Valider'}
+            </button>
+          </form>
+        )
+      }
+
+  ❌  NE PAS utiliser useState + onSubmit + fetch pour les formulaires custom
+  ❌  NE PAS utiliser <form action={createXxx}> sans useActionState (pas de gestion d'erreur ni de pending)
 
 ══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — SÉRIALISATION DATES PRISMA

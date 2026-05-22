@@ -37,6 +37,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
       </div>
 
       <div className="mt-6 flex gap-3">
+        {% if auth_required %}
         <Link
           href={`{{ list_path }}/${item.id}/edit`}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
@@ -50,6 +51,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
         >
           Supprimer
         </button>
+        {% endif %}
         {% endif %}
         <Link
           href="{{ list_path }}"

@@ -133,15 +133,8 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
 
     contexts: list[str] = ["always"]
 
-    has_relations = any(
-        any(f.name != "id" and f.name.endswith("Id") for f in m.fields)
-        for m in spec.models
-    )
-    if has_relations:
-        contexts.append("relation-models")
-
-    if len(spec.models) >= 2:
-        contexts.append("multi-table")
+    # Territoire LLM : layout.tsx, page.tsx custom (auth + appel service), page-client.tsx [INTERACTIVE].
+    # Les services, actions, types, schemas, pages CRUD sont Level A (pré-générés) → pas de standards Level A ici.
 
     if spec.pages:
         contexts.append("interactive-pages")
@@ -150,10 +143,14 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     if has_dynamic_pages:
         contexts.append("dynamic-pages")
 
-    # UI quality — déclenché si la spec a des pages custom [INTERACTIVE] (Level B).
-    # Les page-client.tsx CRUD standard sont Level A — ZONE_UI_PAGE_CLIENT inactive.
-    # Ce contexte cible uniquement les pages custom (dashboard, hub, profil) où le LLM
-    # génère le composant Client depuis les pages_detail du brief.
+    # Pages publiques — déclenché si au moins une page sans auth (blog, recettes, articles).
+    has_public_pages = any(not p.auth_required for p in spec.pages)
+    if has_public_pages:
+        contexts.append("public-pages")
+
+    # UI Level B — déclenché si la spec a des pages custom [INTERACTIVE].
+    # Les page-client.tsx CRUD standard sont Level A — cette query cible uniquement
+    # les pages custom (dashboard, hub, landing) générées par le LLM depuis pages_detail.
     _pages_detail = getattr(spec, "pages_detail", {}) or {}
     has_custom_interactive = any(
         "[INTERACTIVE]" in str(v)
@@ -162,32 +159,28 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     if has_custom_interactive:
         contexts.append("page_client_ui")
 
-    # Requêtes alignées sur le format RULE: des standards Qdrant (post-Option-A).
-    # Termes en français technique pour maximiser le recall avec les standards reformatés.
+    # Requêtes ciblées sur le territoire réel du LLM (post-Level-A).
+    # NE PAS inclure : N+1 (services), transactions Prisma (services), Zod (actions) — Level A.
     CONTEXT_QUERIES: dict[str, str] = {
         "always": (
-            "auth userId guard obligatoire Prisma ownership Server Action "
-            "sécurité validation Zod revalidatePath throw Unauthorized"
-        ),
-        "relation-models": (
-            "N+1 prevention include select nested relation Prisma findUnique "
-            "boucle Promise.all jointure optimisée"
-        ),
-        "multi-table": (
-            "prisma transaction séquentiel rollback multi-table create "
-            "atomic update plusieurs modèles"
+            "auth() userId guard page.tsx Server Component redirect sign-in "
+            "Clerk protection route authentifiée await auth"
         ),
         "interactive-pages": (
-            "'use client' directive useState onClick formulaire handler "
-            "Client Component interactif Server Component split revalidatePath"
+            "useActionState formulaire form Server Action 'use client' "
+            "page-client isPending error formAction submit"
         ),
         "dynamic-pages": (
-            "notFound import next/navigation page dynamique [id] params "
-            "Server Component getById service null absent redirect 404"
+            "notFound [id] params page dynamique Server Component "
+            "getById service null absent redirect 404 next/navigation"
+        ),
+        "public-pages": (
+            "page publique sans auth no auth_required getPublished "
+            "visiteur liste publique without userId public route"
         ),
         "page_client_ui": (
-            "custom page-client.tsx dashboard hub profile 'use client' "
-            "Client Component SerializedXxx props useState typed revalidatePath"
+            "dashboard SerializedXxx props Client Component "
+            "empty state liste vide Link navigation href next/link"
         ),
     }
 

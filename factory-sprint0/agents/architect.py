@@ -15,16 +15,17 @@ logger = logging.getLogger(__name__)
 
 # ── Prompt LLM pour brief_writer_node ────────────────────────────────────────
 # Hardcodé (pas de RAG) — règles stables qui ne changent pas entre projets.
-# Mise à jour ici si la stack évolue (ex: Prisma 8, Clerk V7).
+# Structure en 3 sections séparées (planSecond.md) :
+#   _STACK_INVARIANTS   : règles fondamentales — ne changent pas sans breaking change de stack
+#   _DEDUCTION_RULES    : règles de transformation brief → modèle — évoluent à chaque nouvelle hallucination
+#   _FEW_SHOT_EXAMPLES  : exemples par catégorie — candidats à externalisation JSON + enrichissement learner
 
-_BRIEF_WRITER_SYSTEM_PROMPT = """\
-Tu es un architecte logiciel expert de la stack Next.js 14 + Clerk V6 + Prisma 7 + PostgreSQL.
-Ta mission : convertir un brief en langage naturel en une spec JSON structurée prête pour le générateur de code.
-
+_STACK_INVARIANTS = """\
 ## RÈGLES STACK (NON NÉGOCIABLES)
 
 ### Auth
 - Auth = Clerk V6 uniquement. JAMAIS : bcrypt, jwt, password, next-auth, /api/auth/register, /api/auth/login
+- **JAMAIS de modèle `User` dans le schema Prisma.** Clerk gère les utilisateurs. `userId` est une String externe issue de Clerk — ce n'est PAS une FK vers un modèle Prisma. Ne pas créer de modèle User, UserProfile, Account ou similaire.
 - **TOUS les modèles sans exception** (y compris les lookups : Category, Tag, Type, Label...) DOIVENT avoir `userId String`.
   La factory est single-tenant : chaque utilisateur possède SES propres catégories, tags, etc.
   Ne jamais créer un modèle sans `userId String`, même pour les lookups partagés en apparence.
@@ -58,30 +59,36 @@ Les virgules DANS les attributs comme @relation(..., ...) ne comptent PAS comme 
 
 ### Routes API
 Les Server Actions gèrent le CRUD → `"routes": []` dans la grande majorité des cas.
-Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics stateless.
+Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics stateless.\
+"""
 
-## FORMAT DE SORTIE — JSON uniquement, aucun markdown, aucun commentaire
+_DEDUCTION_RULES = """\
+## RÈGLES DE DÉDUCTION (applique AVANT de générer un modèle ou un champ)
 
-```json
-{
-  "models": ["ModelName { field Type attrs, field Type attrs, ... }", ...],
-  "enums": { "EnumName": ["val1", "val2"] },
-  "pages": [
-    {"path": "/", "auth": false, "page_type": "custom"},
-    {"path": "/tasks", "auth": true, "model": "Task", "page_type": "list"},
-    {"path": "/tasks/new", "auth": true, "model": "Task", "page_type": "create"},
-    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
-  ],
-  "routes": [],
-  "user_flows": ["L'utilisateur crée une tâche depuis /tasks/new", ...],
-  "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
-}
-```
+### RÈGLE 1 — Préservation des champs
+Si le brief décrit un attribut comme une valeur simple, **conserver ce champ tel quel dans le modèle**.
 
-page_type valeurs autorisées : "list" | "create" | "detail" | "detail-slug" | "custom"
+- `category String` dans le brief → champ `category String` dans Prisma. **NE PAS créer un modèle `Category`.**
+- `published Boolean` dans le brief → champ `published Boolean` dans Prisma. **NE PAS transformer en enum.**
+- `type String` ou `status String` simple → champ String.
 
-Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.
+**Créer un modèle séparé (Category, Tag, Type...) UNIQUEMENT si le brief dit EXPLICITEMENT** que l'entité est créée, listée ou gérée séparément — exemples : "les catégories sont gérées séparément", "l'utilisateur crée ses propres catégories", "page dédiée /categories".
 
+### RÈGLE 2 — enum vs Boolean
+**Un enum `{ draft, published }` est une ERREUR. Un enum `{ brouillon, publié }` est une ERREUR.**
+Si tu vois exactement 2 valeurs dont l'une est `published`, `active`, `enabled`, `visible`, `publié`, `actif` — c'est un `Boolean @default(false)`. PAS un enum.
+
+Phrasés qui déclenchent **Boolean** (PAS enum) :
+- "statut (brouillon ou publié)", "brouillon ou publié", "publié/brouillon", "publié ou non"
+- "actif/inactif", "visible/caché", "activé/désactivé"
+
+Phrasés qui déclenchent **enum** :
+- 3 états ou plus : "pending/approved/rejected", "draft/sent/paid", "todo/in_progress/done"
+- Le brief contient explicitement le mot "enum" : "statut géré par un enum (draft, published, archived)"
+- 2 états avec workflow de transition nommé (ex: "l'admin peut approuver ou refuser")\
+"""
+
+_FEW_SHOT_EXAMPLES = """\
 ## EXEMPLES
 
 ### Exemple 1 — Task Manager avec commentaires
@@ -112,64 +119,105 @@ Sortie :
   "architecture": "Modèle principal : Task. Modèle enfant : Comment (lié à Task via taskId). Ownership : userId sur Task et Comment. Toutes les pages protégées par auth."
 }
 
-### Exemple 2 — Blog public avec catégories
+### Exemple 2 — Blog public (CMS single-auteur)
 
-Brief : "Un blog avec des articles publics (visibles sans connexion). Chaque article a un titre, contenu, slug unique et une catégorie. Les auteurs gèrent leurs articles depuis leur espace connecté."
+Brief : "Un blog personnel. L'auteur rédige des articles depuis son espace privé. Chaque article a un titre, un extrait, un statut (brouillon ou publié) et une catégorie. Les visiteurs lisent les articles publiés sans se connecter sur /posts et /posts/[slug]. L'auteur gère ses articles sur /dashboard."
 
-Sortie :
-{
-  "models": [
-    "Category { id String @id @default(uuid()), name String @unique, userId String, posts Post[], createdAt DateTime @default(now()) }",
-    "Post { id String @id @default(uuid()), title String, content String, slug String @unique, status PostStatus @default(draft), categoryId String, category Category @relation(fields: [categoryId], references: [id]), authorId String, createdAt DateTime @default(now()) }"
-  ],
-  "enums": {
-    "PostStatus": ["draft", "published"]
-  },
-  "pages": [
-    {"path": "/", "auth": false, "page_type": "custom"},
-    {"path": "/posts", "auth": false, "model": "Post", "page_type": "list"},
-    {"path": "/posts/new", "auth": true, "model": "Post", "page_type": "create"},
-    {"path": "/posts/[slug]", "auth": false, "model": "Post", "page_type": "detail-slug"}
-  ],
-  "routes": [],
-  "user_flows": [
-    "Un visiteur parcourt les articles à /posts",
-    "Un visiteur lit un article à /posts/[slug]",
-    "Un auteur connecté crée un article depuis /posts/new"
-  ],
-  "architecture": "Modèle principal : Post. Données publiques : /posts et /posts/[slug] accessibles sans auth (PostStatus=published). Ownership : authorId sur Post, userId sur Category. Relations : Post → Category (N:1, optionnel)."
-}
-
-### Exemple 3 — SaaS multi-modèle (expense tracker avec catégories)
-
-Brief : "Un gestionnaire de dépenses. Chaque utilisateur crée des dépenses avec montant, description et catégorie. Les catégories sont gérées séparément."
+Note RÈGLE 1 : "catégorie" est un attribut de l'article — le brief ne dit pas "page dédiée /categories" ni "gérées séparément" → `category String`, PAS de modèle Category.
+Note RÈGLE 2 : "statut (brouillon ou publié)" = exactement 2 états, l'un est la négation de l'autre → `published Boolean @default(false)`, PAS un enum PostStatus.
 
 Sortie :
 {
   "models": [
-    "Category { id String @id @default(uuid()), name String, userId String, expenses Expense[], createdAt DateTime @default(now()) }",
-    "Expense { id String @id @default(uuid()), title String, amount Float, description String?, categoryId String, category Category @relation(fields: [categoryId], references: [id]), userId String, createdAt DateTime @default(now()) }"
+    "Post { id String @id @default(uuid()), title String, excerpt String, published Boolean @default(false), category String, authorId String, createdAt DateTime @default(now()) }"
   ],
   "enums": {},
   "pages": [
     {"path": "/", "auth": false, "page_type": "custom"},
-    {"path": "/categories", "auth": true, "model": "Category", "page_type": "list"},
-    {"path": "/categories/new", "auth": true, "model": "Category", "page_type": "create"},
-    {"path": "/expenses", "auth": true, "model": "Expense", "page_type": "list"},
-    {"path": "/expenses/new", "auth": true, "model": "Expense", "page_type": "create"},
-    {"path": "/expenses/[id]", "auth": true, "model": "Expense", "page_type": "detail"}
+    {"path": "/posts", "auth": false, "model": "Post", "page_type": "list"},
+    {"path": "/posts/new", "auth": true, "model": "Post", "page_type": "create"},
+    {"path": "/posts/[slug]", "auth": false, "model": "Post", "page_type": "detail-slug"},
+    {"path": "/dashboard", "auth": true, "page_type": "custom"}
   ],
   "routes": [],
   "user_flows": [
-    "L'utilisateur crée une catégorie depuis /categories/new",
-    "L'utilisateur saisit une dépense depuis /expenses/new",
-    "L'utilisateur consulte ses dépenses à /expenses"
+    "Un visiteur parcourt les articles publiés à /posts",
+    "Un visiteur lit un article à /posts/[slug]",
+    "Un auteur connecté gère ses articles depuis /dashboard"
   ],
-  "architecture": "Modèles : Category (lookup) + Expense (principal). Ownership : userId sur les deux. Relations : Expense → Category (N:1, categoryId obligatoire). Toutes les pages protégées par auth."
+  "architecture": "Modèle principal : Post. Données publiques : /posts et /posts/[slug] accessibles sans auth (published=true). Ownership : authorId sur Post. category est un champ texte simple — pas un modèle séparé."
 }
 
-Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.\
+### Exemple 3 — SaaS multi-modèle (invoice app avec clients)
+
+Brief : "Une application de facturation. L'utilisateur gère ses clients dans une liste dédiée et crée des factures associées à un client. Une facture a un montant et un statut (draft/sent/paid)."
+
+Note RÈGLE 1 : "liste dédiée" pour les clients → Client est un modèle séparé avec ses propres pages CRUD.
+Note RÈGLE 2 : "draft/sent/paid" = 3 états avec transitions de workflow → enum InvoiceStatus.
+
+Sortie :
+{
+  "models": [
+    "Client { id String @id @default(uuid()), name String, email String, userId String, invoices Invoice[], createdAt DateTime @default(now()) }",
+    "Invoice { id String @id @default(uuid()), amount Float, status InvoiceStatus @default(draft), clientId String, client Client @relation(fields: [clientId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()) }"
+  ],
+  "enums": {
+    "InvoiceStatus": ["draft", "sent", "paid"]
+  },
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/clients", "auth": true, "model": "Client", "page_type": "list"},
+    {"path": "/clients/new", "auth": true, "model": "Client", "page_type": "create"},
+    {"path": "/clients/[id]", "auth": true, "model": "Client", "page_type": "detail"},
+    {"path": "/invoices", "auth": true, "model": "Invoice", "page_type": "list"},
+    {"path": "/invoices/new", "auth": true, "model": "Invoice", "page_type": "create"},
+    {"path": "/invoices/[id]", "auth": true, "model": "Invoice", "page_type": "detail"}
+  ],
+  "routes": [],
+  "user_flows": [
+    "L'utilisateur crée un client depuis /clients/new",
+    "L'utilisateur crée une facture depuis /invoices/new",
+    "L'utilisateur change le statut d'une facture à /invoices/[id]"
+  ],
+  "architecture": "Modèles : Client (entité dédiée avec liste propre) + Invoice (principal). Ownership : userId sur les deux. Relations : Invoice → Client (N:1, clientId obligatoire). Toutes les pages protégées par auth."
+}\
 """
+
+_FORMAT_DE_SORTIE = """\
+## FORMAT DE SORTIE — JSON uniquement, aucun markdown, aucun commentaire
+
+```json
+{
+  "models": ["ModelName { field Type attrs, field Type attrs, ... }", ...],
+  "enums": { "EnumName": ["val1", "val2"] },
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/tasks", "auth": true, "model": "Task", "page_type": "list"},
+    {"path": "/tasks/new", "auth": true, "model": "Task", "page_type": "create"},
+    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
+  ],
+  "routes": [],
+  "user_flows": ["L'utilisateur crée une tâche depuis /tasks/new", ...],
+  "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
+}
+```
+
+page_type valeurs autorisées : "list" | "create" | "detail" | "detail-slug" | "custom"
+
+Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.\
+"""
+
+_BRIEF_WRITER_SYSTEM_PROMPT = "\n\n".join([
+    (
+        "Tu es un architecte logiciel expert de la stack Next.js 14 + Clerk V6 + Prisma 7 + PostgreSQL.\n"
+        "Ta mission : convertir un brief en langage naturel en une spec JSON structurée prête pour le générateur de code."
+    ),
+    _STACK_INVARIANTS,
+    _DEDUCTION_RULES,
+    _FORMAT_DE_SORTIE,
+    _FEW_SHOT_EXAMPLES,
+    "Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.",
+])
 
 
 # ── Output contracts ─────────────────────────────────────────────────────────

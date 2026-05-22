@@ -4291,6 +4291,85 @@ VERSION: 1.0"""),
 
 
 # =============================================================================
+# ZONE 31 — LEVEL B CUSTOM PAGES — patterns pour les pages générées par LLM
+# Pages custom (page_type="custom", sans `model`) — seul territoire LLM.
+# Ajouté Mai 2026 — post-analyse batch4 (pages Level B vides ou anti-patterns)
+# =============================================================================
+
+ZONE_31_LEVEL_B_PAGES = [
+    _s("31-level-b-forms", "client-components", """RULE: useActionState obligatoire pour les formulaires dans les pages custom (Level B)
+WHY: Les Server Actions attendent FormData. useActionState est le seul pattern qui: (1) passe un vrai FormData à l'action, (2) expose isPending pour désactiver le bouton, (3) expose error pour afficher les erreurs sans useState séparé. useState+onSubmit+fetch est un anti-pattern dans App Router.
+GOOD:
+  'use client'
+  import { useActionState } from 'react'
+  import { createXxx } from './actions'
+
+  export default function XxxFormClient() {
+    const [error, formAction, isPending] = useActionState(
+      async (_prev: unknown, formData: FormData) => {
+        try { await createXxx(formData); return null }
+        catch (e) { return (e as Error).message }
+      },
+      null,
+    )
+    return (
+      <form action={formAction}>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <input name="title" required />
+        <button type="submit" disabled={isPending}>
+          {isPending ? 'En cours…' : 'Créer'}
+        </button>
+      </form>
+    )
+  }
+BAD:
+  const [title, setTitle] = useState('')
+  const handleSubmit = async (e) => { e.preventDefault(); await createXxx(...) }
+  // ❌ useState+onSubmit — pas de FormData natif, pas de isPending, verbose"""),
+
+    _s("31-level-b-public-pages", "auth", """RULE: Pages publiques (auth: false) — JAMAIS d'appel à auth() ni redirect('/sign-in')
+WHY: auth() dans un Server Component public lance une erreur Clerk si l'utilisateur n'est pas connecté. Les pages publiques lisent les données sans userId (méthodes getPublished, getBySlug). Les protections d'auth appartiennent UNIQUEMENT aux pages auth: true.
+GOOD:
+  // page publique — PAS d'import auth
+  import { postService } from '@/lib/services/post.service'
+  export default async function BlogPage() {
+    const posts = await postService.getPublished()
+    return <PostList posts={posts} />
+  }
+BAD:
+  import { auth } from '@clerk/nextjs/server'
+  export default async function BlogPage() {
+    const { userId } = await auth()  // ❌ erreur si visiteur anonyme
+    if (!userId) redirect('/sign-in')  // ❌ bloque les visiteurs légitimes
+  }"""),
+
+    _s("31-level-b-empty-state", "ui", """RULE: Les listes dans les pages custom doivent gérer l'état vide explicitement
+WHY: Un tableau vide rendu avec .map() produit une page blanche sans indication à l'utilisateur. L'état vide est une feature UX, pas une exception.
+GOOD:
+  {items.length === 0 ? (
+    <p className="text-gray-500 text-center py-8">Aucun élément pour le moment.</p>
+  ) : (
+    <ul>{items.map(item => <li key={item.id}>{item.title}</li>)}</ul>
+  )}
+BAD:
+  <ul>{items.map(item => <li key={item.id}>{item.title}</li>)}</ul>
+  // ❌ pas de fallback si items = [] → page blanche"""),
+
+    _s("31-level-b-link-pattern", "ui", """RULE: Composant Link Next.js 14 — jamais de <a> enfant, toujours className sur Link directement
+WHY: Dans Next.js 13+, <Link> rend lui-même un <a>. Nester un <a> dans <Link> produit un <a> dans un <a> — HTML invalide, warning React, comportement click imprévisible.
+GOOD:
+  <Link href={`/posts/${post.slug}`} className="text-blue-600 hover:underline">
+    {post.title}
+  </Link>
+BAD:
+  <Link href={`/posts/${post.slug}`}>
+    <a className="text-blue-600">{post.title}</a>
+  </Link>
+  // ❌ <a> dans <a> — HTML invalide, deprecated depuis Next.js 13"""),
+]
+
+
+# =============================================================================
 # ZONE HARD RULES — Standards issus de enrich_qdrant.py
 # =============================================================================
 
@@ -4692,6 +4771,7 @@ ALL_STANDARDS = (
     + _zone_inactive(ZONE_27_LOGGING)        # Pino logging dans actions.ts = Level A
     + _zone_inactive(ZONE_28_CONNECTION_POOLING)  # lib/prisma.ts = Level A
     + ZONE_30_HEALTHCHECK          # actif : webhooks /api/health pré-générés (Level B)
+    + ZONE_31_LEVEL_B_PAGES        # actif : useActionState, public pages, empty state, Link pattern
     + ZONE_HARD_RULES              # actif : Clerk, Prisma7, auth guard — patterns transversaux
     + _zone_inactive(ZONE_UI_PAGE_CLIENT)  # inactif Sprint 4.7 — page-client.tsx CRUD = Level A (dev_form_generator)
     + ZONE_ARCHITECT_PAGES_DETAIL  # Mai 2026 — pages_detail structurel (agent_context=architect)
@@ -4730,7 +4810,7 @@ def main() -> int:
     args = _parse_args()
 
     print("\n" + "=" * 70)
-    print("📚 STANDARDS COMPLETS v3 — Stack nextjs-clerk-prisma (Zones 1-30 + hard rules)")
+    print("📚 STANDARDS COMPLETS v3 — Stack nextjs-clerk-prisma (Zones 1-31 + hard rules)")
     print("   Option A active : RULE: format, ACTION:/STACK: retirés du texte → metadata")
     print("   Sources: Perplexity 2026-03-01 + runs empiriques + doc officielle")
     print("=" * 70 + "\n")

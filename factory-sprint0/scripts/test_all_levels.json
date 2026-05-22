@@ -1,78 +1,42 @@
 [
   {
     "project_name": "task-manager",
-    "family": "productivity",
-    "tags": ["level_1", "private_only", "single_model", "llm_path"],
-    "note": "Niveau 1 — App privée minimaliste, 1 seul modèle. Test LLM sur le cas le plus simple.",
     "brief": {
       "description": "Un gestionnaire de tâches personnel. L'utilisateur crée, consulte et supprime ses tâches depuis son tableau de bord privé. Chaque tâche a un titre, une description optionnelle, une priorité (low, medium, high) et une date d'échéance optionnelle. Aucune page publique — tout est accessible uniquement après connexion."
     }
   },
   {
     "project_name": "personal-blog",
-    "family": "blog",
-    "tags": ["level_2", "mixed_auth", "public_pages", "llm_path"],
-    "note": "Niveau 2 — App avec pages publiques et dashboard privé. Test LLM sur la distinction auth/public.",
     "brief": {
-      "description": "Un blog personnel. L'auteur rédige des articles classés par catégories depuis son espace privé. Chaque article a un titre, un extrait, un statut (brouillon ou publié). Les visiteurs peuvent lire les articles publiés sans se connecter sur /blog et /blog/[id]. L'auteur gère ses articles sur /dashboard et ses catégories sur /categories.",
-      "hints": {
-        "public_pages": true
-      }
+      "description": "Un blog personnel. L'auteur rédige des articles classés par catégories depuis son espace privé. Chaque article a un titre, un extrait, un statut (brouillon ou publié). Les visiteurs peuvent lire les articles publiés sans se connecter sur /blog et /blog/[id]. L'auteur gère ses articles sur /dashboard et ses catégories sur /categories."
     }
   },
   {
     "project_name": "recipe-book",
-    "family": "cms",
-    "tags": ["level_3", "slug_routing", "enums", "mixed_auth", "llm_path"],
-    "note": "Niveau 3 — App avec slug, enum Prisma, pages publiques. Test LLM sur les cas slug + enum.",
     "brief": {
-      "description": "Un livre de recettes en ligne. L'auteur gère ses recettes et catégories depuis un dashboard privé. Chaque recette a un titre, une description, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les visiteurs parcourent les recettes publiées via leur URL lisible (ex: /recipes/ma-recette) sans se connecter. L'auteur crée et supprime ses recettes depuis /dashboard.",
-      "hints": {
-        "public_pages": true,
-        "slug_model": "Recipe"
-      }
+      "description": "Un livre de recettes en ligne. L'auteur gère ses recettes et catégories depuis un dashboard privé. Chaque recette a un titre, une description, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les visiteurs parcourent les recettes publiées via leur URL lisible (ex: /recipes/ma-recette) sans se connecter. L'auteur crée et supprime ses recettes depuis /dashboard."
     }
   },
   {
     "project_name": "dev-articles",
-    "family": "cms",
-    "tags": ["level_3", "slug_routing", "enums", "mixed_auth", "llm_path"],
-    "note": "Niveau 3 variante — Même structure que recipe-book, thème articles techniques. Test de reproductibilité LLM.",
     "brief": {
-      "description": "Une plateforme d'articles techniques. L'auteur publie des articles sur des sujets tech depuis son espace privé. Chaque article a un titre, un contenu, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les lecteurs parcourent les articles publiés via leur URL lisible (ex: /articles/mon-titre) sans se connecter. L'auteur gère ses articles et catégories depuis /dashboard.",
-      "hints": {
-        "public_pages": true,
-        "slug_model": "Article"
-      }
+      "description": "Une plateforme d'articles techniques. L'auteur publie des articles sur des sujets tech depuis son espace privé. Chaque article a un titre, un contenu, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les lecteurs parcourent les articles publiés via leur URL lisible (ex: /articles/mon-titre) sans se connecter. L'auteur gère ses articles et catégories depuis /dashboard."
     }
   },
   {
     "project_name": "expense-tracker",
-    "family": "productivity",
-    "tags": ["level_2", "private_only", "multi_model", "relations", "llm_path"],
-    "note": "Niveau 2 — App multi-modèles avec relation FK. Test LLM sur la gestion des relations entre modèles.",
     "brief": {
       "description": "Un gestionnaire de dépenses personnelles. Les utilisateurs enregistrent leurs dépenses avec un montant, une description et une catégorie. Les catégories sont créées séparément et permettent de classer les dépenses (alimentation, transport, loisirs...). Toute l'application est privée, aucune page publique."
     }
   },
   {
     "project_name": "leave-manager",
-    "family": "hr",
-    "tags": ["level_3", "private_only", "enums", "multi_model", "llm_path"],
-    "note": "Niveau 3 — App avec enum de statut workflow. Test LLM sur les enums à valeurs multiples et relations hiérarchiques.",
     "brief": {
-      "description": "Application de gestion des congés. Les employés soumettent des demandes de congé avec un type (congé annuel, congé maladie, sans solde), une date de début, une date de fin et un motif optionnel. Chaque demande a un statut géré par enum (pending, approved, rejected). Les managers voient toutes les demandes et peuvent les approuver ou refuser. Application entièrement privée.",
-      "hints": {
-        "public_pages": false,
-        "use_enum_for_status": true
-      }
+      "description": "Application de gestion des congés. Les employés soumettent des demandes de congé avec un type (congé annuel, congé maladie, sans solde), une date de début, une date de fin et un motif optionnel. Chaque demande a un statut géré par enum (pending, approved, rejected). Les managers voient toutes les demandes et peuvent les approuver ou refuser. Application entièrement privée."
     }
   },
   {
     "project_name": "project-hub",
-    "family": "productivity",
-    "tags": ["level_4", "private_only", "multi_model", "deep_relations", "llm_path"],
-    "note": "Niveau 4 — App multi-modèles avec relations imbriquées (Project → Task → Comment). Test LLM sur les relations en cascade.",
     "brief": {
       "description": "Un hub de gestion de projets collaboratifs. Les utilisateurs créent des projets (titre, description, statut : active, completed, archived) et y attachent des tâches. Chaque tâche appartient à un projet et possède un titre, une description, une priorité (low, medium, high) et un statut (todo, in_progress, done). Les utilisateurs peuvent commenter les tâches. Tout est privé, aucune page publique."
     }

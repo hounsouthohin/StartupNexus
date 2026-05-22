@@ -67,6 +67,158 @@ class FilePlanEntry(BaseModel):
     context_hint: str = ""
 
 
+def build_page_contracts(
+    spec: "ProjectSpec",
+    contexts: "dict | None" = None,
+) -> "dict[str, tuple[str, str]]":
+    """
+    Dérive les contrats techniques des pages custom [INTERACTIVE] depuis Level A.
+
+    Utilise ModelGenerationContext (déjà calculé) pour déduire QUEL appel de service
+    injecter par page : getAll vs getPublicAll, getById vs getPublicById, with/without relations.
+
+    Retourne {page_path: (page_hint, client_hint)} où :
+      - page_hint : injecté dans page.tsx context_hint — appel de service exact
+      - client_hint : injecté dans page-client.tsx context_hint — type de props
+    """
+    if not contexts:
+        return {}
+
+    pages_detail = getattr(spec, "pages_detail", {}) or {}
+
+    # Index modèle par segment de chemin (même logique que make_deterministic_plan)
+    _mbseg: dict[str, object] = {}
+    for m in spec.models:
+        k = _pascal_to_kebab(m.name)
+        _mbseg[k] = m
+        _mbseg[k + "s"] = m
+
+    contracts: dict[str, tuple[str, str]] = {}
+
+    for page in spec.pages:
+        page_detail_str = str(pages_detail.get(page.path, ""))
+        if "[INTERACTIVE]" not in page_detail_str:
+            continue
+
+        ppath = page.path.strip("/")
+        segs = ppath.split("/") if ppath else []
+        static_segs = [s for s in segs if s and not (s.startswith("[") and s.endswith("]"))]
+        dyn_segs = [s[1:-1] for s in segs if s.startswith("[") and s.endswith("]")]
+        has_dyn = bool(dyn_segs)
+
+        # Match modèle primaire : chemin d'abord, description ensuite, puis list_page_path
+        primary_model = _mbseg.get(static_segs[0]) if static_segs else None
+        if primary_model is None:
+            desc_lower = page_detail_str.lower()
+            for m in spec.models:
+                mk = _pascal_to_kebab(m.name)
+                if mk in desc_lower or getattr(m, "name", "").lower() in desc_lower:
+                    primary_model = m
+                    break
+        # Fallback list_page_path : si l'architect a déclaré "list_page_path=/blog" pour Post,
+        # alors /blog/[id] et tout chemin dont le premier segment = "blog" → Post.
+        if primary_model is None and contexts and static_segs:
+            _seg0 = static_segs[0]
+            for _m in spec.models:
+                _ctx_cand = contexts.get(getattr(_m, "name", ""))
+                _lpp = getattr(_ctx_cand, "list_page_path", "") if _ctx_cand else ""
+                if _lpp and _lpp.strip("/").split("/")[0] == _seg0:
+                    primary_model = _m
+                    break
+
+        if primary_model is None:
+            continue
+
+        model_name = getattr(primary_model, "name", "")
+        ctx = contexts.get(model_name)
+        if ctx is None:
+            continue
+
+        camel: str = getattr(ctx, "camel", _pascal_to_camel(model_name))
+        kebab: str = getattr(ctx, "kebab", _pascal_to_kebab(model_name))
+        serialized: str = getattr(ctx, "serialized_type", f"Serialized{model_name}")
+        owner: str = primary_model.resolved_owner()
+        has_relations: bool = bool(getattr(ctx, "has_relations", False))
+        has_slug: bool = bool(getattr(ctx, "has_slug", False))
+
+        svc_import = f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'"
+        page_parts: list[str] = []
+        client_parts: list[str] = []
+
+        if has_dyn:
+            dyn_param = dyn_segs[0]
+            if page.auth_required:
+                fetch_call = (
+                    f"{camel}Service.getByIdWithRelations({owner}, {dyn_param})"
+                    if has_relations else
+                    f"{camel}Service.getById({owner}, {dyn_param})"
+                )
+                page_parts += [
+                    f"CONTRAT TECHNIQUE — page détail privée.",
+                    f"Charger via : `const item = await {fetch_call}`.",
+                    f"Type retour : {serialized}.",
+                    f"Passer `<ClientComponent item={{item}} />` au Client Component.",
+                ]
+                client_parts += [
+                    f"Props : `{{ item: {serialized} }}`.",
+                    f"Import type : `import type {{ {serialized} }} from '@/lib/types'`.",
+                ]
+            else:
+                if has_slug and "slug" in ppath:
+                    fetch_call = f"{camel}Service.getBySlug({dyn_param})"
+                elif has_relations:
+                    fetch_call = f"{camel}Service.getPublicByIdWithRelations({dyn_param})"
+                else:
+                    fetch_call = f"{camel}Service.getPublicById({dyn_param})"
+                page_parts += [
+                    f"CONTRAT TECHNIQUE — page détail PUBLIQUE (sans auth).",
+                    f"Charger via : `const item = await {fetch_call}`.",
+                    f"Type retour : {serialized}. NE PAS appeler auth() ni redirect.",
+                    f"Passer `<ClientComponent item={{item}} />` au Client Component.",
+                ]
+                client_parts += [
+                    f"Props : `{{ item: {serialized} }}`.",
+                    f"Import type : `import type {{ {serialized} }} from '@/lib/types'`.",
+                    "Page publique — NE PAS importer ni appeler Clerk.",
+                ]
+        else:
+            if page.auth_required:
+                fetch_call = (
+                    f"{camel}Service.getAllWithRelations({owner})"
+                    if has_relations else
+                    f"{camel}Service.getAll({owner})"
+                )
+                page_parts += [
+                    f"CONTRAT TECHNIQUE — page liste/dashboard privée.",
+                    f"Charger via : `const items = await {fetch_call}`.",
+                    f"Type retour : {serialized}[].",
+                    f"Passer `<ClientComponent items={{items}} />` au Client Component.",
+                ]
+                client_parts += [
+                    f"Props : `{{ items: {serialized}[] }}`.",
+                    f"Import type : `import type {{ {serialized} }} from '@/lib/types'`.",
+                ]
+            else:
+                fetch_call = f"{camel}Service.getPublicAll()"
+                page_parts += [
+                    f"CONTRAT TECHNIQUE — page liste PUBLIQUE (sans auth).",
+                    f"Charger via : `const items = await {fetch_call}`.",
+                    f"Type retour : {serialized}[]. NE PAS appeler auth() ni redirect.",
+                    f"Passer `<ClientComponent items={{items}} />` au Client Component.",
+                ]
+                client_parts += [
+                    f"Props : `{{ items: {serialized}[] }}`.",
+                    f"Import type : `import type {{ {serialized} }} from '@/lib/types'`.",
+                    "Page publique — NE PAS importer ni appeler Clerk.",
+                ]
+
+        page_parts.append(f"Import service : `{svc_import}`.")
+
+        contracts[page.path] = (" ".join(page_parts), " ".join(client_parts))
+
+    return contracts
+
+
 def make_deterministic_plan(
     spec: "ProjectSpec",
     template_files: list[str],
@@ -239,6 +391,10 @@ def make_deterministic_plan(
         ))
 
     # ── 3. Pages ───────────────────────────────────────────────────────────────
+    # Contract Generator : contrats techniques par page custom [INTERACTIVE].
+    # Dérivés depuis Level A (contexts) avant tout appel LLM.
+    _contracts = build_page_contracts(spec, contexts)
+
     # Modèles ayant des @relation — pour le fallback page racine (/)
     _models_with_relations = [
         m for m in spec.models
@@ -331,6 +487,12 @@ def make_deterministic_plan(
         # Seules les pages custom [INTERACTIVE] restent à la charge du LLM.
         _pages_detail = getattr(spec, "pages_detail", {}) or {}
         _page_detail_str = str(_pages_detail.get(page.path, ""))
+
+        # Contrat Level A : appel de service exact pour les pages custom [INTERACTIVE]
+        if "[INTERACTIVE]" in _page_detail_str:
+            _page_contract, _ = _contracts.get(page.path, ("", ""))
+            if _page_contract:
+                hint_parts.append(_page_contract)
         _client_file = "app/page-client.tsx" if not ppath else f"app/{ppath}/page-client.tsx"
         _client_hint = ""
 
@@ -341,13 +503,13 @@ def make_deterministic_plan(
                 f"export default function {_comp_name}Client(props: {_comp_name}ClientProps). "
                 f"PROPS INTERFACE : déclarer UNIQUEMENT les props que le Server Component "
                 f"parent peut concrètement passer (données chargées côté serveur). "
-                f"Pour un formulaire de création simple, les props sont vides ou minimales — "
-                f"NE PAS inventer de props required pour des données pré-chargées si le brief "
-                f"ne le demande pas explicitement. "
                 f"Champs nullable → string | null (JAMAIS string | undefined). "
                 f"Importé depuis {file_path} avec DEFAULT import : "
                 f"import {_comp_name}Client from './page-client'."
             )
+            _, _client_contract = _contracts.get(page.path, ("", ""))
+            if _client_contract:
+                _client_hint += f" {_client_contract}"
 
         if _client_hint and _client_file not in template_set:
             entries.append(FilePlanEntry(

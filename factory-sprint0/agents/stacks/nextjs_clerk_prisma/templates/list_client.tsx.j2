@@ -2,9 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-{% if auth_required %}
-import { useRouter } from 'next/navigation'
-{% endif %}
 import type { {{ serialized_type }} } from '@/lib/types'
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
@@ -29,20 +26,24 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
     <main className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{{ name }}s</h1>
+        {% if auth_required %}
         <Link
           href="{{ list_path }}/new"
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
         >
           Nouveau
         </Link>
+        {% endif %}
       </div>
 
       {list.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p className="text-lg">Aucun {{ camel }} pour le moment.</p>
+          {% if auth_required %}
           <Link href="{{ list_path }}/new" className="mt-4 inline-block text-blue-600 hover:underline text-sm">
             Créer le premier
           </Link>
+          {% endif %}
         </div>
       ) : (
         <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
@@ -54,9 +55,11 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                   {{ field }}
                 </th>
                 {% endfor %}
+                {% if auth_required %}
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
+                {% endif %}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -67,6 +70,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                     {String(item.{{ field }} ?? '')}
                   </td>
                   {% endfor %}
+                  {% if auth_required %}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">
                       <Link
@@ -85,6 +89,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                       {% endif %}
                     </div>
                   </td>
+                  {% endif %}
                 </tr>
               ))}
             </tbody>
