@@ -222,6 +222,7 @@ def build_page_contracts(
 def make_deterministic_plan(
     spec: "ProjectSpec",
     template_files: list[str],
+    manifest: "object | None" = None,
     contexts: "dict | None" = None,
 ) -> list[FilePlanEntry]:
     """
@@ -392,8 +393,12 @@ def make_deterministic_plan(
 
     # ── 3. Pages ───────────────────────────────────────────────────────────────
     # Contract Generator : contrats techniques par page custom [INTERACTIVE].
-    # Dérivés depuis Level A (contexts) avant tout appel LLM.
-    _contracts = build_page_contracts(spec, contexts)
+    # Si manifest disponible : lire page_contracts déjà calculés (évite double calcul).
+    # Sinon : calculer depuis contexts (rétrocompatibilité).
+    if manifest is not None and getattr(manifest, "page_contracts", None) is not None:
+        _contracts = manifest.page_contracts
+    else:
+        _contracts = build_page_contracts(spec, contexts)
 
     # Modèles ayant des @relation — pour le fallback page racine (/)
     _models_with_relations = [

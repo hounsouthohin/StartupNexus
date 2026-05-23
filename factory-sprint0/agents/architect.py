@@ -758,6 +758,29 @@ async def planner_node(state: AgentState) -> dict:
                 routes.append(ApiRoute(method=method, path=path))  # type: ignore[arg-type]
                 seen_routes.add(key)
 
+    brief_pages_detail = brief.get("pages_detail", {})
+    if not isinstance(brief_pages_detail, dict):
+        brief_pages_detail = {}
+
+    # ── Post-build : force auth_required=False pour les pages décrivant un comportement public ──
+    # Corrige le cas où brief_writer_node (LLM) met auth=True sur une page qui devrait être publique.
+    # Source de vérité : pages_detail généré par pages_detail_node (déjà dans brief à ce stade).
+    _PUBLIC_SIGNALS = {
+        "public", "sans auth", "sans authentification", "visiteur",
+        "accessible sans connexion", "ne pas appeler auth", "pas d'import clerk",
+        "no auth", "aucune authentification",
+    }
+    for _pg in pages:
+        if not _pg.auth_required:
+            continue  # déjà public, rien à faire
+        _detail = str(brief_pages_detail.get(_pg.path, "")).lower()
+        if any(_sig in _detail for _sig in _PUBLIC_SIGNALS):
+            logger.warning(
+                "[planner] '%s' forcée auth_required=False — pages_detail décrit un comportement public",
+                _pg.path,
+            )
+            _pg.auth_required = False
+
     brief_user_flows = brief.get("user_flows", [])
     user_flows = (
         [str(f) for f in brief_user_flows]
@@ -768,9 +791,6 @@ async def planner_node(state: AgentState) -> dict:
         )
     )
     brief_description = str(brief.get("description", "")).strip()
-    brief_pages_detail = brief.get("pages_detail", {})
-    if not isinstance(brief_pages_detail, dict):
-        brief_pages_detail = {}
 
     brief_enums = brief.get("enums", {})
     if not isinstance(brief_enums, dict):

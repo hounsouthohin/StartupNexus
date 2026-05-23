@@ -30,11 +30,15 @@ _SUBPROCESS_TIMEOUT = 300
 def _apply_targeted_fixes(
     targeted_fixes: List[Dict[str, str]],
     project_workdir: str,
+    protected_paths: "frozenset[str] | None" = None,
 ) -> List[str]:
     """
     Applique les targeted_fixes sur le disque.
     Chaque fix = {file, current_code, fix_code, reason}.
     Retourne la liste des fichiers effectivement modifiés.
+
+    protected_paths — ensemble de chemins relatifs (ex: "prisma.config.ts") qui ne doivent
+                      jamais être modifiés ici, même si le reviewer les cible par erreur.
     """
     modified: List[str] = []
     base = pathlib.Path(project_workdir)
@@ -47,6 +51,13 @@ def _apply_targeted_fixes(
 
         if not rel_path or not fix_code:
             activity.logger.warning(f"[correction_pass] Fix ignoré — file ou fix_code absent: {fix}")
+            continue
+
+        # Guard fichiers protégés — jamais modifiés par correction_pass
+        if protected_paths and rel_path in protected_paths:
+            activity.logger.warning(
+                f"[correction_pass] Fix ignoré — fichier protégé (scope overflow) : {rel_path}"
+            )
             continue
 
         # Guard path traversal
@@ -213,8 +224,23 @@ async def correction_pass_activity(
             f"Project workdir introuvable: {project_workdir}",
         )
 
+    # Charger les fichiers protégés depuis la stack config (source de vérité unique).
+    # Empêche le reviewer d'écraser des fichiers invariants comme prisma.config.ts.
+    _protected_paths: frozenset[str] = frozenset({
+        "lib/prisma.ts", "prisma.config.ts", "prisma/schema.prisma",
+        ".eslintrc.stack.json", "middleware.ts",
+    })
+    try:
+        from agents.stack_config import load_stack_config
+        _cfg = load_stack_config(stack_id)
+        _from_config = _cfg.get("protected_files", [])
+        if _from_config:
+            _protected_paths = frozenset(_from_config) | _protected_paths
+    except Exception as _pe:
+        activity.logger.warning("[correction_pass] stack_config non disponible — protected_paths par défaut : %s", _pe)
+
     # 1. Application des fixes sur disque
-    files_modified = _apply_targeted_fixes(targeted_fixes, project_workdir)
+    files_modified = _apply_targeted_fixes(targeted_fixes, project_workdir, protected_paths=_protected_paths)
 
     if not files_modified:
         activity.logger.warning("[correction_pass] Aucun fichier modifié — fixes non appliqués")

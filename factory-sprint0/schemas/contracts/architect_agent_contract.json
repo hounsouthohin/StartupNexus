@@ -42,7 +42,7 @@
                 "path": {"type": "string"},
                 "auth": {"type": "boolean"},
                 "model": {"type": "string"},
-                "page_type": {"type": "string", "enum": ["list", "create", "detail", "detail-slug", "custom"]}
+                "page_type": {"type": "string", "enum": ["list", "create", "detail", "detail-slug", "edit", "custom"]}
               },
               "required": ["path"]
             },

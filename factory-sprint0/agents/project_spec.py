@@ -170,6 +170,24 @@ class ProjectSpec(BaseModel):
         description="Hash SHA256 des noms critiques — calculé automatiquement"
     )
 
+    # Noms de modèles interdits : Clerk gère l'authentification — un modèle User
+    # dans Prisma crée des TS2339 (userId vs User.id) et viole STACK_INVARIANTS.
+    _FORBIDDEN_MODEL_NAMES: set[str] = {"User", "Account", "Session", "VerificationToken"}
+
+    @model_validator(mode="after")
+    def strip_forbidden_models(self) -> "ProjectSpec":
+        import logging as _log
+        _logger = _log.getLogger(__name__)
+        filtered = [m for m in self.models if m.name not in self._FORBIDDEN_MODEL_NAMES]
+        if len(filtered) < len(self.models):
+            removed = [m.name for m in self.models if m.name in self._FORBIDDEN_MODEL_NAMES]
+            _logger.warning(
+                "[ProjectSpec] modèles interdits retirés (géré par Clerk) : %s",
+                removed,
+            )
+            self.models = filtered
+        return self
+
     def compute_fingerprint(self) -> str:
         """Hash déterministe : noms modèles + owner_fields + pages + routes + pages_detail."""
         elements = sorted(

@@ -295,10 +295,12 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
                 "  },",
             ]
         else:
+            # Filtre Boolean published si présent — évite d'exposer les records non publiés.
+            _pub_filter = "where: { published: true }, " if getattr(ctx, "has_published_bool", False) else ""
             lines += [
                 "",
                 f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
-                f"    const items = await prisma.{camel}.findMany({{ select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+                f"    const items = await prisma.{camel}.findMany({{ {_pub_filter}select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
                 f"    return items.map({_map}) as {serialized}[]",
                 "  },",
             ]

@@ -221,14 +221,35 @@ def generate_root_page_if_needed(spec: "ProjectSpec", project_workdir: str) -> b
     )
     redirect_target = first_real_page or "/sign-in"
 
-    content = "\n".join([
-        "import { redirect } from 'next/navigation'",
-        "",
-        "export default function Home() {",
-        f"  redirect('{redirect_target}')",
-        "}",
-        "",
-    ])
+    # Si la cible est une page auth-required : guard auth() obligatoire.
+    # Utilisateurs authentifiés → redirect_target, non-authentifiés → /sign-in.
+    # Sans ce guard, redirect('/dashboard') s'exécute AVANT l'auth check → TS review warning.
+    target_page = next(
+        (p for p in spec.pages if p.path == redirect_target and p.auth_required),
+        None,
+    )
+
+    if target_page is not None:
+        content = "\n".join([
+            "import { auth } from '@clerk/nextjs/server'",
+            "import { redirect } from 'next/navigation'",
+            "",
+            "export default async function Home() {",
+            "  const { userId } = await auth()",
+            f"  if (userId) redirect('{redirect_target}')",
+            "  redirect('/sign-in')",
+            "}",
+            "",
+        ])
+    else:
+        content = "\n".join([
+            "import { redirect } from 'next/navigation'",
+            "",
+            "export default function Home() {",
+            f"  redirect('{redirect_target}')",
+            "}",
+            "",
+        ])
 
     with open(page_path, "w", encoding="utf-8") as f:
         f.write(content)

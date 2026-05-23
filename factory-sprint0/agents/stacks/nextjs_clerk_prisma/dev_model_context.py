@@ -125,9 +125,10 @@ class ModelGenerationContext:
     display_fields: list[str]
 
     # ── Feature flags ─────────────────────────────────────────────────────────
-    has_slug: bool       # modèle a un champ "slug" → active getBySlug() et detail-slug pages
-    has_status: bool     # modèle a un champ "status" → badge coloré + getPublished()
-    has_relations: bool  # au moins un @relation → active getAllWithRelations()
+    has_slug: bool            # modèle a un champ "slug" → active getBySlug() et detail-slug pages
+    has_status: bool          # modèle a un champ "status" → badge coloré + getPublished()
+    has_published_bool: bool  # modèle a un champ "Boolean published" → filtre getPublicAll()
+    has_relations: bool       # au moins un @relation → active getAllWithRelations()
 
     # ── Contexte pages (nécessite spec) ───────────────────────────────────────
     # has_public_pages : au moins une page auth=False avec model=ce modèle.
@@ -303,6 +304,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
     relation_fields: list[RelationFieldInfo] = []
     has_slug = False
     has_status = False
+    has_published_bool = False
 
     for f in model.fields:
         fname_lower = f.name.lower()
@@ -315,6 +317,8 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
             has_slug = True
         if fname_lower == "status":
             has_status = True
+        if fname_lower == "published" and base_type == "Boolean":
+            has_published_bool = True
 
         # Relations — détectées via la logique canonique unique
         if _is_relation(f.type, f.attributes, spec_enums):
@@ -377,6 +381,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         display_fields=_resolve_display_fields(model, owner, frozenset(model_names)),
         has_slug=has_slug,
         has_status=has_status,
+        has_published_bool=has_published_bool,
         has_relations=bool(relation_fields),
         has_public_pages=has_public_pages,
         has_public_list=has_public_list,

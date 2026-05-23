@@ -120,6 +120,7 @@ def build_role_context(
     workdir: str,
     service_map_str: str = "",
     cache: dict[str, str] | None = None,
+    manifest=None,
 ) -> str:
     """
     Construit le bloc de dépendances injecté dans le HumanMessage pour un fichier.
@@ -128,10 +129,12 @@ def build_role_context(
       - Dépendances disque exactes (types.ts, service.ts, schemas.ts, actions.ts…)
       - Standard RAG ciblé sur ce type de fichier (chronologie correcte)
 
-    cache — dict partagé pour le run courant (évite N requêtes Qdrant identiques
-    pour N fichiers du même rôle). Passé depuis run_dev_agent via closure.
+    cache    — dict partagé pour le run courant (évite N requêtes Qdrant identiques
+               pour N fichiers du même rôle). Passé depuis run_dev_agent via closure.
+    manifest — LevelAManifest optionnel. Améliore la résolution service pour les
+               pages custom (ex: /dashboard) où page.model n'est pas déclaré.
     """
-    dep = _build_dep(role, path, spec_obj, workdir, service_map_str)
+    dep = _build_dep(role, path, spec_obj, workdir, service_map_str, manifest=manifest)
 
     # P2.1 — standard Qdrant injecté au bon moment (pas au démarrage du run)
     rag_block = _rag_for_role(role, cache=cache)
@@ -149,6 +152,7 @@ def _build_dep(
     spec_obj,
     workdir: str,
     service_map_str: str,
+    manifest=None,
 ) -> str:
     if role == "service":
         return _dep_service(workdir)
@@ -159,7 +163,7 @@ def _build_dep(
     elif role == "page_client":
         return _dep_page_client(path, spec_obj, workdir)
     elif role == "page":
-        return _dep_page(path, spec_obj, workdir)
+        return _dep_page(path, spec_obj, workdir, manifest=manifest)
     return ""
 
 
@@ -308,7 +312,7 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
     return dep
 
 
-def _dep_page(path: str, spec_obj, workdir: str) -> str:
+def _dep_page(path: str, spec_obj, workdir: str, manifest=None) -> str:
     dep = ""
     seg = path.split("/")[-2] if path.count("/") >= 2 else ""
 
@@ -317,6 +321,22 @@ def _dep_page(path: str, spec_obj, workdir: str) -> str:
         svc_content = _read_file_safe(
             os.path.join(workdir, "lib", "services", f"{kb}.service.ts"), 400
         )
+
+        # Fallback manifest : si _find_service_for_segment n'a pas trouvé de service sur disque,
+        # chercher via list_page_path (ex: /dashboard → Project si list_page_path=/dashboard/projects).
+        if not svc_content and manifest is not None:
+            try:
+                from .level_a_manifest import find_model_for_path_segment
+                mm = find_model_for_path_segment(manifest, seg)
+                if mm is not None:
+                    kb = mm.kebab
+                    camel = mm.service_var
+                    svc_content = _read_file_safe(
+                        os.path.join(workdir, "lib", "services", f"{kb}.service.ts"), 400
+                    )
+            except Exception:
+                pass
+
         if svc_content:
             dep = (
                 f"\nlib/services/{kb}.service.ts"

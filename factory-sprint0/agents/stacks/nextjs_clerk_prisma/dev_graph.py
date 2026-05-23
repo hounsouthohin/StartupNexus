@@ -449,10 +449,35 @@ async def run_dev_agent(
     if spec_obj is not None:
         try:
             from .dev_service_generator import format_service_map_for_prompt
-            _service_map_str = format_service_map_for_prompt(spec_obj)
+            # Passer _model_contexts évite de recalculer build_all_contexts une seconde fois.
+            _service_map_str = format_service_map_for_prompt(spec_obj, contexts=_model_contexts or None)
             logger.info("[dev_graph] Service map calculé (%d modèles)", len(spec_obj.models))
         except Exception as _sg_err:
             logger.warning(f"[dev_graph] service map non bloquant : {_sg_err}")
+
+    # ── LevelAManifest — contrat structuré Level A → dev_test ────────
+    # Assemblé UNE SEULE FOIS après tous les générateurs déterministes.
+    # Expose models (méthodes typées), template_written, page_contracts, service_map_str.
+    # Consommé par planner_node (page_contracts) et executor_node (dep page service lookup).
+    _level_a_manifest = None
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .level_a_manifest import build_level_a_manifest as _build_manifest
+            from agents.planner import build_page_contracts as _bpc
+            _page_contracts = _bpc(spec_obj, _model_contexts)
+            _level_a_manifest = _build_manifest(
+                spec_obj,
+                _model_contexts,
+                template_written,
+                _service_map_str,
+                page_contracts=_page_contracts,
+            )
+            logger.info(
+                "[dev_graph] LevelAManifest assemblé : %d modèles, %d contrats de pages",
+                len(_level_a_manifest.models), len(_level_a_manifest.page_contracts),
+            )
+        except Exception as _me:
+            logger.warning("[dev_graph] LevelAManifest non bloquant : %s", _me)
 
     # ── Extraction du Type Map Prisma réel ───────────────────────────
     # Après prisma generate, lit node_modules/.prisma/client/index.d.ts
@@ -527,7 +552,7 @@ async def run_dev_agent(
             logger.error("[planner] ProjectSpec invalide — plan vide : %s", _pe)
             return {"file_plan": None}  # None = signal d'échec (distinct de [] = plan vide légitime)
         _tpl = list(template_written.keys())
-        _plan = make_deterministic_plan(_spec_local, _tpl, contexts=_model_contexts)
+        _plan = make_deterministic_plan(_spec_local, _tpl, manifest=_level_a_manifest, contexts=_model_contexts)
         _missing = validate_plan(_plan, _spec_local, _tpl)
         if _missing:
             logger.warning("[planner] fichiers non couverts par le plan : %s", _missing)
@@ -592,6 +617,7 @@ async def run_dev_agent(
                         _deps_ctx = _brc_corr(
                             _err_entry["role"], _err_file, spec_obj,
                             project_workdir, _service_map_str, cache=_rag_cache,
+                            manifest=_level_a_manifest,
                         )
                     except Exception:
                         pass
@@ -652,7 +678,7 @@ async def run_dev_agent(
                 )
 
                 # Dépendances disque + standard RAG ciblé sur ce rôle (dev_context.py).
-                _dep = build_role_context(_role, _path, spec_obj, project_workdir, _service_map_str, cache=_rag_cache)
+                _dep = build_role_context(_role, _path, spec_obj, project_workdir, _service_map_str, cache=_rag_cache, manifest=_level_a_manifest)
 
                 # Phase 8 — Example-anchored prompting.
                 # Injecte le dernier fichier écrit du même rôle comme exemple concret.
