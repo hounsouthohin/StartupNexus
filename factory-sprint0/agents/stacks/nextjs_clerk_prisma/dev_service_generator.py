@@ -314,6 +314,12 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             "    if (!item) notFound()",
             "    return _serialize(item)",
             "  },",
+            "",
+            f"  getBySlugOwned: async ({owner}: string, slug: string): Promise<{serialized}> => {{",
+            f"    const item = await prisma.{camel}.findFirst({{ where: {{ slug, {owner} }} }})",
+            "    if (!item) notFound()",
+            "    return _serialize(item)",
+            "  },",
         ]
 
     # ── getAllWithRelations + getByIdWithRelations (privé — nested select) ───────

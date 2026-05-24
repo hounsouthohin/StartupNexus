@@ -91,6 +91,7 @@ class StatusFlowModule(FeatureModule):
                 status_field="status",
                 status_values=status_values,
                 has_search=has_search,
+                has_slug=ctx.has_slug,
             )
         except Exception as e:
             logger.error("[module_status_flow] rendu template échoué pour %s : %s", ctx.name, e)

@@ -82,6 +82,7 @@ class SearchModule(FeatureModule):
                 title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
                 auth_required=auth_required,
                 has_delete=auth_required,
+                has_slug=ctx.has_slug,
             )
         except Exception as e:
             logger.error("[module_search] rendu template échoué pour %s : %s", ctx.name, e)

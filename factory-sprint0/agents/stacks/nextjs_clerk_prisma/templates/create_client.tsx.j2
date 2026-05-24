@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useFormState } from 'react-dom'
 import Link from 'next/link'
 import { create{{ name }} } from '{{ actions_import }}'
 {% for fk in fk_fields %}
@@ -14,7 +14,7 @@ interface {{ client_name }}Props {
 {% endif %}
 
 export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure }} }: {{ client_name }}Props{% endif %}) {
-  const [error, formAction, isPending] = useActionState(
+  const [error, formAction, isPending] = useFormState(
     async (_prev: unknown, formData: FormData) => {
       try { await create{{ name }}(formData); return null }
       catch (e) { return (e as Error).message }

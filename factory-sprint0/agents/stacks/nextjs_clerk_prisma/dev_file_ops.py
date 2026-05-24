@@ -82,6 +82,13 @@ def write_template_files(
                 continue
             content = template_path.read_text(encoding="utf-8")
             content = content.replace("{project_name}", project_name)
+            # Injecte la route principale depuis le spec (première page list)
+            _pages = spec_dict.get("pages", []) or []
+            _main_route = next(
+                (p.get("path", "/") for p in _pages if isinstance(p, dict) and p.get("page_type") == "list"),
+                "/",
+            )
+            content = content.replace("{main_route}", _main_route)
             dest_path = pathlib.Path(workdir) / dest_filename
             dest_path.parent.mkdir(parents=True, exist_ok=True)
             dest_path.write_text(content, encoding="utf-8")

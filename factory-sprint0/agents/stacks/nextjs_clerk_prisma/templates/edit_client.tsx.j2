@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useFormState } from 'react-dom'
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
 {% for fk in fk_fields %}
@@ -16,7 +16,7 @@ interface {{ client_name }}Props {
 }
 
 export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk.related_camel }}Options{% endfor %} }: {{ client_name }}Props) {
-  const [error, formAction, isPending] = useActionState(
+  const [error, formAction, isPending] = useFormState(
     async (_prev: unknown, formData: FormData) => {
       try { await update{{ name }}.bind(null, item.id)(formData); return null }
       catch (e) { return (e as Error).message }
@@ -33,7 +33,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}
 
-      <form action={update{{ name }}.bind(null, item.id)} className="space-y-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <form action={formAction} className="space-y-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
         {% for field in editable_fields %}
         <div>
           <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-gray-700 mb-1">
@@ -68,6 +68,14 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             <option value="{{ val }}">{{ val }}</option>
             {% endfor %}
           </select>
+          {% elif field.input_type == 'date' %}
+          <input
+            type="date"
+            id="{{ field.name }}"
+            name="{{ field.name }}"
+            defaultValue={item.{{ field.name }} ? (item.{{ field.name }} as string).slice(0, 10) : ''}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           {% elif field.input_type == 'datetime-local' %}
           <input
             type="datetime-local"

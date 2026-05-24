@@ -93,6 +93,19 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
                 )
                 files.append(client_file)
 
+    # Fallback Level A → LLM : inclure page-client.tsx CRUD dans la checklist LLM.
+    # Si Level A a réussi → fichier dans template_written → dans pre_written_files
+    # → filtré par build_system_prompt (files_to_generate) → LLM ne le régénère pas.
+    # Si Level A a échoué silencieusement → pas dans pre_written_files → LLM le génère
+    # → évite TS2307 "Cannot find module './page-client'" sur page.tsx généré.
+    for _pc_page in spec.pages:
+        _pc_ptype = getattr(_pc_page, "page_type", None)
+        if _pc_ptype not in ("list", "create", "detail", "detail-slug"):
+            continue
+        _pc_path = _pc_page.path.strip("/")
+        _pc_file = f"app/{_pc_path}/page-client.tsx" if _pc_path else "app/page-client.tsx"
+        files.append(_pc_file)
+
     # Pages edit — PRÉ-GÉNÉRÉES (Level A) pour les modèles avec intent CRUD.
     _create_model_names: set[str] = {
         getattr(p, "model", None)
@@ -106,7 +119,9 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
         list_page = spec.get_list_page_for_model(model.name)
         if list_page:
             route_dir = list_page.lstrip("/")
-            files.append(f"app/{route_dir}/[id]/edit/page.tsx")
+            _model_has_slug = any(f.name.lower() == "slug" for f in model.fields)
+            _slug_or_id = "[slug]" if _model_has_slug else "[id]"
+            files.append(f"app/{route_dir}/{_slug_or_id}/edit/page.tsx")
 
     # Déduplique en préservant l'ordre
     seen: set[str] = set()

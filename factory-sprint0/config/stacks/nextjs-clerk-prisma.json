@@ -149,7 +149,7 @@
     ],
     "orm_rules": [
       "Le schema Prisma autorise est prisma/schema.prisma; prisma.config.ts reste template de stack.",
-      "schema.prisma DOIT contenir datasource db avec provider = \"postgresql\", url = env(\"DATABASE_URL\") et directUrl = env(\"DIRECT_DATABASE_URL\").",
+      "schema.prisma DOIT contenir datasource db avec uniquement provider = \"postgresql\" — url et directUrl sont INTERDITS dans schema.prisma (Prisma 7 : ils vont dans prisma.config.ts via defineConfig.datasource.url).",
       "datasource db dans schema.prisma est généré déterministiquement par la factory — NE PAS le modifier, ce fichier est protégé.",
       "generator client doit utiliser provider = \"prisma-client-js\".",
       "lib/prisma.ts doit instancier PrismaClient avec PrismaPg adapter.",

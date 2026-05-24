@@ -96,6 +96,7 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
         title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
         auth_required=auth_required,
         has_delete=auth_required,
+        has_slug=ctx.has_slug,
     )
 
 
@@ -245,7 +246,8 @@ def generate_all_page_clients(
 
         try:
             route = list_path.lstrip("/")
-            rel = f"app/{route}/[id]/edit/page-client.tsx"
+            slug_or_id = "[slug]" if ctx.has_slug else "[id]"
+            rel = f"app/{route}/{slug_or_id}/edit/page-client.tsx"
             content = _gen_edit_client(ctx, model_contexts)
         except Exception as _edit_err:
             logger.error("[form_gen] erreur edit %s : %s", model.name, _edit_err)

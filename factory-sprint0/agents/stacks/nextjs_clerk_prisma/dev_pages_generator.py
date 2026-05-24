@@ -522,10 +522,10 @@ def _find_detail_model(page, spec):
 
 # ── Edit pages (CRUD update form) ────────────────────────────────────────────
 
-def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]") -> str:
+def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug: bool = False) -> str:
     """
     page.tsx déterministe pour la page edit d'un modèle :
-    auth() + getById(userId, params.id) + fetch FK options + <EditClient item={item} ...options />
+    auth() + getById(userId, params.id/slug) + fetch FK options + <EditClient item={item} ...options />
     fk_list : liste de (field_name, related_model, related_camel) depuis ModelGenerationContext.fk_fields
     """
     name = model_obj.name
@@ -533,6 +533,7 @@ def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]") -> str:
     kebab = pascal_to_kebab(name)
     client = f"{name}EditClient"
     component = f"{name}EditPage"
+    param_key = "slug" if has_slug else "id"
 
     lines: list[str] = [
         "import { auth } from '@clerk/nextjs/server'",
@@ -547,15 +548,16 @@ def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]") -> str:
             f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
         )
 
+    lookup_method = "getBySlugOwned" if has_slug else "getById"
     lines += [
         f"import {client} from './page-client'",
         "",
         "export const dynamic = 'force-dynamic'",
         "",
-        f"export default async function {component}({{ params }}: {{ params: {{ id: string }} }}) {{",
+        f"export default async function {component}({{ params }}: {{ params: {{ {param_key}: string }} }}) {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
-        f"  const item = await {camel}Service.getById(userId, params.id)",
+        f"  const item = await {camel}Service.{lookup_method}(userId, params.{param_key})",
         "  if (!item) notFound()",
     ]
 
@@ -623,14 +625,16 @@ def generate_edit_page_stubs(
             )
             continue
         route_dir = list_path.lstrip("/")
-        edit_dir = f"app/{route_dir}/[id]/edit"
+        ctx = (contexts or {}).get(model.name)
+        has_slug = bool(ctx and ctx.has_slug)
+        slug_or_id = "[slug]" if has_slug else "[id]"
+        edit_dir = f"app/{route_dir}/{slug_or_id}/edit"
 
         page_rel = f"{edit_dir}/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
 
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)
 
-        ctx = (contexts or {}).get(model.name)
         # Convertit FKFieldInfo → (field_name, related_model, related_camel) pour _gen_page_full_edit
         fk_list_for_edit: list[tuple[str, str, str]] = [
             (fk.field_name, fk.related_model, fk.related_camel)
@@ -638,7 +642,7 @@ def generate_edit_page_stubs(
         ]
 
         if not os.path.exists(page_abs):
-            page_content = _gen_page_full_edit(model, fk_list_for_edit)
+            page_content = _gen_page_full_edit(model, fk_list_for_edit, has_slug=has_slug)
             with open(page_abs, "w", encoding="utf-8") as f:
                 f.write(page_content)
             written[page_rel] = page_content
