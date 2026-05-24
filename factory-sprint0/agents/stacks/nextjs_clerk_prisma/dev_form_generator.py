@@ -76,9 +76,13 @@ def _fk_to_ctx(fk, display: str) -> dict:
 
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
-def _gen_list_client(page, ctx: ModelGenerationContext) -> str:
+def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     auth_required = getattr(page, "auth_required", True)
+    fields = ctx.display_fields[:2]
+    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
+    _model_labels = _ui_labels.get(ctx.name, {})
+    _title_plurals = getattr(spec, "title_plurals", {}) or {} if spec else {}
     return _render(
         "list_client.tsx.j2",
         name=ctx.name,
@@ -87,7 +91,9 @@ def _gen_list_client(page, ctx: ModelGenerationContext) -> str:
         client_name=path_to_client_component(page.path),
         list_path=list_path,
         list_dir=list_path.lstrip("/"),
-        display_fields=ctx.display_fields[:2],
+        display_fields=fields,
+        field_labels={f: _model_labels.get(f, f) for f in fields},
+        title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
         auth_required=auth_required,
         has_delete=auth_required,
     )
@@ -206,7 +212,7 @@ def generate_all_page_clients(
         try:
             if page_type == "list":
                 rel = f"app/{page_path_clean}/page-client.tsx" if page_path_clean else "app/page-client.tsx"
-                content = _gen_list_client(page, ctx)
+                content = _gen_list_client(page, ctx, spec=spec)
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_create_client(page, ctx, model_contexts)

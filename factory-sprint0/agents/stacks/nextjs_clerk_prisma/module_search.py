@@ -38,6 +38,10 @@ class SearchModule(FeatureModule):
     def should_activate(self, enriched_spec, ctx) -> bool:
         if not ctx.list_page_path:
             return False
+        # module_status_flow gère ce cas : list_client_status.tsx.j2 intègre
+        # la barre de recherche via has_search — pas besoin d'un fichier intermédiaire.
+        if ctx.has_status:
+            return False
         if enriched_spec and enriched_spec.has_feature("search"):
             return True
         # Heuristique : modèle avec au moins un champ String éditable non-FK
@@ -60,6 +64,11 @@ class SearchModule(FeatureModule):
         client_name = path_to_client_component(list_page.path) if list_page else f"{ctx.name}ListClient"
         auth_required = getattr(list_page, "auth_required", True) if list_page else True
 
+        fields = ctx.display_fields[:2]
+        _ui_labels = getattr(spec, "ui_labels", {}) or {}
+        _model_labels = _ui_labels.get(ctx.name, {})
+        _title_plurals = getattr(spec, "title_plurals", {}) or {}
+
         try:
             content = _jinja_env.get_template("list_client_search.tsx.j2").render(
                 name=ctx.name,
@@ -68,7 +77,9 @@ class SearchModule(FeatureModule):
                 client_name=client_name,
                 list_path=list_path,
                 list_dir=list_dir,
-                display_fields=ctx.display_fields[:2],
+                display_fields=fields,
+                field_labels={f: _model_labels.get(f, f) for f in fields},
+                title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
                 auth_required=auth_required,
                 has_delete=auth_required,
             )

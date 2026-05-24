@@ -260,7 +260,12 @@ def _resolve_fk_fields(model, model_names: set[str], owner: str) -> list[FKField
     return result
 
 
-def _resolve_display_fields(model, owner: str, model_names: "frozenset[str] | None" = None) -> list[str]:
+def _resolve_display_fields(
+    model,
+    owner: str,
+    model_names: "frozenset[str] | None" = None,
+    spec_enums: "dict | None" = None,
+) -> list[str]:
     """Jusqu'à 4 champs scalaires affichables (non-système, non-relation, non-FK, non-slug)."""
     excluded = {"id", "createdAt", "updatedAt", "slug", owner}
     result: list[str] = []
@@ -275,7 +280,8 @@ def _resolve_display_fields(model, owner: str, model_names: "frozenset[str] | No
             related = base[0].upper() + base[1:] if base else ""
             if related in model_names or any(mn.endswith(related) for mn in model_names if related):
                 continue
-        if f.type.rstrip("?") in ("String", "Int", "Float", "Boolean", "DateTime"):
+        base_type = f.type.rstrip("?").rstrip("[]")
+        if base_type in ("String", "Int", "Float", "Boolean", "DateTime") or (spec_enums and base_type in spec_enums):
             result.append(f.name)
         if len(result) >= 4:
             break
@@ -378,7 +384,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         fk_fields=fk_fields,
         datetime_fields=datetime_fields,
         relation_fields=relation_fields,
-        display_fields=_resolve_display_fields(model, owner, frozenset(model_names)),
+        display_fields=_resolve_display_fields(model, owner, frozenset(model_names), spec_enums=spec_enums),
         has_slug=has_slug,
         has_status=has_status,
         has_published_bool=has_published_bool,

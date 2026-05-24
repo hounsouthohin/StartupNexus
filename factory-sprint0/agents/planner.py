@@ -67,6 +67,119 @@ class FilePlanEntry(BaseModel):
     context_hint: str = ""
 
 
+def _match_flows_to_page(page_path: str, user_flows: list) -> list[str]:
+    """
+    Retourne les user_flows qui concernent une page donnée.
+    Match sur le chemin exact (/dashboard) ou le segment final (dashboard).
+    """
+    if not user_flows:
+        return []
+    path_lower = page_path.lower()
+    segs = [s for s in path_lower.strip("/").split("/") if s and not s.startswith("[")]
+    matched = []
+    for flow in user_flows:
+        flow_lower = str(flow).lower()
+        if path_lower in flow_lower:
+            matched.append(flow)
+        elif segs and any(seg in flow_lower for seg in segs):
+            matched.append(flow)
+    return matched
+
+
+def build_custom_page_contracts(
+    spec: "ProjectSpec",
+    contexts: "dict | None" = None,
+) -> "dict[str, str]":
+    """
+    Génère des contrats pour les pages custom (page_type='custom', sans modèle lié).
+    Source : user_flows de l'architect + signatures de services disponibles.
+
+    Retourne {page_path: hint_str} à injecter dans context_hint de page.tsx.
+    """
+    user_flows = getattr(spec, "user_flows", []) or []
+    contracts: dict[str, str] = {}
+
+    for page in spec.pages:
+        page_type = getattr(page, "page_type", "custom")
+        if page_type != "custom":
+            continue
+
+        hint_parts: list[str] = []
+
+        # 1. User flows matchés à cette page
+        matched_flows = _match_flows_to_page(page.path, user_flows)
+        if matched_flows:
+            hint_parts.append(
+                f"USER FLOWS à implémenter sur cette page : {' | '.join(matched_flows)}."
+            )
+
+        # 2. Services disponibles avec leurs appels pertinents
+        svc_lines: list[str] = []
+        for model in spec.models:
+            camel = _pascal_to_camel(model.name)
+            kebab = _pascal_to_kebab(model.name)
+            owner = model.resolved_owner()
+            ctx = contexts.get(model.name) if contexts else None
+            has_public = bool(getattr(ctx, "has_public_pages", False)) if ctx else False
+            has_status = bool(getattr(ctx, "has_status", False)) if ctx else False
+
+            calls = [f"{camel}Service.getAll({owner})"]
+            if has_status and has_public:
+                calls.append(f"{camel}Service.getPublished() → uniquement publiés")
+            elif has_status:
+                # Pour dashboard : count par statut via getAll puis .filter()
+                calls.append(f"(filtrer getAll par status pour comptage)")
+
+            svc_lines.append(
+                f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service' "
+                f"[appels : {', '.join(calls)}]"
+            )
+
+        if svc_lines:
+            hint_parts.append(f"SERVICES DISPONIBLES : {' | '.join(svc_lines)}.")
+
+        # 3. Hint spécifique dashboard / hub
+        path_lower = page.path.lower()
+        if any(kw in path_lower for kw in ("dashboard", "hub", "overview", "home", "accueil")):
+            # Construire les appels de stats concrets depuis les modèles
+            stat_calls: list[str] = []
+            link_suggestions: list[str] = []
+            for model in spec.models:
+                camel = _pascal_to_camel(model.name)
+                kebab = _pascal_to_kebab(model.name)
+                owner = model.resolved_owner()
+                ctx = contexts.get(model.name) if contexts else None
+                has_public = bool(getattr(ctx, "has_public_pages", False)) if ctx else False
+                has_status = bool(getattr(ctx, "has_status", False)) if ctx else False
+                list_path = getattr(ctx, "list_page_path", f"/{kebab}s") if ctx else f"/{kebab}s"
+
+                stat_calls.append(
+                    f"const {camel}s = await {camel}Service.getAll({owner})"
+                    f" → total={camel}s.length"
+                )
+                if has_status and has_public:
+                    stat_calls.append(
+                        f"const published{model.name}s = await {camel}Service.getPublished()"
+                        f" → publishedCount=published{model.name}s.length"
+                    )
+                link_suggestions.append(f"'{list_path}/new' (créer {model.name})")
+                link_suggestions.append(f"'{list_path}' (gérer {model.name}s)")
+
+            if stat_calls:
+                hint_parts.append(
+                    f"STRUCTURE DASHBOARD : "
+                    f"(1) Charger les données : {'; '.join(stat_calls[:4])}. "
+                    f"(2) Afficher des cartes de statistiques (total, publiés...). "
+                    f"(3) Inclure des liens rapides : {', '.join(link_suggestions[:4])}. "
+                    f"Passer toutes les données calculées comme props au Client Component."
+                )
+
+        if hint_parts:
+            contracts[page.path] = " ".join(hint_parts)
+
+    return contracts
+
+
 def build_page_contracts(
     spec: "ProjectSpec",
     contexts: "dict | None" = None,
@@ -400,6 +513,9 @@ def make_deterministic_plan(
     else:
         _contracts = build_page_contracts(spec, contexts)
 
+    # Contrats pour pages custom (page_type="custom") — user_flows → directives LLM
+    _custom_contracts = build_custom_page_contracts(spec, contexts)
+
     # Modèles ayant des @relation — pour le fallback page racine (/)
     _models_with_relations = [
         m for m in spec.models
@@ -498,6 +614,13 @@ def make_deterministic_plan(
             _page_contract, _ = _contracts.get(page.path, ("", ""))
             if _page_contract:
                 hint_parts.append(_page_contract)
+
+        # Contrat pages custom (page_type="custom") — user_flows + services disponibles
+        _page_type = getattr(page, "page_type", "custom")
+        if _page_type == "custom":
+            _custom_contract = _custom_contracts.get(page.path, "")
+            if _custom_contract:
+                hint_parts.append(_custom_contract)
         _client_file = "app/page-client.tsx" if not ppath else f"app/{ppath}/page-client.tsx"
         _client_hint = ""
 

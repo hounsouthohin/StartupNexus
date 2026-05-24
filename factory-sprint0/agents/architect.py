@@ -55,6 +55,7 @@ Les virgules DANS les attributs comme @relation(..., ...) ne comptent PAS comme 
 - `/{model-kebab}/new` : création (auth: true TOUJOURS)
 - `/{model-kebab}/[id]` : détail par id (auth selon visibilité)
 - `/{model-kebab}/[slug]` : détail par slug si le modèle a un champ `slug` (page_type: "detail-slug", auth: false)
+- **RÈGLE LISTE+SLUG OBLIGATOIRE** : Si des visiteurs peuvent PARCOURIR ET CONSULTER les entrées via URL lisible (slug) sans se connecter, générer OBLIGATOIREMENT les deux pages : `/{model-kebab}` (auth: false, page_type: "list", model: ModelName) ET `/{model-kebab}/[slug]` (auth: false, page_type: "detail-slug", model: ModelName). Ne jamais générer uniquement le détail-slug sans la page liste publique correspondante.
 - Ne PAS générer `/[id]/edit` sauf si le brief le demande explicitement
 
 ### Routes API
@@ -85,7 +86,13 @@ Phrasés qui déclenchent **Boolean** (PAS enum) :
 Phrasés qui déclenchent **enum** :
 - 3 états ou plus : "pending/approved/rejected", "draft/sent/paid", "todo/in_progress/done"
 - Le brief contient explicitement le mot "enum" : "statut géré par un enum (draft, published, archived)"
-- 2 états avec workflow de transition nommé (ex: "l'admin peut approuver ou refuser")\
+- 2 états avec workflow de transition nommé (ex: "l'admin peut approuver ou refuser")
+
+### RÈGLE 3 — Modèle lookup (Category/Tag/Type) et FK obligatoire
+Si tu crées un modèle séparé (Category, Tag, Type, Label…) parce que le brief le demande explicitement, le modèle principal DOIT référencer ce lookup via une FK.
+- Recipe avec Category → Recipe DOIT avoir `categoryId String` + `category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)` ET Category DOIT avoir `recipes Recipe[]`.
+- Article avec Category → même pattern.
+- **Un modèle lookup créé sans FK depuis le modèle principal est une erreur de modélisation** — le lookup serait orphelin dans l'UI.\
 """
 
 _FEW_SHOT_EXAMPLES = """\
@@ -112,10 +119,18 @@ Sortie :
   ],
   "routes": [],
   "user_flows": [
-    "L'utilisateur crée une tâche depuis /tasks/new",
-    "L'utilisateur consulte sa liste de tâches à /tasks",
-    "L'utilisateur lit le détail et commente à /tasks/[id]"
+    "Sur /tasks/new : l'utilisateur remplit le formulaire et crée une tâche",
+    "Sur /tasks : l'utilisateur consulte et filtre sa liste de tâches par statut",
+    "Sur /tasks/[id] : l'utilisateur lit le détail, voit les commentaires et peut en ajouter"
   ],
+  "ui_labels": {
+    "Task": {"title": "Titre", "description": "Description", "priority": "Priorité", "status": "Statut"},
+    "Comment": {"content": "Commentaire"}
+  },
+  "title_plurals": {
+    "Task": "Tâches",
+    "Comment": "Commentaires"
+  },
   "architecture": "Modèle principal : Task. Modèle enfant : Comment (lié à Task via taskId). Ownership : userId sur Task et Comment. Toutes les pages protégées par auth."
 }
 
@@ -141,10 +156,16 @@ Sortie :
   ],
   "routes": [],
   "user_flows": [
-    "Un visiteur parcourt les articles publiés à /posts",
-    "Un visiteur lit un article à /posts/[slug]",
-    "Un auteur connecté gère ses articles depuis /dashboard"
+    "Sur /posts : un visiteur parcourt les articles publiés",
+    "Sur /posts/[slug] : un visiteur lit le contenu complet d'un article",
+    "Sur /dashboard : l'auteur connecté voit le nombre d'articles publiés vs total et des liens vers /posts/new"
   ],
+  "ui_labels": {
+    "Post": {"title": "Titre", "excerpt": "Extrait", "published": "Publié", "category": "Catégorie"}
+  },
+  "title_plurals": {
+    "Post": "Articles"
+  },
   "architecture": "Modèle principal : Post. Données publiques : /posts et /posts/[slug] accessibles sans auth (published=true). Ownership : authorId sur Post. category est un champ texte simple — pas un modèle séparé."
 }
 
@@ -175,10 +196,19 @@ Sortie :
   ],
   "routes": [],
   "user_flows": [
-    "L'utilisateur crée un client depuis /clients/new",
-    "L'utilisateur crée une facture depuis /invoices/new",
-    "L'utilisateur change le statut d'une facture à /invoices/[id]"
+    "Sur /clients/new : l'utilisateur remplit le formulaire et crée un client",
+    "Sur /clients : l'utilisateur consulte la liste de ses clients",
+    "Sur /invoices/new : l'utilisateur sélectionne un client et crée une facture",
+    "Sur /invoices/[id] : l'utilisateur change le statut de la facture (draft → sent → paid)"
   ],
+  "ui_labels": {
+    "Client": {"name": "Nom", "email": "Email"},
+    "Invoice": {"amount": "Montant", "status": "Statut", "clientId": "Client"}
+  },
+  "title_plurals": {
+    "Client": "Clients",
+    "Invoice": "Factures"
+  },
   "architecture": "Modèles : Client (entité dédiée avec liste propre) + Invoice (principal). Ownership : userId sur les deux. Relations : Invoice → Client (N:1, clientId obligatoire). Toutes les pages protégées par auth."
 }\
 """
@@ -197,12 +227,41 @@ _FORMAT_DE_SORTIE = """\
     {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
   ],
   "routes": [],
-  "user_flows": ["L'utilisateur crée une tâche depuis /tasks/new", ...],
+  "user_flows": [
+    "Sur /tasks/new : l'utilisateur remplit le formulaire et crée une tâche",
+    "Sur /tasks : l'utilisateur consulte et filtre sa liste de tâches",
+    "Sur /tasks/[id] : l'utilisateur lit le détail et peut commenter"
+  ],
+  "ui_labels": {
+    "Task": {
+      "title": "Titre",
+      "description": "Description",
+      "priority": "Priorité",
+      "dueDate": "Date limite",
+      "status": "Statut"
+    }
+  },
+  "title_plurals": {
+    "Task": "Tâches"
+  },
   "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
 }
 ```
 
 page_type valeurs autorisées : "list" | "create" | "detail" | "detail-slug" | "custom"
+
+### Règles user_flows
+Chaque flux DOIT commencer par le chemin de la page concernée : `"Sur /path : ..."`.
+Pour les pages custom (dashboard, home...), décrire précisément CE QUI EST AFFICHÉ : stats, compteurs, liens rapides.
+Exemple correct : `"Sur /dashboard : l'auteur voit le nombre de recettes publiées vs total et des liens vers /recipes/new"`
+
+### Règles ui_labels
+Fournir les labels dans la LANGUE DU BRIEF pour chaque champ visible dans l'UI (exclure id, userId, authorId, createdAt).
+Les FK (categoryId, clientId...) reçoivent le label du modèle lié, pas le nom du champ : `"categoryId": "Catégorie"`.
+
+### Règles title_plurals
+Fournir le titre pluriel dans la langue du brief pour chaque modèle avec une page liste.
+Exemples : "Recipe" → "Recettes", "LeaveRequest" → "Demandes de congé", "Task" → "Tâches", "Article" → "Articles".
 
 Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.\
 """
@@ -796,6 +855,14 @@ async def planner_node(state: AgentState) -> dict:
     if not isinstance(brief_enums, dict):
         brief_enums = {}
 
+    brief_ui_labels = brief.get("ui_labels", {})
+    if not isinstance(brief_ui_labels, dict):
+        brief_ui_labels = {}
+
+    brief_title_plurals = brief.get("title_plurals", {})
+    if not isinstance(brief_title_plurals, dict):
+        brief_title_plurals = {}
+
     spec = ProjectSpec(
         project_name=project_name,
         stack_id=stack_id,
@@ -806,6 +873,8 @@ async def planner_node(state: AgentState) -> dict:
         pages_detail=brief_pages_detail,
         user_flows=user_flows,
         enums=brief_enums,
+        ui_labels=brief_ui_labels,
+        title_plurals=brief_title_plurals,
     ).with_fingerprint()
 
     logger.info(

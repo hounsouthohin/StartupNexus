@@ -51,10 +51,12 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   return (
     <main className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">{{ name }}s</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{{ title_plural }}</h1>
+        {% if auth_required %}
         <Link href="{{ list_path }}/new" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
           Nouveau
         </Link>
+        {% endif %}
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4">
@@ -88,10 +90,12 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
             <thead className="bg-gray-50">
               <tr>
                 {% for field in display_fields %}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ field }}</th>
+<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ field_labels.get(field, field) }}</th>
                 {% endfor %}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                {% if auth_required %}
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                {% endif %}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -105,6 +109,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                       {String((item as Record<string, unknown>).{{ status_field }} ?? '—')}
                     </span>
                   </td>
+                  {% if auth_required %}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">
                       <Link href={`{{ list_path }}/${item.id}/edit`} className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded hover:bg-blue-50">
@@ -117,6 +122,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                       {% endif %}
                     </div>
                   </td>
+                  {% endif %}
                 </tr>
               ))}
             </tbody>

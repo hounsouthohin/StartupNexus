@@ -70,6 +70,11 @@ class StatusFlowModule(FeatureModule):
             or any(f.input_type == "text" for f in ctx.editable_fields)
         )
 
+        fields = ctx.display_fields[:2]
+        _ui_labels = getattr(spec, "ui_labels", {}) or {}
+        _model_labels = _ui_labels.get(ctx.name, {})
+        _title_plurals = getattr(spec, "title_plurals", {}) or {}
+
         try:
             content = _jinja_env.get_template("list_client_status.tsx.j2").render(
                 name=ctx.name,
@@ -78,7 +83,9 @@ class StatusFlowModule(FeatureModule):
                 client_name=client_name,
                 list_path=list_path,
                 list_dir=list_dir,
-                display_fields=ctx.display_fields[:2],
+                display_fields=fields,
+                field_labels={f: _model_labels.get(f, f) for f in fields},
+                title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
                 auth_required=auth_required,
                 has_delete=auth_required,
                 status_field="status",

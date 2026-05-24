@@ -155,7 +155,26 @@ class ProjectSpec(BaseModel):
     )
     user_flows: List[str] = Field(
         default_factory=list,
-        description="Flux utilisateur principaux, ex: 'Un utilisateur crée un produit'"
+        description=(
+            "Flux utilisateur principaux. Chaque flux DOIT mentionner le chemin de la page "
+            "concernée : 'Sur /dashboard : l\'auteur voit un résumé de son activité'."
+        )
+    )
+    ui_labels: dict = Field(
+        default_factory=dict,
+        description=(
+            "Labels d'affichage par modèle et par champ, dans la langue du brief. "
+            "Format : { 'ModelName': { 'fieldName': 'Label affiché' } }. "
+            "Exemple : { 'Recipe': { 'title': 'Titre', 'status': 'Statut', 'categoryId': 'Catégorie' } }"
+        )
+    )
+    title_plurals: dict = Field(
+        default_factory=dict,
+        description=(
+            "Titre pluriel lisible pour chaque modèle, dans la langue du brief. "
+            "Format : { 'ModelName': 'Titre pluriel' }. "
+            "Exemple : { 'Recipe': 'Recettes', 'LeaveRequest': 'Demandes de congé' }"
+        )
     )
     enums: dict = Field(
         default_factory=dict,
@@ -257,9 +276,11 @@ class ProjectSpec(BaseModel):
 
     def to_prisma_schema_block(self) -> str:
         """
-        Génère le fichier schema.prisma complet : header canonique + modèle User + modèles métier.
+        Génère le fichier schema.prisma complet : header canonique + modèles métier.
         Le header (generator + datasource) est INVARIANT — ne jamais l'omettre.
         Utilisé dans le system prompt du dev agent pour garantir la cohérence.
+        Note : le modèle User n'est PAS injecté — userId/authorId sont des String scalaires
+        (référence Clerk externe), pas des FK vers un modèle Prisma.
         """
         header = (
             'generator client {\n'
@@ -272,32 +293,7 @@ class ProjectSpec(BaseModel):
             '\n'
         )
 
-        # Modèle User standard — synchronisé via le webhook Clerk.
-        # Présent dans TOUS les projets pour associer les entités métier à un utilisateur réel.
-        user_model_block = (
-            "model User {\n"
-            '  id        String   @id              // Clerk userId (ex: user_xxx)\n'
-            '  email     String   @unique\n'
-            '  name      String?\n'
-            '  createdAt DateTime @default(now())\n'
-            '  updatedAt DateTime @updatedAt\n'
-            "\n"
-            "  @@index([email])\n"
-            "}\n"
-            "\n"
-        )
-
         lines = []
-        model_names = {m.name for m in self.models}
-        # Injecte User seulement si des modèles l'utilisent réellement (ownership direct
-        # ou relation explicite). Evite d'ajouter une table orpheline pour les apps sans auth user.
-        _needs_user = any(
-            m.resolved_owner().lower() == "userid"
-            or any(f.type == "User" for f in m.fields)
-            for m in self.models
-        )
-        if "User" not in model_names and _needs_user:
-            lines.append(user_model_block)
 
         # Enums Prisma — OBLIGATOIRE avant les modèles qui les référencent.
         # Sans ce bloc, prisma validate échoue P1012 "Type X is neither a built-in type..."

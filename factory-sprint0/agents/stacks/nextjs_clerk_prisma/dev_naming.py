@@ -75,3 +75,5 @@ def _pluralize(word: str) -> str:
     if word.endswith(("s", "sh", "ch", "x", "z")):
         return word + "es"
     return word + "s"
+
+
