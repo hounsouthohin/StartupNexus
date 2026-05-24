@@ -16,6 +16,7 @@ Usage dans dev_graph.py (après generate_all_page_clients) :
 """
 from __future__ import annotations
 
+import importlib
 import logging
 from abc import ABC, abstractmethod
 
@@ -50,6 +51,20 @@ class FeatureModule(ABC):
         Retourne {chemin_relatif: contenu} — intégré dans template_written.
         Ne doit jamais lever d'exception non gérée (retourner {} si erreur).
         """
+
+
+def load_feature_modules(module_names: list[str], package: str) -> None:
+    """
+    Charge dynamiquement les modules de feature depuis une liste de noms.
+    Chaque module appelle register() lors de son import (convention side-effect).
+    Remplace les imports hardcodés dans dev_graph.py — driven by stack JSON config.
+    """
+    for name in module_names:
+        try:
+            importlib.import_module(f".{name}", package=package)
+            logger.debug("[feature_module] loaded module: %s", name)
+        except ImportError as exc:
+            logger.warning("[feature_module] module introuvable '%s' : %s", name, exc)
 
 
 def register(module: FeatureModule) -> FeatureModule:

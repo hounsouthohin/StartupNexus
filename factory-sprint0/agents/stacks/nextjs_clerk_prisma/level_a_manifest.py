@@ -123,13 +123,22 @@ def _methods_from_context(ctx: "ModelGenerationContext") -> list[ServiceMethod]:
                 f"(slug: string) → Promise<{s}>  (avec relations)",
             ))
 
+    # getAllByUser — modèles enfants uniquement (owner != userId/authorId)
+    _is_child = owner not in ("userId", "authorId")
+    _parent_rel = owner[:-2] if _is_child and owner.endswith("Id") else ""
+    if _is_child and _parent_rel:
+        methods.append(ServiceMethod(
+            "getAllByUser",
+            f"(userId: string, page?: number) → Promise<{s}[]>  (filtre via relation {_parent_rel})",
+        ))
+
     methods.append(ServiceMethod(
         "create",
-        f"({owner}: string, data: Create{name}Input) → Promise<{name}>",
+        f"({owner}: string, data: Create{name}Input) → Promise<{s}>",
     ))
     methods.append(ServiceMethod(
         "update",
-        f"({owner}: string, id: string, data: Update{name}Input) → Promise<{name}>",
+        f"({owner}: string, id: string, data: Update{name}Input) → Promise<{s}>",
     ))
     methods.append(ServiceMethod(
         "delete",
@@ -188,6 +197,38 @@ def build_level_a_manifest(
         page_contracts=page_contracts or {},
         service_map_str=service_map_str,
     )
+
+
+def generate_contract_md(manifest: LevelAManifest) -> str:
+    """
+    Génère CONTRACTS.md — référence exacte des méthodes Level A pour le LLM executor.
+
+    Injecté dans template_written → présent dans le répertoire projet avant la phase LLM.
+    Le LLM lit ce fichier via read_file("CONTRACTS.md") pour connaître les méthodes
+    disponibles sans les deviner ni les réinventer.
+    """
+    lines = [
+        "# CONTRACTS — Level A Service API",
+        "",
+        "Ce fichier est généré automatiquement. Ne pas modifier.",
+        "Il liste les méthodes de service disponibles pour chaque modèle.",
+        "Importer depuis `@/lib/services/{model}.service` via la variable indiquée.",
+        "",
+    ]
+    for mm in manifest.models.values():
+        lines.append(f"## {mm.name}")
+        lines.append(f"- **Import**: `import {{ {mm.service_var} }} from '{mm.service_import}'`")
+        lines.append(f"- **Type sérialisé**: `{mm.serialized_type}` (dates = string, pas Date)")
+        lines.append(f"- **Méthodes disponibles**:")
+        for method in mm.methods:
+            lines.append(f"  - `{mm.service_var}.{method.name}{method.signature}`")
+        lines.append("")
+    lines.append("## Règles d'utilisation")
+    lines.append("- Ne jamais appeler `prisma.*` directement dans une page ou une action.")
+    lines.append("- Toujours passer par le service ci-dessus.")
+    lines.append("- Les méthodes absentes de cette liste n'existent pas — ne pas les inventer.")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def find_model_for_path_segment(manifest: LevelAManifest, segment: str) -> "ModelManifest | None":

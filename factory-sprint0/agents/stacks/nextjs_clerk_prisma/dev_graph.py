@@ -311,12 +311,12 @@ async def run_dev_agent(
         except Exception as _fg_err:
             logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
 
-    # ── Feature modules (activés depuis EnrichedSpec.features) ───────────────
+    # ── Feature modules (registry déclaratif depuis stack JSON config) ───────
     if spec_obj is not None and _model_contexts:
         try:
-            from .feature_module import run_feature_modules
-            from . import module_search as _ms       # noqa: F401 — déclenche register()
-            from . import module_status_flow as _msf  # noqa: F401 — déclenche register()
+            from .feature_module import load_feature_modules, run_feature_modules
+            _fm_names = stack_cfg.get("feature_modules", [])
+            load_feature_modules(_fm_names, package=__name__.rsplit(".", 1)[0])
             _feature_files = run_feature_modules(spec_obj, _model_contexts, _enriched_spec, project_workdir)
             template_written.update(_feature_files)
             if _feature_files:
@@ -462,7 +462,10 @@ async def run_dev_agent(
     _level_a_manifest = None
     if spec_obj is not None and _model_contexts:
         try:
-            from .level_a_manifest import build_level_a_manifest as _build_manifest
+            from .level_a_manifest import (
+                build_level_a_manifest as _build_manifest,
+                generate_contract_md as _gen_contract,
+            )
             from agents.planner import build_page_contracts as _bpc
             _page_contracts = _bpc(spec_obj, _model_contexts)
             _level_a_manifest = _build_manifest(
@@ -472,6 +475,12 @@ async def run_dev_agent(
                 _service_map_str,
                 page_contracts=_page_contracts,
             )
+            # Génère CONTRACTS.md — référence méthodes Level A pour l'executor LLM
+            _contract_md = _gen_contract(_level_a_manifest)
+            _contract_path = os.path.join(project_workdir, "CONTRACTS.md")
+            with open(_contract_path, "w", encoding="utf-8") as _cf:
+                _cf.write(_contract_md)
+            template_written["CONTRACTS.md"] = _contract_md
             logger.info(
                 "[dev_graph] LevelAManifest assemblé : %d modèles, %d contrats de pages",
                 len(_level_a_manifest.models), len(_level_a_manifest.page_contracts),
@@ -870,11 +879,34 @@ async def run_dev_agent(
     #   - Un nœud LangGraph est le seul endroit correct pour décider du routage
     #   - On valide le batch (plusieurs fichiers d'un tour) plutôt que chaque write isolé
 
+    # ── Restauration des fichiers template supprimés ──────────────────
+    # Intercalé entre tools et extract_error.
+    # Le LLM peut supprimer des fichiers template via shell_exec (rm, python -c, etc.).
+    # Ce nœud restaure silencieusement tout fichier template_written manquant sur disque.
+    # Guard 1 dans write_file bloque la réécriture mais pas la suppression — ce nœud
+    # ferme la vulnérabilité résiduelle sans bloquer les commandes shell légitimes.
+    def restore_protected_node(state: DevState) -> dict:
+        restored: list[str] = []
+        for rel_path, content in template_written.items():
+            abs_p = os.path.join(project_workdir, rel_path.replace("/", os.sep))
+            if not os.path.exists(abs_p):
+                try:
+                    os.makedirs(os.path.dirname(abs_p), exist_ok=True)
+                    from pathlib import Path as _Path
+                    _Path(abs_p).write_text(content, encoding="utf-8")
+                    restored.append(rel_path)
+                except Exception as _re:
+                    logger.warning("[restore] échec restauration %s : %s", rel_path, _re)
+        if restored:
+            logger.warning("[restore] %d fichier(s) template restaurés : %s", len(restored), restored)
+        return {}
+
     # ── Assemblage du graph ──────────────────────────────────────────
     builder = StateGraph(DevState)
     builder.add_node("planner", planner_node)
     builder.add_node("executor", executor_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
+    builder.add_node("restore", restore_protected_node)
     builder.add_node("extract_error", extract_build_error_node)
 
     builder.add_edge(START, "planner")
@@ -883,7 +915,8 @@ async def run_dev_agent(
         "tools": "tools",
         "__end__": END,
     })
-    builder.add_edge("tools", "extract_error")
+    builder.add_edge("tools", "restore")
+    builder.add_edge("restore", "extract_error")
     builder.add_conditional_edges("extract_error", route_after_tools, {
         "executor": "executor",
         END: END,

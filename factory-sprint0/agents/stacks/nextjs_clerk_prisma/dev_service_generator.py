@@ -90,17 +90,11 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
     find_op = "findMany" if q.return_many else "findFirst"
 
     if q.pattern == "filter_by_field":
-        prisma_call = (
-            f"prisma.{camel}.{find_op}({{ "
-            f"where: {{ {owner}, {q.field}: {param} }}, "
-            f"select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 "
-            f"}})"
-        )
         if q.return_many:
             return [
                 "",
-                f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
-                f"    const items = await {prisma_call}",
+                f"  {method_name}: async ({owner}: string, {param}: string, page: number = 1, pageSize: number = 20): Promise<{ret_type}> => {{",
+                f"    const items = await prisma.{camel}.{find_op}({{ where: {{ {owner}, {q.field}: {param} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
                 f"    return items.map({_map}) as {ret_type}",
                 "  },",
             ]
@@ -108,7 +102,7 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
             return [
                 "",
                 f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
-                f"    const item = await {prisma_call}",
+                f"    const item = await prisma.{camel}.{find_op}({{ where: {{ {owner}, {q.field}: {param} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 1 }})",
                 "    if (!item) notFound()",
                 f"    return ({_map})(item) as {ret_type}",
                 "  },",
@@ -117,10 +111,8 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
     elif q.pattern == "search_text":
         return [
             "",
-            f"  {method_name}: async ({owner}: string, q: string): Promise<{ret_type}> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ "
-            f"where: {{ {owner}, {q.field}: {{ contains: q, mode: 'insensitive' }} }}, "
-            f"select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            f"  {method_name}: async ({owner}: string, q: string, page: number = 1, pageSize: number = 20): Promise<{ret_type}> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner}, {q.field}: {{ contains: q, mode: 'insensitive' }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {ret_type}",
             "  },",
         ]
@@ -139,10 +131,8 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
         rel = q.field[:-2] if q.field.endswith("Id") else q.field
         return [
             "",
-            f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ "
-            f"where: {{ {owner}, {rel}: {{ id: {param} }} }}, "
-            f"select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            f"  {method_name}: async ({owner}: string, {param}: string, page: number = 1, pageSize: number = 20): Promise<{ret_type}> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner}, {rel}: {{ id: {param} }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {ret_type}",
             "  },",
         ]
@@ -252,8 +242,8 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             )
         lines += [
             "",
-            f"  getPublished: async (): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_published_val}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+            f"  getPublished: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_published_val}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
         ]
@@ -289,8 +279,8 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
                 _pval = next((v for v in _ev_p if v in _PUBLISHED_LIKE_P), _ev_p[0] if _ev_p else "published")
             lines += [
                 "",
-                f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
-                f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_pval}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+                f"  getPublicAll: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+                f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_pval}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
                 f"    return items.map({_map}) as {serialized}[]",
                 "  },",
             ]
@@ -299,8 +289,8 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             _pub_filter = "where: { published: true }, " if getattr(ctx, "has_published_bool", False) else ""
             lines += [
                 "",
-                f"  getPublicAll: async (): Promise<{serialized}[]> => {{",
-                f"    const items = await prisma.{camel}.findMany({{ {_pub_filter}select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 50, skip: 0 }})",
+                f"  getPublicAll: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+                f"    const items = await prisma.{camel}.findMany({{ {_pub_filter}select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
                 f"    return items.map({_map}) as {serialized}[]",
                 "  },",
             ]
@@ -335,8 +325,8 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         _rel_sel = ", ".join(_scalar_parts + _rel_parts)
         lines += [
             "",
-            f"  getAllWithRelations: async ({owner}: string): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, select: {{ {_rel_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 20, skip: 0 }})",
+            f"  getAllWithRelations: async ({owner}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, select: {{ {_rel_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
             "",
@@ -376,17 +366,19 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
     # ── create / update / delete ──────────────────────────────────────────────
     lines += [
         "",
-        f"  create: async ({owner}: string, data: Create{name}Input): Promise<{name}> => {{",
-        f"    return prisma.{camel}.create({{",
+        f"  create: async ({owner}: string, data: Create{name}Input): Promise<{serialized}> => {{",
+        f"    const result = await prisma.{camel}.create({{",
         f"      data: {{ ...data, {owner} }}",
         "    })",
+        "    return _serialize(result)",
         "  },",
         "",
-        f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{name}> => {{",
-        f"    return prisma.{camel}.update({{",
+        f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{serialized}> => {{",
+        f"    const result = await prisma.{camel}.update({{",
         f"      where: {{ id, {owner} }},",
         "      data: { ...data }",
         "    })",
+        "    return _serialize(result)",
         "  },",
         "",
         f"  delete: async ({owner}: string, id: string): Promise<void> => {{",

@@ -94,7 +94,9 @@ def write_file(path: str, content: str) -> str:
         abs_path = _safe_path(path)
 
         # Guard 1 : fichiers protégés par template (écrits par la factory avant le LLM).
-        if norm_path in _get_protected_files() and os.path.exists(abs_path):
+        # Pas de vérification os.path.exists — un fichier protégé reste protégé même si
+        # supprimé via shell_exec. La restauration est assurée par restore_protected_node.
+        if norm_path in _get_protected_files():
             return (
                 f"ERREUR write_file({path}): fichier protégé par template. "
                 "Lis-le avec read_file() et évite toute réécriture."

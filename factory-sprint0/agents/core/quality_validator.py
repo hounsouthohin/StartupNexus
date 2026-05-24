@@ -16,6 +16,7 @@ Intégré dans prebuild_pipeline.py comme stage "quality_rules".
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import shutil
@@ -98,7 +99,8 @@ async def run_quality_check(project_dir: str) -> StageResult:
     tmp_script = os.path.join(project_dir, "_quality_check_tmp.mjs")
     try:
         shutil.copy2(str(CHECKER_SCRIPT), tmp_script)
-        proc = subprocess.run(
+        proc = await asyncio.to_thread(
+            subprocess.run,
             ["node", "_quality_check_tmp.mjs"] + files,
             capture_output=True,
             text=True,

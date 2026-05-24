@@ -472,6 +472,8 @@
     "prisma/schema.prisma",
     ".eslintrc.stack.json"
   ],
+  "feature_modules": ["module_search", "module_status_flow"],
+
   "role_rag_queries": {
     "service":     "N+1 prevention include select nested findUnique loop boucle Prisma Promise.all",
     "actions":     "auth userId guard obligatoire Zod validation safeParse revalidatePath throw Unauthorized",
