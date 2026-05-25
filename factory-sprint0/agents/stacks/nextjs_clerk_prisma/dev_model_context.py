@@ -142,6 +142,10 @@ class ModelGenerationContext:
     #   Utilisé par les Server Actions (redirect post-create/delete).
     list_page_path: str
 
+    # enum_value_labels : labels lisibles par valeur d'enum, depuis spec.enum_value_labels.
+    #   Alimenté par l'architect LLM. Dict vide si absent — fallback vers la valeur brute dans les templates.
+    enum_value_labels: dict
+
 
 # ── Helpers de calcul ─────────────────────────────────────────────────────────
 
@@ -358,6 +362,22 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
             attributes=f.attributes or "",
         ))
 
+    # Guard: detail-slug page sans champ slug dans le modèle → incohérence architect
+    if not has_slug:
+        _pages_check = getattr(spec, "pages", []) or []
+        _has_slug_page = any(
+            getattr(p, "page_type", "") == "detail-slug"
+            for p in _pages_check
+            if getattr(p, "model", None) == name
+        )
+        if _has_slug_page:
+            logger.warning(
+                "[model_context] %s : page_type='detail-slug' déclarée mais aucun champ 'slug' "
+                "dans le modèle Prisma — getBySlugWithRelations() ne sera PAS généré par le service. "
+                "L'architect doit ajouter `slug String @unique` au modèle.",
+                name,
+            )
+
     # Contexte pages — nécessite spec pour conditionner les méthodes publiques
     pages = getattr(spec, "pages", []) or []
     model_pages = [p for p in pages if getattr(p, "model", None) == name]
@@ -393,6 +413,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         has_public_list=has_public_list,
         has_public_detail=has_public_detail,
         list_page_path=list_page_path,
+        enum_value_labels=getattr(spec, "enum_value_labels", None) or {},
     )
 
     logger.debug(
@@ -408,5 +429,17 @@ def build_all_contexts(spec, enriched_spec=None) -> dict[str, ModelGenerationCon
     """
     Calcule ModelGenerationContext pour tous les modèles de la spec.
     Retourne {model_name: ctx} — à appeler une fois dans dev_graph.py.
+    Résilient : une erreur sur un modèle n'empêche pas les autres d'être traités.
     """
-    return {m.name: build_model_context(m, spec, enriched_spec=enriched_spec) for m in spec.models}
+    result: dict[str, ModelGenerationContext] = {}
+    for m in spec.models:
+        try:
+            result[m.name] = build_model_context(m, spec, enriched_spec=enriched_spec)
+        except Exception as _ctx_err:
+            logger.error(
+                "[model_context] Impossible de construire le contexte pour '%s' : %s — "
+                "ce modèle sera ignoré par les générateurs de templates.",
+                m.name, _ctx_err,
+                exc_info=True,
+            )
+    return result

@@ -57,20 +57,28 @@ class PrismaModel(BaseModel):
 
     def resolved_owner(self) -> str:
         """
-        Retourne l'owner_field déclaré dans le brief, validé contre les champs réels du modèle.
-        Si le champ déclaré n'existe pas → erreur explicite (brief invalide).
+        Retourne l'owner_field résolu pour ce modèle.
+        Fallback en cascade : champ déclaré → userId → premier champ disponible.
+        Logue un warning si le champ déclaré n'existe pas (architect halucination).
         """
-        from temporalio.exceptions import ApplicationError
+        import logging as _log
+        _logger = _log.getLogger(__name__)
         raw = self.owner_field or "userId"
         field_names = {f.name for f in self.fields}
         if raw in field_names:
             return raw
-        raise ApplicationError(
-            f"Brief invalide : owner_field='{raw}' déclaré sur le modèle '{self.name}' "
-            f"mais ce champ n'existe pas. Champs disponibles : {sorted(field_names)}. "
-            "Corriger owner_field dans le brief.",
-            non_retryable=True,
+        if "userId" in field_names:
+            _logger.warning(
+                "[PrismaModel] %s : owner_field='%s' absent du schema Prisma → fallback 'userId'",
+                self.name, raw,
+            )
+            return "userId"
+        _logger.error(
+            "[PrismaModel] %s : owner_field='%s' absent ET 'userId' absent — "
+            "le service utilisera un champ inexistant (erreur TypeScript probable).",
+            self.name, raw,
         )
+        return raw
 
 
 class ApiRoute(BaseModel):
@@ -184,6 +192,14 @@ class ProjectSpec(BaseModel):
             "Exemple : { 'PostStatus': ['draft', 'published', 'archived'] }"
         )
     )
+    enum_value_labels: dict = Field(
+        default_factory=dict,
+        description=(
+            "Labels d'affichage pour chaque valeur d'enum, dans la langue du brief. "
+            "Format : { 'EnumName': { 'value': 'Label affiché' } }. "
+            "Exemple : { 'LeaveStatus': { 'pending': 'En attente', 'approved': 'Approuvé', 'rejected': 'Refusé' } }"
+        )
+    )
     spec_fingerprint: str = Field(
         default="",
         description="Hash SHA256 des noms critiques — calculé automatiquement"
@@ -205,6 +221,73 @@ class ProjectSpec(BaseModel):
                 removed,
             )
             self.models = filtered
+        return self
+
+    @model_validator(mode="after")
+    def _normalize_pages(self) -> "ProjectSpec":
+        """
+        Spec Completion Layer — corrige les incohérences de l'architect sur les pages.
+
+        1. page.model référence un modèle absent → model=None (évite les KeyError en génération)
+        2. page_type="custom" avec un model → inférence depuis le chemin :
+             /new | /create → type="create", model=None (create pages n'ont pas de model)
+             /[id] | /[slug] → type="detail" ou "detail-slug"
+             chemin sans paramètre → type="list"
+        3. page.model référence un modèle existant avec page_type="detail-slug" mais le
+           modèle n'a pas de champ slug → rétrogradation en "detail"
+        """
+        import logging as _log
+        _logger = _log.getLogger(__name__)
+        model_names = {m.name for m in self.models}
+        model_fields: dict[str, set[str]] = {
+            m.name: {f.name.lower() for f in m.fields} for m in self.models
+        }
+
+        for page in self.pages:
+            # Fix 1 — modèle fantôme
+            if page.model and page.model not in model_names:
+                _logger.warning(
+                    "[ProjectSpec] page '%s' référence le modèle '%s' absent → model=None",
+                    page.path, page.model,
+                )
+                page.model = None
+
+            # Fix 2 — type "custom" avec un modèle → inférence depuis le chemin
+            if page.page_type == "custom" and page.model:
+                parts = [p for p in page.path.rstrip("/").split("/") if p]
+                last = parts[-1] if parts else ""
+                if last in ("new", "create"):
+                    _logger.info(
+                        "[ProjectSpec] page '%s' : custom+model → create (chemin /new|/create)",
+                        page.path,
+                    )
+                    page.page_type = "create"
+                    page.model = None
+                elif last.startswith("[") and last.endswith("]"):
+                    segment = last[1:-1]
+                    inferred = "detail-slug" if "slug" in segment.lower() else "detail"
+                    _logger.info(
+                        "[ProjectSpec] page '%s' : custom+model → %s (segment [%s])",
+                        page.path, inferred, segment,
+                    )
+                    page.page_type = inferred
+                else:
+                    _logger.info(
+                        "[ProjectSpec] page '%s' : custom+model → list (chemin plat)",
+                        page.path,
+                    )
+                    page.page_type = "list"
+
+            # Fix 3 — detail-slug sans champ slug dans le modèle
+            if page.page_type == "detail-slug" and page.model:
+                fields = model_fields.get(page.model, set())
+                if "slug" not in fields:
+                    _logger.warning(
+                        "[ProjectSpec] page '%s' : detail-slug mais modèle '%s' sans champ slug → detail",
+                        page.path, page.model,
+                    )
+                    page.page_type = "detail"
+
         return self
 
     def compute_fingerprint(self) -> str:

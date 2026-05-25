@@ -370,7 +370,7 @@ async def run_dev_agent(
     if spec_obj is not None:
         try:
             from .dev_actions_generator import generate_action_files
-            _act_written = generate_action_files(spec_obj, project_workdir)
+            _act_written = generate_action_files(spec_obj, project_workdir, model_contexts=_model_contexts or None)
             template_written.update(_act_written)
             logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
         except Exception as _act_err:
@@ -540,7 +540,7 @@ async def run_dev_agent(
     } if _hints_raw else {}
 
     _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3)
+    llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3, model_kwargs={"seed": 42})
     # llm_with_tools est construit dynamiquement dans executor_node selon la phase.
 
     # Cache RAG par rôle — lifetime = ce run. Partagé par toutes les invocations

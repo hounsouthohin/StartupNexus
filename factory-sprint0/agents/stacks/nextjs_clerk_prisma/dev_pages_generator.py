@@ -381,7 +381,23 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
 
     if is_detail:
         if is_slug_detail:
-            svc_method = f"getBySlugWithRelations(params.slug)" if has_relations else f"getBySlug(params.slug)"
+            _has_slug_field = any(f.name.lower() == "slug" for f in model_obj.fields)
+            if _has_slug_field:
+                svc_method = f"getBySlugWithRelations(params.slug)" if has_relations else f"getBySlug(params.slug)"
+            elif page.auth_required:
+                logger.warning(
+                    "[pages_gen] %s : detail-slug déclaré mais pas de champ 'slug' — fallback getByIdWithRelations(userId, params.slug). "
+                    "L'architect doit ajouter `slug String @unique` au modèle.",
+                    name,
+                )
+                svc_method = f"getByIdWithRelations(userId, params.slug)" if has_relations else f"getById(userId, params.slug)"
+            else:
+                logger.warning(
+                    "[pages_gen] %s : detail-slug déclaré mais pas de champ 'slug' — fallback getPublicByIdWithRelations(params.slug). "
+                    "L'architect doit ajouter `slug String @unique` au modèle.",
+                    name,
+                )
+                svc_method = f"getPublicByIdWithRelations(params.slug)" if has_relations else f"getPublicById(params.slug)"
             lines.append(f"  const item = await {camel}Service.{svc_method}")
         elif page.auth_required:
             svc_method = f"getByIdWithRelations(userId, params.id)" if has_relations else f"getById(userId, params.id)"

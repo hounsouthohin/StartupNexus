@@ -80,35 +80,44 @@ def _generate_actions_for_model(model, list_page: str) -> str:
     return "\n".join(lines)
 
 
-def generate_action_files(spec, project_workdir: str) -> dict[str, str]:
+def generate_action_files(
+    spec,
+    project_workdir: str,
+    model_contexts: "dict | None" = None,
+) -> dict[str, str]:
     """
     Génère un fichier actions.ts par modèle Prisma et les écrit sur le disque.
     Retourne un dict {chemin_relatif: contenu} pour intégration dans template_written.
 
+    model_contexts : dict {model_name: ModelGenerationContext} passé depuis dev_graph.
+    Quand fourni, ctx.list_page_path est la source de vérité (identique à ce que
+    form_generator utilise) — élimine le couplage implicite par convention de nommage.
+
     Collision : si deux modèles se résolvent vers le même list_page (ex: Contact + Note → /contacts),
     un warning est logué et le second fichier fusionne les actions dans le même fichier.
     """
-    # Modèles ayant au moins une page list ou create dans le spec → seuls ceux-là ont des actions
+    # Modèles référencés explicitement dans au moins une page du spec
+    # (les pages create ont model=None — elles sont couvertes via detail/list du même modèle)
     models_with_pages = {
         getattr(p, "model", None)
         for p in spec.pages
-        if getattr(p, "model", None) and getattr(p, "page_type", None) in ("list", "create")
+        if getattr(p, "model", None)
     }
 
     # Regroupe les modèles par list_page pour gérer les collisions
     page_to_models: dict[str, list] = {}
     for model in spec.models:
         if model.name not in models_with_pages:
-            logger.info("[action_generator] skip %s — aucune page list/create dans le spec", model.name)
+            logger.info("[action_generator] skip %s — aucune page dans le spec", model.name)
             continue
-        list_page = spec.get_list_page_for_model(model.name)
-        if not list_page:
-            logger.warning(
-                "[action_generator] skip %s — aucune page list déclarée (page_type='list' + model='%s'). "
-                "Ajouter cette page dans le brief pour générer les actions.",
-                model.name, model.name,
-            )
-            continue
+        # Source de vérité : ctx.list_page_path (même calcul que form_generator)
+        # Fallback en cascade : spec (si ctx absent) → heuristique /{kebab}s
+        ctx = (model_contexts or {}).get(model.name)
+        list_page = (
+            (ctx.list_page_path if ctx else "")
+            or spec.get_list_page_for_model(model.name)
+            or f"/{pascal_to_kebab(model.name)}s"
+        )
         page_to_models.setdefault(list_page, []).append(model)
 
     written: dict[str, str] = {}

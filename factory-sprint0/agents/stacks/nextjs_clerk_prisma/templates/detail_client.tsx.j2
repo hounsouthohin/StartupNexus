@@ -5,6 +5,10 @@ import type { {{ serialized_type }} } from '@/lib/types'
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% endif %}
+{% if value_labels %}
+
+const FIELD_VALUE_LABELS: Record<string, Record<string, string>> = {{ value_labels | tojson }};
+{% endif %}
 
 interface {{ client_name }}Props {
   item: {{ serialized_type }}
@@ -29,8 +33,14 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
         <dl className="divide-y divide-gray-100">
           {% for field in display_fields %}
           <div className="px-6 py-4 grid grid-cols-3 gap-4">
-            <dt className="text-sm font-medium text-gray-500">{{ field }}</dt>
-            <dd className="text-sm text-gray-900 col-span-2">{String(item.{{ field }} ?? '—')}</dd>
+            <dt className="text-sm font-medium text-gray-500">{{ field_labels.get(field, field) }}</dt>
+            <dd className="text-sm text-gray-900 col-span-2">
+              {% if value_labels and field in value_labels %}
+              {(FIELD_VALUE_LABELS['{{ field }}'] ?? {})[String(item.{{ field }})] ?? String(item.{{ field }} ?? '—')}
+              {% else %}
+              {String(item.{{ field }} ?? '—')}
+              {% endif %}
+            </dd>
           </div>
           {% endfor %}
         </dl>

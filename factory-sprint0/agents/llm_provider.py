@@ -2,13 +2,36 @@
 """
 Provider LLM — OpenAI uniquement.
 Fournit validate_llm_env(), get_llm_provider(), get_chat_llm().
+
+Prompt caching :
+  1. InMemoryCache LangChain (process-level) — évite les appels OpenAI redondants pour
+     des prompts identiques dans le même processus (ex: même brief soumis deux fois
+     dans un batch, même requête RAG dupliquée entre les agents).
+  2. seed=42 sur tous les appels — combiné à temperature=0, rend les sorties
+     déterministes. OpenAI peut ainsi retrouver un résultat en cache côté serveur
+     (prompt caching automatique, 50% de réduction sur les input tokens répétés).
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Literal
 
+logger = logging.getLogger(__name__)
+
 LLMProvider = Literal["openai"]
+
+# ── Cache LangChain process-level ────────────────────────────────────────────
+# Activé une fois à l'import — toutes les instances ChatOpenAI/get_chat_llm()
+# dans ce processus bénéficient du cache automatiquement.
+# Thread-safe (dict Python avec GIL). Lifetime : durée du processus worker.
+try:
+    from langchain_core.globals import set_llm_cache
+    from langchain_core.caches import InMemoryCache
+    set_llm_cache(InMemoryCache())
+    logger.debug("[llm_provider] InMemoryCache LangChain activé")
+except Exception as _cache_err:
+    logger.warning("[llm_provider] InMemoryCache non disponible : %s", _cache_err)
 
 
 def validate_llm_env() -> tuple[bool, str]:
@@ -31,6 +54,9 @@ def get_chat_llm(model: str | None = None, temperature: float = 0.0):
     """
     Retourne une instance ChatOpenAI configurée.
     model: identifiant du modèle (défaut: OPENAI_MODEL env var ou 'gpt-4o-mini')
+
+    seed=42 : rend les sorties déterministes (temperature=0 + seed fixe).
+    OpenAI utilise ce signal pour son prompt caching côté serveur.
     """
     try:
         from langchain_openai import ChatOpenAI
@@ -42,4 +68,5 @@ def get_chat_llm(model: str | None = None, temperature: float = 0.0):
         model=resolved_model,
         temperature=temperature,
         api_key=os.getenv("OPENAI_API_KEY"),
+        model_kwargs={"seed": 42},
     )

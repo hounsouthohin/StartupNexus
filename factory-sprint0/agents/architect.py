@@ -56,6 +56,7 @@ Les virgules DANS les attributs comme @relation(..., ...) ne comptent PAS comme 
 - `/{model-kebab}/[id]` : détail par id (auth selon visibilité)
 - `/{model-kebab}/[slug]` : détail par slug si le modèle a un champ `slug` (page_type: "detail-slug", auth: false)
 - **RÈGLE LISTE+SLUG OBLIGATOIRE** : Si des visiteurs peuvent PARCOURIR ET CONSULTER les entrées via URL lisible (slug) sans se connecter, générer OBLIGATOIREMENT les deux pages : `/{model-kebab}` (auth: false, page_type: "list", model: ModelName) ET `/{model-kebab}/[slug]` (auth: false, page_type: "detail-slug", model: ModelName). Ne jamais générer uniquement le détail-slug sans la page liste publique correspondante.
+- **INVARIANT CRITIQUE — detail-slug implique slug** : Si page_type="detail-slug" est déclaré pour un modèle, ce modèle DOIT ABSOLUMENT avoir le champ `slug String @unique` dans le schema Prisma. TOUJOURS ajouter `slug String @unique` au modèle quand detail-slug est utilisé.
 - Ne PAS générer `/[id]/edit` sauf si le brief le demande explicitement
 
 ### Routes API
@@ -131,6 +132,9 @@ Sortie :
     "Task": "Tâches",
     "Comment": "Commentaires"
   },
+  "enum_value_labels": {
+    "TaskStatus": {"pending": "En attente", "in_progress": "En cours", "done": "Terminé"}
+  },
   "architecture": "Modèle principal : Task. Modèle enfant : Comment (lié à Task via taskId). Ownership : userId sur Task et Comment. Toutes les pages protégées par auth."
 }
 
@@ -166,6 +170,7 @@ Sortie :
   "title_plurals": {
     "Post": "Articles"
   },
+  "enum_value_labels": {},
   "architecture": "Modèle principal : Post. Données publiques : /posts et /posts/[slug] accessibles sans auth (published=true). Ownership : authorId sur Post. category est un champ texte simple — pas un modèle séparé."
 }
 
@@ -209,6 +214,9 @@ Sortie :
     "Client": "Clients",
     "Invoice": "Factures"
   },
+  "enum_value_labels": {
+    "InvoiceStatus": {"draft": "Brouillon", "sent": "Envoyée", "paid": "Payée"}
+  },
   "architecture": "Modèles : Client (entité dédiée avec liste propre) + Invoice (principal). Ownership : userId sur les deux. Relations : Invoice → Client (N:1, clientId obligatoire). Toutes les pages protégées par auth."
 }\
 """
@@ -244,6 +252,13 @@ _FORMAT_DE_SORTIE = """\
   "title_plurals": {
     "Task": "Tâches"
   },
+  "enum_value_labels": {
+    "TaskStatus": {
+      "pending": "En attente",
+      "in_progress": "En cours",
+      "done": "Terminé"
+    }
+  },
   "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
 }
 ```
@@ -262,6 +277,13 @@ Les FK (categoryId, clientId...) reçoivent le label du modèle lié, pas le nom
 ### Règles title_plurals
 Fournir le titre pluriel dans la langue du brief pour chaque modèle avec une page liste.
 Exemples : "Recipe" → "Recettes", "LeaveRequest" → "Demandes de congé", "Task" → "Tâches", "Article" → "Articles".
+
+### Règles enum_value_labels
+Fournir les labels lisibles dans la langue du brief pour CHAQUE VALEUR de CHAQUE enum déclaré dans `enums`.
+Format : { "EnumName": { "valeur_raw": "Label affiché" } }.
+Exemples : { "TaskStatus": { "pending": "En attente", "in_progress": "En cours", "done": "Terminé" } }
+Si le projet n'a aucun enum, retourner {}.
+Ne JAMAIS laisser une valeur raw non traduite si le brief est en français.
 
 Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.\
 """
@@ -863,6 +885,10 @@ async def planner_node(state: AgentState) -> dict:
     if not isinstance(brief_title_plurals, dict):
         brief_title_plurals = {}
 
+    brief_enum_value_labels = brief.get("enum_value_labels", {})
+    if not isinstance(brief_enum_value_labels, dict):
+        brief_enum_value_labels = {}
+
     spec = ProjectSpec(
         project_name=project_name,
         stack_id=stack_id,
@@ -875,6 +901,7 @@ async def planner_node(state: AgentState) -> dict:
         enums=brief_enums,
         ui_labels=brief_ui_labels,
         title_plurals=brief_title_plurals,
+        enum_value_labels=brief_enum_value_labels,
     ).with_fingerprint()
 
     logger.info(

@@ -17,6 +17,7 @@ Point d'entrée : generate_all_page_clients(spec, model_contexts, project_workdi
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 
@@ -40,6 +41,8 @@ _jinja_env = jinja2.Environment(
     keep_trailing_newline=True,
     autoescape=False,  # TSX — pas d'HTML escaping
 )
+# Filtre tojson explicite — évite la dépendance à la version Jinja2 (disponible nativement en 3.x)
+_jinja_env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
 
 
 def _render(template_name: str, **ctx) -> str:
@@ -54,14 +57,17 @@ def _related_display(fk, model_contexts: dict) -> str:
     return rel_ctx.display_fields[0] if rel_ctx and rel_ctx.display_fields else "id"
 
 
-def _field_to_ctx(field, spec_enums: dict) -> dict:
-    """Convertit FieldInfo en dict template-friendly (ajoute enum_values)."""
+def _field_to_ctx(field, spec_enums: dict, enum_value_labels: dict | None = None) -> dict:
+    """Convertit FieldInfo en dict template-friendly (ajoute enum_values et enum_labels)."""
+    ev = spec_enums.get(field.base_type, []) if field.input_type == "enum-select" else []
+    el = (enum_value_labels or {}).get(field.base_type, {}) if field.input_type == "enum-select" else {}
     return {
         "name":       field.name,
         "input_type": field.input_type,
         "is_optional": field.is_optional,
         "has_default": field.has_default,
-        "enum_values": spec_enums.get(field.base_type, []) if field.input_type == "enum-select" else [],
+        "enum_values": ev,
+        "enum_labels": el,
     }
 
 
@@ -81,8 +87,17 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
     auth_required = getattr(page, "auth_required", True)
     fields = ctx.display_fields[:2]
     _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
-    _model_labels = _ui_labels.get(ctx.name, {})
+    _model_labels = _ui_labels.get(ctx.name, {}) or {}
     _title_plurals = getattr(spec, "title_plurals", {}) or {} if spec else {}
+    _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {} if spec else {}
+    status_field = None
+    status_labels: dict = {}
+    if ctx.has_status:
+        status_field = "status"
+        for ef in ctx.editable_fields:
+            if ef.name == "status" and ef.input_type == "enum-select":
+                status_labels = _enum_value_labels.get(ef.base_type, {}) or {}
+                break
     return _render(
         "list_client.tsx.j2",
         name=ctx.name,
@@ -97,20 +112,27 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
         auth_required=auth_required,
         has_delete=auth_required,
         has_slug=ctx.has_slug,
+        status_field=status_field,
+        status_labels=status_labels,
     )
 
 
-def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict) -> str:
+def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
+    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
+    _model_labels = _ui_labels.get(ctx.name, {}) or {}
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
-    editable_fields = [_field_to_ctx(f, ctx.spec_enums) for f in ctx.editable_fields]
+    editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
     fk_props = ", ".join(
         f"{fk['related_camel']}Options: Serialized{fk['related_model']}[]"
         for fk in fk_fields
     )
     fk_destructure = ", ".join(f"{fk['related_camel']}Options" for fk in fk_fields)
     fk_type_imports = ", ".join(f"Serialized{fk['related_model']}" for fk in fk_fields)
+    _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
+    for _fk in fk_fields:
+        _field_labels[_fk["field_name"]] = _model_labels.get(_fk["field_name"], _fk["related_model"])
     return _render(
         "create_client.tsx.j2",
         name=ctx.name,
@@ -125,14 +147,20 @@ def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict) 
         editable_fields=editable_fields,
         fk_props=fk_props,
         fk_destructure=fk_destructure,
+        field_labels=_field_labels,
     )
 
 
-def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict) -> str:
+def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
+    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
+    _model_labels = _ui_labels.get(ctx.name, {}) or {}
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
-    editable_fields = [_field_to_ctx(f, ctx.spec_enums) for f in ctx.editable_fields]
+    editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
+    _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
+    for _fk in fk_fields:
+        _field_labels[_fk["field_name"]] = _model_labels.get(_fk["field_name"], _fk["related_model"])
     return _render(
         "edit_client.tsx.j2",
         name=ctx.name,
@@ -142,15 +170,25 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict) -> str:
         list_dir=list_dir,
         fk_fields=fk_fields,
         editable_fields=editable_fields,
+        field_labels=_field_labels,
     )
 
 
-def _gen_detail_client(page, ctx: ModelGenerationContext) -> str:
+def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
     # Déduplique : display_fields d'abord, puis les éditables restants
     shown = list(dict.fromkeys(ctx.display_fields + [f.name for f in ctx.editable_fields]))
     auth_required = getattr(page, "auth_required", True)
+    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
+    _model_labels = _ui_labels.get(ctx.name, {}) or {}
+    _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {} if spec else {}
+    value_labels: dict = {}
+    for ef in ctx.editable_fields:
+        if ef.input_type == "enum-select" and ef.name in shown:
+            labels = _enum_value_labels.get(ef.base_type, {}) or {}
+            if labels:
+                value_labels[ef.name] = labels
     return _render(
         "detail_client.tsx.j2",
         name=ctx.name,
@@ -159,6 +197,8 @@ def _gen_detail_client(page, ctx: ModelGenerationContext) -> str:
         list_path=list_path,
         list_dir=list_dir,
         display_fields=shown,
+        field_labels={f: _model_labels.get(f, f) for f in shown},
+        value_labels=value_labels,
         auth_required=auth_required,
         has_delete=auth_required,
     )
@@ -216,14 +256,18 @@ def generate_all_page_clients(
                 content = _gen_list_client(page, ctx, spec=spec)
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
-                content = _gen_create_client(page, ctx, model_contexts)
+                content = _gen_create_client(page, ctx, model_contexts, spec=spec)
             elif page_type in ("detail", "detail-slug"):
                 rel = f"app/{page_path_clean}/page-client.tsx"
-                content = _gen_detail_client(page, ctx)
+                content = _gen_detail_client(page, ctx, spec=spec)
             else:
                 continue
         except Exception as _gen_err:
-            logger.error("[form_gen] erreur génération %s (%s) : %s", page_path_clean, page_type, _gen_err)
+            logger.error(
+                "[form_gen] erreur génération '%s' (%s) : %s",
+                page_path_clean, page_type, _gen_err,
+                exc_info=True,
+            )
             continue
 
         abs_path = os.path.join(project_workdir, rel.replace("/", os.sep))
@@ -248,7 +292,7 @@ def generate_all_page_clients(
             route = list_path.lstrip("/")
             slug_or_id = "[slug]" if ctx.has_slug else "[id]"
             rel = f"app/{route}/{slug_or_id}/edit/page-client.tsx"
-            content = _gen_edit_client(ctx, model_contexts)
+            content = _gen_edit_client(ctx, model_contexts, spec=spec)
         except Exception as _edit_err:
             logger.error("[form_gen] erreur edit %s : %s", model.name, _edit_err)
             continue

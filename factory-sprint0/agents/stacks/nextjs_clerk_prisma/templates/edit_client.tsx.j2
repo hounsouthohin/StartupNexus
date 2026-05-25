@@ -37,7 +37,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
         {% for field in editable_fields %}
         <div>
           <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-gray-700 mb-1">
-            {{ field.name }}
+            {{ field_labels.get(field.name, field.name) }}
           </label>
           {% if field.input_type == 'textarea' %}
           <textarea
@@ -65,7 +65,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
           >
             <option value="">Sélectionner…</option>
             {% for val in field.enum_values %}
-            <option value="{{ val }}">{{ val }}</option>
+            <option value="{{ val }}">{{ field.enum_labels.get(val, val) }}</option>
             {% endfor %}
           </select>
           {% elif field.input_type == 'date' %}
@@ -100,7 +100,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
         {% for fk in fk_fields %}
         <div>
           <label htmlFor="{{ fk.field_name }}" className="block text-sm font-medium text-gray-700 mb-1">
-            {{ fk.related_model }}
+            {{ field_labels.get(fk.field_name, fk.related_model) }}
           </label>
           <select
             id="{{ fk.field_name }}"

@@ -2,43 +2,25 @@
   {
     "project_name": "task-manager",
     "brief": {
-      "description": "Un gestionnaire de tâches personnel. L'utilisateur crée, consulte et supprime ses tâches depuis son tableau de bord privé. Chaque tâche a un titre, une description optionnelle, une priorité (low, medium, high) et une date d'échéance optionnelle. Aucune page publique — tout est accessible uniquement après connexion."
+      "description": "J'aimerais une application pour gérer mes tâches personnelles. Je veux créer des tâches avec un titre, une description optionnelle et un niveau de priorité — faible, normale ou urgente. Chaque tâche peut avoir une date limite. Je veux pouvoir les marquer comme à faire, en cours ou terminées. Toute l'application est privée, accessible uniquement après connexion."
     }
   },
   {
     "project_name": "personal-blog",
     "brief": {
-      "description": "Un blog personnel. L'auteur rédige des articles classés par catégories depuis son espace privé. Chaque article a un titre, un extrait, un statut (brouillon ou publié). Les visiteurs peuvent lire les articles publiés sans se connecter sur /blog et /blog/[id]. L'auteur gère ses articles sur /dashboard et ses catégories sur /categories."
-    }
-  },
-  {
-    "project_name": "recipe-book",
-    "brief": {
-      "description": "Un livre de recettes en ligne. L'auteur gère ses recettes et catégories depuis un dashboard privé. Chaque recette a un titre, une description, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les visiteurs parcourent les recettes publiées via leur URL lisible (ex: /recipes/ma-recette) sans se connecter. L'auteur crée et supprime ses recettes depuis /dashboard."
-    }
-  },
-  {
-    "project_name": "dev-articles",
-    "brief": {
-      "description": "Une plateforme d'articles techniques. L'auteur publie des articles sur des sujets tech depuis son espace privé. Chaque article a un titre, un contenu, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les lecteurs parcourent les articles publiés via leur URL lisible (ex: /articles/mon-titre) sans se connecter. L'auteur gère ses articles et catégories depuis /dashboard."
-    }
-  },
-  {
-    "project_name": "expense-tracker",
-    "brief": {
-      "description": "Un gestionnaire de dépenses personnelles. Les utilisateurs enregistrent leurs dépenses avec un montant, une description et une catégorie. Les catégories sont créées séparément et permettent de classer les dépenses (alimentation, transport, loisirs...). Toute l'application est privée, aucune page publique."
+      "description": "Je veux créer mon blog personnel. Je rédige des articles depuis mon espace privé. Chaque article a un titre, un court extrait et peut être en brouillon ou publié. Je veux organiser mes articles par catégories — les catégories sont gérées séparément depuis une page dédiée. Les visiteurs peuvent lire mes articles publiés sans se connecter. Je gère mon contenu depuis mon tableau de bord."
     }
   },
   {
     "project_name": "leave-manager",
     "brief": {
-      "description": "Application de gestion des congés. Les employés soumettent des demandes de congé avec un type (congé annuel, congé maladie, sans solde), une date de début, une date de fin et un motif optionnel. Chaque demande a un statut géré par enum (pending, approved, rejected). Les managers voient toutes les demandes et peuvent les approuver ou refuser. Application entièrement privée."
+      "description": "Une application pour gérer les demandes de congé dans une équipe. Un employé soumet une demande en précisant le type de congé — congé payé, congé maladie ou absence non rémunérée — ainsi qu'une date de début, une date de fin et un motif optionnel. Chaque demande suit un cycle de validation : elle est d'abord en attente, puis soit acceptée soit refusée par le responsable. L'application est entièrement privée."
     }
   },
   {
     "project_name": "project-hub",
     "brief": {
-      "description": "Un hub de gestion de projets collaboratifs. Les utilisateurs créent des projets (titre, description, statut : active, completed, archived) et y attachent des tâches. Chaque tâche appartient à un projet et possède un titre, une description, une priorité (low, medium, high) et un statut (todo, in_progress, done). Les utilisateurs peuvent commenter les tâches. Tout est privé, aucune page publique."
+      "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
     }
   }
 ]

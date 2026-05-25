@@ -6,6 +6,14 @@ import type { {{ serialized_type }} } from '@/lib/types'
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% endif %}
+{% if status_field and status_labels %}
+
+const STATUS_LABELS: Record<string, string> = {
+{% for val, label in status_labels.items() %}
+  {{ val }}: '{{ label }}',
+{% endfor %}
+}
+{% endif %}
 
 interface {{ client_name }}Props {
   items: {{ serialized_type }}[]
@@ -67,14 +75,20 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                 <tr key={item.id} className="hover:bg-gray-50">
                   {% for field in display_fields %}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {% if status_field and status_labels and field == status_field %}
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                      {STATUS_LABELS[item.{{ field }}] ?? String(item.{{ field }} ?? '')}
+                    </span>
+                    {% else %}
                     {String(item.{{ field }} ?? '')}
+                    {% endif %}
                   </td>
                   {% endfor %}
                   {% if auth_required %}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">
                       <Link
-                        href={`{{ list_path }}/${{% if has_slug %}item.slug{% else %}item.id{% endif %}}/edit`}
+                        href={`{{ list_path }}/{{ '${' }}{% if has_slug %}item.slug{% else %}item.id{% endif %}}/edit`}
                         className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
                       >
                         Modifier
