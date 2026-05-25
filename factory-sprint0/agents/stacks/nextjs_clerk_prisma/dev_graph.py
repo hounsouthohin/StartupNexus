@@ -311,6 +311,24 @@ async def run_dev_agent(
         except Exception as _fg_err:
             logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
 
+    # ── Category 1 — [CROSS_ENTITY] pages sortent du déterminisme ────────────
+    # Une page marquée [CROSS_ENTITY: X] doit afficher des données d'un modèle secondaire.
+    # Le page-client.tsx déterministe ne connaît que l'interface du modèle principal.
+    # → On le retire de template_written : le LLM le génère avec les props additionnels.
+    if spec_obj is not None:
+        _pages_detail = spec_obj.pages_detail or {}
+        for _ce_path, _ce_desc in _pages_detail.items():
+            if "[CROSS_ENTITY:" not in str(_ce_desc or ""):
+                continue
+            _ce_client_key = f"app/{_ce_path.lstrip('/')}/page-client.tsx"
+            if _ce_client_key in template_written:
+                del template_written[_ce_client_key]
+                logger.info("[dev_graph] [CROSS_ENTITY] %s → page-client.tsx hors déterminisme (LLM)", _ce_path)
+            _ce_page_key = f"app/{_ce_path.lstrip('/')}/page.tsx"
+            if _ce_page_key in template_written:
+                del template_written[_ce_page_key]
+                logger.info("[dev_graph] [CROSS_ENTITY] %s → page.tsx hors déterminisme (LLM)", _ce_path)
+
     # ── Feature modules (registry déclaratif depuis stack JSON config) ───────
     if spec_obj is not None and _model_contexts:
         try:
@@ -582,10 +600,15 @@ async def run_dev_agent(
         # Indépendant de validated_files (supprimé avec PV) — robuste aux redémarrages.
         _plan = state.get("file_plan") or []  # None (échec planner) ou [] traités pareil
         _plan_failed = state.get("file_plan") is None  # planner a levé une exception
+        # DEBUG TEMP — plan + disk state
+        for _pe in _plan:
+            _pe_abs = os.path.join(project_workdir, _pe["path"])
+            logger.info("[executor-debug] plan entry: %s | exists=%s | role=%s", _pe["path"], os.path.exists(_pe_abs), _pe.get("role"))
         _next_entry = next(
             (e for e in _plan if not os.path.exists(os.path.join(project_workdir, e["path"]))),
             None,
         )
+        logger.info("[executor-debug] _next_entry: %s", _next_entry["path"] if _next_entry else None)
         # Pour example-anchor : fichiers du plan déjà présents sur disque
         _written_set = {e["path"] for e in _plan if os.path.exists(os.path.join(project_workdir, e["path"]))}
 

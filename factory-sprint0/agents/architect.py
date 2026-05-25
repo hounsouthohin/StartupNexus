@@ -635,71 +635,57 @@ async def semantic_annotator_node(state: AgentState) -> dict:
 
 # ── Pages detail node (LLM — génère pages_detail depuis brief structuré) ─────
 
+_FACTORY_CAPABILITIES = """\
+## CONTRAINTES TECHNIQUES (informations supplémentaires)
+
+### Convention paramètres dynamiques — INVARIANT TypeScript
+- Segment [id]   → params.id   dans TypeScript (toujours — jamais params.taskId, params.postId, etc.)
+- Segment [slug] → params.slug dans TypeScript (toujours)
+
+### [CROSS_ENTITY] — signal pour données d'un modèle secondaire
+Si une page de type "detail" doit AUSSI afficher les données d'un modèle ENFANT (un modèle qui a une FK vers le modèle principal),
+ajouter le tag [CROSS_ENTITY: NomDuModèle] dans la description de cette page.
+Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY: Task]\
+"""
+
 _PAGES_DETAIL_SYSTEM_PROMPT = """\
-Tu génères les descriptions fonctionnelles détaillées (pages_detail) pour chaque page d'une application Next.js 14.
-Ces descriptions guident un agent développeur pour générer les bons composants React.
+Tu génères les descriptions fonctionnelles de pages pour une application Next.js 14.
+Retourne un objet JSON où CHAQUE CLÉ est un path de page (ex: "/projects") et CHAQUE VALEUR est une string descriptive.
 
-## DONNÉES QUE TU REÇOIS
-JSON avec : description (brief humain), models (liste Prisma DSL), pages (tableau [{path, auth, page_type, model?}]),
-et optionnellement architecture (contraintes non-dérivables du brief).
+## EXEMPLE DE SORTIE ATTENDUE
 
-## RÈGLES PAR TYPE DE PAGE
+Entrée : pages = [{path:"/tasks",type:"list"}, {path:"/tasks/new",type:"create"}, {path:"/tasks/[id]",type:"detail"}, {path:"/projects/[id]",type:"detail"}, {path:"/",type:"custom"}]
 
-### page_type = "list"
-- Affiche les champs visuels du modèle (EXCLURE : id, userId, authorId, xxxId, createdAt, updatedAt, champs relation[])
-- Bouton "Nouveau" → href `/model/new`
-- Bouton "Modifier" → router.push(`/model/${id}/edit`)
-- Bouton "Supprimer" → delete{Model}(id)
-- État vide : "Aucun {entity} pour l'instant."
-- TOUJOURS terminer par [INTERACTIVE] (données serveur + boutons d'action)
-
-### page_type = "create"
-- Formulaire avec champs éditables du modèle (EXCLURE : id, userId, authorId, xxxId, createdAt)
-- Si le modèle a une FK (ex: categoryId), inclure un select pour choisir la catégorie parente
-- Submit → create{Model}(formData)
-- PAS de [INTERACTIVE] (formulaire pur, déjà Client Component)
-
-### page_type = "detail"
-- Affiche tous les champs visuels du modèle
-- Bouton "Modifier" → router.push(`/model/${id}/edit`)
-- Bouton "Supprimer" → delete{Model}(id) puis redirect vers la liste
-- TOUJOURS terminer par [INTERACTIVE] si la page est auth:true
-
-### page_type = "detail-slug" (publique, auth: false)
-- Affiche tous les champs visuels du modèle
-- Lecture seule — aucun bouton d'action côté visiteur anonyme
-- PAS de [INTERACTIVE]
-
-### page_type = "custom"
-- Décris le contenu selon le brief (hero, landing, dashboard métriques, etc.)
-- Ajoute [INTERACTIVE] UNIQUEMENT si la page combine données serveur ET interactions utilisateur
-- Page home statique / landing sans données → PAS de [INTERACTIVE]
-
-## RÈGLE [INTERACTIVE]
-Ajouter [INTERACTIVE] si et seulement si la page COMBINE les deux :
-1. Données lues depuis la base via un service (getAll, getById, etc.)
-2. Au moins un bouton d'action côté client (supprimer, modifier statut, etc.)
-Sans données serveur = pas [INTERACTIVE]. Sans bouton d'action = pas [INTERACTIVE].
-
-## NOMMAGE DES SERVER ACTIONS (CRITIQUE — correspondance exacte)
-Les noms doivent suivre le pattern : {verb}{ModelName}
-- create : createTask(formData), createExpense(formData)
-- delete : deleteTask(id), deleteExpense(id)
-- update : updateTask(id, formData)
-Le nom du modèle DOIT correspondre exactement au nom déclaré dans "models".
-
-## FORMAT DE SORTIE — JSON uniquement, aucun markdown
+Sortie :
 ```json
 {
-  "/tasks": "Liste des tâches. Affiche : titre, statut, description. Bouton 'Nouveau' → /tasks/new. Bouton 'Modifier' → /tasks/${id}/edit. Bouton 'Supprimer' → deleteTask(id). État vide : 'Aucune tâche.'. [INTERACTIVE]",
-  "/tasks/new": "Formulaire de création. Champs : titre (text), description (textarea), statut (select : pending, in_progress, done). Submit → createTask(formData).",
-  "/tasks/[id]": "Détail d'une tâche. Affiche : titre, statut, description, date de création. Bouton 'Modifier' → /tasks/${id}/edit. Bouton 'Supprimer' → deleteTask(id) puis redirect /tasks. [INTERACTIVE]",
-  "/": "Page d'accueil. Hero avec titre du projet et bouton 'Commencer' → /tasks."
+  "/tasks": "Liste des tâches. Affiche : titre, statut. Bouton 'Nouveau' → /tasks/new. Bouton 'Modifier'. Bouton 'Supprimer' → deleteTask(id). [INTERACTIVE]",
+  "/tasks/new": "Formulaire de création. Champs : titre (text), statut (select). Submit → createTask(formData).",
+  "/tasks/[id]": "Détail d'une tâche. Affiche : titre, statut, description. Bouton 'Modifier'. Bouton 'Supprimer' → deleteTask(id) puis redirect /tasks. [INTERACTIVE]",
+  "/projects/[id]": "Détail d'un projet. Affiche : title, description, status. Affiche aussi les tâches du projet : title, urgency, status. [CROSS_ENTITY: Task] [INTERACTIVE]",
+  "/": "Page d'accueil. Hero avec bouton 'Commencer'."
 }
 ```
 
-Génère une entrée pour CHAQUE page dans le tableau "pages" reçu. Clés = paths exacts.
-Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.\
+## RÈGLES PAR page_type
+
+**list** : Affiche les champs du modèle (exclure id, userId, xxxId, createdAt, updatedAt). Boutons Nouveau/Modifier/Supprimer. TOUJOURS ajouter [INTERACTIVE] en fin.
+
+**create** : Formulaire avec les champs éditables. Submit → create{Model}(formData). PAS de [INTERACTIVE].
+
+**detail** : Affiche tous les champs. Boutons Modifier/Supprimer. TOUJOURS ajouter [INTERACTIVE] si auth:true.
+Si un modèle ENFANT a une FK vers ce modèle (ex: Task.projectId → Project), mentionner les enfants ET ajouter [CROSS_ENTITY: NomDuModèle].
+
+**detail-slug** : Lecture seule. PAS de [INTERACTIVE].
+
+**custom** : Décris selon le brief. [INTERACTIVE] seulement si combine données serveur ET boutons d'action.
+
+## NOMMAGE DES ACTIONS
+Suivre le pattern {verb}{ModelName} : createTask(formData), deleteTask(id), updateTask(id, formData).
+
+## CONTRAINTE ABSOLUE
+Génère une entrée pour CHAQUE page du tableau "pages". Les clés DOIVENT être les paths exacts des pages.
+Retourne UNIQUEMENT le JSON brut, sans markdown ni explication.\
 """
 
 
@@ -759,8 +745,18 @@ async def pages_detail_node(state: AgentState) -> dict:
         logger.warning("[pages_detail] format inattendu — skip")
         return {}
 
+    # Filtre : clés valides (paths commençant par /), valeurs strings non-vides
+    pages_detail = {
+        k: v for k, v in pages_detail.items()
+        if isinstance(k, str) and k.startswith("/") and isinstance(v, str) and v.strip()
+    }
+
+    _expected_paths = {p.get("path") if isinstance(p, dict) else str(p) for p in pages}
+    logger.info("[pages_detail] pages attendues: %s", sorted(_expected_paths))
+    logger.info("[pages_detail] pages retournées: %s", sorted(pages_detail.keys()))
+
     interactive_count = sum(
-        1 for v in pages_detail.values() if "[INTERACTIVE]" in str(v)
+        1 for v in pages_detail.values() if "[INTERACTIVE]" in v
     )
     logger.info(
         "[pages_detail] ✓ %d page(s) décrites, %d [INTERACTIVE]",

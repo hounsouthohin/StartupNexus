@@ -1,5 +1,11 @@
 [
   {
+    "project_name": "project-hub",
+    "brief": {
+      "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
+    }
+  },
+  {
     "project_name": "task-manager",
     "brief": {
       "description": "J'aimerais une application pour gérer mes tâches personnelles. Je veux créer des tâches avec un titre, une description optionnelle et un niveau de priorité — faible, normale ou urgente. Chaque tâche peut avoir une date limite. Je veux pouvoir les marquer comme à faire, en cours ou terminées. Toute l'application est privée, accessible uniquement après connexion."
@@ -18,9 +24,10 @@
     }
   },
   {
-    "project_name": "project-hub",
+    "project_name": "recipe-manager",
     "brief": {
-      "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
+      "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation (en minutes), un niveau de difficulté (facile, moyen ou difficile), les ingrédients nécessaires, les instructions de préparation et un nombre de portions. Je peux classer mes recettes par catégories — entrées, plats principaux, desserts, etc. Les recettes que je marque comme publiques peuvent être consultées par d'autres utilisateurs. L'application est accessible après connexion."
     }
   }
 ]
+

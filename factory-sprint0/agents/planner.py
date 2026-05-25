@@ -168,10 +168,10 @@ def build_custom_page_contracts(
             if stat_calls:
                 hint_parts.append(
                     f"STRUCTURE DASHBOARD : "
-                    f"(1) Charger les données : {'; '.join(stat_calls[:4])}. "
-                    f"(2) Afficher des cartes de statistiques (total, publiés...). "
-                    f"(3) Inclure des liens rapides : {', '.join(link_suggestions[:4])}. "
-                    f"Passer toutes les données calculées comme props au Client Component."
+                    f"(1) Charger les données en haut du Server Component : {'; '.join(stat_calls[:4])}. "
+                    f"(2) Retourner un <main> avec des cartes de statistiques affichant ces chiffres. "
+                    f"(3) Inclure des <Link> vers : {', '.join(link_suggestions[:4])}. "
+                    f"Tout le rendu est inline dans ce Server Component — aucun Client Component séparé."
                 )
 
         if hint_parts:
@@ -326,6 +326,30 @@ def build_page_contracts(
                 ]
 
         page_parts.append(f"Import service : `{svc_import}`.")
+
+        # Secondary fetches from [CROSS_ENTITY: X] tags in pages_detail
+        _ce_matches = _re.findall(r'\[CROSS_ENTITY:\s*(\w+)\]', page_detail_str)
+        for _sec_name in _ce_matches:
+            _sec_ctx = contexts.get(_sec_name)
+            if _sec_ctx is None:
+                continue
+            _sec_camel = getattr(_sec_ctx, "camel", _pascal_to_camel(_sec_name))
+            _sec_kebab = getattr(_sec_ctx, "kebab", _pascal_to_kebab(_sec_name))
+            _sec_serialized = getattr(_sec_ctx, "serialized_type", f"Serialized{_sec_name}")
+            _param_ref = dyn_segs[0] if has_dyn else "id"
+            # Méthode dédiée getBy{ParentModel}Id pré-générée par dev_service_generator
+            _parent_cap = model_name[0].upper() + model_name[1:]
+            _dedicated_method = f"getBy{_parent_cap}Id"
+            page_parts.append(
+                f"DONNÉES SECONDAIRES [{_sec_name}] : "
+                f"`import {{ {_sec_camel}Service }} from '@/lib/services/{_sec_kebab}.service'` — "
+                f"`const {_sec_camel}s = await {_sec_camel}Service.{_dedicated_method}(userId, params.{_param_ref})` "
+                f"(méthode pré-générée dans le service — NE PAS recréer). "
+                f"Type : {_sec_serialized}[]. Passer au Client Component via props additionnels."
+            )
+            client_parts.append(
+                f"Props [{_sec_name}] : `{_sec_camel}s: {_sec_serialized}[]`."
+            )
 
         contracts[page.path] = (" ".join(page_parts), " ".join(client_parts))
 

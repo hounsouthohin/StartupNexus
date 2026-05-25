@@ -214,14 +214,21 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         "  },",
     ]
 
-    # ── getAllByUser (modèles enfants — filtre via relation parent) ──────────
+    # ── getAllByUser + getByParentId (modèles enfants — filtre via relation parent) ──────────
     # Généré uniquement pour les modèles enfants (owner = parentId).
-    # Permet aux pages liste de fetcher par userId sans connaître le parentId.
+    # getAllByUser : toutes les entrées de l'utilisateur (via la relation parente).
+    # getByParentId : entrées d'un parent spécifique — utilisé par les pages [CROSS_ENTITY].
     if _is_child_model and _parent_relation:
+        _parent_capitalized = _parent_relation[0].upper() + _parent_relation[1:]
         lines += [
             "",
             f"  getAllByUser: async (userId: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
             f"    const items = await prisma.{camel}.findMany({{ where: {{ {_parent_relation}: {{ userId }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
+            f"    return items.map({_map}) as {serialized}[]",
+            "  },",
+            "",
+            f"  getBy{_parent_capitalized}Id: async (userId: string, {owner}: string): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner}, {_parent_relation}: {{ userId }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }} }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
         ]
@@ -461,6 +468,13 @@ def format_service_map_for_prompt(spec, contexts: "dict[str, ModelGenerationCont
 
         lines.append(f"**{ctx.camel}Service** → `import {{ {ctx.camel}Service }} from '{import_path}'`")
         lines.append(f"  .getAll({ctx.owner}, page?)  → `Promise<{ctx.serialized_type}[]>` (dates déjà string, paginé)")
+
+        _is_child = ctx.owner not in ('userId', 'authorId')
+        _parent_rel = ctx.owner[:-2] if _is_child and ctx.owner.endswith("Id") else ""
+        if _is_child and _parent_rel:
+            _parent_cap = _parent_rel[0].upper() + _parent_rel[1:]
+            lines.append(f"  .getAllByUser(userId, page?)  → `Promise<{ctx.serialized_type}[]>` via relation {_parent_rel}")
+            lines.append(f"  .getBy{_parent_cap}Id(userId, {ctx.owner})  → `Promise<{ctx.serialized_type}[]>` enfants d'un parent spécifique — **utiliser pour les pages [CROSS_ENTITY]**")
 
         if ctx.has_public_pages and ctx.has_status:
             lines.append(
