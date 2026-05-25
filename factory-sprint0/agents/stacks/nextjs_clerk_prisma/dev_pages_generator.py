@@ -9,13 +9,14 @@ Architecture (Mai 2026) :
 - page.tsx         : ENTIÈREMENT DÉTERMINISTE pour les pages avec champ `model`.
                      Écrit dans template_written → LLM ne peut pas écraser.
                      Pattern : auth guard (si requis) + appel service + <XxxClient items={items} />
-                     Pour les pages sans `model` : stub auth-guard uniquement (LLM complète).
+                     Pour les pages sans `model` : entièrement générées par le LLM.
+                     Aucun stub n'est écrit sur disque — le data_contract est injecté
+                     via context_hint dans le plan ; executor_node décide de générer.
 """
 from __future__ import annotations
 
 import logging
 import os
-import re
 
 from .dev_naming import (
     pascal_to_camel,
@@ -90,50 +91,6 @@ def generate_loading_files(spec: "ProjectSpec", project_workdir: str) -> None:  
     logger.info("[pages_gen] %d loading.tsx écrits", count)
 
 
-# ── Page stubs (R6) ──────────────────────────────────────────────────────────
-
-def _gen_page_stub(page_path: str, auth_required: bool = True) -> str:
-    """
-    Génère un stub page.tsx pour un Server Component Next.js.
-    - auth_required=True  → imports Clerk + guard auth() + redirect
-    - auth_required=False → pas d'imports Clerk, page publique sans guard
-    Le LLM lit ce fichier et complète la logique métier sans risquer d'altérer
-    le régime d'authentification fixé ici de façon déterministe.
-    """
-    dynamic_params = re.findall(r"\[([^\]]+)\]", page_path)
-    component = path_to_page_component(page_path)
-
-    lines: list[str] = []
-
-    if auth_required:
-        lines.append("import { auth } from '@clerk/nextjs/server';")
-        lines.append("import { redirect } from 'next/navigation';")
-    if dynamic_params:
-        lines.append("import { notFound } from 'next/navigation';")
-
-    lines.append("")
-
-    if dynamic_params:
-        param_fields = ", ".join(f"{p}: string" for p in dynamic_params)
-        lines.append(f"type Props = {{ params: {{ {param_fields} }} }};")
-        lines.append("")
-        lines.append(f"export default async function {component}({{ params }}: Props) {{")
-    else:
-        lines.append(f"export default async function {component}() {{")
-
-    if auth_required:
-        lines.extend([
-            "  const { userId } = await auth();",
-            "  if (!userId) redirect('/sign-in');",
-        ])
-
-    lines.extend([
-        "",
-        "  return <div />;",
-        "}",
-    ])
-
-    return "\n".join(lines) + "\n"
 
 
 def _gen_error_tsx() -> str:
@@ -492,11 +449,11 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
             written[page_rel] = content
             logger.info("[pages_gen] ✓ page déterministe : %s (model=%s)", page_rel, model_name)
         else:
-            if not os.path.exists(page_abs):
-                stub = _gen_page_stub(page.path, page.auth_required)
-                with open(page_abs, "w", encoding="utf-8") as f:
-                    f.write(stub)
-                logger.info("[pages_gen] ✓ stub auth-guard : %s", page_rel)
+            # Page custom sans modèle → laissée au LLM.
+            # NE PAS écrire de stub sur le disque : l'executor_node vérifie os.path.exists()
+            # pour décider si un fichier doit être généré. Un stub pré-écrit bloquerait le LLM
+            # et le contrat data_contract injecté dans context_hint ne serait jamais reçu.
+            logger.info("[pages_gen] page custom (LLM) : %s", page_rel)
 
     logger.info("[pages_gen] %d pages déterministes écrites", len(written))
     return written

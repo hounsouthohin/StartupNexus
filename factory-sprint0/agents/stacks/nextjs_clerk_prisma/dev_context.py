@@ -163,7 +163,7 @@ def _build_dep(
     elif role == "page_client":
         return _dep_page_client(path, spec_obj, workdir)
     elif role == "page":
-        return _dep_page(path, spec_obj, workdir, manifest=manifest)
+        return _dep_page(path, spec_obj, workdir, manifest=manifest, service_map_str=service_map_str)
     return ""
 
 
@@ -312,7 +312,7 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
     return dep
 
 
-def _dep_page(path: str, spec_obj, workdir: str, manifest=None) -> str:
+def _dep_page(path: str, spec_obj, workdir: str, manifest=None, service_map_str: str = "") -> str:
     dep = ""
     seg = path.split("/")[-2] if path.count("/") >= 2 else ""
 
@@ -343,6 +343,10 @@ def _dep_page(path: str, spec_obj, workdir: str, manifest=None) -> str:
                 f" (import : import {{ {camel} }} from '@/lib/services/{kb}.service') :\n"
                 f"```typescript\n{svc_content}\n```"
             )
+        elif service_map_str:
+            # Page custom (dashboard, hub…) : aucun service résolu par segment.
+            # Injecter le service_map complet pour que le LLM voie les méthodes disponibles.
+            dep = f"\n{service_map_str}"
 
     # page-client.tsx sibling — injecté si présent pour que page.tsx passe les bonnes props
     client_sibling = path.replace("/page.tsx", "/page-client.tsx")

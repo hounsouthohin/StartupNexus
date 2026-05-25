@@ -1,8 +1,8 @@
 [
   {
-    "project_name": "galerie-projets",
+    "project_name": "recipe-manager",
     "brief": {
-      "description": "Une galerie de projets pour développeur indépendant. L'auteur publie ses projets personnels avec un titre, une description, un slug unique (pour l'URL publique) et un statut géré par un enum (draft, published, archived). Les visiteurs parcourent les projets publiés sur /projects et consultent chaque projet via son URL lisible (ex: /projects/mon-projet) sans se connecter. Le développeur gère ses projets depuis son dashboard privé : il peut créer, modifier et supprimer ses projets. Chaque projet peut être associé à une technologie principale (nom de la techno). Le dashboard affiche un résumé de l'activité — projets publiés vs total — avec des liens vers la gestion des projets et des technologies."
+      "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation (en minutes), un niveau de difficulté (facile, moyen, difficile) et une catégorie de cuisine (italienne, asiatique, française, autre). Chaque recette peut être en brouillon ou publiée. Les recettes publiées sont visibles par tout le monde sur une page publique. Je peux aussi ajouter des ingrédients à chaque recette — chaque ingrédient a un nom, une quantité et une unité. Je gère tout depuis mon tableau de bord privé."
     }
   }
 ]
