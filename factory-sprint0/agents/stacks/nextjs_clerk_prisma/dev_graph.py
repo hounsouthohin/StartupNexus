@@ -55,6 +55,7 @@ class DevState(TypedDict):
     generation_turns: int
     validated_files: List[str]
     file_plan: List[dict]
+    last_counted_build_call_id: str  # evite de compter 2x le meme build echoue
 
 
 # ── Pruning sémantique ───────────────────────────────────────────────────────
@@ -311,23 +312,23 @@ async def run_dev_agent(
         except Exception as _fg_err:
             logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
 
-    # ── Category 1 — [CROSS_ENTITY] pages sortent du déterminisme ────────────
-    # Une page marquée [CROSS_ENTITY: X] doit afficher des données d'un modèle secondaire.
-    # Le page-client.tsx déterministe ne connaît que l'interface du modèle principal.
-    # → On le retire de template_written : le LLM le génère avec les props additionnels.
+    # ── Category 1 — vérification [CROSS_ENTITY] ─────────────────────────────
+    # generate_page_stubs et generate_all_page_clients skippent déjà ces pages :
+    # elles ne sont jamais écrites sur disque ni dans template_written.
+    # Ce bloc vérifie l'invariante et log les pages déléguées au LLM.
     if spec_obj is not None:
         _pages_detail = spec_obj.pages_detail or {}
         for _ce_path, _ce_desc in _pages_detail.items():
             if "[CROSS_ENTITY:" not in str(_ce_desc or ""):
                 continue
-            _ce_client_key = f"app/{_ce_path.lstrip('/')}/page-client.tsx"
-            if _ce_client_key in template_written:
-                del template_written[_ce_client_key]
-                logger.info("[dev_graph] [CROSS_ENTITY] %s → page-client.tsx hors déterminisme (LLM)", _ce_path)
-            _ce_page_key = f"app/{_ce_path.lstrip('/')}/page.tsx"
-            if _ce_page_key in template_written:
-                del template_written[_ce_page_key]
-                logger.info("[dev_graph] [CROSS_ENTITY] %s → page.tsx hors déterminisme (LLM)", _ce_path)
+            for _ce_suffix in ("page-client.tsx", "page.tsx"):
+                _ce_key = f"app/{_ce_path.lstrip('/')}/{_ce_suffix}"
+                if _ce_key in template_written:
+                    # generate_page_stubs/form_generator n'ont pas skipé — on corrige
+                    logger.warning("[dev_graph] [CROSS_ENTITY] %s dans template_written (skip manqué) — retiré", _ce_key)
+                    del template_written[_ce_key]
+                else:
+                    logger.info("[dev_graph] [CROSS_ENTITY] %s/%s → LLM ✓", _ce_path, _ce_suffix)
 
     # ── Feature modules (registry déclaratif depuis stack JSON config) ───────
     if spec_obj is not None and _model_contexts:
@@ -781,6 +782,7 @@ async def run_dev_agent(
         build_succeeded = False
         build_executed = False
         build_exit = -1
+        found_call_id = ""
 
         # Étape 2 — scanner les ToolMessages en remontant, filtrer sur les build commands.
         for msg in reversed(state["messages"]):
@@ -794,6 +796,7 @@ async def run_dev_agent(
                 continue  # tsc, prisma, npm install, etc. — pas un build
 
             build_executed = True
+            found_call_id = call_id
 
             # Succès : exit code 0 — préfixe "OK\n" de shell_exec, point final
             if content.startswith("OK\n"):
@@ -817,6 +820,7 @@ async def run_dev_agent(
                         cmd = str(args.get("command", "") if isinstance(args, dict) else args or "")
                         if _is_build_command(cmd):
                             build_executed = True
+                            found_call_id = call.get("id", "hardening")
                             build_exit = 1  # conservatif — pas de succès sans ToolMessage
                             logger.warning(
                                 "[extract_error] build command dans AIMessage sans ToolMessage associé "
@@ -824,7 +828,18 @@ async def run_dev_agent(
                             )
                     break
 
-        new_attempts = int(state.get("build_attempts", 0) or 0) + (1 if build_executed else 0)
+        # N'incrémenter build_attempts que si c'est un NOUVEAU build (tool_call_id different).
+        # Evite de compter 3x le meme build echoue quand le LLM corrige des fichiers
+        # sans relancer le build entre chaque cycle extract_error.
+        prev_call_id = state.get("last_counted_build_call_id") or ""
+        is_new_build = build_executed and (found_call_id != prev_call_id)
+        new_attempts = int(state.get("build_attempts", 0) or 0) + (1 if is_new_build else 0)
+
+        if build_executed and not is_new_build:
+            logger.debug(
+                "[extract_error] meme build ToolMessage (%s) — build_attempts non incrémenté",
+                found_call_id,
+            )
 
         return {
             "last_build_error": last_error,
@@ -832,6 +847,7 @@ async def run_dev_agent(
             "build_command_executed": build_executed,
             "build_exit_code": build_exit,
             "build_attempts": new_attempts,
+            "last_counted_build_call_id": found_call_id if is_new_build else prev_call_id,
         }
 
     # ── Routage ──────────────────────────────────────────────────────
@@ -983,16 +999,61 @@ async def run_dev_agent(
         "generation_turns": 0,
         "validated_files": [],
         "file_plan": None,  # None = non encore généré; planner_node le remplit
+        "last_counted_build_call_id": "",
     }
 
     try:
         result = await graph.ainvoke(initial_state, {"recursion_limit": 100})
 
-        # ── Signal de succès unique : build_command_executed + build_exit_code == 0 ──
-        # Phase B : on ne surcharge plus le résultat depuis .next/ sur disque.
-        # .next/ est logué comme signal secondaire uniquement (détection d'anomalie).
-        disk_next = _check_next_dir_on_disk()
         final_success = bool(result.get("success", False))
+
+        # ── Reconciliation build post-graph ──────────────────────────────────────
+        # Si le graph s'est arrêté avec success=False (MAX_BUILD_ATTEMPTS atteint ou
+        # hardening path), on vérifie si le code est désormais valide avec un dernier
+        # build synchrone. Le LLM a peut-être corrigé les erreurs dans la dernière
+        # itération sans avoir eu le temps de relancer le build.
+        if not final_success:
+            try:
+                _recon_env = os.environ.copy()
+                _recon_env["CI"] = "true"
+                _recon_env.setdefault(
+                    "DATABASE_URL", "postgresql://user:CHANGEME@localhost:5432/db_placeholder"
+                )
+                logger.info("[dev_graph] reconciliation — tsc --noEmit ...")
+                _tsc_r = subprocess.run(
+                    "npx tsc --noEmit",
+                    shell=True, capture_output=True, text=True,
+                    timeout=120, cwd=project_workdir, env=_recon_env,
+                )
+                if _tsc_r.returncode == 0:
+                    logger.info("[dev_graph] reconciliation — tsc OK → npm run build ...")
+                    _build_r = subprocess.run(
+                        "npm run build",
+                        shell=True, capture_output=True, text=True,
+                        timeout=300, cwd=project_workdir, env=_recon_env,
+                    )
+                    if _build_r.returncode == 0:
+                        final_success = True
+                        result = dict(result)
+                        result["success"] = True
+                        result["build_exit_code"] = 0
+                        result["build_command_executed"] = True
+                        logger.info(
+                            "[dev_graph] reconciliation build SUCCES — success override True"
+                        )
+                    else:
+                        _bout = (_build_r.stdout + _build_r.stderr)[:600]
+                        logger.warning(
+                            "[dev_graph] reconciliation build FAILED (exit %d): %s",
+                            _build_r.returncode, _bout,
+                        )
+                else:
+                    _tout = (_tsc_r.stdout + _tsc_r.stderr)[:400]
+                    logger.info("[dev_graph] reconciliation — tsc errors: %s", _tout)
+            except Exception as _re:
+                logger.warning("[dev_graph] reconciliation build exception: %s", _re)
+
+        disk_next = _check_next_dir_on_disk()
 
         # ── Quality check AST (non bloquant) ────────────────────────────────────
         # Lancé seulement si le build a réussi (node_modules + code final disponibles).

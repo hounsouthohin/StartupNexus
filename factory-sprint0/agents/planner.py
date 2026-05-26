@@ -337,9 +337,23 @@ def build_page_contracts(
             _sec_kebab = getattr(_sec_ctx, "kebab", _pascal_to_kebab(_sec_name))
             _sec_serialized = getattr(_sec_ctx, "serialized_type", f"Serialized{_sec_name}")
             _param_ref = dyn_segs[0] if has_dyn else "id"
-            # Méthode dédiée getBy{ParentModel}Id pré-générée par dev_service_generator
             _parent_cap = model_name[0].upper() + model_name[1:]
             _dedicated_method = f"getBy{_parent_cap}Id"
+
+            # Validation ServiceSpec — la méthode doit exister dans le service enfant
+            try:
+                from agents.stacks.nextjs_clerk_prisma.dev_service_spec import build_service_spec as _bss
+                _sec_svc = _bss(_sec_ctx)
+                if not _sec_svc.has(_dedicated_method):
+                    import logging as _log
+                    _log.getLogger(__name__).warning(
+                        "[planner] CROSS_ENTITY : méthode '%s' absente de ServiceSpec(%s) — skip",
+                        _dedicated_method, _sec_name,
+                    )
+                    continue
+            except Exception:
+                pass  # validation non bloquante
+
             page_parts.append(
                 f"DONNÉES SECONDAIRES [{_sec_name}] : "
                 f"`import {{ {_sec_camel}Service }} from '@/lib/services/{_sec_kebab}.service'` — "
@@ -348,7 +362,10 @@ def build_page_contracts(
                 f"Type : {_sec_serialized}[]. Passer au Client Component via props additionnels."
             )
             client_parts.append(
-                f"Props [{_sec_name}] : `{_sec_camel}s: {_sec_serialized}[]`."
+                f"Props [{_sec_name}] : `{_sec_camel}s: {_sec_serialized}[]`. "
+                f"Pour les mutations sur {_sec_name} (delete/update) : "
+                f"importer depuis `@/app/{_sec_kebab}s/actions` — "
+                f"JAMAIS depuis `../actions` (qui est le service du modèle parent, pas de l'enfant)."
             )
 
         contracts[page.path] = (" ".join(page_parts), " ".join(client_parts))

@@ -368,20 +368,11 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
         ]
     elif not is_create:
         if page.auth_required:
-            # Modèles enfants (owner = FK parent comme projectId) : filtrer via parent.userId
-            try:
-                _owner = model_obj.resolved_owner()
-            except Exception:
-                _owner = "userId"
-            _is_child = _owner not in ("userId", "authorId")
-            if _is_child:
-                service_call = f"{camel}Service.getAllByUser(userId)"
-            else:
-                service_call = (
-                    f"{camel}Service.getAllWithRelations(userId)"
-                    if has_relations else
-                    f"{camel}Service.getAll(userId)"
-                )
+            service_call = (
+                f"{camel}Service.getAllWithRelations(userId)"
+                if has_relations else
+                f"{camel}Service.getAll(userId)"
+            )
         else:
             service_call = (
                 f"{camel}Service.getPublished()"
@@ -421,12 +412,27 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
       pour ajout dans template_written par dev_graph → LLM ne peut pas écraser).
     - Page sans `model` → stub auth-guard minimal (LLM peut compléter librement,
       non retourné dans le dict template_written).
+    - Page [CROSS_ENTITY] → SKIP total : ni écriture disque ni template_written.
+      Le LLM la génère depuis le context_hint du planner (fetch primaire + secondaires).
 
     Retourne {rel_path: content} pour les pages fully-deterministic uniquement.
     """
     written: dict[str, str] = {}
 
+    # Chemins des pages [CROSS_ENTITY] — délégués entièrement au LLM
+    _pages_detail = getattr(spec, "pages_detail", {}) or {}
+    _cross_entity_paths: set[str] = {
+        path for path, desc in _pages_detail.items()
+        if "[CROSS_ENTITY:" in str(desc or "")
+    }
+    if _cross_entity_paths:
+        logger.info("[pages_gen] %d page(s) [CROSS_ENTITY] → LLM : %s", len(_cross_entity_paths), sorted(_cross_entity_paths))
+
     for page in spec.pages:
+        if page.path in _cross_entity_paths:
+            page_rel = f"app/{page.path.strip('/')}/page.tsx"
+            logger.info("[pages_gen] skip [CROSS_ENTITY] page.tsx → LLM : %s", page_rel)
+            continue
         page_rel = f"app/{page.path.strip('/')}/page.tsx" if page.path.strip("/") else "app/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)

@@ -650,14 +650,13 @@ Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY:
 
 _PAGES_DETAIL_SYSTEM_PROMPT = """\
 Tu génères les descriptions fonctionnelles de pages pour une application Next.js 14.
-Retourne un objet JSON où CHAQUE CLÉ est un path de page (ex: "/projects") et CHAQUE VALEUR est une string descriptive.
 
-## EXEMPLE DE SORTIE ATTENDUE
+IMPORTANT : ta réponse est un objet JSON PLAT. Les clés de PREMIER NIVEAU sont les paths de pages (commençant par "/"). Pas d'objet wrapper, pas de clé "pages" ou "result" — directement les paths.
 
-Entrée : pages = [{path:"/tasks",type:"list"}, {path:"/tasks/new",type:"create"}, {path:"/tasks/[id]",type:"detail"}, {path:"/projects/[id]",type:"detail"}, {path:"/",type:"custom"}]
+## EXEMPLE DE SORTIE
 
-Sortie :
-```json
+Pour une app avec pages = ["/tasks", "/tasks/new", "/tasks/[id]", "/projects/[id]", "/"] :
+
 {
   "/tasks": "Liste des tâches. Affiche : titre, statut. Bouton 'Nouveau' → /tasks/new. Bouton 'Modifier'. Bouton 'Supprimer' → deleteTask(id). [INTERACTIVE]",
   "/tasks/new": "Formulaire de création. Champs : titre (text), statut (select). Submit → createTask(formData).",
@@ -665,7 +664,6 @@ Sortie :
   "/projects/[id]": "Détail d'un projet. Affiche : title, description, status. Affiche aussi les tâches du projet : title, urgency, status. [CROSS_ENTITY: Task] [INTERACTIVE]",
   "/": "Page d'accueil. Hero avec bouton 'Commencer'."
 }
-```
 
 ## RÈGLES PAR page_type
 
@@ -674,7 +672,8 @@ Sortie :
 **create** : Formulaire avec les champs éditables. Submit → create{Model}(formData). PAS de [INTERACTIVE].
 
 **detail** : Affiche tous les champs. Boutons Modifier/Supprimer. TOUJOURS ajouter [INTERACTIVE] si auth:true.
-Si un modèle ENFANT a une FK vers ce modèle (ex: Task.projectId → Project), mentionner les enfants ET ajouter [CROSS_ENTITY: NomDuModèle].
+Si un ou PLUSIEURS modèles ENFANTS ont une FK vers ce modèle, mentionner CHACUN dans la description et ajouter UN tag [CROSS_ENTITY: X] PAR modèle enfant.
+Exemple 2 enfants : "Détail d'un projet. Affiche ses tâches et ses fichiers. [CROSS_ENTITY: Task] [CROSS_ENTITY: File] [INTERACTIVE]"
 
 **detail-slug** : Lecture seule. PAS de [INTERACTIVE].
 
@@ -684,8 +683,10 @@ Si un modèle ENFANT a une FK vers ce modèle (ex: Task.projectId → Project), 
 Suivre le pattern {verb}{ModelName} : createTask(formData), deleteTask(id), updateTask(id, formData).
 
 ## CONTRAINTE ABSOLUE
-Génère une entrée pour CHAQUE page du tableau "pages". Les clés DOIVENT être les paths exacts des pages.
-Retourne UNIQUEMENT le JSON brut, sans markdown ni explication.\
+- Génère une entrée pour CHAQUE page du tableau "pages"
+- Les clés DOIVENT être les paths exacts des pages (ex: "/tasks", "/tasks/[id]")
+- Les clés commencent TOUJOURS par "/"
+- L'objet JSON est PLAT — JAMAIS de wrapper {"pages": {...}} ou {"result": {...}}\
 """
 
 
@@ -741,9 +742,20 @@ async def pages_detail_node(state: AgentState) -> dict:
         logger.error("[pages_detail] erreur LLM — %s", e)
         return {}
 
+    logger.info("[pages_detail] raw LLM keys: %s", list(pages_detail.keys())[:10] if isinstance(pages_detail, dict) else type(pages_detail).__name__)
+
     if not isinstance(pages_detail, dict):
         logger.warning("[pages_detail] format inattendu — skip")
         return {}
+
+    # Unwrap si le LLM a wrappé la réponse dans un objet parent ({"pages": {...}}, etc.)
+    _has_slash_key = any(isinstance(k, str) and k.startswith("/") for k in pages_detail)
+    if not _has_slash_key and len(pages_detail) > 0:
+        for _wrapper_val in pages_detail.values():
+            if isinstance(_wrapper_val, dict) and any(isinstance(k, str) and k.startswith("/") for k in _wrapper_val):
+                logger.info("[pages_detail] unwrap détecté — réponse wrappée dans '%s'", next(iter(pages_detail)))
+                pages_detail = _wrapper_val
+                break
 
     # Filtre : clés valides (paths commençant par /), valeurs strings non-vides
     pages_detail = {

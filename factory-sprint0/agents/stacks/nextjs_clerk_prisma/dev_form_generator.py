@@ -234,6 +234,13 @@ def generate_all_page_clients(
             has_create.add(pm)
     crud_models &= has_create
 
+    # Chemins [CROSS_ENTITY] → page-client.tsx délégué au LLM (même logique que generate_page_stubs)
+    _pages_detail = getattr(spec, "pages_detail", {}) or {}
+    _cross_entity_paths: set[str] = {
+        path for path, desc in _pages_detail.items()
+        if "[CROSS_ENTITY:" in str(desc or "")
+    }
+
     # Pages list / create / detail
     for page in pages:
         model_name = getattr(page, "model", None)
@@ -246,6 +253,11 @@ def generate_all_page_clients(
             continue
         ctx = model_contexts.get(model_name)
         if ctx is None:
+            continue
+
+        # Pages [CROSS_ENTITY] → page-client.tsx laissé au LLM pour inclure les props secondaires
+        if page.path in _cross_entity_paths and page_type in ("detail", "detail-slug"):
+            logger.info("[form_gen] skip [CROSS_ENTITY] page-client.tsx → LLM : %s", page.path)
             continue
 
         page_path_clean = page.path.strip("/")

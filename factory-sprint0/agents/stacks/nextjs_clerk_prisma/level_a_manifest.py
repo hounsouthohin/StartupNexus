@@ -53,99 +53,16 @@ class LevelAManifest:
     service_map_str: str                         # backward-compat string pour system_prompt
 
 
-# ── Dérivation des méthodes depuis ModelGenerationContext ────────────────────
+# ── Dérivation des méthodes depuis ServiceSpec ───────────────────────────────
 
 def _methods_from_context(ctx: "ModelGenerationContext") -> list[ServiceMethod]:
     """
-    Dérive la liste exacte des méthodes de service depuis les flags ModelGenerationContext.
-    Miroir de la logique de _generate_service_for_model() — doit rester synchrone.
+    Délègue à build_service_spec — SOURCE UNIQUE de vérité.
+    Ne plus modifier cette fonction : modifier build_service_spec() à la place.
     """
-    name = ctx.name
-    owner = ctx.owner
-    s = ctx.serialized_type
-    methods: list[ServiceMethod] = []
-
-    methods.append(ServiceMethod(
-        "getAll",
-        f"({owner}: string, page?: number) → Promise<{s}[]>",
-    ))
-
-    if getattr(ctx, "has_public_pages", False) and getattr(ctx, "has_status", False):
-        methods.append(ServiceMethod(
-            "getPublished",
-            f"() → Promise<{s}[]>  (sans owner, status=published filtrée)",
-        ))
-
-    methods.append(ServiceMethod(
-        "getById",
-        f"({owner}: string, id: string) → Promise<{s}>",
-    ))
-
-    if getattr(ctx, "has_public_pages", False):
-        methods.append(ServiceMethod(
-            "getPublicById",
-            f"(id: string) → Promise<{s}>  (sans owner)",
-        ))
-        if getattr(ctx, "has_status", False):
-            _filter_note = ", status filtrée (enum)"
-        elif getattr(ctx, "has_published_bool", False):
-            _filter_note = ", published=true filtrée"
-        else:
-            _filter_note = ""
-        methods.append(ServiceMethod(
-            "getPublicAll",
-            f"() → Promise<{s}[]>  (sans owner{_filter_note})",
-        ))
-
-    if getattr(ctx, "has_slug", False):
-        methods.append(ServiceMethod(
-            "getBySlug",
-            f"(slug: string) → Promise<{s}>",
-        ))
-
-    if getattr(ctx, "has_relations", False):
-        methods.append(ServiceMethod(
-            "getAllWithRelations",
-            f"({owner}: string) → Promise<{s}[]>  (avec relations)",
-        ))
-        methods.append(ServiceMethod(
-            "getByIdWithRelations",
-            f"({owner}: string, id: string) → Promise<{s}>  (avec relations)",
-        ))
-        if getattr(ctx, "has_public_pages", False):
-            methods.append(ServiceMethod(
-                "getPublicByIdWithRelations",
-                f"(id: string) → Promise<{s}>  (sans owner, avec relations)",
-            ))
-        if getattr(ctx, "has_slug", False):
-            methods.append(ServiceMethod(
-                "getBySlugWithRelations",
-                f"(slug: string) → Promise<{s}>  (avec relations)",
-            ))
-
-    # getAllByUser — modèles enfants uniquement (owner != userId/authorId)
-    _is_child = owner not in ("userId", "authorId")
-    _parent_rel = owner[:-2] if _is_child and owner.endswith("Id") else ""
-    if _is_child and _parent_rel:
-        methods.append(ServiceMethod(
-            "getAllByUser",
-            f"(userId: string, page?: number) → Promise<{s}[]>  (filtre via relation {_parent_rel})",
-        ))
-
-    methods.append(ServiceMethod(
-        "create",
-        f"({owner}: string, data: Create{name}Input) → Promise<{s}>",
-    ))
-    methods.append(ServiceMethod(
-        "update",
-        f"({owner}: string, id: string, data: Update{name}Input) → Promise<{s}>",
-    ))
-    methods.append(ServiceMethod(
-        "delete",
-        f"({owner}: string, id: string) → Promise<void>",
-    ))
-
-    return methods
+    from .dev_service_spec import build_service_spec
+    spec = build_service_spec(ctx)
+    return [ServiceMethod(name=m.name, signature=m.sig) for m in spec.methods]
 
 
 def _pascal_to_kebab(name: str) -> str:

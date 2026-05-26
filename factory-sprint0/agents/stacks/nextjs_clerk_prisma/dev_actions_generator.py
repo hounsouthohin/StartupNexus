@@ -104,12 +104,16 @@ def generate_action_files(
         if getattr(p, "model", None)
     }
 
-    # Regroupe les modèles par list_page pour gérer les collisions
+    # Regroupe les modèles par list_page pour gérer les collisions.
+    # Tous les modèles reçoivent un actions.ts — même les enfants CROSS_ENTITY sans
+    # page standalone (ex: Comment dans tasks/[id]) ont besoin de deleteXxx côté client.
     page_to_models: dict[str, list] = {}
     for model in spec.models:
         if model.name not in models_with_pages:
-            logger.info("[action_generator] skip %s — aucune page dans le spec", model.name)
-            continue
+            logger.info(
+                "[action_generator] %s — aucune page standalone, actions générées quand même (CROSS_ENTITY child)",
+                model.name,
+            )
         # Source de vérité : ctx.list_page_path (même calcul que form_generator)
         # Fallback en cascade : spec (si ctx absent) → heuristique /{kebab}s
         ctx = (model_contexts or {}).get(model.name)

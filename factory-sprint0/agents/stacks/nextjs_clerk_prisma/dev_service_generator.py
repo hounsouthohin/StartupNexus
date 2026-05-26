@@ -148,6 +148,11 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
     findMany → select explicite (Z25 : évite l'over-fetching).
     findFirst / findUnique → pas de select, passent par _serialize (types Prisma complets).
     getAllWithRelations → select scalaires + nested select par relation (remplace include).
+
+    CONTRAT DE SYNCHRONISATION : toute méthode ajoutée ici doit être ajoutée dans
+    dev_service_spec.py::build_service_spec() — c'est là que vit la DÉCISION sur
+    quelles méthodes existent. Ce générateur produit le code ; build_service_spec
+    produit l'inventaire utilisé par le manifest, la doc LLM, et le planner.
     """
     name = ctx.name
     camel = ctx.camel
@@ -201,10 +206,6 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             "",
         ]
 
-    # Détecte les modèles enfants (owner = FK parent comme projectId, pas userId/authorId)
-    _is_child_model = owner not in ('userId', 'authorId')
-    _parent_relation = owner[:-2] if _is_child_model and owner.endswith("Id") else ""
-
     # ── getAll (privé — select scalaires, filtre owner) ───────────────────────
     lines += [
         f"export const {camel}Service = {{",
@@ -214,21 +215,17 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         "  },",
     ]
 
-    # ── getAllByUser + getByParentId (modèles enfants — filtre via relation parent) ──────────
-    # Généré uniquement pour les modèles enfants (owner = parentId).
-    # getAllByUser : toutes les entrées de l'utilisateur (via la relation parente).
-    # getByParentId : entrées d'un parent spécifique — utilisé par les pages [CROSS_ENTITY].
-    if _is_child_model and _parent_relation:
-        _parent_capitalized = _parent_relation[0].upper() + _parent_relation[1:]
+    # ── getBy{ParentModel}Id (modèles avec FK vers un parent) ─────────────────
+    # Utilisé par les pages [CROSS_ENTITY] : récupère les enfants d'un parent donné.
+    # Détecté via ctx.fk_fields — SOURCE UNIQUE de vérité (tous les modèles ont userId,
+    # donc l'ancienne heuristique owner∉{'userId','authorId'} était toujours False).
+    for _fk in (ctx.fk_fields or []):
+        _fk_field = _fk.field_name       # ex: "courseId"
+        _parent_model = _fk.related_model  # ex: "Course"
         lines += [
             "",
-            f"  getAllByUser: async (userId: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_parent_relation}: {{ userId }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-            f"    return items.map({_map}) as {serialized}[]",
-            "  },",
-            "",
-            f"  getBy{_parent_capitalized}Id: async (userId: string, {owner}: string): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner}, {_parent_relation}: {{ userId }} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }} }})",
+            f"  getBy{_parent_model}Id: async (userId: string, {_fk_field}: string): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_fk_field}, userId }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }} }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
         ]
@@ -452,8 +449,12 @@ def generate_service_files(
 def format_service_map_for_prompt(spec, contexts: "dict[str, ModelGenerationContext] | None" = None) -> str:
     """
     Génère un bloc compact injectable dans le prompt LLM.
-    Le LLM connaît le contrat exact de chaque service avant d'écrire les pages.
+
+    Décisions "quelles méthodes existent" → déléguées à build_service_spec().
+    Formatage "comment les présenter au LLM" → ici, avec le détail des relations.
     """
+    from .dev_service_spec import build_service_spec
+
     if not spec or not getattr(spec, "models", None):
         return ""
 
@@ -464,65 +465,45 @@ def format_service_map_for_prompt(spec, contexts: "dict[str, ModelGenerationCont
 
     for model in spec.models:
         ctx = contexts[model.name]
-        import_path = f"@/lib/services/{ctx.kebab}.service"
+        svc = build_service_spec(ctx)
+        import_path = f"@/lib/services/{svc.kebab}.service"
+        rel_list = ", ".join(r.name for r in ctx.relation_fields) if ctx.relation_fields else ""
 
-        lines.append(f"**{ctx.camel}Service** → `import {{ {ctx.camel}Service }} from '{import_path}'`")
-        lines.append(f"  .getAll({ctx.owner}, page?)  → `Promise<{ctx.serialized_type}[]>` (dates déjà string, paginé)")
+        lines.append(f"**{svc.camel}Service** → `import {{ {svc.camel}Service }} from '{import_path}'`")
 
-        _is_child = ctx.owner not in ('userId', 'authorId')
-        _parent_rel = ctx.owner[:-2] if _is_child and ctx.owner.endswith("Id") else ""
-        if _is_child and _parent_rel:
-            _parent_cap = _parent_rel[0].upper() + _parent_rel[1:]
-            lines.append(f"  .getAllByUser(userId, page?)  → `Promise<{ctx.serialized_type}[]>` via relation {_parent_rel}")
-            lines.append(f"  .getBy{_parent_cap}Id(userId, {ctx.owner})  → `Promise<{ctx.serialized_type}[]>` enfants d'un parent spécifique — **utiliser pour les pages [CROSS_ENTITY]**")
+        # Rendu de chaque méthode en suivant l'ordre de ServiceSpec
+        for m in svc.methods:
+            if m.name == "getAll":
+                lines.append(f"  .{m.name}({svc.owner}, page?)  → `Promise<{svc.serialized}[]>` (dates déjà string, paginé)")
+            elif m.name.startswith("getBy") and m.name.endswith("Id") and m.name != "getById":
+                # getBy{Parent}Id — CROSS_ENTITY
+                lines.append(f"  .{m.name}(userId, ...)  → `Promise<{svc.serialized}[]>` enfants d'un parent — **CROSS_ENTITY**")
+            elif m.name == "getPublished":
+                lines.append(f"  .{m.name}()  → `Promise<{svc.serialized}[]>` SANS userId — pages publiques status='published'")
+            elif m.name == "getById":
+                lines.append(f"  .{m.name}({svc.owner}, id)  → `Promise<{svc.serialized}>` (notFound() si absent)")
+            elif m.name == "getPublicById":
+                lines.append(f"  .{m.name}(id)  → `Promise<{svc.serialized}>` SANS owner — pages détail publiques")
+            elif m.name == "getPublicAll":
+                lines.append(f"  .{m.name}()  → `Promise<{svc.serialized}[]>` SANS owner — fetch FK options publiques")
+            elif m.name == "getBySlug":
+                lines.append(f"  .{m.name}(slug)  → `Promise<{svc.serialized}>` par slug — pages detail-slug")
+            elif m.name == "getBySlugOwned":
+                lines.append(f"  .{m.name}({svc.owner}, slug)  → `Promise<{svc.serialized}>`")
+            elif m.name == "getAllWithRelations":
+                lines.append(f"  .{m.name}({svc.owner}, page?)  → `Promise<{svc.serialized}[]>` avec relations: {{ {rel_list} }}")
+            elif m.name == "getByIdWithRelations":
+                lines.append(f"  .{m.name}({svc.owner}, id)  → `Promise<{svc.serialized}>` avec relations: {{ {rel_list} }}")
+            elif m.name == "getPublicByIdWithRelations":
+                lines.append(f"  .{m.name}(id)  → `Promise<{svc.serialized}>` SANS owner, avec relations: {{ {rel_list} }}")
+            elif m.name == "getBySlugWithRelations":
+                lines.append(f"  .{m.name}(slug)  → `Promise<{svc.serialized}>` par slug, avec relations: {{ {rel_list} }}")
+            elif m.name in ("create", "update", "delete"):
+                lines.append(f"  .{m.name}(...)  → {m.sig.split('→')[-1].strip()}")
+            else:
+                # custom queries
+                lines.append(f"  .{m.name}(...)  → {m.sig.split('→')[-1].strip()}")
 
-        if ctx.has_public_pages and ctx.has_status:
-            lines.append(
-                f"  .getPublished()  → `Promise<{ctx.serialized_type}[]>` SANS userId "
-                "— pages publiques status='published'"
-            )
-
-        lines.append(
-            f"  .getById({ctx.owner}, id)  → `Promise<{ctx.serialized_type}>` (notFound() si absent)"
-        )
-
-        if ctx.has_public_pages:
-            lines.append(
-                f"  .getPublicById(id)  → `Promise<{ctx.serialized_type}>` SANS owner — pages détail publiques"
-            )
-            lines.append(
-                f"  .getPublicAll()  → `Promise<{ctx.serialized_type}[]>` SANS owner — fetch FK options publiques"
-            )
-
-        if ctx.has_slug:
-            lines.append(
-                f"  .getBySlug(slug)  → `Promise<{ctx.serialized_type}>` par slug — pages detail-slug"
-            )
-
-        if ctx.relation_fields:
-            rel_list = ", ".join(r.name for r in ctx.relation_fields)
-            lines.append(
-                f"  .getAllWithRelations({ctx.owner})  → `Promise<{ctx.serialized_type}[]>` "
-                f"avec relations: {{ {rel_list} }}"
-            )
-            lines.append(
-                f"  .getByIdWithRelations({ctx.owner}, id)  → `Promise<{ctx.serialized_type}>` "
-                f"avec relations: {{ {rel_list} }}"
-            )
-            if ctx.has_public_pages:
-                lines.append(
-                    f"  .getPublicByIdWithRelations(id)  → `Promise<{ctx.serialized_type}>` SANS owner, "
-                    f"avec relations: {{ {rel_list} }}"
-                )
-            if ctx.has_slug:
-                lines.append(
-                    f"  .getBySlugWithRelations(slug)  → `Promise<{ctx.serialized_type}>` par slug, "
-                    f"avec relations: {{ {rel_list} }}"
-                )
-
-        lines.append(f"  .create({ctx.owner}, data: Create{ctx.name}Input)  → `Promise<{ctx.name}>`")
-        lines.append(f"  .update({ctx.owner}, id, data: Update{ctx.name}Input)  → `Promise<{ctx.name}>`")
-        lines.append(f"  .delete({ctx.owner}, id)  → `Promise<void>`")
         lines.append("")
 
     return "\n".join(lines)

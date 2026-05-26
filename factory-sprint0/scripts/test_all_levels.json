@@ -5,6 +5,13 @@
       "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
     }
   },
+  
+  {
+    "project_name": "learn-hub",
+    "brief": {
+      "description": "Une plateforme e-learning privée. Je crée des cours, chaque cours contient des modules, chaque module contient des leçons, et chaque leçon peut avoir des exercices. Un cours a un titre, une description et un niveau (débutant, intermédiaire, avancé). Un module a un titre et un ordre d'affichage dans le cours. Une leçon a un titre, un contenu texte et une durée en minutes. Un exercice a une question, une réponse et un type (QCM ou texte libre). Tout est privé, accessible après connexion."
+    }
+  },
   {
     "project_name": "task-manager",
     "brief": {
