@@ -1,14 +1,14 @@
 {
   "id": "nextjs-clerk-prisma",
   "stack_id": "nextjs-clerk-prisma",
-  "display_name": "Next.js 14 + Clerk v6 + Prisma 7",
+  "display_name": "Next.js 15 + Clerk v6 + Prisma 7",
   "status": "stable",
   "framework": "nextjs",
   "llm_models": {
     "architect_base": "gpt-4o-mini",
     "architect_planner": "gpt-4o-mini"
   },
-  "description": "Next.js 14 App Router + Clerk V6 + Prisma 7 — stack Sprint 0-3",
+  "description": "Next.js 15 App Router + React 19 + Clerk V6 + Prisma 7 — stack Sprint 0-3",
   "root_file": "package.json",
   "primary_manifest": "package.json",
   "cleanup_artifacts": [
@@ -39,9 +39,9 @@
     ]
   },
   "packages": {
-    "next": "14.2.25",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "next": "15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "@clerk/nextjs": "^6.0.0",
     "prisma": "^7.0.0",
     "@prisma/client": "^7.0.0",
@@ -74,7 +74,7 @@
     "react-dom": "^18.2.0"
   },
   "version_pins": {
-    "next": "14.2.25",
+    "next": "15.3.0",
     "typescript": "^5.3.3"
   },
   "forbidden_paths": [
@@ -268,7 +268,7 @@
       "if (!userId) redirect('/sign-in').",
       "Lit les donnees VIA LE SERVICE : xxxService.getAll(userId) -- JAMAIS prisma directement.",
       "Le service retourne SerializedXxx (dates DateTime déjà string) — NE PAS appeler .toISOString() sur ces données (TS2551 fatal).",
-      "Pages dynamiques ([id] dans le chemin) : TYPER params OBLIGATOIREMENT. Pattern exact : export default async function Page({ params }: { params: { id: string } }) { const { id } = params; ... } — TypeScript strict rejette tout binding element sans type explicite (TS7031).",
+      "Pages dynamiques ([id] dans le chemin) : TYPER params OBLIGATOIREMENT. Pattern exact Next.js 15 : export default async function Page({ params }: { params: Promise<{ id: string }> }) { const { id } = await params; ... } — params est une Promise en Next.js 15, l'accès direct params.id provoque TS2339.",
       "Variables dans .map()/.filter() : laisser TypeScript inférer le type depuis le retour du service (SerializedXxx) — NE PAS annoter manuellement avec le type Prisma brut (TS2345 fatal)."
     ],
     "page_client": [

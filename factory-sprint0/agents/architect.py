@@ -61,7 +61,12 @@ Les virgules DANS les attributs comme @relation(..., ...) ne comptent PAS comme 
 
 ### Routes API
 Les Server Actions gèrent le CRUD → `"routes": []` dans la grande majorité des cas.
-Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics stateless.\
+Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics stateless.
+
+### page_links — contrat de navigation (OBLIGATOIRE)
+Pour CHAQUE page déclarée dans `pages`, liste les SEULS chemins valides pour les `<Link href>` dans ce composant.
+Ne jamais inclure un chemin absent de `pages` — la factory interdit les liens vers des pages non déclarées.
+Règle de déduction : une page liste pointe vers sa page create, une page create pointe vers la liste, une page detail pointe vers la liste parent.\
 """
 
 _DEDUCTION_RULES = """\
@@ -93,7 +98,20 @@ Phrasés qui déclenchent **enum** :
 Si tu crées un modèle séparé (Category, Tag, Type, Label…) parce que le brief le demande explicitement, le modèle principal DOIT référencer ce lookup via une FK.
 - Recipe avec Category → Recipe DOIT avoir `categoryId String` + `category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)` ET Category DOIT avoir `recipes Recipe[]`.
 - Article avec Category → même pattern.
-- **Un modèle lookup créé sans FK depuis le modèle principal est une erreur de modélisation** — le lookup serait orphelin dans l'UI.\
+- **Un modèle lookup créé sans FK depuis le modèle principal est une erreur de modélisation** — le lookup serait orphelin dans l'UI.
+
+### RÈGLE 4 — Valeurs finies → enum Prisma (jamais String @default)
+
+Tout champ dont les valeurs appartiennent à un ensemble fini prédéfini DOIT être déclaré comme enum Prisma — jamais `String @default(valeur)`.
+
+**ERREUR** : `status String @default("active")` — le formulaire ne peut pas afficher de liste déroulante pour un String.
+**CORRECT** : `status ProjectStatus @default(active)` + `"ProjectStatus": ["active", "paused", "completed"]` dans `enums`.
+
+Règle de décision :
+- Valeur quelconque saisie librement par l'utilisateur → `String`
+- Valeur choisie parmi une liste finie connue à l'avance → enum Prisma obligatoire
+
+Si le brief ne précise pas les valeurs, déduire les valeurs les plus naturelles pour le domaine décrit dans le brief.\
 """
 
 _FEW_SHOT_EXAMPLES = """\
@@ -258,6 +276,11 @@ _FORMAT_DE_SORTIE = """\
       "in_progress": "En cours",
       "done": "Terminé"
     }
+  },
+  "page_links": {
+    "/tasks":     ["/tasks/new"],
+    "/tasks/new": ["/tasks"],
+    "/tasks/[id]": ["/tasks"]
   },
   "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
 }

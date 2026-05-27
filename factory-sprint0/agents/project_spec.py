@@ -200,6 +200,15 @@ class ProjectSpec(BaseModel):
             "Exemple : { 'LeaveStatus': { 'pending': 'En attente', 'approved': 'Approuvé', 'rejected': 'Refusé' } }"
         )
     )
+    page_links: dict = Field(
+        default_factory=dict,
+        description=(
+            "Contrat de navigation par page : { '/path': ['/link1', '/link2'] }. "
+            "Chaque page liste les SEULS chemins valides pour ses <Link href>. "
+            "Dérivé de spec.pages — ne jamais inclure un chemin absent de pages. "
+            "Exemple : { '/projects': ['/projects/new'], '/projects/new': ['/projects'] }"
+        )
+    )
     spec_fingerprint: str = Field(
         default="",
         description="Hash SHA256 des noms critiques — calculé automatiquement"

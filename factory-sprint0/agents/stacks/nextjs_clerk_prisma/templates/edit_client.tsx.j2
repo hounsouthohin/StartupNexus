@@ -1,6 +1,6 @@
 'use client'
 
-import { useFormState } from 'react-dom'
+import { useActionState } from 'react'
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
 {% for fk in fk_fields %}
@@ -16,7 +16,7 @@ interface {{ client_name }}Props {
 }
 
 export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk.related_camel }}Options{% endfor %} }: {{ client_name }}Props) {
-  const [error, formAction, isPending] = useFormState(
+  const [error, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       try { await update{{ name }}.bind(null, item.id)(formData); return null }
       catch (e) { return (e as Error).message }

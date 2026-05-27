@@ -375,6 +375,22 @@ Méthodes :
 
     mandatory_rag_block = _build_mandatory_rag_block(spec)
 
+    # page_links — contrat de navigation par page
+    page_links_block = ""
+    _page_links: dict = getattr(spec, "page_links", None) or {}
+    if _page_links:
+        _lines = []
+        for path, links in _page_links.items():
+            _lines.append(f"  {path} → {', '.join(links) if links else '(aucun lien)'}")
+        page_links_block = (
+            "\n══════════════════════════════════════════════════════════════\n"
+            "CONTRAT DE NAVIGATION — LIENS AUTORISÉS PAR PAGE\n"
+            "══════════════════════════════════════════════════════════════\n"
+            "Tu ne peux générer des <Link href='...'> QUE vers les chemins listés ci-dessous.\n"
+            "Tout autre chemin est INTERDIT — même s'il semble naturel (ex: /[id]/edit non déclaré).\n"
+            + "\n".join(_lines) + "\n"
+        )
+
     # Fichiers pré-générés (à ne pas réécrire)
     pre_written_block = ""
     if pre_written:
@@ -402,5 +418,6 @@ Méthodes :
         prisma_block=prisma_block,
         files_checklist=files_checklist,
         stack_rules_block=stack_rules_block,
+        page_links_block=page_links_block,
     )
     return rendered.replace("{WORKDIR}", "/app/generated-projects")
