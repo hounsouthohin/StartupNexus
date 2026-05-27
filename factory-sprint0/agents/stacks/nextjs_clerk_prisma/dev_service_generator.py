@@ -225,7 +225,7 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         lines += [
             "",
             f"  getBy{_parent_model}Id: async (userId: string, {_fk_field}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_fk_field}, userId }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_fk_field}, {owner}: userId }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
         ]
