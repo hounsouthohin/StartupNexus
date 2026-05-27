@@ -436,8 +436,22 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
 
     for page in spec.pages:
         if page.path in _cross_entity_paths:
+            # page.tsx est généré déterministiquement (auth + fetch entité primaire)
+            # Seul page-client.tsx reste LLM (géré par dev_form_generator via CROSS_ENTITY)
             page_rel = f"app/{page.path.strip('/')}/page.tsx"
-            logger.info("[pages_gen] skip [CROSS_ENTITY] page.tsx → LLM : %s", page_rel)
+            page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
+            os.makedirs(os.path.dirname(page_abs), exist_ok=True)
+            model_obj = spec.get_model_by_name(getattr(page, "model", None)) if getattr(page, "model", None) else None
+            if model_obj is None:
+                model_obj = _find_detail_model(page, spec)
+            if model_obj is not None:
+                content = _gen_page_full(page, model_obj, spec=spec)
+                with open(page_abs, "w", encoding="utf-8") as f:
+                    f.write(content)
+                written[page_rel] = content
+                logger.info("[pages_gen] ✓ [CROSS_ENTITY] page.tsx déterministe : %s (model=%s)", page_rel, model_obj.name)
+            else:
+                logger.info("[pages_gen] [CROSS_ENTITY] page.tsx → LLM (model introuvable) : %s", page_rel)
             continue
         page_rel = f"app/{page.path.strip('/')}/page.tsx" if page.path.strip("/") else "app/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
@@ -539,10 +553,11 @@ def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug
         "",
         "export const dynamic = 'force-dynamic'",
         "",
-        f"export default async function {component}({{ params }}: {{ params: {{ {param_key}: string }} }}) {{",
+        f"export default async function {component}({{ params }}: {{ params: Promise<{{ {param_key}: string }}> }}) {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
-        f"  const item = await {camel}Service.{lookup_method}(userId, params.{param_key})",
+        f"  const {{ {param_key} }} = await params",
+        f"  const item = await {camel}Service.{lookup_method}(userId, {param_key})",
         "  if (!item) notFound()",
     ]
 

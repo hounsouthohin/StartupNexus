@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "project-hub",
+    "brief": {
+      "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
+    }
+  }
+]

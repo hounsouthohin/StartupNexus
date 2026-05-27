@@ -25,7 +25,6 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from config.factory_config import TEMPORAL_ADDRESS
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
-from scripts.brief_catalog import get_batch_projects
 
 
 TASK_QUEUE = "factory-task-queue"
@@ -38,10 +37,6 @@ TS_ERROR_WITH_FILE_RE = re.compile(
     re.IGNORECASE,
 )
 TS_CODE_RE = re.compile(r"\bTS(?P<code>\d{4,5})\b")
-
-# Briefs importés depuis le catalogue partagé — ne pas dupliquer ici.
-# Source : scripts/brief_catalog.py (PHASE0_BRIEFS)
-BATCH_PROJECTS: List[Dict[str, Any]] = get_batch_projects(10)
 
 
 def _learner_events_count() -> int:
@@ -705,12 +700,12 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _build_cli_projects(batch_size: int) -> List[Dict[str, Any]]:
-    """
-    Construit une liste de projets depuis le catalogue partagé (brief_catalog.py).
-    Si batch_size > 5, recycle les briefs en suffixant les noms.
-    """
-    return get_batch_projects(batch_size)
+def _build_cli_projects() -> List[Dict[str, Any]]:
+    raise SystemExit(
+        "Erreur : aucun catalogue de briefs disponible. "
+        "Utilise --briefs <fichier.json> pour fournir les projets à lancer.\n"
+        "Format attendu : [{\"project_name\": \"...\", \"brief\": {\"description\": \"...\", \"models\": [], \"pages\": [], \"routes\": []}}]"
+    )
 
 
 def _load_projects_from_briefs_file(path: str) -> List[Dict[str, Any]]:
@@ -739,7 +734,7 @@ if __name__ == "__main__":
         projects = _load_projects_from_briefs_file(args.briefs)
     else:
         batch_size = max(1, int(args.batch_size))
-        projects = _build_cli_projects(batch_size)
+        projects = _build_cli_projects()
     result = asyncio.run(
         run_batch(
             projects=projects,
