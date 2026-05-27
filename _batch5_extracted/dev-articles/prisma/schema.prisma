@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ArticleStatus {
+  draft
+  published
+  archived
+}
+
+model Article {
+  id String @id @default(uuid())
+  title String
+  content String
+  slug String @unique
+  status ArticleStatus @default(draft)
+  authorId String
+  createdAt DateTime @default(now())
+}

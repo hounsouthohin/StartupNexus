@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id              // Clerk userId (ex: user_xxx)
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+
+enum ArticleStatus {
+  draft
+  published
+  archived
+}
+
+model Article {
+  id String @id @default(uuid())
+  title String
+  content String
+  slug String @unique
+  status ArticleStatus @default(draft)
+  authorId String
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id String @id @default(uuid())
+  name String
+  userId String
+  createdAt DateTime @default(now())
+}

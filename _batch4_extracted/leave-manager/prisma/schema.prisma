@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id              // Clerk userId (ex: user_xxx)
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+}
+
+enum LeaveType {
+  annual_leave
+  sick_leave
+  unpaid_leave
+}
+
+model LeaveRequest {
+  id String @id @default(uuid())
+  startDate DateTime
+  endDate DateTime
+  reason String?
+  type LeaveType
+  status LeaveStatus @default(pending)
+  userId String
+  createdAt DateTime @default(now())
+}

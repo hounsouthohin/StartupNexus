@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(docker exec factory-worker bash -c \"cat '/app/generated-projects/project-hub/app/tasks/[id]/page-client.tsx'\" 2>&1)"
+    ]
+  }
+}

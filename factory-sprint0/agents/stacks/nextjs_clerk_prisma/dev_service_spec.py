@@ -91,7 +91,7 @@ def build_service_spec(
     for fk in (ctx.fk_fields or []):
         methods.append(MethodSpec(
             f"getBy{fk.related_model}Id",
-            f"(userId: string, {fk.field_name}: string) → Promise<{s}[]>",
+            f"(userId: string, {fk.field_name}: string, page?: number) → Promise<{s}[]>",
         ))
 
     # ── getPublished — pages publiques avec statut enum ───────────────────────

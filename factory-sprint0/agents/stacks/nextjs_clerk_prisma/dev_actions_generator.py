@@ -3,18 +3,28 @@ agents/dev_actions_generator.py
 ────────────────────────────────
 Génération DÉTERMINISTE des fichiers app/{route}/actions.ts depuis ProjectSpec.
 
-Chaque actions.ts expose 3 Server Actions CRUD standard :
-  createXxx(formData)        — auth guard + Zod + service.create + revalidatePath
-  updateXxx(id, formData)    — auth guard + Zod + service.update + revalidatePath
-  deleteXxx(id)              — auth guard + service.delete + revalidatePath + redirect
+Deux patterns de génération selon le type de modèle :
 
-Règle de routage :
+── Modèles standalone (Project, Task, Post…) — ont une page list dans le spec ──
+  createXxx(formData)          — redirect(list_page)
+  updateXxx(id, formData)      — redirect(list_page)
+  deleteXxx(id)                — redirect(list_page)
+
+── Modèles enfants CROSS_ENTITY (Comment, Module, Lesson…) — sans page list ──
+  createXxx(formData)          — redirect vers page détail parent dynamique
+                                  ex: redirect(`/tasks/${validated.taskId}`)
+  updateXxx(id, formData)      — lit _redirectTo depuis formData (champ caché)
+  deleteXxx(id, redirectTo)    — redirectTo passé explicitement par l'appelant
+
+Détection enfant : ctx.list_page_path == "" ET ctx.fk_fields non vide.
+La FK principale (fk_fields[0]) détermine le parent et le chemin de redirection.
+
+Règle de routage (standalone) :
   Le path list_page est résolu via spec.get_list_page_for_model(model.name)
   (ProjectSpec — source de vérité, voir GENERATOR_CONTRACT.md § 3).
-  L'heuristique est encapsulée dans cette méthode, pas ici.
 
 Intégration dans dev_graph.py (après generate_service_files) :
-    action_files = generate_action_files(spec_obj, project_workdir)
+    action_files = generate_action_files(spec_obj, project_workdir, model_contexts)
     template_written.update(action_files)
 """
 from __future__ import annotations
@@ -27,17 +37,78 @@ from .dev_naming import pascal_to_camel, pascal_to_kebab
 logger = logging.getLogger(__name__)
 
 
-def _generate_actions_for_model(model, list_page: str) -> str:
+# ── Helpers pour la détection enfant ────────────────────────────────────────
+
+def _is_child_model(ctx) -> bool:
+    """
+    True si le modèle est un enfant CROSS_ENTITY sans page liste standalone.
+    Condition : pas de list_page_path résolu ET au moins un FK field vers un parent.
+    """
+    if ctx is None:
+        return False
+    has_list = bool(getattr(ctx, "list_page_path", ""))
+    has_fk = bool(getattr(ctx, "fk_fields", None))
+    return not has_list and has_fk
+
+
+def _parent_paths(ctx, spec) -> tuple[str, str]:
+    """
+    Retourne (parent_list_path, fk_field_name) pour un modèle enfant.
+
+    parent_list_path : chemin de la page list du modèle parent (ex: "/tasks")
+    fk_field_name    : nom du champ FK principal (ex: "taskId")
+
+    Utilise spec.get_list_page_for_model() pour résoudre le chemin du parent.
+    Fallback : /{related_kebab}s si le parent n'a pas de page list déclarée.
+    """
+    fk = ctx.fk_fields[0]
+    parent_list = (
+        spec.get_list_page_for_model(fk.related_model)
+        if spec else ""
+    ) or f"/{pascal_to_kebab(fk.related_model)}s"
+    return parent_list, fk.field_name
+
+
+# ── Générateur principal ─────────────────────────────────────────────────────
+
+def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> str:
     """
     Génère le contenu complet du fichier actions.ts pour un modèle.
 
-    Auth pattern : const { userId } = await auth() + redirect si absent.
-    Service call : toujours userId en premier arg — TypeScript correct
-    (le service accepte string; le nom du param est cosmétique).
+    Pour les modèles standalone : redirige vers list_page (statique).
+    Pour les modèles enfants     : redirige vers la page détail du parent (dynamique).
     """
     name = model.name
     camel = pascal_to_camel(name)
     kebab = pascal_to_kebab(name)
+
+    is_child = _is_child_model(ctx)
+
+    if is_child:
+        parent_list, fk_field = _parent_paths(ctx, spec)
+        # create : validated.{fk_field} est toujours présent (required dans le schema)
+        create_revalidate = f"`{parent_list}/${{validated.{fk_field}}}`"
+        create_redirect   = create_revalidate
+        # update : lit _redirectTo depuis formData (champ caché injecté par le form)
+        update_lines = [
+            f"  const redirectTo = (formData.get('_redirectTo') as string) || '{parent_list}'",
+            "  revalidatePath(redirectTo)",
+            "  redirect(redirectTo)",
+        ]
+        # delete : paramètre explicite — l'appelant passe le chemin parent
+        delete_sig        = f"(id: string, redirectTo: string = '{parent_list}')"
+        delete_revalidate = "redirectTo"
+        delete_redirect   = "redirectTo"
+    else:
+        create_revalidate = f"'{list_page}'"
+        create_redirect   = f"'{list_page}'"
+        update_lines = [
+            f"  revalidatePath('{list_page}')",
+            f"  redirect('{list_page}')",
+        ]
+        delete_sig        = "(id: string)"
+        delete_revalidate = f"'{list_page}'"
+        delete_redirect   = f"'{list_page}'"
 
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER",
@@ -54,8 +125,8 @@ def _generate_actions_for_model(model, list_page: str) -> str:
         "  if (!userId) redirect('/sign-in')",
         f"  const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.create(userId, validated)",
-        f"  revalidatePath('{list_page}')",
-        f"  redirect('{list_page}')",
+        f"  revalidatePath({create_revalidate})",
+        f"  redirect({create_redirect})",
         "}",
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",
@@ -63,16 +134,15 @@ def _generate_actions_for_model(model, list_page: str) -> str:
         "  if (!userId) redirect('/sign-in')",
         f"  const validated = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.update(userId, id, validated)",
-        f"  revalidatePath('{list_page}')",
-        f"  redirect('{list_page}')",
+        *update_lines,
         "}",
         "",
-        f"export async function delete{name}(id: string) {{",
+        f"export async function delete{name}{delete_sig} {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
         f"  await {camel}Service.delete(userId, id)",
-        f"  revalidatePath('{list_page}')",
-        f"  redirect('{list_page}')",
+        f"  revalidatePath({delete_revalidate})",
+        f"  redirect({delete_redirect})",
         "}",
         "",
     ]
@@ -108,32 +178,42 @@ def generate_action_files(
     # Tous les modèles reçoivent un actions.ts — même les enfants CROSS_ENTITY sans
     # page standalone (ex: Comment dans tasks/[id]) ont besoin de deleteXxx côté client.
     page_to_models: dict[str, list] = {}
+    ctx_by_model: dict[str, object] = {}
+
     for model in spec.models:
         if model.name not in models_with_pages:
             logger.info(
                 "[action_generator] %s — aucune page standalone, actions générées quand même (CROSS_ENTITY child)",
                 model.name,
             )
-        # Source de vérité : ctx.list_page_path (même calcul que form_generator)
-        # Fallback en cascade : spec (si ctx absent) → heuristique /{kebab}s
         ctx = (model_contexts or {}).get(model.name)
-        list_page = (
-            (ctx.list_page_path if ctx else "")
-            or spec.get_list_page_for_model(model.name)
-            or f"/{pascal_to_kebab(model.name)}s"
-        )
-        page_to_models.setdefault(list_page, []).append(model)
+        ctx_by_model[model.name] = ctx
+
+        # Pour les modèles enfants : list_page est une clé de regroupement unique.
+        # On utilise app/comments/actions.ts comme chemin (heuristique conservée pour le path).
+        # La LOGIQUE de redirect est dans _generate_actions_for_model, pas dans list_page.
+        if _is_child_model(ctx):
+            # L'heuristique /{kebab}s sert uniquement à choisir le répertoire de sortie,
+            # pas à construire les redirects (qui utilisent le parent dynamique).
+            file_key = f"/{pascal_to_kebab(model.name)}s"
+        else:
+            file_key = (
+                (ctx.list_page_path if ctx else "")
+                or spec.get_list_page_for_model(model.name)
+                or f"/{pascal_to_kebab(model.name)}s"
+            )
+        page_to_models.setdefault(file_key, []).append(model)
 
     written: dict[str, str] = {}
 
-    for list_page, models in page_to_models.items():
-        route_dir = list_page.lstrip("/")
+    for file_key, models in page_to_models.items():
+        route_dir = file_key.lstrip("/")
         rel_path = f"app/{route_dir}/actions.ts"
 
         if len(models) > 1:
             logger.warning(
                 "[action_generator] %d modèles sur la même page '%s' : %s — actions fusionnées",
-                len(models), list_page, [m.name for m in models],
+                len(models), file_key, [m.name for m in models],
             )
             # Fusion : header commun + blocs de chaque modèle
             parts = [
@@ -154,10 +234,12 @@ def generate_action_files(
                 )
             parts.append("")
             for m in models:
-                parts.append(_actions_block(m, list_page))
+                ctx = ctx_by_model.get(m.name)
+                parts.append(_actions_block(m, file_key, ctx=ctx, spec=spec))
             content = "\n".join(parts)
         else:
-            content = _generate_actions_for_model(models[0], list_page)
+            ctx = ctx_by_model.get(models[0].name)
+            content = _generate_actions_for_model(models[0], file_key, ctx=ctx, spec=spec)
 
         abs_dir = os.path.join(project_workdir, "app", route_dir)
         os.makedirs(abs_dir, exist_ok=True)
@@ -177,11 +259,35 @@ def generate_action_files(
     return written
 
 
-def _actions_block(model, list_page: str) -> str:
+def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
     """Génère uniquement les 3 fonctions d'un modèle (sans header imports) pour fusion."""
     name = model.name
     camel = pascal_to_camel(name)
-    kebab = pascal_to_kebab(name)
+
+    is_child = _is_child_model(ctx)
+
+    if is_child:
+        parent_list, fk_field = _parent_paths(ctx, spec)
+        create_revalidate = f"`{parent_list}/${{validated.{fk_field}}}`"
+        create_redirect   = create_revalidate
+        update_lines = [
+            f"  const redirectTo = (formData.get('_redirectTo') as string) || '{parent_list}'",
+            "  revalidatePath(redirectTo)",
+            "  redirect(redirectTo)",
+        ]
+        delete_sig        = f"(id: string, redirectTo: string = '{parent_list}')"
+        delete_revalidate = "redirectTo"
+        delete_redirect   = "redirectTo"
+    else:
+        create_revalidate = f"'{list_page}'"
+        create_redirect   = f"'{list_page}'"
+        update_lines = [
+            f"  revalidatePath('{list_page}')",
+            f"  redirect('{list_page}')",
+        ]
+        delete_sig        = "(id: string)"
+        delete_revalidate = f"'{list_page}'"
+        delete_redirect   = f"'{list_page}'"
 
     lines = [
         f"export async function create{name}(formData: FormData) {{",
@@ -189,8 +295,8 @@ def _actions_block(model, list_page: str) -> str:
         "  if (!userId) redirect('/sign-in')",
         f"  const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.create(userId, validated)",
-        f"  revalidatePath('{list_page}')",
-        f"  redirect('{list_page}')",
+        f"  revalidatePath({create_revalidate})",
+        f"  redirect({create_redirect})",
         "}",
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",
@@ -198,48 +304,64 @@ def _actions_block(model, list_page: str) -> str:
         "  if (!userId) redirect('/sign-in')",
         f"  const validated = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
         f"  await {camel}Service.update(userId, id, validated)",
-        f"  revalidatePath('{list_page}')",
-        f"  redirect('{list_page}')",
+        *update_lines,
         "}",
         "",
-        f"export async function delete{name}(id: string) {{",
+        f"export async function delete{name}{delete_sig} {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
         f"  await {camel}Service.delete(userId, id)",
-        f"  revalidatePath('{list_page}')",
-        f"  redirect('{list_page}')",
+        f"  revalidatePath({delete_revalidate})",
+        f"  redirect({delete_redirect})",
         "}",
         "",
     ]
     return "\n".join(lines)
 
 
-def format_action_map_for_prompt(spec) -> str:
+def format_action_map_for_prompt(spec, model_contexts: "dict | None" = None) -> str:
     """
     Génère un bloc compact injectable dans le prompt LLM.
     Expose les signatures COMPLÈTES des Server Actions pré-générées.
-    Le LLM voit (formData: FormData) → il sait comment appeler depuis un Client Component.
+
+    Pour les modèles enfants (CROSS_ENTITY), affiche les vraies signatures :
+      deleteXxx(id, redirectTo)  au lieu de deleteXxx(id)
+    afin que le LLM appelle correctement les actions depuis les page-clients.
     """
     if not spec or not getattr(spec, "models", None):
         return ""
 
     lines = [
         "### Action Map (Server Actions pré-générées — NE PAS recréer ces fichiers)\n",
-        "SIGNATURES : create/update reçoivent `formData: FormData` | delete reçoit `id: string`.",
+        "SIGNATURES standalone : create/update reçoivent `formData: FormData` | delete reçoit `id: string`.",
+        "SIGNATURES enfant     : delete reçoit `(id, redirectTo)` | create redirige vers parent automatiquement.",
         "APPEL create/update : const fd = new FormData(); fd.set('field', val); await createXxx(fd)   ← NE PAS passer { field } → TS2353",
-        "APPEL delete        : await deleteXxx(item.id)   ← id string, PAS FormData → TS2345 fatal\n",
+        "APPEL delete standalone : await deleteXxx(item.id)",
+        "APPEL delete enfant     : await deleteXxx(item.id, `/parent/${parentId}`)  ← redirectTo OBLIGATOIRE\n",
     ]
     for model in spec.models:
         name = model.name
-        list_page = spec.get_list_page_for_model(name)
-        if not list_page:
-            continue
-        route_dir = list_page.lstrip("/")
-        file_path = f"app/{route_dir}/actions.ts"
-        lines.append(f"**{file_path}** :")
-        lines.append(f"  create{name}(formData: FormData) → revalidatePath + redirect('{list_page}')")
-        lines.append(f"  update{name}(id: string, formData: FormData) → revalidatePath + redirect('{list_page}')")
-        lines.append(f"  delete{name}(id: string) → revalidatePath + redirect('{list_page}')")
+        ctx = (model_contexts or {}).get(name)
+        is_child = _is_child_model(ctx)
+
+        if is_child:
+            parent_list, fk_field = _parent_paths(ctx, spec)
+            route_dir = pascal_to_kebab(name) + "s"
+            file_path = f"app/{route_dir}/actions.ts"
+            lines.append(f"**{file_path}** (modèle enfant CROSS_ENTITY) :")
+            lines.append(f"  create{name}(formData: FormData) → redirect vers `{parent_list}/{{fk_field}}`")
+            lines.append(f"  update{name}(id: string, formData: FormData) → lit _redirectTo dans formData")
+            lines.append(f"  delete{name}(id: string, redirectTo: string = '{parent_list}') → redirect(redirectTo)")
+        else:
+            list_page = spec.get_list_page_for_model(name)
+            if not list_page:
+                continue
+            route_dir = list_page.lstrip("/")
+            file_path = f"app/{route_dir}/actions.ts"
+            lines.append(f"**{file_path}** :")
+            lines.append(f"  create{name}(formData: FormData) → redirect('{list_page}')")
+            lines.append(f"  update{name}(id: string, formData: FormData) → redirect('{list_page}')")
+            lines.append(f"  delete{name}(id: string) → redirect('{list_page}')")
         lines.append("")
 
     return "\n".join(lines)

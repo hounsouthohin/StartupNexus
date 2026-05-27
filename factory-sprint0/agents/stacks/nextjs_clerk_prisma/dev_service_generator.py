@@ -224,8 +224,8 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         _parent_model = _fk.related_model  # ex: "Course"
         lines += [
             "",
-            f"  getBy{_parent_model}Id: async (userId: string, {_fk_field}: string): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_fk_field}, userId }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }} }})",
+            f"  getBy{_parent_model}Id: async (userId: string, {_fk_field}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_fk_field}, userId }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
         ]
