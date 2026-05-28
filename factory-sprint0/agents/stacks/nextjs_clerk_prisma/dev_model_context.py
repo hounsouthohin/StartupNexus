@@ -43,6 +43,21 @@ _TEXTAREA_NAMES: frozenset[str] = frozenset([
     "message", "text", "bio", "about", "details",
 ])
 
+# Valeurs par défaut pour les champs String sémantiquement contraints.
+# Utilisé comme filet de sécurité quand l'architect génère String @default(...)
+# au lieu d'un Prisma enum — évite les <select> vides dans les formulaires.
+# RÈGLE 4 architect doit toujours produire des enums Prisma corrects ;
+# ce dict ne couvre que les cas de défaillance architect.
+_STRING_ENUM_DEFAULTS: dict[str, tuple[str, ...]] = {
+    "status":   ("active", "inactive", "pending", "draft", "published", "completed", "cancelled"),
+    "priority": ("low", "medium", "high", "urgent"),
+    "type":     ("standard", "premium", "basic", "other"),
+    "role":     ("admin", "user", "moderator", "member"),
+    "state":    ("active", "inactive", "pending", "closed"),
+    "visibility": ("public", "private", "draft"),
+    "category": ("general", "work", "personal", "other"),
+}
+
 
 # ── Sous-types ───────────────────────────────────────────────────────────────
 
@@ -56,6 +71,7 @@ class FieldInfo:
     has_default: bool   # @default(...) non-auto → optionnel à la création
     input_type: str     # "text" | "number" | "textarea" | "checkbox" | "datetime-local" | "enum-select"
     attributes: str     # attributs Prisma bruts (pour diagnostic)
+    allowed_values: tuple[str, ...] = ()  # valeurs enum autorisées (enum Prisma ou String contraint)
 
 
 @dataclass(frozen=True)
@@ -203,32 +219,39 @@ _SEMANTIC_TO_INPUT: dict[str, str] = {
 }
 
 
-def _detect_input_type(
+def _detect_input_type_and_values(
     field_name: str,
     base_type: str,
     spec_enums: dict,
     enriched_type: str = "",
-) -> str:
+) -> tuple[str, tuple[str, ...]]:
     """
-    Détermine le type d'input HTML pour un champ scalaire.
+    Retourne (input_type, allowed_values) pour un champ scalaire.
+
     Priorité 1 : annotation sémantique LLM (enriched_type).
-    Priorité 2 : heuristiques existantes (fallback Level A).
+    Priorité 2 : enum Prisma déclaré dans spec.enums.
+    Priorité 3 : String sémantiquement contraint (filet de sécurité si RÈGLE 4 architect ratée).
+    Priorité 4 : heuristiques type standard.
     """
     if enriched_type:
         mapped = _SEMANTIC_TO_INPUT.get(enriched_type, "")
         if mapped:
-            return mapped
+            return mapped, ()
     if base_type in spec_enums:
-        return "enum-select"
+        return "enum-select", tuple(spec_enums[base_type])
+    # Filet architect : String avec nom sémantique contraint → enum-select avec valeurs standard
+    if base_type == "String" and field_name.lower() in _STRING_ENUM_DEFAULTS:
+        return "enum-select", _STRING_ENUM_DEFAULTS[field_name.lower()]
     if base_type == "Boolean":
-        return "checkbox"
+        return "checkbox", ()
     if base_type in ("Int", "Float", "Decimal"):
-        return "number"
+        return "number", ()
     if base_type == "DateTime":
-        return "datetime-local"
+        return "datetime-local", ()
     if field_name.lower() in _TEXTAREA_NAMES:
-        return "textarea"
-    return "text"
+        return "textarea", ()
+    return "text", ()
+
 
 
 def _pascal_to_camel(name: str) -> str:
@@ -349,17 +372,19 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         if is_array:
             continue  # Tableaux → formulaires non supportés (Level A/D)
 
+        _itype, _allowed = _detect_input_type_and_values(
+            f.name, base_type, spec_enums,
+            enriched_type=enriched_spec.get_semantic_type(f.name) if enriched_spec else "",
+        )
         editable.append(FieldInfo(
             name=f.name,
             prisma_type=f.type,
             base_type=base_type,
             is_optional=is_optional,
             has_default=_has_non_auto_default(f.attributes),
-            input_type=_detect_input_type(
-                f.name, base_type, spec_enums,
-                enriched_type=enriched_spec.get_semantic_type(f.name) if enriched_spec else "",
-            ),
+            input_type=_itype,
             attributes=f.attributes or "",
+            allowed_values=_allowed,
         ))
 
     # Guard: detail-slug page sans champ slug dans le modèle → incohérence architect

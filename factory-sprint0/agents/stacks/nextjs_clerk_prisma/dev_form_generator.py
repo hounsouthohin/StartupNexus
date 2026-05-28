@@ -25,7 +25,7 @@ import jinja2
 
 from .dev_naming import path_to_client_component
 from .dev_model_context import ModelGenerationContext
-from .dev_pages_generator import _find_create_model as _infer_create_model
+from .dev_pages_generator import _find_create_model as _infer_create_model, _gen_page_full
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,12 @@ def _related_display(fk, model_contexts: dict) -> str:
 
 def _field_to_ctx(field, spec_enums: dict, enum_value_labels: dict | None = None) -> dict:
     """Convertit FieldInfo en dict template-friendly (ajoute enum_values et enum_labels)."""
-    ev = spec_enums.get(field.base_type, []) if field.input_type == "enum-select" else []
-    el = (enum_value_labels or {}).get(field.base_type, {}) if field.input_type == "enum-select" else {}
+    if field.input_type == "enum-select":
+        # Priorité 1 : valeurs déjà résolues dans FieldInfo (enum Prisma ou String contraint)
+        ev = list(field.allowed_values) if field.allowed_values else spec_enums.get(field.base_type, [])
+        el = (enum_value_labels or {}).get(field.base_type, {})
+    else:
+        ev, el = [], {}
     return {
         "name":       field.name,
         "input_type": field.input_type,
@@ -85,7 +89,7 @@ def _fk_to_ctx(fk, display: str) -> dict:
 def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     auth_required = getattr(page, "auth_required", True)
-    fields = ctx.display_fields[:2]
+    fields = ctx.display_fields
     _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
     _model_labels = _ui_labels.get(ctx.name, {}) or {}
     _title_plurals = getattr(spec, "title_plurals", {}) or {} if spec else {}
@@ -317,4 +321,119 @@ def generate_all_page_clients(
         logger.info("[form_gen] ✓ edit %s (model=%s)", rel, model.name)
 
     logger.info("[form_gen] %d page-client.tsx générés (Jinja2)", len(written))
+    return written
+
+
+def generate_parent_detail_pages(
+    spec,
+    model_contexts: dict,
+    project_workdir: str,
+) -> dict[str, str]:
+    """
+    Auto-génère les pages détail pour les modèles parents qui ont des enfants FK
+    mais aucune page détail déclarée dans le spec.
+
+    Ex : Task a des Comments (taskId FK) mais /tasks/[id] absent du spec
+    → génère app/tasks/[id]/page.tsx + page-client.tsx déterministes.
+
+    Sans ces pages, createComment redirige vers /tasks/${validated.taskId}
+    qui n'existe pas → 404 immédiat après création d'un enfant CROSS_ENTITY.
+
+    Retourne {rel_path: content} pour intégration dans template_written.
+    """
+    from types import SimpleNamespace
+
+    written: dict[str, str] = {}
+
+    # Modèles parents = modèles référencés comme FK par d'autres modèles
+    fk_parent_names: set[str] = set()
+    for ctx in model_contexts.values():
+        for fk in ctx.fk_fields:
+            fk_parent_names.add(fk.related_model)
+
+    if not fk_parent_names:
+        return written
+
+    # Modèles déjà couverts par une page détail dans le spec
+    models_with_detail: set[str] = set()
+    for page in getattr(spec, "pages", []) or []:
+        if getattr(page, "page_type", "") in ("detail", "detail-slug"):
+            model_name = getattr(page, "model", None)
+            if model_name:
+                models_with_detail.add(model_name)
+
+    for parent_name in fk_parent_names:
+        if parent_name in models_with_detail:
+            continue  # Déjà couvert dans le spec
+
+        parent_ctx = model_contexts.get(parent_name)
+        if parent_ctx is None:
+            continue
+
+        list_path = parent_ctx.list_page_path
+        if not list_path:
+            continue  # Pas de page liste → pas de détail auto-généré
+
+        detail_path = f"{list_path}/[id]"
+        page_path_clean = detail_path.strip("/")
+
+        # Vérifier que les fichiers n'existent pas déjà sur disque
+        page_rel = f"app/{page_path_clean}/page.tsx"
+        client_rel = f"app/{page_path_clean}/page-client.tsx"
+        page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
+        client_abs = os.path.join(project_workdir, client_rel.replace("/", os.sep))
+        if os.path.exists(page_abs) and os.path.exists(client_abs):
+            logger.info("[form_gen] parent detail déjà présent : %s", detail_path)
+            continue
+
+        # Modèle Prisma réel
+        parent_model = None
+        if hasattr(spec, "get_model_by_name"):
+            parent_model = spec.get_model_by_name(parent_name)
+        if parent_model is None:
+            parent_model = next(
+                (m for m in (getattr(spec, "models", []) or []) if m.name == parent_name),
+                None,
+            )
+        if parent_model is None:
+            logger.warning("[form_gen] generate_parent_detail_pages: modèle '%s' introuvable", parent_name)
+            continue
+
+        # Page synthétique (ne modifie pas spec.pages)
+        synthetic_page = SimpleNamespace(
+            path=detail_path,
+            page_type="detail",
+            auth_required=True,
+            model=parent_name,
+        )
+
+        try:
+            os.makedirs(os.path.dirname(page_abs), exist_ok=True)
+
+            if not os.path.exists(page_abs):
+                page_content = _gen_page_full(synthetic_page, parent_model, spec=spec)
+                with open(page_abs, "w", encoding="utf-8") as f:
+                    f.write(page_content)
+                written[page_rel] = page_content
+
+            if not os.path.exists(client_abs):
+                client_content = _gen_detail_client(synthetic_page, parent_ctx, spec=spec)
+                with open(client_abs, "w", encoding="utf-8") as f:
+                    f.write(client_content)
+                written[client_rel] = client_content
+
+            logger.info(
+                "[form_gen] ✓ parent detail auto-généré : %s (model=%s)",
+                detail_path, parent_name,
+            )
+
+        except Exception as _err:
+            logger.error(
+                "[form_gen] erreur génération parent detail '%s' : %s",
+                detail_path, _err,
+                exc_info=True,
+            )
+
+    if written:
+        logger.info("[form_gen] %d fichier(s) parent detail auto-générés", len(written))
     return written

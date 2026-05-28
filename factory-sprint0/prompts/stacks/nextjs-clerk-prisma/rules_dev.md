@@ -125,3 +125,19 @@
     ```
 
 34. **PAGE-CLIENT USESTATE TYPÉ** : `useState` avec un tableau DOIT avoir un type générique explicite — `useState<SerializedXxx[]>([])`. Sans type générique, TypeScript infère `never[]` → TS2345 fatal sur le premier `push` ou `map`.
+
+35. **FORMULAIRES — USEACTIONSTATE OBLIGATOIRE (React 19)** : tout formulaire dans un `page-client.tsx` custom [INTERACTIVE] DOIT utiliser `useActionState` importé depuis `'react'` :
+    ```tsx
+    'use client'
+    import { useActionState } from 'react'   // ← 'react', JAMAIS 'react-dom'
+    import { createXxx } from './actions'
+
+    const [error, formAction, isPending] = useActionState(
+      async (_prev: unknown, formData: FormData) => {
+        try { await createXxx(formData); return null }
+        catch (e) { return (e as Error).message }
+      },
+      null,
+    )
+    ```
+    `useFormState` de `'react-dom'` est **SUPPRIMÉ** depuis React 19 — TS2305 fatal si utilisé. `useActionState` est la seule API correcte.

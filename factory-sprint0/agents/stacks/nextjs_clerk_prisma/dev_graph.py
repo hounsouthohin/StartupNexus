@@ -312,6 +312,21 @@ async def run_dev_agent(
         except Exception as _fg_err:
             logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
 
+    # ── Génération déterministe : pages détail parent auto-manquantes ───────────
+    # Pour chaque modèle parent (référencé via FK par un enfant CROSS_ENTITY) qui n'a
+    # PAS de page détail déclarée dans le spec, on génère app/{list}/[id]/page.tsx +
+    # page-client.tsx — résout les 404 post-création d'enfants (ex: createComment →
+    # redirect(`/tasks/${validated.taskId}`) → 404 si /tasks/[id] absent).
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .dev_form_generator import generate_parent_detail_pages
+            _parent_detail_files = generate_parent_detail_pages(spec_obj, _model_contexts, project_workdir)
+            template_written.update(_parent_detail_files)
+            if _parent_detail_files:
+                logger.info("[dev_graph] %d fichier(s) parent detail auto-générés", len(_parent_detail_files))
+        except Exception as _pd_err:
+            logger.warning("[dev_graph] parent detail pages non bloquant : %s", _pd_err)
+
     # ── Category 1 — vérification [CROSS_ENTITY] ─────────────────────────────
     # generate_page_stubs et generate_all_page_clients skippent déjà ces pages :
     # elles ne sont jamais écrites sur disque ni dans template_written.
