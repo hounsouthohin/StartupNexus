@@ -1,0 +1,173 @@
+'use client'
+
+import { useState, useActionState } from 'react'
+import Link from 'next/link'
+import type { {{ serialized_type }} } from '@/lib/types'
+{% for child in children %}
+import type { {{ child.serialized_type }} } from '@/lib/types'
+import { create{{ child.name }}, delete{{ child.name }} } from '{{ child.actions_import }}'
+{% endfor %}
+
+interface {{ client_name }}Props {
+  item: {{ serialized_type }}
+}
+
+export default function {{ client_name }}({ item }: {{ client_name }}Props) {
+{% for child in children %}
+  const [{{ child.camel }}List, set{{ child.name }}List] = useState<{{ child.serialized_type }}[]>(
+    (item as any).{{ child.relation_field }} || []
+  )
+{% endfor %}
+
+{% for child in children %}
+  const [{{ child.camel }}Error, {{ child.camel }}FormAction, {{ child.camel }}Pending] = useActionState(
+    async (_prev: unknown, formData: FormData) => {
+      formData.set('{{ child.fk_field }}', item.id)
+      try {
+        await create{{ child.name }}(formData)
+        return null
+      } catch (e) {
+        return (e as Error).message
+      }
+    },
+    null,
+  )
+
+  const handleDelete{{ child.name }} = async (id: string) => {
+    if (!confirm('Supprimer cet élément ?')) return
+    await delete{{ child.name }}(id, `{{ list_path }}/${item.id}`)
+    set{{ child.name }}List(prev => prev.filter(c => c.id !== id))
+  }
+
+{% endfor %}
+  return (
+    <main className="container mx-auto p-6 max-w-4xl">
+      {/* ── Détail {{ name }} ── */}
+      <div className="mb-8">
+        <div className="flex items-center gap-4 mb-6">
+          <Link href="{{ list_path }}" className="text-gray-400 hover:text-gray-600 text-sm">
+            ← {{ title_plural }}
+          </Link>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-3">
+          {% for field in display_fields %}
+          <div>
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{{ field_labels.get(field, field) }}</span>
+            <p className="mt-1 text-sm text-gray-900">
+              {% if enum_display.get(field) %}
+              {({{ enum_display[field] | tojson }} as Record<string, string>)[String(item.{{ field }} ?? '')] ?? String(item.{{ field }} ?? '')}
+              {% else %}
+              {String(item.{{ field }} ?? '')}
+              {% endif %}
+            </p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% for child in children %}
+      {/* ── {{ child.name }}s ── */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{{ child.name }}s</h2>
+
+        {/* Liste */}
+        {{ '{' }}{{ child.camel }}List.length === 0 ? (
+          <p className="text-gray-500 text-sm py-4 text-center">Aucun élément pour l'instant.</p>
+        ) : (
+          <ul className="space-y-3 mb-6">
+            {{ '{' }}{{ child.camel }}List.map(c => (
+              <li key={c.id} className="bg-white rounded-lg border border-gray-200 p-4 flex items-start justify-between gap-4">
+                <div className="flex-1 space-y-1">
+                  {% for df in child.display_fields %}
+                  <p className="text-sm text-gray-900">{String(c.{{ df }} ?? '')}</p>
+                  {% endfor %}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDelete{{ child.name }}(c.id)}
+                  className="shrink-0 text-xs text-red-600 border border-red-200 rounded px-2 py-1 hover:bg-red-50"
+                >
+                  Supprimer
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Formulaire de création */}
+        {{ '{' }}{{ child.camel }}Error && (
+          <p className="mb-3 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{{ '{' }}{{ child.camel }}Error}</p>
+        )}
+        <form action={{ '{' }}{{ child.camel }}FormAction} className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
+          {% for field in child.create_fields %}
+          <div>
+            <label htmlFor="{{ child.camel }}_{{ field.name }}" className="block text-xs font-medium text-gray-700 mb-1">
+              {{ field.label }}{% if not field.is_optional and not field.has_default %} <span className="text-red-500">*</span>{% endif %}
+            </label>
+            {% if field.input_type == 'textarea' %}
+            <textarea
+              id="{{ child.camel }}_{{ field.name }}"
+              name="{{ field.name }}"
+              rows={3}
+              {% if not field.is_optional and not field.has_default %}required{% endif %}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {% elif field.input_type == 'enum-select' %}
+            <select
+              id="{{ child.camel }}_{{ field.name }}"
+              name="{{ field.name }}"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Sélectionner…</option>
+              {% for val in field.enum_values %}
+              <option value="{{ val }}">{{ field.enum_labels.get(val, val) if field.enum_labels else val }}</option>
+              {% endfor %}
+            </select>
+            {% elif field.input_type == 'checkbox' %}
+            <input
+              type="checkbox"
+              id="{{ child.camel }}_{{ field.name }}"
+              name="{{ field.name }}"
+              value="true"
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+            />
+            {% elif field.input_type == 'number' %}
+            <input
+              type="number"
+              id="{{ child.camel }}_{{ field.name }}"
+              name="{{ field.name }}"
+              {% if not field.is_optional and not field.has_default %}required{% endif %}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {% elif field.input_type == 'datetime-local' %}
+            <input
+              type="datetime-local"
+              id="{{ child.camel }}_{{ field.name }}"
+              name="{{ field.name }}"
+              {% if not field.is_optional and not field.has_default %}required{% endif %}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {% else %}
+            <input
+              type="{{ field.input_type }}"
+              id="{{ child.camel }}_{{ field.name }}"
+              name="{{ field.name }}"
+              {% if not field.is_optional and not field.has_default %}required{% endif %}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {% endif %}
+          </div>
+          {% endfor %}
+          <button
+            type="submit"
+            disabled={{ '{' }}{{ child.camel }}Pending}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ '{' }}{{ child.camel }}Pending ? 'En cours…' : 'Ajouter'}
+          </button>
+        </form>
+      </section>
+      {% endfor %}
+    </main>
+  )
+}

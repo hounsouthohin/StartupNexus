@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re as _re
 
 from .dev_naming import (
     pascal_to_camel,
@@ -259,7 +260,7 @@ def _fk_fields(model_obj, spec) -> list[tuple[str, str, str]]:
             result.append((name, related_model, pascal_to_camel(related_model)))
     return result
 
-def _gen_page_full(page, model_obj, spec=None) -> str:
+def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     """
     Génère un page.tsx ENTIÈREMENT DÉTERMINISTE pour une page avec champ `model`.
     Le fichier résultant est ajouté à template_written → le LLM ne peut pas l'écraser.
@@ -270,6 +271,11 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     - Création      : auth() + fetch FK options → <XxxClient fkOptions={...} />
     - Détail privé  : auth() + getById(userId, params.id) + notFound() → <XxxClient item={item} />
     - Détail public : prisma.model.findUnique(params.id) + notFound() → <XxxClient item={item} />
+
+    ctx : ModelGenerationContext optionnel — source de vérité pour has_relations.
+          Utiliser ctx.has_relations si disponible car il détecte les deux côtés d'une relation
+          (y compris la relation inverse `tasks Task[]` sans @relation explicite).
+          Fallback sur _model_has_relations() si ctx absent.
     """
     name = model_obj.name
     camel = pascal_to_camel(name)
@@ -279,21 +285,23 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
     is_create = page.page_type == "create"
     is_detail = page.page_type in ("detail", "detail-slug")
     is_slug_detail = page.page_type == "detail-slug"
-    has_relations = _model_has_relations(model_obj)
+    has_relations = ctx.has_relations if ctx is not None else _model_has_relations(model_obj)
     has_status = _model_has_status(model_obj)
 
-    # Champs FK pour pages create (Pilier 1 — form generator)
+    # Champs FK pour pages create
     fk_list: list[tuple[str, str, str]] = []
     if is_create and spec is not None:
         fk_list = _fk_fields(model_obj, spec)
 
+    # CROSS_ENTITY : les enfants sont inclus dans item via getByIdWithRelations.
+    # module_detail_with_children génère page-client.tsx déterministiquement.
+    # page.tsx ne fetch plus les enfants séparément — pattern unifié.
+
     lines: list[str] = []
 
-    # Auth import
     if page.auth_required:
         lines.append("import { auth } from '@clerk/nextjs/server'")
 
-    # next/navigation : redirect + notFound combinés dans un seul import
     nav_imports: list[str] = []
     if page.auth_required:
         nav_imports.append("redirect")
@@ -304,13 +312,12 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
 
     lines.append(f"import {client} from './page-client'")
 
-    # Service selon type de page — detail public : getPublicById (sans owner filter)
     if is_detail:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
     elif not is_create:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
 
-    # Imports des services FK pour les selects du formulaire create
+    # Imports services FK pour formulaires create
     for _fk_field, related_model, related_camel in fk_list:
         related_kebab = pascal_to_kebab(related_model)
         lines.append(
@@ -330,7 +337,6 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
         f"export default async function {component}({fn_params}) {{",
     ]
 
-    # Next.js 15 : params is a Promise — must be awaited before use
     if is_slug_detail:
         lines.append("  const { slug } = await params")
     elif is_detail:
@@ -349,16 +355,12 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
                 svc_method = f"getBySlugWithRelations(slug)" if has_relations else f"getBySlug(slug)"
             elif page.auth_required:
                 logger.warning(
-                    "[pages_gen] %s : detail-slug déclaré mais pas de champ 'slug' — fallback getByIdWithRelations(userId, slug). "
-                    "L'architect doit ajouter `slug String @unique` au modèle.",
-                    name,
+                    "[pages_gen] %s : detail-slug sans champ 'slug' — fallback getByIdWithRelations.", name,
                 )
                 svc_method = f"getByIdWithRelations(userId, slug)" if has_relations else f"getById(userId, slug)"
             else:
                 logger.warning(
-                    "[pages_gen] %s : detail-slug déclaré mais pas de champ 'slug' — fallback getPublicByIdWithRelations(slug). "
-                    "L'architect doit ajouter `slug String @unique` au modèle.",
-                    name,
+                    "[pages_gen] %s : detail-slug sans champ 'slug' — fallback getPublicByIdWithRelations.", name,
                 )
                 svc_method = f"getPublicByIdWithRelations(slug)" if has_relations else f"getPublicById(slug)"
             lines.append(f"  const item = await {camel}Service.{svc_method}")
@@ -368,10 +370,11 @@ def _gen_page_full(page, model_obj, spec=None) -> str:
         else:
             svc_method = f"getPublicByIdWithRelations(id)" if has_relations else f"getPublicById(id)"
             lines.append(f"  const item = await {camel}Service.{svc_method}")
-        lines += [
-            "  if (!item) notFound()",
-            f"  return <{client} item={{item}} />",
-        ]
+
+        lines.append("  if (!item) notFound()")
+        # Les enfants sont inclus dans item via getByIdWithRelations.
+        # module_detail_with_children génère page-client.tsx et lit (item as any).<relation>.
+        lines.append(f"  return <{client} item={{item}} />")
     elif not is_create:
         if page.auth_required:
             service_call = (
@@ -425,34 +428,11 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
     """
     written: dict[str, str] = {}
 
-    # Chemins des pages [CROSS_ENTITY] — délégués entièrement au LLM
-    _pages_detail = getattr(spec, "pages_detail", {}) or {}
-    _cross_entity_paths: set[str] = {
-        path for path, desc in _pages_detail.items()
-        if "[CROSS_ENTITY:" in str(desc or "")
-    }
-    if _cross_entity_paths:
-        logger.info("[pages_gen] %d page(s) [CROSS_ENTITY] → LLM : %s", len(_cross_entity_paths), sorted(_cross_entity_paths))
-
+    # Toutes les pages avec model sont générées déterministiquement via _gen_page_full().
+    # Les pages détail avec enfants (parent+children) : page.tsx est déterministe ici,
+    # page-client.tsx est géré par module_detail_with_children (détection structurelle
+    # via ctx.relation_fields dans dev_form_generator.py — pas de marqueurs texte).
     for page in spec.pages:
-        if page.path in _cross_entity_paths:
-            # page.tsx est généré déterministiquement (auth + fetch entité primaire)
-            # Seul page-client.tsx reste LLM (géré par dev_form_generator via CROSS_ENTITY)
-            page_rel = f"app/{page.path.strip('/')}/page.tsx"
-            page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
-            os.makedirs(os.path.dirname(page_abs), exist_ok=True)
-            model_obj = spec.get_model_by_name(getattr(page, "model", None)) if getattr(page, "model", None) else None
-            if model_obj is None:
-                model_obj = _find_detail_model(page, spec)
-            if model_obj is not None:
-                content = _gen_page_full(page, model_obj, spec=spec)
-                with open(page_abs, "w", encoding="utf-8") as f:
-                    f.write(content)
-                written[page_rel] = content
-                logger.info("[pages_gen] ✓ [CROSS_ENTITY] page.tsx déterministe : %s (model=%s)", page_rel, model_obj.name)
-            else:
-                logger.info("[pages_gen] [CROSS_ENTITY] page.tsx → LLM (model introuvable) : %s", page_rel)
-            continue
         page_rel = f"app/{page.path.strip('/')}/page.tsx" if page.path.strip("/") else "app/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)
@@ -469,7 +449,8 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
             model_obj = _find_detail_model(page, spec)
 
         if model_obj is not None:
-            content = _gen_page_full(page, model_obj, spec=spec)
+            _ctx = (contexts or {}).get(model_obj.name)
+            content = _gen_page_full(page, model_obj, spec=spec, ctx=_ctx)
             with open(page_abs, "w", encoding="utf-8") as f:
                 f.write(content)
             written[page_rel] = content

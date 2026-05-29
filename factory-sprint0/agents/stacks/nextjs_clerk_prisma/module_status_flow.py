@@ -39,7 +39,7 @@ class StatusFlowModule(FeatureModule):
     def should_activate(self, enriched_spec, ctx) -> bool:
         return bool(ctx.has_status and ctx.list_page_path)
 
-    def generate(self, spec, ctx, enriched_spec, workdir: str) -> dict[str, str]:
+    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
         list_path = ctx.list_page_path
         list_dir = list_path.lstrip("/")
         route = list_dir

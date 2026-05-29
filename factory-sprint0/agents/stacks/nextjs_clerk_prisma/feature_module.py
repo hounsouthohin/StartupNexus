@@ -43,11 +43,19 @@ class FeatureModule(ABC):
         """
 
     @abstractmethod
-    def generate(self, spec, ctx, enriched_spec, workdir: str) -> dict[str, str]:
+    def generate(
+        self,
+        spec,
+        ctx,
+        enriched_spec,
+        workdir: str,
+        model_contexts: "dict | None" = None,
+    ) -> dict[str, str]:
         """
         Génère les fichiers du module pour ce modèle.
 
-        enriched_spec : EnrichedSpec | None — pour lire features[] et composer les modules
+        enriched_spec  : EnrichedSpec | None — pour lire features[] et composer les modules
+        model_contexts : dict {model_name: ModelGenerationContext} — contextes de tous les modèles
         Retourne {chemin_relatif: contenu} — intégré dans template_written.
         Ne doit jamais lever d'exception non gérée (retourner {} si erreur).
         """
@@ -98,7 +106,7 @@ def run_feature_modules(
             try:
                 if not module.should_activate(enriched_spec, ctx):
                     continue
-                files = module.generate(spec, ctx, enriched_spec, workdir)
+                files = module.generate(spec, ctx, enriched_spec, workdir, model_contexts=model_contexts)
                 if files:
                     logger.info(
                         "[feature_module] %s → %s (%d fichier(s))",

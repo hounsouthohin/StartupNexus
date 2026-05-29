@@ -249,7 +249,8 @@ def generate_types_file(
                 continue
             seen_params.add(type_name)
             params_block = ", ".join(f"{p}: string" for p in params)
-            lines.append(f"export type {type_name} = {{ params: {{ {params_block} }} }}")
+            # Next.js 15 : params est une Promise — format obligatoire pour éviter TS2344
+            lines.append(f"export type {type_name} = {{ params: Promise<{{ {params_block} }}> }}")
         lines.append("")
 
     # ── 5. Auth types (Clerk) ───────────────────────────────────────────────────

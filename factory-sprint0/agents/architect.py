@@ -66,7 +66,11 @@ Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics sta
 ### page_links — contrat de navigation (OBLIGATOIRE)
 Pour CHAQUE page déclarée dans `pages`, liste les SEULS chemins valides pour les `<Link href>` dans ce composant.
 Ne jamais inclure un chemin absent de `pages` — la factory interdit les liens vers des pages non déclarées.
-Règle de déduction : une page liste pointe vers sa page create, une page create pointe vers la liste, une page detail pointe vers la liste parent.\
+Règles de déduction :
+- Page **list** pointe vers : sa page create (`/{model}/new`) ET sa page detail (`/{model}/[id]` ou `/{model}/[slug]` si déclarée)
+- Page **create** pointe vers : la liste parent (`/{model}`)
+- Page **detail** pointe vers : la liste parent (`/{model}`) ET eventuellement les pages create des enfants
+- Page **custom** pointe vers : les pages du brief pertinentes dans le contexte\
 """
 
 _DEDUCTION_RULES = """\
@@ -111,7 +115,20 @@ Règle de décision :
 - Valeur quelconque saisie librement par l'utilisateur → `String`
 - Valeur choisie parmi une liste finie connue à l'avance → enum Prisma obligatoire
 
-Si le brief ne précise pas les valeurs, déduire les valeurs les plus naturelles pour le domaine décrit dans le brief.\
+Si le brief ne précise pas les valeurs, déduire les valeurs les plus naturelles pour le domaine décrit dans le brief.
+
+### RÈGLE 5 — Page détail obligatoire pour tout modèle parent avec enfants FK
+
+Si un modèle PARENT a au moins un modèle ENFANT dont la FK pointe vers lui, la page `/{parent-kebab}/[id]` de type "detail" est OBLIGATOIRE dans `pages` — même si le brief ne la mentionne pas explicitement.
+
+Exemples :
+- `Project` a `Task` via `projectId` → `/projects/[id]` (detail, auth: true) OBLIGATOIRE
+- `Task` a `Comment` via `taskId` → `/tasks/[id]` (detail, auth: true) OBLIGATOIRE
+- `Client` a `Invoice` via `clientId` → `/clients/[id]` (detail, auth: true) OBLIGATOIRE
+
+Règle : pour chaque modèle X qui apparaît dans un champ `xxxId` d'un autre modèle, générer la page `/{x-kebab}/[id]`.
+
+Ne pas générer une page detail si le modèle n'a qu'une liste sans detail prévu (ex: lookup simple sans enfants).\
 """
 
 _FEW_SHOT_EXAMPLES = """\
@@ -120,6 +137,8 @@ _FEW_SHOT_EXAMPLES = """\
 ### Exemple 1 — Task Manager avec commentaires
 
 Brief : "Une app de gestion de tâches. Les utilisateurs créent des tâches avec titre, description et statut (pending/in_progress/done). Ils peuvent commenter chaque tâche."
+
+Note RÈGLE 5 : Comment a `taskId` → Task est parent → `/tasks/[id]` OBLIGATOIRE.
 
 Sortie :
 {
@@ -143,7 +162,7 @@ Sortie :
     "Sur /tasks/[id] : l'utilisateur lit le détail, voit les commentaires et peut en ajouter"
   ],
   "ui_labels": {
-    "Task": {"title": "Titre", "description": "Description", "priority": "Priorité", "status": "Statut"},
+    "Task": {"title": "Titre", "description": "Description", "status": "Statut"},
     "Comment": {"content": "Commentaire"}
   },
   "title_plurals": {
@@ -152,6 +171,11 @@ Sortie :
   },
   "enum_value_labels": {
     "TaskStatus": {"pending": "En attente", "in_progress": "En cours", "done": "Terminé"}
+  },
+  "page_links": {
+    "/tasks": ["/tasks/new", "/tasks/[id]"],
+    "/tasks/new": ["/tasks"],
+    "/tasks/[id]": ["/tasks"]
   },
   "architecture": "Modèle principal : Task. Modèle enfant : Comment (lié à Task via taskId). Ownership : userId sur Task et Comment. Toutes les pages protégées par auth."
 }
@@ -198,6 +222,7 @@ Brief : "Une application de facturation. L'utilisateur gère ses clients dans un
 
 Note RÈGLE 1 : "liste dédiée" pour les clients → Client est un modèle séparé avec ses propres pages CRUD.
 Note RÈGLE 2 : "draft/sent/paid" = 3 états avec transitions de workflow → enum InvoiceStatus.
+Note RÈGLE 5 : Invoice a `clientId` → Client est parent → `/clients/[id]` OBLIGATOIRE.
 
 Sortie :
 {
@@ -234,6 +259,14 @@ Sortie :
   },
   "enum_value_labels": {
     "InvoiceStatus": {"draft": "Brouillon", "sent": "Envoyée", "paid": "Payée"}
+  },
+  "page_links": {
+    "/clients": ["/clients/new", "/clients/[id]"],
+    "/clients/new": ["/clients"],
+    "/clients/[id]": ["/clients", "/invoices/new"],
+    "/invoices": ["/invoices/new", "/invoices/[id]"],
+    "/invoices/new": ["/invoices", "/clients"],
+    "/invoices/[id]": ["/invoices"]
   },
   "architecture": "Modèles : Client (entité dédiée avec liste propre) + Invoice (principal). Ownership : userId sur les deux. Relations : Invoice → Client (N:1, clientId obligatoire). Toutes les pages protégées par auth."
 }\
@@ -672,51 +705,59 @@ Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY:
 """
 
 _PAGES_DETAIL_SYSTEM_PROMPT = """\
-Tu génères les descriptions fonctionnelles de pages pour une application Next.js 14.
+Tu génères les descriptions fonctionnelles des pages CUSTOM d'une application Next.js 14.
 
-IMPORTANT : ta réponse est un objet JSON PLAT. Les clés de PREMIER NIVEAU sont les paths de pages (commençant par "/"). Pas d'objet wrapper, pas de clé "pages" ou "result" — directement les paths.
+CONTEXTE : les pages avec un modèle Prisma (list, create, detail, edit) sont entièrement
+générées par des templates déterministes — tu n'as PAS à les décrire.
+Tu décris UNIQUEMENT les pages custom (dashboards, hubs, landings, pages sans modèle associé).
 
-## EXEMPLE DE SORTIE
+IMPORTANT : ta réponse est un objet JSON PLAT. Les clés sont les paths des pages.
 
-Pour une app avec pages = ["/tasks", "/tasks/new", "/tasks/[id]", "/projects/[id]", "/"] :
+## RÈGLE UNIQUE — pages custom
 
+Une page custom est une page sans modèle Prisma direct : tableau de bord, page d'accueil,
+hub de statistiques, landing page, etc.
+
+Pour chaque page custom, décris précisément :
+1. CE QUI S'AFFICHE : statistiques (ex: "total projets : items.length"), listes résumées,
+   textes, compteurs
+2. LES DONNÉES NÉCESSAIRES : quels services appeler (ex: projectService.getAll(userId))
+3. LES ACTIONS DISPONIBLES : liens de navigation vers d'autres pages
+4. Ajouter [INTERACTIVE] si la page combine données serveur ET interactions utilisateur
+   (boutons d'action, formulaires inline, filtres)
+
+## EXEMPLES
+
+Page dashboard après connexion :
+```json
 {
-  "/tasks": "Liste des tâches. Affiche : titre, statut. Bouton 'Nouveau' → /tasks/new. Bouton 'Modifier'. Bouton 'Supprimer' → deleteTask(id). [INTERACTIVE]",
-  "/tasks/new": "Formulaire de création. Champs : titre (text), statut (select). Submit → createTask(formData).",
-  "/tasks/[id]": "Détail d'une tâche. Affiche : titre, statut, description. Bouton 'Modifier'. Bouton 'Supprimer' → deleteTask(id) puis redirect /tasks. [INTERACTIVE]",
-  "/projects/[id]": "Détail d'un projet. Affiche : title, description, status. Affiche aussi les tâches du projet : title, urgency, status. [CROSS_ENTITY: Task] [INTERACTIVE]",
-  "/": "Page d'accueil. Hero avec bouton 'Commencer'."
+  "/dashboard": "Server Component. Charge : const projects = await projectService.getAll(userId) → affiche projects.length projets actifs. Charge : const tasks = await taskService.getAll(userId) → affiche tasks.length tâches. Liens rapides vers /projects/new et /tasks/new. PAS de page-client.tsx (pas d'interaction). [INTERACTIVE]"
 }
+```
 
-## RÈGLES PAR page_type
+Page d'accueil publique :
+```json
+{
+  "/": "Hero section avec titre et description de l'app. Bouton 'Commencer' → /sign-in. Pas d'appel service."
+}
+```
 
-**list** : Affiche les champs du modèle (exclure id, userId, xxxId, createdAt, updatedAt). Boutons Nouveau/Modifier/Supprimer. TOUJOURS ajouter [INTERACTIVE] en fin.
-
-**create** : Formulaire avec les champs éditables. Submit → create{Model}(formData). PAS de [INTERACTIVE].
-
-**detail** : Affiche tous les champs. Boutons Modifier/Supprimer. TOUJOURS ajouter [INTERACTIVE] si auth:true.
-Si un ou PLUSIEURS modèles ENFANTS ont une FK vers ce modèle, mentionner CHACUN dans la description et ajouter UN tag [CROSS_ENTITY: X] PAR modèle enfant.
-Exemple 2 enfants : "Détail d'un projet. Affiche ses tâches et ses fichiers. [CROSS_ENTITY: Task] [CROSS_ENTITY: File] [INTERACTIVE]"
-
-**detail-slug** : Lecture seule. PAS de [INTERACTIVE].
-
-**custom** : Décris selon le brief. [INTERACTIVE] seulement si combine données serveur ET boutons d'action.
-
-## NOMMAGE DES ACTIONS
-Suivre le pattern {verb}{ModelName} : createTask(formData), deleteTask(id), updateTask(id, formData).
-
-## CONTRAINTE ABSOLUE
-- Génère une entrée pour CHAQUE page du tableau "pages"
-- Les clés DOIVENT être les paths exacts des pages (ex: "/tasks", "/tasks/[id]")
-- Les clés commencent TOUJOURS par "/"
-- L'objet JSON est PLAT — JAMAIS de wrapper {"pages": {...}} ou {"result": {...}}\
+## CONTRAINTES
+- Ne décris QUE les pages custom reçues dans le tableau "pages"
+- Les clés commencent par "/"
+- JSON plat, pas de wrapper
+- Si la page n'a aucune logique custom, retourner une description minimale\
 """
 
 
 async def pages_detail_node(state: AgentState) -> dict:
     """
-    Génère pages_detail (descriptions fonctionnelles + marqueurs [INTERACTIVE])
-    depuis le brief structuré produit par brief_writer_node.
+    Génère pages_detail pour les pages CUSTOM uniquement (page_type='custom', sans model).
+    Les pages list/create/detail/edit avec model sont entièrement déterministes —
+    le form generator Jinja2 les génère depuis ModelGenerationContext, pas depuis pages_detail.
+    Les signaux [CROSS_ENTITY] pour les pages détail avec enfants sont injectés
+    déterministiquement dans planner_node.
+
     Skip si pages_detail déjà présent dans le brief.
     Fail-safe : en cas d'erreur LLM, retourne {} sans bloquer le pipeline.
     """
@@ -734,6 +775,24 @@ async def pages_detail_node(state: AgentState) -> dict:
         logger.warning("[pages_detail] pages ou models absent → skip")
         return {}
 
+    # Filtre : uniquement les pages custom (sans model, page_type="custom" ou absente).
+    # Les pages avec model (list/create/detail) sont générées déterministiquement —
+    # le LLM ne les génère pas et n'a pas besoin de leur description.
+    custom_pages = [
+        p for p in pages
+        if (isinstance(p, dict) and not p.get("model") and p.get("page_type", "custom") == "custom")
+        or (not isinstance(p, dict))
+    ]
+
+    if not custom_pages:
+        logger.info("[pages_detail] aucune page custom détectée → skip LLM")
+        return {}
+
+    logger.info(
+        "[pages_detail] %d page(s) custom sur %d → LLM décrit uniquement les custom",
+        len(custom_pages), len(pages),
+    )
+
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
@@ -744,14 +803,14 @@ async def pages_detail_node(state: AgentState) -> dict:
     context: dict = {
         "description": brief.get("description", "").strip(),
         "models": models,
-        "pages": pages,
+        "pages": custom_pages,
     }
     architecture = brief.get("architecture", "").strip()
     if architecture:
         context["architecture"] = architecture
 
     messages = [
-        SystemMessage(content=_PAGES_DETAIL_SYSTEM_PROMPT),
+        SystemMessage(content=_PAGES_DETAIL_SYSTEM_PROMPT + "\n\n" + _FACTORY_CAPABILITIES),
         _HM(content=json.dumps(context, ensure_ascii=False)),
     ]
 
@@ -892,6 +951,49 @@ async def planner_node(state: AgentState) -> dict:
                 _pg.path,
             )
             _pg.auth_required = False
+
+    # ── Garde RÈGLE 5 : auto-ajout des pages détail pour les modèles parents ─────
+    # Si le LLM a respecté RÈGLE 5 → ces pages existent déjà → aucun ajout.
+    # Si le LLM a oublié → on les ajoute déterministiquement pour éviter les 404
+    # post-création d'entités enfants (createComment → redirect /tasks/${id} → 404).
+    _declared_detail_paths: set[str] = {
+        p.path for p in pages if p.page_type in ("detail", "detail-slug")
+    }
+    _model_names_set: set[str] = {m.name for m in models}
+    for _m in models:
+        # Cherche les champs FK de ce modèle (xxxId pointant vers un autre modèle)
+        for _f in _m.fields:
+            if not _f.name.endswith("Id") or _f.name in {"id"}:
+                continue
+            _base = _f.name[:-2]
+            _parent_name = _base[0].upper() + _base[1:] if _base else ""
+            if _parent_name not in _model_names_set:
+                _suffix_matches = [mn for mn in _model_names_set if mn.endswith(_parent_name)]
+                if _suffix_matches:
+                    _parent_name = _suffix_matches[0]
+            if _parent_name not in _model_names_set:
+                continue
+            # Trouver le list_page du parent
+            _parent_list = next(
+                (p.path for p in pages if p.page_type == "list" and p.model == _parent_name),
+                None,
+            )
+            if not _parent_list:
+                continue
+            _detail_path = f"{_parent_list}/[id]"
+            if _detail_path not in _declared_detail_paths and _detail_path not in seen_paths:
+                pages.append(AppPage(
+                    path=_detail_path,
+                    auth_required=True,
+                    model=_parent_name,
+                    page_type="detail",
+                ))
+                seen_paths.add(_detail_path)
+                _declared_detail_paths.add(_detail_path)
+                logger.warning(
+                    "[planner] RÈGLE 5 auto-corrigée : '%s' ajoutée (parent de %s via %s)",
+                    _detail_path, _m.name, _f.name,
+                )
 
     brief_user_flows = brief.get("user_flows", [])
     user_flows = (

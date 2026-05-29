@@ -1,0 +1,66 @@
+{
+  "project_name": "project-hub",
+  "stack_id": "nextjs-clerk-prisma",
+  "description": "Un outil pour suivre mes projets et les tâches associées.",
+  "models": [
+    "Project { id String @id @default(uuid()), title String, description String?, status ProjectStatus @default(in_progress), userId String, createdAt DateTime @default(now()), tasks Task[] }",
+    "Task { id String @id @default(uuid()), title String, description String?, urgency TaskUrgency @default(normal), progress TaskProgress @default(todo), projectId String, project Project @relation(fields: [projectId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()), comments Comment[] }",
+    "Comment { id String @id @default(uuid()), content String, taskId String, task Task @relation(fields: [taskId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()) }"
+  ],
+  "enums": {
+    "ProjectStatus": ["in_progress", "completed", "archived"],
+    "TaskUrgency": ["low", "normal", "high"],
+    "TaskProgress": ["todo", "in_progress", "done"]
+  },
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/projects", "auth": true, "model": "Project", "page_type": "list"},
+    {"path": "/projects/new", "auth": true, "model": "Project", "page_type": "create"},
+    {"path": "/projects/[id]", "auth": true, "model": "Project", "page_type": "detail"},
+    {"path": "/tasks", "auth": true, "model": "Task", "page_type": "list"},
+    {"path": "/tasks/new", "auth": true, "model": "Task", "page_type": "create"},
+    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
+  ],
+  "routes": [],
+  "user_flows": [
+    "Sur /projects/new : l'utilisateur crée un projet avec titre, description et statut",
+    "Sur /projects : l'utilisateur consulte la liste de ses projets",
+    "Sur /projects/[id] : l'utilisateur voit le détail du projet et ses tâches",
+    "Sur /tasks/new : l'utilisateur crée une tâche liée à un projet",
+    "Sur /tasks : l'utilisateur consulte la liste de ses tâches",
+    "Sur /tasks/[id] : l'utilisateur voit le détail de la tâche et ses commentaires"
+  ],
+  "pages_detail": {
+    "/": "Page d'accueil publique. Lien vers /projects.",
+    "/projects": "Liste des projets. Affiche : titre, description, statut. Bouton Nouveau. Bouton Voir. Bouton Modifier. Bouton Supprimer. [INTERACTIVE]",
+    "/projects/new": "Formulaire de création de projet. Champs : titre (text), description (textarea), statut (select). Submit → createProject(formData).",
+    "/projects/[id]": "Détail d'un projet. Affiche : titre, description, statut. Affiche aussi les tâches du projet. [CROSS_ENTITY: Task] [INTERACTIVE]",
+    "/tasks": "Liste des tâches. Affiche : titre, description, urgence, avancement, projet. Bouton Nouveau. Bouton Voir. Bouton Modifier. Bouton Supprimer. [INTERACTIVE]",
+    "/tasks/new": "Formulaire de création de tâche. Champs : titre (text), description (textarea), urgence (select), avancement (select), projet (select FK). Submit → createTask(formData).",
+    "/tasks/[id]": "Détail d'une tâche. Affiche : titre, description, urgence, avancement. Affiche aussi les commentaires de la tâche. Formulaire pour ajouter un commentaire. [CROSS_ENTITY: Comment] [INTERACTIVE]"
+  },
+  "ui_labels": {
+    "Project": {"title": "Titre", "description": "Description", "status": "Statut"},
+    "Task": {"title": "Titre", "description": "Description", "urgency": "Urgence", "progress": "Avancement", "projectId": "Projet"},
+    "Comment": {"content": "Commentaire", "taskId": "Tâche"}
+  },
+  "title_plurals": {
+    "Project": "Projets",
+    "Task": "Tâches",
+    "Comment": "Commentaires"
+  },
+  "enum_value_labels": {
+    "ProjectStatus": {"in_progress": "En cours", "completed": "Terminé", "archived": "Archivé"},
+    "TaskUrgency": {"low": "Faible", "normal": "Normal", "high": "Élevé"},
+    "TaskProgress": {"todo": "À faire", "in_progress": "En cours", "done": "Terminée"}
+  },
+  "page_links": {
+    "/": ["/projects"],
+    "/projects": ["/projects/new", "/projects/[id]"],
+    "/projects/new": ["/projects"],
+    "/projects/[id]": ["/projects", "/tasks/new"],
+    "/tasks": ["/tasks/new", "/tasks/[id]"],
+    "/tasks/new": ["/tasks", "/projects"],
+    "/tasks/[id]": ["/tasks"]
+  }
+}

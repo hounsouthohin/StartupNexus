@@ -39,18 +39,14 @@ class SearchModule(FeatureModule):
         if not ctx.list_page_path:
             return False
         # module_status_flow gère ce cas : list_client_status.tsx.j2 intègre
-        # la barre de recherche via has_search — pas besoin d'un fichier intermédiaire.
+        # la barre de recherche via has_search — pas de doublon.
         if ctx.has_status:
             return False
-        if enriched_spec and enriched_spec.has_feature("search"):
-            return True
-        # Heuristique : modèle avec au moins un champ String éditable non-FK
-        return any(
-            f.input_type == "text"
-            for f in ctx.editable_fields
-        )
+        # Activation uniquement si l'architect a détecté "search" dans enriched_spec.features.
+        # Pas d'heuristique : c'est l'architect qui décide, pas le générateur.
+        return bool(enriched_spec and enriched_spec.has_feature("search"))
 
-    def generate(self, spec, ctx, enriched_spec, workdir: str) -> dict[str, str]:
+    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
         list_path = ctx.list_page_path
         list_dir = list_path.lstrip("/")
         route = list_dir

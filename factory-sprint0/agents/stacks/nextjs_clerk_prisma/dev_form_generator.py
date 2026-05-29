@@ -102,6 +102,15 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
             if ef.name == "status" and ef.input_type == "enum-select":
                 status_labels = _enum_value_labels.get(ef.base_type, {}) or {}
                 break
+    # has_detail : vrai si une page detail est déclarée dans le spec pour ce modèle
+    # Active le lien "Voir" dans la colonne Actions du tableau
+    _detail_path = f"{list_path}/[id]"
+    _slug_detail_path = f"{list_path}/[slug]"
+    _spec_pages = getattr(spec, "pages", []) or [] if spec else []
+    has_detail = any(
+        p.path in (_detail_path, _slug_detail_path) and p.page_type in ("detail", "detail-slug")
+        for p in _spec_pages
+    )
     return _render(
         "list_client.tsx.j2",
         name=ctx.name,
@@ -116,6 +125,7 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
         auth_required=auth_required,
         has_delete=auth_required,
         has_slug=ctx.has_slug,
+        has_detail=has_detail,
         status_field=status_field,
         status_labels=status_labels,
     )
@@ -238,13 +248,6 @@ def generate_all_page_clients(
             has_create.add(pm)
     crud_models &= has_create
 
-    # Chemins [CROSS_ENTITY] → page-client.tsx délégué au LLM (même logique que generate_page_stubs)
-    _pages_detail = getattr(spec, "pages_detail", {}) or {}
-    _cross_entity_paths: set[str] = {
-        path for path, desc in _pages_detail.items()
-        if "[CROSS_ENTITY:" in str(desc or "")
-    }
-
     # Pages list / create / detail
     for page in pages:
         model_name = getattr(page, "model", None)
@@ -259,9 +262,13 @@ def generate_all_page_clients(
         if ctx is None:
             continue
 
-        # Pages [CROSS_ENTITY] → page-client.tsx laissé au LLM pour inclure les props secondaires
-        if page.path in _cross_entity_paths and page_type in ("detail", "detail-slug"):
-            logger.info("[form_gen] skip [CROSS_ENTITY] page-client.tsx → LLM : %s", page.path)
+        # Détection structurelle via ModelGenerationContext :
+        # Si le modèle a des relations tableau (enfants FK), module_detail_with_children
+        # génère le page-client.tsx — le form_generator ne génère pas de detail basique.
+        if page_type in ("detail", "detail-slug") and ctx.has_relations and any(
+            r.is_array for r in ctx.relation_fields
+        ):
+            logger.info("[form_gen] skip detail+enfants → module_detail_with_children : %s", page.path)
             continue
 
         page_path_clean = page.path.strip("/")
@@ -411,7 +418,9 @@ def generate_parent_detail_pages(
             os.makedirs(os.path.dirname(page_abs), exist_ok=True)
 
             if not os.path.exists(page_abs):
-                page_content = _gen_page_full(synthetic_page, parent_model, spec=spec)
+                # Passer parent_ctx pour que _gen_page_full utilise ctx.has_relations
+                # (détecte les relations inverses `tasks Task[]` sans @relation explicite)
+                page_content = _gen_page_full(synthetic_page, parent_model, spec=spec, ctx=parent_ctx)
                 with open(page_abs, "w", encoding="utf-8") as f:
                     f.write(page_content)
                 written[page_rel] = page_content

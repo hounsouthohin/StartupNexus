@@ -472,13 +472,15 @@
     "prisma/schema.prisma",
     ".eslintrc.stack.json"
   ],
-  "feature_modules": ["module_search", "module_status_flow"],
+  "feature_modules": [
+    "feature_modules.module_detail_with_children",
+    "module_status_flow",
+    "module_search"
+  ],
 
   "role_rag_queries": {
-    "service":     "N+1 prevention include select nested findUnique loop boucle Prisma Promise.all",
-    "actions":     "auth userId guard obligatoire Zod validation safeParse revalidatePath throw Unauthorized",
-    "route":       "auth guard NextResponse userId ownership API route handler",
-    "page":        "Server Component auth redirect notFound dynamic params service getAll getById",
-    "page_client": "page-client.tsx FK select état vide empty state delete button Tailwind list form SerializedXxx useState typed array"
+    "route":       "auth guard NextResponse userId ownership API route handler webhook",
+    "page":        "Server Component auth redirect notFound dynamic params service getAll getById dashboard custom page",
+    "page_client": "useActionState formulaire form 'use client' isPending error submit état vide empty state SerializedXxx useState typed array Tailwind"
   }
 }

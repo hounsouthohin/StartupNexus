@@ -1,0 +1,250 @@
+"""
+feature_modules/module_detail_with_children.py
+───────────────────────────────────────────────
+Module déterministe : page-client.tsx pour les pages détail d'un modèle parent
+qui a des enfants FK (relations 1-N).
+
+Remplace la génération LLM des pages CROSS_ENTITY par un fichier déterministe
+qui inclut :
+  - Affichage des champs du parent
+  - Liste des enfants avec suppression
+  - Formulaire inline de création d'un enfant (useActionState)
+
+Avantages vs LLM :
+  - Pas de mismatch props (page.tsx et page-client.tsx générés en cohérence)
+  - Pas de 404 post-création (fk_field injecté automatiquement dans le formulaire)
+  - Extensible : ajouter un type d'enfant = ajouter une relation dans le schéma
+
+Activation : tout modèle parent avec au moins une relation 1-N
+             ET une page détail déclarée dans spec.pages.
+"""
+from __future__ import annotations
+
+import logging
+import os
+
+import jinja2
+
+logger = logging.getLogger(__name__)
+
+_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
+
+_jinja_env = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(_TEMPLATES_DIR),
+    undefined=jinja2.StrictUndefined,
+    trim_blocks=True,
+    lstrip_blocks=True,
+    keep_trailing_newline=True,
+    autoescape=False,
+)
+
+from ..feature_module import FeatureModule, register
+from ..dev_naming import pascal_to_camel, pascal_to_kebab, path_to_client_component
+
+
+def _get_child_display_fields(child_ctx) -> list[str]:
+    """Champs affichables du modèle enfant (hors id, FK, owner)."""
+    if child_ctx is None:
+        return ["id"]
+    return child_ctx.display_fields[:3] or ["id"]
+
+
+def _get_child_create_fields(child_ctx) -> list[dict]:
+    """Champs du formulaire de création d'un enfant."""
+    if child_ctx is None:
+        return []
+    return [
+        {
+            "name": f.name,
+            "input_type": f.input_type,
+            "is_optional": f.is_optional,
+            "has_default": f.has_default,
+            "enum_values": list(f.allowed_values) if f.allowed_values else [],
+            "enum_labels": {},
+        }
+        for f in child_ctx.editable_fields
+        # Exclure les FK (elles sont injectées automatiquement comme champ caché)
+        if f.name not in {fk.field_name for fk in child_ctx.fk_fields}
+    ]
+
+
+class DetailWithChildrenModule(FeatureModule):
+    """
+    Génère page-client.tsx pour les modèles parents avec enfants FK.
+    Déterministe et coordonné avec le page.tsx existant (qui passe `item`
+    depuis getByIdWithRelations — les enfants sont dans item.<relation>).
+    """
+
+    @property
+    def name(self) -> str:
+        return "detail_with_children"
+
+    def should_activate(self, enriched_spec, ctx) -> bool:
+        # Activer si le modèle a des relations 1-N (enfants)
+        if not ctx.has_relations:
+            return False
+        child_relations = [r for r in ctx.relation_fields if r.is_array]
+        if not child_relations:
+            return False
+        # Et une page détail déclarée
+        if not ctx.list_page_path:
+            return False
+        # NE PAS s'activer si la page détail a déjà un tag [CROSS_ENTITY] dans pages_detail.
+        # Dans ce cas, _gen_page_full() gère le fetch secondaire et le LLM executor
+        # génère page-client.tsx avec le bon contrat via planner.py/build_page_contracts.
+        # Le module reste un fallback pour les pages détail sans CROSS_ENTITY déclaré.
+        return True  # la vérification CROSS_ENTITY est faite dans generate()
+
+    def _is_cross_entity_declared(self, spec, ctx) -> bool:
+        """True si pages_detail déclare explicitement [CROSS_ENTITY] pour cette page détail."""
+        if spec is None:
+            return False
+        detail_path = f"{ctx.list_page_path}/[id]"
+        pages_detail = getattr(spec, "pages_detail", {}) or {}
+        detail_str = str(pages_detail.get(detail_path, ""))
+        return "[CROSS_ENTITY:" in detail_str
+
+    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
+        list_path = ctx.list_page_path
+        detail_path = f"{list_path}/[id]"
+        # Génère page-client.tsx pour TOUS les cas (CROSS_ENTITY ou non).
+        # page.tsx utilise getByIdWithRelations → item.<relation> contient les enfants.
+        # Le template lit (item as any).<relation> — pas besoin de props séparées.
+
+        # Vérifier que la page détail est dans le spec
+        spec_pages = getattr(spec, "pages", []) or []
+        detail_page = next(
+            (p for p in spec_pages if p.path == detail_path and p.page_type == "detail"),
+            None,
+        )
+        if detail_page is None:
+            return {}
+
+        # Trouver les modèles enfants : modèles qui ont une FK vers ctx.name
+        child_prisma_models: dict = {}
+        for m in (getattr(spec, "models", []) or []):
+            if m.name == ctx.name:
+                continue
+            for f in m.fields:
+                if not f.name.endswith("Id"):
+                    continue
+                base = f.name[:-2]
+                candidate = base[0].upper() + base[1:] if base else ""
+                if candidate == ctx.name or any(
+                    mn == ctx.name for mn in [candidate]
+                ):
+                    child_prisma_models[m.name] = m
+                    break
+
+        if not child_prisma_models:
+            return {}
+
+        # Contextes ModelGenerationContext pour les champs enrichis (ne pas écraser le paramètre)
+        all_model_contexts = model_contexts or {}
+
+        children_ctx = []
+        for child_name, child_model in child_prisma_models.items():
+            # Trouver le FK field qui pointe vers le parent
+            fk_field = next(
+                (
+                    f.name for f in child_model.fields
+                    if f.name.endswith("Id") and (
+                        f.name[:-2][0].upper() + f.name[:-2][1:] == ctx.name
+                        if f.name[:-2] else False
+                    )
+                ),
+                f"{pascal_to_camel(ctx.name)}Id",
+            )
+            # Relation array sur le parent (ex: "comments" pour Comment)
+            relation_field = pascal_to_camel(child_name) + "s"
+            # Essayer de trouver le nom exact depuis les relation_fields du parent
+            for rf in ctx.relation_fields:
+                if rf.is_array and rf.name.lower().startswith(pascal_to_camel(child_name).lower()):
+                    relation_field = rf.name
+                    break
+
+            child_camel = pascal_to_camel(child_name)
+            child_kebab = pascal_to_kebab(child_name)
+            child_ctx_obj = all_model_contexts.get(child_name)
+
+            # Trouver le list_path de l'enfant pour l'import des actions
+            child_list_page = next(
+                (p.path for p in spec_pages if p.page_type == "list" and p.model == child_name),
+                f"/{child_kebab}s",
+            )
+
+            children_ctx.append({
+                "name": child_name,
+                "camel": child_camel,
+                "kebab": child_kebab,
+                "serialized_type": f"Serialized{child_name}",
+                "relation_field": relation_field,
+                "fk_field": fk_field,
+                "display_fields": _get_child_display_fields(child_ctx_obj),
+                "create_fields": _get_child_create_fields(child_ctx_obj),
+                "actions_import": f"@/app/{child_list_page.lstrip('/')}/actions",
+            })
+
+        if not children_ctx:
+            return {}
+
+        # Labels UI
+        _ui_labels = getattr(spec, "ui_labels", {}) or {}
+        _model_labels = _ui_labels.get(ctx.name, {}) or {}
+        _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {}
+        _title_plurals = getattr(spec, "title_plurals", {}) or {}
+
+        display_fields = ctx.display_fields
+        field_labels = {f: _model_labels.get(f, f) for f in display_fields}
+
+        # Enrichir les labels enum des champs d'affichage
+        enum_display: dict[str, dict] = {}
+        for ef in ctx.editable_fields:
+            if ef.input_type == "enum-select" and ef.name in display_fields:
+                labels = _enum_value_labels.get(ef.base_type, {})
+                if labels:
+                    enum_display[ef.name] = labels
+
+        # Labels pour les formulaires enfants
+        for child in children_ctx:
+            child_labels = _ui_labels.get(child["name"], {}) or {}
+            for cf in child["create_fields"]:
+                cf["label"] = child_labels.get(cf["name"], cf["name"])
+                # Labels enum pour les champs enfants
+                if cf["input_type"] == "enum-select" and cf["enum_values"]:
+                    child_child_ctx = all_model_contexts.get(child["name"])
+                    if child_child_ctx:
+                        for ef in child_child_ctx.editable_fields:
+                            if ef.name == cf["name"] and ef.allowed_values:
+                                ev_labels = _enum_value_labels.get(ef.base_type, {})
+                                cf["enum_labels"] = ev_labels
+
+        try:
+            content = _jinja_env.get_template("detail_with_children_client.tsx.j2").render(
+                name=ctx.name,
+                camel=ctx.camel,
+                serialized_type=ctx.serialized_type,
+                client_name=path_to_client_component(detail_path),
+                list_path=list_path,
+                display_fields=display_fields,
+                field_labels=field_labels,
+                enum_display=enum_display,
+                title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
+                children=children_ctx,
+            )
+        except Exception as e:
+            logger.error("[detail_with_children] erreur template %s : %s", ctx.name, e)
+            return {}
+
+        page_path_clean = detail_path.strip("/")
+        rel = f"app/{page_path_clean}/page-client.tsx"
+        abs_path = os.path.join(workdir, rel.replace("/", os.sep))
+        os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+        with open(abs_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        logger.info("[detail_with_children] ✓ %s (parent=%s, %d enfant(s))", rel, ctx.name, len(children_ctx))
+        return {rel: content}
+
+
+register(DetailWithChildrenModule())

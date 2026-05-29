@@ -327,23 +327,11 @@ async def run_dev_agent(
         except Exception as _pd_err:
             logger.warning("[dev_graph] parent detail pages non bloquant : %s", _pd_err)
 
-    # ── Category 1 — vérification [CROSS_ENTITY] ─────────────────────────────
-    # generate_page_stubs et generate_all_page_clients skippent déjà ces pages :
-    # elles ne sont jamais écrites sur disque ni dans template_written.
-    # Ce bloc vérifie l'invariante et log les pages déléguées au LLM.
-    if spec_obj is not None:
-        _pages_detail = spec_obj.pages_detail or {}
-        for _ce_path, _ce_desc in _pages_detail.items():
-            if "[CROSS_ENTITY:" not in str(_ce_desc or ""):
-                continue
-            for _ce_suffix in ("page-client.tsx", "page.tsx"):
-                _ce_key = f"app/{_ce_path.lstrip('/')}/{_ce_suffix}"
-                if _ce_key in template_written:
-                    # generate_page_stubs/form_generator n'ont pas skipé — on corrige
-                    logger.warning("[dev_graph] [CROSS_ENTITY] %s dans template_written (skip manqué) — retiré", _ce_key)
-                    del template_written[_ce_key]
-                else:
-                    logger.info("[dev_graph] [CROSS_ENTITY] %s/%s → LLM ✓", _ce_path, _ce_suffix)
+    # Les pages détail parent+enfants sont gérées structurellement :
+    # - page.tsx : déterministe via generate_page_stubs (flux normal, model présent)
+    # - page-client.tsx : déterministe via module_detail_with_children
+    #   (détection via ctx.relation_fields dans dev_form_generator — pas de marqueurs texte)
+    # Aucun check textuel pages_detail nécessaire ici.
 
     # ── Feature modules (registry déclaratif depuis stack JSON config) ───────
     if spec_obj is not None and _model_contexts:
@@ -980,9 +968,16 @@ async def run_dev_agent(
 
     # ── State initial ─────────────────────────────────────────────────
     spec_models = [m.get("name", "") for m in spec.get("models", [])]
-    spec_pages = [p.get("path", "") for p in spec.get("pages", [])]
+
+    # Pages custom uniquement — celles que le LLM génère effectivement.
+    # Les pages avec model (list/create/detail/edit) sont pré-générées déterministiquement
+    # et dans template_written. Les lister ici confond le LLM sur son périmètre.
+    spec_custom_pages = [
+        p.get("path", "") for p in spec.get("pages", [])
+        if p.get("page_type", "custom") == "custom" or not p.get("model")
+    ]
+
     # Webhooks seulement — les routes CRUD sont des Server Actions.
-    # Les montrer ici ferait croire au LLM qu'il doit créer des route.ts pour chaque mutation.
     spec_webhooks = [
         f"{r.get('method','')} {r.get('path','')}"
         for r in spec.get("routes", [])
@@ -994,12 +989,12 @@ async def run_dev_agent(
             SystemMessage(content=system_prompt),
             HumanMessage(content=(
                 f"Génère le projet '{project_name}'.\n\n"
-                f"Modèles Prisma : {spec_models}\n"
-                f"Pages à générer : {spec_pages}\n"
+                f"Modèles Prisma (déjà dans schema.prisma) : {spec_models}\n"
+                f"Pages custom à générer (TON TRAVAIL) : {spec_custom_pages}\n"
                 + (f"Webhooks (route.ts requis) : {spec_webhooks}\n" if spec_webhooks else "")
                 + f"\nFingerprint spec : {spec.get('spec_fingerprint', 'n/a')}\n"
-                "⚠️ Les Server Actions (app/**/actions.ts) sont PRÉ-GÉNÉRÉES — "
-                "NE PAS les réécrire. Génère uniquement les pages (app/**/page.tsx)."
+                "Toutes les pages avec model (list/create/detail/edit) sont PRÉ-GÉNÉRÉES "
+                "et verrouillées. Consulte le plan pour la liste exacte des fichiers à créer."
             )),
             *([HumanMessage(content=extra_feedback)] if extra_feedback else []),
         ],
