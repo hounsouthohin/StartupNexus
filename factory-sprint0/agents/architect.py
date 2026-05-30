@@ -71,7 +71,29 @@ Déclarer une feature UNIQUEMENT si le brief la nécessite clairement — ne pas
 - `"search"`         → barre de recherche sur les listes. Déclarer si le brief mentionne recherche, filtre textuel, ou découverte d'éléments par nom.
 - `"slug_routing"`   → détail par URL slug (SEO). Déclarer si le modèle a un champ `slug String @unique` ET des pages publiques accessibles sans auth.
 - `"public_pages"`   → pages accessibles sans authentification. Déclarer si certaines pages sont publiques (blog, vitrine, landing).
-- `"calendar_view"`  → vue calendrier/créneaux. Déclarer si le brief mentionne réservations, planning, disponibilités, créneaux horaires.\
+- `"calendar_view"`  → vue calendrier/créneaux. Déclarer si le brief mentionne réservations, planning, disponibilités, créneaux horaires.
+
+### MÉTHODES DE SERVICE (générées déterministiquement — contrat IMMUABLE)
+Le service generator produit EXACTEMENT ces méthodes pour chaque modèle Xxx.
+Dans `data_fetches` de `pages_detail`, utiliser UNIQUEMENT ces signatures — rien d'autre n'existe.
+
+Méthodes TOUJOURS disponibles :
+- `xxxService.getAll(userId)` → SerializedXxx[]
+- `xxxService.getById(userId, id)` → SerializedXxx
+- `xxxService.create(userId, data)` / `update(id, data)` / `delete(userId, id)`
+
+Méthodes CONDITIONNELLES (générées si le modèle a le champ correspondant) :
+- `xxxService.getAllWithRelations(userId)` → si modèle a des @relation
+- `xxxService.getByIdWithRelations(userId, id)` → si modèle a des @relation
+- `xxxService.getPublished()` → si modèle a un champ `published Boolean` ou enum de statut
+- `xxxService.getBySlug(slug)` → si modèle a `slug String @unique`
+- `xxxService.getPublicAll()` → si certaines pages sont sans auth
+- `childService.getBy{Parent}Id(userId, parentId)` → si modèle enfant avec FK vers parent
+
+RÈGLE ABSOLUE : `getActiveCount`, `getByStatus`, `countBy`, `sumBudget` et toute méthode
+non listée ci-dessus N'EXISTENT PAS. Pour les agrégations (compter, sommer, filtrer),
+le dev LLM utilise `getAll(userId)` et calcule en TypeScript — ne pas les inclure dans
+`data_fetches` comme si elles existaient.\
 
 ### page_links — contrat de navigation (OBLIGATOIRE)
 Pour CHAQUE page déclarée dans `pages`, liste les SEULS chemins valides pour les `<Link href>` dans ce composant.

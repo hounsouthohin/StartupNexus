@@ -35,7 +35,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
 
   const handleDelete{{ child.name }} = async (id: string) => {
     if (!confirm('Supprimer cet élément ?')) return
-    await delete{{ child.name }}(id, `{{ list_path }}/${item.id}`)
+    await delete{{ child.name }}(id)
     set{{ child.name }}List(prev => prev.filter(c => c.id !== id))
   }
 

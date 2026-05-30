@@ -52,6 +52,8 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
 
     - JAMAIS appeler `prisma.*` directement depuis page.tsx
     - JAMAIS recréer un fichier service — il est pré-généré et protégé
+    - **JAMAIS inventer une méthode absente de CONTRACTS.md** — `getActiveCount`, `getByStatus`, `countBy`, `sumField` et toute méthode non listée N'EXISTENT PAS → TS2339 fatal au build.
+    - **Pour les agrégations** (compter les actifs, sommer les budgets, filtrer par statut) : utiliser `getAll(userId)` puis calculer en TypeScript. Ex : `const active = projects.filter(p => p.status === 'active')` / `const total = active.reduce((s, p) => s + (p.budget ?? 0), 0)`
 
 30. **FICHIERS PRÉ-GÉNÉRÉS** : ne pas créer `app/api/health/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/components/navigation.tsx`, `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx` — pré-générés par le pipeline.
 
