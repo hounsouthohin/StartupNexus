@@ -168,7 +168,8 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     # les pages custom (dashboard, hub, landing) générées par le LLM depuis pages_detail.
     _pages_detail = getattr(spec, "pages_detail", {}) or {}
     has_custom_interactive = any(
-        "[INTERACTIVE]" in str(v)
+        (isinstance(v, dict) and v.get("interactive", False))
+        or (isinstance(v, str) and "[INTERACTIVE]" in v)
         for v in _pages_detail.values()
     )
     if has_custom_interactive:
@@ -236,11 +237,30 @@ Applique-les lors de la génération — ne les ignore pas.
 """
 
 
+def _page_detail_interactive_suffix(page_path: str) -> str:
+    """Bloc SPLIT obligatoire injecté quand interactive=True."""
+    page_slug = page_path.strip("/").replace("/", "-") or "home"
+    comp_name = page_slug.title().replace("-", "")
+    client_file = (
+        f"app/{page_path.strip('/')}/page-client.tsx"
+        if page_path.strip("/") else "app/page-client.tsx"
+    )
+    return (
+        f"\n⚠️  SPLIT OBLIGATOIRE : créer {client_file} avec '\"use client\"' en ligne 1. "
+        f"page.tsx reste Server Component (fetch données) et rend <{comp_name}Client ... />. "
+        f"Import DEFAULT : import {comp_name}Client from './page-client'. "
+        f"Export DEFAULT dans {client_file} : export default function {comp_name}Client(...)."
+    )
+
+
 def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
     """
     Retourne le bloc pages_detail pour une page spécifique.
     Injecté par executor_node au moment de générer cette page (Phase-Aware).
-    Retourne "" si aucun détail n'est défini pour ce chemin.
+
+    Gère deux formats :
+      - dict structuré (D1 — nouveau) : {description, data_fetches, interactive}
+      - str (backward compat — ancien format avec [INTERACTIVE])
     """
     pages_detail = getattr(spec, "pages_detail", {}) or {}
     if not isinstance(pages_detail, dict):
@@ -248,24 +268,32 @@ def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
     detail = pages_detail.get(page_path) or pages_detail.get("/" + page_path.strip("/"))
     if not detail:
         return ""
+
+    # ── Format structuré (D1) ──────────────────────────────────────────────────
+    if isinstance(detail, dict):
+        desc = str(detail.get("description", "")).strip()
+        fetches = detail.get("data_fetches", []) or []
+        interactive = bool(detail.get("interactive", False))
+
+        lines = [f"CONTENU ATTENDU POUR {page_path} :"]
+        if desc:
+            lines.append(desc)
+        if fetches:
+            lines.append("DONNÉES À CHARGER (Server Component, dans l'ordre) :")
+            for f in fetches:
+                svc = str(f.get("service", "")).strip()
+                as_var = str(f.get("as", f.get("as_var", ""))).strip()
+                if svc:
+                    lines.append(f"  const {as_var} = await {svc}" if as_var else f"  await {svc}")
+        if interactive:
+            lines.append(_page_detail_interactive_suffix(page_path))
+        return "\n".join(lines)
+
+    # ── Format texte libre (backward compat) ──────────────────────────────────
     detail_str = str(detail).strip()
     if "[INTERACTIVE]" in detail_str:
-        page_slug = page_path.strip("/").replace("/", "-") or "home"
-        comp_name = page_slug.title().replace("-", "")
-        client_file = (
-            f"app/{page_path.strip('/')}/page-client.tsx"
-            if page_path.strip("/") else "app/page-client.tsx"
-        )
-        detail_str += (
-            f"\n⚠️  SPLIT OBLIGATOIRE : créer {client_file} avec '\"use client\"' en ligne 1. "
-            f"page.tsx reste Server Component (fetch données) et rend <{comp_name}Client ... />. "
-            f"Import DEFAULT : import {comp_name}Client from './page-client' (jamais named). "
-            f"Export DEFAULT dans {client_file} : export default function {comp_name}Client(...)."
-        )
-    return (
-        f"CONTENU ATTENDU POUR {page_path} :\n"
-        f"{detail_str}"
-    )
+        detail_str += _page_detail_interactive_suffix(page_path)
+    return f"CONTENU ATTENDU POUR {page_path} :\n{detail_str}"
 
 
 def build_system_prompt(

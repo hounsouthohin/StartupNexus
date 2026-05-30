@@ -472,6 +472,7 @@
     "prisma/schema.prisma",
     ".eslintrc.stack.json"
   ],
+  "core_modules": ["types", "schemas", "services", "actions", "pages", "navigation", "middleware"],
   "feature_modules": [
     "feature_modules.module_detail_with_children",
     "module_status_flow",

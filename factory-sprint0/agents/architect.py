@@ -63,6 +63,16 @@ Les virgules DANS les attributs comme @relation(..., ...) ne comptent PAS comme 
 Les Server Actions gèrent le CRUD → `"routes": []` dans la grande majorité des cas.
 Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics stateless.
 
+### CATALOGUE DES MODULES (activés automatiquement via features[])
+Quand tu inclus une feature dans `features[]`, le moteur déterministe active le module correspondant.
+Déclarer une feature UNIQUEMENT si le brief la nécessite clairement — ne pas anticiper.
+
+- `"status_flow"`    → badges statut colorés + filtre par statut sur les listes. Déclarer si le modèle a un enum de statuts avec workflow (ex : pending/in_progress/done, draft/sent/paid).
+- `"search"`         → barre de recherche sur les listes. Déclarer si le brief mentionne recherche, filtre textuel, ou découverte d'éléments par nom.
+- `"slug_routing"`   → détail par URL slug (SEO). Déclarer si le modèle a un champ `slug String @unique` ET des pages publiques accessibles sans auth.
+- `"public_pages"`   → pages accessibles sans authentification. Déclarer si certaines pages sont publiques (blog, vitrine, landing).
+- `"calendar_view"`  → vue calendrier/créneaux. Déclarer si le brief mentionne réservations, planning, disponibilités, créneaux horaires.\
+
 ### page_links — contrat de navigation (OBLIGATOIRE)
 Pour CHAQUE page déclarée dans `pages`, liste les SEULS chemins valides pour les `<Link href>` dans ce composant.
 Ne jamais inclure un chemin absent de `pages` — la factory interdit les liens vers des pages non déclarées.
@@ -705,48 +715,74 @@ Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY:
 """
 
 _PAGES_DETAIL_SYSTEM_PROMPT = """\
-Tu génères les descriptions fonctionnelles des pages CUSTOM d'une application Next.js 14.
+Tu génères les contrats STRUCTURÉS des pages CUSTOM d'une application Next.js 14.
 
 CONTEXTE : les pages avec un modèle Prisma (list, create, detail, edit) sont entièrement
 générées par des templates déterministes — tu n'as PAS à les décrire.
 Tu décris UNIQUEMENT les pages custom (dashboards, hubs, landings, pages sans modèle associé).
 
-IMPORTANT : ta réponse est un objet JSON PLAT. Les clés sont les paths des pages.
+IMPORTANT : ta réponse est un objet JSON PLAT. Chaque clé est un path de page.
 
-## RÈGLE UNIQUE — pages custom
+## FORMAT OBLIGATOIRE — objet structuré par page
 
-Une page custom est une page sans modèle Prisma direct : tableau de bord, page d'accueil,
-hub de statistiques, landing page, etc.
+Chaque valeur est un objet avec exactement ces 3 champs :
+- "description"   : string — ce qui s'affiche sur cette page (compteurs, résumés, liens)
+- "data_fetches"  : liste  — appels de service nécessaires. Format : {"service": "xxxService.method(args)", "as": "varName"}
+- "interactive"   : bool   — true si la page a des interactions utilisateur (filtres, formulaires inline, boutons d'action)
 
-Pour chaque page custom, décris précisément :
-1. CE QUI S'AFFICHE : statistiques (ex: "total projets : items.length"), listes résumées,
-   textes, compteurs
-2. LES DONNÉES NÉCESSAIRES : quels services appeler (ex: projectService.getAll(userId))
-3. LES ACTIONS DISPONIBLES : liens de navigation vers d'autres pages
-4. Ajouter [INTERACTIVE] si la page combine données serveur ET interactions utilisateur
-   (boutons d'action, formulaires inline, filtres)
+## RÈGLE — pages custom
+
+Une page custom est une page sans modèle Prisma direct : dashboard, home, hub, landing.
+
+Pour chaque page custom, identifier :
+1. CE QUI S'AFFICHE : stats (ex: projects.length projets actifs), compteurs, listes résumées
+2. DATA_FETCHES : appels de service exacts en ordre d'exécution
+3. INTERACTIVE : true si la page a des interactions réelles (PAS juste des liens statiques)
 
 ## EXEMPLES
 
 Page dashboard après connexion :
 ```json
 {
-  "/dashboard": "Server Component. Charge : const projects = await projectService.getAll(userId) → affiche projects.length projets actifs. Charge : const tasks = await taskService.getAll(userId) → affiche tasks.length tâches. Liens rapides vers /projects/new et /tasks/new. PAS de page-client.tsx (pas d'interaction). [INTERACTIVE]"
+  "/dashboard": {
+    "description": "Hub principal. Affiche projects.length projets actifs et tasks.length tâches. Liens rapides vers /projects/new et /tasks/new.",
+    "data_fetches": [
+      {"service": "projectService.getAll(userId)", "as": "projects"},
+      {"service": "taskService.getAll(userId)", "as": "tasks"}
+    ],
+    "interactive": false
+  }
 }
 ```
 
 Page d'accueil publique :
 ```json
 {
-  "/": "Hero section avec titre et description de l'app. Bouton 'Commencer' → /sign-in. Pas d'appel service."
+  "/": {
+    "description": "Hero section avec titre et description de l'app. Bouton Commencer vers /sign-in. Pas d'appel service.",
+    "data_fetches": [],
+    "interactive": false
+  }
+}
+```
+
+Page hub avec filtrage inline :
+```json
+{
+  "/hub": {
+    "description": "Hub personnel. Affiche les éléments avec filtre par statut en temps réel.",
+    "data_fetches": [{"service": "itemService.getAll(userId)", "as": "items"}],
+    "interactive": true
+  }
 }
 ```
 
 ## CONTRAINTES
 - Ne décris QUE les pages custom reçues dans le tableau "pages"
 - Les clés commencent par "/"
-- JSON plat, pas de wrapper
-- Si la page n'a aucune logique custom, retourner une description minimale\
+- JSON plat (pas de wrapper)
+- data_fetches: [] si aucun appel service
+- interactive: true UNIQUEMENT si interactions réelles (formulaire inline, filtre dynamique)\
 """
 
 
@@ -839,21 +875,35 @@ async def pages_detail_node(state: AgentState) -> dict:
                 pages_detail = _wrapper_val
                 break
 
-    # Filtre : clés valides (paths commençant par /), valeurs strings non-vides
-    pages_detail = {
-        k: v for k, v in pages_detail.items()
-        if isinstance(k, str) and k.startswith("/") and isinstance(v, str) and v.strip()
-    }
+    # Filtre + validation : clés valides (paths commençant par /), valeurs dict ou str non-vides.
+    # Format cible (D1) : dict structuré {description, data_fetches, interactive}.
+    # Backward compat : str acceptée pour les briefs antérieurs.
+    from agents.semantic_spec import PageDetailContract as _PDC
+    _validated: dict = {}
+    for k, v in pages_detail.items():
+        if not (isinstance(k, str) and k.startswith("/")):
+            continue
+        if isinstance(v, dict) and v:
+            try:
+                _pdc = _PDC(**v)
+                _validated[k] = _pdc.model_dump(by_alias=True)
+            except Exception:
+                _validated[k] = v  # raw dict si validation échoue
+        elif isinstance(v, str) and v.strip():
+            _validated[k] = v  # backward compat string
+    pages_detail = _validated
 
     _expected_paths = {p.get("path") if isinstance(p, dict) else str(p) for p in pages}
     logger.info("[pages_detail] pages attendues: %s", sorted(_expected_paths))
     logger.info("[pages_detail] pages retournées: %s", sorted(pages_detail.keys()))
 
     interactive_count = sum(
-        1 for v in pages_detail.values() if "[INTERACTIVE]" in v
+        1 for v in pages_detail.values()
+        if (isinstance(v, dict) and v.get("interactive", False))
+        or (isinstance(v, str) and "[INTERACTIVE]" in v)
     )
     logger.info(
-        "[pages_detail] ✓ %d page(s) décrites, %d [INTERACTIVE]",
+        "[pages_detail] ✓ %d page(s) décrites, %d interactive",
         len(pages_detail),
         interactive_count,
     )
@@ -944,7 +994,13 @@ async def planner_node(state: AgentState) -> dict:
     for _pg in pages:
         if not _pg.auth_required:
             continue  # déjà public, rien à faire
-        _detail = str(brief_pages_detail.get(_pg.path, "")).lower()
+        _detail_raw = brief_pages_detail.get(_pg.path, "")
+        # Gère dict structuré (D1) et str (backward compat)
+        _detail = (
+            " ".join(str(_detail_raw.get(k, "")) for k in ("description",)).lower()
+            if isinstance(_detail_raw, dict)
+            else str(_detail_raw).lower()
+        )
         if any(_sig in _detail for _sig in _PUBLIC_SIGNALS):
             logger.warning(
                 "[planner] '%s' forcée auth_required=False — pages_detail décrit un comportement public",

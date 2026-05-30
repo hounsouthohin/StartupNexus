@@ -209,9 +209,13 @@ def build_page_contracts(
     contracts: dict[str, tuple[str, str]] = {}
 
     for page in spec.pages:
-        page_detail_str = str(pages_detail.get(page.path, ""))
-        if "[INTERACTIVE]" not in page_detail_str:
+        _pd_val = pages_detail.get(page.path, "")
+        _is_interactive = (
+            isinstance(_pd_val, dict) and bool(_pd_val.get("interactive", False))
+        ) or (isinstance(_pd_val, str) and "[INTERACTIVE]" in _pd_val)
+        if not _is_interactive:
             continue
+        page_detail_str = str(_pd_val)
 
         ppath = page.path.strip("/")
         segs = ppath.split("/") if ppath else []

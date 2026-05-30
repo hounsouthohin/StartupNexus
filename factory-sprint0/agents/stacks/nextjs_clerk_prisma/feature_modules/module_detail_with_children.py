@@ -79,46 +79,44 @@ class DetailWithChildrenModule(FeatureModule):
     def name(self) -> str:
         return "detail_with_children"
 
+    @property
+    def priority(self) -> int:
+        return 100  # défaut — génère des detail page-client.tsx, pas de conflit avec search/status_flow
+
+    @property
+    def produces(self) -> list[str]:
+        return ["app/{detail_path}/page-client.tsx"]
+
     def should_activate(self, enriched_spec, ctx) -> bool:
-        # Activer si le modèle a des relations 1-N (enfants)
+        # Activer dès qu'un modèle a des relations tableau (enfants FK).
+        # Pas de dépendance à list_page_path : un modèle enfant (ex: Task sans liste standalone)
+        # peut tout de même avoir une page détail avec ses propres enfants (ex: Comment).
         if not ctx.has_relations:
             return False
-        child_relations = [r for r in ctx.relation_fields if r.is_array]
-        if not child_relations:
-            return False
-        # Et une page détail déclarée
-        if not ctx.list_page_path:
-            return False
-        # NE PAS s'activer si la page détail a déjà un tag [CROSS_ENTITY] dans pages_detail.
-        # Dans ce cas, _gen_page_full() gère le fetch secondaire et le LLM executor
-        # génère page-client.tsx avec le bon contrat via planner.py/build_page_contracts.
-        # Le module reste un fallback pour les pages détail sans CROSS_ENTITY déclaré.
-        return True  # la vérification CROSS_ENTITY est faite dans generate()
-
-    def _is_cross_entity_declared(self, spec, ctx) -> bool:
-        """True si pages_detail déclare explicitement [CROSS_ENTITY] pour cette page détail."""
-        if spec is None:
-            return False
-        detail_path = f"{ctx.list_page_path}/[id]"
-        pages_detail = getattr(spec, "pages_detail", {}) or {}
-        detail_str = str(pages_detail.get(detail_path, ""))
-        return "[CROSS_ENTITY:" in detail_str
+        return any(r.is_array for r in ctx.relation_fields)
 
     def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
-        list_path = ctx.list_page_path
-        detail_path = f"{list_path}/[id]"
-        # Génère page-client.tsx pour TOUS les cas (CROSS_ENTITY ou non).
-        # page.tsx utilise getByIdWithRelations → item.<relation> contient les enfants.
-        # Le template lit (item as any).<relation> — pas besoin de props séparées.
-
-        # Vérifier que la page détail est dans le spec
         spec_pages = getattr(spec, "pages", []) or []
+
+        # Trouver la page détail de ce modèle dans le spec (par model, indépendamment de list_page_path)
         detail_page = next(
-            (p for p in spec_pages if p.path == detail_path and p.page_type == "detail"),
+            (p for p in spec_pages
+             if getattr(p, "model", None) == ctx.name
+             and getattr(p, "page_type", None) in ("detail", "detail-slug")),
             None,
         )
         if detail_page is None:
             return {}
+
+        detail_path = detail_page.path
+
+        # list_path : depuis ctx ou déduit depuis le chemin détail ou chemin conventionnel
+        list_path = ctx.list_page_path
+        if not list_path and detail_path:
+            _segs = [s for s in detail_path.strip("/").split("/") if not s.startswith("[")]
+            list_path = "/" + "/".join(_segs) if _segs else f"/{ctx.kebab}s"
+        if not list_path:
+            list_path = f"/{ctx.kebab}s"
 
         # Trouver les modèles enfants : modèles qui ont une FK vers ctx.name
         child_prisma_models: dict = {}

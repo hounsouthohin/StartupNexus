@@ -4,5 +4,11 @@
     "brief": {
       "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
     }
+  },
+  {
+    "project_name": "freelance-manager",
+    "brief": {
+      "description": "Un outil pour gérer mon activité de freelance. Je tiens une liste de mes clients avec leur nom, leur email et leur numéro de téléphone. Pour chaque client, je crée des projets avec un titre, une description et un budget. Un projet peut être en attente, actif ou terminé. Sur mon tableau de bord, je veux voir combien de projets sont actifs en ce moment, le total des budgets en cours, et la liste de mes trois projets les plus récents avec des liens rapides pour créer un nouveau projet ou un nouveau client. La page d'accueil présente l'outil sans nécessiter de connexion, avec un bouton pour démarrer."
+    }
   }
 ]

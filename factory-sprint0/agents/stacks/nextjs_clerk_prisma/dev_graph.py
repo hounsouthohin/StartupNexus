@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import operator
 import os
+import re
 import shutil
 import subprocess
 from typing import TypedDict, List, Annotated
@@ -114,14 +115,13 @@ def _extract_error_file(error: str) -> str | None:
       - '× app/projects/page.tsx'
     Retourne un chemin relatif (sans ./) ou None.
     """
-    import re as _re_err
     patterns = [
         r"\./?(app/[^\s:(]+\.tsx?)",   # ./app/xxx.tsx ou app/xxx.tsx
         r"\./?(lib/[^\s:(]+\.tsx?)",   # ./lib/xxx.ts
         r"\./?(pages/[^\s:(]+\.tsx?)", # ./pages/xxx.tsx (rare)
     ]
     for pat in patterns:
-        m = _re_err.search(pat, error)
+        m = re.search(pat, error)
         if m:
             return m.group(1)
     return None
@@ -250,11 +250,63 @@ async def run_dev_agent(
         except Exception as _mc_err:
             logger.warning(f"[dev_graph] build_all_contexts non bloquant : {_mc_err}")
 
+    # ══ FONDATIONS — générés avant tout fichier UI ════════════════════════════
+    # Ordre correct : types → schemas → services → actions → pages → page-clients
+    # Les pages et page-clients importent ces fichiers — ils doivent exister sur
+    # le disque avant que le compilateur TypeScript les référence au build.
+
+    # ── Génération déterministe : lib/types.ts ───────────────────────
+    # BLOQUANT : les page stubs importent @/lib/types. Si ce fichier est absent,
+    # le LLM invente ses propres interfaces → types incorrects → erreurs TS silencieuses.
+    if spec_obj is not None:
+        try:
+            from .dev_types_generator import generate_types_file
+            _types_result = generate_types_file(spec_obj, project_workdir, contexts=_model_contexts or None)
+            template_written[_types_result.path] = _types_result.content
+            logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
+        except Exception as _tg_err:
+            _template_error = f"TYPES_GENERATOR_FAILED: {_tg_err}"
+            logger.error(f"[dev_graph] {_template_error}")
+
+    # ── Génération déterministe : lib/schemas.ts ─────────────────────
+    # BLOQUANT : les Server Actions importent les schemas Zod pour valider les inputs.
+    if spec_obj is not None and not _template_error:
+        try:
+            from .dev_zod_generator import generate_schemas_file
+            _schemas_result = generate_schemas_file(spec_obj, project_workdir, contexts=_model_contexts or None)
+            if _schemas_result:
+                template_written[_schemas_result.path] = _schemas_result.content
+                logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
+        except Exception as _zg_err:
+            _template_error = f"ZOD_GENERATOR_FAILED: {_zg_err}"
+            logger.error(f"[dev_graph] {_template_error}")
+
+    # ── Génération déterministe : lib/services/*.ts ───────────────────
+    if spec_obj is not None:
+        try:
+            from .dev_service_generator import generate_service_files
+            _svc_written = generate_service_files(spec_obj, project_workdir, contexts=_model_contexts or None, enriched_spec=_enriched_spec)
+            template_written.update(_svc_written)
+            logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
+        except Exception as _svc_err:
+            logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
+
+    # ── Génération déterministe : app/**/actions.ts ───────────────────
+    if spec_obj is not None:
+        try:
+            from .dev_actions_generator import generate_action_files
+            _act_written = generate_action_files(spec_obj, project_workdir, model_contexts=_model_contexts or None)
+            template_written.update(_act_written)
+            logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
+        except Exception as _act_err:
+            logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
+
+    # ══ UI — générés après les fondations ═════════════════════════════════════
+
     # ── Génération déterministe : pages + loading + error ───────────────────────
     # generate_page_stubs : page.tsx entièrement déterministe pour les pages avec
     #   champ `model` → ajouté à template_written (LLM ne peut pas écraser).
     #   Pour les pages sans `model` : stub auth-guard minimal (LLM peut compléter).
-    # page-client.tsx : généré par le LLM (Level B — dev_ui_generator).
     if spec_obj is not None:
         try:
             from .dev_pages_generator import (
@@ -346,57 +398,42 @@ async def run_dev_agent(
         except Exception as _fm_err:
             logger.warning("[dev_graph] feature_modules non bloquant : %s", _fm_err)
 
-    # ── Génération déterministe : lib/types.ts ───────────────────────
-    # BLOQUANT : les page stubs importent @/lib/types. Si ce fichier est absent,
-    # le LLM invente ses propres interfaces → types incorrects → erreurs TS silencieuses.
-    # En cas d'échec : injection dans _template_error pour abort du run (comme package.json).
-    if spec_obj is not None:
-        try:
-            from .dev_types_generator import generate_types_file
-            _types_result = generate_types_file(spec_obj, project_workdir, contexts=_model_contexts or None)
-            template_written[_types_result.path] = _types_result.content
-            logger.info("[dev_graph] lib/types.ts généré de manière déterministe")
-        except Exception as _tg_err:
-            # Bloquant — sans types.ts le LLM invente ses propres interfaces
-            _template_error = f"TYPES_GENERATOR_FAILED: {_tg_err}"
-            logger.error(f"[dev_graph] {_template_error}")
+    # ── Guard pré-build : cohérence page.tsx → page-client.tsx ─────────────
+    # Après tous les générateurs déterministes, vérifie que chaque page.tsx
+    # qui importe './page-client' a son page-client.tsx dans template_written.
+    # Si absent → GENERATION_ERROR avant même que le LLM démarre.
+    # Cible : détecter les bugs générateur tôt (TS2307 "Cannot find module") plutôt
+    # qu'après le build Next.js (~5 min plus tard).
+    _prebuild_errors: list[str] = []
+    _page_client_import_re = re.compile(r"['\"]\.\/page-client['\"]")
+    for _tw_path, _tw_content in list(template_written.items()):
+        if not _tw_path.endswith("page.tsx"):
+            continue
+        if not _page_client_import_re.search(_tw_content):
+            continue
+        _client_path = _tw_path[: -len("page.tsx")] + "page-client.tsx"
+        if _client_path not in template_written:
+            _prebuild_errors.append(
+                f"GENERATION_ERROR: {_tw_path} importe './page-client' "
+                f"mais {_client_path} absent de template_written — "
+                "corriger le générateur Python correspondant."
+            )
+            logger.error("[dev_graph] %s", _prebuild_errors[-1])
 
-    # ── Génération déterministe : lib/schemas.ts ─────────────────────
-    # BLOQUANT : les Server Actions importent les schemas Zod pour valider les inputs.
-    # Si absent, le LLM génère ses propres z.object() incompatibles avec les types.
-    if spec_obj is not None and not _template_error:
-        try:
-            from .dev_zod_generator import generate_schemas_file
-            _schemas_result = generate_schemas_file(spec_obj, project_workdir, contexts=_model_contexts or None)
-            if _schemas_result:
-                template_written[_schemas_result.path] = _schemas_result.content
-                logger.info("[dev_graph] lib/schemas.ts généré de manière déterministe")
-        except Exception as _zg_err:
-            _template_error = f"ZOD_GENERATOR_FAILED: {_zg_err}"
-            logger.error(f"[dev_graph] {_template_error}")
-
-    # ── Génération déterministe : lib/services/*.ts ───────────────────
-    # Avant pre_run_commands : les page stubs importent @/lib/services/*.
-    # _model_contexts déjà calculé avant les page generators (voir ci-dessus).
-    if spec_obj is not None:
-        try:
-            from .dev_service_generator import generate_service_files
-            _svc_written = generate_service_files(spec_obj, project_workdir, contexts=_model_contexts or None, enriched_spec=_enriched_spec)
-            template_written.update(_svc_written)
-            logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
-        except Exception as _svc_err:
-            logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
-
-    # ── Génération déterministe : app/**/actions.ts ───────────────────
-    # Avant pre_run_commands : les page-client.tsx (Level B — LLM) importent les actions.
-    if spec_obj is not None:
-        try:
-            from .dev_actions_generator import generate_action_files
-            _act_written = generate_action_files(spec_obj, project_workdir, model_contexts=_model_contexts or None)
-            template_written.update(_act_written)
-            logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
-        except Exception as _act_err:
-            logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
+    if _prebuild_errors:
+        logger.error(
+            "[dev_graph] %d erreur(s) de cohérence pré-build — run annulé",
+            len(_prebuild_errors),
+        )
+        _dev_tools_module.set_protected_files(None)
+        _dev_tools_module.set_workdir(None)
+        return {  # type: ignore[return-value]
+            "messages": [], "spec": spec, "project_name": project_name, "run_id": run_id,
+            "build_attempts": 0, "last_build_error": "\n".join(_prebuild_errors),
+            "success": False, "build_command_executed": False,
+            "build_exit_code": -1, "validated_files": [],
+            "generation_turns": 0, "file_plan": None,
+        }
 
     # Source de vérité unique : tout fichier pré-généré (template_written) est protégé.
     # protected_files du JSON config étend cette liste pour les cas limites (fichiers
@@ -765,9 +802,6 @@ async def run_dev_agent(
           "FAILED (exit N)..." → exit code N → build_success = False
         Zéro keyword matching sur le contenu de la sortie.
         """
-        from langchain_core.messages import ToolMessage
-        import re as _re
-
         # Étape 1 — construire la map tool_call_id → command depuis tous les AIMessages.
         # Permet de savoir, pour chaque ToolMessage, quelle commande l'a produit.
         tool_call_commands: dict[str, str] = {}
@@ -809,7 +843,7 @@ async def run_dev_agent(
 
             # Échec : préfixe "FAILED (exit N)" de shell_exec
             last_error = content[:3000]
-            m = _re.search(r"FAILED \(exit (\d+)\)", content)
+            m = re.search(r"FAILED \(exit (\d+)\)", content)
             build_exit = int(m.group(1)) if m else 1
             break
 
@@ -921,6 +955,60 @@ async def run_dev_agent(
     #   - Un nœud LangGraph est le seul endroit correct pour décider du routage
     #   - On valide le batch (plusieurs fichiers d'un tour) plutôt que chaque write isolé
 
+    # ── Progressive Validation ────────────────────────────────────────
+    # Intercalé entre tools et restore.
+    # Détecte les fichiers .ts/.tsx écrits dans le dernier tour LLM.
+    #
+    # NOTE tsc désactivé (F1) : npx tsc --noEmit prend 20-60s par appel × N fichiers
+    # = timeout Temporal garanti. Réactivation prévue en Sprint 4.9 avec une approche
+    # fichier-par-fichier plus légère (tsc --isolatedModules sur le fichier seul).
+    # Actif : E2 service method check (lecture + regex, < 10ms).
+    def progressive_validation_node(state: DevState) -> dict:
+        # Trouver les fichiers .ts/.tsx écrits dans le dernier tour LLM
+        newly_written_ts: set[str] = set()
+        for msg in reversed(state["messages"]):
+            if not isinstance(msg, AIMessage):
+                continue
+            for call in (getattr(msg, "tool_calls", None) or []):
+                if call.get("name") != "write_file":
+                    continue
+                args = call.get("args", {})
+                path = (args.get("path", "") if isinstance(args, dict) else "") or ""
+                if path.endswith((".ts", ".tsx")) and path not in template_written:
+                    abs_p = os.path.join(project_workdir, path)
+                    if os.path.exists(abs_p):
+                        newly_written_ts.add(path)
+            break  # uniquement le dernier AIMessage
+
+        if not newly_written_ts:
+            return {}
+
+        # E2 — Service method existence check (non-bloquant — log GENERATION_WARNING)
+        # Croise les appels xxxService.method() dans les fichiers écrits vs LevelAManifest.
+        if _level_a_manifest is not None:
+            for ts_path in newly_written_ts:
+                abs_p = os.path.join(project_workdir, ts_path)
+                try:
+                    with open(abs_p, "r", encoding="utf-8") as _ef:
+                        _content = _ef.read()
+                    for _match in re.finditer(r"(\w+Service)\.(\w+)\(", _content):
+                        _svc_var = _match.group(1)
+                        _method = _match.group(2)
+                        for _mi in _level_a_manifest.models:
+                            if getattr(_mi, "service_var", "") == _svc_var:
+                                _available = {
+                                    getattr(m, "name", "") for m in getattr(_mi, "methods", [])
+                                }
+                                if _method not in _available:
+                                    logger.warning(
+                                        "[progressive_validation] GENERATION_WARNING: %s appelle "
+                                        "%s.%s() absent du manifest. Disponibles: %s",
+                                        ts_path, _svc_var, _method, sorted(_available),
+                                    )
+                                break
+                except Exception:
+                    pass
+
     # ── Restauration des fichiers template supprimés ──────────────────
     # Intercalé entre tools et extract_error.
     # Le LLM peut supprimer des fichiers template via shell_exec (rm, python -c, etc.).
@@ -948,6 +1036,7 @@ async def run_dev_agent(
     builder.add_node("planner", planner_node)
     builder.add_node("executor", executor_node)
     builder.add_node("tools", ToolNode(tools, handle_tool_errors=True))
+    builder.add_node("progressive_validation", progressive_validation_node)
     builder.add_node("restore", restore_protected_node)
     builder.add_node("extract_error", extract_build_error_node)
 
@@ -957,7 +1046,8 @@ async def run_dev_agent(
         "tools": "tools",
         "__end__": END,
     })
-    builder.add_edge("tools", "restore")
+    builder.add_edge("tools", "progressive_validation")
+    builder.add_edge("progressive_validation", "restore")
     builder.add_edge("restore", "extract_error")
     builder.add_conditional_edges("extract_error", route_after_tools, {
         "executor": "executor",

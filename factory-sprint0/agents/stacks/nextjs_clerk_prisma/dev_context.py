@@ -21,12 +21,8 @@ logger = logging.getLogger(__name__)
 # Source de vérité : clé "role_rag_queries" dans nextjs-clerk-prisma.json (T0 refactor).
 # Ce dict est le fallback statique utilisé si la stack config n'est pas accessible.
 _ROLE_RAG_QUERIES_FALLBACK: dict[str, str] = {
-    "service": (
-        "N+1 prevention include select nested findUnique loop boucle Prisma Promise.all"
-    ),
-    "actions": (
-        "auth userId guard obligatoire Zod validation safeParse revalidatePath throw Unauthorized"
-    ),
+    # "service" et "actions" retirés : ces fichiers sont déterministes (dev_service_generator,
+    # dev_actions_generator) — le LLM ne les génère jamais, ces requêtes RAG ne s'exécutent jamais.
     "route": (
         "auth guard NextResponse userId ownership API route handler"
     ),
@@ -345,8 +341,16 @@ def _dep_page(path: str, spec_obj, workdir: str, manifest=None, service_map_str:
             )
         elif service_map_str:
             # Page custom (dashboard, hub…) : aucun service résolu par segment.
-            # Injecter le service_map complet pour que le LLM voie les méthodes disponibles.
-            dep = f"\n{service_map_str}"
+            # D2 — Injecter CONTRACTS.md (méthodes exactes) en priorité sur service_map (résumé).
+            _contracts_path = os.path.join(workdir, "CONTRACTS.md")
+            _contracts_content = _read_file_safe(_contracts_path, 2000)
+            if _contracts_content:
+                dep = (
+                    f"\nCONTRACTS.md (méthodes exactes disponibles — utiliser CES signatures) :\n"
+                    f"```\n{_contracts_content}\n```"
+                )
+            else:
+                dep = f"\n{service_map_str}"
 
     # page-client.tsx sibling — injecté si présent pour que page.tsx passe les bonnes props
     client_sibling = path.replace("/page.tsx", "/page-client.tsx")

@@ -33,6 +33,21 @@ class FeatureModule(ABC):
     def name(self) -> str:
         """Identifiant lisible du module — affiché dans les logs."""
 
+    @property
+    def priority(self) -> int:
+        """Ordre d'activation (plus bas = plus prioritaire). Défaut : 100.
+        Utilisé quand deux modules peuvent produire le même fichier
+        (ex: status_flow et search produisent tous les deux page-client.tsx).
+        Le module de plus faible priorité gagne."""
+        return 100
+
+    @property
+    def produces(self) -> list[str]:
+        """Patterns de fichiers produits par ce module.
+        Ex: ['app/{list_dir}/page-client.tsx']
+        Permet au dispatcher de savoir quels fichiers sont attendus avant exécution."""
+        return []
+
     @abstractmethod
     def should_activate(self, enriched_spec, ctx) -> bool:
         """
@@ -101,8 +116,9 @@ def run_feature_modules(
         logger.debug("[feature_module] aucun module enregistré")
         return all_written
 
+    _sorted_registry = sorted(_REGISTRY, key=lambda m: m.priority)
     for ctx in model_contexts.values():
-        for module in _REGISTRY:
+        for module in _sorted_registry:
             try:
                 if not module.should_activate(enriched_spec, ctx):
                     continue

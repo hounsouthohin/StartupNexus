@@ -61,6 +61,27 @@ class QueryDeclaration(BaseModel):
     # True → Promise<SerializedXxx[]>, False → Promise<SerializedXxx>
 
 
+class DataFetchContract(BaseModel):
+    """Un appel de service à effectuer dans une page custom (Server Component)."""
+    model_config = {"populate_by_name": True}
+    service: str = ""
+    # ex: "projectService.getAll(userId)" — signature exacte à copier dans le Server Component
+    as_var: str = Field(default="", alias="as")
+    # ex: "projects" — nom de la variable const dans le Server Component
+
+
+class PageDetailContract(BaseModel):
+    """Contrat structuré pour une page custom (dashboard, landing, hub...).
+    Produit par pages_detail_node — remplace les strings libres 'INTERACTIVE' de l'ancien format."""
+    description: str = ""
+    # Ce qui s'affiche sur la page : stats, listes résumées, textes, compteurs
+    data_fetches: list[DataFetchContract] = Field(default_factory=list)
+    # Appels de service nécessaires dans l'ordre d'exécution
+    interactive: bool = False
+    # True si la page combine données serveur ET interactions utilisateur
+    # (filtres, formulaires inline, boutons d'action) → SPLIT page.tsx + page-client.tsx requis
+
+
 class EnrichedSpec(BaseModel):
     """
     Spec sémantique enrichie produite par le Semantic Annotator.

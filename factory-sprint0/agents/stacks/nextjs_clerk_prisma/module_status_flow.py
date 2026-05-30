@@ -36,8 +36,19 @@ class StatusFlowModule(FeatureModule):
     def name(self) -> str:
         return "module_status_flow"
 
+    @property
+    def priority(self) -> int:
+        # 10 = gagne sur module_search (50) car son template intègre déjà has_search
+        return 10
+
+    @property
+    def produces(self) -> list[str]:
+        return ["app/{list_dir}/page-client.tsx"]
+
     def should_activate(self, enriched_spec, ctx) -> bool:
-        return bool(ctx.has_status and ctx.list_page_path)
+        # features["status_flow"] primaire (signal architect), ctx.has_status comme fallback structurel
+        has_feature = bool(enriched_spec and enriched_spec.has_feature("status_flow"))
+        return bool((has_feature or ctx.has_status) and ctx.list_page_path)
 
     def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
         list_path = ctx.list_page_path
@@ -64,11 +75,8 @@ class StatusFlowModule(FeatureModule):
         if not status_values:
             status_values = ["pending", "active", "done"]
 
-        # Compose avec module_search si la feature search est aussi active
-        has_search = bool(
-            enriched_spec and enriched_spec.has_feature("search")
-            or any(f.input_type == "text" for f in ctx.editable_fields)
-        )
+        # Compose avec module_search uniquement si l'architect a déclaré "search" — pas d'heuristique
+        has_search = bool(enriched_spec and enriched_spec.has_feature("search"))
 
         fields = ctx.display_fields[:2]
         _ui_labels = getattr(spec, "ui_labels", {}) or {}

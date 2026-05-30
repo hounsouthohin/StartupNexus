@@ -35,6 +35,15 @@ class SearchModule(FeatureModule):
     def name(self) -> str:
         return "module_search"
 
+    @property
+    def priority(self) -> int:
+        # 50 = après status_flow (10) qui gère déjà le cas status+search
+        return 50
+
+    @property
+    def produces(self) -> list[str]:
+        return ["app/{list_dir}/page-client.tsx"]
+
     def should_activate(self, enriched_spec, ctx) -> bool:
         if not ctx.list_page_path:
             return False
