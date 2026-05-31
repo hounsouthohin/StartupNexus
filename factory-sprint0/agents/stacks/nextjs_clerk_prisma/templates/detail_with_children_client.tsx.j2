@@ -66,9 +66,9 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
       </div>
 
       {% for child in children %}
-      {/* ── {{ child.name }}s ── */}
+      {/* ── {{ child.title_plural }} ── */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">{{ child.name }}s</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">{{ child.title_plural }}</h2>
 
         {/* Liste */}
         {{ '{' }}{{ child.camel }}List.length === 0 ? (

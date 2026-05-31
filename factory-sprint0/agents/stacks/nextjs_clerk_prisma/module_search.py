@@ -70,9 +70,16 @@ class SearchModule(FeatureModule):
         auth_required = getattr(list_page, "auth_required", True) if list_page else True
 
         fields = ctx.display_fields[:2]
-        _ui_labels = getattr(spec, "ui_labels", {}) or {}
-        _model_labels = _ui_labels.get(ctx.name, {})
-        _title_plurals = getattr(spec, "title_plurals", {}) or {}
+        _model_labels = ctx.ui_labels
+
+        # empty_state_message depuis ux_hints (produit par le semantic annotator)
+        _empty_msg = ""
+        try:
+            _ux = getattr(enriched_spec, "ux_hints", None) if enriched_spec else None
+            if _ux:
+                _empty_msg = (getattr(_ux, "empty_states", {}) or {}).get(list_path, "")
+        except Exception:
+            pass
 
         try:
             content = _jinja_env.get_template("list_client_search.tsx.j2").render(
@@ -84,10 +91,11 @@ class SearchModule(FeatureModule):
                 list_dir=list_dir,
                 display_fields=fields,
                 field_labels={f: _model_labels.get(f, f) for f in fields},
-                title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
+                title_plural=ctx.title_plural,
                 auth_required=auth_required,
                 has_delete=auth_required,
                 has_slug=ctx.has_slug,
+                empty_state_message=_empty_msg,
             )
         except Exception as e:
             logger.error("[module_search] rendu template échoué pour %s : %s", ctx.name, e)

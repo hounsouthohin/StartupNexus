@@ -82,6 +82,21 @@ class PageDetailContract(BaseModel):
     # (filtres, formulaires inline, boutons d'action) → SPLIT page.tsx + page-client.tsx requis
 
 
+class UXHints(BaseModel):
+    """Contrats UX produits par le Semantic Annotator pour guider l'expérience utilisateur."""
+    empty_states: dict[str, str] = Field(default_factory=dict)
+    # Clé = path de page, valeur = message affiché quand la liste est vide.
+    # Ex: {"/projects": "Aucun projet — créez votre premier projet."}
+
+    dependency_order: list[str] = Field(default_factory=list)
+    # Ordre de création des entités liées par FK.
+    # Ex: ["Créez d'abord un Client avant une Invoice"]
+
+    primary_action: dict[str, str] = Field(default_factory=dict)
+    # Appel à l'action principal par page root.
+    # Ex: {"/": "Commencer → /sign-in"}
+
+
 class EnrichedSpec(BaseModel):
     """
     Spec sémantique enrichie produite par le Semantic Annotator.
@@ -95,6 +110,9 @@ class EnrichedSpec(BaseModel):
 
     features: list[str] = Field(default_factory=list)
     # Modules à activer. Ex: "search", "pagination", "status_flow", "public_pages"
+
+    ux_hints: UXHints = Field(default_factory=UXHints)
+    # Contrats UX : messages d'états vides, ordre de création, actions primaires.
 
     def get_semantic_type(self, field_name: str) -> str:
         """semantic_type d'un champ, ou '' si non annoté (→ heuristique)."""

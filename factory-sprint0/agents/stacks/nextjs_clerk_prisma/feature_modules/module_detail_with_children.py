@@ -181,16 +181,18 @@ class DetailWithChildrenModule(FeatureModule):
                 "display_fields": _get_child_display_fields(child_ctx_obj),
                 "create_fields": _get_child_create_fields(child_ctx_obj),
                 "actions_import": f"@/app/{child_list_page.lstrip('/')}/actions",
+                "title_plural": (child_ctx_obj.title_plural if child_ctx_obj else _title_plurals_spec.get(child_name, f"{child_name}s")),
             })
 
         if not children_ctx:
             return {}
 
-        # Labels UI
-        _ui_labels = getattr(spec, "ui_labels", {}) or {}
-        _model_labels = _ui_labels.get(ctx.name, {}) or {}
-        _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {}
-        _title_plurals = getattr(spec, "title_plurals", {}) or {}
+        # Labels UI — depuis ModelGenerationContext (source unifiée)
+        _model_labels = ctx.ui_labels
+        _enum_value_labels = ctx.enum_value_labels
+        # title_plural pour les enfants : depuis leur ModelGenerationContext (source unifiée)
+        # Fallback spec si le ctx enfant n'est pas encore disponible à ce stade
+        _title_plurals_spec = getattr(spec, "title_plurals", {}) or {}
 
         display_fields = ctx.display_fields
         field_labels = {f: _model_labels.get(f, f) for f in display_fields}
@@ -203,9 +205,10 @@ class DetailWithChildrenModule(FeatureModule):
                 if labels:
                     enum_display[ef.name] = labels
 
-        # Labels pour les formulaires enfants
+        # Labels pour les formulaires enfants — depuis le ctx enfant (source unifiée)
         for child in children_ctx:
-            child_labels = _ui_labels.get(child["name"], {}) or {}
+            _child_ctx = all_model_contexts.get(child["name"])
+            child_labels = (_child_ctx.ui_labels if _child_ctx else {}) or {}
             for cf in child["create_fields"]:
                 cf["label"] = child_labels.get(cf["name"], cf["name"])
                 # Labels enum pour les champs enfants
@@ -227,7 +230,7 @@ class DetailWithChildrenModule(FeatureModule):
                 display_fields=display_fields,
                 field_labels=field_labels,
                 enum_display=enum_display,
-                title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
+                title_plural=ctx.title_plural,
                 children=children_ctx,
             )
         except Exception as e:

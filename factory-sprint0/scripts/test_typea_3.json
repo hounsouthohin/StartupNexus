@@ -5,32 +5,16 @@
       "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
     }
   },
-
   {
     "project_name": "task-manager",
     "brief": {
       "description": "J'aimerais une application pour gérer mes tâches personnelles. Je veux créer des tâches avec un titre, une description optionnelle et un niveau de priorité — faible, normale ou urgente. Chaque tâche peut avoir une date limite. Je veux pouvoir les marquer comme à faire, en cours ou terminées. Toute l'application est privée, accessible uniquement après connexion."
     }
   },
-
   {
     "project_name": "leave-manager",
     "brief": {
       "description": "Une application pour gérer les demandes de congé dans une équipe. Un employé soumet une demande en précisant le type de congé — congé payé, congé maladie ou absence non rémunérée — ainsi qu'une date de début, une date de fin et un motif optionnel. Chaque demande suit un cycle de validation : elle est d'abord en attente, puis soit acceptée soit refusée par le responsable. L'application est entièrement privée."
-    }
-  },
-
-  {
-    "project_name": "learn-hub",
-    "brief": {
-      "description": "Une plateforme e-learning privée. Je crée des cours, chaque cours contient des modules, et chaque module contient des leçons. Un cours a un titre, une description et un niveau — débutant, intermédiaire ou avancé. Un module a un titre et un numéro d'ordre dans le cours — le module est lié au cours via courseId. Une leçon a un titre, un contenu texte et une durée en minutes — la leçon est liée au module via moduleId. Tout est privé, accessible après connexion. Je veux pouvoir naviguer depuis un cours vers ses modules, et depuis un module vers ses leçons."
-    }
-  },
-
-  {
-    "project_name": "recipe-manager",
-    "brief": {
-      "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation en minutes, un niveau de difficulté — facile, moyen ou difficile — et les ingrédients. Je classe mes recettes par catégories — entrées, plats principaux, desserts — gérées depuis une page dédiée. Une recette peut être privée ou publique : les recettes publiques sont visibles par tous les visiteurs sans connexion, les recettes privées sont visibles uniquement par moi. Je gère mes recettes depuis mon espace privé après connexion. Les visiteurs peuvent parcourir et consulter les recettes publiques sans créer de compte."
     }
   }
 ]

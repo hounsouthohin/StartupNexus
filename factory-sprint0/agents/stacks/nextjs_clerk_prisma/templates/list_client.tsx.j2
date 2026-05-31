@@ -46,7 +46,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
 
       {list.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
-          <p className="text-lg">Aucun {{ camel }} pour le moment.</p>
+          <p className="text-lg">{{ empty_state_message if empty_state_message else "Aucun " + camel + " pour le moment." }}</p>
           {% if auth_required %}
           <Link href="{{ list_path }}/new" className="mt-4 inline-block text-blue-600 hover:underline text-sm">
             Créer le premier

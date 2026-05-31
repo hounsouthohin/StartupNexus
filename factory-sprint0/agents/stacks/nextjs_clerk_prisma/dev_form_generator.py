@@ -86,14 +86,12 @@ def _fk_to_ctx(fk, display: str) -> dict:
 
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
-def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
+def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "") -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     auth_required = getattr(page, "auth_required", True)
     fields = ctx.display_fields
-    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
-    _model_labels = _ui_labels.get(ctx.name, {}) or {}
-    _title_plurals = getattr(spec, "title_plurals", {}) or {} if spec else {}
-    _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {} if spec else {}
+    _model_labels = ctx.ui_labels
+    _enum_value_labels = ctx.enum_value_labels
     status_field = None
     status_labels: dict = {}
     if ctx.has_status:
@@ -121,21 +119,21 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None) -> str:
         list_dir=list_path.lstrip("/"),
         display_fields=fields,
         field_labels={f: _model_labels.get(f, f) for f in fields},
-        title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
+        title_plural=ctx.title_plural,
         auth_required=auth_required,
         has_delete=auth_required,
         has_slug=ctx.has_slug,
         has_detail=has_detail,
         status_field=status_field,
         status_labels=status_labels,
+        empty_state_message=empty_state_message,
     )
 
 
 def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
-    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
-    _model_labels = _ui_labels.get(ctx.name, {}) or {}
+    _model_labels = ctx.ui_labels
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
     editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
     fk_props = ", ".join(
@@ -168,8 +166,7 @@ def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, 
 def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
-    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
-    _model_labels = _ui_labels.get(ctx.name, {}) or {}
+    _model_labels = ctx.ui_labels
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
     editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
     _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
@@ -194,9 +191,8 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None) -> str:
     # Déduplique : display_fields d'abord, puis les éditables restants
     shown = list(dict.fromkeys(ctx.display_fields + [f.name for f in ctx.editable_fields]))
     auth_required = getattr(page, "auth_required", True)
-    _ui_labels = getattr(spec, "ui_labels", {}) or {} if spec else {}
-    _model_labels = _ui_labels.get(ctx.name, {}) or {}
-    _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {} if spec else {}
+    _model_labels = ctx.ui_labels
+    _enum_value_labels = ctx.enum_value_labels
     value_labels: dict = {}
     for ef in ctx.editable_fields:
         if ef.input_type == "enum-select" and ef.name in shown:
@@ -224,6 +220,7 @@ def generate_all_page_clients(
     spec,
     model_contexts: dict,
     project_workdir: str,
+    enriched_spec=None,
 ) -> dict[str, str]:
     """
     Génère déterministiquement les page-client.tsx pour toutes les pages CRUD.
@@ -231,6 +228,16 @@ def generate_all_page_clients(
     """
     written: dict[str, str] = {}
     pages = getattr(spec, "pages", []) or []
+
+    # Extraction des empty_states depuis ux_hints (produits par le semantic annotator)
+    _empty_states: dict[str, str] = {}
+    if enriched_spec is not None:
+        try:
+            _ux = getattr(enriched_spec, "ux_hints", None)
+            if _ux:
+                _empty_states = dict(getattr(_ux, "empty_states", {}) or {})
+        except Exception:
+            pass
 
     # Modèles avec CRUD complet (list auth + create) → éligibles à l'edit page
     # Les pages create ont intentionnellement model=None (project_spec.py) — on infère
@@ -276,7 +283,8 @@ def generate_all_page_clients(
         try:
             if page_type == "list":
                 rel = f"app/{page_path_clean}/page-client.tsx" if page_path_clean else "app/page-client.tsx"
-                content = _gen_list_client(page, ctx, spec=spec)
+                _empty_msg = _empty_states.get(page.path, "")
+                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg)
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_create_client(page, ctx, model_contexts, spec=spec)

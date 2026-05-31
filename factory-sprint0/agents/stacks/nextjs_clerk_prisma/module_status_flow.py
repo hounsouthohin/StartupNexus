@@ -69,19 +69,31 @@ class StatusFlowModule(FeatureModule):
             (f for f in ctx.model.fields if f.name.lower() == "status"), None
         )
         status_values: list[str] = []
+        _status_enum_name: str = ""
         if status_field_obj:
-            base = status_field_obj.type.rstrip("?").rstrip("[]")
-            status_values = ctx.spec_enums.get(base, [])
+            _status_enum_name = status_field_obj.type.rstrip("?").rstrip("[]")
+            status_values = ctx.spec_enums.get(_status_enum_name, [])
         if not status_values:
             status_values = ["pending", "active", "done"]
+
+        # Labels traduits pour les options du filtre
+        _enum_value_labels = getattr(spec, "enum_value_labels", {}) or {}
+        status_labels: dict[str, str] = _enum_value_labels.get(_status_enum_name, {})
 
         # Compose avec module_search uniquement si l'architect a déclaré "search" — pas d'heuristique
         has_search = bool(enriched_spec and enriched_spec.has_feature("search"))
 
         fields = ctx.display_fields[:2]
-        _ui_labels = getattr(spec, "ui_labels", {}) or {}
-        _model_labels = _ui_labels.get(ctx.name, {})
-        _title_plurals = getattr(spec, "title_plurals", {}) or {}
+        _model_labels = ctx.ui_labels
+
+        # empty_state_message depuis ux_hints (produit par le semantic annotator)
+        _empty_msg = ""
+        try:
+            _ux = getattr(enriched_spec, "ux_hints", None) if enriched_spec else None
+            if _ux:
+                _empty_msg = (getattr(_ux, "empty_states", {}) or {}).get(list_path, "")
+        except Exception:
+            pass
 
         try:
             content = _jinja_env.get_template("list_client_status.tsx.j2").render(
@@ -93,13 +105,15 @@ class StatusFlowModule(FeatureModule):
                 list_dir=list_dir,
                 display_fields=fields,
                 field_labels={f: _model_labels.get(f, f) for f in fields},
-                title_plural=_title_plurals.get(ctx.name, f"{ctx.name}s"),
+                title_plural=ctx.title_plural,
                 auth_required=auth_required,
                 has_delete=auth_required,
                 status_field="status",
                 status_values=status_values,
+                status_labels=status_labels,
                 has_search=has_search,
                 has_slug=ctx.has_slug,
+                empty_state_message=_empty_msg,
             )
         except Exception as e:
             logger.error("[module_status_flow] rendu template échoué pour %s : %s", ctx.name, e)

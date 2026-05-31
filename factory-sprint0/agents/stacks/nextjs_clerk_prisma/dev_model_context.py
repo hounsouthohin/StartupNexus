@@ -162,6 +162,14 @@ class ModelGenerationContext:
     #   Alimenté par l'architect LLM. Dict vide si absent — fallback vers la valeur brute dans les templates.
     enum_value_labels: dict
 
+    # ui_labels : labels affichés par champ, depuis spec.ui_labels[model_name].
+    #   Ex: {"title": "Titre", "urgency": "Urgence"}. Dict vide si absent → fallback nom du champ.
+    ui_labels: dict
+
+    # title_plural : titre pluriel du modèle dans la langue du brief.
+    #   Ex: "Tâches" pour Task. Fallback: "{ModelName}s".
+    title_plural: str
+
 
 # ── Helpers de calcul ─────────────────────────────────────────────────────────
 
@@ -224,18 +232,33 @@ def _detect_input_type_and_values(
     base_type: str,
     spec_enums: dict,
     enriched_type: str = "",
+    annotation_values: "list[str] | None" = None,
 ) -> tuple[str, tuple[str, ...]]:
     """
     Retourne (input_type, allowed_values) pour un champ scalaire.
 
-    Priorité 1 : annotation sémantique LLM (enriched_type).
+    Priorité 1 : annotation sémantique LLM (enriched_type) — détermine le type d'input.
+                 Les valeurs sont réconciliées : spec_enums prime sur annotation_values.
     Priorité 2 : enum Prisma déclaré dans spec.enums.
     Priorité 3 : String sémantiquement contraint (filet de sécurité si RÈGLE 4 architect ratée).
     Priorité 4 : heuristiques type standard.
+
+    Réconciliation enriched_type + spec_enums :
+    Avant, enriched_type court-circuitait en retournant () pour allowed_values, même quand
+    spec_enums avait les valeurs réelles. Ce bug rendait tous les selects enum vides dans
+    les formulaires enfants (module_detail_with_children). Le fix : enriched_type détermine
+    le type d'input (textarea, enum-select, number…) mais spec_enums fournit toujours
+    les valeurs quand elles existent.
     """
     if enriched_type:
         mapped = _SEMANTIC_TO_INPUT.get(enriched_type, "")
         if mapped:
+            # Réconciliation : spec_enums est source de vérité pour les valeurs
+            if base_type in spec_enums:
+                return mapped, tuple(spec_enums[base_type])
+            # Fallback : valeurs fournies par le semantic annotator
+            if annotation_values:
+                return mapped, tuple(annotation_values)
             return mapped, ()
     if base_type in spec_enums:
         return "enum-select", tuple(spec_enums[base_type])
@@ -372,9 +395,11 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         if is_array:
             continue  # Tableaux → formulaires non supportés (Level A/D)
 
+        _ann = (enriched_spec.field_annotations.get(f.name) if enriched_spec else None)
         _itype, _allowed = _detect_input_type_and_values(
             f.name, base_type, spec_enums,
-            enriched_type=enriched_spec.get_semantic_type(f.name) if enriched_spec else "",
+            enriched_type=_ann.semantic_type if _ann else "",
+            annotation_values=(_ann.values if _ann and _ann.values else None),
         )
         editable.append(FieldInfo(
             name=f.name,
@@ -439,6 +464,8 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         has_public_detail=has_public_detail,
         list_page_path=list_page_path,
         enum_value_labels=getattr(spec, "enum_value_labels", None) or {},
+        ui_labels=(getattr(spec, "ui_labels", None) or {}).get(name, {}),
+        title_plural=(getattr(spec, "title_plurals", None) or {}).get(name, f"{name}s"),
     )
 
     logger.debug(

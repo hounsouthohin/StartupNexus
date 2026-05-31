@@ -358,7 +358,7 @@ async def run_dev_agent(
     if spec_obj is not None and _model_contexts:
         try:
             from .dev_form_generator import generate_all_page_clients
-            _form_files = generate_all_page_clients(spec_obj, _model_contexts, project_workdir)
+            _form_files = generate_all_page_clients(spec_obj, _model_contexts, project_workdir, enriched_spec=_enriched_spec)
             template_written.update(_form_files)
             logger.info("[dev_graph] %d page-client.tsx générés de manière déterministe", len(_form_files))
         except Exception as _fg_err:
@@ -397,6 +397,24 @@ async def run_dev_agent(
                 logger.info("[dev_graph] %d fichier(s) de feature modules", len(_feature_files))
         except Exception as _fm_err:
             logger.warning("[dev_graph] feature_modules non bloquant : %s", _fm_err)
+
+    # ── Guard pré-build : selects enum sans options ──────────────────────────
+    # Détecte les <select> générés sans aucun <option value="..."> réel.
+    # Cause : champ enum dont spec_enums est vide ET annotation sémantique absente.
+    # Impact : l'utilisateur voit un select vide → soumission impossible ou valeur vide.
+    # Niveau : WARNING (non bloquant) — le build peut encore réussir mais l'UX est cassée.
+    _empty_select_re = re.compile(r'<select[^>]+name=["\'](\w+)["\'][^>]*>(.*?)</select>', re.DOTALL)
+    _real_option_re = re.compile(r'<option\s+value=["\'][^"\']+["\']')
+    for _tw_path, _tw_content in list(template_written.items()):
+        if not _tw_path.endswith(".tsx"):
+            continue
+        for _sel_field, _sel_body in _empty_select_re.findall(_tw_content):
+            if not _real_option_re.search(_sel_body):
+                logger.warning(
+                    "[dev_graph] GENERATION_WARNING: %s — <select name='%s'> sans options. "
+                    "Vérifier spec_enums ou annotation sémantique du champ.",
+                    _tw_path, _sel_field,
+                )
 
     # ── Guard pré-build : cohérence page.tsx → page-client.tsx ─────────────
     # Après tous les générateurs déterministes, vérifie que chaque page.tsx

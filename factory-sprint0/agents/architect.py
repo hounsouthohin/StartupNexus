@@ -618,6 +618,19 @@ Ne déclare une query que si le brief la mentionne explicitement ou si elle est 
 Liste les features actives parmi : "status_flow", "slug_routing", "public_pages", "search", "pagination", "file_upload", "calendar_view".
 Déduis-les du brief — ne liste que ce qui est clairement présent.
 
+### ux_hints
+Produis des indications UX pour améliorer l'expérience utilisateur final.
+
+**empty_states** : pour chaque page list déclarée dans les pages du brief, écris le message affiché quand la liste est vide.
+  Format : { "/path": "Message en français — inclure un appel à l'action si pertinent." }
+  Règle : le message doit être dans la langue du brief. S'il y a des dépendances FK (ex: Invoice nécessite un Client), le mentionner.
+
+**dependency_order** : si des modèles ont des dépendances FK (model B référence model A via xxxId), lister l'ordre de création en langage naturel dans la langue du brief.
+  Ex: ["Créez d'abord un Client avant de créer une Facture."]
+  Laisser vide [] s'il n'y a pas de dépendances FK significatives.
+
+**primary_action** : laisser vide {} — non utilisé pour ce niveau.
+
 ## FORMAT DE SORTIE — JSON uniquement, aucun markdown
 
 Exemple pour un gestionnaire de tâches avec statut workflow :
@@ -631,7 +644,14 @@ Exemple pour un gestionnaire de tâches avec statut workflow :
   "required_queries": [
     {"name": "getByStatus", "pattern": "filter_by_field", "field": "status", "return_many": true}
   ],
-  "features": ["status_flow"]
+  "features": ["status_flow"],
+  "ux_hints": {
+    "empty_states": {
+      "/tasks": "Aucune tâche pour le moment. Créez votre première tâche."
+    },
+    "dependency_order": [],
+    "primary_action": {}
+  }
 }
 
 Exemple pour un blog public avec slug :
@@ -642,10 +662,18 @@ Exemple pour un blog public avec slug :
     "status": {"semantic_type": "status-enum", "values": ["draft", "published"]}
   },
   "required_queries": [],
-  "features": ["slug_routing", "public_pages", "status_flow"]
+  "features": ["slug_routing", "public_pages", "status_flow"],
+  "ux_hints": {
+    "empty_states": {
+      "/blog": "Aucun article publié pour le moment.",
+      "/dashboard": "Aucun article. Rédigez votre premier article."
+    },
+    "dependency_order": [],
+    "primary_action": {}
+  }
 }
 
-Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": []}.\
+Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
 """
 
 
