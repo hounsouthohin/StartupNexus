@@ -289,8 +289,21 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
                 "  },",
             ]
         else:
-            # Filtre Boolean published si présent — évite d'exposer les records non publiés.
-            _pub_filter = "where: { published: true }, " if getattr(ctx, "has_published_bool", False) else ""
+            # Filtre Boolean de visibilité — détecte "published" ET "isPublic"/"is_public"/"public".
+            # Évite d'exposer les records non publiés/privés dans les routes publiques.
+            _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
+            _vis_field = next(
+                (f for f in ctx.model.fields
+                 if f.name.lower() in _VISIBILITY_NAMES
+                 and f.type.rstrip("?").rstrip("[]") == "Boolean"),
+                None,
+            )
+            if _vis_field:
+                _pub_filter = f"where: {{ {_vis_field.name}: true }}, "
+            elif getattr(ctx, "has_published_bool", False):
+                _pub_filter = "where: { published: true }, "
+            else:
+                _pub_filter = ""
             lines += [
                 "",
                 f"  getPublicAll: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",

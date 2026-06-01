@@ -397,10 +397,42 @@ class ProjectSpec(BaseModel):
             lines.append("}")
             lines.append("")
 
+        # Guard P1012 : auto-complétion des relations inverses manquantes.
+        # Prisma exige les deux côtés de chaque @relation. Quand l'architect LLM
+        # déclare `child.ref Parent @relation(...)` sans ajouter `children Child[]`
+        # sur Parent, prisma generate échoue avant même le LLM dev.
+        # On détecte et injecte les champs inverses manquants au moment de la génération.
+        _all_model_names: set[str] = {m.name for m in self.models}
+        _existing_array_types: dict[str, set[str]] = {}
+        for _m in self.models:
+            _existing_array_types[_m.name] = {
+                _f.type.replace("[]", "").strip()
+                for _f in _m.fields if "[]" in _f.type
+            }
+        _inverse_to_inject: dict[str, list[str]] = {}
+        _injected: set[tuple[str, str]] = set()
+        for _m in self.models:
+            for _f in _m.fields:
+                if "@relation" not in (_f.attributes or ""):
+                    continue
+                _parent = _f.type.rstrip("?").rstrip("[]")
+                if _parent not in _all_model_names:
+                    continue
+                if _m.name not in _existing_array_types.get(_parent, set()):
+                    _key = (_parent, _m.name)
+                    if _key not in _injected:
+                        _injected.add(_key)
+                        _inv_name = _m.name[0].lower() + _m.name[1:] + "s"
+                        _inverse_to_inject.setdefault(_parent, []).append(
+                            f"  {_inv_name} {_m.name}[]"
+                        )
+
         for model in self.models:
             lines.append(f"model {model.name} {{")
             for field in model.fields:
                 lines.append(field.to_prisma_line())
+            for _inv in _inverse_to_inject.get(model.name, []):
+                lines.append(_inv)
             lines.append("}")
             lines.append("")
         return header + "\n".join(lines)

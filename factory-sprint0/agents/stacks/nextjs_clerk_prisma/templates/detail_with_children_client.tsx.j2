@@ -15,7 +15,7 @@ interface {{ client_name }}Props {
 export default function {{ client_name }}({ item }: {{ client_name }}Props) {
 {% for child in children %}
   const [{{ child.camel }}List, set{{ child.name }}List] = useState<{{ child.serialized_type }}[]>(
-    (item as any).{{ child.relation_field }} || []
+    (item.{{ child.relation_field }} as {{ child.serialized_type }}[] | undefined) ?? []
   )
 {% endfor %}
 

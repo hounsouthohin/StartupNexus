@@ -160,7 +160,32 @@ Exemples :
 
 Règle : pour chaque modèle X qui apparaît dans un champ `xxxId` d'un autre modèle, générer la page `/{x-kebab}/[id]`.
 
-Ne pas générer une page detail si le modèle n'a qu'une liste sans detail prévu (ex: lookup simple sans enfants).\
+Ne pas générer une page detail si le modèle n'a qu'une liste sans detail prévu (ex: lookup simple sans enfants).
+
+### RÈGLE 6 — Un seul segment dynamique par route (JAMAIS [id] + [slug] ensemble)
+
+Next.js INTERDIT deux noms de segments différents sous le même préfixe.
+Exemple INTERDIT : `/{model}/[id]` ET `/{model}/[slug]` en même temps → build échoue.
+
+**RÈGLE ABSOLUE** : choisir UN SEUL type de segment dynamique par modèle.
+
+Cas 1 — Modèle entièrement privé (auth: true) :
+→ Utiliser `/{model}/[id]` uniquement.
+
+Cas 2 — Modèle avec pages publiques ET privées (ex: recettes visiteurs + gestion propriétaire) :
+→ Utiliser `/{model}/[id]` pour TOUT (public et privé), différencier par `auth_required` uniquement.
+→ `auth_required: false` = accessible sans connexion. `auth_required: true` = connexion requise.
+→ Ne PAS séparer en `/[id]` privé + `/[slug]` public — un seul chemin pour les deux.
+
+Cas 3 — Modèle 100% public avec slug SEO obligatoire :
+→ Utiliser `/{model}/[slug]` uniquement (remplace complètement `[id]`).
+→ Le modèle DOIT avoir `slug String @unique` dans Prisma.
+→ Ne PAS générer `/{model}/[id]` en plus.
+
+Résumé décision :
+- Modèle privé → `[id]`
+- Modèle mixte public/privé → `[id]` avec `auth_required` différent par page
+- Modèle 100% public avec slug → `[slug]` et `slug String @unique` obligatoire\
 """
 
 _FEW_SHOT_EXAMPLES = """\
@@ -532,7 +557,7 @@ async def brief_writer_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(temperature=0.0).bind(
+    llm = get_chat_llm(model="gpt-4o", temperature=0.0).bind(
         response_format={"type": "json_object"}
     )
 
@@ -700,7 +725,7 @@ async def semantic_annotator_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(temperature=0.0).bind(
+    llm = get_chat_llm(model="gpt-4o", temperature=0.0).bind(
         response_format={"type": "json_object"}
     )
 
@@ -882,7 +907,7 @@ async def pages_detail_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(temperature=0.0).bind(
+    llm = get_chat_llm(model="gpt-4o", temperature=0.0).bind(
         response_format={"type": "json_object"}
     )
 

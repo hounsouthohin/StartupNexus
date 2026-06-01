@@ -55,17 +55,11 @@ def _prisma_type_to_ts(prisma_type: str, spec_enums: dict | None = None) -> str:
     optional = prisma_type.endswith("?")
     base = prisma_type.rstrip("?").rstrip("[]")
     if spec_enums and base in spec_enums:
-        # Enum Prisma → string literal union des valeurs connues.
-        # Ex: RecipeStatus → "draft" | "published"
-        # Structurellement identique au type Prisma généré → assignable sans import local.
-        # NE PAS utiliser le nom de l'enum (RecipeStatus) : export type { X } from 'mod'
-        # re-exporte vers l'extérieur mais ne lie pas X dans le scope local du fichier.
-        values = spec_enums[base]
-        if isinstance(values, list) and values:
-            inner = " | ".join(f'"{v}"' for v in values)
-        else:
-            inner = "string"
-        ts = f"({inner}) | null" if optional else inner
+        # Enum Prisma → nom de type importé depuis @prisma/client.
+        # Ex: LeaveStatus → LeaveStatus (importé localement via import type { ..., LeaveStatus })
+        # Plus robuste que les string literals : si une valeur est ajoutée à l'enum,
+        # SerializedXxx reste correct sans régénération.
+        ts = f"{base} | null" if optional else base
         return ts
     ts = _PRISMA_TO_TS.get(base, "string" if base and base[0].isupper() else "unknown")
     return f"{ts} | null" if optional else ts
@@ -105,11 +99,14 @@ def generate_types_file(
     ]
 
     # ── 1. Re-exports Prisma ────────────────────────────────────────────────────
-    # import type lie Prisma dans le scope local → Prisma.XxxUncheckedCreateInput utilisable
-    # export type { Prisma } le re-exporte pour les consommateurs de lib/types.ts
+    # Les enums sont importés ET exportés depuis la même ligne pour être disponibles
+    # dans le scope local (nécessaire pour les utiliser dans SerializedXxx ci-dessous).
+    # `export type { X } from 'mod'` seul ne suffit pas — X n'est pas lié localement.
+    _enum_names = list((getattr(spec, "enums", None) or {}).keys())
+    _all_local_imports = ["Prisma"] + _enum_names
     lines += [
-        "import type { Prisma } from '@prisma/client'",
-        "export type { Prisma }",
+        f"import type {{ {', '.join(_all_local_imports)} }} from '@prisma/client'",
+        f"export type {{ {', '.join(_all_local_imports)} }}",
     ]
     if model_names:
         prisma_exports = ", ".join(model_names)
@@ -118,13 +115,8 @@ def generate_types_file(
             f"export type {{ {prisma_exports} }} from '@prisma/client'",
             "",
         ]
-    # Enums Prisma — re-exportés pour que le code client puisse les référencer sans import séparé.
-    _enum_names = list((getattr(spec, "enums", None) or {}).keys())
-    if _enum_names:
-        lines += [
-            f"export type {{ {', '.join(_enum_names)} }} from '@prisma/client'",
-            "",
-        ]
+    elif _enum_names:
+        lines.append("")
 
     # ── 2. ApiResponse<T> — type utilitaire standard ────────────────────────────
     lines += [
