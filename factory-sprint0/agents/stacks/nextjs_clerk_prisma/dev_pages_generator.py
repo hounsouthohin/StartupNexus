@@ -433,6 +433,13 @@ def generate_page_stubs(spec: "ProjectSpec", project_workdir: str, contexts: "di
     # page-client.tsx est géré par module_detail_with_children (détection structurelle
     # via ctx.relation_fields dans dev_form_generator.py — pas de marqueurs texte).
     for page in spec.pages:
+        # Les pages edit sont entièrement gérées par generate_edit_page_stubs() —
+        # qui génère le bon pattern getById(userId, id) + item={item}.
+        # Ici, _gen_page_full() générerait getAll() + items={items} → TS2322 fatal.
+        if getattr(page, "page_type", None) == "edit":
+            logger.info("[pages_gen] edit page → délégué à generate_edit_page_stubs : %s", page.path)
+            continue
+
         page_rel = f"app/{page.path.strip('/')}/page.tsx" if page.path.strip("/") else "app/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))
         os.makedirs(os.path.dirname(page_abs), exist_ok=True)

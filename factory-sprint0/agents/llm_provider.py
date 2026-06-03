@@ -45,15 +45,21 @@ def validate_llm_env() -> tuple[bool, str]:
     return True, "OK"
 
 
+def _get_base_url() -> str | None:
+    """Retourne OPENAI_BASE_URL si définie (ex: GitHub Models endpoint)."""
+    return os.getenv("OPENAI_BASE_URL") or None
+
+
 def get_llm_provider() -> LLMProvider:
     """Retourne le provider LLM actif (toujours 'openai')."""
     return "openai"
 
 
-def get_chat_llm(model: str | None = None, temperature: float = 0.0):
+def get_chat_llm(model: str | None = None, temperature: float = 0.0, api_key: str | None = None):
     """
     Retourne une instance ChatOpenAI configurée.
     model: identifiant du modèle (défaut: OPENAI_MODEL env var ou 'gpt-4o-mini')
+    api_key: clé API à utiliser (défaut: OPENAI_API_KEY env var)
 
     seed=42 : rend les sorties déterministes (temperature=0 + seed fixe).
     OpenAI utilise ce signal pour son prompt caching côté serveur.
@@ -64,9 +70,19 @@ def get_chat_llm(model: str | None = None, temperature: float = 0.0):
         raise ImportError("langchain-openai requis : pip install langchain-openai") from e
 
     resolved_model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    return ChatOpenAI(
-        model=resolved_model,
-        temperature=temperature,
-        api_key=os.getenv("OPENAI_API_KEY"),
-        model_kwargs={"seed": 42},
-    )
+    kwargs: dict = {
+        "model": resolved_model,
+        "temperature": temperature,
+        "api_key": api_key or os.getenv("OPENAI_API_KEY"),
+        "model_kwargs": {"seed": 42},
+    }
+    base_url = _get_base_url()
+    if base_url:
+        kwargs["base_url"] = base_url
+    # return ChatOpenAI(
+    #     model=resolved_model,
+    #     temperature=temperature,
+    #     api_key=os.getenv("OPENAI_API_KEY"),
+    #     model_kwargs={"seed": 42},
+    # )
+    return ChatOpenAI(**kwargs)

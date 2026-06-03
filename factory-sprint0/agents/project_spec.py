@@ -16,7 +16,7 @@ from typing import List, Literal, Optional
 from pydantic import BaseModel, Field, model_validator
 
 HTTP_METHOD = Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
-PAGE_TYPE = Literal["list", "create", "detail", "detail-slug", "custom"]
+PAGE_TYPE = Literal["list", "create", "detail", "detail-slug", "edit", "custom"]
 
 
 class PrismaField(BaseModel):

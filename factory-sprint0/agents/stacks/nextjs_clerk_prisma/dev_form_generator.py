@@ -291,6 +291,12 @@ def generate_all_page_clients(
             elif page_type in ("detail", "detail-slug"):
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_detail_client(page, ctx, spec=spec)
+            elif page_type == "edit":
+                # page-client.tsx déterministe pour la page d'édition.
+                # Le page.tsx est généré par generate_edit_page_stubs() dans dev_pages_generator.py.
+                # Sans ce cas, le guard A3 bloque le run (page.tsx importe ./page-client absent).
+                rel = f"app/{page_path_clean}/page-client.tsx"
+                content = _gen_edit_client(ctx, model_contexts, spec=spec)
             else:
                 continue
         except Exception as _gen_err:

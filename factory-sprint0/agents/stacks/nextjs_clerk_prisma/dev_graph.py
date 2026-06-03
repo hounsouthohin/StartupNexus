@@ -453,6 +453,46 @@ async def run_dev_agent(
             "generation_turns": 0, "file_plan": None,
         }
 
+    # ── Guard qualité spec : create implique edit ────────────────────────────
+    # RÈGLE 7 (architect) : tout modèle avec une page create doit avoir une page edit.
+    # Ce guard détecte les cas où l'architect a ignoré cette règle.
+    # Niveau : WARNING (non bloquant) — l'app buildera mais sera incomplète fonctionnellement.
+    if spec_obj is not None:
+        _create_models: set[str] = set()
+        _edit_models: set[str] = set()
+        for _sp in getattr(spec_obj, "pages", []) or []:
+            _pt = getattr(_sp, "page_type", "") or ""
+            _pm = getattr(_sp, "model", None)
+            if not _pm:
+                continue
+            if _pt == "create":
+                _create_models.add(_pm)
+            if _pt == "edit":
+                _edit_models.add(_pm)
+        for _missing_edit in _create_models - _edit_models:
+            logger.warning(
+                "[dev_graph] SPEC_WARNING: modèle '%s' a une page create mais pas de page edit — "
+                "l'utilisateur ne pourra pas modifier ses entrées. "
+                "Vérifier les RÈGLES DEDUCTION 7 dans l'architect.",
+                _missing_edit,
+            )
+
+    # ── Guard qualité middleware : pas de wildcard parent sur routes mixtes ──
+    # Détecte le pattern dangereux /recipes(.*) qui rend public /recipes/new.
+    # Après le fix du middleware generator, ce guard est une protection contre régression.
+    # Niveau : WARNING (non bloquant).
+    _mw_content = template_written.get("middleware.ts", "")
+    if _mw_content:
+        _wildcard_re = re.compile(r"'(/[^']+)\(\.\*\)'")
+        for _wc_match in _wildcard_re.findall(_mw_content):
+            if _wc_match not in ("/sign-in", "/sign-up"):
+                logger.warning(
+                    "[dev_graph] MIDDLEWARE_WARNING: pattern wildcard '%s(.*)' dans middleware.ts — "
+                    "peut rendre publics des sous-chemins auth=true (ex: /recipes/new). "
+                    "Préférer les chemins exacts par page.",
+                    _wc_match,
+                )
+
     # Source de vérité unique : tout fichier pré-généré (template_written) est protégé.
     # protected_files du JSON config étend cette liste pour les cas limites (fichiers
     # protégés mais non pré-générés). Les deux sont fusionnés — plus de double gestion.
@@ -616,8 +656,19 @@ async def run_dev_agent(
         role: "\n".join(lines) for role, lines in _hints_raw.items()
     } if _hints_raw else {}
 
-    _dev_model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    llm = ChatOpenAI(model=_dev_model, temperature=0, max_retries=3, model_kwargs={"seed": 42})
+    _dev_model = os.getenv("DEV_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    _dev_api_key = os.getenv("DEV_API_KEY", os.getenv("OPENAI_API_KEY"))
+    _dev_base_url = os.getenv("DEV_BASE_URL") or os.getenv("OPENAI_BASE_URL") or None
+    # seed=42 est spécifique OpenAI — Gemini et autres providers le rejettent
+    _supports_seed = "googleapis" not in (_dev_base_url or "") and "groq" not in (_dev_base_url or "")
+    llm = ChatOpenAI(
+        model=_dev_model,
+        temperature=0,
+        max_retries=3,
+        model_kwargs={"seed": 42} if _supports_seed else {},
+        api_key=_dev_api_key,
+        base_url=_dev_base_url,
+    )
     # llm_with_tools est construit dynamiquement dans executor_node selon la phase.
 
     # Cache RAG par rôle — lifetime = ce run. Partagé par toutes les invocations

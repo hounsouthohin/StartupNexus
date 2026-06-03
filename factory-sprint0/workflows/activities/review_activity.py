@@ -22,48 +22,96 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 # ── Sélection de fichiers ─────────────────────────────────────────────────────
 
-_SERVICE_PATTERNS = ("lib/services/", "services/")
-_ACTION_PATTERNS = ("actions.ts", "actions.tsx")
-_PAGE_PATTERNS = ("page.tsx", "page.ts")
-_MAX_FILES = 12
+_MAX_FILES = 14
+
+# Patterns des fichiers générés déterministiquement — toujours corrects, inutiles à reviewer.
+_DETERMINISTIC_PATTERNS = (
+    "lib/types.ts", "lib/schemas.ts", "lib/services/",
+    "prisma/", "middleware.ts",  # middleware désormais déterministe ET reviewé séparément
+)
+
+_EXCLUDE_ALWAYS = (
+    "node_modules", ".env", "jest.", "tsconfig",
+    "next.config", "tailwind", "postcss", ".d.ts",
+    "navigation.tsx", "layout.tsx", "not-found.tsx",
+    "loading.tsx", "sign-in", "sign-up",
+)
+
+
+def _is_deterministic(path: str) -> bool:
+    return any(pat in path for pat in _DETERMINISTIC_PATTERNS)
+
+
+def _is_excluded(path: str) -> bool:
+    return any(ex in path for ex in _EXCLUDE_ALWAYS)
 
 
 def _select_files_for_review(generated_files: Dict[str, str]) -> Dict[str, str]:
     """
-    Choisit les fichiers les plus pertinents pour la revue sémantique.
-    Priorité : services > actions > pages. Max _MAX_FILES fichiers.
-    Exclut : node_modules, .env, config, jest, middleware, tsconfig.
+    Sélectionne les fichiers pertinents pour la revue sémantique post-build.
+
+    Nouvelle priorité (architecture déterministe) :
+    1. middleware.ts          — contrat auth/public : pattern wildcard ? routes correctes ?
+    2. pages custom (page.tsx sans model) — LLM-généré : fetcht-il des données ? auth correct ?
+    3. pages-client custom   — LLM-généré : page stub ? état vide géré ?
+    4. actions.ts            — auth guard présent ? userId transmis ?
+    5. services (2-3 max)    — référence pour vérifier les méthodes appelées
+
+    Services et actions sont déterministes et IDOR-safe par construction.
+    On les inclut en référence pour que le reviewer comprenne le contexte,
+    pas pour y chercher des bugs structurels.
     """
-    _EXCLUDE = (
-        "node_modules", ".env", "jest.", "tsconfig", "middleware.ts",
-        "next.config", "tailwind", "postcss", ".d.ts",
-    )
-
-    def _is_excluded(path: str) -> bool:
-        return any(ex in path for ex in _EXCLUDE)
-
-    services: Dict[str, str] = {}
-    actions: Dict[str, str] = {}
-    pages: Dict[str, str] = {}
-
-    for path, content in generated_files.items():
-        if _is_excluded(path):
-            continue
-        if any(path.startswith(p) for p in _SERVICE_PATTERNS):
-            services[path] = content
-        elif any(path.endswith(p) for p in _ACTION_PATTERNS):
-            actions[path] = content
-        elif any(path.endswith(p) for p in _PAGE_PATTERNS):
-            pages[path] = content
-
     selected: Dict[str, str] = {}
-    for bucket in (services, actions, pages):
-        for path, content in bucket.items():
-            if len(selected) >= _MAX_FILES:
-                break
-            selected[path] = content
+
+    # 1. middleware.ts — toujours inclus en priorité (contrat auth)
+    if "middleware.ts" in generated_files:
+        selected["middleware.ts"] = generated_files["middleware.ts"]
+
+    # 2. Pages custom (page.tsx LLM-généré — sans modèle Prisma direct)
+    # Heuristique : page.tsx qui N'est PAS dans un dossier [id]/[slug]/edit/new/sign-*
+    # et dont le contenu ne contient pas "force-dynamic" ← pages déterministes l'ont toujours
+    custom_pages: Dict[str, str] = {}
+    for path, content in generated_files.items():
+        if _is_excluded(path) or not path.endswith("page.tsx"):
+            continue
+        # Pages déterministes ont force-dynamic ET sont dans des routes avec model
+        # Pages custom LLM : peuvent ne pas avoir force-dynamic ou avoir du contenu custom
+        if "/sign-in" in path or "/sign-up" in path:
+            continue
+        # Inclure toutes les page.tsx non-exclues — le reviewer juge
+        custom_pages[path] = content
+
+    for path, content in custom_pages.items():
         if len(selected) >= _MAX_FILES:
             break
+        selected[path] = content
+
+    # 3. pages-client custom (page-client.tsx — peut être LLM-généré pour pages custom)
+    for path, content in generated_files.items():
+        if len(selected) >= _MAX_FILES:
+            break
+        if _is_excluded(path) or not path.endswith("page-client.tsx"):
+            continue
+        if path not in selected:
+            selected[path] = content
+
+    # 4. actions.ts — auth guard check
+    for path, content in generated_files.items():
+        if len(selected) >= _MAX_FILES:
+            break
+        if _is_excluded(path) or not path.endswith("actions.ts"):
+            continue
+        selected[path] = content
+
+    # 5. Services (2 max) — référence contexte uniquement
+    _svc_count = 0
+    for path, content in generated_files.items():
+        if len(selected) >= _MAX_FILES or _svc_count >= 2:
+            break
+        if _is_excluded(path) or "lib/services/" not in path:
+            continue
+        selected[path] = content
+        _svc_count += 1
 
     return selected
 

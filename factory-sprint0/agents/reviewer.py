@@ -137,7 +137,7 @@ async def run_reviewer(
     llm = ChatOpenAI(
         model=_REVIEWER_MODEL,
         temperature=0.0,
-        api_key=os.getenv("OPENAI_API_KEY"),
+        api_key=os.getenv("REVIEWER_API_KEY", os.getenv("OPENAI_API_KEY")),
         max_retries=2,
     )
 

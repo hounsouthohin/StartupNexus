@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import logging
 import operator
+import os
 from typing import List, TypedDict, Annotated
 
 from temporalio.exceptions import ApplicationError
@@ -162,7 +163,49 @@ Règle : pour chaque modèle X qui apparaît dans un champ `xxxId` d'un autre mo
 
 Ne pas générer une page detail si le modèle n'a qu'une liste sans detail prévu (ex: lookup simple sans enfants).
 
-### RÈGLE 6 — Un seul segment dynamique par route (JAMAIS [id] + [slug] ensemble)
+### RÈGLE 6 — Tous les champs mentionnés dans le brief doivent apparaître dans le modèle
+
+Tout attribut nommé dans la description du brief DOIT être présent dans le modèle Prisma correspondant, même sous sa forme la plus simple.
+
+**INTERDIT** : supprimer silencieusement un champ mentionné dans le brief.
+**CORRECT** : si le champ est simple → `ingredients String` ou `ingredients String?`. Si le brief dit clairement que c'est une entité séparée gérée indépendamment → modèle séparé avec FK.
+
+Exemples :
+- Brief : "une recette avec un titre, une description et **les ingrédients**" → `ingredients String` dans Recipe (champ texte libre). PAS de suppression silencieuse.
+- Brief : "je gère mes ingrédients depuis une page dédiée" → modèle `Ingredient` séparé avec FK.
+- Brief : "un article avec un titre, un contenu et **des tags**" → `tags String` (si simple) ou modèle `Tag` avec many-to-many (si explicitement géré).
+
+Principe : le brief client est toujours incomplet — la factory doit inférer, jamais supprimer.
+
+### RÈGLE 7 — Create implique edit (pattern CRUD universel)
+
+Tout modèle qui a une page `create` (auth: true, page_type: "create") DOIT aussi avoir une page `edit`.
+
+Format : `/{model-kebab}/[id]/edit` (auth: true, page_type: "edit")
+
+**RÈGLE ABSOLUE** : si `/{model}/new` existe, `/{model}/[id]/edit` doit exister dans pages[].
+Ne jamais générer une page de création sans la page d'édition correspondante.
+Un utilisateur qui peut créer une recette, un projet, un article doit pouvoir le modifier.
+
+Exception : les modèles lookup purs (Category simple, Tag sans gestion propre) peuvent ne pas avoir de page edit si le brief ne mentionne pas d'édition.
+
+### RÈGLE 8 — Modèle mixte public/privé → liste privée obligatoire
+
+Si un modèle a des pages publiques (auth: false) ET des pages d'administration privées (auth: true, notamment `create` ou `edit`), il DOIT avoir une liste privée pour le propriétaire.
+
+Pourquoi : sans liste privée, l'utilisateur connecté ne peut voir que la vue publique — il ne peut pas gérer ses propres entrées (brouillons, privées, archivées).
+
+Pattern obligatoire :
+- `/recipes` (auth: false) → liste publique pour les visiteurs
+- `/dashboard` ou `/my-recipes` (auth: true) → liste privée pour le propriétaire
+
+OU si une seule page liste suffit :
+- `/recipes` (auth: false) → liste publique (getPublicAll)
+- L'accès à la gestion se fait via les pages edit/delete depuis la liste publique (userId vérifié dans les actions)
+
+Si le brief mentionne "je gère mes X depuis mon espace privé" ou "tableau de bord" → générer obligatoirement une page dashboard/my-X auth=true qui appelle getAll(userId).
+
+### RÈGLE 9 — Un seul segment dynamique par route (JAMAIS [id] + [slug] ensemble)
 
 Next.js INTERDIT deux noms de segments différents sous le même préfixe.
 Exemple INTERDIT : `/{model}/[id]` ET `/{model}/[slug]` en même temps → build échoue.
@@ -196,6 +239,7 @@ _FEW_SHOT_EXAMPLES = """\
 Brief : "Une app de gestion de tâches. Les utilisateurs créent des tâches avec titre, description et statut (pending/in_progress/done). Ils peuvent commenter chaque tâche."
 
 Note RÈGLE 5 : Comment a `taskId` → Task est parent → `/tasks/[id]` OBLIGATOIRE.
+Note RÈGLE 7 : `/tasks/new` (create) → `/tasks/[id]/edit` (edit) OBLIGATOIRE.
 
 Sortie :
 {
@@ -210,7 +254,8 @@ Sortie :
     {"path": "/", "auth": false, "page_type": "custom"},
     {"path": "/tasks", "auth": true, "model": "Task", "page_type": "list"},
     {"path": "/tasks/new", "auth": true, "model": "Task", "page_type": "create"},
-    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"}
+    {"path": "/tasks/[id]", "auth": true, "model": "Task", "page_type": "detail"},
+    {"path": "/tasks/[id]/edit", "auth": true, "model": "Task", "page_type": "edit"}
   ],
   "routes": [],
   "user_flows": [
@@ -243,6 +288,7 @@ Brief : "Un blog personnel. L'auteur rédige des articles depuis son espace priv
 
 Note RÈGLE 1 : "catégorie" est un attribut de l'article — le brief ne dit pas "page dédiée /categories" ni "gérées séparément" → `category String`, PAS de modèle Category.
 Note RÈGLE 2 : "statut (brouillon ou publié)" = exactement 2 états, l'un est la négation de l'autre → `published Boolean @default(false)`, PAS un enum PostStatus.
+Note RÈGLE 7 : `/posts/new` (create) → edit OBLIGATOIRE. Cas spécial : quand le modèle a `detail-slug` ([slug]), l'edit ne peut PAS être `/posts/[id]/edit` (conflit routing Next.js [slug] vs [id]). Pattern correct : `/dashboard/posts/[id]/edit` (namespace séparé).
 
 Sortie :
 {
@@ -255,7 +301,8 @@ Sortie :
     {"path": "/posts", "auth": false, "model": "Post", "page_type": "list"},
     {"path": "/posts/new", "auth": true, "model": "Post", "page_type": "create"},
     {"path": "/posts/[slug]", "auth": false, "model": "Post", "page_type": "detail-slug"},
-    {"path": "/dashboard", "auth": true, "page_type": "custom"}
+    {"path": "/dashboard", "auth": true, "page_type": "custom"},
+    {"path": "/dashboard/posts/[id]/edit", "auth": true, "model": "Post", "page_type": "edit"}
   ],
   "routes": [],
   "user_flows": [
@@ -280,6 +327,7 @@ Brief : "Une application de facturation. L'utilisateur gère ses clients dans un
 Note RÈGLE 1 : "liste dédiée" pour les clients → Client est un modèle séparé avec ses propres pages CRUD.
 Note RÈGLE 2 : "draft/sent/paid" = 3 états avec transitions de workflow → enum InvoiceStatus.
 Note RÈGLE 5 : Invoice a `clientId` → Client est parent → `/clients/[id]` OBLIGATOIRE.
+Note RÈGLE 7 : create Client → edit Client OBLIGATOIRE. create Invoice → edit Invoice OBLIGATOIRE.
 
 Sortie :
 {
@@ -295,9 +343,11 @@ Sortie :
     {"path": "/clients", "auth": true, "model": "Client", "page_type": "list"},
     {"path": "/clients/new", "auth": true, "model": "Client", "page_type": "create"},
     {"path": "/clients/[id]", "auth": true, "model": "Client", "page_type": "detail"},
+    {"path": "/clients/[id]/edit", "auth": true, "model": "Client", "page_type": "edit"},
     {"path": "/invoices", "auth": true, "model": "Invoice", "page_type": "list"},
     {"path": "/invoices/new", "auth": true, "model": "Invoice", "page_type": "create"},
-    {"path": "/invoices/[id]", "auth": true, "model": "Invoice", "page_type": "detail"}
+    {"path": "/invoices/[id]", "auth": true, "model": "Invoice", "page_type": "detail"},
+    {"path": "/invoices/[id]/edit", "auth": true, "model": "Invoice", "page_type": "edit"}
   ],
   "routes": [],
   "user_flows": [
@@ -557,7 +607,7 @@ async def brief_writer_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(model="gpt-4o", temperature=0.0).bind(
+    llm = get_chat_llm(model="gpt-4o", temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
         response_format={"type": "json_object"}
     )
 
@@ -725,7 +775,7 @@ async def semantic_annotator_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(model="gpt-4o", temperature=0.0).bind(
+    llm = get_chat_llm(model="gpt-4o", temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
         response_format={"type": "json_object"}
     )
 
@@ -907,7 +957,7 @@ async def pages_detail_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(model="gpt-4o", temperature=0.0).bind(
+    llm = get_chat_llm(model="gpt-4o", temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
         response_format={"type": "json_object"}
     )
 

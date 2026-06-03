@@ -120,17 +120,102 @@ Si l'action n'est pas visible dans le contexte fourni, indique-le dans le `reaso
 
 ---
 
+---
+
+### NEXT.JS 14 — ANTI-PATTERNS CODE
+
+**LINK/A ANTI-PATTERN**
+En Next.js 14 App Router, `Link` génère automatiquement son propre `<a>`. Imbriquer un `<a>` dans un `<Link>` crée du HTML invalide et des erreurs d'hydration.
+
+```tsx
+// ❌ ANTI-PATTERN — double <a> dans le DOM, hydration error
+<Link href="/path">
+  <a className="text-blue-500">texte</a>
+</Link>
+
+// ✅ CORRECT — Next.js 14 App Router
+<Link href="/path" className="text-blue-500">texte</Link>
+```
+
+Si tu vois `<Link>` avec un enfant `<a>` → finding WARNING de type LINK_A_ANTIPATTERN.
+
+---
+
+### CONFORMITÉ CRUD — PAGE EDIT MANQUANTE
+
+Pour chaque modèle visible dans les fichiers, vérifier la cohérence create/edit :
+- Si une action `createXxx` est visible dans `actions.ts` → une page `/xxx/[id]/edit` (ou `/dashboard/xxx/[id]/edit`) devrait exister.
+- Si aucun chemin d'édition n'est détectable dans les fichiers fournis → finding WARNING de type MISSING_EDIT.
+
+Exemple : `createRecipe` dans `actions.ts` visible mais aucun fichier d'édition fourni → MISSING_EDIT WARNING.
+
+**Important** : downgrade à INFO si le brief ne mentionne pas explicitement de gestion (app en lecture seule, catalogue public sans modification).
+
+---
+
+### MIDDLEWARE — CONTRAT AUTH (nouveau check prioritaire)
+
+Le fichier `middleware.ts` définit quelles routes sont publiques via `createRouteMatcher`.
+
+**RÈGLE CRITIQUE** : les patterns dans `createRouteMatcher` doivent être des chemins EXACTS ou des paramètres typés (`:id`), jamais des wildcards `(.*)` sur des routes qui ont des sous-chemins auth=true.
+
+```typescript
+// ❌ MIDDLEWARE_WILDCARD — /recipes/new devient public alors que auth=true
+createRouteMatcher(['/recipes(.*)'])
+
+// ✅ CORRECT — seuls les chemins déclarés publics
+createRouteMatcher(['/recipes', '/recipes/:id'])
+```
+
+Si tu vois `'/path(.*)'` dans `createRouteMatcher` pour un path autre que `/sign-in` ou `/sign-up` → finding CRITICAL de type MIDDLEWARE_WILDCARD.
+
+---
+
+### PAGE STUB — CHECK RENFORCÉ
+
+Une page LLM custom est un stub si elle :
+- Affiche du JSX statique sans aucun appel à un service
+- Contient `// TODO` ou des données hardcodées (noms, ids, montants fixes)
+- N'a aucun `await xxxService.getXxx(userId)` visible
+
+→ finding CRITICAL PAGE_STUB si la page est dans le user_flow principal.
+→ finding WARNING PAGE_STUB si la page est secondaire.
+
+**IMPORTANT** : les pages avec `export const dynamic = 'force-dynamic'` ET un appel service dans le corps sont CORRECTES — ne pas les marquer comme stub.
+
+---
+
+### AUTH CONTRACT — PAGES MIXTES PUBLIC/PRIVÉ
+
+Pour les apps avec des pages publiques ET privées :
+
+**Pages publiques** (auth_required=false dans le spec) :
+- Ne doivent PAS appeler `auth()` avec redirect — elles servent les visiteurs non connectés
+- Doivent appeler `xxxService.getPublicAll()` ou `getPublicById()` — sans userId
+
+**Pages privées** (auth_required=true dans le spec) :
+- DOIVENT appeler `const { userId } = await auth()` + `if (!userId) redirect('/sign-in')`
+
+Si une page déclarée publique appelle `auth()` avec redirect → finding MISSING_PUBLIC_ACCESS (WARNING).
+Si une page déclarée privée n'appelle pas `auth()` → finding MISSING_AUTH (CRITICAL).
+
+---
+
 ### SCORES — CALIBRATION
 
 **security_score** :
 - Part de 100
-- -30 par finding IDOR ou CROSS_USER_EXPOSURE de type CRITICAL
+- -30 par finding IDOR, CROSS_USER_EXPOSURE ou MIDDLEWARE_WILDCARD de type CRITICAL
 - -15 par finding MISSING_AUTH de type CRITICAL
+- -10 par finding MIDDLEWARE_WILDCARD de type WARNING
 - -5 par finding WARNING de sécurité
 
 **coherence_score** :
 - Part de 100
 - -40 par finding GHOST_SUCCESS de type CRITICAL
 - -20 par finding PAGE_STUB de type CRITICAL
+- -15 par finding MISSING_PUBLIC_ACCESS de type CRITICAL
 - -10 par finding PAGE_STUB de type WARNING
+- -10 par finding MISSING_EDIT de type WARNING
+- -5 par finding LINK_A_ANTIPATTERN de type WARNING
 - -5 par écart de nommage mineur (WARNING)

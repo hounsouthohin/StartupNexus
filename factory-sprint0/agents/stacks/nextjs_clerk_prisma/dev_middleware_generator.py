@@ -5,12 +5,13 @@ Génération DÉTERMINISTE de middleware.ts depuis ProjectSpec.
 
 Le middleware Clerk est généré dynamiquement depuis spec.get_public_pages() —
 les routes publiques du brief sont injectées dans createRouteMatcher().
-Cela garantit que les visiteurs anonymes peuvent accéder aux pages marquées
-auth=false dans le brief, sans que le développeur doive modifier middleware.ts.
 
-Sans ce générateur, middleware.ts utilisait un template fixe qui ne protégeait
-que /sign-in et /sign-up — toutes les autres routes étaient bloquées pour les
-visiteurs anonymes, contredisant le flag auth=false dans le brief.
+RÈGLE DE PRÉCISION : chaque page publique est ajoutée avec son chemin EXACT.
+Jamais de wildcard parent (.*) — cela rendrait publics des sous-chemins
+auth=true comme /recipes/new alors que seule /recipes est publique.
+
+Avant (bug) : '/recipes(.*)' → /recipes/new accessible sans auth
+Après (fix) : '/recipes' + '/recipes/:id' → seulement les pages déclarées publiques
 
 Intégration dans dev_graph.py :
     mw_files = generate_middleware(spec_obj, project_workdir)
@@ -20,11 +21,21 @@ from __future__ import annotations
 
 import logging
 import os
+import re as _re
 
 logger = logging.getLogger(__name__)
 
 # Routes Clerk toujours publiques — indépendantes du brief
 _CLERK_PUBLIC_ROUTES = ["/sign-in(.*)", "/sign-up(.*)"]
+
+_DYNAMIC_SEG_RE = _re.compile(r"\[(\w+)\]")
+
+
+def _to_clerk_pattern(path: str) -> str:
+    """Convertit les segments dynamiques Next.js en format Clerk.
+    /recipes/[id] → /recipes/:id   (chemin exact, pas de wildcard)
+    """
+    return _DYNAMIC_SEG_RE.sub(r":\1", path)
 
 
 def generate_middleware(spec, project_workdir: str) -> dict[str, str]:
@@ -33,24 +44,20 @@ def generate_middleware(spec, project_workdir: str) -> dict[str, str]:
 
     Les routes publiques incluent :
     - /sign-in(.*) et /sign-up(.*) — toujours présentes (Clerk)
-    - Chaque page avec auth_required=False dans le brief (ex: /blog → /blog(.*))
+    - Chaque page auth_required=False dans le brief — chemin EXACT par page.
 
-    Les routes dynamiques ([id]) sont exclues du matcher car elles sont couvertes
-    par le pattern wildcard de la route parent (ex: /blog/[id] couvert par /blog(.*)).
-
-    Retourne {rel_path: content} pour intégration dans template_written.
+    Chaque page publique est ajoutée individuellement. Cela garantit que
+    /recipes/new (auth=true) reste protégé même si /recipes (auth=false) est public.
     """
     public_paths: list[str] = list(_CLERK_PUBLIC_ROUTES)
 
     for page in spec.get_public_pages():
         path = page.path.rstrip("/")
-        # Exclure la racine '/' (gérée par redirect déterministe)
-        # Exclure les routes dynamiques (couvertes par le parent)
-        if not path or "[" in path:
+        if not path:
             continue
-        pattern = f"{path}(.*)"
-        if pattern not in public_paths:
-            public_paths.append(pattern)
+        clerk_pattern = _to_clerk_pattern(path)
+        if clerk_pattern not in public_paths:
+            public_paths.append(clerk_pattern)
 
     matcher_entries = ",\n  ".join(f"'{p}'" for p in public_paths)
 

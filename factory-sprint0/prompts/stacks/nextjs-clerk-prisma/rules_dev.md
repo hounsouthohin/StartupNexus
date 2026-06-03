@@ -9,26 +9,26 @@
 
 2. **USE CLIENT (PRIORITÉ ABSOLUE)** : tout composant avec `useState`, `useEffect` ou tout hook React DOIT avoir `"use client"` en **ligne 1 absolue** — avant tout import.
 
-6. **TAILWIND ONLY** : INTERDIT `shadcn/ui`, `@radix-ui`, `@headlessui`, `@/components/ui/*`.
+3. **TAILWIND ONLY** : INTERDIT `shadcn/ui`, `@radix-ui`, `@headlessui`, `@/components/ui/*`.
 
-7. **TABLEAUX TYPÉS** : `const items: SerializedModelType[] = await modelService.getAll(userId)` — JAMAIS `let items = []` (TypeScript infère `never[]`). Le service retourne `SerializedXxx` (dates = string), NE PAS annoter avec le type Prisma brut (TS2345 fatal).
+4. **TABLEAUX TYPÉS** : `const items: SerializedModelType[] = await modelService.getAll(userId)` — JAMAIS `let items = []` (TypeScript infère `never[]`). Le service retourne `SerializedXxx` (dates = string), NE PAS annoter avec le type Prisma brut (TS2345 fatal).
 
-8. **FICHIERS PROTÉGÉS** : JAMAIS `write_file` sur `prisma/schema.prisma`, `lib/prisma.ts`, `prisma.config.ts`, `lib/types.ts`, `lib/schemas.ts`, `lib/services/*`, `app/**/actions.ts`, `app/**/page-client.tsx` CRUD, `app/**/page.tsx` avec model, `middleware.ts`, `app/layout.tsx`.
+5. **FICHIERS PROTÉGÉS** : JAMAIS `write_file` sur `prisma/schema.prisma`, `lib/prisma.ts`, `prisma.config.ts`, `lib/types.ts`, `lib/schemas.ts`, `lib/services/*`, `app/**/actions.ts`, `app/**/page-client.tsx` CRUD, `app/**/page.tsx` avec model, `middleware.ts`, `app/layout.tsx`.
 Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app/**/page-client.tsx` [INTERACTIVE] custom, `app/api/webhooks/**/route.ts`.
 
-9. **TYPES PARAMÈTRES** : type explicite sur chaque paramètre de callback React (`e: React.ChangeEvent<HTMLInputElement>`) et de destructuring (`{ id }: { id: string }`).
+6. **TYPES PARAMÈTRES** : type explicite sur chaque paramètre de callback React (`e: React.ChangeEvent<HTMLInputElement>`) et de destructuring (`{ id }: { id: string }`).
 
-12. **NOMS SPEC EXACTS** : noms de modèles, services et composants EXACTEMENT comme dans CONTRACTS.md — pas de traduction ni de synonyme.
+7. **NOMS SPEC EXACTS** : noms de modèles, services et composants EXACTEMENT comme dans CONTRACTS.md — pas de traduction ni de synonyme.
 
-13. **APP ROUTER ONLY** : JAMAIS `pages/` — tout dans `app/`.
+8. **APP ROUTER ONLY** : JAMAIS `pages/` — tout dans `app/`.
 
-19. **PAGES AVEC DONNÉES RÉELLES** : toute page affichant des entités DOIT appeler le service correspondant et afficher les résultats. Un `<h1>` seul sans données est INTERDIT. Inclure un état vide si la liste est vide.
+9. **PAGES AVEC DONNÉES RÉELLES** : toute page affichant des entités DOIT appeler le service correspondant et afficher les résultats. Un `<h1>` seul sans données est INTERDIT. Inclure un état vide si la liste est vide.
 
-20. **AUTH REDIRECT PAGES** : dans les Server Components protégés, utiliser `redirect('/sign-in')` (depuis `next/navigation`) si `!userId` — JAMAIS retourner null.
+10. **AUTH REDIRECT PAGES** : dans les Server Components protégés, utiliser `redirect('/sign-in')` (depuis `next/navigation`) si `!userId` — JAMAIS retourner null.
 
-22. **DATA ACCESS LAYER** : tout accès données depuis `page.tsx` DOIT passer par `lib/services/<model>.service.ts`. JAMAIS importer prisma directement dans page.tsx. Exception : webhook handlers.
+11. **DATA ACCESS LAYER** : tout accès données depuis `page.tsx` DOIT passer par `lib/services/<model>.service.ts`. JAMAIS importer prisma directement dans page.tsx. Exception : webhook handlers.
 
-26. **SERVICE DAL — LIRE CONTRACTS.md (pré-généré, NE PAS recréer)** : les services sont dans `lib/services/<model-name>.service.ts`. **Lire `CONTRACTS.md` à la racine du projet** pour la liste exacte des méthodes disponibles par modèle.
+12. **SERVICE DAL — LIRE CONTRACTS.md (pré-généré, NE PAS recréer)** : les services sont dans `lib/services/<model-name>.service.ts`. **Lire `CONTRACTS.md` à la racine du projet** pour la liste exacte des méthodes disponibles par modèle.
 
     Méthodes clés selon le contexte :
     ```ts
@@ -55,23 +55,23 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
     - **JAMAIS inventer une méthode absente de CONTRACTS.md** — `getActiveCount`, `getByStatus`, `countBy`, `sumField` et toute méthode non listée N'EXISTENT PAS → TS2339 fatal au build.
     - **Pour les agrégations** (compter les actifs, sommer les budgets, filtrer par statut) : utiliser `getAll(userId)` puis calculer en TypeScript. Ex : `const active = projects.filter(p => p.status === 'active')` / `const total = active.reduce((s, p) => s + (p.budget ?? 0), 0)`
 
-30. **FICHIERS PRÉ-GÉNÉRÉS** : ne pas créer `app/api/health/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/components/navigation.tsx`, `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx` — pré-générés par le pipeline.
+13. **FICHIERS PRÉ-GÉNÉRÉS** : ne pas créer `app/api/health/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/components/navigation.tsx`, `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx` — pré-générés par le pipeline.
 
-31. **PAGE-CLIENT ÉTAT VIDE — PAGES LIST CUSTOM** : tout `page-client.tsx` de type list DOIT gérer `items.length === 0` :
+14. **PAGE-CLIENT ÉTAT VIDE — PAGES LIST CUSTOM** : tout `page-client.tsx` de type list DOIT gérer `items.length === 0` :
     ```tsx
     if (items.length === 0) {
       return <p className="text-gray-500 text-center py-8">Aucun élément pour l'instant.</p>
     }
     ```
 
-32. **PAGE-CLIENT BOUTON DELETE — ID DIRECT** : appeler `deleteX(item.id)` directement, JAMAIS `new FormData()`. Bouton `type="button"` :
+15. **PAGE-CLIENT BOUTON DELETE — ID DIRECT** : appeler `deleteX(item.id)` directement, JAMAIS `new FormData()`. Bouton `type="button"` :
     ```tsx
     <button type="button" onClick={() => deleteTask(item.id)}>Supprimer</button>
     ```
 
-34. **PAGE-CLIENT USESTATE TYPÉ** : `useState` avec tableau DOIT avoir un type générique — `useState<SerializedXxx[]>([])`. Sans type, TypeScript infère `never[]` → TS2345 fatal.
+16. **PAGE-CLIENT USESTATE TYPÉ** : `useState` avec tableau DOIT avoir un type générique — `useState<SerializedXxx[]>([])`. Sans type, TypeScript infère `never[]` → TS2345 fatal.
 
-35. **FORMULAIRES — USEACTIONSTATE OBLIGATOIRE (React 19)** : tout formulaire dans un `page-client.tsx` custom [INTERACTIVE] DOIT utiliser `useActionState` depuis `'react'` :
+17. **FORMULAIRES — USEACTIONSTATE OBLIGATOIRE (React 19)** : tout formulaire dans un `page-client.tsx` custom [INTERACTIVE] DOIT utiliser `useActionState` depuis `'react'` :
     ```tsx
     'use client'
     import { useActionState } from 'react'   // ← 'react', JAMAIS 'react-dom'
@@ -86,7 +86,7 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
     ```
     `useFormState` de `'react-dom'` est **SUPPRIMÉ** depuis React 19 — TS2305 fatal.
 
-37. **PARAMS DYNAMIQUES (Next.js 15)** : les pages dynamiques (`[id]`, `[slug]`) doivent typer `params` comme `Promise` :
+18. **PARAMS DYNAMIQUES (Next.js 15)** : les pages dynamiques (`[id]`, `[slug]`) doivent typer `params` comme `Promise` :
     ```tsx
     export default async function Page({ params }: { params: Promise<{ id: string }> }) {
       const { id } = await params
