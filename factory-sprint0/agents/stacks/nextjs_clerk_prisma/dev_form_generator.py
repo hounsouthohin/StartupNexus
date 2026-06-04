@@ -315,8 +315,17 @@ def generate_all_page_clients(
         logger.info("[form_gen] ✓ %s (model=%s type=%s)", rel, model_name, page_type)
 
     # Edit pages — pour chaque modèle CRUD complet
+    # Skip si une page edit est déjà déclarée dans spec.pages pour ce modèle :
+    # loop 1 (spec.pages) l'a déjà traitée après normalisation [id]→[slug] dans _normalize_pages.
+    _models_with_explicit_edit = {
+        getattr(p, "model", None)
+        for p in spec.pages
+        if getattr(p, "page_type", "") == "edit" and getattr(p, "model", None)
+    }
     for model in spec.models:
         if model.name not in crud_models:
+            continue
+        if model.name in _models_with_explicit_edit:
             continue
         ctx = model_contexts.get(model.name)
         if ctx is None:

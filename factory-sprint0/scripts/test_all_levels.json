@@ -1,5 +1,18 @@
 [
   {
+    "project_name": "expense-tracker",
+    "brief": {
+      "description": "Une application pour suivre mes dépenses personnelles. Je crée des dépenses avec un montant en euros, une description et une date de dépense. Je classe mes dépenses par catégories — alimentation, transport, logement, loisirs, santé — ces catégories sont gérées depuis une page dédiée et chaque dépense est obligatoirement liée à une catégorie. Toute l'application est privée, accessible après connexion."
+    }
+  },
+  {
+    "project_name": "personal-blog",
+    "brief": {
+      "description": "Mon blog personnel. Je rédige des articles depuis mon espace privé — chaque article a un titre, un contenu, un court extrait et un slug unique généré depuis le titre. Un article peut être brouillon ou publié. Mes articles sont classés par catégories que je crée et gère séparément. Une fois publié, un article est lisible par tous les visiteurs sur /blog/[slug] sans connexion. Les visiteurs parcourent les articles publiés sur /blog. Je gère l'ensemble de mes articles depuis mon tableau de bord privé."
+    }
+  },
+   
+  {
     "project_name": "project-hub",
     "brief": {
       "description": "Un outil pour suivre mes projets et les tâches associées. Je crée des projets avec un titre et une description. Chaque projet peut être en cours, terminé ou archivé. Dans chaque projet, je crée des tâches avec un titre, une description, un niveau d'urgence — faible, normal ou élevé — et un état d'avancement : à faire, en cours ou terminée. Je peux aussi laisser des commentaires sur les tâches. Tout est privé."
@@ -32,19 +45,9 @@
     "brief": {
       "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation en minutes, un niveau de difficulté — facile, moyen ou difficile — et les ingrédients. Je classe mes recettes par catégories — entrées, plats principaux, desserts — gérées depuis une page dédiée. Une recette peut être privée ou publique : les recettes publiques sont visibles par tous les visiteurs sans connexion, les recettes privées sont visibles uniquement par moi. Je gère mes recettes depuis mon espace privé après connexion. Les visiteurs peuvent parcourir et consulter les recettes publiques sans créer de compte."
     }
-  },
-
-  {
-    "project_name": "expense-tracker",
-    "brief": {
-      "description": "Une application pour suivre mes dépenses personnelles. Je crée des dépenses avec un montant en euros, une description et une date de dépense. Je classe mes dépenses par catégories — alimentation, transport, logement, loisirs, santé — ces catégories sont gérées depuis une page dédiée et chaque dépense est obligatoirement liée à une catégorie. Toute l'application est privée, accessible après connexion."
-    }
-  },
-
-  {
-    "project_name": "personal-blog",
-    "brief": {
-      "description": "Mon blog personnel. Je rédige des articles depuis mon espace privé — chaque article a un titre, un contenu, un court extrait et un slug unique généré depuis le titre. Un article peut être brouillon ou publié. Mes articles sont classés par catégories que je crée et gère séparément. Une fois publié, un article est lisible par tous les visiteurs sur /blog/[slug] sans connexion. Les visiteurs parcourent les articles publiés sur /blog. Je gère l'ensemble de mes articles depuis mon tableau de bord privé."
-    }
   }
+
+ 
+
+  
 ]

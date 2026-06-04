@@ -607,7 +607,10 @@ async def brief_writer_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(model="gpt-4o", temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
+    from agents.stack_config import get_llm_models as _get_llm_models
+    _llm_models = _get_llm_models()
+    _arch_model = _llm_models.get("architect_base", "gpt-4o-mini")
+    llm = get_chat_llm(model=_arch_model, temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
         response_format={"type": "json_object"}
     )
 
@@ -775,7 +778,10 @@ async def semantic_annotator_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(model="gpt-4o", temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
+    from agents.stack_config import get_llm_models as _get_llm_models
+    _llm_models = _get_llm_models()
+    _arch_model = _llm_models.get("architect_base", "gpt-4o-mini")
+    llm = get_chat_llm(model=_arch_model, temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
         response_format={"type": "json_object"}
     )
 
@@ -957,7 +963,10 @@ async def pages_detail_node(state: AgentState) -> dict:
     from agents.llm_provider import get_chat_llm
     from langchain_core.messages import SystemMessage, HumanMessage as _HM
 
-    llm = get_chat_llm(model="gpt-4o", temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
+    from agents.stack_config import get_llm_models as _get_llm_models
+    _llm_models = _get_llm_models()
+    _arch_model = _llm_models.get("architect_base", "gpt-4o-mini")
+    llm = get_chat_llm(model=_arch_model, temperature=0.0, api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY"))).bind(
         response_format={"type": "json_object"}
     )
 

@@ -136,6 +136,14 @@ def get_forbidden_paths(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
     return load_stack_config(stack_id).get("forbidden_paths", ["pages/", "src/pages/"])
 
 
+def get_llm_models(stack_id: str = _DEFAULT_STACK_ID) -> dict[str, str]:
+    """
+    Retourne les modèles LLM configurés par rôle pour cette stack.
+    Clés : architect_base, architect_planner, reviewer, dev (fallback: OPENAI_MODEL env var).
+    """
+    return load_stack_config(stack_id).get("llm_models", {})
+
+
 def get_workdir_keep_extra(stack_id: str = _DEFAULT_STACK_ID) -> list[str]:
     """
     Répertoires supplémentaires à préserver entre les runs (cache, dépendances).

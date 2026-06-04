@@ -656,7 +656,12 @@ async def run_dev_agent(
         role: "\n".join(lines) for role, lines in _hints_raw.items()
     } if _hints_raw else {}
 
-    _dev_model = os.getenv("DEV_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
+    try:
+        from agents.stack_config import get_llm_models as _get_llm_models
+        _stack_dev_model = _get_llm_models(stack_id).get("dev", "gpt-4o-mini")
+    except Exception:
+        _stack_dev_model = "gpt-4o-mini"
+    _dev_model = os.getenv("DEV_MODEL", os.getenv("OPENAI_MODEL", _stack_dev_model))
     _dev_api_key = os.getenv("DEV_API_KEY", os.getenv("OPENAI_API_KEY"))
     _dev_base_url = os.getenv("DEV_BASE_URL") or os.getenv("OPENAI_BASE_URL") or None
     # seed=42 est spécifique OpenAI — Gemini et autres providers le rejettent

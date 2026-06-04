@@ -601,22 +601,39 @@ def generate_edit_page_stubs(
     # Intersection : doit avoir list auth + create (intent CRUD complet)
     crud_models &= create_model_names
 
+    # Chemins edit déclarés explicitement dans spec.pages (page_type="edit").
+    # Priorité absolue sur le chemin déduit depuis la liste — évite de placer page.tsx
+    # sous /blog/[slug]/edit au lieu de /dashboard/posts/[slug]/edit.
+    _all_model_names = {m.name for m in spec.models}
+    explicit_edit_paths: dict[str, str] = {}
+    for _ep in spec.pages:
+        if getattr(_ep, "page_type", None) == "edit" and getattr(_ep, "model", None):
+            if _ep.model in _all_model_names:
+                explicit_edit_paths[_ep.model] = _ep.path
+                crud_models.add(_ep.model)
+
     for model in spec.models:
         if model.name not in crud_models:
             continue
 
-        list_path = spec.get_list_page_for_model(model.name)
-        if not list_path:
-            logger.warning(
-                "[pages_generator] edit page skipped for '%s' — aucune page list déclarée.",
-                model.name,
-            )
-            continue
-        route_dir = list_path.lstrip("/")
         ctx = (contexts or {}).get(model.name)
         has_slug = bool(ctx and ctx.has_slug)
-        slug_or_id = "[slug]" if has_slug else "[id]"
-        edit_dir = f"app/{route_dir}/{slug_or_id}/edit"
+
+        if model.name in explicit_edit_paths:
+            # Chemin déclaré dans spec → l'utiliser directement
+            edit_dir = f"app/{explicit_edit_paths[model.name].strip('/')}"
+        else:
+            # Chemin déduit depuis la page liste (CRUD classique list+create)
+            list_path = spec.get_list_page_for_model(model.name)
+            if not list_path:
+                logger.warning(
+                    "[pages_generator] edit page skipped for '%s' — aucune page list déclarée.",
+                    model.name,
+                )
+                continue
+            route_dir = list_path.lstrip("/")
+            slug_or_id = "[slug]" if has_slug else "[id]"
+            edit_dir = f"app/{route_dir}/{slug_or_id}/edit"
 
         page_rel = f"{edit_dir}/page.tsx"
         page_abs = os.path.join(project_workdir, page_rel.replace("/", os.sep))

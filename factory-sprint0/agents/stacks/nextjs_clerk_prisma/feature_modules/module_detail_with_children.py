@@ -165,11 +165,10 @@ class DetailWithChildrenModule(FeatureModule):
             child_kebab = pascal_to_kebab(child_name)
             child_ctx_obj = all_model_contexts.get(child_name)
 
-            # Trouver le list_path de l'enfant pour l'import des actions
-            child_list_page = next(
-                (p.path for p in spec_pages if p.page_type == "list" and p.model == child_name),
-                f"/{child_kebab}s",
-            )
+            # Trouver le list_path de l'enfant pour l'import des actions.
+            # get_list_page_for_model() priorise auth_required=True — évite de pointer
+            # vers une page publique (ex: /blog) qui n'a pas d'actions.ts.
+            child_list_page = spec.get_list_page_for_model(child_name) or f"/{child_kebab}s"
 
             children_ctx.append({
                 "name": child_name,

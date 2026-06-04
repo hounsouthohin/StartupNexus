@@ -103,15 +103,16 @@ def _select_files_for_review(generated_files: Dict[str, str]) -> Dict[str, str]:
             continue
         selected[path] = content
 
-    # 5. Services (2 max) — référence contexte uniquement
-    _svc_count = 0
+    # 5. Services — tous inclus pour éviter les ghost success fictifs
+    # Limite levée : avec seulement 2 services sur 3+, le LLM concluait que
+    # les modèles manquants n'existaient pas (hallucination GHOST_SUCCESS).
+    # Note : la couche déterministe gère les checks sécurité, pas le LLM.
     for path, content in generated_files.items():
-        if len(selected) >= _MAX_FILES or _svc_count >= 2:
+        if len(selected) >= _MAX_FILES:
             break
         if _is_excluded(path) or "lib/services/" not in path:
             continue
         selected[path] = content
-        _svc_count += 1
 
     return selected
 
@@ -285,7 +286,7 @@ async def review_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
     # 2. Fetch standards reviewer depuis Qdrant
     rag_standards = _fetch_reviewer_standards(stack_id)
 
-    # 3. Appel reviewer
+    # 3. Appel reviewer (Layer 1 déterministe + Layer 2 LLM sémantique)
     try:
         from agents.reviewer import run_reviewer
         report = await run_reviewer(
@@ -297,6 +298,7 @@ async def review_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[
             run_id=run_id,
             stack_id=stack_id,
             page_auth_contract=page_auth_contract,
+            generated_files=generated_files,  # Layer 1 : accès à tous les fichiers réels
         )
     except Exception as e:
         activity.logger.error(f"[review_activity] run_reviewer échoué: {e}", exc_info=True)

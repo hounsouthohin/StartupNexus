@@ -297,6 +297,36 @@ class ProjectSpec(BaseModel):
                     )
                     page.page_type = "detail"
 
+            # Fix 5 — edit page sans model → inférer depuis la page parente dans spec
+            # /dashboard/posts/[slug]/edit → chemin parent = /dashboard/posts → liste Post
+            if page.page_type == "edit" and not page.model:
+                _edit_segs = [s for s in page.path.strip("/").split("/")
+                              if not s.startswith("[") and s != "edit"]
+                _parent_path = "/" + "/".join(_edit_segs)
+                _parent = next(
+                    (p for p in self.pages if p.path == _parent_path and p.model),
+                    None,
+                )
+                if _parent and _parent.model in model_names:
+                    page.model = _parent.model
+                    _logger.info(
+                        "[ProjectSpec] page edit '%s' : model inféré → %s",
+                        page.path, page.model,
+                    )
+
+            # Fix 4 — edit page avec [id] pour un modèle avec slug → remplace par [slug]
+            # dev_form_generator génère les edit à [slug] si has_slug=True.
+            # Si l'architect déclare [id]/edit, le form_generator produit [id]/edit/page-client.tsx
+            # ET [slug]/edit/page-client.tsx → deux fichiers orphelins en conflit.
+            if page.page_type == "edit" and page.model and "[id]" in page.path:
+                fields = model_fields.get(page.model, set())
+                if "slug" in fields:
+                    page.path = page.path.replace("[id]", "[slug]")
+                    _logger.info(
+                        "[ProjectSpec] page '%s' : edit+slug → path normalisé [id]→[slug]",
+                        page.path,
+                    )
+
         return self
 
     def compute_fingerprint(self) -> str:

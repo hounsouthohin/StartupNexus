@@ -1,0 +1,53 @@
+{
+  "run_id": "1fb6e781-136c-4a0b-b00a-7ce36325aba8",
+  "workflow_id": "todo-pilot-personal-blog",
+  "project_name": "personal-blog",
+  "generated_at": "2026-06-04T17:15:35.356846+00:00",
+  "duration_seconds": 4.391341,
+  "build_success": false,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "GENERATION_ERROR: app/blog/[slug]/edit/page.tsx importe './page-client' mais app/blog/[slug]/edit/page-client.tsx absent de template_written — corriger le générateur Python correspondant.",
+  "spec_coverage": 0.75,
+  "requirements_met": 9,
+  "requirements_unmet": 3,
+  "requirements_unknown": 0,
+  "requirements_total": 12,
+  "requirements_unmet_list": [
+    "Page: /",
+    "Page: /dashboard",
+    "Page: /dashboard/posts/[slug]/edit"
+  ],
+  "requirements_unknown_list": [],
+  "files_generated": 51,
+  "dev_files_count": 51,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_ciz1lh58/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_ciz1lh58/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": false,
+  "tsc_errors_count": 537,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "quality_violations_count": 0,
+  "quality_violations": [],
+  "tests_passed": false,
+  "user_flows_total": 5,
+  "user_flows_covered": 4,
+  "user_flows_coverage": 0.8,
+  "is_useful_app": false,
+  "clerk_compliant": true,
+  "error": "BuildFailed: GENERATION_ERROR: app/blog/[slug]/edit/page.tsx importe './page-client' mais app/blog/[slug]/edit/page-client.tsx absent de template_written — corriger le générateur Python correspondant."
+}

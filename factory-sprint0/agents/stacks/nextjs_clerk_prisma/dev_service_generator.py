@@ -59,6 +59,65 @@ def _dt_inline_map(ctx: ModelGenerationContext) -> str:
     return "item => ({ ...item, " + ", ".join(dt_parts) + " })"
 
 
+def _dt_map_with_relations(ctx: "ModelGenerationContext", all_contexts: "dict") -> str:
+    """
+    Map function TypeScript inline pour getAllWithRelations / getByIdWithRelations.
+    Sérialise les DateTime du modèle racine ET des modèles enfants dans les relations.
+    _dt_inline_map ne couvre que le niveau racine — insuffisant quand une relation
+    imbriquée contient des champs DateTime (ex: Expense.expenseDate dans Category.expenses).
+    """
+    root_parts = []
+    for df in ctx.datetime_fields:
+        if df.name == ctx.owner:
+            continue
+        if df.is_nullable:
+            root_parts.append(f"{df.name}: item.{df.name} ? item.{df.name}.toISOString() : null")
+        else:
+            root_parts.append(f"{df.name}: item.{df.name}.toISOString()")
+
+    rel_parts = []
+    for r in ctx.relation_fields:
+        field = next((f for f in ctx.model.fields if f.name == r.name), None)
+        related_name = field.type.rstrip("?").rstrip("[]") if field else None
+        related_ctx = all_contexts.get(related_name) if related_name else None
+        if not related_ctx or not related_ctx.datetime_fields:
+            continue
+        # Seuls les champs dans le nested select (id + display_fields) peuvent être sérialisés.
+        # Sérialiser un champ hors select → TS2339.
+        selected_in_nested = {"id"} | set(related_ctx.display_fields)
+        if r.is_array:
+            nested_dt = [
+                (f"{rdf.name}: c.{rdf.name} ? c.{rdf.name}.toISOString() : null"
+                 if rdf.is_nullable else f"{rdf.name}: c.{rdf.name}.toISOString()")
+                for rdf in related_ctx.datetime_fields
+                if rdf.name in selected_in_nested
+            ]
+            if not nested_dt:
+                continue
+            rel_parts.append(
+                f"{r.name}: (item.{r.name} ?? []).map(c => ({{ ...c, {', '.join(nested_dt)} }}))"
+            )
+        else:
+            # Relation scalaire : pas de lambda, item.{r.name}.{field} direct.
+            # c.field → TS2304 car c n'est défini que dans .map(c => ...).
+            nested_dt = [
+                (f"{rdf.name}: item.{r.name}.{rdf.name} ? item.{r.name}.{rdf.name}.toISOString() : null"
+                 if rdf.is_nullable else f"{rdf.name}: item.{r.name}.{rdf.name}.toISOString()")
+                for rdf in related_ctx.datetime_fields
+                if rdf.name in selected_in_nested
+            ]
+            if not nested_dt:
+                continue
+            rel_parts.append(
+                f"{r.name}: item.{r.name} ? {{ ...item.{r.name}, {', '.join(nested_dt)} }} : item.{r.name}"
+            )
+
+    all_parts = root_parts + rel_parts
+    if not all_parts:
+        return "item => item"
+    return "item => ({ ...item, " + ", ".join(all_parts) + " })"
+
+
 def _relation_nested_select(r: "RelationFieldInfo", ctx: "ModelGenerationContext", all_contexts: dict) -> str:
     """Select imbriqué pour un champ @relation dans getAllWithRelations."""
     field = next((f for f in ctx.model.fields if f.name == r.name), None)
@@ -340,17 +399,20 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         ]
         _rel_parts = [_relation_nested_select(r, ctx, all_contexts or {}) for r in relations]
         _rel_sel = ", ".join(_scalar_parts + _rel_parts)
+        # _rel_map sérialise les DateTime du modèle racine ET des relations imbriquées.
+        # _map ne couvre que le niveau racine — insuffisant quand une relation a des DateTime.
+        _rel_map = _dt_map_with_relations(ctx, all_contexts or {})
         lines += [
             "",
             f"  getAllWithRelations: async ({owner}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
             f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, select: {{ {_rel_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-            f"    return items.map({_map}) as {serialized}[]",
+            f"    return items.map({_rel_map}) as {serialized}[]",
             "  },",
             "",
             f"  getByIdWithRelations: async ({owner}: string, id: string): Promise<{serialized}> => {{",
             f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {_rel_sel} }} }})",
             "    if (!item) notFound()",
-            f"    return ({_map})(item) as {serialized}",
+            f"    return ({_rel_map})(item) as {serialized}",
             "  },",
         ]
 
@@ -361,7 +423,7 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             f"  getPublicByIdWithRelations: async (id: string): Promise<{serialized}> => {{",
             f"    const item = await prisma.{camel}.findUnique({{ where: {{ id }}, select: {{ {_rel_sel} }} }})",
             "    if (!item) notFound()",
-            f"    return ({_map})(item) as {serialized}",
+            f"    return ({_rel_map})(item) as {serialized}",
             "  },",
         ]
 
@@ -372,7 +434,7 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
             f"  getBySlugWithRelations: async (slug: string): Promise<{serialized}> => {{",
             f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }}, select: {{ {_rel_sel} }} }})",
             "    if (!item) notFound()",
-            f"    return ({_map})(item) as {serialized}",
+            f"    return ({_rel_map})(item) as {serialized}",
             "  },",
         ]
 

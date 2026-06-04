@@ -5,8 +5,10 @@
   "status": "stable",
   "framework": "nextjs",
   "llm_models": {
-    "architect_base": "gpt-4o-mini",
-    "architect_planner": "gpt-4o-mini"
+    "architect_base": "gpt-4o",
+    "architect_planner": "gpt-4o",
+    "reviewer": "gpt-4o",
+    "dev": "gpt-4o-mini"
   },
   "description": "Next.js 15 App Router + React 19 + Clerk V6 + Prisma 7 — stack Sprint 0-3",
   "root_file": "package.json",
