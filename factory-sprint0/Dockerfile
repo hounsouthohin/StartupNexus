@@ -38,20 +38,9 @@ RUN apt-get update && \
     apt-get update && \
     apt-get install -y docker-ce-cli
 
-# QA Visual Agent — affichage virtuel + streaming noVNC
-# Xvfb   : framebuffer virtuel (simule un écran pour le browser headed)
-# x11vnc : lit le display Xvfb et l'expose en VNC
-# noVNC  : clonée depuis GitHub — bridge WebSocket → VNC (interface web sur :6080)
-# git    : requis pour cloner noVNC
-RUN apt-get update && \
-    apt-get install -y xvfb x11vnc git python3-websockify && \
-    git clone --depth 1 https://github.com/novnc/noVNC.git /opt/novnc && \
-    ln -sf /opt/novnc/vnc.html /opt/novnc/index.html && \
-    rm -rf /var/lib/apt/lists/*
-
-# browser-use + Playwright Chromium pour l'agent QA E2E
-# docker SDK Python : contrôle des conteneurs PostgreSQL éphémères
-RUN pip install --no-cache-dir browser-use playwright docker && \
+# Playwright Chromium pour QA E2E (Sprint 4.9 — Playwright MCP contre URL Vercel)
+# docker SDK Python : contrôle des volumes Docker
+RUN pip install --no-cache-dir playwright docker && \
     playwright install chromium && \
     playwright install-deps chromium
 

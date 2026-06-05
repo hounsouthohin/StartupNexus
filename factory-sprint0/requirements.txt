@@ -20,7 +20,5 @@ tree-sitter-typescript
 ddgs
 httpx
 jinja2
-browser-use<0.2.0
 playwright
 docker
-Pillow

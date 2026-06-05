@@ -123,7 +123,6 @@ services:
     build: .
     ports:
       - "5000:5000"
-      - "5001:5001"    # QA Live viewer — screenshots temps réel (http://localhost:5001)
     env_file:
       - .env
     environment:
@@ -133,7 +132,6 @@ services:
       - FACTORY_WORKDIR=/app/generated-projects
       - SEMGREP_RULES_PATH=/app/semgrep/rules/critical.yml
       - SEMGREP_TIMEOUT=30
-      - QA_POSTGRES_IMAGE=postgres:15-alpine # Image PostgreSQL pour conteneurs éphémères QA
     command: bash /app/scripts/start.sh
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

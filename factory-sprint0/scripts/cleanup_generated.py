@@ -53,8 +53,9 @@ GENERATED_GLOBS = [
     "logs/metrics/todo_pilot_batch_*.json",
     "logs/metrics/rag_usage*.jsonl",
     "logs/shadow/learner_shadow_log.json",
-    "logs/shadow/learner_suggestions.json",
     "logs/shadow/patterns_report.json",
+    "logs/learner_suggestions.json",
+    "logs/run_reports/*.md",
     "snapshots/*.json",
     "generated-projects/**",
 ]

@@ -47,12 +47,13 @@ class StandardSuggestion:
     sprint: str = "sprint3"
 
 
-def run_learner_activity(run_id: str = "") -> dict:
+def run_learner_activity(run_id: str = "", run_context: dict | None = None) -> dict:
     """
     Point d'entrée de la LearnerActivity.
     Lit le shadow log, détecte les patterns, génère des StandardSuggestion.
     Retourne : {"suggestions_generated": int, "suggestions": list, error?: str}
     """
+    run_context = run_context or {}
     try:
         all_events = _load_all_events()
         events = _load_dev_test_events(all_events)
@@ -106,13 +107,27 @@ def run_learner_activity(run_id: str = "") -> dict:
         suggestions.extend(_analyze_batch_patterns(all_events))
         _save_suggestions(suggestions, run_id)
 
+        suggestions_dicts = [asdict(s) for s in suggestions]
+
+        # ── FactoryRunReport (Sprint 4.8C) ─────────────────────────────────
+        if run_context:
+            try:
+                from utils.run_report import write_factory_run_report
+                write_factory_run_report(
+                    run_context=run_context,
+                    suggestions=suggestions_dicts,
+                    run_id=run_id,
+                )
+            except Exception as _rr_err:
+                logger.warning(f"[learner] FactoryRunReport non bloquant : {_rr_err}")
+
         logger.info(
             f"[learner] {len(suggestions)} StandardSuggestion(s) générées "
             f"à partir de {len(events)} run(s)"
         )
         return {
             "suggestions_generated": len(suggestions),
-            "suggestions": [asdict(s) for s in suggestions],
+            "suggestions": suggestions_dicts,
         }
 
     except Exception as e:
@@ -656,9 +671,15 @@ def _analyze_batch_patterns(all_events: list[dict]) -> list[StandardSuggestion]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _save_suggestions(suggestions: list[StandardSuggestion], run_id: str) -> None:
-    """Sauvegarde chaque suggestion comme event 'learner_suggestion' dans le shadow log."""
+    """
+    Sauvegarde les suggestions dans :
+    1. Le shadow log (event 'learner_suggestion') — historique machine
+    2. logs/learner_suggestions.json — fichier lisible pour approve_suggestion.py
+    """
     if not suggestions:
         return
+
+    # ── Shadow log ────────────────────────────────────────────────────────────
     try:
         from agents.observability import _write_learner_event
         for s in suggestions:
@@ -669,4 +690,28 @@ def _save_suggestions(suggestions: list[StandardSuggestion], run_id: str) -> Non
             )
         logger.info(f"[learner] {len(suggestions)} suggestion(s) sauvegardées dans {SHADOW_LOG_PATH}")
     except Exception as e:
-        logger.warning(f"[learner] Impossible de sauvegarder les suggestions: {e}")
+        logger.warning(f"[learner] Impossible de sauvegarder les suggestions (shadow): {e}")
+
+    # ── learner_suggestions.json ──────────────────────────────────────────────
+    try:
+        suggestions_path = _LOG_ROOT / "learner_suggestions.json"
+        existing: list[dict] = []
+        if suggestions_path.exists():
+            try:
+                existing = json.loads(suggestions_path.read_text(encoding="utf-8"))
+                if not isinstance(existing, list):
+                    existing = []
+            except Exception:
+                existing = []
+
+        existing_ids = {s.get("suggestion_id") for s in existing if isinstance(s, dict)}
+        new_entries = [asdict(s) for s in suggestions if s.suggestion_id not in existing_ids]
+        if new_entries:
+            existing.extend(new_entries)
+            suggestions_path.write_text(
+                json.dumps(existing, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            logger.info(f"[learner] {len(new_entries)} nouvelle(s) suggestion(s) → {suggestions_path}")
+    except Exception as e:
+        logger.warning(f"[learner] Impossible d'écrire learner_suggestions.json: {e}")

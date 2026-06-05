@@ -398,8 +398,7 @@ class TodoPilotWorkflow:
             e2e_tests: Dict[str, str] = {}
             if build_status not in ("BUILD_FAILED", "SEMANTIC_VIOLATION", "REVIEW_INCOHERENT"):
                 workflow.logger.info(
-                    f"[QA] Démarrage — user_flows={len(user_flows_part)} "
-                    f"→ stream noVNC http://localhost:6080"
+                    f"[QA] Démarrage — user_flows={len(user_flows_part)} (Jest smoke tests)"
                 )
                 qa_input = {
                     "specification": spec_part,
@@ -419,12 +418,8 @@ class TodoPilotWorkflow:
                     qa_tests_passed = bool(qa_result_raw.get("tests_passed", False))
                     qa_tests_summary = str(qa_result_raw.get("tests_summary", ""))
                     qa_semgrep = qa_result_raw.get("semgrep", {})
-                    browser_qa = qa_result_raw.get("browser_qa", {})
-                    qa_score = float(browser_qa.get("qa_score", 0.0))
                     workflow.logger.info(
-                        f"[QA] Jest={'PASS' if qa_tests_passed else 'FAIL'} | "
-                        f"BrowserUse qa_score={qa_score:.0%} "
-                        f"({browser_qa.get('flows_passed', 0)}/{browser_qa.get('flows_total', 0)} flows)"
+                        f"[QA] Jest={'PASS' if qa_tests_passed else 'FAIL'} | {qa_tests_summary[:80]}"
                     )
                     if qa_semgrep.get("ran"):
                         workflow.logger.info(
@@ -436,10 +431,6 @@ class TodoPilotWorkflow:
                         "tests_passed": qa_tests_passed,
                         "tests_summary": qa_tests_summary,
                         "semgrep_findings": qa_semgrep.get("findings_count", 0) if qa_semgrep.get("ran") else None,
-                        "qa_score": qa_score,
-                        "flows_passed": browser_qa.get("flows_passed", 0),
-                        "flows_total": browser_qa.get("flows_total", 0),
-                        "flow_results": browser_qa.get("flow_results", []),
                     }
                 except Exception as qa_err:
                     workflow.logger.warning(f"[QA] échoué: {qa_err}")
@@ -493,10 +484,18 @@ class TodoPilotWorkflow:
                 }
 
             # ── 6. Learner — best-effort ───────────────────────────────────
+            pre_learner_duration = (workflow.now() - start_time).total_seconds()
+            run_context: Dict[str, Any] = {
+                "project_name": project_name,
+                "build_status": build_status,
+                "stack_id": stack_id,
+                "activity_results": dict(activity_results),
+                "duration_seconds": pre_learner_duration,
+            }
             try:
                 learner_result: Dict[str, Any] = await workflow.execute_activity(
                     learner_activity,
-                    args=[run_id],
+                    args=[run_id, run_context],
                     start_to_close_timeout=timedelta(minutes=5),
                     retry_policy=RetryPolicy(maximum_attempts=1),
                 )

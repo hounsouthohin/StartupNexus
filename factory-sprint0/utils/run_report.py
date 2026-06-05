@@ -1,11 +1,9 @@
 """
-utils/run_report.py — Artefact JSON par run (Phase 0).
+utils/run_report.py — Artefacts par run.
 
-Écrit un fichier run_report_{run_id}.json dans /app/logs/metrics/run_reports/
-(bind-mounté côté host via ./logs:/app/logs).
-
-Critère Phase 0 : 100% des runs ont un report écrit, succès ET échec.
-Non bloquant : si l'écriture échoue, le run continue.
+Deux types :
+  - run_report_{run_id}.json  : données machine (logs/metrics/run_reports/)
+  - <projet>_<date>.md        : rapport humain lisible (logs/run_reports/) — Sprint 4.8C
 """
 from __future__ import annotations
 
@@ -13,7 +11,7 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -149,4 +147,115 @@ def write_run_report_minimal(
 
     except Exception as exc:
         logger.warning(f"[run_report] fallback minimal non bloquant échoué : {exc}")
+        return None
+
+
+def write_factory_run_report(
+    run_context: Dict[str, Any],
+    suggestions: List[Dict[str, Any]],
+    run_id: str,
+) -> Optional[str]:
+    """
+    Écrit le FactoryRunReport lisible (.md) dans logs/run_reports/<projet>_<date>.md.
+    Non bloquant.
+    """
+    try:
+        report_dir = os.path.join(_LOG_ROOT, "run_reports")
+        os.makedirs(report_dir, exist_ok=True)
+
+        project_name = run_context.get("project_name", "unknown")
+        build_status = run_context.get("build_status", "UNKNOWN")
+        activity_results = run_context.get("activity_results", {})
+        duration_seconds = run_context.get("duration_seconds")
+
+        date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        report_path = os.path.join(report_dir, f"{project_name}_{date_str}.md")
+
+        # ── Build ─────────────────────────────────────────────────────────────
+        build_icon = "✅" if build_status == "BUILD_SUCCESS" else "❌"
+        build_line = f"{build_icon} {build_status}"
+
+        # ── Review ────────────────────────────────────────────────────────────
+        review = activity_results.get("review", {})
+        if review.get("status") == "COMPLETED":
+            verdict = review.get("verdict", "UNKNOWN")
+            sec = review.get("security_score", "?")
+            coh = review.get("coherence_score", "?")
+            findings = review.get("findings_count", 0)
+            post = ""
+            if review.get("post_correction_verdict"):
+                post = f" → post-correction: {review['post_correction_verdict']}"
+            review_line = f"{verdict} | sec={sec} | coh={coh} | {findings} finding(s){post}"
+        else:
+            review_line = f"SKIPPED ({review.get('status', 'N/A')})"
+
+        # ── Correction pass ───────────────────────────────────────────────────
+        correction = activity_results.get("correction_pass", {})
+        corr_status = correction.get("status", "NOT_RUN")
+        if corr_status == "COMPLETED":
+            applied = correction.get("applied", False)
+            files = correction.get("files_modified", [])
+            new_build = correction.get("new_build_status", "?")
+            corr_line = f"{'✅' if applied else '⚠'} {len(files)} fichier(s) — new_build: {new_build}"
+        elif corr_status == "SKIPPED_NO_FIXABLE_FINDINGS":
+            corr_line = "SKIPPED (aucun finding actionnable)"
+        else:
+            corr_line = f"SKIPPED ({corr_status})"
+
+        # ── Tests / Semgrep ───────────────────────────────────────────────────
+        qa = activity_results.get("qa", {})
+        if qa.get("status") == "COMPLETED":
+            tests_icon = "✓" if qa.get("tests_passed") else "✗"
+            tests_count = qa.get("tests_count", 0)
+            summary = (qa.get("tests_summary") or "")[:60]
+            tests_line = f"{tests_icon} {tests_count} test(s) — {summary}"
+            sf = qa.get("semgrep_findings")
+            semgrep_line = f"{'✓' if sf == 0 else '⚠'} {sf} finding(s)" if sf is not None else "Non exécuté"
+        else:
+            tests_line = "Non exécuté"
+            semgrep_line = "Non exécuté"
+
+        # ── Duration ──────────────────────────────────────────────────────────
+        if duration_seconds:
+            mins = int(duration_seconds // 60)
+            secs = int(duration_seconds % 60)
+            duration_line = f"{mins}min {secs}s"
+        else:
+            duration_line = "N/A"
+
+        # ── Patterns / suggestions ────────────────────────────────────────────
+        patterns_lines: List[str] = []
+        if suggestions:
+            patterns_lines.append("")
+            patterns_lines.append("PATTERNS DÉTECTÉS :")
+            for s in suggestions[:10]:
+                title = s.get("title", "?") if isinstance(s, dict) else str(s)
+                sev = s.get("severity", "") if isinstance(s, dict) else ""
+                icon = "🔴" if sev == "high" else "⚠"
+                patterns_lines.append(f"  {icon} {title}")
+                patterns_lines.append(f"  → Suggestion standard — DÉCISION REQUISE")
+
+        sep = "═" * 50
+        content_lines = [
+            f"# FactoryRunReport — {project_name} — {date_str}",
+            sep,
+            f"BUILD        : {build_line}",
+            f"REVIEW       : {review_line}",
+            f"CORRECTIONS  : {corr_line}",
+            f"TESTS        : {tests_line}",
+            f"SEMGREP      : {semgrep_line}",
+            *patterns_lines,
+            "",
+            f"RUN_ID       : {run_id}",
+            f"DURÉE        : {duration_line}",
+        ]
+
+        with open(report_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(content_lines))
+
+        logger.info(f"[factory_run_report] écrit → {report_path}")
+        return report_path
+
+    except Exception as exc:
+        logger.warning(f"[factory_run_report] écriture non bloquante échouée : {exc}")
         return None
