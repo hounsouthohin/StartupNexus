@@ -1,0 +1,51 @@
+{
+  "run_id": "d3f19b28-f2b4-4e38-8d45-9306c94f2cdd",
+  "workflow_id": "todo-pilot-event-board",
+  "project_name": "event-board",
+  "generated_at": "2026-06-05T01:35:06.681376+00:00",
+  "duration_seconds": 2.961978,
+  "build_success": false,
+  "build_attempted": false,
+  "build_attempts": 0,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "GENERATION_ERROR: app/[id]/page.tsx importe './page-client' mais app/[id]/page-client.tsx absent de template_written — corriger le générateur Python correspondant.",
+  "spec_coverage": 0.9,
+  "requirements_met": 9,
+  "requirements_unmet": 1,
+  "requirements_unknown": 0,
+  "requirements_total": 10,
+  "requirements_unmet_list": [
+    "Page: /dashboard"
+  ],
+  "requirements_unknown_list": [],
+  "files_generated": 46,
+  "dev_files_count": 46,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_w9edfnbx/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_w9edfnbx/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": false,
+  "tsc_errors_count": 389,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "quality_violations_count": 0,
+  "quality_violations": [],
+  "tests_passed": false,
+  "user_flows_total": 5,
+  "user_flows_covered": 3,
+  "user_flows_coverage": 0.6,
+  "is_useful_app": false,
+  "clerk_compliant": true,
+  "error": "BuildFailed: GENERATION_ERROR: app/[id]/page.tsx importe './page-client' mais app/[id]/page-client.tsx absent de template_written — corriger le générateur Python correspondant."
+}

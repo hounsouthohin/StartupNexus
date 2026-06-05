@@ -1,27 +1,6 @@
 services:
-  # --------------------------------------------------------------------------------
-  # ELASTICSEARCH – pour la visibilité avancée dans l'UI Temporal
-  # --------------------------------------------------------------------------------
-  elasticsearch:
-    container_name: temporal-es
-    image: elasticsearch:9.2.1
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - cluster.routing.allocation.disk.threshold_enabled=false
-    ports:
-      - "9200:9200"
-    volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
-    networks:
-      - temporal-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+  # Elasticsearch désactivé — ENABLE_ES=false côté Temporal, 935 MB pour rien.
+  # Réactiver si besoin de la recherche avancée dans l'UI Temporal.
 
   # --------------------------------------------------------------------------------
   # POSTGRESQL – base principale
@@ -71,8 +50,6 @@ services:
       - temporal-network
     depends_on:
       postgresql:
-        condition: service_healthy
-      elasticsearch:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
@@ -146,6 +123,7 @@ services:
     build: .
     ports:
       - "5000:5000"
+      - "5001:5001"    # QA Live viewer — screenshots temps réel (http://localhost:5001)
     env_file:
       - .env
     environment:
@@ -155,8 +133,8 @@ services:
       - FACTORY_WORKDIR=/app/generated-projects
       - SEMGREP_RULES_PATH=/app/semgrep/rules/critical.yml
       - SEMGREP_TIMEOUT=30
-    command: >
-      bash -c "python scripts/wait-for-it.py qdrant:6333 120 && python init_qdrant.py && python scripts/wait-for-it.py temporal:7233 120 && python api/flask_api.py & python run/worker.py"
+      - QA_POSTGRES_IMAGE=postgres:15-alpine # Image PostgreSQL pour conteneurs éphémères QA
+    command: bash /app/scripts/start.sh
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp

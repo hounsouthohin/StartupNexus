@@ -393,14 +393,35 @@ async def run_reviewer(
     else:
         report["verdict"] = llm_verdict if llm_verdict != "DEGRADED" else "COHERENT"
 
+    # ── targeted_fixes : Layer 1 déterministe + LLM sémantique (sans doublons sécurité) ──
+    # Les fixes WRONG_AUTH/MISSING_AUTH sont générés ici depuis les findings Layer 1.
+    # Le LLM ne peut pas les produire fiablement → on l'exclut pour ces types.
+    _L1_FIXABLE = {"WRONG_AUTH", "MISSING_AUTH"}
+    l1_targeted_fixes = [
+        {
+            "file": f["file"],
+            "type": f["type"],
+            "severity": f["severity"],
+            "fix": f.get("fix", ""),
+        }
+        for f in deterministic_findings
+        if f["type"] in _L1_FIXABLE
+    ]
+    llm_targeted_fixes = report.get("targeted_fixes", []) or []
+    report["targeted_fixes"] = l1_targeted_fixes + [
+        tf for tf in llm_targeted_fixes
+        if tf.get("type") not in _L1_FIXABLE
+    ]
+
     verdict = report["verdict"]
     logger.info(
-        "[reviewer] verdict=%s sec=%s coh=%s | det=%d llm_sem=%d total=%d",
+        "[reviewer] verdict=%s sec=%s coh=%s | det=%d llm_sem=%d total=%d targeted_fixes=%d",
         verdict,
         report.get("security_score"),
         report.get("coherence_score"),
         len(deterministic_findings),
         len(semantic_findings),
         len(all_findings),
+        len(report["targeted_fixes"]),
     )
     return report

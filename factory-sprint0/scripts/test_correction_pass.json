@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "event-board",
+    "brief": {
+      "description": "Une plateforme de découverte d'événements locaux. Tout visiteur peut parcourir les événements à venir sur /events et consulter le détail d'un événement sur /events/[id] sans créer de compte. Un organisateur connecté crée et gère ses événements depuis son tableau de bord privé. Chaque événement a un titre, une description, une date, un lieu et une capacité maximale en nombre de participants. Les événements sont classés par catégories — sport, culture, networking, formation — que l'organisateur crée et gère depuis une page dédiée. Chaque catégorie est liée à l'organisateur qui l'a créée. Chaque événement est lié à une catégorie via categoryId et appartient à l'organisateur via userId. Les pages /events et /events/[id] sont publiques, accessibles sans connexion. Les pages de gestion des événements et des catégories sont privées, accessibles après connexion."
+    }
+  }
+]

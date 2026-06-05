@@ -1,41 +1,124 @@
-from temporalio import activity
-from temporalio.exceptions import ApplicationError
-import sys
+"""
+workflows/activities/qa_activity.py
+─────────────────────────────────────
+Temporal Activity — QA Agent (Sprint 4.8B).
+
+Couche 1 — Jest smoke tests :
+  gpt-4o génère des tests Zod + services, les exécute via npm test.
+  Signal : tests_passed + tests_summary + semgrep_findings.
+
+Couche 2 — E2E visuel (Sprint 4.9) :
+  Playwright MCP contre l'URL Vercel réelle.
+  Non implémenté ici — nécessite github_activity + déploiement Vercel.
+"""
+from __future__ import annotations
+
 import os
-import json
-from typing import Dict, Any
+import pathlib
+import subprocess
+import sys
+from typing import Any, Dict
 
-# Validation contrats
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-from scripts.validate_contracts import validate_input, validate_output
+from temporalio import activity
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-def _looks_like_typescript(content: str) -> bool:
-    if not isinstance(content, str):
-        return False
-    lowered = content.lower()
-    has_module_syntax = ("import " in lowered) or ("export " in lowered)
-    has_test_semantics = ("test(" in lowered) or ("it(" in lowered) or ("expect(" in lowered)
-    return has_module_syntax and has_test_semantics
+_SUBPROCESS_TIMEOUT = 120
 
 
-def _log_run_metric(project_name: str, payload: Dict[str, Any], run_id: str = "") -> None:
+# ══════════════════════════════════════════════════════════════════════════
+# Helpers Jest + Semgrep
+# ══════════════════════════════════════════════════════════════════════════
+
+def _write_test_files(test_files: Dict[str, str], project_workdir: str) -> list[str]:
+    written: list[str] = []
+    base = pathlib.Path(project_workdir)
+    for rel_path, content in test_files.items():
+        abs_path = base / rel_path
+        try:
+            abs_path.parent.mkdir(parents=True, exist_ok=True)
+            abs_path.write_text(content, encoding="utf-8")
+            written.append(rel_path)
+            activity.logger.info(f"[qa] ✓ Fichier de test écrit : {rel_path}")
+        except Exception as e:
+            activity.logger.warning(f"[qa] Impossible d'écrire {rel_path}: {e}")
+    return written
+
+
+def _run_jest(project_workdir: str) -> tuple[bool, str]:
+    if not os.path.isfile(os.path.join(project_workdir, "package.json")):
+        return False, "package.json introuvable — jest non lancé"
     try:
-        from agents.shared_tools import _write_learner_event
-        _write_learner_event(
-            event_type="qa_run",
-            payload={"project_name": project_name, "success": bool(payload.get("qa_e2e_coverage", False)), **payload},
-            run_id=run_id,
+        result = subprocess.run(
+            ["npx", "jest", "--passWithNoTests", "--no-coverage", "--forceExit"],
+            cwd=project_workdir,
+            capture_output=True,
+            text=True,
+            timeout=_SUBPROCESS_TIMEOUT,
+            env={**os.environ, "NODE_ENV": "test", "NEXT_TELEMETRY_DISABLED": "1"},
         )
-    except Exception as log_err:
-        activity.logger.warning(f"Impossible de logger qa_run vers Learner: {log_err}")
+        combined = (result.stdout + "\n" + result.stderr).strip()
+        passed = result.returncode == 0
+        summary_lines = [
+            line for line in combined.splitlines()
+            if any(kw in line for kw in ("Tests:", "Test Suites:", "PASS", "FAIL"))
+        ]
+        summary = " | ".join(summary_lines[-4:]) if summary_lines else combined[:200]
+        return passed, summary
+    except subprocess.TimeoutExpired:
+        return False, f"jest timeout ({_SUBPROCESS_TIMEOUT}s)"
+    except Exception as e:
+        return False, f"jest exception: {e}"
 
+
+def _run_semgrep(project_workdir: str) -> Dict[str, Any]:
+    rules_path = os.getenv("SEMGREP_RULES_PATH", "")
+    if not rules_path or not os.path.exists(rules_path):
+        return {"ran": False, "reason": "SEMGREP_RULES_PATH absent"}
+    try:
+        result = subprocess.run(
+            ["semgrep", "--config", rules_path, "--json", "--quiet", "."],
+            cwd=project_workdir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        import json
+        output = json.loads(result.stdout) if result.stdout.strip() else {}
+        findings = output.get("results", [])
+        return {
+            "ran": True,
+            "findings_count": len(findings),
+            "findings": [
+                {"rule": f.get("check_id", ""), "file": f.get("path", ""), "line": f.get("start", {}).get("line", 0)}
+                for f in findings[:10]
+            ],
+        }
+    except Exception as e:
+        return {"ran": False, "reason": str(e)}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Temporal Activity
+# ══════════════════════════════════════════════════════════════════════════
 
 @activity.defn(name="qa_activity")
-async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, Dict[str, str]]:
+async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, Any]:
     """
-    Exécute le QA Agent pour générer des tests E2E (Playwright/Jest).
-    Retourne un dictionnaire {chemin_fichier: contenu_test}
+    QA Activity — Sprint 4.8B.
+
+    Input :
+        project_name     : str
+        stack_id         : str
+        specification    : str
+        generated_files  : dict[str, str]
+        user_flows       : list  (réservé Sprint 4.9 — Playwright MCP)
+
+    Output :
+        e2e_tests        : dict[str, str]
+        tests_passed     : bool
+        tests_summary    : str
+        semgrep          : dict
     """
     try:
         from agents.shared_tools import set_run_id, set_stack_id
@@ -43,118 +126,46 @@ async def qa_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str,
         set_stack_id(str(input_data.get("stack_id", "nextjs-clerk-prisma")))
     except Exception:
         pass
-    input_data["run_id"] = run_id
-
-    # 1. Validation entrée
-    validate_input("qa_agent", input_data)
 
     project_name = input_data.get("project_name", "projet-sans-nom")
-    spec_summary = input_data.get("specification", "Application SaaS générique")
     stack_id = str(input_data.get("stack_id", "nextjs-clerk-prisma"))
-    try:
-        from agents.stack_config import load_stack_config
-        stack_cfg = load_stack_config(stack_id) or {}
-    except Exception:
-        stack_cfg = {}
-    qa_rules = stack_cfg.get("prompt_rules", {}).get("qa_rules", []) if isinstance(stack_cfg.get("prompt_rules"), dict) else []
-    qa_rules_block = "\n".join(f"- {r}" for r in qa_rules if isinstance(r, str))
-    generated_files = input_data.get("generated_files", {}) if isinstance(input_data.get("generated_files"), dict) else {}
-    run_metric: Dict[str, Any] = {
-        "qa_e2e_coverage": False,
-        "generated_tests_count": 0,
-        "error": "run_not_started",
-    }
+    generated_files: Dict[str, str] = input_data.get("generated_files", {}) or {}
 
-    activity.logger.info(f"QA activity démarrée → Projet: {project_name}")
+    factory_workdir = os.getenv("FACTORY_WORKDIR", "/app/generated-projects")
+    project_workdir = os.path.join(factory_workdir, project_name)
 
-    # 2. Imports différés
-    try:
-        from agents.qa import create_qa_agent
-        from langchain_core.messages import HumanMessage
-    except ImportError as ie:
-        raise ApplicationError("IMPORT_FAILURE", f"Échec import QA agent: {ie}")
+    activity.logger.info(f"[qa] Démarrage — projet={project_name} workdir_exists={os.path.isdir(project_workdir)}")
+
+    # ── Jest smoke tests ──────────────────────────────────────────────────
+    test_files: Dict[str, str] = {}
+    tests_passed = False
+    tests_summary = "Non exécuté"
+    semgrep_result: Dict[str, Any] = {"ran": False}
 
     try:
-        qa_agent = create_qa_agent()
-
-        # Construire le contexte fichiers : noms + contenu des routes/pages business
-        _business_keys = [
-            k for k in generated_files
-            if any(pat in k for pat in ["app/api/", "app/page.", "app/dashboard", "app/blog", "route.ts", "route.tsx"])
-        ][:10]
-        file_context_parts = []
-        for k in _business_keys:
-            content_preview = str(generated_files[k])[:600]
-            file_context_parts.append(f"// {k}\n{content_preview}")
-        file_context = "\n\n".join(file_context_parts) if file_context_parts else "N/A"
-        file_list = "\n".join(list(generated_files.keys())[:30]) if generated_files else "N/A"
-
-        initial_message = HumanMessage(
-            content=(
-                f"Projet : {project_name}\n"
-                f"Specs : {spec_summary[:1200]}\n\n"
-                f"Fichiers générés (liste complète):\n{file_list}\n\n"
-                f"Contenu des routes/pages business (source de vérité pour les tests):\n"
-                f"{file_context}\n\n"
-                f"Règles QA stack:\n{qa_rules_block if qa_rules_block else 'N/A'}\n\n"
-                "IMPORTANT : génère uniquement des tests pour les routes et pages LISTÉES ci-dessus. "
-                "Ne génère PAS de tests pour des routes inexistantes."
-            )
+        from agents.qa import generate_qa_tests
+        test_files = await generate_qa_tests(
+            project_name=project_name,
+            generated_files=generated_files,
+            stack_id=stack_id,
         )
-
-        final_state = await qa_agent.ainvoke({"messages": [initial_message]})
-
-        # Extraction du dernier message (supposé être le JSON ou le code)
-        last_msg = final_state.get("messages", [])[-1]
-        if not hasattr(last_msg, "content"):
-            raise ValueError("Pas de contenu dans le dernier message du QA agent")
-
-        raw_output = last_msg.content
-
-        # On suppose que l'agent retourne un dict JSON stringifié ou direct
-        if isinstance(raw_output, str):
-            try:
-                e2e_tests = json.loads(raw_output)
-            except json.JSONDecodeError:
-                # Fallback strict: accepter uniquement du TypeScript plausible.
-                if not _looks_like_typescript(raw_output):
-                    raise ValueError(
-                        "QA output rejected: fallback raw output is not valid TypeScript-like content "
-                        "(expected at least one of: import/export/const)."
-                    )
-                e2e_tests = {"tests/e2e/generated_e2e.spec.ts": raw_output}
-        elif isinstance(raw_output, dict):
-            e2e_tests = raw_output
-        else:
-            raise ValueError(f"Format inattendu retourné par QA agent: {type(raw_output)}")
-
-        # Validation stricte du contenu: chaque fichier doit ressembler à du TypeScript.
-        for test_path, test_content in e2e_tests.items():
-            if not _looks_like_typescript(test_content):
-                raise ValueError(
-                    f"QA output rejected for '{test_path}': not valid TypeScript-like content "
-                    "(expected at least one of: import/export/const)."
-                )
-
-        # 4. Validation sortie stricte
-        output = {"e2e_tests": e2e_tests}
-        validate_output("qa_agent", output)
-
-        run_metric = {
-            "qa_e2e_coverage": len(e2e_tests) > 0,
-            "generated_tests_count": len(e2e_tests),
-            "error": None,
-        }
-        activity.logger.info(f"QA terminé → {len(e2e_tests)} fichiers de tests générés")
-        return output
-
     except Exception as e:
-        run_metric = {
-            "qa_e2e_coverage": False,
-            "generated_tests_count": 0,
-            "error": str(e),
-        }
-        activity.logger.error(f"Échec QA activity: {str(e)}", exc_info=True)
-        raise ApplicationError("QA_EXECUTION_FAILED", str(e))
-    finally:
-        _log_run_metric(project_name, run_metric, run_id)
+        activity.logger.warning(f"[qa] generate_qa_tests échoué (non-bloquant): {e}")
+
+    if test_files and os.path.isdir(project_workdir):
+        written = _write_test_files(test_files, project_workdir)
+        activity.logger.info(f"[qa] {len(written)} fichier(s) Jest écrits")
+        tests_passed, tests_summary = _run_jest(project_workdir)
+        activity.logger.info(f"[qa] Jest → {'PASS' if tests_passed else 'FAIL'} | {tests_summary[:100]}")
+        semgrep_result = _run_semgrep(project_workdir)
+        if semgrep_result.get("ran"):
+            activity.logger.info(f"[qa] Semgrep → {semgrep_result.get('findings_count', 0)} finding(s)")
+    else:
+        activity.logger.info("[qa] Skippé — pas de tests générés ou workdir absent")
+
+    return {
+        "e2e_tests": test_files,
+        "tests_passed": tests_passed,
+        "tests_summary": tests_summary,
+        "semgrep": semgrep_result,
+    }

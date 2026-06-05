@@ -284,14 +284,23 @@ class TodoPilotWorkflow:
                     }
 
                     # ── Correction pass si DEGRADED ou INCOHERENT ─────────────
+                    # Déclenche sur findings actionnables (pas targeted_fixes, toujours vide).
                     if review_verdict in ("DEGRADED", "INCOHERENT"):
-                        targeted_fixes = review_report.get("targeted_fixes", []) or []
-                        if targeted_fixes:
+                        _CORRECTION_FIXABLE = {"WRONG_AUTH", "MISSING_AUTH", "BRIEF_CONFORMITY"}
+                        all_review_findings = review_report.get("findings", []) or []
+                        actionable_findings = [
+                            f for f in all_review_findings
+                            if f.get("type") in _CORRECTION_FIXABLE
+                            and f.get("severity") in ("CRITICAL", "WARNING")
+                        ]
+                        if actionable_findings:
                             correction_input: Dict[str, Any] = {
                                 "project_name": project_name,
                                 "stack_id": stack_id,
-                                "targeted_fixes": targeted_fixes,
+                                "findings": all_review_findings,
                                 "review_verdict": review_verdict,
+                                "brief": brief.get("description", "") if isinstance(brief, dict) else str(brief),
+                                "spec": project_spec_part,
                             }
                             try:
                                 correction_result: Dict[str, Any] = await workflow.execute_activity(
@@ -345,10 +354,11 @@ class TodoPilotWorkflow:
                                 workflow.logger.warning(f"[CORRECTION_PASS] échoué (non-bloquant): {corr_err}")
                                 activity_results["correction_pass"] = {"status": "FAILED", "error": str(corr_err)}
                         else:
-                            workflow.logger.warning(
-                                f"[REVIEW] verdict={review_verdict} mais targeted_fixes vide — correction ignorée"
+                            workflow.logger.info(
+                                f"[REVIEW] verdict={review_verdict} — aucun finding actionnable "
+                                f"(WRONG_AUTH/MISSING_AUTH/BRIEF_CONFORMITY) parmi {len(all_review_findings)} findings — correction ignorée"
                             )
-                            activity_results["correction_pass"] = {"status": "SKIPPED_NO_FIXES"}
+                            activity_results["correction_pass"] = {"status": "SKIPPED_NO_FIXABLE_FINDINGS"}
 
                     # Downgrade build_status si INCOHERENT persistant après correction
                     if review_verdict == "INCOHERENT":
@@ -387,29 +397,65 @@ class TodoPilotWorkflow:
             # Skippé si BUILD_FAILED ou REVIEW_INCOHERENT : app trop dégradée pour générer des tests utiles.
             e2e_tests: Dict[str, str] = {}
             if build_status not in ("BUILD_FAILED", "SEMANTIC_VIOLATION", "REVIEW_INCOHERENT"):
-                workflow.logger.info("[QA] Génération tests e2e")
+                workflow.logger.info(
+                    f"[QA] Démarrage — user_flows={len(user_flows_part)} "
+                    f"→ stream noVNC http://localhost:6080"
+                )
                 qa_input = {
                     "specification": spec_part,
                     "project_name": project_name,
                     "stack_id": stack_id,
                     "generated_files": combined_files,
+                    "user_flows": user_flows_part,
                 }
                 try:
                     qa_result_raw: Dict[str, Any] = await workflow.execute_activity(
                         qa_activity,
                         args=[qa_input, run_id],
-                        start_to_close_timeout=timedelta(minutes=10),
+                        start_to_close_timeout=timedelta(minutes=20),
                         retry_policy=qa_retry_policy,
                     )
                     e2e_tests = qa_result_raw.get("e2e_tests", {})
-                    workflow.logger.info(f"[QA] {len(e2e_tests)} tests générés")
-                    activity_results["qa"] = {"status": "COMPLETED", "tests_count": len(e2e_tests)}
+                    qa_tests_passed = bool(qa_result_raw.get("tests_passed", False))
+                    qa_tests_summary = str(qa_result_raw.get("tests_summary", ""))
+                    qa_semgrep = qa_result_raw.get("semgrep", {})
+                    browser_qa = qa_result_raw.get("browser_qa", {})
+                    qa_score = float(browser_qa.get("qa_score", 0.0))
+                    workflow.logger.info(
+                        f"[QA] Jest={'PASS' if qa_tests_passed else 'FAIL'} | "
+                        f"BrowserUse qa_score={qa_score:.0%} "
+                        f"({browser_qa.get('flows_passed', 0)}/{browser_qa.get('flows_total', 0)} flows)"
+                    )
+                    if qa_semgrep.get("ran"):
+                        workflow.logger.info(
+                            f"[QA] Semgrep → {qa_semgrep.get('findings_count', 0)} finding(s)"
+                        )
+                    activity_results["qa"] = {
+                        "status": "COMPLETED",
+                        "tests_count": len(e2e_tests),
+                        "tests_passed": qa_tests_passed,
+                        "tests_summary": qa_tests_summary,
+                        "semgrep_findings": qa_semgrep.get("findings_count", 0) if qa_semgrep.get("ran") else None,
+                        "qa_score": qa_score,
+                        "flows_passed": browser_qa.get("flows_passed", 0),
+                        "flows_total": browser_qa.get("flows_total", 0),
+                        "flow_results": browser_qa.get("flow_results", []),
+                    }
                 except Exception as qa_err:
                     workflow.logger.warning(f"[QA] échoué: {qa_err}")
-                    activity_results["qa"] = {"status": "FAILED", "error": str(qa_err), "tests_count": 0}
+                    activity_results["qa"] = {
+                        "status": "FAILED",
+                        "error": str(qa_err),
+                        "tests_count": 0,
+                        "tests_passed": False,
+                    }
             else:
                 workflow.logger.info(f"[QA] Skippé — build_status={build_status} (0 token dépensé)")
-                activity_results["qa"] = {"status": f"SKIPPED_{build_status}", "tests_count": 0}
+                activity_results["qa"] = {
+                    "status": f"SKIPPED_{build_status}",
+                    "tests_count": 0,
+                    "tests_passed": False,
+                }
 
             # ── 5. GitHub ─────────────────────────────────────────────────
             github_input = {

@@ -1,0 +1,40 @@
+
+> event-board@0.1.0 dev
+> next dev --port 3000
+
+   ▲ Next.js 15.3.0
+   - Local:        http://localhost:3000
+   - Network:      http://172.18.0.6:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1577ms
+ ✓ Compiled /middleware in 141ms
+ ✓ Compiled (218 modules)
+ ○ Compiling /_not-found ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (192kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled /_not-found in 7.3s (1103 modules)
+ GET / 404 in 51ms
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+ ○ Compiling /sign-in/[[...sign-in]] ...
+ ✓ Compiled /sign-in/[[...sign-in]] in 779ms (1108 modules)
+ GET /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 1714ms
+ POST /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 46ms
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+ GET /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 54ms
+ POST /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 12ms
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+ GET /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 69ms
+ POST /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 18ms
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+ GET /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 143ms
+ POST /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 19ms
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+Clerk: Refreshing the session token resulted in an infinite redirect loop. This usually means that your Clerk instance keys do not match - make sure to copy the correct publishable and secret keys from the Clerk dashboard.
+ GET /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 70ms
+ POST /sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3000%2F 200 in 16ms
+[?25h

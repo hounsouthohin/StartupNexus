@@ -1,4 +1,11 @@
 [
+
+  {
+    "project_name": "recipe-manager",
+    "brief": {
+      "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation en minutes, un niveau de difficulté — facile, moyen ou difficile — et les ingrédients. Je classe mes recettes par catégories — entrées, plats principaux, desserts — gérées depuis une page dédiée. Une recette peut être privée ou publique : les recettes publiques sont visibles par tous les visiteurs sans connexion, les recettes privées sont visibles uniquement par moi. Je gère mes recettes depuis mon espace privé après connexion. Les visiteurs peuvent parcourir et consulter les recettes publiques sans créer de compte."
+    }
+  },
   {
     "project_name": "expense-tracker",
     "brief": {
@@ -37,13 +44,6 @@
     "project_name": "learn-hub",
     "brief": {
       "description": "Une plateforme e-learning privée. Je crée des cours, chaque cours contient des modules, et chaque module contient des leçons. Un cours a un titre, une description et un niveau — débutant, intermédiaire ou avancé. Un module a un titre et un numéro d'ordre dans le cours — le module est lié au cours via courseId. Une leçon a un titre, un contenu texte et une durée en minutes — la leçon est liée au module via moduleId. Tout est privé, accessible après connexion. Je veux pouvoir naviguer depuis un cours vers ses modules, et depuis un module vers ses leçons."
-    }
-  },
-
-  {
-    "project_name": "recipe-manager",
-    "brief": {
-      "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation en minutes, un niveau de difficulté — facile, moyen ou difficile — et les ingrédients. Je classe mes recettes par catégories — entrées, plats principaux, desserts — gérées depuis une page dédiée. Une recette peut être privée ou publique : les recettes publiques sont visibles par tous les visiteurs sans connexion, les recettes privées sont visibles uniquement par moi. Je gère mes recettes depuis mon espace privé après connexion. Les visiteurs peuvent parcourir et consulter les recettes publiques sans créer de compte."
     }
   }
 
