@@ -51,6 +51,12 @@ def generate_middleware(spec, project_workdir: str) -> dict[str, str]:
     """
     public_paths: list[str] = list(_CLERK_PUBLIC_ROUTES)
 
+    # Si l'app a des pages publiques, la homepage racine "/" l'est aussi.
+    # Sans ce guard, toute app type_d redirige les visiteurs anonymes vers /sign-in
+    # avant même qu'ils voient la landing page.
+    if any(True for _ in spec.get_public_pages()) and "/" not in public_paths:
+        public_paths.append("/")
+
     for page in spec.get_public_pages():
         path = page.path.rstrip("/")
         if not path:

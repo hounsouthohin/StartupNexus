@@ -301,6 +301,43 @@ async def run_dev_agent(
         except Exception as _act_err:
             logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
 
+    # ══ UI INFRASTRUCTURE — design system, layout, navigation ════════════════════
+    # Générés avant les pages pour que les composants UI existent sur disque
+    # quand le LLM démarre. Tous lockés dans template_written.
+    _design_system = spec.get("design_system") or getattr(spec_obj, "design_system", {}) or {}
+
+    # ── Design system : composants UI + tailwind.config.js + globals.css ─────
+    if spec_obj is not None:
+        try:
+            from .dev_design_system_generator import generate_design_system
+            _ds_files = generate_design_system(project_workdir, design_system=_design_system)
+            template_written.update(_ds_files)
+            logger.info("[dev_graph] design system généré (%d fichiers, primary=%s)",
+                        len(_ds_files), _design_system.get("primary_color", "blue-600"))
+        except Exception as _ds_err:
+            logger.warning("[dev_graph] design_system_generator non bloquant : %s", _ds_err)
+
+    # ── Layout + DashboardShell — avec les vraies couleurs du brief ───────────
+    if spec_obj is not None:
+        try:
+            from .dev_layout_generator import generate_layout
+            _layout_files = generate_layout(project_workdir, project_name, spec)
+            template_written.update(_layout_files)
+            logger.info("[dev_graph] layout + DashboardShell générés (sidebar=%s)",
+                        _design_system.get("sidebar_bg", "white"))
+        except Exception as _ly_err:
+            logger.warning("[dev_graph] layout_generator non bloquant : %s", _ly_err)
+
+    # ── Navigation.tsx — liens depuis spec.pages ──────────────────────────────
+    if spec_obj is not None:
+        try:
+            from .dev_navigation_generator import generate_navigation
+            _nav_files = generate_navigation(spec_obj, project_workdir)
+            template_written.update(_nav_files)
+            logger.info("[dev_graph] navigation.tsx générée")
+        except Exception as _nav_err:
+            logger.warning("[dev_graph] navigation_generator non bloquant : %s", _nav_err)
+
     # ══ UI — générés après les fondations ═════════════════════════════════════
 
     # ── Génération déterministe : pages + loading + error ───────────────────────
@@ -321,11 +358,6 @@ async def run_dev_agent(
             # Middleware dynamique : routes publiques injectées depuis spec.get_public_pages()
             _mw_files = generate_middleware(spec_obj, project_workdir)
             template_written.update(_mw_files)
-
-            # Navigation déterministe : liens depuis spec.pages[] (hors /new et [id])
-            from .dev_navigation_generator import generate_navigation
-            _nav_files = generate_navigation(spec_obj, project_workdir)
-            template_written.update(_nav_files)
 
             # Page racine déterministe EN PREMIER : doit précéder generate_page_stubs
             # pour que le fichier existe et soit ignoré par generate_page_stubs
@@ -358,7 +390,7 @@ async def run_dev_agent(
     if spec_obj is not None and _model_contexts:
         try:
             from .dev_form_generator import generate_all_page_clients
-            _form_files = generate_all_page_clients(spec_obj, _model_contexts, project_workdir, enriched_spec=_enriched_spec)
+            _form_files = generate_all_page_clients(spec_obj, _model_contexts, project_workdir, enriched_spec=_enriched_spec, design_system=_design_system)
             template_written.update(_form_files)
             logger.info("[dev_graph] %d page-client.tsx générés de manière déterministe", len(_form_files))
         except Exception as _fg_err:
@@ -372,7 +404,7 @@ async def run_dev_agent(
     if spec_obj is not None and _model_contexts:
         try:
             from .dev_form_generator import generate_parent_detail_pages
-            _parent_detail_files = generate_parent_detail_pages(spec_obj, _model_contexts, project_workdir)
+            _parent_detail_files = generate_parent_detail_pages(spec_obj, _model_contexts, project_workdir, design_system=_design_system)
             template_written.update(_parent_detail_files)
             if _parent_detail_files:
                 logger.info("[dev_graph] %d fichier(s) parent detail auto-générés", len(_parent_detail_files))
@@ -638,6 +670,7 @@ async def run_dev_agent(
                 pre_written_files=list(template_written.keys()),
                 service_map=_service_map_str,
                 prisma_type_map=_prisma_type_map,
+                design_system=_design_system,
             )
             logger.info("[dev_graph] System prompt chargé depuis dev_prompts.py")
         except Exception as e:

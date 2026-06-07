@@ -38,6 +38,9 @@ GENERATED_FILES = [
     "jest.config.js",
     "jest.setup.js",
     ".eslintrc.json",
+    # FrontendActivity (Sprint 4.9A)
+    "tailwind.config.js",
+    "postcss.config.js",
     # Tests générés hors sous-dossiers
     "tests/middleware.test.ts",
     "tests/jestConfig.test.js",

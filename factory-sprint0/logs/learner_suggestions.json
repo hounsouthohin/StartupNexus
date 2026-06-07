@@ -1,0 +1,836 @@
+[
+  {
+    "suggestion_id": "P001-830bd3",
+    "category": "prompt",
+    "severity": "high",
+    "title": "Taux de succès global insuffisant",
+    "description": "Seulement 32% de succès sur 1407 runs. Améliorer les prompts dev ou renforcer les guards de séquence.",
+    "evidence": {
+      "success_rate": 0.323,
+      "total_runs": 1407,
+      "successes": 455
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.118939+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-049248",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 26× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 26,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119536+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-60923e",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING middleware.ts",
+    "description": "'MISSING middleware.ts' observée 24× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING middleware.ts",
+      "count": 24,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119560+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-9144a1",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING app/layout.tsx",
+    "description": "'MISSING app/layout.tsx' observée 24× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING app/layout.tsx",
+      "count": 24,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119575+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-a8389e",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING package.json — dev agent a appelé run_build avant d'",
+    "description": "'MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques' observée 21× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques",
+      "count": 21,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119586+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-3d458f",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING .env.local — variables requises non générées",
+    "description": "'MISSING .env.local — variables requises non générées' observée 12× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING .env.local — variables requises non générées",
+      "count": 12,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119596+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-f36533",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING env var DATABASE_URL in .env.local",
+    "description": "'MISSING env var DATABASE_URL in .env.local' observée 2× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING env var DATABASE_URL in .env.local",
+      "count": 2,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119619+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-954ea0",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: INVALID env var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='your_publ",
+    "description": "'INVALID env var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='your_publishable_key\\nCLERK_SECRET_KEY=y' — attendu: ^pk_(test|live)_' observée 2× sur 1407 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "INVALID env var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='your_publishable_key\\nCLERK_SECRET_KEY=y' — attendu: ^pk_(test|live)_",
+      "count": 2,
+      "total_runs": 1407
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.119634+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P004-a4160f",
+    "category": "config",
+    "severity": "medium",
+    "title": "MAX_ITERATIONS atteint dans plus de 30% des runs",
+    "description": "450/1407 runs atteignent MAX_ITERATIONS (≥10). Envisager un early-stop basé sur les fichiers générés ou des prompts plus directifs pour réduire le nombre d'itérations.",
+    "evidence": {
+      "max_iter_runs": 450,
+      "total": 1407,
+      "ratio": 0.32,
+      "threshold": 0.3
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.120120+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P005-89ba2c",
+    "category": "standard",
+    "severity": "low",
+    "title": "Amélioration du taux de succès confirmée sur les 5 derniers runs",
+    "description": "Taux de succès: 0% (5 premiers) → 100% (5 derniers). Les changements récents sont positifs — les documenter dans MEMORY.md et promouvoir les guards correspondants en standard Qdrant.",
+    "evidence": {
+      "early_success_rate": 0.0,
+      "recent_success_rate": 1.0,
+      "improvement": 1.0
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.120150+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-a3557f",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (56×): <w> [webpack.cache.packfilecachestrategy] serializing big st",
+    "description": "La signature d'erreur '<w> [webpack.cache.packfilecachestrategy] serializing big strings (192kib) impac' est apparue 56× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "<w> [webpack.cache.packfilecachestrategy] serializing big strings (192kib) impacts deserialization performance (consider",
+      "count": 56,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.130391+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-22ab65",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (37×): failed (exit 1)\n> project-hub@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> project-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 37× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> project-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 37,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.130432+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-7fd3d0",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (24×): failed (exit 1)\n> personal-blog@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> personal-blog@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 24× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> personal-blog@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 24,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.130445+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-2e5416",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (19×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 19× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 19,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.130456+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-708af7",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (15×): failed to compile.\n\n<FILE>x\nerror: \n  \u001b[31mx\u001b[0m you're impo",
+    "description": "La signature d'erreur 'failed to compile.\n\n<FILE>x\nerror: \n  \u001b[31mx\u001b[0m you're importing a component th' est apparue 15× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed to compile.\n\n<FILE>x\nerror: \n  \u001b[31mx\u001b[0m you're importing a component that needs useeffect. it only works in a c",
+      "count": 15,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T06:01:14.130468+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P008-d0dbe7",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent security sur app/api/*.ts",
+    "description": "Corrections récurrentes détectées sur 4 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "52b1e4d0-ae36-456a-8a24-9b2bae613330",
+        "ddd809c4-3854-4618-a045-3d9759b0b3cc",
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9"
+      ],
+      "corrected_runs_total": 39,
+      "reviewed_files_total": 170,
+      "avg_supervisor_confidence": 0.942
+    },
+    "supervisor_type": "security",
+    "file_type": "app/api/*.ts",
+    "pattern": "Le superviseur 'security' corrige fréquemment le type de fichier 'app/api/*.ts' sur des runs consécutifs.",
+    "zone_target": "ZONE_16",
+    "confidence": 0.229,
+    "generated_at": "2026-06-06T06:01:14.134629+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-104188",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent architecture sur app/**/*.tsx",
+    "description": "Corrections récurrentes détectées sur 3 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9",
+        "64587591-ec42-448d-a980-431068993966"
+      ],
+      "corrected_runs_total": 27,
+      "reviewed_files_total": 146,
+      "avg_supervisor_confidence": 0.821
+    },
+    "supervisor_type": "architecture",
+    "file_type": "app/**/*.tsx",
+    "pattern": "Le superviseur 'architecture' corrige fréquemment le type de fichier 'app/**/*.tsx' sur des runs consécutifs.",
+    "zone_target": "ZONE_17",
+    "confidence": 0.185,
+    "generated_at": "2026-06-06T06:01:14.134699+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-fe466c",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent conformity sur app/api/*.ts",
+    "description": "Corrections récurrentes détectées sur 8 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "ddd809c4-3854-4618-a045-3d9759b0b3cc",
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9",
+        "64587591-ec42-448d-a980-431068993966",
+        "d4d26ff8-b4a1-43ea-981d-ca49234ac86b",
+        "8ff5bd97-0f53-4492-b26d-0ce5dd2a9ee3",
+        "a0af5ce7-1567-488e-88f6-6fe15a0e5142",
+        "28f9bfbc-53cb-4721-9e4a-38f26e66cce2"
+      ],
+      "corrected_runs_total": 31,
+      "reviewed_files_total": 170,
+      "avg_supervisor_confidence": 0.866
+    },
+    "supervisor_type": "conformity",
+    "file_type": "app/api/*.ts",
+    "pattern": "Le superviseur 'conformity' corrige fréquemment le type de fichier 'app/api/*.ts' sur des runs consécutifs.",
+    "zone_target": "ZONE_15",
+    "confidence": 0.182,
+    "generated_at": "2026-06-06T06:01:14.134739+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-1b9f8a",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent conformity sur app/**/*.tsx",
+    "description": "Corrections récurrentes détectées sur 3 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9",
+        "64587591-ec42-448d-a980-431068993966"
+      ],
+      "corrected_runs_total": 19,
+      "reviewed_files_total": 146,
+      "avg_supervisor_confidence": 0.854
+    },
+    "supervisor_type": "conformity",
+    "file_type": "app/**/*.tsx",
+    "pattern": "Le superviseur 'conformity' corrige fréquemment le type de fichier 'app/**/*.tsx' sur des runs consécutifs.",
+    "zone_target": "ZONE_15",
+    "confidence": 0.13,
+    "generated_at": "2026-06-06T06:01:14.134769+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-bfc112",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent deterministic sur prisma/schema.prisma",
+    "description": "Corrections récurrentes détectées sur 8 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "565aae95-1b85-458d-ab79-75b0af541bcd",
+        "bf6973b2-e428-4332-a774-59592763f500",
+        "56f2984c-530f-42de-9d1f-55ab0ade192f",
+        "28793e1d-bcd8-46f7-9b5b-6b743729f0d3",
+        "5331b080-3dad-4dd3-a713-9632aa056845",
+        "a548300d-14d1-4eca-ba31-2f12890a32fa",
+        "a3774dae-632c-4c5b-85ba-2967269a01ae",
+        "8950f473-0557-414d-8021-85724f98cab0"
+      ],
+      "corrected_runs_total": 13,
+      "reviewed_files_total": 46,
+      "avg_supervisor_confidence": 1.0
+    },
+    "supervisor_type": "deterministic",
+    "file_type": "prisma/schema.prisma",
+    "pattern": "Le superviseur 'deterministic' corrige fréquemment le type de fichier 'prisma/schema.prisma' sur des runs consécutifs.",
+    "zone_target": "ZONE_15",
+    "confidence": 0.283,
+    "generated_at": "2026-06-06T06:01:14.134795+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P001-8d453c",
+    "category": "prompt",
+    "severity": "high",
+    "title": "Taux de succès global insuffisant",
+    "description": "Seulement 32% de succès sur 1408 runs. Améliorer les prompts dev ou renforcer les guards de séquence.",
+    "evidence": {
+      "success_rate": 0.324,
+      "total_runs": 1408,
+      "successes": 456
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.083941+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-537403",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 26× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 26,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084297+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-2e5dda",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING middleware.ts",
+    "description": "'MISSING middleware.ts' observée 24× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING middleware.ts",
+      "count": 24,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084305+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-25bf03",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING app/layout.tsx",
+    "description": "'MISSING app/layout.tsx' observée 24× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING app/layout.tsx",
+      "count": 24,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084311+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-ccb8b4",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING package.json — dev agent a appelé run_build avant d'",
+    "description": "'MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques' observée 21× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING package.json — dev agent a appelé run_build avant d'écrire les fichiers critiques",
+      "count": 21,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084318+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-79900c",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING .env.local — variables requises non générées",
+    "description": "'MISSING .env.local — variables requises non générées' observée 12× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING .env.local — variables requises non générées",
+      "count": 12,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084323+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-25a20f",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: MISSING env var DATABASE_URL in .env.local",
+    "description": "'MISSING env var DATABASE_URL in .env.local' observée 2× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "MISSING env var DATABASE_URL in .env.local",
+      "count": 2,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084348+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P002-872451",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: INVALID env var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='your_publ",
+    "description": "'INVALID env var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='your_publishable_key\\nCLERK_SECRET_KEY=y' — attendu: ^pk_(test|live)_' observée 2× sur 1408 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "INVALID env var NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='your_publishable_key\\nCLERK_SECRET_KEY=y' — attendu: ^pk_(test|live)_",
+      "count": 2,
+      "total_runs": 1408
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084359+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P004-570da0",
+    "category": "config",
+    "severity": "medium",
+    "title": "MAX_ITERATIONS atteint dans plus de 30% des runs",
+    "description": "450/1408 runs atteignent MAX_ITERATIONS (≥10). Envisager un early-stop basé sur les fichiers générés ou des prompts plus directifs pour réduire le nombre d'itérations.",
+    "evidence": {
+      "max_iter_runs": 450,
+      "total": 1408,
+      "ratio": 0.32,
+      "threshold": 0.3
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084657+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P005-16cfa7",
+    "category": "standard",
+    "severity": "low",
+    "title": "Amélioration du taux de succès confirmée sur les 5 derniers runs",
+    "description": "Taux de succès: 0% (5 premiers) → 100% (5 derniers). Les changements récents sont positifs — les documenter dans MEMORY.md et promouvoir les guards correspondants en standard Qdrant.",
+    "evidence": {
+      "early_success_rate": 0.0,
+      "recent_success_rate": 1.0,
+      "improvement": 1.0
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.084677+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-c3be67",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (56×): <w> [webpack.cache.packfilecachestrategy] serializing big st",
+    "description": "La signature d'erreur '<w> [webpack.cache.packfilecachestrategy] serializing big strings (192kib) impac' est apparue 56× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "<w> [webpack.cache.packfilecachestrategy] serializing big strings (192kib) impacts deserialization performance (consider",
+      "count": 56,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.090609+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-f9e767",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (37×): failed (exit 1)\n> project-hub@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> project-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 37× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> project-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 37,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.090625+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-d1438d",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (24×): failed (exit 1)\n> personal-blog@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> personal-blog@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 24× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> personal-blog@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 24,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.090631+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-2a0790",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (19×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 19× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 19,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.090637+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-61d494",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (15×): failed to compile.\n\n<FILE>x\nerror: \n  \u001b[31mx\u001b[0m you're impo",
+    "description": "La signature d'erreur 'failed to compile.\n\n<FILE>x\nerror: \n  \u001b[31mx\u001b[0m you're importing a component th' est apparue 15× sur 949 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed to compile.\n\n<FILE>x\nerror: \n  \u001b[31mx\u001b[0m you're importing a component that needs useeffect. it only works in a c",
+      "count": 15,
+      "failed_runs": 949
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-06-06T07:09:48.090642+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P008-4e1db9",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent security sur app/api/*.ts",
+    "description": "Corrections récurrentes détectées sur 4 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "52b1e4d0-ae36-456a-8a24-9b2bae613330",
+        "ddd809c4-3854-4618-a045-3d9759b0b3cc",
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9"
+      ],
+      "corrected_runs_total": 39,
+      "reviewed_files_total": 170,
+      "avg_supervisor_confidence": 0.942
+    },
+    "supervisor_type": "security",
+    "file_type": "app/api/*.ts",
+    "pattern": "Le superviseur 'security' corrige fréquemment le type de fichier 'app/api/*.ts' sur des runs consécutifs.",
+    "zone_target": "ZONE_16",
+    "confidence": 0.229,
+    "generated_at": "2026-06-06T07:09:48.092528+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-34955d",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent architecture sur app/**/*.tsx",
+    "description": "Corrections récurrentes détectées sur 3 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9",
+        "64587591-ec42-448d-a980-431068993966"
+      ],
+      "corrected_runs_total": 27,
+      "reviewed_files_total": 146,
+      "avg_supervisor_confidence": 0.821
+    },
+    "supervisor_type": "architecture",
+    "file_type": "app/**/*.tsx",
+    "pattern": "Le superviseur 'architecture' corrige fréquemment le type de fichier 'app/**/*.tsx' sur des runs consécutifs.",
+    "zone_target": "ZONE_17",
+    "confidence": 0.185,
+    "generated_at": "2026-06-06T07:09:48.092546+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-10a7dc",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent conformity sur app/api/*.ts",
+    "description": "Corrections récurrentes détectées sur 8 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "ddd809c4-3854-4618-a045-3d9759b0b3cc",
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9",
+        "64587591-ec42-448d-a980-431068993966",
+        "d4d26ff8-b4a1-43ea-981d-ca49234ac86b",
+        "8ff5bd97-0f53-4492-b26d-0ce5dd2a9ee3",
+        "a0af5ce7-1567-488e-88f6-6fe15a0e5142",
+        "28f9bfbc-53cb-4721-9e4a-38f26e66cce2"
+      ],
+      "corrected_runs_total": 31,
+      "reviewed_files_total": 170,
+      "avg_supervisor_confidence": 0.866
+    },
+    "supervisor_type": "conformity",
+    "file_type": "app/api/*.ts",
+    "pattern": "Le superviseur 'conformity' corrige fréquemment le type de fichier 'app/api/*.ts' sur des runs consécutifs.",
+    "zone_target": "ZONE_15",
+    "confidence": 0.182,
+    "generated_at": "2026-06-06T07:09:48.092560+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-05efa1",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent conformity sur app/**/*.tsx",
+    "description": "Corrections récurrentes détectées sur 3 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "104d5a93-a4ad-4159-acb9-1276a8038680",
+        "fd932a35-c9f5-4aaa-9355-9cc56244a9d9",
+        "64587591-ec42-448d-a980-431068993966"
+      ],
+      "corrected_runs_total": 19,
+      "reviewed_files_total": 146,
+      "avg_supervisor_confidence": 0.854
+    },
+    "supervisor_type": "conformity",
+    "file_type": "app/**/*.tsx",
+    "pattern": "Le superviseur 'conformity' corrige fréquemment le type de fichier 'app/**/*.tsx' sur des runs consécutifs.",
+    "zone_target": "ZONE_15",
+    "confidence": 0.13,
+    "generated_at": "2026-06-06T07:09:48.092571+00:00",
+    "sprint": "sprint46_v2"
+  },
+  {
+    "suggestion_id": "P008-47b5de",
+    "category": "standard",
+    "severity": "medium",
+    "title": "Pattern récurrent deterministic sur prisma/schema.prisma",
+    "description": "Corrections récurrentes détectées sur 8 runs consécutifs. Candidat pour standard prescriptif en amont.",
+    "evidence": {
+      "run_ids": [
+        "565aae95-1b85-458d-ab79-75b0af541bcd",
+        "bf6973b2-e428-4332-a774-59592763f500",
+        "56f2984c-530f-42de-9d1f-55ab0ade192f",
+        "28793e1d-bcd8-46f7-9b5b-6b743729f0d3",
+        "5331b080-3dad-4dd3-a713-9632aa056845",
+        "a548300d-14d1-4eca-ba31-2f12890a32fa",
+        "a3774dae-632c-4c5b-85ba-2967269a01ae",
+        "8950f473-0557-414d-8021-85724f98cab0"
+      ],
+      "corrected_runs_total": 13,
+      "reviewed_files_total": 46,
+      "avg_supervisor_confidence": 1.0
+    },
+    "supervisor_type": "deterministic",
+    "file_type": "prisma/schema.prisma",
+    "pattern": "Le superviseur 'deterministic' corrige fréquemment le type de fichier 'prisma/schema.prisma' sur des runs consécutifs.",
+    "zone_target": "ZONE_15",
+    "confidence": 0.283,
+    "generated_at": "2026-06-06T07:09:48.092582+00:00",
+    "sprint": "sprint46_v2"
+  }
+]

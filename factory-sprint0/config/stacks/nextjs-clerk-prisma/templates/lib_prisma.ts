@@ -4,9 +4,10 @@ import { Pool } from 'pg'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/postgres'
+const connectionString = process.env.DATABASE_URL
+if (!connectionString) throw new Error('DATABASE_URL environment variable is not set')
 
-const pool = new Pool({ connectionString })
+const pool = new Pool({ connectionString, max: 10, idleTimeoutMillis: 30000 })
 const adapter = new PrismaPg(pool)
 
 export const prisma =

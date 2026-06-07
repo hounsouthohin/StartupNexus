@@ -90,12 +90,36 @@ Validations dans `AppSpec.model_validator()` :
 | `dev_pages_generator.py` | `app/*/page.tsx` (avec model) | ✅ |
 | `dev_pages_generator.py` | `app/*/page-client.tsx` (list + create) | ✅ |
 | `dev_middleware_generator.py` | `middleware.ts` | ✅ |
+| `dev_design_system_generator.py` | `app/globals.css`, `tailwind.config.js`, `postcss.config.js` | ✅ |
+| `dev_design_system_generator.py` | `components/ui/*.tsx` (shadcn officiel, copié depuis `assets/shadcn/`) | ✅ |
+| `dev_design_system_generator.py` | `lib/utils.ts` (shadcn util), `components/Empty.tsx`, `components/StatCard.tsx` | ✅ |
+| `dev_layout_generator.py` | `app/components/layout/DashboardShell.tsx`, `app/layout.tsx` | ✅ |
+| `dev_navigation_generator.py` | `components/navigation.tsx` (liens sidebar depuis spec.pages) | ✅ |
 
 **Signature obligatoire pour tout nouveau générateur :**
 ```python
 def generate_xxx(spec: AppSpec, workdir: str) -> dict[str, str]:
     """Retourne {chemin_relatif: contenu}. Ne write pas sur disque."""
 ```
+
+### Cas spécial — générateurs design (pas de AppSpec)
+
+Les générateurs de design (`dev_design_system_generator`, `dev_layout_generator`) reçoivent
+`project_workdir: str` et `design_system: dict | None` plutôt que `spec: AppSpec`. Raison :
+le design_system est un sous-dict plat sans logique AppSpec. Signature tolérée :
+```python
+def generate_design_system(project_workdir: str, design_system: dict | None = None) -> dict[str, str]:
+```
+
+### Shadcn assets — prérequis
+
+Les composants `components/ui/*.tsx` sont copiés depuis `factory-sprint0/assets/shadcn/`.
+Ce répertoire doit être peuplé une seule fois en exécutant :
+```powershell
+cd factory-sprint0
+powershell -ExecutionPolicy Bypass -File scripts\prebuild_shadcn.ps1
+```
+Puis commiter les fichiers générés. Si `assets/shadcn/` est absent → warning non-bloquant, composants shadcn absents du projet (les autres fichiers design sont générés normalement).
 
 **Pattern d'intégration dans `dev_graph.py` :**
 ```python
@@ -152,3 +176,4 @@ model_to_serialized_type(name)  # Post → SerializedPost
 |---|---|---|
 | 1.0 | Mai 2026 | Document initial |
 | 1.1 | Mai 2026 | `page-client.tsx` list/create lockés dans `template_written` · page_type déclaré (F1 fixée) · document raccourci |
+| 1.2 | Juin 2026 | Ajout générateurs design au catalogue (dev_design_system_generator, dev_layout_generator, dev_navigation_generator) · tokens CSS variables · shadcn/ui prebuild script |

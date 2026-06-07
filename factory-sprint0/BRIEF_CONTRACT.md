@@ -26,7 +26,15 @@ Source de vérité pour soumettre un brief. Le format est interprété directeme
     ],
     "pages_detail": { "/chemin": "string — description fonctionnelle pour le LLM" },
     "routes":        [{ "method": "POST|DELETE|PUT|PATCH", "path": "string" }],
-    "user_flows":    ["string — acteur → action → résultat"]
+    "user_flows":    ["string — acteur → action → résultat"],
+    "design_system": {
+      "primary_color":   "string? — classe Tailwind ex: 'indigo-600', 'blue-600', 'emerald-600'",
+      "brand_name":      "string? — nom affiché dans la sidebar",
+      "mood":            "string? — 'professionnel' | 'moderne' | 'minimaliste' | 'coloré'",
+      "sidebar_bg":      "string? — classe Tailwind ex: 'white', 'slate-900', 'gray-800'",
+      "density":         "string? — 'compact' | 'normal' | 'spacious'",
+      "animation_level": "string? — 'none' | 'standard' | 'enhanced'"
+    }
   }
 }
 ```
@@ -157,6 +165,9 @@ Format : `"acteur → action → résultat"`. Prévoir ≥ 1 flow par action pri
 | Server Actions CRUD déterministes | `create`/`delete` via générateur Python |
 | Reviewer IDOR + correction pass | COHERENT sec=100 |
 | `page-client.tsx` déterministes (list + create) | stubs UI réels, lockés |
+| `design_system.primary_color` → CSS variable `--primary` | tailwind.config.js `bg-primary` = couleur du brief |
+| Composants shadcn/ui (`Button`, `Card`, `Table`…) | copiés depuis `assets/shadcn/` (prérequis : exécuter `prebuild_shadcn.ps1`) |
+| `density` → `--radius` CSS variable | compact=0.25rem, normal=0.5rem, spacious=0.75rem |
 
 ### Non supporté ❌
 | Feature | Priorité |
@@ -197,3 +208,4 @@ Format : `"acteur → action → résultat"`. Prévoir ≥ 1 flow par action pri
 | 1.1 | Mai 2026 | + `pages[].model`, `auth: false`, règle entités enfant |
 | 1.2 | Mai 2026 | + `page_type` obligatoire · document raccourci · `architecture` simplifiée (stack invariants retirés) |
 | 1.3 | Mai 2026 | `@relation` obligatoire dans le DSL — la factory ne génère plus les relations automatiquement |
+| 1.4 | Juin 2026 | + `brief.design_system` (optionnel) — `primary_color`, `density`, `animation_level`, `sidebar_bg`, `mood`, `brand_name` |

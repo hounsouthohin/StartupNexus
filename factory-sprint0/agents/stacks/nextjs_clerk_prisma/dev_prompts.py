@@ -301,6 +301,7 @@ def build_system_prompt(
     pre_written_files: list[str] | None = None,
     service_map: str = "",
     prisma_type_map: dict | None = None,
+    design_system: dict | None = None,
 ) -> str:
     """
     Construit le system prompt pour le dev agent v4 — Option A (Phase-Aware).
@@ -403,6 +404,51 @@ Méthodes :
 
     mandatory_rag_block = _build_mandatory_rag_block(spec)
 
+    # Design system — bloc injecté dans le system prompt pour guider le LLM
+    # Les couleurs sont des CSS variables dans globals.css. Le LLM utilise des classes sémantiques.
+    design_block = ""
+    if design_system:
+        primary = design_system.get("primary_color", "blue-600")
+        brand = design_system.get("brand_name", "")
+        mood = design_system.get("mood", "")
+        density = design_system.get("density", "")
+        sidebar_bg = design_system.get("sidebar_bg", "")
+        animation = design_system.get("animation_level", "")
+        design_block = (
+            "\n══════════════════════════════════════════════════════════════\n"
+            "DESIGN SYSTEM — TOKENS SÉMANTIQUES (CSS variables, shadcn/ui)\n"
+            "══════════════════════════════════════════════════════════════\n"
+            f"primary_color configuré : {primary} → accessible via la classe Tailwind `primary`\n"
+            "\nTOKENS TAILWIND — utilise ces classes dans tes pages custom :\n"
+            "  boutons primaires : bg-primary hover:bg-primary/85 text-white font-medium\n"
+            "  liens / accents   : text-primary hover:text-primary/80\n"
+            "  bordures colorées : border-primary\n"
+            "  focus rings       : focus:ring-primary focus:ring-2 focus:ring-offset-2\n"
+            "  fond léger hover  : hover:bg-primary/10\n"
+            "  texte principal   : text-foreground\n"
+            "  texte secondaire  : text-muted-foreground\n"
+            "  fond carte        : bg-card border-border\n"
+            "  fond page         : bg-background\n"
+            + (f"\nbrand_name : {brand}" if brand else "")
+            + (f"\nmood : {mood}" if mood else "")
+            + (f"\ndensity : {density}  (compact → espacement réduit ; spacious → espacement généreux)" if density else "")
+            + (f"\nsidebar_bg : {sidebar_bg}" if sidebar_bg else "")
+            + (f"\nanimation_level : {animation}  (none → pas d'animations ; standard → transition-colors ; enhanced → keyframes)" if animation else "")
+            + "\n\nCOMPOSANTS UI DISPONIBLES (shadcn/ui — dans components/ui/) :\n"
+            "  import { Button }   from '@/components/ui/button'\n"
+            "  import { Input }    from '@/components/ui/input'\n"
+            "  import { Textarea } from '@/components/ui/textarea'\n"
+            "  import { Label }    from '@/components/ui/label'\n"
+            "  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'\n"
+            "  import { Badge }    from '@/components/ui/badge'\n"
+            "  import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'\n"
+            "  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'\n"
+            "  import { Empty }    from '@/components/Empty'     ← état vide custom\n"
+            "  import { StatCard } from '@/components/StatCard'  ← carte métrique custom\n"
+            "\n⚠️  N'utilise JAMAIS bg-blue-600 / text-blue-600 ni aucune couleur Tailwind hardcodée.\n"
+            "     Utilise TOUJOURS les tokens sémantiques ci-dessus (bg-primary, text-foreground, etc.).\n"
+        )
+
     # page_links — contrat de navigation par page
     page_links_block = ""
     _page_links: dict = getattr(spec, "page_links", None) or {}
@@ -447,5 +493,6 @@ Méthodes :
         files_checklist=files_checklist,
         stack_rules_block=stack_rules_block,
         page_links_block=page_links_block,
+        design_block=design_block,
     )
     return rendered.replace("{WORKDIR}", "/app/generated-projects")

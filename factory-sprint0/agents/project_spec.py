@@ -213,6 +213,21 @@ class ProjectSpec(BaseModel):
         default="",
         description="Hash SHA256 des noms critiques — calculé automatiquement"
     )
+    design_system: dict = Field(
+        default_factory=dict,
+        description=(
+            "Design system du projet : mood, primary_color (classe Tailwind ex: 'indigo-600'), "
+            "sidebar_bg, brand_name, animation_level, density. "
+            "Produit par brief_writer_node — propagé vers tous les générateurs."
+        )
+    )
+    enriched_spec: dict = Field(
+        default_factory=dict,
+        description=(
+            "Spec enrichie par le semantic annotator : field_annotations, "
+            "required_queries, features, ux_hints (empty_states, dependency_order)."
+        )
+    )
 
     # Noms de modèles interdits : Clerk gère l'authentification — un modèle User
     # dans Prisma crée des TS2339 (userId vs User.id) et viole STACK_INVARIANTS.
@@ -459,10 +474,21 @@ class ProjectSpec(BaseModel):
 
         for model in self.models:
             lines.append(f"model {model.name} {{")
+            _field_names = {f.name.lower() for f in model.fields}
+            _field_names_exact = {f.name for f in model.fields}
             for field in model.fields:
                 lines.append(field.to_prisma_line())
             for _inv in _inverse_to_inject.get(model.name, []):
                 lines.append(_inv)
+            # Inject updatedAt if missing — all entity models need it for cache invalidation
+            if "updatedat" not in _field_names and "createdat" in _field_names:
+                lines.append("  updatedAt DateTime @updatedAt")
+            # Inject @@index([ownerField]) if missing — userId queries are always filtered
+            _owner = model.resolved_owner()
+            if _owner in _field_names_exact:
+                _all_field_lines = "\n".join(f.to_prisma_line() for f in model.fields)
+                if f"@@index([{_owner}])" not in _all_field_lines and f"@@index([{_owner}" not in _all_field_lines:
+                    lines.append(f"  @@index([{_owner}])")
             lines.append("}")
             lines.append("")
         return header + "\n".join(lines)

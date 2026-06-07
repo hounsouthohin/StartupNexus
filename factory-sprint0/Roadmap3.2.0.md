@@ -1,6 +1,6 @@
 # ROADMAP — SOFTWARE AGENT FACTORY
-## Version 3.5 — Mise à jour 05 Juin 2026
-## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9 : Scène client + Frontend VisualSpec avant Deploy ; BrowserUse retiré ; QA visuel sur host ; 4.8C ✅)
+## Version 3.7 — Mise à jour 06 Juin 2026
+## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9 : Scène client + Frontend VisualSpec avant Deploy ; BrowserUse retiré ; QA visuel sur host ; 4.8C ✅) · v3.6 (06 Juin — Sprint 4.9A redesigné : FrontendActivity post-traitement à 3 couches ; VisualSpec inline rejeté — frontend ≠ couleurs seules) · v3.7 (06 Juin — 4.9A pivote vers FrontendAgent LLM ReAct avec outils ; pipeline déterministe 3-couches abandonné ; agent autonome lit brief+spec lui-même)
 
 ---
 
@@ -299,85 +299,130 @@ A — Frontend viable  →  B — Brief visuel  →  C — QA visuel (la scène)
 
 ---
 
-### 4.9A — VisualSpec + dev_visual_generator.py
+### 4.9A — FrontendAgent : agent LLM autonome avec outils
 
-**Problème :** les apps générées sont fonctionnellement correctes mais visuellement uniformes et ternes.
-Aucun token de couleur, aucune cohérence de layout, aucune identité par projet.
+**Décision architecturale (06 Juin 2026 — v3.7) :**
+La 3-couches déterministe (v3.6) a été abandonnée. Le frontend est trop vaste et trop contextuel
+pour être piloté par un pipeline fixe. Les LLMs modernes (GPT-4o, Claude) ont ingéré shadcn/ui,
+Framer Motion, Recharts, Tailwind — ils savent mieux que tout pipeline statique ce que signifie
+un "dashboard CRM" ou une "app de recettes". La bonne architecture est un **agent ReAct**
+qui lit le brief + la spec lui-même, choisit ses outils, et itère jusqu'au build vert.
 
-**Solution — deux composants :**
+**Contrat fondamental :**
+- Accès lecture : tous les fichiers (brief, ProjectSpec, code généré)
+- Accès écriture : **couche présentation uniquement**
+  - `app/**/page-client.tsx` — pages client réécrites avec les composants choisis
+  - `app/layout.tsx` — navigation, sidebar, header global
+  - `app/globals.css` — tokens visuels (couleurs, typo, animations base)
+  - `app/components/` — composants UI créés ici (pas de limite fixe)
+  - `tailwind.config.js` + `postcss.config.js` — config CSS
+  - `package.json` — uniquement devDependencies (ajout shadcn, framer-motion, recharts…)
+- **Jamais modifiés** : `lib/services/`, `app/**/actions.ts`, `prisma/`, `middleware.ts`, `lib/prisma.ts`
 
-**1. Extension du ProjectSpec avec un `VisualSpec`**
+**Architecture FrontendAgent (LLM ReAct loop) :**
 
-L'architect déduit le visual_spec depuis les mêmes signaux textuels qui lui servent à produire les modèles :
-
-```python
-class VisualSpec:
-    layout_type: str    # "dashboard" | "app" | "content" | "data" | "showcase"
-    theme_tone: str     # "professional" | "minimal" | "colorful"
-    page_hints: dict    # par page : variant, show_stats, display
+```
+BUILD_SUCCESS + correction_pass OK
+    │
+    ▼
+FrontendActivity (Temporal wrapper — après correction_pass, avant QA)
+    │
+    ├── SNAPSHOT : sauvegarde page-client.tsx existants (rollback target)
+    │
+    ├── AGENT LOOP (max_iterations = 8)
+    │   │
+    │   ├── Contexte injecté au démarrage :
+    │   │     brief (texte naturel)
+    │   │     ProjectSpec { models, pages, routes, user_flows }
+    │   │     liste des page-client.tsx existants
+    │   │     librairies disponibles : shadcn/ui · Tailwind · Lucide React
+    │   │                              Framer Motion · Recharts · Tremor
+    │   │
+    │   ├── Tool : read_file(path)         — lire n'importe quel fichier du projet
+    │   ├── Tool : write_file(path, content) — écrire dans la couche présentation
+    │   ├── Tool : npm_add(packages[])     — ajouter des devDependencies + npm install
+    │   ├── Tool : tsc_check(path)         — valider un fichier TypeScript isolément
+    │   ├── Tool : build_check()           — npm run build complet
+    │   └── Tool : finish(summary)         — signaler la fin du travail
+    │
+    │   Comportement attendu du LLM :
+    │   1. Lit le brief → identifie le domaine (CRM ? dashboard ? blog ?)
+    │   2. Lit les pages existantes → comprend la structure actuelle
+    │   3. Planifie : quels composants shadcn/ui installer, quelles animations,
+    │                 quel layout (sidebar ? topnav ? cards ?), quels graphiques
+    │   4. npm_add si nécessaire (framer-motion, recharts, @radix-ui/…)
+    │   5. Réécrit page par page avec les composants choisis
+    │   6. tsc_check après chaque fichier modifié
+    │   7. build_check → si SUCCESS : finish / si FAIL : corrige et réitère
+    │
+    └── ROLLBACK si build_check toujours FAIL après max_iterations
+        → restauration snapshot page-client.tsx
+        → suppression tailwind.config.js / postcss.config.js / app/components/ui/
+        → log FRONTEND_DEGRADED dans FactoryRunReport
+        → pipeline continue sans régression (app fonctionnelle garantie)
 ```
 
-Signaux de déduction (dans `_DEDUCTION_RULES` architect) :
+**Ce que le LLM sait faire nativement (pas besoin de lui enseigner) :**
 
-| Signal dans le brief | layout_type | page_hints |
+| Besoin visuel | Librairie | Comment le LLM l'utilise |
 |---|---|---|
-| "tableau de bord", "statistiques", "dashboard" | `dashboard` | page `/` → stats cards + liste récente |
-| "gestion", "suivi", "tracker", "manager" | `data` | listes → table dense, filtres |
-| "blog", "recettes", "articles", "contenu" | `content` | listes → cards avec image/excerpt |
-| "galerie", "portfolio", "vitrine" | `showcase` | grille cards |
-| Défaut | `app` | layout standard list/form/detail |
+| Composants UI complets | **shadcn/ui** | Connaît chaque composant, props, CLI `npx shadcn@latest add` |
+| Icônes | **Lucide React** (npm) | Connaît 1500+ icônes, importe directement |
+| Animations | **Framer Motion** | Écrit variants, transitions, AnimatePresence |
+| Graphiques | **Recharts** ou **Tremor** | Connaît BarChart, LineChart, AreaChart complets |
+| Transitions CSS | **Tailwind animate** | Classes animate-*, custom keyframes dans globals.css |
+| Illustrations/SVG | **SVG inline** | Génère SVG directement dans JSX (pas besoin d'API externe) |
+| Images produit | `next/image` + placeholder | Génère le slot, contenu = responsabilité client |
 
-**2. `dev_visual_generator.py`** *(nouveau générateur déterministe)*
+**Pourquoi pas DALL-E ni génération d'images :**
+Les images "de fond" d'une app SaaS sont du contenu client (avatars, photos produit, illustrations).
+Ce que le frontend produit c'est de la structure : `<Image src={user.avatar} />` — pas l'image elle-même.
+Pour les illustrations d'état vide, le LLM écrit des SVG directement. Pas d'API image nécessaire.
 
-Produit depuis le `VisualSpec` :
-- `tailwind.config.js` — tokens sémantiques selon `theme_tone` :
-  ```js
-  // Palette "professional" (défaut)
-  colors: {
-    primary: { DEFAULT: '#2563EB', hover: '#1D4ED8' },
-    surface: '#FFFFFF', muted: '#F3F4F6', border: '#E5E7EB'
-  }
-  ```
-- `app/globals.css` — variables CSS (`--color-primary`, `--surface`, `--muted`)
-- Variante Jinja2 sélectionnée selon `layout_type` (templates de pages adaptés)
+**Starter kit (fourni avant l'agent loop, non imposé) :**
+Le design system généré en v3.6 (Button, Card, Table, Badge, Empty, StatCard + tailwind.config.js)
+reste présent comme **point de départ optionnel**. L'agent peut l'utiliser, l'enrichir, ou l'ignorer
+s'il choisit shadcn/ui à la place. Ce n'est plus une contrainte, c'est une ressource.
 
-**Palettes prédéfinies (4) :**
-
-| Tone | Primary | Surface | Ambiance |
-|---|---|---|---|
-| `professional` | #2563EB (bleu) | blanc | SaaS sobre, outils pro |
-| `minimal` | #18181B (zinc) | blanc cassé | Ultra-épuré, focus contenu |
-| `colorful` | #7C3AED (violet) | blanc | App créative, dynamique |
-| `warm` | #D97706 (amber) | #FFFBEB | App lifestyle, recettes, blogs |
-
-**Améliorations Jinja2 par layout_type :**
-
-- `dashboard` : section stats (KPI cards) générée auto en haut de la page `/` depuis les modèles principaux
-- `data` : pages list → tableau `<table>` avec colonnes typées, tri visuel, badge statut
-- `content` : pages list → grid de cards avec image placeholder, excerpt, date
-- `app` (défaut) : pages list → cards simples avec ombre légère, bouton CTA
-
-**Signal :** apps générées ont une identité visuelle cohérente et distincte par `theme_tone`
+**Signal clôture 4.9A :**
+- `FrontendActivity` Temporal active avec agent ReAct loop (≥2 tools utilisés)
+- L'agent choisit au moins 1 librairie externe selon le domaine (shadcn/ui, framer-motion ou recharts)
+- `build_check()` SUCCESS après réécriture ≥1 page-client.tsx
+- Rollback activé : build dégradé → version pré-frontend préservée
 
 ---
 
-### 4.9B — Extension du brief guide (visual hints)
+### 4.9B — ProjectSpec → FrontendAgent (canal de connaissance contextuelle)
 
-**Problème :** le brief actuel ne capture aucune intention visuelle — l'architect invente des defaults.
+**Décision (v3.7) :** Option 2 retenue — l'agent lit le brief et le ProjectSpec **directement**,
+sans que l'architect ait besoin de pré-extraire des signaux visuels (layout_type, theme_tone).
+L'agent est suffisamment puissant pour déduire lui-même "ce brief = dashboard analytique = sidebar + recharts".
 
-**Solution :** ajouter une **5e règle** au brief guide, optionnelle, une ligne :
-
+**Ce que le FrontendAgent reçoit en contexte de démarrage :**
+```json
+{
+  "brief": "Outil de gestion de projets pour équipes, avec tableau de bord et KPIs",
+  "project_spec": {
+    "models": ["Project", "Task", "User"],
+    "pages":  ["/projects", "/projects/[id]", "/dashboard"],
+    "user_flows": ["Créer un projet", "Assigner une tâche", "Voir le tableau de bord"]
+  },
+  "existing_files": ["app/projects/page-client.tsx", "app/dashboard/page-client.tsx", ...]
+}
 ```
-5. TON VISUEL (optionnel — le moteur déduit si absent) :
-   "outil de gestion sobre"     → professional (bleu/gris, tables)
-   "app créative et dynamique"  → colorful (violet, cards)
-   "blog / recettes / contenu"  → warm (amber, layout lecture)
-   "dashboard analytique"       → professional + layout_type=dashboard auto
-```
 
-Le client n'est pas designer. Une phrase suffit. L'architect fait le reste.
+**Ce que l'agent en déduit seul (sans aide) :**
+- "tableau de bord + KPIs" → installer recharts, créer StatCard + BarChart
+- "gestion de projets" → layout avec sidebar de navigation latérale
+- "équipes" → composants d'avatar, badge statut membre
+- `/projects/[id]` → page détail avec onglets (Overview / Tasks / Members)
 
-**Signal :** brief avec indication visuelle → `visual_spec` cohérent avec l'intention client
+**layout_type + theme_tone : optionnels mais acceptés**
+Si l'architect les fournit dans ProjectSpec (v3.6 déjà prévu), l'agent les utilise comme hints.
+Si absents, l'agent les infère. Dans les deux cas, l'agent décide en dernier ressort.
+
+**Signal :** l'agent produit un frontend différencié selon le domaine (CRM ≠ blog ≠ dashboard)
+sans instructions visuelles explicites — seulement depuis le brief + les pages.
 
 ---
 
@@ -444,7 +489,7 @@ Les vidéos sont dans `./logs/qa/` accessibles depuis Windows immédiatement.
 
 **Ordre pipeline complet :**
 ```
-dev_test → review → correction_pass (reviewer) → QA visuel → correction_pass (QA) → Learner
+dev_test → review → correction_pass (reviewer) → FrontendActivity → QA visuel → correction_pass (QA) → Learner
 ```
 
 **Signal :** au moins 1 flow_fail → déclenche correction → flow passe au run suivant
@@ -487,7 +532,11 @@ Playwright Python (host) · Tailwind theme tokens · VisualSpec architect · Neo
 
 ### Signal clôture Sprint 4.9
 
-- ✅ apps générées ont une identité visuelle cohérente (Tailwind tokens)
+- ✅ `FrontendAgent` ReAct loop : ≥2 tools utilisés (au moins read_file + write_file + build_check)
+- ✅ Agent choisit ≥1 librairie externe selon le domaine (shadcn/ui, recharts, framer-motion ou autre)
+- ✅ Frontend différencié selon le brief : un dashboard ≠ un blog ≠ un CRM visuellement
+- ✅ build_check SUCCESS après réécriture ≥1 page-client.tsx
+- ✅ Rollback activé : build dégradé → version pré-frontend préservée, pipeline continue
 - ✅ `qa_score ≥ 0.8` sur ≥1 run — vidéos consultables depuis Windows
 - ✅ ≥1 flow_fail → correction agentique → flow passe
 - ✅ App déployée sur Vercel via `deploy_activity` sans intervention manuelle
@@ -649,7 +698,8 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | Juin 2026 | **4.8A'** | correction_pass redesign | trigger sur findings, rebuild sans npm install | ✅ |
 | Juin 2026 | **4.8C** | FactoryRunReport + learner_suggestions.json | rapport lisible après chaque run | ✅ |
 | Juin 2026 | **4.8B** | QA Jest smoke tests | `tests_passed: true` ≥1 run | ⏳ |
-| Juillet 2026 | **4.9A–B** | VisualSpec + dev_visual_generator + brief visuel | apps avec identité cohérente | ⏳ |
+| Juillet 2026 | **4.9A** | FrontendAgent ReAct (tools : read/write/npm/tsc/build) | agent utilise ≥1 lib externe (shadcn/recharts/framer), build post-frontend SUCCESS | ⏳ |
+| Juillet 2026 | **4.9B** | FrontendAgent reçoit brief + ProjectSpec complets | frontend différencié selon domaine : CRM ≠ dashboard ≠ blog, sans instructions visuelles explicites | ⏳ |
 | Juillet 2026 | **4.9C** | QA visuel (la scène) — Playwright host | `qa_score ≥ 0.8`, vidéos Windows | ⏳ |
 | Juillet 2026 | **4.9D–E** | Production deploy (Vercel+Neon+Clerk) + DY fixes | URL Vercel livrée, DY3/7 résolus | ⏳ |
 | Juil–Août 2026 | 5 | Mode Replay + Standards Web + Type D | `is_useful_app: true` personal-blog | ⏳ |
@@ -728,7 +778,11 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | **Juin 2026** | **BrowserUse/noVNC retirés — QA visuel sur host Playwright** | **Docker aveugle → Playwright sur Windows, browser visible en direct** |
 | **Juin 2026** | **PRINCIPE 8 — La Scène avant le Déploiement** | **Deploy = conséquence d'une validation client, pas étape automatique** |
 | **Juin 2026** | **Sprint 4.9 reséquencé : Frontend → QA visuel → Deploy** | **Build_success sans frontend décent n'est pas un livrable client** |
-| **Juin 2026** | **VisualSpec ajouté au ProjectSpec** | **Architect déduit layout + palette depuis les signaux textuels du brief** |
+| **Juin 2026** | **VisualSpec inline rejeté — FrontendActivity post-traitement adopté** | **Le frontend ≠ couche CSS : animations, graphiques, images, layouts — trop vaste pour une injection dans le pipeline de génération. Post-traitement sur app fonctionnelle = approche correcte.** |
+| **Juin 2026** | **FrontendActivity à 3 couches (v3.6) → pivot FrontendAgent ReAct (v3.7)** | **Pipeline déterministe trop limitatif : 6 composants fixes, palette imposée, aucun graphique/animation. Les LLMs connaissent shadcn/ui, Framer Motion, Recharts mieux que tout pipeline statique. Un agent ReAct avec outils produit un résultat indifférenciable d'un développeur frontend senior.** |
+| **Juin 2026** | **FrontendAgent lit brief + ProjectSpec directement (Option 2)** | **Pas de pré-extraction architect (layout_type/theme_tone). L'agent infère le domaine lui-même. hints optionnels acceptés si fournis, mais non obligatoires pour la qualité visuelle.** |
+| **Juin 2026** | **Pas de DALL-E ni génération d'images dans FrontendAgent** | **Images = contenu client. Illustrations vide = SVG inline LLM. Icônes = Lucide React npm. DALL-E ne résout pas le vrai problème de qualité UI.** |
+| **Juin 2026** | **Design system starter kit (v3.6) conservé comme ressource optionnelle** | **Button/Card/Table/Badge/Empty/StatCard restent disponibles. L'agent les utilise, les enrichit ou les ignore si shadcn/ui est plus adapté.** |
 
 ---
 
@@ -763,7 +817,12 @@ Si présent : une seule indication suffit — le moteur fait le reste.
 |---|---|---|---|---|
 | **Structured outputs gpt-4o** (`json_schema`) | QA JSON malformé | 4.8B | 1h | 🔴 Maintenant |
 | **Semgrep** (déjà dans repo) | Sécurité statique pipeline | 4.8B | 30min | 🔴 Maintenant |
-| **Tailwind theme tokens + VisualSpec** | Apps visuellement uniformes, sans identité | 4.9A | 1j | 🔴 Sprint 4.9A |
+| **FrontendAgent (LLM ReAct loop + tools)** | Apps fonctionnelles visuellement ternes — agent autonome lit brief+spec, choisit ses libs, réécrit les pages | 4.9A | 4j | 🔴 Sprint 4.9A |
+| **shadcn/ui** | Composants React production-ready, LLM les connaît parfaitement, CLI `npx shadcn@latest add` | 4.9A | 30min | 🔴 Sprint 4.9A |
+| **Framer Motion** | Animations React — variants, transitions, AnimatePresence — LLM code directement | 4.9A (si agent le choisit) | npm add | 🔴 Sprint 4.9A |
+| **Recharts / Tremor** | Graphiques React — BarChart, LineChart, AreaChart — pour briefs dashboard/analytics | 4.9A (si agent le choisit) | npm add | 🔴 Sprint 4.9A |
+| **Lucide React** | 1500+ icônes SVG npm, zero config, LLM connaît tous les noms | 4.9A | npm add | 🔴 Sprint 4.9A |
+| **Tailwind CSS + postcss** | Base CSS — déjà ajouté au package.json template en v3.6 | 4.9A ✅ skeleton | 2h | 🔴 Sprint 4.9A |
 | **Playwright Python (host Windows)** | QA visuel E2E — browser visible, vidéos — hors Docker | 4.9C | 2j | 🔴 Sprint 4.9C |
 | **Neon API + Clerk API + Vercel CLI** | Provisioning infra client automatisé (DB, domaine, deploy) | 4.9E | 2j | 🟠 Sprint 4.9E |
 | **Langfuse** | Observabilité : quels standards RAG sur quels runs | 4.9 | 1j | 🟠 Sprint 4.9 |

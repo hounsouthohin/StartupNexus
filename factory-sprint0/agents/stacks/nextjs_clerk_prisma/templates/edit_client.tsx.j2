@@ -45,7 +45,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             rows={4}
             defaultValue={item.{{ field.name }} ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% elif field.input_type == 'checkbox' %}
           <input
@@ -54,14 +54,14 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             value="true"
             defaultChecked={Boolean(item.{{ field.name }})}
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+            className="h-4 w-4 text-{{ primary }} border-gray-300 rounded"
           />
           {% elif field.input_type == 'enum-select' %}
           <select
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {% for val in field.enum_values %}
@@ -74,7 +74,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ? (item.{{ field.name }} as string).slice(0, 10) : ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% elif field.input_type == 'datetime-local' %}
           <input
@@ -82,7 +82,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ? new Date(item.{{ field.name }} as string).toISOString().slice(0, 16) : ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% else %}
           <input
@@ -91,7 +91,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} != null ? String(item.{{ field.name }}) : ''}
             {% if field.input_type == 'number' %}step="any"{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% endif %}
         </div>
@@ -106,7 +106,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ fk.field_name }}"
             name="{{ fk.field_name }}"
             defaultValue={item.{{ fk.field_name }} ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {{ '{' }}{{ fk.related_camel }}Options.map(opt => (
@@ -120,7 +120,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
           <button
             type="submit"
             disabled={isPending}
-            className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 px-6 py-2 bg-{{ primary }} text-white rounded-md text-sm font-medium hover:bg-{{ primary_hover }} disabled:opacity-50"
           >
             {isPending ? 'En cours…' : 'Enregistrer'}
           </button>

@@ -49,6 +49,22 @@ def _render(template_name: str, **ctx) -> str:
     return _jinja_env.get_template(template_name).render(**ctx)
 
 
+# ── Tokens sémantiques pour les templates Jinja2 ─────────────────────────────
+# Les templates reçoivent des noms de classes Tailwind sémantiques (CSS variables).
+# tailwind.config.js mappe primary → hsl(var(--primary)), globals.css fixe la valeur HSL.
+
+def _design_tokens(design_system: dict | None = None) -> dict:
+    """Retourne les 4 tokens Tailwind sémantiques pour les templates Jinja2.
+    design_system ignoré — la couleur réelle est dans globals.css (CSS variable --primary).
+    """
+    return {
+        "primary":       "primary",
+        "primary_hover": "primary/85",
+        "primary_light": "primary/10",
+        "primary_ring":  "primary",
+    }
+
+
 # ── Helpers de contexte ───────────────────────────────────────────────────────
 
 def _related_display(fk, model_contexts: dict) -> str:
@@ -86,7 +102,7 @@ def _fk_to_ctx(fk, display: str) -> dict:
 
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
-def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "") -> str:
+def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     auth_required = getattr(page, "auth_required", True)
     fields = ctx.display_fields
@@ -127,10 +143,11 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         status_field=status_field,
         status_labels=status_labels,
         empty_state_message=empty_state_message,
+        **(design_tokens or {}),
     )
 
 
-def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, spec=None) -> str:
+def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, spec=None, design_tokens: dict | None = None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
     _model_labels = ctx.ui_labels
@@ -160,10 +177,11 @@ def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, 
         fk_props=fk_props,
         fk_destructure=fk_destructure,
         field_labels=_field_labels,
+        **(design_tokens or {}),
     )
 
 
-def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=None) -> str:
+def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=None, design_tokens: dict | None = None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
     _model_labels = ctx.ui_labels
@@ -182,10 +200,11 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
         fk_fields=fk_fields,
         editable_fields=editable_fields,
         field_labels=_field_labels,
+        **(design_tokens or {}),
     )
 
 
-def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None) -> str:
+def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
     # Déduplique : display_fields d'abord, puis les éditables restants
@@ -211,6 +230,7 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None) -> str:
         value_labels=value_labels,
         auth_required=auth_required,
         has_delete=auth_required,
+        **(design_tokens or {}),
     )
 
 
@@ -221,11 +241,14 @@ def generate_all_page_clients(
     model_contexts: dict,
     project_workdir: str,
     enriched_spec=None,
+    design_system: dict | None = None,
 ) -> dict[str, str]:
     """
     Génère déterministiquement les page-client.tsx pour toutes les pages CRUD.
     Retourne {rel_path: content} pour intégration dans template_written.
+    design_system: dict depuis ProjectSpec (primary_color, etc.) — injecté dans les templates Jinja2.
     """
+    tokens = _design_tokens(design_system)
     written: dict[str, str] = {}
     pages = getattr(spec, "pages", []) or []
 
@@ -284,19 +307,19 @@ def generate_all_page_clients(
             if page_type == "list":
                 rel = f"app/{page_path_clean}/page-client.tsx" if page_path_clean else "app/page-client.tsx"
                 _empty_msg = _empty_states.get(page.path, "")
-                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg)
+                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens)
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
-                content = _gen_create_client(page, ctx, model_contexts, spec=spec)
+                content = _gen_create_client(page, ctx, model_contexts, spec=spec, design_tokens=tokens)
             elif page_type in ("detail", "detail-slug"):
                 rel = f"app/{page_path_clean}/page-client.tsx"
-                content = _gen_detail_client(page, ctx, spec=spec)
+                content = _gen_detail_client(page, ctx, spec=spec, design_tokens=tokens)
             elif page_type == "edit":
                 # page-client.tsx déterministe pour la page d'édition.
                 # Le page.tsx est généré par generate_edit_page_stubs() dans dev_pages_generator.py.
                 # Sans ce cas, le guard A3 bloque le run (page.tsx importe ./page-client absent).
                 rel = f"app/{page_path_clean}/page-client.tsx"
-                content = _gen_edit_client(ctx, model_contexts, spec=spec)
+                content = _gen_edit_client(ctx, model_contexts, spec=spec, design_tokens=tokens)
             else:
                 continue
         except Exception as _gen_err:
@@ -338,7 +361,7 @@ def generate_all_page_clients(
             route = list_path.lstrip("/")
             slug_or_id = "[slug]" if ctx.has_slug else "[id]"
             rel = f"app/{route}/{slug_or_id}/edit/page-client.tsx"
-            content = _gen_edit_client(ctx, model_contexts, spec=spec)
+            content = _gen_edit_client(ctx, model_contexts, spec=spec, design_tokens=tokens)
         except Exception as _edit_err:
             logger.error("[form_gen] erreur edit %s : %s", model.name, _edit_err)
             continue
@@ -358,6 +381,7 @@ def generate_parent_detail_pages(
     spec,
     model_contexts: dict,
     project_workdir: str,
+    design_system: dict | None = None,
 ) -> dict[str, str]:
     """
     Auto-génère les pages détail pour les modèles parents qui ont des enfants FK
@@ -373,6 +397,7 @@ def generate_parent_detail_pages(
     """
     from types import SimpleNamespace
 
+    tokens = _design_tokens(design_system)
     written: dict[str, str] = {}
 
     # Modèles parents = modèles référencés comme FK par d'autres modèles
@@ -449,7 +474,7 @@ def generate_parent_detail_pages(
                 written[page_rel] = page_content
 
             if not os.path.exists(client_abs):
-                client_content = _gen_detail_client(synthetic_page, parent_ctx, spec=spec)
+                client_content = _gen_detail_client(synthetic_page, parent_ctx, spec=spec, design_tokens=tokens)
                 with open(client_abs, "w", encoding="utf-8") as f:
                     f.write(client_content)
                 written[client_rel] = client_content

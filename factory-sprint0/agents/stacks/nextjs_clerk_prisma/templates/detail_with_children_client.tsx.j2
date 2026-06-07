@@ -110,13 +110,13 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
               name="{{ field.name }}"
               rows={3}
               {% if not field.is_optional and not field.has_default %}required{% endif %}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
             />
             {% elif field.input_type == 'enum-select' %}
             <select
               id="{{ child.camel }}_{{ field.name }}"
               name="{{ field.name }}"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
             >
               <option value="">Sélectionner…</option>
               {% for val in field.enum_values %}
@@ -129,7 +129,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
               id="{{ child.camel }}_{{ field.name }}"
               name="{{ field.name }}"
               value="true"
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              className="h-4 w-4 text-{{ primary }} border-gray-300 rounded"
             />
             {% elif field.input_type == 'number' %}
             <input
@@ -137,7 +137,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
               id="{{ child.camel }}_{{ field.name }}"
               name="{{ field.name }}"
               {% if not field.is_optional and not field.has_default %}required{% endif %}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
             />
             {% elif field.input_type == 'datetime-local' %}
             <input
@@ -145,7 +145,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
               id="{{ child.camel }}_{{ field.name }}"
               name="{{ field.name }}"
               {% if not field.is_optional and not field.has_default %}required{% endif %}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
             />
             {% else %}
             <input
@@ -153,7 +153,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
               id="{{ child.camel }}_{{ field.name }}"
               name="{{ field.name }}"
               {% if not field.is_optional and not field.has_default %}required{% endif %}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
             />
             {% endif %}
           </div>
@@ -161,7 +161,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
           <button
             type="submit"
             disabled={{ '{' }}{{ child.camel }}Pending}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 bg-{{ primary }} text-white rounded-md text-sm font-medium hover:bg-{{ primary_hover }} disabled:opacity-50"
           >
             {{ '{' }}{{ child.camel }}Pending ? 'En cours…' : 'Ajouter'}
           </button>

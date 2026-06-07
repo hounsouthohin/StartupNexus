@@ -1,8 +1,10 @@
-import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
+import "./globals.css";
 import type { ReactNode } from "react";
-import Navigation from "@/app/components/navigation";
 
-export default function Layout({ children }: { children: ReactNode }) {
+export const metadata = { title: "App" };
+
+export default function RootLayout({ children }: { children: ReactNode }) {
   const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   const canUseClerk =
     typeof publishableKey === "string" &&
@@ -11,7 +13,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   if (!canUseClerk) {
     return (
-      <html lang="en">
+      <html lang="fr">
         <body>{children}</body>
       </html>
     );
@@ -19,24 +21,8 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   return (
     <ClerkProvider publishableKey={publishableKey}>
-      <html lang="en">
-        <body>
-          <header className="flex items-center justify-between px-6 py-3 border-b bg-white">
-            <span className="font-semibold text-gray-800">{project_name}</span>
-            <Navigation />
-            <div>
-              <SignedIn>
-                <UserButton afterSignOutUrl="/" />
-              </SignedIn>
-              <SignedOut>
-                <SignInButton mode="redirect">
-                  <button className="text-sm text-blue-600 hover:underline">Se connecter</button>
-                </SignInButton>
-              </SignedOut>
-            </div>
-          </header>
-          {children}
-        </body>
+      <html lang="fr">
+        <body>{children}</body>
       </html>
     </ClerkProvider>
   );

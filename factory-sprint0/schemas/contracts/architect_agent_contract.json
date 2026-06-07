@@ -106,7 +106,20 @@
           "routes": {"type": "array"},
           "pages": {"type": "array"},
           "user_flows": {"type": "array"},
-          "spec_fingerprint": {"type": "string"}
+          "spec_fingerprint": {"type": "string"},
+          "design_system": {
+            "type": "object",
+            "description": "Design system global — source de vérité pour le frontend generator.",
+            "properties": {
+              "mood":            {"type": "string"},
+              "animation_level": {"type": "string", "enum": ["none", "subtil", "expressif"]},
+              "density":         {"type": "string", "enum": ["compact", "confortable", "aéré"]},
+              "primary_color":   {"type": "string", "description": "Classe Tailwind ex: blue-700"},
+              "sidebar_bg":      {"type": "string", "description": "Classe Tailwind ex: slate-900"},
+              "brand_name":      {"type": "string"}
+            },
+            "default": {}
+          }
         },
         "default": {}
       },

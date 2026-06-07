@@ -1,6 +1,8 @@
 'use client'
 
+{% if has_delete %}
 import { useState } from 'react'
+{% endif %}
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
 {% if has_delete %}
@@ -20,7 +22,11 @@ interface {{ client_name }}Props {
 }
 
 export default function {{ client_name }}({ items }: {{ client_name }}Props) {
+  {% if has_delete %}
   const [list, setList] = useState(items)
+  {% else %}
+  const list = items
+  {% endif %}
 
   {% if has_delete %}
   const handleDelete = async (id: string) => {
@@ -37,7 +43,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
         {% if auth_required %}
         <Link
           href="{{ list_path }}/new"
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+          className="px-4 py-2 bg-{{ primary }} text-white rounded-md hover:bg-{{ primary_hover }} text-sm font-medium"
         >
           Nouveau
         </Link>
@@ -48,7 +54,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
         <div className="text-center py-12 text-gray-500">
           <p className="text-lg">{{ empty_state_message if empty_state_message else "Aucun " + camel + " pour le moment." }}</p>
           {% if auth_required %}
-          <Link href="{{ list_path }}/new" className="mt-4 inline-block text-blue-600 hover:underline text-sm">
+          <Link href="{{ list_path }}/new" className="mt-4 inline-block text-{{ primary }} hover:underline text-sm">
             Créer le premier
           </Link>
           {% endif %}
@@ -97,7 +103,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                       {% endif %}
                       <Link
                         href={`{{ list_path }}/{{ '${' }}{% if has_slug %}item.slug{% else %}item.id{% endif %}}/edit`}
-                        className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-600 rounded hover:bg-blue-50"
+                        className="px-3 py-1 text-xs font-medium text-{{ primary }} border border-{{ primary }} rounded hover:bg-{{ primary_light }}"
                       >
                         Modifier
                       </Link>

@@ -26,15 +26,15 @@ logger = logging.getLogger(__name__)
 
 # Mapping Prisma type → validateur Zod
 _PRISMA_TO_ZOD: dict[str, str] = {
-    "String":   "z.string()",
-    "Int":      "z.number().int()",
-    "Float":    "z.number()",
-    "Decimal":  "z.number()",
-    "Boolean":  "z.boolean()",
+    "String":   "z.string().min(1)",
+    "Int":      "z.coerce.number().int().nonnegative()",   # FormData envoie toujours des strings
+    "Float":    "z.coerce.number()",                        # idem
+    "Decimal":  "z.coerce.number()",                        # idem
+    "Boolean":  "z.coerce.boolean()",                       # checkbox envoie "on" ou absent
     "DateTime": "z.coerce.date()",   # accepte ISO strings des forms, produit un Date pour Prisma
     "Json":     "z.unknown()",
     "Bytes":    "z.string()",
-    "BigInt":   "z.bigint()",
+    "BigInt":   "z.coerce.bigint()",
 }
 
 _AUTO_FIELDS = {"id", "createdat", "updatedat", "deletedat"}
@@ -99,11 +99,14 @@ def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> lis
         for fi in ctx.editable_fields:
             zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
             if fi.is_optional or fi.has_default:
+                # Optional string: drop .min(1) — empty strings from HTML forms must pass
+                if zod_type == "z.string().min(1)":
+                    zod_type = "z.string()"
                 if not zod_type.endswith(".optional()"):
                     zod_type = f"{zod_type}.optional()"
             fields_lines.append(f"  {fi.name}: {zod_type},")
         for fk in ctx.fk_fields:
-            fields_lines.append(f"  {fk.field_name}: z.string(),")
+            fields_lines.append(f"  {fk.field_name}: z.string().min(1),")
         return fields_lines
 
     # Fallback : recalcul depuis model (compatibilité)
@@ -119,6 +122,9 @@ def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> lis
 
         zod_type = _prisma_type_to_zod(field.type, field.attributes, enums=enums)
         if _field_has_non_auto_default(field.attributes):
+            # Optional string: drop .min(1) — empty strings from HTML forms must pass
+            if zod_type == "z.string().min(1)":
+                zod_type = "z.string()"
             if not zod_type.endswith(".optional()"):
                 zod_type = f"{zod_type}.optional()"
         fields_lines.append(f"  {field.name}: {zod_type},")

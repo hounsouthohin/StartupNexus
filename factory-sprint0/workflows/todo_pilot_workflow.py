@@ -48,6 +48,7 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
     from workflows.activities.learner_activity import learner_activity
+    from workflows.activities.export_zip_activity import export_zip_activity
     from utils.run_report import write_run_report_minimal as _write_run_report_minimal
 @workflow.defn
 class TodoPilotWorkflow:
@@ -509,6 +510,23 @@ class TodoPilotWorkflow:
             except Exception as learner_err:
                 workflow.logger.warning(f"Learner skipped: {learner_err}")
                 activity_results["learner"] = {"status": "FAILED", "error": str(learner_err)}
+
+            # ── 7. Export ZIP ─────────────────────────────────────────────
+            try:
+                zip_result: Dict[str, Any] = await workflow.execute_activity(
+                    export_zip_activity,
+                    args=[{"project_name": project_name, "build_status": build_status}],
+                    start_to_close_timeout=timedelta(minutes=2),
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                if zip_result.get("zip_path"):
+                    workflow.logger.info(
+                        f"[ZIP] ✓ exporté ({zip_result.get('zip_size_kb', 0)} KB)"
+                    )
+                activity_results["export_zip"] = zip_result
+            except Exception as zip_err:
+                workflow.logger.warning(f"export_zip skipped: {zip_err}")
+                activity_results["export_zip"] = {"zip_path": "", "zip_size_kb": 0}
 
             total_time = (workflow.now() - start_time).total_seconds()
             metadata = dev_test_result.get("metadata", {})

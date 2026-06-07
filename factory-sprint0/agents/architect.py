@@ -279,6 +279,14 @@ Sortie :
     "/tasks/new": ["/tasks"],
     "/tasks/[id]": ["/tasks"]
   },
+  "design_system": {
+    "mood": "productif, épuré, SaaS interne",
+    "animation_level": "standard",
+    "density": "normal",
+    "primary_color": "blue-700",
+    "sidebar_bg": "slate-900",
+    "brand_name": "Task Manager"
+  },
   "architecture": "Modèle principal : Task. Modèle enfant : Comment (lié à Task via taskId). Ownership : userId sur Task et Comment. Toutes les pages protégées par auth."
 }
 
@@ -317,6 +325,14 @@ Sortie :
     "Post": "Articles"
   },
   "enum_value_labels": {},
+  "design_system": {
+    "mood": "éditorial, clair, lecture agréable",
+    "animation_level": "standard",
+    "density": "spacious",
+    "primary_color": "indigo-600",
+    "sidebar_bg": "white",
+    "brand_name": "Mon Blog"
+  },
   "architecture": "Modèle principal : Post. Données publiques : /posts et /posts/[slug] accessibles sans auth (published=true). Ownership : authorId sur Post. category est un champ texte simple — pas un modèle séparé."
 }
 
@@ -375,6 +391,14 @@ Sortie :
     "/invoices/new": ["/invoices", "/clients"],
     "/invoices/[id]": ["/invoices"]
   },
+  "design_system": {
+    "mood": "professionnel, sobre, finance",
+    "animation_level": "none",
+    "density": "compact",
+    "primary_color": "emerald-600",
+    "sidebar_bg": "slate-800",
+    "brand_name": "Invoice App"
+  },
   "architecture": "Modèles : Client (entité dédiée avec liste propre) + Invoice (principal). Ownership : userId sur les deux. Relations : Invoice → Client (N:1, clientId obligatoire). Toutes les pages protégées par auth."
 }\
 """
@@ -422,6 +446,14 @@ _FORMAT_DE_SORTIE = """\
     "/tasks/new": ["/tasks"],
     "/tasks/[id]": ["/tasks"]
   },
+  "design_system": {
+    "mood": "productif, épuré, SaaS interne",
+    "animation_level": "standard",
+    "density": "normal",
+    "primary_color": "blue-700",
+    "sidebar_bg": "slate-900",
+    "brand_name": "Task Manager"
+  },
   "architecture": "Modèle principal : Task. Ownership : userId sur tous les modèles. Relations : [description des relations si multi-modèle]. Contraintes non-dérivables : [ex: slug unique, données publiques sans auth]."
 }
 ```
@@ -447,6 +479,15 @@ Format : { "EnumName": { "valeur_raw": "Label affiché" } }.
 Exemples : { "TaskStatus": { "pending": "En attente", "in_progress": "En cours", "done": "Terminé" } }
 Si le projet n'a aucun enum, retourner {}.
 Ne JAMAIS laisser une valeur raw non traduite si le brief est en français.
+
+### Règles design_system
+Choisir des couleurs et un ton qui correspondent au domaine métier du brief.
+- `primary_color` : classe Tailwind `{color}-{shade}` UNIQUEMENT (ex: blue-700, indigo-600, emerald-700, violet-600, rose-600, cyan-700). JAMAIS de valeur hex (#...) ou CSS rgb(...).
+- `sidebar_bg` : classe Tailwind. Thème sombre recommandé pour SaaS (slate-900, slate-800, gray-900). Thème clair (white, gray-50) pour blogs/éditoriales.
+- `mood` : description libre du ton visuel — max 6 mots.
+- `density` : "compact" (dashboard finance, données denses) | "confortable" (SaaS généraliste) | "aéré" (blog, vitrine, lecture).
+- `animation_level` : toujours "none" — ne pas modifier.
+- `brand_name` : nom affiché dans la sidebar/header. Dériver du project_name si non précisé dans le brief.
 
 Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.\
 """
@@ -842,7 +883,13 @@ _FACTORY_CAPABILITIES = """\
 ### [CROSS_ENTITY] — signal pour données d'un modèle secondaire
 Si une page de type "detail" doit AUSSI afficher les données d'un modèle ENFANT (un modèle qui a une FK vers le modèle principal),
 ajouter le tag [CROSS_ENTITY: NomDuModèle] dans la description de cette page.
-Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY: Task]\
+Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY: Task]
+
+### Design system — auto-généré (ne PAS décrire dans pages_detail)
+- La sidebar, le layout principal, les couleurs : générés automatiquement depuis `design_system`
+- Les composants UI (Button, Card, Table, Badge, Input…) : shadcn/ui disponibles automatiquement
+- NE PAS écrire dans pages_detail : "Utilise bg-indigo-600", "bouton primaire vert", "sidebar noire"
+- Le dev_agent reçoit les tokens de couleur configurés — décrire UNIQUEMENT la logique fonctionnelle\
 """
 
 _PAGES_DETAIL_SYSTEM_PROMPT = """\
@@ -1254,6 +1301,11 @@ async def planner_node(state: AgentState) -> dict:
     spec_dict = spec.model_dump()
     if enriched_spec:
         spec_dict["enriched_spec"] = enriched_spec
+
+    # Propage design_system depuis le brief pour le frontend generator
+    design_system = brief.get("design_system") or {}
+    if design_system:
+        spec_dict["design_system"] = design_system
 
     return {
         "plan": spec_dict,

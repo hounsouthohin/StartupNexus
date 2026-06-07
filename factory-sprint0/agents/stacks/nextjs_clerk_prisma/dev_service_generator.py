@@ -348,8 +348,10 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
                 "  },",
             ]
         else:
-            # Filtre Boolean de visibilité — détecte "published" ET "isPublic"/"is_public"/"public".
-            # Évite d'exposer les records non publiés/privés dans les routes publiques.
+            # Construction des conditions where pour getPublicAll
+            _where_parts: list[str] = []
+
+            # Filtre Boolean de visibilité — "published", "isPublic", etc.
             _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
             _vis_field = next(
                 (f for f in ctx.model.fields
@@ -358,11 +360,24 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
                 None,
             )
             if _vis_field:
-                _pub_filter = f"where: {{ {_vis_field.name}: true }}, "
+                _where_parts.append(f"{_vis_field.name}: true")
             elif getattr(ctx, "has_published_bool", False):
-                _pub_filter = "where: { published: true }, "
-            else:
-                _pub_filter = ""
+                _where_parts.append("published: true")
+
+            # Filtre date future — modèles "à venir" (events, appointments, annonces, etc.)
+            # Détecté si le modèle a un champ DateTime non-nullable au nom évocateur.
+            _FUTURE_DATE_NAMES = {"date", "startdate", "startsat", "eventdate", "scheduledat", "duedate", "expiresat"}
+            _date_field = next(
+                (f for f in ctx.model.fields
+                 if f.name.lower() in _FUTURE_DATE_NAMES
+                 and f.type.rstrip("?").rstrip("[]") == "DateTime"
+                 and not f.type.endswith("?")),
+                None,
+            )
+            if _date_field:
+                _where_parts.append(f"{_date_field.name}: {{ gte: new Date() }}")
+
+            _pub_filter = f"where: {{ {', '.join(_where_parts)} }}, " if _where_parts else ""
             lines += [
                 "",
                 f"  getPublicAll: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",

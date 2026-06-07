@@ -231,6 +231,10 @@ class DetailWithChildrenModule(FeatureModule):
                 enum_display=enum_display,
                 title_plural=ctx.title_plural,
                 children=children_ctx,
+                # tokens sémantiques CSS variables (tailwind.config.js → hsl(var(--primary)))
+                primary="primary",
+                primary_hover="primary/85",
+                primary_ring="primary",
             )
         except Exception as e:
             logger.error("[detail_with_children] erreur template %s : %s", ctx.name, e)

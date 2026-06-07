@@ -43,7 +43,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             name="{{ field.name }}"
             rows={4}
             {% if not field.is_optional and not field.has_default %}required{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% elif field.input_type == 'checkbox' %}
           <input
@@ -51,14 +51,14 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             id="{{ field.name }}"
             name="{{ field.name }}"
             value="true"
-            className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+            className="h-4 w-4 text-{{ primary }} border-gray-300 rounded"
           />
           {% elif field.input_type == 'enum-select' %}
           <select
             id="{{ field.name }}"
             name="{{ field.name }}"
             {% if not field.is_optional and not field.has_default %}required{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {% for val in field.enum_values %}
@@ -71,7 +71,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             id="{{ field.name }}"
             name="{{ field.name }}"
             {% if not field.is_optional and not field.has_default %}required {% endif %}{% if field.input_type == 'number' %}step="any"{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% endif %}
         </div>
@@ -86,7 +86,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             id="{{ fk.field_name }}"
             name="{{ fk.field_name }}"
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {{ '{' }}{{ fk.related_camel }}Options.map(opt => (
@@ -100,7 +100,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
           <button
             type="submit"
             disabled={isPending}
-            className="flex-1 px-6 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+            className="flex-1 px-6 py-2 bg-{{ primary }} text-white rounded-md text-sm font-medium hover:bg-{{ primary_hover }} disabled:opacity-50"
           >
             {isPending ? 'En cours…' : 'Créer'}
           </button>

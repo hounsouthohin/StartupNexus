@@ -59,9 +59,37 @@ Affiche aussi la liste des tâches liées : title, dueDate, status.
 
 Sans ce tag, la factory génère uniquement le fetch du modèle principal (Project).
 
+## Design System auto-généré (ne pas décrire dans pages_detail)
+
+Les fichiers suivants sont générés automatiquement par `dev_design_system_generator` :
+
+| Fichier | Contenu |
+|---------|---------|
+| `app/globals.css` | CSS variables HSL depuis `design_system.primary_color` — `--primary`, `--foreground`, `--radius`… |
+| `tailwind.config.js` | Format shadcn — `bg-primary` = `hsl(var(--primary))`, `text-foreground`, `bg-muted`… |
+| `components/ui/button.tsx` | Composant shadcn officiel |
+| `components/ui/input.tsx` | Composant shadcn officiel |
+| `components/ui/card.tsx` | Composant shadcn officiel |
+| `components/ui/table.tsx` | Composant shadcn officiel |
+| `components/ui/badge.tsx` | Composant shadcn officiel |
+| `components/ui/label.tsx` | Composant shadcn officiel |
+| `components/ui/textarea.tsx` | Composant shadcn officiel |
+| `components/ui/select.tsx` | Composant shadcn officiel |
+| `components/Empty.tsx` | État vide sémantique (custom) |
+| `components/StatCard.tsx` | Carte métrique (custom) |
+| `app/components/layout/DashboardShell.tsx` | Sidebar avec `sidebar_bg` du brief |
+| `app/layout.tsx` | ClerkProvider + DashboardShell |
+
+**L'architect ne doit JAMAIS décrire** :
+- La configuration des couleurs (gérée par `design_system.primary_color`)
+- L'import ou l'usage de Button/Card/Table (le LLM en est informé via le prompt)
+- La création de globals.css ou tailwind.config.js
+- La sidebar ou le layout principal
+
 ## Ce que le LLM n'a PAS besoin de décrire
 
 - Les formulaires CRUD standard (list/create/detail/detail-slug) — auto-générés
 - Les imports Clerk, `auth()`, `redirect('/sign-in')` — injectés automatiquement
 - La signature TypeScript de base des composants — générée par le planner
 - Les imports service standard pour le modèle principal — dans le context_hint automatique
+- Le design system, les couleurs, les composants shadcn — générés et injectés via le prompt
