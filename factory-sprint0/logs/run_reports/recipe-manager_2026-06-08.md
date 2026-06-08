@@ -1,10 +1,10 @@
-# FactoryRunReport — event-board — 2026-06-07
+# FactoryRunReport — recipe-manager — 2026-06-08
 ══════════════════════════════════════════════════
-BUILD        : ❌ BUILD_FAILED
-REVIEW       : SKIPPED (SKIPPED_BUILD_FAILED)
+BUILD        : ❌ SUCCESS
+REVIEW       : COHERENT | sec=100 | coh=80 | 1 finding(s)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : Non exécuté
-SEMGREP      : Non exécuté
+TESTS        : ✗ 1 test(s) — FAIL tests/schemas.test.ts | PASS tests/middleware.test.ts |
+SEMGREP      : ⚠ 1 finding(s)
 
 PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): failed (exit 1)
@@ -14,5 +14,5 @@ PATTERNS DÉTECTÉS :
 ⚠ no
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : b324315c-7cb4-423c-a113-884434155efa
-DURÉE        : 4min 53s
+RUN_ID       : 6f6e0d6a-63c8-4713-a4cd-b5c351550d64
+DURÉE        : 2min 56s

@@ -1,10 +1,10 @@
-# FactoryRunReport — event-board — 2026-06-07
+# FactoryRunReport — event-board — 2026-06-08
 ══════════════════════════════════════════════════
-BUILD        : ❌ BUILD_FAILED
-REVIEW       : SKIPPED (SKIPPED_BUILD_FAILED)
+BUILD        : ❌ SUCCESS
+REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : Non exécuté
-SEMGREP      : Non exécuté
+TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | FAIL tests/services.test.ts | T
+SEMGREP      : ⚠ 2 finding(s)
 
 PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): failed (exit 1)
@@ -14,5 +14,5 @@ PATTERNS DÉTECTÉS :
 ⚠ no
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : b324315c-7cb4-423c-a113-884434155efa
-DURÉE        : 4min 53s
+RUN_ID       : 2c089ce9-8239-4b7e-9d05-180daffeecf1
+DURÉE        : 4min 34s

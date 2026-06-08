@@ -4366,6 +4366,55 @@ BAD:
     <a className="text-blue-600">{post.title}</a>
   </Link>
   // ❌ <a> dans <a> — HTML invalide, deprecated depuis Next.js 13"""),
+
+    _s("31-level-b-nextjs-imports", "imports", """RULE: Link, Image, useRouter, usePathname — toujours importer depuis next/* avant usage
+WHY: Ces composants/hooks ne sont PAS globaux en Next.js App Router. Les utiliser sans import déclenche immédiatement [TS2304] Cannot find name 'Link' (ou 'Image', 'useRouter'). L'erreur est non-récupérable au build — le LLM doit déclarer l'import EN PREMIER dans chaque fichier qui les utilise.
+GOOD:
+  import Link from 'next/link'
+  import Image from 'next/image'
+  import { useRouter, usePathname } from 'next/navigation'
+
+  export default function DashboardPage() {
+    const router = useRouter()
+    const pathname = usePathname()
+    return (
+      <div>
+        <Link href="/recipes">Voir les recettes</Link>
+        <Image src="/logo.png" alt="logo" width={40} height={40} />
+      </div>
+    )
+  }
+BAD:
+  export default function DashboardPage() {
+    return (
+      <div>
+        <Link href="/recipes">Voir les recettes</Link>
+        // ❌ [TS2304] Cannot find name 'Link' — import manquant
+      </div>
+    )
+  }"""),
+
+    _s("31-level-b-button-href", "components", """RULE: <Button> n'accepte PAS la prop href — utiliser <Link> stylé ou <Button asChild><Link href="...">
+WHY: ButtonProps ne contient pas href. [TS2322] Type '{ href: string; children: string; }' is not assignable to type 'ButtonProps'. Cette erreur bloque le build immédiatement.
+GOOD:
+  import Link from 'next/link'
+  import { Button } from '@/components/ui/button'
+
+  // Option 1 — Link stylé (cas courant pour les CTAs)
+  <Link
+    href="/projects"
+    className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90"
+  >
+    Voir projets
+  </Link>
+
+  // Option 2 — Button asChild (délègue le rendu au Link)
+  <Button asChild>
+    <Link href="/projects">Voir projets</Link>
+  </Button>
+BAD:
+  <Button href="/projects">Voir projets</Button>
+  // ❌ TS2322 — href n'existe pas sur ButtonProps"""),
 ]
 
 

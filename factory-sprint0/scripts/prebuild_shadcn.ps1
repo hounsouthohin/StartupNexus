@@ -81,14 +81,50 @@ try {
         Write-Warning "  ⚠ lib/utils.ts introuvable"
     }
 
+    # ── 5. Extraire les versions des dépendances shadcn depuis package.json ─────
+    Write-Host ""
+    Write-Host "[5/5] Extraction des versions de dépendances shadcn..." -ForegroundColor Yellow
+    $pkg_json = Join-Path $TEMP_DIR "app\package.json"
+    if (Test-Path $pkg_json) {
+        $pkg = Get-Content $pkg_json -Raw | ConvertFrom-Json
+        $deps = @{}
+        $all_deps = @{}
+        if ($pkg.dependencies) {
+            $pkg.dependencies.PSObject.Properties | ForEach-Object { $all_deps[$_.Name] = $_.Value }
+        }
+        if ($pkg.devDependencies) {
+            $pkg.devDependencies.PSObject.Properties | ForEach-Object { $all_deps[$_.Name] = $_.Value }
+        }
+        # Extraire les deps pertinentes pour la factory
+        $keys_to_track = @("@base-ui/react", "radix-ui", "@radix-ui/react-slot", "class-variance-authority", "clsx", "tailwind-merge", "lucide-react", "tailwindcss-animate")
+        $keys_to_track | ForEach-Object {
+            if ($all_deps.ContainsKey($_)) {
+                $deps[$_] = $all_deps[$_]
+                Write-Host "  $_ : $($all_deps[$_])"
+            }
+        }
+        # Sauvegarder dans assets/shadcn/deps.json pour référence
+        $deps | ConvertTo-Json | Out-File -FilePath "$ASSETS_DIR\deps.json" -Encoding utf8
+        Write-Host "  → Sauvegardé dans assets/shadcn/deps.json"
+
+        # Avertir si @base-ui/react présent et factory template diverge
+        if ($deps.ContainsKey("@base-ui/react")) {
+            Write-Host ""
+            Write-Host "⚠  shadcn utilise @base-ui/react $($deps['@base-ui/react'])" -ForegroundColor Yellow
+            Write-Host "   Vérifier que factory-sprint0/config/stacks/nextjs-clerk-prisma/templates/package.json" -ForegroundColor Yellow
+            Write-Host "   inclut : `"@base-ui/react`": `"$($deps['@base-ui/react'])`"" -ForegroundColor Yellow
+        }
+    }
+
     $count = (Get-ChildItem $ASSETS_DIR -Recurse -File).Count
     Write-Host ""
     Write-Host "=== Terminé : $count fichiers dans assets/shadcn/ ===" -ForegroundColor Green
     Write-Host ""
     Write-Host "Prochaines étapes :" -ForegroundColor Cyan
     Write-Host "  1. Vérifier les fichiers dans factory-sprint0/assets/shadcn/"
-    Write-Host "  2. git add assets/shadcn/ && git commit -m 'feat: add shadcn/ui assets'"
-    Write-Host "  3. Rebuild Docker pour inclure les assets dans l'image"
+    Write-Host "  2. Vérifier que package.json template contient toutes les deps de assets/shadcn/deps.json"
+    Write-Host "  3. git add assets/shadcn/ && git commit -m 'feat: add shadcn/ui assets'"
+    Write-Host "  4. Rebuild Docker pour inclure les assets dans l'image"
     Write-Host ""
     Write-Host "Mise à jour future shadcn : relancer ce script." -ForegroundColor Gray
 

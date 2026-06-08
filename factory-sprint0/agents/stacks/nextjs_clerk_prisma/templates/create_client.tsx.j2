@@ -25,16 +25,16 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
   return (
     <main className="container mx-auto p-6 max-w-xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="{{ list_path }}" className="text-gray-400 hover:text-gray-600">←</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Nouveau {{ name }}</h1>
+        <Link href="{{ list_path }}" className="text-muted-foreground hover:text-foreground">←</Link>
+        <h1 className="text-2xl font-bold text-foreground">Nouveau {{ name }}</h1>
       </div>
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}
 
-      <form action={formAction} className="space-y-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <form action={formAction} className="space-y-4 bg-card p-6 rounded-lg shadow-sm border border-border">
         {% for field in editable_fields %}
         <div>
-          <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-foreground mb-1">
             {{ field_labels.get(field.name, field.name) }}{% if not field.is_optional and not field.has_default %} <span className="text-red-500">*</span>{% endif %}
           </label>
           {% if field.input_type == 'textarea' %}
@@ -43,7 +43,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             name="{{ field.name }}"
             rows={4}
             {% if not field.is_optional and not field.has_default %}required{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% elif field.input_type == 'checkbox' %}
           <input
@@ -51,14 +51,14 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             id="{{ field.name }}"
             name="{{ field.name }}"
             value="true"
-            className="h-4 w-4 text-{{ primary }} border-gray-300 rounded"
+            className="h-4 w-4 text-{{ primary }} border-border rounded"
           />
           {% elif field.input_type == 'enum-select' %}
           <select
             id="{{ field.name }}"
             name="{{ field.name }}"
             {% if not field.is_optional and not field.has_default %}required{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {% for val in field.enum_values %}
@@ -71,7 +71,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
             id="{{ field.name }}"
             name="{{ field.name }}"
             {% if not field.is_optional and not field.has_default %}required {% endif %}{% if field.input_type == 'number' %}step="any"{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% endif %}
         </div>
@@ -79,14 +79,14 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
 
         {% for fk in fk_fields %}
         <div>
-          <label htmlFor="{{ fk.field_name }}" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="{{ fk.field_name }}" className="block text-sm font-medium text-foreground mb-1">
             {{ field_labels.get(fk.field_name, fk.related_model) }}
           </label>
           <select
             id="{{ fk.field_name }}"
             name="{{ fk.field_name }}"
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {{ '{' }}{{ fk.related_camel }}Options.map(opt => (
@@ -106,7 +106,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
           </button>
           <Link
             href="{{ list_path }}"
-            className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-muted/50"
           >
             Annuler
           </Link>

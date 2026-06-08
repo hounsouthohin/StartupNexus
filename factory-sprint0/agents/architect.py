@@ -485,8 +485,8 @@ Choisir des couleurs et un ton qui correspondent au domaine métier du brief.
 - `primary_color` : classe Tailwind `{color}-{shade}` UNIQUEMENT (ex: blue-700, indigo-600, emerald-700, violet-600, rose-600, cyan-700). JAMAIS de valeur hex (#...) ou CSS rgb(...).
 - `sidebar_bg` : classe Tailwind. Thème sombre recommandé pour SaaS (slate-900, slate-800, gray-900). Thème clair (white, gray-50) pour blogs/éditoriales.
 - `mood` : description libre du ton visuel — max 6 mots.
-- `density` : "compact" (dashboard finance, données denses) | "confortable" (SaaS généraliste) | "aéré" (blog, vitrine, lecture).
-- `animation_level` : toujours "none" — ne pas modifier.
+- `density` : "compact" (dashboard finance, données denses) | "normal" (SaaS généraliste) | "spacious" (blog, vitrine, lecture).
+- `animation_level` : "none" (finance, sobre) | "standard" (SaaS généraliste — défaut) | "enhanced" (vitrine, marketing).
 - `brand_name` : nom affiché dans la sidebar/header. Dériver du project_name si non précisé dans le brief.
 
 Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.\

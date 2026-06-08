@@ -196,7 +196,8 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         ),
         "page_client_ui": (
             "dashboard SerializedXxx props Client Component "
-            "empty state liste vide Link navigation href next/link"
+            "empty state liste vide Link navigation href next/link "
+            "Button asChild ButtonProps import next/link next/image"
         ),
     }
 

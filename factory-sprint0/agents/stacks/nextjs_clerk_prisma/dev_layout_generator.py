@@ -137,14 +137,15 @@ def _path_of(page: Any) -> str:
 def _auth_of(page: Any) -> bool:
     """Retourne True si la page est authentifiée.
     Convention fiable : tout chemin /dashboard/* est protégé par le middleware Clerk.
-    L'architect n'a pas à setter auth: true explicitement.
+    AppPage Pydantic sérialise le champ en auth_required (pas auth).
     """
     path = _path_of(page)
     if path.startswith("/dashboard"):
         return True
     if isinstance(page, dict):
-        return page.get("auth") is True
-    return False
+        return bool(page.get("auth_required"))
+    # Pydantic AppPage object (spec_obj.pages)
+    return bool(getattr(page, "auth_required", False))
 
 
 def _label(segment: str) -> str:
@@ -220,16 +221,13 @@ def _resolve_design(design_system: Dict[str, Any], app_name: str) -> Dict[str, s
     is_dark_sidebar = sidebar in _DARK_SIDEBAR_BGS
 
     if is_dark_sidebar:
-        brand_text  = "white"
-        active_cls  = f"bg-{primary.replace('-700', '-600').replace('-600', '-500')} text-white"
+        brand_text   = "white"
+        active_cls   = "bg-primary text-primary-foreground"
         inactive_cls = "text-slate-300 hover:bg-slate-700 hover:text-white"
         border       = "slate-700"
     else:
-        brand_text  = "gray-900"
-        primary_base = primary.split("-")[0] if "-" in primary else "blue"
-        shade        = primary.split("-")[1] if "-" in primary else "700"
-        light_shade  = "50"
-        active_cls   = f"bg-{primary_base}-{light_shade} text-{primary_base}-{shade}"
+        brand_text   = "gray-900"
+        active_cls   = "bg-primary/10 text-primary"
         inactive_cls = "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
         border       = "gray-200"
 

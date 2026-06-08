@@ -39,7 +39,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   return (
     <main className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{{ title_plural }}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{{ title_plural }}</h1>
         {% if auth_required %}
         <Link
           href="{{ list_path }}/new"
@@ -51,7 +51,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
       </div>
 
       {list.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-muted-foreground">
           <p className="text-lg">{{ empty_state_message if empty_state_message else "Aucun " + camel + " pour le moment." }}</p>
           {% if auth_required %}
           <Link href="{{ list_path }}/new" className="mt-4 inline-block text-{{ primary }} hover:underline text-sm">
@@ -60,29 +60,29 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
           {% endif %}
         </div>
       ) : (
-        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-          <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
+        <div className="overflow-hidden shadow-sm border border-border rounded-lg">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted">
               <tr>
                 {% for field in display_fields %}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   {{ field_labels.get(field, field) }}
                 </th>
                 {% endfor %}
                 {% if auth_required %}
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Actions
                 </th>
                 {% endif %}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {list.map(item => (
-                <tr key={item.id} className="hover:bg-gray-50">
+                <tr key={item.id} className="hover:bg-muted/50">
                   {% for field in display_fields %}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {% if status_field and status_labels and field == status_field %}
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-muted text-foreground">
                       {STATUS_LABELS[item.{{ field }}] ?? String(item.{{ field }} ?? '')}
                     </span>
                     {% else %}
@@ -96,7 +96,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                       {% if has_detail %}
                       <Link
                         href={`{{ list_path }}/{{ '${' }}{% if has_slug %}item.slug{% else %}item.id{% endif %}}`}
-                        className="px-3 py-1 text-xs font-medium text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                        className="px-3 py-1 text-xs font-medium text-muted-foreground border border-border rounded hover:bg-muted/50"
                       >
                         Voir
                       </Link>

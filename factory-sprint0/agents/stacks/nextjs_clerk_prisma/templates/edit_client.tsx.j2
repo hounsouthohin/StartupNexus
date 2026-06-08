@@ -27,16 +27,16 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
   return (
     <main className="container mx-auto p-6 max-w-xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="{{ list_path }}" className="text-gray-400 hover:text-gray-600">←</Link>
-        <h1 className="text-2xl font-bold text-gray-900">Modifier {{ name }}</h1>
+        <Link href="{{ list_path }}" className="text-muted-foreground hover:text-foreground">←</Link>
+        <h1 className="text-2xl font-bold text-foreground">Modifier {{ name }}</h1>
       </div>
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}
 
-      <form action={formAction} className="space-y-4 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <form action={formAction} className="space-y-4 bg-card p-6 rounded-lg shadow-sm border border-border">
         {% for field in editable_fields %}
         <div>
-          <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-foreground mb-1">
             {{ field_labels.get(field.name, field.name) }}
           </label>
           {% if field.input_type == 'textarea' %}
@@ -45,7 +45,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             rows={4}
             defaultValue={item.{{ field.name }} ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% elif field.input_type == 'checkbox' %}
           <input
@@ -54,14 +54,14 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             value="true"
             defaultChecked={Boolean(item.{{ field.name }})}
-            className="h-4 w-4 text-{{ primary }} border-gray-300 rounded"
+            className="h-4 w-4 text-{{ primary }} border-border rounded"
           />
           {% elif field.input_type == 'enum-select' %}
           <select
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {% for val in field.enum_values %}
@@ -74,7 +74,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ? (item.{{ field.name }} as string).slice(0, 10) : ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% elif field.input_type == 'datetime-local' %}
           <input
@@ -82,7 +82,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ? new Date(item.{{ field.name }} as string).toISOString().slice(0, 16) : ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% else %}
           <input
@@ -91,7 +91,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} != null ? String(item.{{ field.name }}) : ''}
             {% if field.input_type == 'number' %}step="any"{% endif %}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
           {% endif %}
         </div>
@@ -99,14 +99,14 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
 
         {% for fk in fk_fields %}
         <div>
-          <label htmlFor="{{ fk.field_name }}" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="{{ fk.field_name }}" className="block text-sm font-medium text-foreground mb-1">
             {{ field_labels.get(fk.field_name, fk.related_model) }}
           </label>
           <select
             id="{{ fk.field_name }}"
             name="{{ fk.field_name }}"
             defaultValue={item.{{ fk.field_name }} ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           >
             <option value="">Sélectionner…</option>
             {{ '{' }}{{ fk.related_camel }}Options.map(opt => (
@@ -126,7 +126,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
           </button>
           <Link
             href="{{ list_path }}"
-            className="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-muted/50"
           >
             Annuler
           </Link>
