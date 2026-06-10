@@ -1,3 +1,4 @@
+
 # agents/architect.py
 from __future__ import annotations
 
@@ -14,14 +15,9 @@ from agents.stack_config import _DEFAULT_STACK_ID
 
 logger = logging.getLogger(__name__)
 
-# ── Prompt LLM pour brief_writer_node ────────────────────────────────────────
-# Hardcodé (pas de RAG) — règles stables qui ne changent pas entre projets.
-# Structure en 3 sections séparées (planSecond.md) :
-#   _STACK_INVARIANTS   : règles fondamentales — ne changent pas sans breaking change de stack
-#   _DEDUCTION_RULES    : règles de transformation brief → modèle — évoluent à chaque nouvelle hallucination
-#   _FEW_SHOT_EXAMPLES  : exemples par catégorie — candidats à externalisation JSON + enrichissement learner
+# (Prompts brief_writer supprimés — voir domain_interpreter.py + page_planner.py)
 
-_STACK_INVARIANTS = """\
+_PLACEHOLDER_TO_DELETE = """\
 ## RÈGLES STACK (NON NÉGOCIABLES)
 
 ### Auth
@@ -491,19 +487,6 @@ Choisir des couleurs et un ton qui correspondent au domaine métier du brief.
 
 Le champ `architecture` capture ce qui n'est PAS dérivable du schéma Prisma seul : quelles données sont publiques, pourquoi certaines pages sont sans auth, contraintes métier importantes.\
 """
-
-_BRIEF_WRITER_SYSTEM_PROMPT = "\n\n".join([
-    (
-        "Tu es un architecte logiciel expert de la stack Next.js 14 + Clerk V6 + Prisma 7 + PostgreSQL.\n"
-        "Ta mission : convertir un brief en langage naturel en une spec JSON structurée prête pour le générateur de code."
-    ),
-    _STACK_INVARIANTS,
-    _DEDUCTION_RULES,
-    _FORMAT_DE_SORTIE,
-    _FEW_SHOT_EXAMPLES,
-    "Retourne UNIQUEMENT le JSON, sans balises markdown ni explication.",
-])
-
 
 # ── Output contracts ─────────────────────────────────────────────────────────
 
@@ -1320,31 +1303,56 @@ async def planner_node(state: AgentState) -> dict:
 # ── Graph factory ─────────────────────────────────────────────────────────────
 
 def create_architect_agent():
+    """
+    Pipeline architect décomposé (Plan6 — Bloc D) :
+
+    Brief libre (no models) :
+        domain_interpreter → page_planner → semantic_annotator → pages_detail → spec_enricher → planner
+
+    Brief avec models mais sans pages :
+        page_planner → semantic_annotator → pages_detail → spec_enricher → planner
+
+    Brief complet (models + pages) :
+        semantic_annotator → pages_detail → spec_enricher → planner
+
+    Tous les nœuds sont idempotents (skip si déjà rempli).
+    """
     from langgraph.graph import StateGraph, START, END
+    from agents.domain_interpreter import domain_interpreter_node
+    from agents.page_planner import page_planner_node
+    from agents.spec_enricher import spec_enricher_node
 
     def _route_entry(state: AgentState) -> str:
-        """
-        Brief libre  → brief_writer → semantic_annotator → pages_detail → planner
-        Brief structuré (models présents) → semantic_annotator → pages_detail → planner
-        Tous les nœuds sont idempotents (skip si déjà rempli).
-        """
         brief = state.get("brief", {})
-        if brief.get("models"):
+        has_models = bool(brief.get("models"))
+        has_pages = bool(brief.get("pages"))
+        if has_models and has_pages:
             return "semantic_annotator"
-        return "brief_writer"
+        if has_models:
+            return "page_planner"
+        return "domain_interpreter"
 
     workflow = StateGraph(AgentState)
-    workflow.add_node("brief_writer", brief_writer_node)
+    workflow.add_node("domain_interpreter", domain_interpreter_node)
+    workflow.add_node("page_planner", page_planner_node)
     workflow.add_node("semantic_annotator", semantic_annotator_node)
     workflow.add_node("pages_detail", pages_detail_node)
+    workflow.add_node("spec_enricher", spec_enricher_node)
     workflow.add_node("planner", planner_node)
+
     workflow.add_conditional_edges(
         START,
         _route_entry,
-        {"brief_writer": "brief_writer", "semantic_annotator": "semantic_annotator"},
+        {
+            "domain_interpreter": "domain_interpreter",
+            "page_planner": "page_planner",
+            "semantic_annotator": "semantic_annotator",
+        },
     )
-    workflow.add_edge("brief_writer", "semantic_annotator")
+    workflow.add_edge("domain_interpreter", "page_planner")
+    workflow.add_edge("page_planner", "semantic_annotator")
     workflow.add_edge("semantic_annotator", "pages_detail")
-    workflow.add_edge("pages_detail", "planner")
+    workflow.add_edge("pages_detail", "spec_enricher")
+    workflow.add_edge("spec_enricher", "planner")
     workflow.add_edge("planner", END)
     return workflow.compile()

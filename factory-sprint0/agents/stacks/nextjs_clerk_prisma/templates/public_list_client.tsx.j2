@@ -1,0 +1,76 @@
+'use client'
+
+import Link from 'next/link'
+import type { {{ serialized_type }} } from '@/lib/types'
+{% if status_field and status_labels %}
+
+const STATUS_LABELS: Record<string, string> = {
+{% for val, label in status_labels.items() %}
+  {{ val }}: '{{ label }}',
+{% endfor %}
+}
+{% endif %}
+
+interface {{ client_name }}Props {
+  items: {{ serialized_type }}[]
+}
+
+export default function {{ client_name }}({ items }: {{ client_name }}Props) {
+  return (
+    <main className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold text-foreground mb-6">{{ title_plural }}</h1>
+
+      {items.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p className="text-lg">{{ empty_state_message if empty_state_message else "Aucun " + camel + " pour le moment." }}</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden shadow-sm border border-border rounded-lg">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted">
+              <tr>
+                {% for field in display_fields %}
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {{ field_labels.get(field, field) }}
+                </th>
+                {% endfor %}
+                {% if has_detail %}
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Détail
+                </th>
+                {% endif %}
+              </tr>
+            </thead>
+            <tbody className="bg-card divide-y divide-border">
+              {items.map(item => (
+                <tr key={item.id} className="hover:bg-muted/50">
+                  {% for field in display_fields %}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
+                    {% if status_field and status_labels and field == status_field %}
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-muted text-foreground">
+                      {STATUS_LABELS[item.{{ field }}] ?? String(item.{{ field }} ?? '')}
+                    </span>
+                    {% else %}
+                    {String(item.{{ field }} ?? '')}
+                    {% endif %}
+                  </td>
+                  {% endfor %}
+                  {% if has_detail %}
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <Link
+                      href={`{{ list_path }}/{{ '${' }}{% if has_slug %}item.slug{% else %}item.id{% endif %}}`}
+                      className="px-3 py-1 text-xs font-medium text-primary border border-primary rounded hover:bg-primary/10"
+                    >
+                      Lire
+                    </Link>
+                  </td>
+                  {% endif %}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </main>
+  )
+}

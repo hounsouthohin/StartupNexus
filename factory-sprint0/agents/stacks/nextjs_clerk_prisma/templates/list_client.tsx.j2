@@ -31,7 +31,8 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   {% if has_delete %}
   const handleDelete = async (id: string) => {
     if (!confirm('Supprimer cet élément ?')) return
-    await delete{{ name }}(id)
+    const result = await delete{{ name }}(id)
+    if (result?.error) { alert(result.error); return }
     setList(prev => prev.filter(item => item.id !== id))
   }
   {% endif %}

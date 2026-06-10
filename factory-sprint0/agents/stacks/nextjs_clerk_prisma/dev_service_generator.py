@@ -3,15 +3,18 @@ agents/dev_service_generator.py
 ────────────────────────────────
 Génération DÉTERMINISTE des fichiers lib/services/{model}.service.ts depuis ProjectSpec.
 
-Chaque service expose des fonctions CRUD standard dont la présence dépend
-du ModelGenerationContext (flags has_public_pages, has_slug, has_relations).
+Architecture assembler :
+    _generate_service_for_model() itère SERVICE_MODULES (service_modules/__init__.py).
+    Chaque module décide via should_activate(ctx) s'il génère des méthodes,
+    puis retourne des lignes TypeScript via generate(ctx, **kwargs).
+
+    Ajouter une nouvelle famille de méthodes = créer un module dans service_modules/,
+    l'instancier dans SERVICE_MODULES. Aucune modification ici requise.
 
 SÉCURITÉ : getPublicAll() et getPublicById() ne sont générés QUE si le modèle
-a au moins une page publique (auth=False) dans la spec. Sans ce guard, ces méthodes
-exposeront tous les enregistrements sans filtre owner si le LLM les utilise sur un
-modèle admin-only.
+a au moins une page publique (auth=False) dans la spec (guard dans public.py).
 
-Intégration dans dev_graph.py (après generate_types_file) :
+Intégration dans dev_graph.py :
     from .dev_model_context import build_all_contexts
     contexts = build_all_contexts(spec_obj)
     service_files = generate_service_files(spec_obj, project_workdir, contexts)
@@ -22,126 +25,63 @@ from __future__ import annotations
 import logging
 import os
 
-from .dev_model_context import ModelGenerationContext, RelationFieldInfo, build_all_contexts
+from .dev_model_context import ModelGenerationContext, build_all_contexts
+from .service_modules import SERVICE_MODULES
 
 logger = logging.getLogger(__name__)
 
 
-def _scalar_select_block(ctx: ModelGenerationContext) -> str:
-    """Prisma select block pour les champs scalaires uniquement (exclut owner, relations, tableaux)."""
-    parts = []
-    for f in ctx.model.fields:
-        if f.name == ctx.owner:
-            continue
-        if "@relation" in (f.attributes or ""):
-            continue
-        if f.type.endswith("[]"):
-            continue
-        parts.append(f"{f.name}: true")
-    return ", ".join(parts)
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers header/serialize — partagés avec format_service_map_for_prompt
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _build_serialize_fn(ctx: ModelGenerationContext) -> list[str]:
+    """Génère la fonction _serialize pour les findFirst/findUnique (type Prisma complet)."""
+    name = ctx.name
+    owner = ctx.owner
+    serialized = ctx.serialized_type
+    dt_fields = ctx.datetime_fields
+
+    if dt_fields:
+        dt_lines = []
+        for df in dt_fields:
+            if df.is_nullable:
+                dt_lines.append(f"  {df.name}: rest.{df.name} ? rest.{df.name}.toISOString() : null,")
+            else:
+                dt_lines.append(f"  {df.name}: rest.{df.name}.toISOString(),")
+        return [
+            f"const _serialize = (item: {name}): {serialized} => {{",
+            f"  const {{ {owner}: _owner, ...rest }} = item",
+            "  return ({",
+            "    ...rest,",
+            *dt_lines,
+            f"  }}) as {serialized}",
+            "}",
+            "",
+        ]
+    return [
+        f"const _serialize = (item: {name}): {serialized} => {{",
+        f"  const {{ {owner}: _owner, ...rest }} = item",
+        f"  return rest as {serialized}",
+        "}",
+        "",
+    ]
 
 
-def _dt_inline_map(ctx: ModelGenerationContext) -> str:
-    """
-    Map function TypeScript inline : convertit les champs DateTime en ISO string.
-    Utilisé pour les findMany avec select (owner exclu du résultat — _serialize inapplicable).
-    """
-    dt_parts = []
-    for df in ctx.datetime_fields:
-        if df.name == ctx.owner:
-            continue
-        if df.is_nullable:
-            dt_parts.append(f"{df.name}: item.{df.name} ? item.{df.name}.toISOString() : null")
-        else:
-            dt_parts.append(f"{df.name}: item.{df.name}.toISOString()")
-    if not dt_parts:
-        return "item => item"
-    return "item => ({ ...item, " + ", ".join(dt_parts) + " })"
-
-
-def _dt_map_with_relations(ctx: "ModelGenerationContext", all_contexts: "dict") -> str:
-    """
-    Map function TypeScript inline pour getAllWithRelations / getByIdWithRelations.
-    Sérialise les DateTime du modèle racine ET des modèles enfants dans les relations.
-    _dt_inline_map ne couvre que le niveau racine — insuffisant quand une relation
-    imbriquée contient des champs DateTime (ex: Expense.expenseDate dans Category.expenses).
-    """
-    root_parts = []
-    for df in ctx.datetime_fields:
-        if df.name == ctx.owner:
-            continue
-        if df.is_nullable:
-            root_parts.append(f"{df.name}: item.{df.name} ? item.{df.name}.toISOString() : null")
-        else:
-            root_parts.append(f"{df.name}: item.{df.name}.toISOString()")
-
-    rel_parts = []
-    for r in ctx.relation_fields:
-        field = next((f for f in ctx.model.fields if f.name == r.name), None)
-        related_name = field.type.rstrip("?").rstrip("[]") if field else None
-        related_ctx = all_contexts.get(related_name) if related_name else None
-        if not related_ctx or not related_ctx.datetime_fields:
-            continue
-        # Seuls les champs dans le nested select (id + display_fields) peuvent être sérialisés.
-        # Sérialiser un champ hors select → TS2339.
-        selected_in_nested = {"id"} | set(related_ctx.display_fields)
-        if r.is_array:
-            nested_dt = [
-                (f"{rdf.name}: c.{rdf.name} ? c.{rdf.name}.toISOString() : null"
-                 if rdf.is_nullable else f"{rdf.name}: c.{rdf.name}.toISOString()")
-                for rdf in related_ctx.datetime_fields
-                if rdf.name in selected_in_nested
-            ]
-            if not nested_dt:
-                continue
-            rel_parts.append(
-                f"{r.name}: (item.{r.name} ?? []).map(c => ({{ ...c, {', '.join(nested_dt)} }}))"
-            )
-        else:
-            # Relation scalaire : pas de lambda, item.{r.name}.{field} direct.
-            # c.field → TS2304 car c n'est défini que dans .map(c => ...).
-            nested_dt = [
-                (f"{rdf.name}: item.{r.name}.{rdf.name} ? item.{r.name}.{rdf.name}.toISOString() : null"
-                 if rdf.is_nullable else f"{rdf.name}: item.{r.name}.{rdf.name}.toISOString()")
-                for rdf in related_ctx.datetime_fields
-                if rdf.name in selected_in_nested
-            ]
-            if not nested_dt:
-                continue
-            rel_parts.append(
-                f"{r.name}: item.{r.name} ? {{ ...item.{r.name}, {', '.join(nested_dt)} }} : item.{r.name}"
-            )
-
-    all_parts = root_parts + rel_parts
-    if not all_parts:
-        return "item => item"
-    return "item => ({ ...item, " + ", ".join(all_parts) + " })"
-
-
-def _relation_nested_select(r: "RelationFieldInfo", ctx: "ModelGenerationContext", all_contexts: dict) -> str:
-    """Select imbriqué pour un champ @relation dans getAllWithRelations."""
-    field = next((f for f in ctx.model.fields if f.name == r.name), None)
-    related_name = field.type.rstrip("?").rstrip("[]") if field else None
-    related_ctx = all_contexts.get(related_name) if related_name else None
-    if related_ctx:
-        fields = ["id"] + [f for f in related_ctx.display_fields if f != "id"]
-        nested = ", ".join(f"{f}: true" for f in fields)
-    else:
-        nested = "id: true"
-    return f"{r.name}: {{ select: {{ {nested} }} }}"
-
+# ─────────────────────────────────────────────────────────────────────────────
+# Custom queries (QueryDeclaration — depuis EnrichedSpec)
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
-    """
-    Compile une QueryDeclaration en méthode TypeScript.
-    Retourne les lignes à insérer dans le service object, ou [] si pattern inconnu.
-    """
+    """Compile une QueryDeclaration en méthode TypeScript."""
+    from .service_modules.base import scalar_select_block, dt_inline_map
+
     name = ctx.name
     camel = ctx.camel
     owner = ctx.owner
     serialized = ctx.serialized_type
-    _sel = _scalar_select_block(ctx)
-    _map = _dt_inline_map(ctx)
+    _sel = scalar_select_block(ctx)
+    _map = dt_inline_map(ctx)
 
     method_name = q.name or f"getBy{q.field[0].upper() + q.field[1:] if q.field else 'Unknown'}"
     param = q.param_name or (q.field if q.field else "value")
@@ -157,17 +97,16 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
                 f"    return items.map({_map}) as {ret_type}",
                 "  },",
             ]
-        else:
-            return [
-                "",
-                f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
-                f"    const item = await prisma.{camel}.{find_op}({{ where: {{ {owner}, {q.field}: {param} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 1 }})",
-                "    if (!item) notFound()",
-                f"    return ({_map})(item) as {ret_type}",
-                "  },",
-            ]
+        return [
+            "",
+            f"  {method_name}: async ({owner}: string, {param}: string): Promise<{ret_type}> => {{",
+            f"    const item = await prisma.{camel}.{find_op}({{ where: {{ {owner}, {q.field}: {param} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: 1 }})",
+            "    if (!item) notFound()",
+            f"    return ({_map})(item) as {ret_type}",
+            "  },",
+        ]
 
-    elif q.pattern == "search_text":
+    if q.pattern == "search_text":
         return [
             "",
             f"  {method_name}: async ({owner}: string, q: string, page: number = 1, pageSize: number = 20): Promise<{ret_type}> => {{",
@@ -176,7 +115,7 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
             "  },",
         ]
 
-    elif q.pattern == "count_by_field":
+    if q.pattern == "count_by_field":
         return [
             "",
             f"  {method_name}: async ({owner}: string): Promise<{{ {q.field}: string, count: number }}[]> => {{",
@@ -185,8 +124,7 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
             "  },",
         ]
 
-    elif q.pattern == "filter_by_relation":
-        # field = FK field like "assigneeId" → relation "assignee", param "assigneeId"
+    if q.pattern == "filter_by_relation":
         rel = q.field[:-2] if q.field.endswith("Id") else q.field
         return [
             "",
@@ -200,31 +138,29 @@ def _compile_query(ctx: ModelGenerationContext, q) -> list[str]:
     return []
 
 
-def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict | None" = None, required_queries: "list | None" = None) -> str:
+# ─────────────────────────────────────────────────────────────────────────────
+# Assembler principal
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _generate_service_for_model(
+    ctx: ModelGenerationContext,
+    all_contexts: "dict | None" = None,
+    required_queries: "list | None" = None,
+) -> str:
     """
     Génère le contenu complet du fichier .service.ts pour un modèle.
 
-    findMany → select explicite (Z25 : évite l'over-fetching).
-    findFirst / findUnique → pas de select, passent par _serialize (types Prisma complets).
-    getAllWithRelations → select scalaires + nested select par relation (remplace include).
+    Délègue la génération des méthodes à SERVICE_MODULES (assembler pattern).
+    Ce fichier ne contient plus la logique de génération — il orchestre seulement.
 
-    CONTRAT DE SYNCHRONISATION : toute méthode ajoutée ici doit être ajoutée dans
-    dev_service_spec.py::build_service_spec() — c'est là que vit la DÉCISION sur
-    quelles méthodes existent. Ce générateur produit le code ; build_service_spec
-    produit l'inventaire utilisé par le manifest, la doc LLM, et le planner.
+    CONTRAT : toute méthode ajoutée dans un module doit aussi être déclarée dans
+    dev_service_spec.py::build_service_spec() pour le manifest et la doc LLM.
     """
     name = ctx.name
     camel = ctx.camel
-    owner = ctx.owner
     serialized = ctx.serialized_type
-    dt_fields = ctx.datetime_fields
-    relations = ctx.relation_fields
 
-    # Pré-calculés une fois, utilisés par tous les findMany scalaires
-    _sel = _scalar_select_block(ctx)
-    _map = _dt_inline_map(ctx)
-
-    lines = [
+    header = [
         "// AUTO-GÉNÉRÉ PAR dev_service_generator.py — NE PAS MODIFIER",
         "import { notFound } from 'next/navigation'",
         "import prisma from '@/lib/prisma'",
@@ -233,257 +169,26 @@ def _generate_service_for_model(ctx: ModelGenerationContext, all_contexts: "dict
         "",
     ]
 
-    # _serialize : pour findFirst / findUnique (pas de select → type Prisma complet).
-    # Exclut owner, convertit DateTime → string.
-    if dt_fields:
-        dt_lines = []
-        for df in dt_fields:
-            if df.is_nullable:
-                dt_lines.append(
-                    f"  {df.name}: rest.{df.name} ? rest.{df.name}.toISOString() : null,"
-                )
-            else:
-                dt_lines.append(
-                    f"  {df.name}: rest.{df.name}.toISOString(),"
-                )
-        lines += [
-            f"const _serialize = (item: {name}): {serialized} => {{",
-            f"  const {{ {owner}: _owner, ...rest }} = item",
-            f"  return ({{",
-            "    ...rest,",
-            *dt_lines,
-            f"  }}) as {serialized}",
-            f"}}",
-            "",
-        ]
-    else:
-        lines += [
-            f"const _serialize = (item: {name}): {serialized} => {{",
-            f"  const {{ {owner}: _owner, ...rest }} = item",
-            f"  return rest as {serialized}",
-            f"}}",
-            "",
-        ]
+    serialize_fn = _build_serialize_fn(ctx)
 
-    # ── getAll (privé — select scalaires, filtre owner) ───────────────────────
-    lines += [
-        f"export const {camel}Service = {{",
-        f"  getAll: async ({owner}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-        f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-        f"    return items.map({_map}) as {serialized}[]",
-        "  },",
-    ]
+    # Corps du service object — assemblé par les modules actifs
+    body: list[str] = [f"export const {camel}Service = {{"]
+    for module in SERVICE_MODULES:
+        if module.should_activate(ctx):
+            body += module.generate(ctx, all_contexts=all_contexts or {})
 
-    # ── getBy{ParentModel}Id (modèles avec FK vers un parent) ─────────────────
-    # Utilisé par les pages [CROSS_ENTITY] : récupère les enfants d'un parent donné.
-    # Détecté via ctx.fk_fields — SOURCE UNIQUE de vérité (tous les modèles ont userId,
-    # donc l'ancienne heuristique owner∉{'userId','authorId'} était toujours False).
-    for _fk in (ctx.fk_fields or []):
-        _fk_field = _fk.field_name       # ex: "courseId"
-        _parent_model = _fk.related_model  # ex: "Course"
-        lines += [
-            "",
-            f"  getBy{_parent_model}Id: async (userId: string, {_fk_field}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_fk_field}, {owner}: userId }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-            f"    return items.map({_map}) as {serialized}[]",
-            "  },",
-        ]
-
-    # ── getPublished (public — select scalaires, filtre sur valeur "active" de l'enum) ──
-    if ctx.has_public_pages and ctx.has_status:
-        _PUBLISHED_LIKE = {"published", "active", "enabled", "approved", "public", "visible"}
-        _status_field = next(
-            (f for f in ctx.model.fields if f.name.lower() == "status"), None  # type: ignore[union-attr]
-        )
-        _published_val = "published"
-        if _status_field:
-            _base = _status_field.type.rstrip("?").rstrip("[]")
-            _enum_vals: list[str] = ctx.spec_enums.get(_base, [])
-            _published_val = next(
-                (v for v in _enum_vals if v in _PUBLISHED_LIKE),
-                _enum_vals[0] if _enum_vals else "published",
-            )
-        lines += [
-            "",
-            f"  getPublished: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_published_val}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-            f"    return items.map({_map}) as {serialized}[]",
-            "  },",
-        ]
-
-    # ── getById (privé — findFirst sans select → _serialize) ──────────────────
-    lines += [
-        "",
-        f"  getById: async ({owner}: string, id: string): Promise<{serialized}> => {{",
-        f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
-        "    if (!item) notFound()",
-        "    return _serialize(item)",
-        "  },",
-    ]
-
-    # ── getPublicById + getPublicAll (public — sans filtre owner) ─────────────
-    if ctx.has_public_pages:
-        lines += [
-            "",
-            f"  getPublicById: async (id: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findUnique({{ where: {{ id }} }})",
-            "    if (!item) notFound()",
-            "    return _serialize(item)",
-            "  },",
-        ]
-        if ctx.has_status:
-            # Filtre par statut publié pour éviter l'exposition de brouillons entre utilisateurs
-            _PUBLISHED_LIKE_P = {"published", "active", "enabled", "approved", "public", "visible"}
-            _sf_p = next((f for f in ctx.model.fields if f.name.lower() == "status"), None)
-            _pval = "published"
-            if _sf_p:
-                _base_p = _sf_p.type.rstrip("?").rstrip("[]")
-                _ev_p: list[str] = ctx.spec_enums.get(_base_p, [])
-                _pval = next((v for v in _ev_p if v in _PUBLISHED_LIKE_P), _ev_p[0] if _ev_p else "published")
-            lines += [
-                "",
-                f"  getPublicAll: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-                f"    const items = await prisma.{camel}.findMany({{ where: {{ status: '{_pval}' }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-                f"    return items.map({_map}) as {serialized}[]",
-                "  },",
-            ]
-        else:
-            # Construction des conditions where pour getPublicAll
-            _where_parts: list[str] = []
-
-            # Filtre Boolean de visibilité — "published", "isPublic", etc.
-            _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
-            _vis_field = next(
-                (f for f in ctx.model.fields
-                 if f.name.lower() in _VISIBILITY_NAMES
-                 and f.type.rstrip("?").rstrip("[]") == "Boolean"),
-                None,
-            )
-            if _vis_field:
-                _where_parts.append(f"{_vis_field.name}: true")
-            elif getattr(ctx, "has_published_bool", False):
-                _where_parts.append("published: true")
-
-            # Filtre date future — modèles "à venir" (events, appointments, annonces, etc.)
-            # Détecté si le modèle a un champ DateTime non-nullable au nom évocateur.
-            _FUTURE_DATE_NAMES = {"date", "startdate", "startsat", "eventdate", "scheduledat", "duedate", "expiresat"}
-            _date_field = next(
-                (f for f in ctx.model.fields
-                 if f.name.lower() in _FUTURE_DATE_NAMES
-                 and f.type.rstrip("?").rstrip("[]") == "DateTime"
-                 and not f.type.endswith("?")),
-                None,
-            )
-            if _date_field:
-                _where_parts.append(f"{_date_field.name}: {{ gte: new Date() }}")
-
-            _pub_filter = f"where: {{ {', '.join(_where_parts)} }}, " if _where_parts else ""
-            lines += [
-                "",
-                f"  getPublicAll: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-                f"    const items = await prisma.{camel}.findMany({{ {_pub_filter}select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-                f"    return items.map({_map}) as {serialized}[]",
-                "  },",
-            ]
-
-    # ── getBySlug (public — findUnique sans select → _serialize) ──────────────
-    if ctx.has_slug:
-        lines += [
-            "",
-            f"  getBySlug: async (slug: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }} }})",
-            "    if (!item) notFound()",
-            "    return _serialize(item)",
-            "  },",
-            "",
-            f"  getBySlugOwned: async ({owner}: string, slug: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findFirst({{ where: {{ slug, {owner} }} }})",
-            "    if (!item) notFound()",
-            "    return _serialize(item)",
-            "  },",
-        ]
-
-    # ── getAllWithRelations + getByIdWithRelations (privé — nested select) ───────
-    # Remplace include:{rel: true} par select imbriqué → types Prisma exacts, Z25 conforme.
-    if relations:
-        _scalar_parts = [
-            f"{f.name}: true" for f in ctx.model.fields
-            if f.name != ctx.owner
-            and "@relation" not in (f.attributes or "")
-            and not f.type.endswith("[]")
-        ]
-        _rel_parts = [_relation_nested_select(r, ctx, all_contexts or {}) for r in relations]
-        _rel_sel = ", ".join(_scalar_parts + _rel_parts)
-        # _rel_map sérialise les DateTime du modèle racine ET des relations imbriquées.
-        # _map ne couvre que le niveau racine — insuffisant quand une relation a des DateTime.
-        _rel_map = _dt_map_with_relations(ctx, all_contexts or {})
-        lines += [
-            "",
-            f"  getAllWithRelations: async ({owner}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, select: {{ {_rel_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
-            f"    return items.map({_rel_map}) as {serialized}[]",
-            "  },",
-            "",
-            f"  getByIdWithRelations: async ({owner}: string, id: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {_rel_sel} }} }})",
-            "    if (!item) notFound()",
-            f"    return ({_rel_map})(item) as {serialized}",
-            "  },",
-        ]
-
-    # ── getPublicByIdWithRelations (public — nested select, sans filtre owner) ──
-    if ctx.has_public_pages and relations:
-        lines += [
-            "",
-            f"  getPublicByIdWithRelations: async (id: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findUnique({{ where: {{ id }}, select: {{ {_rel_sel} }} }})",
-            "    if (!item) notFound()",
-            f"    return ({_rel_map})(item) as {serialized}",
-            "  },",
-        ]
-
-    # ── getBySlugWithRelations (public — nested select par slug) ──────────────
-    if ctx.has_slug and relations:
-        lines += [
-            "",
-            f"  getBySlugWithRelations: async (slug: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }}, select: {{ {_rel_sel} }} }})",
-            "    if (!item) notFound()",
-            f"    return ({_rel_map})(item) as {serialized}",
-            "  },",
-        ]
-
-    # ── Queries métier custom (depuis EnrichedSpec.required_queries) ─────────
+    # Custom queries depuis EnrichedSpec (ne font pas partie des modules standards)
     for q in (required_queries or []):
-        lines += _compile_query(ctx, q)
+        body += _compile_query(ctx, q)
 
-    # ── create / update / delete ──────────────────────────────────────────────
-    lines += [
-        "",
-        f"  create: async ({owner}: string, data: Create{name}Input): Promise<{serialized}> => {{",
-        f"    const result = await prisma.{camel}.create({{",
-        f"      data: {{ ...data, {owner} }}",
-        "    })",
-        "    return _serialize(result)",
-        "  },",
-        "",
-        f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{serialized}> => {{",
-        f"    const result = await prisma.{camel}.update({{",
-        f"      where: {{ id, {owner} }},",
-        "      data: { ...data }",
-        "    })",
-        "    return _serialize(result)",
-        "  },",
-        "",
-        f"  delete: async ({owner}: string, id: string): Promise<void> => {{",
-        f"    await prisma.{camel}.delete({{ where: {{ id, {owner} }} }})",
-        "  },",
-        "}",
-        "",
-    ]
+    body += ["}", ""]
 
-    return "\n".join(lines)
+    return "\n".join(header + serialize_fn + body)
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry points publics
+# ─────────────────────────────────────────────────────────────────────────────
 
 def generate_service_files(
     spec,
@@ -495,7 +200,6 @@ def generate_service_files(
     Génère un fichier .service.ts par modèle Prisma et les écrit sur le disque.
 
     contexts      : précalculé par build_all_contexts(spec) dans dev_graph.py.
-                    Si absent, calculé ici (compatibilité).
     enriched_spec : EnrichedSpec optionnel — injecte les required_queries custom.
     Retourne {chemin_relatif: contenu} pour intégration dans template_written.
     """
@@ -509,13 +213,9 @@ def generate_service_files(
     for model in spec.models:
         ctx = contexts[model.name]
 
-        # Filtre les queries déclarées pour ce modèle spécifique
         model_queries = []
         if enriched_spec and getattr(enriched_spec, "required_queries", None):
-            model_queries = [
-                q for q in enriched_spec.required_queries
-                if q.model == ctx.name
-            ]
+            model_queries = [q for q in enriched_spec.required_queries if q.model == ctx.name]
 
         filename = f"{ctx.kebab}.service.ts"
         rel_path = f"lib/services/{filename}"
@@ -561,12 +261,10 @@ def format_service_map_for_prompt(spec, contexts: "dict[str, ModelGenerationCont
 
         lines.append(f"**{svc.camel}Service** → `import {{ {svc.camel}Service }} from '{import_path}'`")
 
-        # Rendu de chaque méthode en suivant l'ordre de ServiceSpec
         for m in svc.methods:
             if m.name == "getAll":
                 lines.append(f"  .{m.name}({svc.owner}, page?)  → `Promise<{svc.serialized}[]>` (dates déjà string, paginé)")
             elif m.name.startswith("getBy") and m.name.endswith("Id") and m.name != "getById":
-                # getBy{Parent}Id — CROSS_ENTITY
                 lines.append(f"  .{m.name}(userId, ...)  → `Promise<{svc.serialized}[]>` enfants d'un parent — **CROSS_ENTITY**")
             elif m.name == "getPublished":
                 lines.append(f"  .{m.name}()  → `Promise<{svc.serialized}[]>` SANS userId — pages publiques status='published'")
@@ -591,7 +289,6 @@ def format_service_map_for_prompt(spec, contexts: "dict[str, ModelGenerationCont
             elif m.name in ("create", "update", "delete"):
                 lines.append(f"  .{m.name}(...)  → {m.sig.split('→')[-1].strip()}")
             else:
-                # custom queries
                 lines.append(f"  .{m.name}(...)  → {m.sig.split('→')[-1].strip()}")
 
         lines.append("")

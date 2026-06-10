@@ -32,7 +32,8 @@ __NAV_LINES__
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")
+  const PUBLIC_PATHS: string[] = [__PUBLIC_PATHS__]
+  const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))
 
   if (isAuthPage) return <>{children}</>
 
@@ -260,6 +261,14 @@ def generate_layout(
     nav = _nav_items(pages)
     tokens = _resolve_design(design_system, app_name)
 
+    # Chemins publics (auth_required=False) → injectés dans DashboardShell
+    # pour exclure ces routes du wrapper sidebar (visiteurs ne voient pas la sidebar)
+    public_paths = [
+        _path_of(p) for p in pages
+        if not _auth_of(p) and _path_of(p) and not _path_of(p).startswith("/sign-")
+    ]
+    pub_paths_ts = ", ".join(f'"{p}"' for p in public_paths)
+
     nav_lines = "\n".join(
         f'  {{ href: "{item["href"]}", label: "{item["label"]}", exact: {str(item["exact"]).lower()} }},'
         for item in nav
@@ -267,14 +276,15 @@ def generate_layout(
 
     shell_content = (
         _SHELL_TEMPLATE
-        .replace("__APP_NAME__",   tokens["brand_name"])
-        .replace("__NAV_LINES__",  nav_lines)
-        .replace("__SIDEBAR_BG__", tokens["sidebar_bg"])
-        .replace("__PAGE_BG__",    tokens["page_bg"])
-        .replace("__BORDER__",     tokens["border"])
-        .replace("__BRAND_TEXT__", tokens["brand_text"])
-        .replace("__ACTIVE_CLS__", tokens["active_cls"])
+        .replace("__APP_NAME__",    tokens["brand_name"])
+        .replace("__NAV_LINES__",   nav_lines)
+        .replace("__SIDEBAR_BG__",  tokens["sidebar_bg"])
+        .replace("__PAGE_BG__",     tokens["page_bg"])
+        .replace("__BORDER__",      tokens["border"])
+        .replace("__BRAND_TEXT__",  tokens["brand_text"])
+        .replace("__ACTIVE_CLS__",  tokens["active_cls"])
         .replace("__INACTIVE_CLS__", tokens["inactive_cls"])
+        .replace("__PUBLIC_PATHS__", pub_paths_ts)
     )
 
     layout_content = _LAYOUT_TEMPLATE.replace("__APP_NAME__", tokens["brand_name"])

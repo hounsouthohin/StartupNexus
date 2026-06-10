@@ -125,8 +125,17 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         p.path in (_detail_path, _slug_detail_path) and p.page_type in ("detail", "detail-slug")
         for p in _spec_pages
     )
+    # Pages publiques → template dédié (lecture seule, <Link> sur chaque ligne)
+    # Pages auth → template standard avec actions create/delete
+    if not auth_required:
+        template = "public_list_client.tsx.j2"
+    elif ctx.has_status and status_labels:
+        template = "list_client_status.tsx.j2"
+    else:
+        template = "list_client.tsx.j2"
+
     return _render(
-        "list_client.tsx.j2",
+        template,
         name=ctx.name,
         camel=ctx.camel,
         serialized_type=ctx.serialized_type,
