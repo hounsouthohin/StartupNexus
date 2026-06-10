@@ -1,15 +1,21 @@
 [
-  
-  {
-    "project_name": "recipe-manager",
+   {
+    "project_name": "personal-blog",
+    "brief": {
+      "description": "Mon blog personnel. Je rédige des articles depuis mon espace privé — chaque article a un titre, un contenu, un court extrait et un slug unique généré depuis le titre. Un article peut être brouillon ou publié. Mes articles sont classés par catégories que je crée et gère séparément. Une fois publié, un article est lisible par tous les visiteurs sur /blog/[slug] sans connexion. Les visiteurs parcourent les articles publiés sur /blog. Je gère l'ensemble de mes articles depuis mon tableau de bord privé."
+    }
+  },
+ 
+   {
+    "project_name": "app-simple",
     "brief": {
       "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation en minutes, un niveau de difficulté — facile, moyen ou difficile — et les ingrédients. Je classe mes recettes par catégories — entrées, plats principaux, desserts — gérées depuis une page dédiée. Une recette peut être privée ou publique : les recettes publiques sont visibles par tous les visiteurs sans connexion, les recettes privées sont visibles uniquement par moi. Je gère mes recettes depuis mon espace privé après connexion. Les visiteurs peuvent parcourir et consulter les recettes publiques sans créer de compte."
     }
   },
   {
-    "project_name": "event-board",
+    "project_name": "recipe-manager",
     "brief": {
-      "description": "Une plateforme de découverte d'événements locaux. Tout visiteur peut parcourir les événements à venir sur /events et consulter le détail d'un événement sur /events/[id] sans créer de compte. Un organisateur connecté crée et gère ses événements depuis son tableau de bord privé. Chaque événement a un titre, une description, une date, un lieu et une capacité maximale en nombre de participants. Les événements sont classés par catégories — sport, culture, networking, formation — que l'organisateur crée et gère depuis une page dédiée. Chaque catégorie est liée à l'organisateur qui l'a créée. Chaque événement est lié à une catégorie via categoryId et appartient à l'organisateur via userId. Les pages /events et /events/[id] sont publiques, accessibles sans connexion. Les pages de gestion des événements et des catégories sont privées, accessibles après connexion."
+      "description": "Blog personnel. L'auteur publie des articles avec titre et contenu. Les visiteurs peuvent lire les articles publiés sans compte sur /posts."
     }
   }
 ]

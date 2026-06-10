@@ -671,10 +671,33 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             tsc_feedback_prompt = _build_tsc_feedback_prompt(tsc_activity_details.get("errors", []))
             if tsc_feedback_prompt:
                 tsc_feedback_retry_triggered = True
+
+                # Injecter le contenu des fichiers fautifs pour que le LLM corrige
+                # avec le code complet sous les yeux (pas juste le numéro de ligne).
+                _errored_files: set[str] = set()
+                for _e in tsc_activity_details.get("errors", []):
+                    if isinstance(_e, dict) and _e.get("file"):
+                        _errored_files.add(str(_e["file"]))
+                _file_blocks: list[str] = []
+                for _rel in list(_errored_files)[:3]:  # max 3 fichiers
+                    _abs = os.path.join(project_workdir, _rel.replace("/", os.sep))
+                    if os.path.exists(_abs):
+                        try:
+                            with open(_abs, "r", encoding="utf-8") as _fh:
+                                _file_blocks.append(
+                                    f"\n--- {_rel} (fichier complet) ---\n"
+                                    f"```typescript\n{_fh.read()}\n```"
+                                )
+                        except Exception:
+                            pass
+                if _file_blocks:
+                    tsc_feedback_prompt += "\n\nFichiers à corriger :" + "".join(_file_blocks)
+
                 tsc_feedback_prompt_preview = tsc_feedback_prompt[:400]
                 activity.logger.info(
-                    "[TSC_FEEDBACK] retry unique active (errors=%s)",
+                    "[TSC_FEEDBACK] retry unique active (errors=%s, fichiers=%s)",
                     tsc_activity_details.get("errors_count", 0),
+                    len(_file_blocks),
                 )
                 retry_result = await _adapter.run_dev_agent(
                     spec=spec_dict,

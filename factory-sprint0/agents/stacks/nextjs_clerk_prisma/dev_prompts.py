@@ -188,7 +188,8 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         ),
         "dynamic-pages": (
             "notFound [id] params page dynamique Server Component "
-            "getById service null absent redirect 404 next/navigation"
+            "getById service null absent redirect 404 next/navigation "
+            "import Link from next/link Link href navigation cliquable lien"
         ),
         "public-pages": (
             "page publique sans auth no auth_required getPublished "

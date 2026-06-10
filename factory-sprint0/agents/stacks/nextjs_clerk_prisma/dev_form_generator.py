@@ -103,8 +103,14 @@ def _fk_to_ctx(fk, display: str) -> dict:
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
 def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None) -> str:
-    list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     auth_required = getattr(page, "auth_required", True)
+    # Pour les pages publiques, ctx.list_page_path pointe vers la liste authentifiée
+    # (spec.get_list_page_for_model priorise auth=True). Utiliser page.path directement
+    # pour que le lien "Voir" et has_detail pointent vers la bonne hiérarchie de routes.
+    if not auth_required and getattr(page, "path", None):
+        list_path = page.path
+    else:
+        list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     fields = ctx.display_fields
     _model_labels = ctx.ui_labels
     _enum_value_labels = ctx.enum_value_labels
@@ -304,7 +310,12 @@ def generate_all_page_clients(
         # Détection structurelle via ModelGenerationContext :
         # Si le modèle a des relations tableau (enfants FK), module_detail_with_children
         # génère le page-client.tsx — le form_generator ne génère pas de detail basique.
-        if page_type in ("detail", "detail-slug") and ctx.has_relations and any(
+        # IMPORTANT : detail-slug n'est PAS skippé ici. module_detail_with_children peut
+        # retourner {} si les array relations sont des M2M sans enfants FK (pas de champ xxxId).
+        # Dans ce cas le form_generator doit produire le page-client.tsx de base.
+        # Si le modèle a aussi des FK children, le feature module écrasera avec sa version
+        # enrichie (parent+children) — ordre garanti : form_gen → feature_modules.
+        if page_type == "detail" and ctx.has_relations and any(
             r.is_array for r in ctx.relation_fields
         ):
             logger.info("[form_gen] skip detail+enfants → module_detail_with_children : %s", page.path)
