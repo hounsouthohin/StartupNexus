@@ -41,7 +41,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
 
 {% endfor %}
   return (
-    <main className="container mx-auto p-6 max-w-4xl">
+    <main className="container mx-auto {{ p_cls }} max-w-4xl">
       {/* ── Détail {{ name }} ── */}
       <div className="mb-8">
         <div className="flex items-center gap-4 mb-6">
@@ -49,7 +49,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
             ← {{ title_plural }}
           </Link>
         </div>
-        <div className="bg-card rounded-lg shadow-sm border border-border p-6 space-y-3">
+        <div className="{{ card_cls }} {{ p_cls }} space-y-3">
           {% for field in display_fields %}
           <div>
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{{ field_labels.get(field, field) }}</span>

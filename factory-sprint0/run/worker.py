@@ -12,7 +12,6 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 
-from workflows.factory_workflow import SaaSFactoryWorkflow
 from workflows.todo_pilot_workflow import TodoPilotWorkflow
 
 from workflows.activities.architect_activity import architect_activity
@@ -44,7 +43,6 @@ async def main():
         client,
         task_queue=MAIN_QUEUE,
         workflows=[
-            SaaSFactoryWorkflow,
             TodoPilotWorkflow,
         ],
         activities=[

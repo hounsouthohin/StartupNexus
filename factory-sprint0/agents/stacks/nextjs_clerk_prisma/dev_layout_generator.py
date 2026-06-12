@@ -53,7 +53,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={[
-                  "flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150",
+                  "flex items-center __NAV_PADDING__ rounded-lg text-sm font-medium __TRANSITION__",
                   active
                     ? "__ACTIVE_CLS__"
                     : "__INACTIVE_CLS__",
@@ -210,14 +210,30 @@ _DARK_SIDEBAR_BGS = {
     "slate-900", "slate-800", "slate-700",
     "gray-900", "gray-800", "gray-700",
     "zinc-900", "zinc-800", "neutral-900", "neutral-800",
+    "indigo-900", "indigo-800",   # presets education
+    "violet-900", "violet-800",   # presets marketplace sombre futur
+}
+
+_NAV_PADDING: Dict[str, str] = {
+    "compact":  "px-2 py-1.5",
+    "normal":   "px-3 py-2",
+    "spacious": "px-4 py-3",
+}
+
+_TRANSITION_CLS: Dict[str, str] = {
+    "none":     "transition-none",
+    "standard": "transition-colors duration-150",
+    "enhanced": "transition-all duration-300 ease-out",
 }
 
 
 def _resolve_design(design_system: Dict[str, Any], app_name: str) -> Dict[str, str]:
     """Déduit les tokens CSS depuis design_system. Fallback vers valeurs neutres si absent."""
-    primary   = design_system.get("primary_color", "blue-700")
-    sidebar   = design_system.get("sidebar_bg", "white")
-    brand     = design_system.get("brand_name", app_name) or app_name
+    primary         = design_system.get("primary_color", "blue-700")
+    sidebar         = design_system.get("sidebar_bg", "white")
+    brand           = design_system.get("brand_name", app_name) or app_name
+    density         = design_system.get("density", "normal")
+    animation_level = design_system.get("animation_level", "standard")
 
     is_dark_sidebar = sidebar in _DARK_SIDEBAR_BGS
 
@@ -232,16 +248,20 @@ def _resolve_design(design_system: Dict[str, Any], app_name: str) -> Dict[str, s
         inactive_cls = "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
         border       = "gray-200"
 
-    page_bg = "gray-50" if not is_dark_sidebar else "gray-100"
+    page_bg    = "gray-50" if not is_dark_sidebar else "gray-100"
+    nav_padding = _NAV_PADDING.get(density, "px-3 py-2")
+    transition  = _TRANSITION_CLS.get(animation_level, "transition-colors duration-150")
 
     return {
-        "sidebar_bg":  sidebar,
-        "brand_text":  brand_text,
-        "active_cls":  active_cls,
+        "sidebar_bg":   sidebar,
+        "brand_text":   brand_text,
+        "active_cls":   active_cls,
         "inactive_cls": inactive_cls,
-        "border":      border,
-        "page_bg":     page_bg,
-        "brand_name":  brand,
+        "border":       border,
+        "page_bg":      page_bg,
+        "brand_name":   brand,
+        "nav_padding":  nav_padding,
+        "transition":   transition,
     }
 
 
@@ -285,6 +305,8 @@ def generate_layout(
         .replace("__ACTIVE_CLS__",  tokens["active_cls"])
         .replace("__INACTIVE_CLS__", tokens["inactive_cls"])
         .replace("__PUBLIC_PATHS__", pub_paths_ts)
+        .replace("__NAV_PADDING__", tokens["nav_padding"])
+        .replace("__TRANSITION__",  tokens["transition"])
     )
 
     layout_content = _LAYOUT_TEMPLATE.replace("__APP_NAME__", tokens["brand_name"])

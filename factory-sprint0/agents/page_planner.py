@@ -141,24 +141,30 @@ _PAGE_FEW_SHOT = """\
   "pages": [
     {"path": "/", "auth": false, "page_type": "custom"},
     {"path": "/posts", "auth": false, "model": "Post", "page_type": "list"},
-    {"path": "/posts/new", "auth": true, "model": "Post", "page_type": "create"},
     {"path": "/posts/[slug]", "auth": false, "model": "Post", "page_type": "detail-slug"},
     {"path": "/dashboard", "auth": true, "page_type": "custom"},
+    {"path": "/dashboard/posts", "auth": true, "model": "Post", "page_type": "list"},
+    {"path": "/dashboard/posts/new", "auth": true, "model": "Post", "page_type": "create"},
     {"path": "/dashboard/posts/[id]/edit", "auth": true, "model": "Post", "page_type": "edit"}
   ],
   "routes": [],
   "user_flows": [
     "Sur /posts : un visiteur parcourt les articles publiés",
     "Sur /posts/[slug] : un visiteur lit un article",
-    "Sur /dashboard : l'auteur voit le nombre d'articles publiés vs total"
+    "Sur /dashboard : l'auteur voit le nombre d'articles publiés vs total",
+    "Sur /dashboard/posts : l'auteur liste ses articles publiés et brouillons",
+    "Sur /dashboard/posts/new : l'auteur rédige un nouvel article"
   ],
   "ui_labels": {"Post": {"title": "Titre", "excerpt": "Extrait", "published": "Publié"}},
   "title_plurals": {"Post": "Articles"},
   "enum_value_labels": {},
   "page_links": {
-    "/posts": ["/posts/new", "/posts/[slug]"],
-    "/posts/new": ["/posts"],
-    "/posts/[slug]": ["/posts"]
+    "/posts": ["/posts/[slug]"],
+    "/posts/[slug]": ["/posts"],
+    "/dashboard": ["/dashboard/posts"],
+    "/dashboard/posts": ["/dashboard/posts/new", "/dashboard/posts/[id]/edit"],
+    "/dashboard/posts/new": ["/dashboard/posts"],
+    "/dashboard/posts/[id]/edit": ["/dashboard/posts"]
   },
   "design_system": {
     "mood": "éditorial, clair, lecture agréable",

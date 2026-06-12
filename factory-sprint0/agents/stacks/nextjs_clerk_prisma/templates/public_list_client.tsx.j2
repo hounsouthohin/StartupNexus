@@ -17,7 +17,7 @@ interface {{ client_name }}Props {
 
 export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   return (
-    <main className="container mx-auto p-6">
+    <main className="container mx-auto {{ p_cls }}">
       <h1 className="text-2xl font-bold text-foreground mb-6">{{ title_plural }}</h1>
 
       {items.length === 0 ? (

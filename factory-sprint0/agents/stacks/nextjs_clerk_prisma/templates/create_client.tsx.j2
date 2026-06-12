@@ -23,7 +23,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
   )
 
   return (
-    <main className="container mx-auto p-6 max-w-xl">
+    <main className="container mx-auto {{ p_cls }} max-w-xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href="{{ list_path }}" className="text-muted-foreground hover:text-foreground">←</Link>
         <h1 className="text-2xl font-bold text-foreground">Nouveau {{ name }}</h1>
@@ -31,7 +31,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}
 
-      <form action={formAction} className="space-y-4 bg-card p-6 rounded-lg shadow-sm border border-border">
+      <form action={formAction} className="space-y-4 {{ card_cls }} {{ p_cls }}">
         {% for field in editable_fields %}
         <div>
           <label htmlFor="{{ field.name }}" className="block text-sm font-medium text-foreground mb-1">

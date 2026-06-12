@@ -66,6 +66,29 @@ _TAILWIND_HSL: dict[str, str] = {
 
 _DEFAULT_PRIMARY_HSL = "221 83% 53%"  # blue-600
 
+# Google Fonts URLs par famille (Inter = système, pas d'import nécessaire)
+_FONT_IMPORTS: dict[str, str] = {
+    "Playfair Display": (
+        "@import url('https://fonts.googleapis.com/css2?"
+        "family=Playfair+Display:wght@400;600;700&display=swap');"
+    ),
+    "DM Sans": (
+        "@import url('https://fonts.googleapis.com/css2?"
+        "family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&display=swap');"
+    ),
+    "Plus Jakarta Sans": (
+        "@import url('https://fonts.googleapis.com/css2?"
+        "family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');"
+    ),
+}
+
+_FONT_STACK: dict[str, str] = {
+    "Playfair Display": '"Playfair Display", Georgia, serif',
+    "DM Sans":          '"DM Sans", system-ui, sans-serif',
+    "Plus Jakarta Sans": '"Plus Jakarta Sans", system-ui, sans-serif',
+    "Inter":            '"Inter", system-ui, sans-serif',
+}
+
 
 def _primary_hsl(primary_color: str) -> str:
     """Convertit 'indigo-600' → '243 75% 59%'. Fallback sur blue-600."""
@@ -80,17 +103,34 @@ def _radius_from_density(density: str | None) -> str:
     return "0.5rem"
 
 
+def _collect_font_imports(font_heading: str, font_body: str) -> str:
+    """Construit les @import Google Fonts uniques nécessaires."""
+    imports, seen = [], set()
+    for font in (font_heading, font_body):
+        if font != "Inter" and font in _FONT_IMPORTS and font not in seen:
+            imports.append(_FONT_IMPORTS[font])
+            seen.add(font)
+    return "\n".join(imports)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
-# globals.css — CSS variables HSL
+# globals.css — CSS variables HSL + typographie par preset
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _build_globals_css(design_system: dict) -> str:
-    primary     = design_system.get("primary_color", "blue-600")
-    density     = design_system.get("density", None)
-    p_hsl       = _primary_hsl(primary)
-    radius      = _radius_from_density(density)
+    primary      = design_system.get("primary_color", "blue-600")
+    density      = design_system.get("density", None)
+    font_heading = design_system.get("font_heading", "Inter")
+    font_body    = design_system.get("font_body", "Inter")
+    p_hsl        = _primary_hsl(primary)
+    radius       = _radius_from_density(density)
+    font_imports = _collect_font_imports(font_heading, font_body)
+    body_stack   = _FONT_STACK.get(font_body, '"Inter", system-ui, sans-serif')
+    head_stack   = _FONT_STACK.get(font_heading, '"Inter", system-ui, sans-serif')
+    imports_block = f"{font_imports}\n\n" if font_imports else ""
+
     return f"""\
-@tailwind base;
+{imports_block}@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -125,6 +165,9 @@ def _build_globals_css(design_system: dict) -> str:
     --ring: {p_hsl};
 
     --radius: {radius};
+
+    --font-heading: {head_stack};
+    --font-body:    {body_stack};
   }}
 
   * {{
@@ -132,7 +175,10 @@ def _build_globals_css(design_system: dict) -> str:
   }}
   body {{
     @apply bg-background text-foreground;
-    font-family: "Inter", system-ui, sans-serif;
+    font-family: var(--font-body);
+  }}
+  h1, h2, h3, h4, h5, h6 {{
+    font-family: var(--font-heading);
   }}
 }}
 

@@ -1,0 +1,90 @@
+{
+  "editorial": {
+    "primary_color":  "amber-600",
+    "font_heading":   "Playfair Display",
+    "font_body":      "DM Sans",
+    "sidebar_bg":     "white",
+    "density":        "spacious",
+    "card_style":     "flat",
+    "list_style":     "card-grid",
+    "animation_level":"enhanced",
+    "hero_style":     "centered-cta"
+  },
+  "saas_dashboard": {
+    "primary_color":  "blue-700",
+    "font_heading":   "Inter",
+    "font_body":      "Inter",
+    "sidebar_bg":     "slate-900",
+    "density":        "compact",
+    "card_style":     "elevated",
+    "list_style":     "table",
+    "animation_level":"standard",
+    "hero_style":     "minimal"
+  },
+  "marketplace": {
+    "primary_color":  "violet-600",
+    "font_heading":   "Plus Jakarta Sans",
+    "font_body":      "DM Sans",
+    "sidebar_bg":     "white",
+    "density":        "normal",
+    "card_style":     "bordered",
+    "list_style":     "card-grid",
+    "animation_level":"enhanced",
+    "hero_style":     "fullwidth"
+  },
+  "wellness": {
+    "primary_color":  "teal-500",
+    "font_heading":   "DM Sans",
+    "font_body":      "DM Sans",
+    "sidebar_bg":     "white",
+    "density":        "spacious",
+    "card_style":     "elevated",
+    "list_style":     "card-grid",
+    "animation_level":"enhanced",
+    "hero_style":     "centered-cta"
+  },
+  "finance": {
+    "primary_color":  "slate-700",
+    "font_heading":   "Inter",
+    "font_body":      "Inter",
+    "sidebar_bg":     "slate-900",
+    "density":        "compact",
+    "card_style":     "flat",
+    "list_style":     "table",
+    "animation_level":"none",
+    "hero_style":     "minimal"
+  },
+  "education": {
+    "primary_color":  "indigo-600",
+    "font_heading":   "Plus Jakarta Sans",
+    "font_body":      "DM Sans",
+    "sidebar_bg":     "indigo-900",
+    "density":        "normal",
+    "card_style":     "bordered",
+    "list_style":     "card-grid",
+    "animation_level":"standard",
+    "hero_style":     "centered-cta"
+  },
+  "community": {
+    "primary_color":  "rose-500",
+    "font_heading":   "Plus Jakarta Sans",
+    "font_body":      "DM Sans",
+    "sidebar_bg":     "white",
+    "density":        "normal",
+    "card_style":     "elevated",
+    "list_style":     "card-grid",
+    "animation_level":"enhanced",
+    "hero_style":     "fullwidth"
+  },
+  "default": {
+    "primary_color":  "blue-600",
+    "font_heading":   "Inter",
+    "font_body":      "Inter",
+    "sidebar_bg":     "white",
+    "density":        "normal",
+    "card_style":     "elevated",
+    "list_style":     "table",
+    "animation_level":"standard",
+    "hero_style":     "minimal"
+  }
+}

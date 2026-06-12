@@ -218,6 +218,69 @@ def _is_covered(path: str, combined_files: dict, _route_table: "dict | None" = N
     return any(pattern.match(route) for route in table)
 
 
+def validate_author_flows(spec, user_flows: list) -> Dict[str, Any]:
+    """
+    Vérifie que les pages liste authentifiées (auth=True, page_type="list")
+    ont un user_flow correspondant dans la spec.
+    Utile pour détecter les oublis de flows auteur (ex: /dashboard/posts sans flow).
+
+    Args:
+        spec : ProjectSpec (Pydantic) ou dict avec clé "pages"
+        user_flows : liste de strings (même format que validate_user_flows)
+
+    Returns:
+        {
+          "has_auth_list_pages": bool,
+          "author_flows_total": int,       # nb de pages liste auth
+          "author_flows_covered": int,     # nb de pages liste auth avec flow
+          "missing_author_flows": [str],   # chemins sans flow
+        }
+    """
+    if isinstance(spec, dict):
+        pages = spec.get("pages", [])
+    else:
+        pages = list(getattr(spec, "pages", None) or [])
+
+    # Collecte les pages liste authentifiées
+    auth_list_paths: list[str] = []
+    for page in pages:
+        path = _path_of(page)
+        if not path:
+            continue
+        if not _auth_of(page):
+            continue
+        ptype = page.get("page_type") if isinstance(page, dict) else getattr(page, "page_type", "")
+        if ptype == "list":
+            auth_list_paths.append(path)
+
+    if not auth_list_paths:
+        return {
+            "has_auth_list_pages": False,
+            "author_flows_total": 0,
+            "author_flows_covered": 0,
+            "missing_author_flows": [],
+        }
+
+    # Extrait les chemins couverts par les user_flows
+    flow_paths = {_extract_path_from_flow(str(f)) for f in user_flows if f}
+    flow_paths.discard(None)
+
+    missing = [p for p in auth_list_paths if p not in flow_paths]
+    covered = len(auth_list_paths) - len(missing)
+
+    logger.info(
+        "[journey_validator] author_flows: %d/%d pages liste auth couvertes (missing: %s)",
+        covered, len(auth_list_paths), missing or "aucune",
+    )
+
+    return {
+        "has_auth_list_pages": True,
+        "author_flows_total": len(auth_list_paths),
+        "author_flows_covered": covered,
+        "missing_author_flows": missing,
+    }
+
+
 def validate_user_flows(user_flows: list, combined_files: dict) -> Dict[str, Any]:
     """
     Point d'entrée principal.

@@ -764,7 +764,7 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
             "is_useful_app": False,
         }
         try:
-            from agents.core.journey_validator import validate_user_flows
+            from agents.core.journey_validator import validate_user_flows, validate_author_flows
 
             _jm = validate_user_flows(user_flows, combined_files)
             if isinstance(_jm, dict):
@@ -772,6 +772,11 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 journey_metrics["user_flows_covered"] = int(_jm.get("user_flows_covered", 0))
                 journey_metrics["user_flows_coverage"] = float(_jm.get("user_flows_coverage", 0.0))
                 journey_metrics["is_useful_app"] = bool(_jm.get("is_useful_app", False))
+
+            _am = validate_author_flows(spec_dict, user_flows)
+            journey_metrics["author_flows_total"] = int(_am.get("author_flows_total", 0))
+            journey_metrics["author_flows_covered"] = int(_am.get("author_flows_covered", 0))
+            journey_metrics["missing_author_flows"] = _am.get("missing_author_flows", [])
         except Exception as jv_err:
             activity.logger.warning(f"[dev_graph] journey_validator échoué : {jv_err}")
 
@@ -818,6 +823,9 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 "user_flows_covered": int(journey_metrics["user_flows_covered"]),
                 "user_flows_coverage": float(journey_metrics["user_flows_coverage"]),
                 "is_useful_app": is_useful_app,
+                "author_flows_total": int(journey_metrics.get("author_flows_total", 0)),
+                "author_flows_covered": int(journey_metrics.get("author_flows_covered", 0)),
+                "missing_author_flows": journey_metrics.get("missing_author_flows", []),
                 "supervisor_files_reviewed": 0,
                 "supervisor_corrections_count": 0,
                 "conformity_score": round(spec_coverage, 3),

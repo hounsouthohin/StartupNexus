@@ -2,6 +2,8 @@
 from __future__ import annotations
 from .base import ServiceMethodModule, build_rel_select, dt_map_with_relations
 
+_VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
+
 
 class SlugModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
@@ -13,10 +15,24 @@ class SlugModule(ServiceMethodModule):
         camel = ctx.camel
         serialized = ctx.serialized_type
 
+        # Filtre de visibilité : empêche l'accès aux brouillons via URL slug directe
+        _vis_field = next(
+            (f for f in ctx.model.fields
+             if f.name.lower() in _VISIBILITY_NAMES
+             and f.type.rstrip("?").rstrip("[]") == "Boolean"),
+            None,
+        )
+        if _vis_field:
+            _pub_filter = f", {_vis_field.name}: true"
+        elif ctx.has_published_bool:
+            _pub_filter = ", published: true"
+        else:
+            _pub_filter = ""
+
         lines: list[str] = [
             "",
             f"  getBySlug: async (slug: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }} }})",
+            f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug{_pub_filter} }} }})",
             "    if (!item) notFound()",
             "    return _serialize(item)",
             "  },",
@@ -34,7 +50,7 @@ class SlugModule(ServiceMethodModule):
             lines += [
                 "",
                 f"  getBySlugWithRelations: async (slug: string): Promise<{serialized}> => {{",
-                f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug }}, select: {{ {_rel_sel} }} }})",
+                f"    const item = await prisma.{camel}.findUnique({{ where: {{ slug{_pub_filter} }}, select: {{ {_rel_sel} }} }})",
                 "    if (!item) notFound()",
                 f"    return ({_rel_map})(item) as {serialized}",
                 "  },",

@@ -226,9 +226,26 @@ def spec_enricher_node(state: dict) -> dict:
         else:
             updated_detail[path] = detail
 
-    if overridden == 0:
-        logger.debug("[spec_enricher] aucun data_fetches corrigé")
+    # ── Injection design preset (déterministe, 0 token) ────────────────────────
+    design_injected = False
+    try:
+        from agents.core.design_resolver import resolve_preset
+        preset = resolve_preset(brief.get("description", ""))
+        existing_ds = brief.get("design_system", {}) or {}
+        brand_name = existing_ds.get("brand_name", "")
+        brief = {**brief, "design_system": {**preset, "brand_name": brand_name}}
+        design_injected = True
+    except Exception as _dr_err:
+        logger.warning("[spec_enricher] design_resolver échoué : %s", _dr_err)
+
+    if overridden == 0 and not design_injected:
+        logger.debug("[spec_enricher] aucune modification → skip")
         return {}
 
-    logger.info("[spec_enricher] ✓ %d data_fetches corrigé(s)", overridden)
-    return {"brief": {**brief, "pages_detail": updated_detail}}
+    updated_brief = {**brief, "pages_detail": updated_detail} if overridden > 0 else brief
+    logger.info(
+        "[spec_enricher] ✓ %d data_fetches corrigé(s) | design=%s",
+        overridden,
+        brief.get("design_system", {}).get("preset_name", "?"),
+    )
+    return {"brief": updated_brief}

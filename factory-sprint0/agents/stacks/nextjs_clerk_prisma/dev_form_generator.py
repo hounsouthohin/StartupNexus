@@ -53,15 +53,44 @@ def _render(template_name: str, **ctx) -> str:
 # Les templates reçoivent des noms de classes Tailwind sémantiques (CSS variables).
 # tailwind.config.js mappe primary → hsl(var(--primary)), globals.css fixe la valeur HSL.
 
+_CARD_STYLES: dict[str, str] = {
+    "elevated": "bg-card rounded-lg shadow-sm border border-border",
+    "flat":     "bg-muted/30 rounded-lg",
+    "bordered": "bg-card rounded-lg border-2 border-border",
+}
+_P_CLASSES: dict[str, str] = {
+    "compact":  "p-4",
+    "normal":   "p-6",
+    "spacious": "p-8",
+}
+_TRANSITION_CLASSES: dict[str, str] = {
+    "none":     "transition-none",
+    "standard": "transition-colors duration-150",
+    "enhanced": "transition-all duration-300 ease-out",
+}
+
+
 def _design_tokens(design_system: dict | None = None) -> dict:
-    """Retourne les 4 tokens Tailwind sémantiques pour les templates Jinja2.
-    design_system ignoré — la couleur réelle est dans globals.css (CSS variable --primary).
+    """Retourne les tokens Tailwind pour les templates Jinja2.
+    La couleur réelle vit dans globals.css (CSS variable --primary) —
+    les tokens couleur sont donc toujours sémantiques ('primary', 'primary/85'…).
+    Les autres tokens (card_cls, p_cls, transition_cls, list_style) dépendent du preset.
     """
+    ds = design_system or {}
     return {
-        "primary":       "primary",
-        "primary_hover": "primary/85",
-        "primary_light": "primary/10",
-        "primary_ring":  "primary",
+        # Couleur — toujours sémantique (CSS variable)
+        "primary":        "primary",
+        "primary_hover":  "primary/85",
+        "primary_light":  "primary/10",
+        "primary_ring":   "primary",
+        # Carte — style du conteneur form/detail
+        "card_cls":       _CARD_STYLES.get(ds.get("card_style", "elevated"), _CARD_STYLES["elevated"]),
+        # Espacement — padding page + formulaires
+        "p_cls":          _P_CLASSES.get(ds.get("density", "normal"), _P_CLASSES["normal"]),
+        # Animation — classe de transition Tailwind
+        "transition_cls": _TRANSITION_CLASSES.get(ds.get("animation_level", "standard"), _TRANSITION_CLASSES["standard"]),
+        # Layout liste publique — "table" | "card-grid"
+        "list_style":     ds.get("list_style", "table"),
     }
 
 
@@ -131,10 +160,11 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         p.path in (_detail_path, _slug_detail_path) and p.page_type in ("detail", "detail-slug")
         for p in _spec_pages
     )
-    # Pages publiques → template dédié (lecture seule, <Link> sur chaque ligne)
+    # Pages publiques → template dédié selon list_style du preset
     # Pages auth → template standard avec actions create/delete
     if not auth_required:
-        template = "public_list_client.tsx.j2"
+        _ls = (design_tokens or {}).get("list_style", "table")
+        template = "public_list_card_grid.tsx.j2" if _ls == "card-grid" else "public_list_client.tsx.j2"
     elif ctx.has_status and status_labels:
         template = "list_client_status.tsx.j2"
     else:
@@ -220,11 +250,18 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
 
 
 def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None) -> str:
-    list_path = ctx.list_page_path or f"/{ctx.kebab}s"
+    auth_required = getattr(page, "auth_required", True)
+    page_path = getattr(page, "path", None)
+    if not auth_required and page_path:
+        # Pages publiques (detail-slug) : back link → parent du chemin, pas la liste authentifiée
+        # Ex: "/blog/[slug]" → "/blog", "/posts/[slug]" → "/posts"
+        _parts = page_path.rstrip("/").split("/")
+        list_path = "/" + _parts[1] if len(_parts) >= 2 and _parts[1] else f"/{ctx.kebab}s"
+    else:
+        list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
     # Déduplique : display_fields d'abord, puis les éditables restants
     shown = list(dict.fromkeys(ctx.display_fields + [f.name for f in ctx.editable_fields]))
-    auth_required = getattr(page, "auth_required", True)
     _model_labels = ctx.ui_labels
     _enum_value_labels = ctx.enum_value_labels
     value_labels: dict = {}
@@ -307,19 +344,10 @@ def generate_all_page_clients(
         if ctx is None:
             continue
 
-        # Détection structurelle via ModelGenerationContext :
-        # Si le modèle a des relations tableau (enfants FK), module_detail_with_children
-        # génère le page-client.tsx — le form_generator ne génère pas de detail basique.
-        # IMPORTANT : detail-slug n'est PAS skippé ici. module_detail_with_children peut
-        # retourner {} si les array relations sont des M2M sans enfants FK (pas de champ xxxId).
-        # Dans ce cas le form_generator doit produire le page-client.tsx de base.
-        # Si le modèle a aussi des FK children, le feature module écrasera avec sa version
-        # enrichie (parent+children) — ordre garanti : form_gen → feature_modules.
-        if page_type == "detail" and ctx.has_relations and any(
-            r.is_array for r in ctx.relation_fields
-        ):
-            logger.info("[form_gen] skip detail+enfants → module_detail_with_children : %s", page.path)
-            continue
+        # form_gen génère TOUJOURS le page-client.tsx de base pour les pages detail.
+        # Si module_detail_with_children produit quelque chose, il écrase ensuite
+        # (ordre garanti : form_gen → feature_modules). Si le module retourne {}
+        # (M2M sans FK direct, schéma blog…), le fichier de base est présent.
 
         page_path_clean = page.path.strip("/")
 
