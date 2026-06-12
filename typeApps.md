@@ -1,3 +1,20 @@
+###### FRONTEND
+
+Niveau frontend par type d'app
+Type	Qui voit l'app	Niveau frontend nécessaire
+A	Le propriétaire (lui seul)	Shell propre + tables lisibles + formulaires corrects. Rien de plus.
+D	L'auteur (privé) + les visiteurs (public)	Premier type où la qualité visuelle compte — le public voit le résultat
+G	Clients + staff	Shell + CalendarView — la vue calendrier est le cœur de l'app
+I	Employés + managers	Shell + StatusFlow (filtres, badges d'approbation)
+E	Acheteurs (public)	Grille produits, pages publiques polished
+H	Analysts internes	Charts (recharts) — StatCards avancées
+F	Utilisateurs grand public	Feed, profils — UX grand public
+K	Admin + utilisateurs	Nav conditionnelle par rôle, guards visuels
+B+	Équipes	Workspace selector, navigation complexe
+
+
+
+
 # Software Agent Factory — Carte de graduation des applications
 
 ## 1. Types d'applications cibles (stack nextjs-clerk-prisma)
@@ -14,6 +31,7 @@
 | H | Dashboard / Analytics | Métriques, agrégations, séries temporelles |
 | I | Workflow / Approbation | Processus RH, validation commandes, review content |
 | J | Gestion de fichiers/documents | Uploads, versioning, permissions fichiers |
+| K | Multi-Role / RBAC | Admin dashboard + portail utilisateur, manager + employé, éditeur + lecteur |
 
 ---
 
@@ -48,7 +66,7 @@
 ## 3. Chemin de graduation recommandé
 
 ```
-A (validé) → D (prochain test) → G → I → E → H → F → B → C → J
+A (validé) → D (prochain test) → K → G → I → E → H → F → B → C → J
 ```
 
 Chaque flèche = une ou deux limitations à corriger avant de passer au type suivant.
@@ -70,6 +88,23 @@ Limitations à corriger :
 | **L5** | Pas de tri par createdAt DESC | 🟡 UX |
 
 Quand D est validé, la factory peut générer : blogs, portfolios, sites de documentation, wikis internes.
+
+---
+
+### Type K — Multi-Role / RBAC
+**Nouveauté critique :** Plusieurs rôles utilisateurs dans la même app via Clerk `publicMetadata.role` — les routes, les services et la navigation varient selon le rôle
+
+Limitations à corriger :
+| Limite | Description | Priorité |
+|---|---|---|
+| **LK1** | Middleware Clerk ne porte qu'un seul niveau d'auth — aucune logique de rôle dans `middleware.ts` | 🔴 Bloquant |
+| **LK2** | Services sans filtre par rôle — admin et user voient les mêmes données, pas de `where: { role: ... }` ni de méthode `getAsAdmin()` | 🔴 Bloquant |
+| **LK3** | Nav sidebar fixe — aucune branche selon le rôle de l'utilisateur connecté | 🟠 Important |
+| **LK4** | Pas de flow de création/assignation de rôle dans les Server Actions (ex. `promoteToAdmin(userId)`) | 🟠 Important |
+
+Note : Les rôles Clerk vivent dans `publicMetadata` — pas de modèle Prisma `Role`. Lire le rôle = `(await currentUser())?.publicMetadata.role`. Les guards sont dans les Server Actions, pas dans le middleware (qui reste stateless).
+
+Quand K est validé, la factory peut générer : admin + portail utilisateur, manager + employé, content editor + reader.
 
 ---
 
@@ -190,6 +225,7 @@ Note : J nécessite une intégration externe que le générateur ne gère pas du
 |---|---|---|---|
 | Phase 1 ✅ | A | L1, L16 (fixes faits), child entity userId | project-hub, CRM, HR, billing |
 | Phase 2 | **D** | **L3, L14, L11, L8, L5** | blogs, CMS, portfolios, wikis |
+| Phase 2.5 | **K** | **LK1, LK2, LK3, LK4** | admin + portail, manager + employé |
 | Phase 3 | G + I | L5, L6, L8 | booking, RH, approval workflows |
 | Phase 4 | E | L3, L10, L15, L4, L14 | e-commerce, boutiques |
 | Phase 5 | H | L13, L4, L12 | dashboards, analytics |

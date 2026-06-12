@@ -3,7 +3,7 @@
 BUILD        : ❌ SUCCESS
 REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : ✗ 2 test(s) — FAIL tests/services/post.service.test.ts | PASS tests/middle
+TESTS        : ✗ 2 test(s) — FAIL tests/schemas.test.ts | FAIL tests/post.service.test.ts
 SEMGREP      : ⚠ 1 finding(s)
 
 PATTERNS DÉTECTÉS :
@@ -18,5 +18,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): pre_run_failed (npx prisma generate): loaded prisma config f
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : 17bbe50f-2b11-4e25-b45e-a33340293525
-DURÉE        : 5min 56s
+RUN_ID       : 44c3d479-c6cc-4bd4-bf59-0baf97831e2b
+DURÉE        : 6min 43s

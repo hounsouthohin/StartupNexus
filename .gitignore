@@ -1,3 +1,27 @@
 .env
 __pycache__/
 *.pyc
+
+# Projets générés extraits (artefacts de build — ne pas tracker)
+_batch*_extracted/
+
+# Dossiers temporaires Docker/Python (permission denied)
+factory-sprint0/tmp*/
+factory-sprint0/.pytest_tmp/
+factory-sprint0/tmp_pytest/
+factory-sprint0/tmp_pytest_local/
+factory-sprint0/tmp_pytest_s46/
+factory-sprint0/tests_tmp/
+factory-sprint0/generated-projects/
+factory-sprint0/personal-blog/
+
+# Logs de runs
+sorties.md
+
+# Notes locales non versionnées
+remarques.md
+reponses.md
+schema.md
+cartographie.md
+cartographieFonctionnelle.md
+devenirStartup.md

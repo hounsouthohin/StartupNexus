@@ -1,10 +1,10 @@
 # FactoryRunReport — personal-blog — 2026-06-12
 ══════════════════════════════════════════════════
-BUILD        : ❌ BUILD_FAILED
-REVIEW       : SKIPPED (SKIPPED_BUILD_FAILED)
+BUILD        : ❌ SUCCESS
+REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : Non exécuté
-SEMGREP      : Non exécuté
+TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | FAIL tests/services.test.ts | T
+SEMGREP      : ⚠ 2 finding(s)
 
 PATTERNS DÉTECTÉS :
   ⚠ Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat
@@ -18,5 +18,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): pre_run_failed (npx prisma generate): loaded prisma config f
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : 877d34a9-8c9b-4515-ab05-f0d8becfa429
-DURÉE        : 0min 29s
+RUN_ID       : 87e609dc-40c3-4ec7-89f0-fd3cbd32f812
+DURÉE        : 6min 34s
