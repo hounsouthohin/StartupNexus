@@ -323,7 +323,8 @@ async def run_dev_agent(
             from .dev_layout_generator import generate_layout
             _layout_files = generate_layout(project_workdir, project_name, spec)
             template_written.update(_layout_files)
-            logger.info("[dev_graph] layout + DashboardShell générés (sidebar=%s)",
+            logger.info("[dev_graph] layout shell généré (layout_type=%s, sidebar_bg=%s)",
+                        _design_system.get("layout_type", "sidebar"),
                         _design_system.get("sidebar_bg", "white"))
         except Exception as _ly_err:
             logger.warning("[dev_graph] layout_generator non bloquant : %s", _ly_err)
@@ -416,6 +417,17 @@ async def run_dev_agent(
     # - page-client.tsx : déterministe via module_detail_with_children
     #   (détection via ctx.relation_fields dans dev_form_generator — pas de marqueurs texte)
     # Aucun check textuel pages_detail nécessaire ici.
+
+    # ── Hub page déterministe : app/dashboard/page.tsx ────────────────────────
+    # Le LLM oublie régulièrement `import Link from 'next/link'` sur cette page → build fail.
+    # La hub page est entièrement dérivable du spec_obj → on la génère avant le LLM.
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .dev_hub_generator import generate_hub_page as _gen_hub
+            _hub_files = _gen_hub(spec_obj, _model_contexts, project_workdir)
+            template_written.update(_hub_files)
+        except Exception as _hub_err:
+            logger.warning("[dev_graph] hub_generator non bloquant : %s", _hub_err)
 
     # ── Feature modules (registry déclaratif depuis stack JSON config) ───────
     if spec_obj is not None and _model_contexts:
@@ -648,6 +660,42 @@ async def run_dev_agent(
             logger.info("[dev_graph] Type Map Prisma extrait : %d modèles", len(_prisma_type_map))
         except Exception as _pe_err:
             logger.warning(f"[dev_graph] prisma_extractor non bloquant : {_pe_err}")
+
+    # ── Design Brief Generator (Sprint B) ───────────────────────────
+    # 1 appel LLM → JSON de décisions visuelles par entité (icônes, badges, layout).
+    # Placé ICI (après prisma generate) pour que les types Prisma soient disponibles
+    # si le Page Enricher (Sprint C) doit vérifier TSC après enrichissement.
+    _design_brief: dict = {}
+    if spec_obj is not None and _prev_cmd_ok:
+        try:
+            import json as _json_db
+            from .dev_design_brief import generate_design_brief as _gen_brief
+            _design_brief = await _gen_brief(spec_obj, _enriched_spec, _design_system, project_workdir)
+            if _design_brief:
+                _brief_json = _json_db.dumps(_design_brief, ensure_ascii=False, indent=2)
+                template_written["DESIGN_BRIEF.json"] = _brief_json
+                logger.info("[dev_graph] DESIGN_BRIEF.json généré (%d entités)",
+                            len(_design_brief.get("entities", {})))
+        except Exception as _db_err:
+            logger.warning("[dev_graph] design_brief non bloquant : %s", _db_err)
+
+    # ── Page Enricher (Sprint C) ─────────────────────────────────────
+    # Enrichit les page-client.tsx list/detail avec badges, icônes, layouts riches.
+    # TSC guard intégré : rollback automatique si TypeScript échoue après enrichissement.
+    # Non bloquant : en cas d'échec total, les fichiers déterministes restent intacts.
+    if spec_obj is not None and _design_brief and _model_contexts and _prev_cmd_ok:
+        try:
+            from .dev_page_enricher import enrich_page_clients as _enrich
+            _enriched_files = await _enrich(
+                spec_obj, _design_brief, _model_contexts, project_workdir, template_written
+            )
+            if _enriched_files:
+                # template_written déjà mis à jour in-place par enrich_page_clients (TSC OK)
+                _protected.update(_enriched_files.keys())
+                logger.info("[dev_graph] Page Enricher : %d fichier(s) enrichis et protégés",
+                            len(_enriched_files))
+        except Exception as _pe_err:
+            logger.warning("[dev_graph] page_enricher non bloquant : %s", _pe_err)
 
     # Protéger lib/ (types, schemas, services) + app/**/actions.ts contre réécriture LLM.
     _protected.update(

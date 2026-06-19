@@ -1,6 +1,6 @@
 # ROADMAP — SOFTWARE AGENT FACTORY
-## Version 3.7 — Mise à jour 06 Juin 2026
-## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9 : Scène client + Frontend VisualSpec avant Deploy ; BrowserUse retiré ; QA visuel sur host ; 4.8C ✅) · v3.6 (06 Juin — Sprint 4.9A redesigné : FrontendActivity post-traitement à 3 couches ; VisualSpec inline rejeté — frontend ≠ couleurs seules) · v3.7 (06 Juin — 4.9A pivote vers FrontendAgent LLM ReAct avec outils ; pipeline déterministe 3-couches abandonné ; agent autonome lit brief+spec lui-même)
+## Version 3.8 — Mise à jour 18 Juin 2026
+## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9) · v3.6 (06 Juin — FrontendActivity 3 couches) · v3.7 (06 Juin — FrontendAgent ReAct planifié) · v3.8 (18 Juin — FrontendAgent ANNULÉ ; design intégré dans pipeline déterministe ; Plan6 committé ; Sprint 4.9 reséquencé : 4.9A supprimé, 4.9C devient première priorité)
 
 ---
 
@@ -77,7 +77,7 @@ Un build_success sans frontend décent ni validation visuelle n'est pas un livra
 
 ---
 
-## ÉTAT ACTUEL — 05 Juin 2026 (Niveau 1 stable, boucle qualité en cours)
+## ÉTAT ACTUEL — 18 Juin 2026 (Niveau 1 stable, perfectionnement moteur en cours)
 
 ### Acquis confirmés
 
@@ -85,18 +85,40 @@ Un build_success sans frontend décent ni validation visuelle n'est pas un livra
 `architect_activity → dev_test_activity → review_activity → correction_pass_activity → qa_activity → learner_activity`
 *(github_activity en PAUSE volontaire — condition de réactivation : Sprint 5D)*
 
-**Build stable :** Type A validé sur project-hub, task-manager, leave-manager, learn-hub, recipe-manager, expense-tracker (7/7 BUILD_SUCCESS). Type D (personal-blog) : BUILD_SUCCESS. **event-board (pages publiques/privées mixtes) : BUILD_SUCCESS validé 05 Juin 2026** après reformulation du brief selon `brief_guide.md`.
+**Build stable :** Type A validé sur project-hub, task-manager, leave-manager, learn-hub, recipe-manager, expense-tracker, app-simple (7/7 BUILD_SUCCESS). Type D (personal-blog) : BUILD_SUCCESS. event-board (pages publiques/privées mixtes) : BUILD_SUCCESS validé.
+
+**Plan6 committé (10 Juin 2026) :**
+- **A1** — `dev_actions_generator.py` : `return { error }` → `throw new Error()` dans catch (erreurs formulaires visibles)
+- **A2** — templates list : `handleDelete` vérifie `result?.error` avant mise à jour state
+- **A3** — `dev_layout_generator.py` : `PUBLIC_PATHS` calculé depuis spec, DashboardShell ne wrappe plus les pages publiques
+- **A4** — `public_list_client.tsx.j2` (nouveau) : pages publiques avec template dédié sans boutons dashboard
+- **A5** — `dev_service_generator.py` : `getPublicById` filtre `{vis_field}: true` (fix IDOR)
+- **A6** — `project_spec.py` : `url = env("DATABASE_URL")` dans bloc datasource Prisma
+- **Bloc B** — typeApps.md : Type K (RBAC) ajouté, chemin graduation `A→D→K→G→I→E→H→F→B→C→J`
+- **Bloc C** — `service_modules/` : refacto (crud, child, status, public, relations, public_relations, slug)
+- **Bloc D** — architect décomposé : `domain_interpreter` + `page_planner` + `spec_enricher`
+
+**Design system intégré (Juin 2026) — REMPLACE Sprint 4.9A FrontendAgent :**
+- `design_resolver.py` : 7 presets domaine (editorial/saas/marketplace/wellness/finance/education/community) → couleurs HSL + fonts + density
+- `dev_design_system_generator.py` : `globals.css` (CSS vars `--primary` HSL) + `tailwind.config.js` shadcn + composants `components/ui/*.tsx`
+- `dev_layout_generator.py` : DashboardShell avec sidebar light/dark selon preset, connecté à dev_graph
+- `dev_navigation_generator.py` : navigation.tsx généré ET monté dans layout (fix bug navigation morte)
+- `dev_form_generator.py` : tokens sémantiques `bg-primary` / `hover:bg-primary/85` dans toutes les templates
+- **design_block** injecté dans prompt LLM dev : brand_name, mood, density, sidebar_bg, composants disponibles
+- Résultat : couleurs, fonts et density varient par domaine. Structure (sidebar fixe gauche, tables) identique → **limitation connue, voir dette D23**
 
 **Reviewer opérationnel :** Architecture deux couches. Layer 1 Python déterministe (IDOR/CROSS_USER/AUTH). Layer 2 LLM sémantique (conformité brief, ghost success, page stubs). Résultat : apps correctes → COHERENT 100/100.
 
-**correction_pass réécrit (4.8A') :** Déclenché sur `findings` actionnables (WRONG_AUTH/MISSING_AUTH/BRIEF_CONFORMITY), pas sur `targeted_fixes` (toujours vide). Rebuild sans `npm install`. Level 1 déterministe + Level 2 LLM ciblé.
+**correction_pass réécrit (4.8A') :** Déclenché sur `findings` actionnables (WRONG_AUTH/MISSING_AUTH/BRIEF_CONFORMITY). Rebuild sans `npm install`.
 
 **Architecture modules :**
 - `agents/core/` : pipeline_types, error_parser, requirements_engine, spec_coverage, journey_validator, quality_validator
 - `agents/stacks/` : StackAdapter pattern
-- Level A complet : services, actions, types, schémas, middleware, form generator (Jinja2), pages
+- Level A complet : services, actions, types, schémas, middleware, form generator (Jinja2), pages, design system
 
 **RAG actif :** 116 standards Qdrant, format RULE:/WHY:/GOOD:/BAD:
+
+**Guide briefs :** `factory-sprint0/docs/brief_guide.md` — 4 règles fondamentales.
 
 **Guide briefs :** `factory-sprint0/docs/brief_guide.md` — 4 règles fondamentales pour rédiger des briefs exploitables par la factory.
 
@@ -285,28 +307,32 @@ score = build_success(40%) + user_flows_coverage(30%) + quality_violations(20%) 
 
 ---
 
-## SPRINT 4.9 — La Scène + Frontend + Deploy
-## Deadline : Juillet 2026 | STATUT : Planifié
+## SPRINT 4.9 — La Scène + Correction + Deploy
+## Deadline : Juillet 2026 | STATUT : Planifié (4.9A + 4.9B ANNULÉS — remplacés)
 
 **Vision (PRINCIPE 8) :** Le client assiste à la démonstration de son application avant tout déploiement.
-La factory doit d'abord produire une app visuellement présentable, puis la faire naviguer par un agent
-devant le client, corriger agentiquement ce qui cloche, et seulement ensuite déployer sur Vercel.
+La factory doit produire une app fonctionnelle et visuellement présentable, la faire naviguer par Playwright,
+corriger agentiquement ce qui cloche, et seulement ensuite déployer sur Vercel.
 
 **Ordre non négociable :**
 ```
-A — Frontend viable  →  B — Brief visuel  →  C — QA visuel (la scène)  →  D — Deploy  →  E — DY fixes
+~~A — FrontendAgent~~  →  ~~B — Brief visuel~~  →  C — QA visuel (la scène)  →  D — Correction agentique  →  E — Deploy
 ```
+
+**4.9A annulé :** FrontendAgent LLM ReAct (v3.7) → remplacé par design déterministe intégré dans dev_graph (Juin 2026). Raison : coût LLM supplémentaire non justifié, contexte frais préservé, design variante via presets domain. Voir "Design system intégré" dans Acquis.
+
+**4.9B annulé :** L'agent lit le ProjectSpec directement → remplacé par `design_resolver.py` qui infère automatiquement le domaine depuis le brief (0 LLM, 0 coût).
 
 ---
 
-### 4.9A — FrontendAgent : agent LLM autonome avec outils
+### ~~4.9A — FrontendAgent : agent LLM autonome avec outils~~ ❌ ANNULÉ
 
-**Décision architecturale (06 Juin 2026 — v3.7) :**
-La 3-couches déterministe (v3.6) a été abandonnée. Le frontend est trop vaste et trop contextuel
-pour être piloté par un pipeline fixe. Les LLMs modernes (GPT-4o, Claude) ont ingéré shadcn/ui,
-Framer Motion, Recharts, Tailwind — ils savent mieux que tout pipeline statique ce que signifie
-un "dashboard CRM" ou une "app de recettes". La bonne architecture est un **agent ReAct**
-qui lit le brief + la spec lui-même, choisit ses outils, et itère jusqu'au build vert.
+**Décision architecturale finale (Juin 2026 — v3.8) :**
+Le FrontendAgent ReAct a été annulé. Le design est intégré directement dans le pipeline déterministe :
+`design_resolver` → `dev_design_system_generator` → `dev_layout_generator` → `dev_form_generator`.
+Résultat : 7 presets de domaine avec couleurs/fonts/density distincts, 0 LLM supplémentaire.
+**Limitation intentionnelle acceptée :** la structure des pages (sidebar fixe, tables pour listes privées)
+reste identique entre apps. Voir dette D23 pour l'amélioration prévue (private list cards).
 
 **Contrat fondamental :**
 - Accès lecture : tous les fichiers (brief, ProjectSpec, code généré)
@@ -392,11 +418,11 @@ s'il choisit shadcn/ui à la place. Ce n'est plus une contrainte, c'est une ress
 
 ---
 
-### 4.9B — ProjectSpec → FrontendAgent (canal de connaissance contextuelle)
+### ~~4.9B — ProjectSpec → FrontendAgent~~ ❌ ANNULÉ
 
-**Décision (v3.7) :** Option 2 retenue — l'agent lit le brief et le ProjectSpec **directement**,
-sans que l'architect ait besoin de pré-extraire des signaux visuels (layout_type, theme_tone).
-L'agent est suffisamment puissant pour déduire lui-même "ce brief = dashboard analytique = sidebar + recharts".
+**Décision (v3.8) :** Remplacé par `design_resolver.py` — infère automatiquement le domaine
+(editorial/saas/marketplace/wellness/finance/education/community) depuis le brief, sans LLM.
+La déduction "ce brief = blog editorial = amber, Playfair Display, spacious" est déterministe.
 
 **Ce que le FrontendAgent reçoit en contexte de démarrage :**
 ```json
@@ -426,7 +452,7 @@ sans instructions visuelles explicites — seulement depuis le brief + les pages
 
 ---
 
-### 4.9C — QA Visuel — La Scène *(couche 2 QA)*
+### 4.9C — QA Visuel — La Scène *(couche 2 QA)* ← PROCHAINE PRIORITÉ
 
 **Vision :** le client assiste à la navigation de son app par un agent Playwright.
 Il voit ses données apparaître, ses formulaires fonctionner, ses flows s'exécuter.
@@ -698,10 +724,14 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | Juin 2026 | **4.8A'** | correction_pass redesign | trigger sur findings, rebuild sans npm install | ✅ |
 | Juin 2026 | **4.8C** | FactoryRunReport + learner_suggestions.json | rapport lisible après chaque run | ✅ |
 | Juin 2026 | **4.8B** | QA Jest smoke tests | `tests_passed: true` ≥1 run | ⏳ |
-| Juillet 2026 | **4.9A** | FrontendAgent ReAct (tools : read/write/npm/tsc/build) | agent utilise ≥1 lib externe (shadcn/recharts/framer), build post-frontend SUCCESS | ⏳ |
-| Juillet 2026 | **4.9B** | FrontendAgent reçoit brief + ProjectSpec complets | frontend différencié selon domaine : CRM ≠ dashboard ≠ blog, sans instructions visuelles explicites | ⏳ |
+| ~~Juillet 2026~~ | ~~**4.9A**~~ | ~~FrontendAgent ReAct~~ | ~~agent utilise ≥1 lib externe~~ | ❌ ANNULÉ |
+| ~~Juillet 2026~~ | ~~**4.9B**~~ | ~~FrontendAgent ProjectSpec~~ | ~~frontend différencié par domaine~~ | ❌ ANNULÉ |
+| Juin 2026 | **Design système intégré** | 7 presets domaine + CSS vars + shadcn dans pipeline | apps avec couleurs/fonts/density par domaine | ✅ |
+| Juin 2026 | **Plan6 A1-A6** | Fixes déterministes : delete, navigation, IDOR, datasource | validation en cours sur nouveaux runs | ✅ commité / ⏳ validé |
+| Juillet 2026 | **D25-D28 (immédiat)** | Fixes templates : H1 statique, __esModule, checkbox, post-auth | 4 lignes de code, 0 LLM | ⏳ |
+| Juillet 2026 | **D23-D24** | Private list cards + layout_hint LLM | variation structurelle par domaine | ⏳ |
 | Juillet 2026 | **4.9C** | QA visuel (la scène) — Playwright host | `qa_score ≥ 0.8`, vidéos Windows | ⏳ |
-| Juillet 2026 | **4.9D–E** | Production deploy (Vercel+Neon+Clerk) + DY fixes | URL Vercel livrée, DY3/7 résolus | ⏳ |
+| Juillet 2026 | **4.9D–E** | Correction agentique depuis QA + Production deploy (Vercel+Neon+Clerk) | URL Vercel livrée, DY3/7 résolus | ⏳ |
 | Juil–Août 2026 | 5 | Mode Replay + Standards Web + Type D | `is_useful_app: true` personal-blog | ⏳ |
 | Août–Sept 2026 | 6 | Type G Booking + GitHub réactivé | `is_useful_app: true` booking brief | ⏳ |
 | Sept–Oct 2026 | 7 | Type I Workflow + Level B fondations | `is_useful_app: true` approval brief | ⏳ |
@@ -737,6 +767,12 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | D20 | `module_search`/`status_flow` lisent heuristiques au lieu de `enriched_spec.features` | 4.9 (DY1) | ⏳ |
 | D21 | `rules_dev.md` : ~25 règles sur fichiers déterministes = bruit LLM | 4.9 (DY3) | ⏳ |
 | D22 | `role_rag_queries` "service" et "actions" actifs mais inutiles (déterministes) | 4.9 (DY7) | ⏳ |
+| D23 | `list_style: "cards"` dans presets mais aucun template list cards privé → toujours table | `dev_form_generator.py` + `list_client_card_grid.tsx.j2` | 4.9 |
+| D24 | `design_block` LLM sans `layout_hint` → pages custom sans guidance structurelle | `dev_prompts.py` | 4.9 |
+| D25 | `<h1>Post</h1>` hardcodé dans template détail au lieu de `{{ title_detail }}` | `detail_client.tsx.j2` | Immédiat |
+| D26 | `__esModule: true` manquant dans mock Prisma `prompts/base/qa.md` → 2 tests ❌ par run | `prompts/base/qa.md` | Immédiat |
+| D27 | Checkbox boolean affiché brut ("true"/"false") au lieu de badge visuel dans liste | `list_client.tsx.j2` | Immédiat |
+| D28 | Post-auth redirect vers `/blog` au lieu de `/dashboard` dans template `.env.local` | template `.env.local` | Immédiat |
 
 ---
 
@@ -780,9 +816,11 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | **Juin 2026** | **Sprint 4.9 reséquencé : Frontend → QA visuel → Deploy** | **Build_success sans frontend décent n'est pas un livrable client** |
 | **Juin 2026** | **VisualSpec inline rejeté — FrontendActivity post-traitement adopté** | **Le frontend ≠ couche CSS : animations, graphiques, images, layouts — trop vaste pour une injection dans le pipeline de génération. Post-traitement sur app fonctionnelle = approche correcte.** |
 | **Juin 2026** | **FrontendActivity à 3 couches (v3.6) → pivot FrontendAgent ReAct (v3.7)** | **Pipeline déterministe trop limitatif : 6 composants fixes, palette imposée, aucun graphique/animation. Les LLMs connaissent shadcn/ui, Framer Motion, Recharts mieux que tout pipeline statique. Un agent ReAct avec outils produit un résultat indifférenciable d'un développeur frontend senior.** |
-| **Juin 2026** | **FrontendAgent lit brief + ProjectSpec directement (Option 2)** | **Pas de pré-extraction architect (layout_type/theme_tone). L'agent infère le domaine lui-même. hints optionnels acceptés si fournis, mais non obligatoires pour la qualité visuelle.** |
-| **Juin 2026** | **Pas de DALL-E ni génération d'images dans FrontendAgent** | **Images = contenu client. Illustrations vide = SVG inline LLM. Icônes = Lucide React npm. DALL-E ne résout pas le vrai problème de qualité UI.** |
-| **Juin 2026** | **Design system starter kit (v3.6) conservé comme ressource optionnelle** | **Button/Card/Table/Badge/Empty/StatCard restent disponibles. L'agent les utilise, les enrichit ou les ignore si shadcn/ui est plus adapté.** |
+| **Juin 2026** | **FrontendAgent lit brief + ProjectSpec directement (Option 2)** | **Planifié en v3.7 puis ANNULÉ — remplacé par design_resolver déterministe.** |
+| **Juin 2026** | **Pas de DALL-E ni génération d'images dans FrontendAgent** | **Décision conservée : images = contenu client. Illustrations = SVG inline. Icônes = Lucide React.** |
+| **Juin 2026** | **FrontendAgent ReAct (4.9A v3.7) ANNULÉ — design intégré dans pipeline déterministe** | **Raison : coût LLM non justifié, contexte dev préservé, design_resolver + CSS vars suffisants pour variation par domaine. Limitation acceptée : structure identique (sidebar, tables).** |
+| **10 Juin 2026** | **Plan6 — Refactorisation majeure (Blocs A–D)** | **6 bug fixes déterministes (A1-A6), Type K RBAC dans typeApps, service_modules/ assembler, architect décomposé (domain_interpreter + page_planner + spec_enricher).** |
+| **Juin 2026** | **Design system intégré dans dev_graph (Sprint 4.9A replacement)** | **design_resolver (7 presets) → dev_design_system_generator (CSS vars + shadcn) → dev_layout_generator (DashboardShell) → dev_form_generator (tokens sémantiques). Limitation D23 : pas de variant cards pour listes privées.** |
 
 ---
 

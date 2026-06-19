@@ -8,7 +8,8 @@
     "card_style":     "flat",
     "list_style":     "card-grid",
     "animation_level":"enhanced",
-    "hero_style":     "centered-cta"
+    "hero_style":     "centered-cta",
+    "layout_type":    "topnav"
   },
   "saas_dashboard": {
     "primary_color":  "blue-700",
@@ -19,7 +20,8 @@
     "card_style":     "elevated",
     "list_style":     "table",
     "animation_level":"standard",
-    "hero_style":     "minimal"
+    "hero_style":     "minimal",
+    "layout_type":    "sidebar"
   },
   "marketplace": {
     "primary_color":  "violet-600",
@@ -30,7 +32,8 @@
     "card_style":     "bordered",
     "list_style":     "card-grid",
     "animation_level":"enhanced",
-    "hero_style":     "fullwidth"
+    "hero_style":     "fullwidth",
+    "layout_type":    "topnav"
   },
   "wellness": {
     "primary_color":  "teal-500",
@@ -41,7 +44,8 @@
     "card_style":     "elevated",
     "list_style":     "card-grid",
     "animation_level":"enhanced",
-    "hero_style":     "centered-cta"
+    "hero_style":     "centered-cta",
+    "layout_type":    "topnav"
   },
   "finance": {
     "primary_color":  "slate-700",
@@ -52,7 +56,8 @@
     "card_style":     "flat",
     "list_style":     "table",
     "animation_level":"none",
-    "hero_style":     "minimal"
+    "hero_style":     "minimal",
+    "layout_type":    "sidebar"
   },
   "education": {
     "primary_color":  "indigo-600",
@@ -63,7 +68,8 @@
     "card_style":     "bordered",
     "list_style":     "card-grid",
     "animation_level":"standard",
-    "hero_style":     "centered-cta"
+    "hero_style":     "centered-cta",
+    "layout_type":    "sidebar"
   },
   "community": {
     "primary_color":  "rose-500",
@@ -74,7 +80,8 @@
     "card_style":     "elevated",
     "list_style":     "card-grid",
     "animation_level":"enhanced",
-    "hero_style":     "fullwidth"
+    "hero_style":     "fullwidth",
+    "layout_type":    "topnav"
   },
   "default": {
     "primary_color":  "blue-600",
@@ -85,6 +92,7 @@
     "card_style":     "elevated",
     "list_style":     "table",
     "animation_level":"standard",
-    "hero_style":     "minimal"
+    "hero_style":     "minimal",
+    "layout_type":    "sidebar"
   }
 }

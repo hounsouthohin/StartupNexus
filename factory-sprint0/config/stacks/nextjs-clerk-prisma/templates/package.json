@@ -29,7 +29,8 @@
     "tailwind-merge": "^2.3.0",
     "@radix-ui/react-slot": "^1.0.2",
     "@base-ui/react": "^1.0.0",
-    "lucide-react": "^0.400.0"
+    "lucide-react": "^0.400.0",
+    "framer-motion": "^11.0.0"
   },
   "devDependencies": {
     "ts-jest": "29.1.2",

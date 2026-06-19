@@ -156,6 +156,10 @@ Types à annoter :
 
 NE PAS annoter : id, createdAt, updatedAt, userId, authorId, xxxId (FK), slug, champs bool, champs Int/Float standards.
 
+RÈGLE ABSOLUE : les clés de field_annotations doivent correspondre EXACTEMENT aux noms de champs déclarés dans les modèles reçus. Ne jamais inventer un nom de champ.
+Exemple INTERDIT : si le modèle a `published Boolean`, ne PAS écrire `"status": {...}` — ce champ n'existe pas.
+Si un modèle utilise `published Boolean` pour gérer brouillon/publié → ne rien annoter pour ce champ (Boolean exclu).
+
 ### required_queries
 Déclare les queries métier clairement nécessaires d'après le brief — AU-DELÀ des 7 méthodes CRUD standard déjà générées (getAll, getById, create, update, delete, getPublished, getBySlug).
 Patterns disponibles :
@@ -205,7 +209,25 @@ Exemple pour un gestionnaire de tâches avec statut workflow :
   }
 }
 
-Exemple pour un blog public avec slug :
+Exemple pour un blog public avec slug (modèle utilise `published Boolean`) :
+{
+  "field_annotations": {
+    "content": {"semantic_type": "textarea"},
+    "excerpt": {"semantic_type": "textarea"}
+  },
+  "required_queries": [],
+  "features": ["slug_routing", "public_pages"],
+  "ux_hints": {
+    "empty_states": {
+      "/blog": "Aucun article publié pour le moment.",
+      "/dashboard": "Aucun article. Rédigez votre premier article."
+    },
+    "dependency_order": [],
+    "primary_action": {}
+  }
+}
+
+Exemple pour un blog avec vrai statut enum (modèle a `status PostStatus @default(draft)`) :
 {
   "field_annotations": {
     "content": {"semantic_type": "textarea"},
@@ -369,7 +391,7 @@ Page d'accueil publique :
 ```json
 {
   "/": {
-    "description": "Hero section avec titre et description de l'app. Bouton Commencer vers /sign-in. Pas d'appel service.",
+    "description": "Page publique — aucun appel Clerk. Hero section avec titre et description de l'app. Lien statique vers /sign-in pour connexion. Aucun service appelé.",
     "data_fetches": [],
     "interactive": false
   }
@@ -392,7 +414,14 @@ Page hub avec filtrage inline :
 - Les clés commencent par "/"
 - JSON plat (pas de wrapper)
 - data_fetches: [] si aucun appel service
-- interactive: true UNIQUEMENT si interactions réelles (formulaire inline, filtre dynamique)\
+- interactive: true UNIQUEMENT si interactions réelles (formulaire inline, filtre dynamique)
+
+## PAGES PUBLIQUES (auth=false) — RÈGLE ABSOLUE
+Pour toute page publique (landing, home `/`, page vitrine sans connexion requise) :
+- `data_fetches` : utiliser UNIQUEMENT `getPublicAll()`, `getPublished()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)`
+- La `description` NE DOIT PAS contenir : "auth()", "userId", "redirect", "connexion requise", "vérifie si connecté"
+- La `description` DOIT préciser explicitement : "page publique — aucun appel Clerk"
+- Le dev executor lira cette description et n'ajoutera PAS `auth()` si ces mots sont absents\
 """
 
 
@@ -595,6 +624,28 @@ async def planner_node(state: AgentState) -> dict:
     brief_pages_detail = brief.get("pages_detail", {})
     if not isinstance(brief_pages_detail, dict):
         brief_pages_detail = {}
+
+    # ── Invariant detail-slug : page_type="detail-slug" exige slug String @unique dans le modèle ──
+    # Le LLM page_planner peut générer [slug] pour un modèle avec isPublic Boolean sans champ slug.
+    # Résultat : [id] (form generator) + [slug] (executor) coexistent → conflit routing Next.js fatal.
+    # Ce check valide l'invariant AVANT de créer le ProjectSpec — la correction est logguée, pas silencieuse.
+    _model_has_slug: dict[str, bool] = {
+        _m.name: any(f.name == "slug" and "@unique" in f.attributes for f in _m.fields)
+        for _m in models
+    }
+    for _pg in pages:
+        if _pg.page_type == "detail-slug" and _pg.model:
+            if not _model_has_slug.get(_pg.model, False):
+                _old_path = _pg.path
+                _pg.path = _pg.path.replace("[slug]", "[id]")
+                _pg.page_type = "detail"
+                seen_paths.discard(_old_path)
+                seen_paths.add(_pg.path)
+                logger.warning(
+                    "[planner] invariant detail-slug : '%s' → '%s' "
+                    "(modèle '%s' sans slug @unique — page_planner a ignoré RÈGLE 9)",
+                    _old_path, _pg.path, _pg.model,
+                )
 
     # ── Post-build : force auth_required=False pour les pages décrivant un comportement public ──
     # Corrige le cas où brief_writer_node (LLM) met auth=True sur une page qui devrait être publique.

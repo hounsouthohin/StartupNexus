@@ -1,12 +1,16 @@
 """
-dev_layout_generator.py — DashboardShell déterministe (Sprint 5.0)
+dev_layout_generator.py — Shell déterministe (Sprint A — Layout Diversification)
 
-Génère depuis ProjectSpec :
-  - app/components/layout/DashboardShell.tsx   sidebar nav active-aware
-  - app/layout.tsx                             ClerkProvider + DashboardShell
+Génère depuis ProjectSpec + design_system.layout_type :
+  layout_type="sidebar" (saas_dashboard, finance, education, default) :
+    - app/components/layout/DashboardShell.tsx   sidebar nav active-aware
+    - app/layout.tsx                             ClerkProvider + DashboardShell
 
-Appelé par frontend_activity._bootstrap_layout() AVANT le FrontendAgent LLM.
-Le LLM ne touche jamais ces fichiers — ils sont dans les protections.
+  layout_type="topnav" (editorial, wellness, marketplace, community) :
+    - app/components/layout/TopNavShell.tsx      sticky header + nav active-aware
+    - app/layout.tsx                             ClerkProvider + TopNavShell
+
+Le LLM ne touche jamais ces fichiers — ils sont dans template_written (protégés).
 """
 from __future__ import annotations
 
@@ -14,10 +18,10 @@ import pathlib
 from typing import Any, Dict, List
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Templates raw (placeholders __UPPER_SNAKE__)
+# Template — DashboardShell (sidebar)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_SHELL_TEMPLATE = '''\
+_SIDEBAR_SHELL_TEMPLATE = '''\
 "use client"
 import React from "react"
 import Link from "next/link"
@@ -78,7 +82,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 }
 '''
 
-_LAYOUT_TEMPLATE = '''\
+_SIDEBAR_LAYOUT_TEMPLATE = '''\
 import { ClerkProvider } from "@clerk/nextjs"
 import { DashboardShell } from "@/app/components/layout/DashboardShell"
 import "./globals.css"
@@ -114,6 +118,118 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 }
 '''
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Template — TopNavShell (header sticky)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_TOPNAV_SHELL_TEMPLATE = '''\
+"use client"
+import React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { UserButton, useUser } from "@clerk/nextjs"
+
+interface NavItem { href: string; label: string; exact?: boolean }
+
+const AUTH_NAV: NavItem[] = [
+__AUTH_NAV_LINES__
+]
+
+const PUBLIC_NAV: NavItem[] = [
+__PUBLIC_NAV_LINES__
+]
+
+export function TopNavShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const { isSignedIn } = useUser()
+  const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")
+
+  if (isAuthPage) return <>{children}</>
+
+  const nav = isSignedIn ? AUTH_NAV : PUBLIC_NAV
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <span className="text-base font-semibold text-foreground">__APP_NAME__</span>
+            <nav className="hidden md:flex items-center gap-1">
+              {nav.map((item) => {
+                const active = item.exact
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(item.href + "/")
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={[
+                      "px-3 py-1.5 rounded-md text-sm font-medium __TRANSITION__",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    ].join(" ")}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          </div>
+          <div className="flex items-center gap-2">
+            {!isSignedIn && (
+              <Link
+                href="/sign-in"
+                className="px-4 py-1.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 __TRANSITION__"
+              >
+                Connexion
+              </Link>
+            )}
+            <UserButton />
+          </div>
+        </div>
+      </header>
+      <main>{children}</main>
+    </div>
+  )
+}
+'''
+
+_TOPNAV_LAYOUT_TEMPLATE = '''\
+import { ClerkProvider } from "@clerk/nextjs"
+import { TopNavShell } from "@/app/components/layout/TopNavShell"
+import "./globals.css"
+import type { ReactNode } from "react"
+
+export const metadata = { title: "__APP_NAME__" }
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+  const canUseClerk =
+    typeof publishableKey === "string" &&
+    publishableKey.startsWith("pk_") &&
+    !publishableKey.includes("placeholder")
+
+  if (!canUseClerk) {
+    return (
+      <html lang="fr">
+        <body>{children}</body>
+      </html>
+    )
+  }
+
+  return (
+    <ClerkProvider publishableKey={publishableKey}>
+      <html lang="fr">
+        <body>
+          <TopNavShell>{children}</TopNavShell>
+        </body>
+      </html>
+    </ClerkProvider>
+  )
+}
+'''
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
@@ -136,16 +252,12 @@ def _path_of(page: Any) -> str:
 
 
 def _auth_of(page: Any) -> bool:
-    """Retourne True si la page est authentifiée.
-    Convention fiable : tout chemin /dashboard/* est protégé par le middleware Clerk.
-    AppPage Pydantic sérialise le champ en auth_required (pas auth).
-    """
+    """Retourne True si la page est authentifiée."""
     path = _path_of(page)
     if path.startswith("/dashboard"):
         return True
     if isinstance(page, dict):
         return bool(page.get("auth_required"))
-    # Pydantic AppPage object (spec_obj.pages)
     return bool(getattr(page, "auth_required", False))
 
 
@@ -157,61 +269,68 @@ def _label(segment: str) -> str:
 
 
 def _is_exact(path: str) -> bool:
-    """dashboard root ou racine = exact match pour ne pas rester actif sur les sous-routes."""
     parts = path.strip("/").split("/")
     return parts[-1].lower() in ("dashboard", "") or path == "/"
 
 
-def _nav_items(pages: List[Any]) -> List[Dict[str, str]]:
-    """
-    Filtre les pages du ProjectSpec → liens de navigation sidebar :
-    - auth=True seulement
-    - Exclut /new, /edit, segments dynamiques [id]
-    - Trie par longueur de chemin
-    """
+def _is_dynamic(path: str) -> bool:
+    return any(seg in path for seg in ("/new", "/edit", "[", "{", "..."))
+
+
+def _nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
+    """Pages authentifiées → liens sidebar / AUTH_NAV topnav."""
     seen: set[str] = set()
     items: List[Dict[str, Any]] = []
-
     for page in pages:
         path = _path_of(page)
-        if not path or not _auth_of(page):
+        if not path or not _auth_of(page) or _is_dynamic(path):
             continue
-        if any(seg in path for seg in ("/new", "/edit", "[", "{", "...")):
-            continue
-
-        # Déduplique les chemins identiques
         if path in seen:
             continue
         seen.add(path)
-
         parts = [p for p in path.strip("/").split("/") if p]
         if not parts:
             continue
-
         label = _label(parts[-1])
-        exact = _is_exact(path)
-        items.append({"href": path, "label": label, "exact": exact})
+        items.append({"href": path, "label": label, "exact": _is_exact(path)})
+    items.sort(key=lambda x: (len(x["href"].split("/")), x["href"]))
+    return items
 
-    # Tri : chemin le plus court d'abord → dashboard en haut
+
+def _public_nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
+    """Pages publiques → PUBLIC_NAV topnav (visible non-authentifiés)."""
+    seen: set[str] = set()
+    items: List[Dict[str, Any]] = []
+    for page in pages:
+        path = _path_of(page)
+        if not path or _auth_of(page) or _is_dynamic(path):
+            continue
+        if path.startswith("/sign-"):
+            continue
+        if path in seen:
+            continue
+        seen.add(path)
+        parts = [p for p in path.strip("/").split("/") if p]
+        label = _label(parts[-1]) if parts else "Accueil"
+        items.append({"href": path, "label": label, "exact": True if not parts else _is_exact(path)})
     items.sort(key=lambda x: (len(x["href"].split("/")), x["href"]))
     return items
 
 
 def _app_display_name(project_name: str) -> str:
-    """event-board → Event Board"""
     return project_name.replace("-", " ").title()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Public entry point
+# Tokens design
 # ─────────────────────────────────────────────────────────────────────────────
 
 _DARK_SIDEBAR_BGS = {
     "slate-900", "slate-800", "slate-700",
     "gray-900", "gray-800", "gray-700",
     "zinc-900", "zinc-800", "neutral-900", "neutral-800",
-    "indigo-900", "indigo-800",   # presets education
-    "violet-900", "violet-800",   # presets marketplace sombre futur
+    "indigo-900", "indigo-800",
+    "violet-900", "violet-800",
 }
 
 _NAV_PADDING: Dict[str, str] = {
@@ -228,7 +347,6 @@ _TRANSITION_CLS: Dict[str, str] = {
 
 
 def _resolve_design(design_system: Dict[str, Any], app_name: str) -> Dict[str, str]:
-    """Déduit les tokens CSS depuis design_system. Fallback vers valeurs neutres si absent."""
     primary         = design_system.get("primary_color", "blue-700")
     sidebar         = design_system.get("sidebar_bg", "white")
     brand           = design_system.get("brand_name", app_name) or app_name
@@ -248,7 +366,7 @@ def _resolve_design(design_system: Dict[str, Any], app_name: str) -> Dict[str, s
         inactive_cls = "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
         border       = "gray-200"
 
-    page_bg    = "gray-50" if not is_dark_sidebar else "gray-100"
+    page_bg     = "gray-50" if not is_dark_sidebar else "gray-100"
     nav_padding = _NAV_PADDING.get(density, "px-3 py-2")
     transition  = _TRANSITION_CLS.get(animation_level, "transition-colors duration-150")
 
@@ -265,62 +383,118 @@ def _resolve_design(design_system: Dict[str, Any], app_name: str) -> Dict[str, s
     }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Générateurs individuels
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _generate_sidebar_layout(
+    project_workdir: str,
+    app_name: str,
+    pages: List[Any],
+    tokens: Dict[str, str],
+) -> Dict[str, str]:
+    """Génère DashboardShell.tsx + layout.tsx (sidebar)."""
+    nav = _nav_items(pages)
+    public_paths = [
+        _path_of(p) for p in pages
+        if not _auth_of(p) and _path_of(p) and not _path_of(p).startswith("/sign-")
+    ]
+
+    nav_lines = "\n".join(
+        f'  {{ href: "{item["href"]}", label: "{item["label"]}", exact: {str(item["exact"]).lower()} }},'
+        for item in nav
+    )
+    pub_paths_ts = ", ".join(f'"{p}"' for p in public_paths)
+
+    shell_content = (
+        _SIDEBAR_SHELL_TEMPLATE
+        .replace("__APP_NAME__",     tokens["brand_name"])
+        .replace("__NAV_LINES__",    nav_lines)
+        .replace("__SIDEBAR_BG__",   tokens["sidebar_bg"])
+        .replace("__PAGE_BG__",      tokens["page_bg"])
+        .replace("__BORDER__",       tokens["border"])
+        .replace("__BRAND_TEXT__",   tokens["brand_text"])
+        .replace("__ACTIVE_CLS__",   tokens["active_cls"])
+        .replace("__INACTIVE_CLS__", tokens["inactive_cls"])
+        .replace("__PUBLIC_PATHS__", pub_paths_ts)
+        .replace("__NAV_PADDING__",  tokens["nav_padding"])
+        .replace("__TRANSITION__",   tokens["transition"])
+    )
+    layout_content = _SIDEBAR_LAYOUT_TEMPLATE.replace("__APP_NAME__", tokens["brand_name"])
+
+    return _write_files(project_workdir, [
+        ("app/components/layout/DashboardShell.tsx", shell_content),
+        ("app/layout.tsx", layout_content),
+    ])
+
+
+def _generate_topnav_layout(
+    project_workdir: str,
+    app_name: str,
+    pages: List[Any],
+    tokens: Dict[str, str],
+) -> Dict[str, str]:
+    """Génère TopNavShell.tsx + layout.tsx (topnav)."""
+    auth_nav    = _nav_items(pages)
+    public_nav  = _public_nav_items(pages)
+    transition  = tokens["transition"]
+
+    def _nav_line(item: Dict[str, Any]) -> str:
+        return (
+            f'  {{ href: "{item["href"]}", label: "{item["label"]}", '
+            f'exact: {str(item["exact"]).lower()} }},'
+        )
+
+    auth_nav_lines   = "\n".join(_nav_line(i) for i in auth_nav)
+    public_nav_lines = "\n".join(_nav_line(i) for i in public_nav)
+
+    shell_content = (
+        _TOPNAV_SHELL_TEMPLATE
+        .replace("__APP_NAME__",        app_name)
+        .replace("__AUTH_NAV_LINES__",  auth_nav_lines)
+        .replace("__PUBLIC_NAV_LINES__", public_nav_lines)
+        .replace("__TRANSITION__",      transition)
+    )
+    layout_content = _TOPNAV_LAYOUT_TEMPLATE.replace("__APP_NAME__", app_name)
+
+    return _write_files(project_workdir, [
+        ("app/components/layout/TopNavShell.tsx", shell_content),
+        ("app/layout.tsx", layout_content),
+    ])
+
+
+def _write_files(project_workdir: str, pairs: list) -> Dict[str, str]:
+    base = pathlib.Path(project_workdir)
+    written: Dict[str, str] = {}
+    for rel, content in pairs:
+        abs_path = base / rel
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_text(content, encoding="utf-8")
+        written[rel] = content
+    return written
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Point d'entrée public
+# ─────────────────────────────────────────────────────────────────────────────
+
 def generate_layout(
     project_workdir: str,
     project_name: str,
     project_spec: Dict[str, Any],
 ) -> Dict[str, str]:
     """
-    Écrit DashboardShell.tsx et layout.tsx sur disque.
-    Retourne {rel_path: content} pour traçabilité.
-    Lit project_spec["design_system"] pour les couleurs — aucun LLM requis.
+    Écrit le shell (sidebar ou topnav) + layout.tsx sur disque.
+    Retourne {rel_path: content} pour intégration dans template_written.
+    Lit project_spec["design_system"]["layout_type"] pour choisir le shell.
     """
-    pages: List[Any] = project_spec.get("pages", [])
+    pages: List[Any]         = project_spec.get("pages", [])
     design_system: Dict[str, Any] = project_spec.get("design_system", {}) or {}
-    app_name = _app_display_name(project_name)
-    nav = _nav_items(pages)
-    tokens = _resolve_design(design_system, app_name)
+    app_name   = _app_display_name(project_name)
+    layout_type = design_system.get("layout_type", "sidebar")
+    tokens     = _resolve_design(design_system, app_name)
 
-    # Chemins publics (auth_required=False) → injectés dans DashboardShell
-    # pour exclure ces routes du wrapper sidebar (visiteurs ne voient pas la sidebar)
-    public_paths = [
-        _path_of(p) for p in pages
-        if not _auth_of(p) and _path_of(p) and not _path_of(p).startswith("/sign-")
-    ]
-    pub_paths_ts = ", ".join(f'"{p}"' for p in public_paths)
-
-    nav_lines = "\n".join(
-        f'  {{ href: "{item["href"]}", label: "{item["label"]}", exact: {str(item["exact"]).lower()} }},'
-        for item in nav
-    )
-
-    shell_content = (
-        _SHELL_TEMPLATE
-        .replace("__APP_NAME__",    tokens["brand_name"])
-        .replace("__NAV_LINES__",   nav_lines)
-        .replace("__SIDEBAR_BG__",  tokens["sidebar_bg"])
-        .replace("__PAGE_BG__",     tokens["page_bg"])
-        .replace("__BORDER__",      tokens["border"])
-        .replace("__BRAND_TEXT__",  tokens["brand_text"])
-        .replace("__ACTIVE_CLS__",  tokens["active_cls"])
-        .replace("__INACTIVE_CLS__", tokens["inactive_cls"])
-        .replace("__PUBLIC_PATHS__", pub_paths_ts)
-        .replace("__NAV_PADDING__", tokens["nav_padding"])
-        .replace("__TRANSITION__",  tokens["transition"])
-    )
-
-    layout_content = _LAYOUT_TEMPLATE.replace("__APP_NAME__", tokens["brand_name"])
-
-    base = pathlib.Path(project_workdir)
-    written: Dict[str, str] = {}
-
-    for rel, content in [
-        ("app/components/layout/DashboardShell.tsx", shell_content),
-        ("app/layout.tsx", layout_content),
-    ]:
-        abs_path = base / rel
-        abs_path.parent.mkdir(parents=True, exist_ok=True)
-        abs_path.write_text(content, encoding="utf-8")
-        written[rel] = content
-
-    return written
+    if layout_type == "topnav":
+        return _generate_topnav_layout(project_workdir, app_name, pages, tokens)
+    else:
+        return _generate_sidebar_layout(project_workdir, app_name, pages, tokens)

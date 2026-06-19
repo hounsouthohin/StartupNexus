@@ -9,7 +9,7 @@
 
 2. **USE CLIENT (PRIORITÉ ABSOLUE)** : tout composant avec `useState`, `useEffect` ou tout hook React DOIT avoir `"use client"` en **ligne 1 absolue** — avant tout import.
 
-3. **TAILWIND ONLY** : INTERDIT `shadcn/ui`, `@radix-ui`, `@headlessui`, `@/components/ui/*`.
+3. **COMPOSANTS UI** : utiliser UNIQUEMENT les composants shadcn/ui listés dans le bloc DESIGN SYSTEM du context (`Button`, `Input`, `Textarea`, `Label`, `Card`, `Badge`, `Table`, `Select`). INTERDIT : `@radix-ui` direct, `@headlessui`, tout composant non listé dans DESIGN SYSTEM.
 
 4. **TABLEAUX TYPÉS** : `const items: SerializedModelType[] = await modelService.getAll(userId)` — JAMAIS `let items = []` (TypeScript infère `never[]`). Le service retourne `SerializedXxx` (dates = string), NE PAS annoter avec le type Prisma brut (TS2345 fatal).
 
@@ -40,11 +40,12 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
     modelNameService.getAllWithRelations(userId, page?) → Promise<SerializedXxx[]>  (si relations)
     modelNameService.getByIdWithRelations(userId, id)  → Promise<SerializedXxx>   (si relations)
 
-    // Pages publiques (sans auth)
-    modelNameService.getPublicAll()                    → Promise<SerializedXxx[]>
+    // Pages publiques (sans auth) — lire CONTRACTS.md pour savoir quelle méthode est disponible
+    modelNameService.getPublicAll()   → si modèle a `isPublic Boolean` ou `published Boolean`
+    modelNameService.getPublished()   → UNIQUEMENT si modèle a un champ enum de statut (ex: PostStatus)
     modelNameService.getPublicById(id)                 → Promise<SerializedXxx>
-    modelNameService.getPublished()                    → Promise<SerializedXxx[]>  (si status enum)
-    modelNameService.getBySlug(slug)                   → Promise<SerializedXxx>    (si champ slug)
+    modelNameService.getBySlug(slug)                   → Promise<SerializedXxx>    (si champ slug @unique)
+    ⚠ JAMAIS utiliser getPublished() si le modèle a isPublic/published Boolean → utiliser getPublicAll()
 
     // Enfants d'un parent (CROSS_ENTITY)
     childService.getBy{Parent}Id(userId, parentId)     → Promise<SerializedChild[]>
@@ -94,3 +95,34 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
     }
     ```
     `params.id` SANS `await` → TS2339 fatal en Next.js 15.
+
+19. **IMPORT LINK OBLIGATOIRE** : tout fichier utilisant `<Link href="...">` DOIT importer `Link` explicitement :
+    ```tsx
+    import Link from 'next/link'
+    ```
+    Oublier cet import → `Cannot find name 'Link'` → BUILD FAILED fatal.
+
+20. **PAGES PUBLIQUES — INTERDIT AUTH()** : toute page dont la spec indique `auth_required: false` (home `/`, listing public, page blog publique) ne DOIT **JAMAIS** contenir `auth()`, `currentUser()` ni `redirect('/sign-in')`.
+    Utiliser les méthodes publiques : `getPublicAll()`, `getPublished()`, `getBySlug()`.
+    La règle 10 (auth redirect) s'applique UNIQUEMENT aux pages `auth_required: true`.
+
+    CORRECT :
+    ```tsx
+    // page publique — aucun import Clerk
+    export default async function HomePage() {
+      const posts = await postService.getPublished()
+      return <main>...</main>
+    }
+    ```
+    INTERDIT :
+    ```tsx
+    const { userId } = await auth()
+    if (!userId) redirect('/sign-in')  // jamais sur une page publique
+    ```
+
+21. **RELATIONS OPTIONNELLES — OPTIONAL CHAINING** : si `SerializedXxx` déclare une relation comme optionnelle (`category?: SerializedCategory`), toujours utiliser l'optional chaining pour accéder aux champs imbriqués :
+    ```tsx
+    item.category?.name   // CORRECT — évite TS18048
+    item.category.name    // INTERDIT si category est nullable → TS18048 fatal
+    ```
+    Pour garantir que la relation est chargée, utiliser `getAllWithRelations(userId)` à la place de `getAll(userId)`.

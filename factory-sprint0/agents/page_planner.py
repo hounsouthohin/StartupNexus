@@ -86,7 +86,9 @@ Si un modèle a des pages publiques ET des pages d'admin privées, il DOIT avoir
 
 ### RÈGLE 9 — Un seul segment dynamique par route (JAMAIS [id] + [slug] ensemble)
 - Modèle privé (pas de slug) → `[id]` uniquement.
-- Modèle public SANS slug → `[id]` avec `auth_required` différent selon la page.
+- Modèle public SANS slug (ex: `isPublic Boolean`, `published Boolean`) → `[id]` UNIQUEMENT, jamais `[slug]`.
+  ERREUR FATALE : générer à la fois `/{model}/[id]` et `/{model}/[slug]` → conflit de routing Next.js → build impossible.
+  Si le modèle N'A PAS `slug String @unique`, utiliser UNIQUEMENT `[id]` pour toutes les pages de détail (auth: true ou false selon la page).
 - Modèle avec `slug String @unique` → **INTERDICTION ABSOLUE de générer `/{model}/[id]` comme page standalone**.
   Le slug remplace [id] pour toutes les pages publiques. Pattern obligatoire :
   - Détail public : `/{model}/[slug]` (page_type: "detail-slug", auth: false)

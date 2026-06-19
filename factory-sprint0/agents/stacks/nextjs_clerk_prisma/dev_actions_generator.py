@@ -110,6 +110,36 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         delete_revalidate = f"'{list_page}'"
         delete_redirect   = f"'{list_page}'"
 
+    # Pour les modèles enfants, validated.{fk_field} est utilisé dans revalidatePath/redirect.
+    # validated est const-scoped dans le try block → TS2304 si placé après le catch.
+    # Solution : pour is_child, mettre revalidatePath/redirect DANS le try (avant catch).
+    if is_child:
+        create_body_lines = [
+            "  try {",
+            f"    const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+            f"    await {camel}Service.create(userId, validated)",
+            f"    revalidatePath({create_revalidate})",
+            f"    redirect({create_redirect})",
+            "  } catch (e) {",
+            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
+            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
+            "  }",
+            "}",
+        ]
+    else:
+        create_body_lines = [
+            "  try {",
+            f"    const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+            f"    await {camel}Service.create(userId, validated)",
+            "  } catch (e) {",
+            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
+            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
+            "  }",
+            f"  revalidatePath({create_revalidate})",
+            f"  redirect({create_redirect})",
+            "}",
+        ]
+
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER",
         "'use server'",
@@ -124,16 +154,7 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         f"export async function create{name}(formData: FormData) {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
-        "  try {",
-        f"    const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
-        f"    await {camel}Service.create(userId, validated)",
-        "  } catch (e) {",
-        "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
-        "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
-        "  }",
-        f"  revalidatePath({create_revalidate})",
-        f"  redirect({create_redirect})",
-        "}",
+        *create_body_lines,
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",
         "  const { userId } = await auth()",

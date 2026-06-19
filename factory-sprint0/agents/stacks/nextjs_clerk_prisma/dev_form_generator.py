@@ -161,10 +161,13 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         for p in _spec_pages
     )
     # Pages publiques → template dédié selon list_style du preset
-    # Pages auth → template standard avec actions create/delete
+    # Pages auth card-grid → cards avec actions (Voir/Modifier/Supprimer)
+    # Pages auth table → tableau standard
+    _ls = (design_tokens or {}).get("list_style", "table")
     if not auth_required:
-        _ls = (design_tokens or {}).get("list_style", "table")
         template = "public_list_card_grid.tsx.j2" if _ls == "card-grid" else "public_list_client.tsx.j2"
+    elif _ls == "card-grid":
+        template = "list_client_card_grid.tsx.j2"
     elif ctx.has_status and status_labels:
         template = "list_client_status.tsx.j2"
     else:
@@ -249,7 +252,7 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     )
 
 
-def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None) -> str:
+def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None, textarea_fields: set | None = None) -> str:
     auth_required = getattr(page, "auth_required", True)
     page_path = getattr(page, "path", None)
     if not auth_required and page_path:
@@ -262,8 +265,28 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
     list_dir = list_path.lstrip("/")
     # Déduplique : display_fields d'abord, puis les éditables restants
     shown = list(dict.fromkeys(ctx.display_fields + [f.name for f in ctx.editable_fields]))
+
+    # Sur les pages publiques : masquer les champs internes (Boolean, FK ids, slug, système).
+    # Un lecteur n'a pas besoin de voir published:true, categoryId, slug, etc.
+    if not auth_required:
+        _model_fields = getattr(ctx.model, "fields", [])
+        _bool_fields  = {f.name for f in _model_fields if f.type.rstrip("?").rstrip("[]") == "Boolean"}
+        _fk_ids       = {f.name for f in _model_fields if f.name.endswith("Id") and f.name != "id"}
+        _sys_fields   = {"slug", "authorId", "userId", "createdAt", "updatedAt"}
+        shown = [f for f in shown if f not in _bool_fields and f not in _fk_ids and f not in _sys_fields]
+
     _model_labels = ctx.ui_labels
     _enum_value_labels = ctx.enum_value_labels
+    # Pour les pages detail publiques, le H1 affiche le champ titre de l'item
+    # (ex: item.title pour /blog/[slug]) plutôt que le nom de l'entité (ex: "Post").
+    _title_field: str | None = None
+    if not auth_required:
+        for _candidate in ("title", "name", "heading", "label", "subject"):
+            if _candidate in shown:
+                _title_field = _candidate
+                break
+        if _title_field is None and shown:
+            _title_field = shown[0]
     value_labels: dict = {}
     for ef in ctx.editable_fields:
         if ef.input_type == "enum-select" and ef.name in shown:
@@ -282,6 +305,8 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
         value_labels=value_labels,
         auth_required=auth_required,
         has_delete=auth_required,
+        title_field=_title_field,
+        textarea_fields=textarea_fields or set(),
         **(design_tokens or {}),
     )
 
@@ -313,6 +338,26 @@ def generate_all_page_clients(
                 _empty_states = dict(getattr(_ux, "empty_states", {}) or {})
         except Exception:
             pass
+
+    # Champs "textarea" depuis field_annotations — rendu prose dans detail_client.tsx.j2.
+    # field_annotations = {field_name: FieldAnnotation(semantic_type="textarea")}
+    # On croise avec les champs réels de chaque modèle pour construire {model_name: {field_name}}.
+    _textarea_field_names: set[str] = set()
+    if enriched_spec is not None:
+        try:
+            _fa = getattr(enriched_spec, "field_annotations", {}) or {}
+            for _fa_name, _fa_val in _fa.items():
+                _stype = getattr(_fa_val, "semantic_type", "") or str(_fa_val)
+                if _stype == "textarea":
+                    _textarea_field_names.add(_fa_name)
+        except Exception:
+            pass
+    _textarea_fields: dict[str, set] = {}
+    for _m_name, _m_ctx in model_contexts.items():
+        _m_fields = {f.name for f in getattr(_m_ctx.model, "fields", [])}
+        _overlap = _m_fields & _textarea_field_names
+        if _overlap:
+            _textarea_fields[_m_name] = _overlap
 
     # Modèles avec CRUD complet (list auth + create) → éligibles à l'edit page
     # Les pages create ont intentionnellement model=None (project_spec.py) — on infère
@@ -361,7 +406,8 @@ def generate_all_page_clients(
                 content = _gen_create_client(page, ctx, model_contexts, spec=spec, design_tokens=tokens)
             elif page_type in ("detail", "detail-slug"):
                 rel = f"app/{page_path_clean}/page-client.tsx"
-                content = _gen_detail_client(page, ctx, spec=spec, design_tokens=tokens)
+                content = _gen_detail_client(page, ctx, spec=spec, design_tokens=tokens,
+                                             textarea_fields=_textarea_fields.get(ctx.name))
             elif page_type == "edit":
                 # page-client.tsx déterministe pour la page d'édition.
                 # Le page.tsx est généré par generate_edit_page_stubs() dans dev_pages_generator.py.

@@ -41,6 +41,7 @@ _DOMAIN_STACK_INVARIANTS = """\
 ### Champs obligatoires dans tout modèle
 - `id String @id @default(uuid())`
 - `createdAt DateTime @default(now())`
+- `updatedAt DateTime @updatedAt`
 
 ### Relations — déclaration stricte
 - Le modèle ENFANT déclare : `taskId String` + `task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)`
@@ -85,8 +86,8 @@ _DOMAIN_FEW_SHOT = """\
 ```json
 {
   "models": [
-    "Task { id String @id @default(uuid()), title String, description String?, status TaskStatus @default(pending), userId String, createdAt DateTime @default(now()), comments Comment[] }",
-    "Comment { id String @id @default(uuid()), content String, taskId String, task Task @relation(fields: [taskId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()) }"
+    "Task { id String @id @default(uuid()), title String, description String?, status TaskStatus @default(pending), userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt, comments Comment[] }",
+    "Comment { id String @id @default(uuid()), content String, taskId String, task Task @relation(fields: [taskId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }"
   ],
   "enums": {
     "TaskStatus": ["pending", "in_progress", "done"]
@@ -98,7 +99,7 @@ _DOMAIN_FEW_SHOT = """\
 ```json
 {
   "models": [
-    "Post { id String @id @default(uuid()), title String, excerpt String?, published Boolean @default(false), category String, authorId String, slug String @unique, createdAt DateTime @default(now()) }"
+    "Post { id String @id @default(uuid()), title String, excerpt String?, published Boolean @default(false), category String, authorId String, slug String @unique, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }"
   ],
   "enums": {}
 }
@@ -108,8 +109,8 @@ _DOMAIN_FEW_SHOT = """\
 ```json
 {
   "models": [
-    "Client { id String @id @default(uuid()), name String, email String, userId String, invoices Invoice[], createdAt DateTime @default(now()) }",
-    "Invoice { id String @id @default(uuid()), amount Float, status InvoiceStatus @default(draft), clientId String, client Client @relation(fields: [clientId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()) }"
+    "Client { id String @id @default(uuid()), name String, email String, userId String, invoices Invoice[], createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }",
+    "Invoice { id String @id @default(uuid()), amount Float, status InvoiceStatus @default(draft), clientId String, client Client @relation(fields: [clientId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }"
   ],
   "enums": {
     "InvoiceStatus": ["draft", "sent", "paid"]

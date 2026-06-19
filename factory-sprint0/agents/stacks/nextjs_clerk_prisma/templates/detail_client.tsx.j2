@@ -26,12 +26,35 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
     <main className="container mx-auto {{ p_cls }} max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href="{{ list_path }}" className="text-muted-foreground hover:text-foreground">←</Link>
+        {% if not auth_required and title_field %}
+        <h1 className="text-2xl font-bold text-foreground">{String(item.{{ title_field }} ?? '{{ name }}')}</h1>
+        {% else %}
         <h1 className="text-2xl font-bold text-foreground">{{ name }}</h1>
+        {% endif %}
       </div>
 
+      {% if not auth_required and textarea_fields %}
+      {# Pages publiques : champs textarea rendus en prose pleine largeur avant la fiche #}
+      {% for field in display_fields %}
+      {% if field in textarea_fields %}
+      <div className="{{ card_cls }} p-6 mb-4">
+        <p className="text-sm font-medium text-muted-foreground mb-2">{{ field_labels.get(field, field) }}</p>
+        <p className="text-foreground leading-relaxed whitespace-pre-wrap">{String(item.{{ field }} ?? '')}</p>
+      </div>
+      {% endif %}
+      {% endfor %}
+      {% endif %}
+
+      {% set dl_fields = [] %}
+      {% for field in display_fields %}
+        {% if not (not auth_required and textarea_fields and field in textarea_fields) and not (not auth_required and title_field and field == title_field) %}
+          {% set _ = dl_fields.append(field) %}
+        {% endif %}
+      {% endfor %}
+      {% if dl_fields %}
       <div className="{{ card_cls }} overflow-hidden">
         <dl className="divide-y divide-border">
-          {% for field in display_fields %}
+          {% for field in dl_fields %}
           <div className="px-6 py-4 grid grid-cols-3 gap-4">
             <dt className="text-sm font-medium text-muted-foreground">{{ field_labels.get(field, field) }}</dt>
             <dd className="text-sm text-foreground col-span-2">
@@ -45,6 +68,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
           {% endfor %}
         </dl>
       </div>
+      {% endif %}
 
       <div className="mt-6 flex gap-3">
         {% if auth_required %}

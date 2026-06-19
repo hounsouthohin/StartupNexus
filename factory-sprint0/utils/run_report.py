@@ -172,7 +172,7 @@ def write_factory_run_report(
         report_path = os.path.join(report_dir, f"{project_name}_{date_str}.md")
 
         # ── Build ─────────────────────────────────────────────────────────────
-        build_icon = "✅" if build_status == "BUILD_SUCCESS" else "❌"
+        build_icon = "✅" if build_status in ("BUILD_SUCCESS", "SUCCESS", "PARTIAL") else "❌"
         build_line = f"{build_icon} {build_status}"
 
         # ── Review ────────────────────────────────────────────────────────────

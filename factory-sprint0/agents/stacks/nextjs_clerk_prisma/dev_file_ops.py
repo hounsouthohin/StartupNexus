@@ -82,11 +82,21 @@ def write_template_files(
                 continue
             content = template_path.read_text(encoding="utf-8")
             content = content.replace("{project_name}", project_name)
-            # Injecte la route principale depuis le spec (première page list)
+            # Injecte la route principale depuis le spec.
+            # Priorité : /dashboard (hub post-auth) → première page list → "/"
             _pages = spec_dict.get("pages", []) or []
-            _main_route = next(
-                (p.get("path", "/") for p in _pages if isinstance(p, dict) and p.get("page_type") == "list"),
-                "/",
+            _dashboard_page = next(
+                (p for p in _pages if isinstance(p, dict) and p.get("path") == "/dashboard"),
+                None,
+            )
+            _list_page = next(
+                (p for p in _pages if isinstance(p, dict) and p.get("page_type") == "list"),
+                None,
+            )
+            _main_route = (
+                (_dashboard_page or {}).get("path")
+                or (_list_page or {}).get("path")
+                or "/"
             )
             content = content.replace("{main_route}", _main_route)
             dest_path = pathlib.Path(workdir) / dest_filename

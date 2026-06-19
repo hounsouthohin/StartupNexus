@@ -57,6 +57,7 @@ Exemple :
 import { recipeService } from '@/lib/services/recipe.service'
 
 jest.mock('@/lib/prisma', () => ({
+  __esModule: true,
   default: {
     recipe: {
       findMany: jest.fn().mockResolvedValue([{ id: 'abc', title: 'Test', createdAt: new Date() }]),
