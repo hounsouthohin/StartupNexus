@@ -294,6 +294,49 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
                     f"ce fichier n'existe pas ici. NE PAS importer deleteXxx ni createXxx.\n"
                 )
 
+    # ── Labels UI (C6) — title_plural depuis page_planner (LLM architect) ──────────
+    # Évite "Nouveau Recipe" en donnant au LLM le nom d'affichage français du modèle.
+    # title_plurals est généré par le page_planner node (few-shot français).
+    if _client_model and spec_obj is not None:
+        _title_plurals = getattr(spec_obj, "title_plurals", None) or {}
+        _title_plural = _title_plurals.get(_client_model.name, "")
+        _ui_labels = (getattr(spec_obj, "ui_labels", None) or {}).get(_client_model.name, {})
+        _label_parts: list[str] = []
+        if _title_plural:
+            _label_parts.append(f"Nom pluriel du modèle : « {_title_plural} »")
+        if _ui_labels:
+            _label_parts.append(
+                "Labels UI par champ : "
+                + ", ".join(f"{k}=«{v}»" for k, v in list(_ui_labels.items())[:8])
+            )
+        if _label_parts:
+            dep += (
+                "\n\n⚠️  LABELS AFFICHÉS (utiliser ces termes exacts dans l'UI, "
+                "PAS les noms Prisma en anglais) :\n"
+                + "\n".join(_label_parts)
+            )
+
+    # ── C7 — Lien item pour pages publiques de liste ────────────────────────────
+    # Condition double : (1) page appelle getPublicAll() ET (2) une page detail existe
+    # pour ce modèle dans le spec. Sans page detail déclarée → _detail_path vide → skip.
+    if _sibling_content and "getPublicAll()" in _sibling_content and _client_model and spec_obj:
+        _use_slug = any(f.name.lower() == "slug" for f in _client_model.fields)
+        _detail_path = ""
+        for _pg in spec_obj.pages:
+            if (
+                getattr(_pg, "model", None) == _client_model.name
+                and getattr(_pg, "page_type", "") in ("detail", "detail-slug")
+            ):
+                _detail_path = _pg.path.rsplit("/[", 1)[0]
+                break
+        if _detail_path:
+            _id_key = "item.slug" if _use_slug else "item.id"
+            dep += (
+                f"\n\n⚠️  PAGE PUBLIQUE LISTE — chaque item DOIT être cliquable vers sa page de détail :\n"
+                f"  <Link href=\"{_detail_path}/{{{{{_id_key}}}}}\">{{item.title}}</Link>\n"
+                f"  Sans ce lien, les visiteurs voient la liste mais ne peuvent pas accéder au contenu."
+            )
+
     # ── pages_detail hint — injecté pour TOUS les page-client (Trou B fix) ───────
     # Précédemment injecté seulement quand actions.ts trouvé → pages publiques l'ignoraient.
     if spec_obj is not None:

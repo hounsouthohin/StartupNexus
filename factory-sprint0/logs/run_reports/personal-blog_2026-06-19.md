@@ -3,7 +3,7 @@
 BUILD        : ✅ SUCCESS
 REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | PASS tests/middleware.test.ts |
+TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | FAIL tests/services.test.ts | T
 SEMGREP      : ⚠ 2 finding(s)
 
 PATTERNS DÉTECTÉS :
@@ -24,5 +24,5 @@ PATTERNS DÉTECTÉS :
 ⚠ no 
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : 4474cfd7-7af2-4231-955b-2467949c639e
-DURÉE        : 4min 51s
+RUN_ID       : 5950c345-d53e-41fa-88a3-d2ec4760a5d9
+DURÉE        : 6min 6s

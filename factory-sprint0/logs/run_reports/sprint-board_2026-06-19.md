@@ -1,10 +1,10 @@
-# FactoryRunReport — recipe-manager — 2026-06-19
+# FactoryRunReport — sprint-board — 2026-06-19
 ══════════════════════════════════════════════════
-BUILD        : ✅ SUCCESS
-REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
+BUILD        : ❌ BUILD_FAILED
+REVIEW       : SKIPPED (SKIPPED_BUILD_FAILED)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : ✗ 2 test(s) — FAIL tests/post.service.test.ts | FAIL tests/schemas.test.ts
-SEMGREP      : ⚠ 1 finding(s)
+TESTS        : Non exécuté
+SEMGREP      : Non exécuté
 
 PATTERNS DÉTECTÉS :
   ⚠ Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat
@@ -23,6 +23,8 @@ PATTERNS DÉTECTÉS :
 
 ⚠ no 
   → Suggestion standard — DÉCISION REQUISE
+  🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
+  → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : 4a2b5a06-31c6-4533-96fc-881f78e64244
-DURÉE        : 3min 35s
+RUN_ID       : 79715fff-02ad-4e3f-bacc-bd8c68bef8c5
+DURÉE        : 0min 30s

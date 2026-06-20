@@ -329,16 +329,6 @@ async def run_dev_agent(
         except Exception as _ly_err:
             logger.warning("[dev_graph] layout_generator non bloquant : %s", _ly_err)
 
-    # ── Navigation.tsx — liens depuis spec.pages ──────────────────────────────
-    if spec_obj is not None:
-        try:
-            from .dev_navigation_generator import generate_navigation
-            _nav_files = generate_navigation(spec_obj, project_workdir)
-            template_written.update(_nav_files)
-            logger.info("[dev_graph] navigation.tsx générée")
-        except Exception as _nav_err:
-            logger.warning("[dev_graph] navigation_generator non bloquant : %s", _nav_err)
-
     # ══ UI — générés après les fondations ═════════════════════════════════════
 
     # ── Génération déterministe : pages + loading + error ───────────────────────

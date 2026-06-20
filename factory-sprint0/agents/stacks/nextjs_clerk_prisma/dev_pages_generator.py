@@ -19,6 +19,7 @@ import logging
 import os
 import re as _re
 
+from .dev_model_context import _is_relation as _canonical_is_relation
 from .dev_naming import (
     pascal_to_camel,
     pascal_to_kebab,
@@ -38,12 +39,14 @@ def _pluralize(name: str) -> str:
     return name + "s"
 
 
-def _model_has_status(model_obj) -> bool:
-    return any(f.name.lower() == "status" for f in model_obj.fields)
-
-
-def _model_has_relations(model_obj) -> bool:
-    return any("@relation" in (f.attributes or "") for f in model_obj.fields)
+def _model_has_relations(model_obj, spec_enums: "dict | None" = None) -> bool:
+    """Fallback robuste — utilise la logique canonique (_is_relation) de dev_model_context.
+    Détecte les relations même sans @relation explicite (ex: Category category sans @relation).
+    """
+    return any(
+        _canonical_is_relation(f.type, f.attributes, spec_enums or {})
+        for f in model_obj.fields
+    )
 
 
 def _gen_loading_tsx() -> str:
@@ -286,7 +289,6 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     is_detail = page.page_type in ("detail", "detail-slug")
     is_slug_detail = page.page_type == "detail-slug"
     has_relations = ctx.has_relations if ctx is not None else _model_has_relations(model_obj)
-    has_status = _model_has_status(model_obj)
 
     # Champs FK pour pages create
     fk_list: list[tuple[str, str, str]] = []
@@ -383,11 +385,9 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
                 f"{camel}Service.getAll(userId)"
             )
         else:
-            service_call = (
-                f"{camel}Service.getPublished()"
-                if has_status else
-                f"{camel}Service.getPublicAll()"
-            )
+            # getPublicAll() est la méthode canonique pour les pages publiques.
+            # getPublished() n'existe pas dans le service généré — toujours getPublicAll().
+            service_call = f"{camel}Service.getPublicAll()"
         lines += [
             f"  const items = await {service_call}",
             f"  return <{client} items={{items}} />",

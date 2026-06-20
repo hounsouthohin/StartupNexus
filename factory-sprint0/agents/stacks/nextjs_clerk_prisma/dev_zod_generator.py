@@ -90,6 +90,59 @@ def _prisma_type_to_zod(prisma_type: str, attributes: str = "", enums: "dict | N
     return zod
 
 
+def _generate_update_schema(model, enums: "dict | None" = None, ctx=None) -> list[str]:
+    """
+    Génère les lignes du Update schema.
+    Boolean : z.preprocess pour que unchecked checkbox = false explicite (pas undefined).
+    Tous les autres champs : .optional() classique.
+    """
+    fields_lines: list[str] = []
+
+    if ctx is not None:
+        for fi in ctx.editable_fields:
+            if fi.base_type == "Boolean":
+                # Unchecked checkbox envoie rien dans FormData → preprocess retourne false
+                fields_lines.append(
+                    f"  {fi.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).default(false),"
+                )
+            else:
+                zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
+                if zod_type == "z.string().min(1)":
+                    zod_type = "z.string()"
+                if not zod_type.endswith(".optional()"):
+                    zod_type = f"{zod_type}.optional()"
+                fields_lines.append(f"  {fi.name}: {zod_type},")
+        for fk in ctx.fk_fields:
+            fields_lines.append(f"  {fk.field_name}: z.string().optional(),")
+        return fields_lines
+
+    # Fallback depuis model (sans ctx)
+    owner = model.resolved_owner().lower()
+    for field in model.fields:
+        fn = field.name.lower()
+        if fn in _AUTO_FIELDS or fn == owner:
+            continue
+        if _prisma_attr_is_auto(field.attributes):
+            continue
+        if _is_relation(field.type, field.attributes, enums or {}):
+            continue
+
+        base_type = field.type.rstrip("?").rstrip("[]")
+        if base_type == "Boolean":
+            fields_lines.append(
+                f"  {field.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).default(false),"
+            )
+        else:
+            zod_type = _prisma_type_to_zod(field.type, field.attributes, enums=enums)
+            if zod_type == "z.string().min(1)":
+                zod_type = "z.string()"
+            if not zod_type.endswith(".optional()"):
+                zod_type = f"{zod_type}.optional()"
+            fields_lines.append(f"  {field.name}: {zod_type},")
+
+    return fields_lines
+
+
 def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> list[str]:
     """Génère les lignes du schéma Create{Name}Schema (champs mutables, sans owner)."""
     fields_lines: list[str] = []
@@ -170,7 +223,12 @@ def generate_schemas_file(spec, project_workdir: str, contexts: "dict | None" = 
         lines.extend(field_lines)
         lines.append("})")
         lines.append("")
-        lines.append(f"export const {update_name} = {create_name}.partial()")
+        update_field_lines = _generate_update_schema(model, enums=spec_enums, ctx=ctx)
+        if not update_field_lines:
+            update_field_lines = ["  // aucun champ mutable"]
+        lines.append(f"export const {update_name} = z.object({{")
+        lines.extend(update_field_lines)
+        lines.append("})")
         lines.append(f"export type Create{name}Input = z.infer<typeof {create_name}>")
         lines.append(f"export type Update{name}Input = z.infer<typeof {update_name}>")
         lines.append("")

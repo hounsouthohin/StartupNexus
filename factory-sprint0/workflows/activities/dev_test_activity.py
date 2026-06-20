@@ -972,6 +972,14 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
                 tsc_errors_by_activity=int(tsc_activity_details.get("errors_count", 0)),
             ),
         }
+        # C4 — Nettoyage last_build_error quand le build externe a réussi.
+        # last_build_error vient du build INTERNE du LLM (tentative échouée avant auto-correction).
+        # Une fois build_exit_code==0 confirmé par l'activité, cet historique est obsolète
+        # et déclencherait un faux contradiction_flag dans _validate_run_metric_consistency.
+        if build_success and build_exit_code == 0 and run_metric.get("last_build_error"):
+            run_metric["last_build_error"] = ""
+            run_metric["last_build_error_full"] = ""
+
         # ── Cohérence métrique — Phase C : contradictions = hard fail ────────
         # Règle 1 : build_success=True sans build_command_executed=True → impossible légitimement
         # Règle 2 : build_success=True avec build_exit_code != 0 → signal corrompu

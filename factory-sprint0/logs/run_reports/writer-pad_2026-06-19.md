@@ -1,10 +1,10 @@
-# FactoryRunReport — recipe-manager — 2026-06-19
+# FactoryRunReport — writer-pad — 2026-06-19
 ══════════════════════════════════════════════════
-BUILD        : ✅ SUCCESS
-REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
+BUILD        : ❌ BUILD_FAILED
+REVIEW       : SKIPPED (SKIPPED_BUILD_FAILED)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : ✗ 2 test(s) — FAIL tests/post.service.test.ts | FAIL tests/schemas.test.ts
-SEMGREP      : ⚠ 1 finding(s)
+TESTS        : Non exécuté
+SEMGREP      : Non exécuté
 
 PATTERNS DÉTECTÉS :
   ⚠ Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat
@@ -24,5 +24,5 @@ PATTERNS DÉTECTÉS :
 ⚠ no 
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : 4a2b5a06-31c6-4533-96fc-881f78e64244
-DURÉE        : 3min 35s
+RUN_ID       : 2ff40609-5993-4f31-887b-36d8d3de0b5e
+DURÉE        : 5min 31s
