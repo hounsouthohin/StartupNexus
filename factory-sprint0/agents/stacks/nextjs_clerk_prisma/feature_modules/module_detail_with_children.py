@@ -234,7 +234,11 @@ class DetailWithChildrenModule(FeatureModule):
                 # tokens sémantiques CSS variables (tailwind.config.js → hsl(var(--primary)))
                 primary="primary",
                 primary_hover="primary/85",
+                primary_light="primary/10",
                 primary_ring="primary",
+                # design_system non transmis par run_feature_modules → valeurs par défaut "normal"/"elevated"
+                p_cls="p-6",
+                card_cls="bg-card rounded-lg shadow-sm border border-border",
             )
         except Exception as e:
             logger.error("[detail_with_children] erreur template %s : %s", ctx.name, e)

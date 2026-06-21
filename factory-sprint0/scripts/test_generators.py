@@ -1,17 +1,23 @@
 """
 scripts/test_generators.py
 ──────────────────────────
-Test rapide des générateurs Level A — sans LLM, sans Temporal, sans Docker.
+Test rapide des générateurs déterministes — sans LLM, sans Temporal, sans Docker.
 
 Usage :
-    python -m scripts.test_generators                        # brief project-hub par défaut
-    python -m scripts.test_generators --spec fixtures/my.json
+    python -m scripts.test_generators                        # fixture project_hub par défaut
+    python -m scripts.test_generators --spec fixtures/type_a_status_boolean.json
+    python -m scripts.test_generators --all                  # toutes les fixtures du dossier
     python -m scripts.test_generators --tsc                  # lance tsc --noEmit après génération
     python -m scripts.test_generators --keep                 # conserve le dossier tmp après le test
 
 Ce script charge une fixture spec JSON, lance tous les générateurs déterministes,
 écrit les fichiers dans un dossier temporaire, et vérifie la cohérence de sortie.
-Aucun token LLM consommé. Durée : ~5-15 secondes.
+Aucun token LLM consommé. Durée : ~2-5 secondes par fixture.
+
+Validations effectuées :
+  1. Aucune erreur levée par les générateurs (top-level ET internes silencieuses)
+  2. Cohérence page.tsx → page-client.tsx : tout page.tsx qui importe ./page-client
+     doit avoir son page-client.tsx généré (sinon le guard dev_graph bloque le run réel)
 """
 from __future__ import annotations
 
@@ -19,6 +25,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -35,6 +42,22 @@ logger = logging.getLogger("test_generators")
 
 _FIXTURES_DIR = Path(__file__).parent / "fixtures"
 _DEFAULT_FIXTURE = _FIXTURES_DIR / "project_hub_spec.json"
+
+
+# ── Capture des erreurs internes silencieuses ─────────────────────────────────
+
+class _ErrorCapture(logging.Handler):
+    """
+    Capte les messages ERROR/CRITICAL émis par les générateurs.
+    Les générateurs catchent leurs exceptions en interne (try/except + continue)
+    et les loggent sans les remonter — ce handler les rend visibles dans le rapport.
+    """
+    def __init__(self) -> None:
+        super().__init__(level=logging.ERROR)
+        self.records: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(self.format(record))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -99,7 +122,7 @@ def _build_project_spec(raw: dict):
 
 
 def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
-    """Lance tous les générateurs Level A. Retourne {categorie: [fichiers générés]}."""
+    """Lance tous les générateurs déterministes. Retourne {categorie: [fichiers générés]}."""
     from agents.stacks.nextjs_clerk_prisma.dev_model_context import build_all_contexts
     from agents.stack_config import load_stack_config
     from agents.stacks.nextjs_clerk_prisma.dev_file_ops import write_template_files
@@ -115,7 +138,6 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
         "page_clients": [],
         "parent_details": [],
         "feature_modules": [],
-        "navigation": [],
         "middleware": [],
         "errors": [],
     }
@@ -156,15 +178,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"middleware: {e}")
 
-    # 5. Navigation
-    try:
-        from agents.stacks.nextjs_clerk_prisma.dev_navigation_generator import generate_navigation
-        nav = generate_navigation(spec_obj, workdir)
-        results["navigation"] = list(nav.keys())
-    except Exception as e:
-        results["errors"].append(f"navigation: {e}")
-
-    # 6. Pages (page.tsx déterministes)
+    # 5. Pages (page.tsx déterministes)
     try:
         from agents.stacks.nextjs_clerk_prisma.dev_pages_generator import (
             generate_page_stubs, generate_edit_page_stubs,
@@ -179,7 +193,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"pages: {e}")
 
-    # 7. lib/types.ts
+    # 6. lib/types.ts
     try:
         from agents.stacks.nextjs_clerk_prisma.dev_types_generator import generate_types_file
         t = generate_types_file(spec_obj, workdir, contexts=model_contexts)
@@ -187,7 +201,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"types: {e}")
 
-    # 8. lib/schemas.ts
+    # 7. lib/schemas.ts
     try:
         from agents.stacks.nextjs_clerk_prisma.dev_zod_generator import generate_schemas_file
         s = generate_schemas_file(spec_obj, workdir, contexts=model_contexts)
@@ -196,7 +210,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"schemas: {e}")
 
-    # 9. Services
+    # 8. Services
     try:
         from agents.stacks.nextjs_clerk_prisma.dev_service_generator import generate_service_files
         svcs = generate_service_files(spec_obj, workdir, contexts=model_contexts)
@@ -204,7 +218,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"services: {e}")
 
-    # 10. Actions
+    # 9. Actions
     try:
         from agents.stacks.nextjs_clerk_prisma.dev_actions_generator import generate_action_files
         acts = generate_action_files(spec_obj, workdir, model_contexts=model_contexts)
@@ -212,7 +226,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"actions: {e}")
 
-    # 11. Page-clients (Jinja2)
+    # 10. Page-clients (Jinja2)
     try:
         from agents.stacks.nextjs_clerk_prisma.dev_form_generator import (
             generate_all_page_clients, generate_parent_detail_pages,
@@ -224,7 +238,7 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
     except Exception as e:
         results["errors"].append(f"page_clients: {e}")
 
-    # 12. Feature modules
+    # 11. Feature modules
     try:
         from agents.stacks.nextjs_clerk_prisma.feature_module import (
             load_feature_modules, run_feature_modules,
@@ -237,6 +251,42 @@ def _run_generators(spec_obj, workdir: str) -> dict[str, list[str]]:
         results["errors"].append(f"feature_modules: {e}")
 
     return results
+
+
+def _check_page_client_coherence(results: dict, workdir: str) -> list[str]:
+    """
+    Vérifie que chaque page.tsx qui importe './page-client' a son page-client.tsx généré.
+    Reproduit le guard de dev_graph.py — si cette vérification échoue ici,
+    le run réel échouera aussi avec GENERATION_ERROR avant même de tenter le build.
+    """
+    _import_re = re.compile(r"['\"]\.\/page-client['\"]")
+    missing: list[str] = []
+
+    all_clients = set(
+        results.get("page_clients", [])
+        + results.get("parent_details", [])
+        + results.get("feature_modules", [])
+    )
+
+    for page_rel in results.get("pages", []):
+        if not page_rel.endswith("page.tsx"):
+            continue
+        page_abs = os.path.join(workdir, page_rel.replace("/", os.sep))
+        try:
+            with open(page_abs, encoding="utf-8") as f:
+                content = f.read()
+        except FileNotFoundError:
+            continue
+        if not _import_re.search(content):
+            continue
+        client_rel = page_rel[: -len("page.tsx")] + "page-client.tsx"
+        client_abs = os.path.join(workdir, client_rel.replace("/", os.sep))
+        if client_rel not in all_clients and not os.path.exists(client_abs):
+            missing.append(
+                f"MISSING page-client : {page_rel} importe ./page-client "
+                f"mais {client_rel} absent des fichiers générés"
+            )
+    return missing
 
 
 def _count_files(workdir: str) -> int:
@@ -272,15 +322,10 @@ def _print_section(title: str, items: list[str], color: str = "") -> None:
         print(f"    … +{len(items) - 8} autres")
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Test rapide des générateurs Level A")
-    parser.add_argument("--spec", default=str(_DEFAULT_FIXTURE), help="Chemin vers la fixture spec JSON")
-    parser.add_argument("--tsc", action="store_true", help="Lancer tsc --noEmit après génération")
-    parser.add_argument("--keep", action="store_true", help="Conserver le dossier temporaire")
-    args = parser.parse_args()
-
+def _run_one_fixture(spec_path: Path, args) -> bool:
+    """
+    Lance les générateurs sur une fixture. Retourne True si tout est OK.
+    """
     GREEN  = "\033[32m"
     RED    = "\033[31m"
     YELLOW = "\033[33m"
@@ -288,95 +333,147 @@ def main() -> int:
     BOLD   = "\033[1m"
     RESET  = "\033[0m"
 
-    spec_path = Path(args.spec)
-    if not spec_path.is_absolute():
-        spec_path = Path(__file__).parent / args.spec
-    if not spec_path.exists():
-        print(f"{RED}✗ Fixture introuvable : {spec_path}{RESET}")
-        return 1
+    print(f"\n{BOLD}{'─'*60}{RESET}")
+    print(f"{BOLD}  Fixture : {spec_path.name}{RESET}")
 
-    print(f"\n{BOLD}═══ Test Générateurs Level A ═══{RESET}")
-    print(f"  Fixture : {spec_path.name}")
-
-    # Charger la spec
-    t0 = time.perf_counter()
     raw = _load_spec(spec_path)
     spec_obj = _build_project_spec(raw)
     print(f"  Spec    : {len(spec_obj.models)} modèles, {len(spec_obj.pages)} pages, {len(spec_obj.enums)} enums")
 
-    # Créer le workdir temporaire
     workdir = tempfile.mkdtemp(prefix="factory_test_")
-    print(f"  Workdir : {workdir}")
+    if args.keep:
+        print(f"  Workdir : {workdir}")
 
     try:
-        # Lancer les générateurs
-        print(f"\n{CYAN}▶ Génération...{RESET}")
+        # Installer le capteur d'erreurs silencieuses
+        _capture = _ErrorCapture()
+        _capture.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+        logging.getLogger("agents").addHandler(_capture)
+
+        t0 = time.perf_counter()
+        print(f"  {CYAN}▶ Génération...{RESET}", end="", flush=True)
         results = _run_generators(spec_obj, workdir)
         elapsed = time.perf_counter() - t0
 
-        # Afficher les résultats par catégorie
-        categories = [
-            ("Templates stack",   results["templates"],      CYAN),
-            ("Schema Prisma",     results["schema"],         CYAN),
-            ("lib/types.ts",      results["types"],          CYAN),
-            ("lib/schemas.ts",    results["schemas"],        CYAN),
-            ("Services DAL",      results["services"],       CYAN),
-            ("Server Actions",    results["actions"],        CYAN),
-            ("Pages (page.tsx)",  results["pages"],          CYAN),
-            ("Page-clients",      results["page_clients"],   CYAN),
-            ("Détails parent",    results["parent_details"], CYAN),
-            ("Feature modules",   results["feature_modules"], GREEN),
-            ("Navigation",        results["navigation"],     CYAN),
-            ("Middleware",        results["middleware"],      CYAN),
-        ]
+        logging.getLogger("agents").removeHandler(_capture)
+
+        # Ajouter les erreurs internes capturées
+        results["errors"].extend(_capture.records)
+
+        # Vérification de cohérence page.tsx ↔ page-client.tsx
+        coherence_errors = _check_page_client_coherence(results, workdir)
+        results["errors"].extend(coherence_errors)
+
         total_files = sum(len(v) for k, v in results.items() if k != "errors")
+        print(f" {elapsed:.1f}s — {total_files} fichiers générés")
+
+        # Affichage des catégories (compact)
+        categories = [
+            ("Templates stack",  results["templates"],       CYAN),
+            ("lib/types.ts",     results["types"],           CYAN),
+            ("lib/schemas.ts",   results["schemas"],         CYAN),
+            ("Services DAL",     results["services"],        CYAN),
+            ("Server Actions",   results["actions"],         CYAN),
+            ("Pages (page.tsx)", results["pages"],           CYAN),
+            ("Page-clients",     results["page_clients"],    CYAN),
+            ("Détails parent",   results["parent_details"],  CYAN),
+            ("Feature modules",  results["feature_modules"], GREEN),
+            ("Middleware",       results["middleware"],       CYAN),
+        ]
         for label, files, color in categories:
             if files:
                 _print_section(label, files, color)
 
-        total_on_disk = _count_files(workdir)
-        print(f"\n  {BOLD}Total généré{RESET} : {total_files} fichiers suivis | {total_on_disk} sur disque")
-        print(f"  {BOLD}Durée{RESET}        : {elapsed:.1f}s")
-
-        # Erreurs générateurs
+        # Erreurs
         has_errors = bool(results["errors"])
         if has_errors:
-            print(f"\n{RED}✗ Erreurs générateurs :{RESET}")
+            print(f"\n  {RED}✗ Erreurs détectées :{RESET}")
             for e in results["errors"]:
-                print(f"    • {e}")
+                print(f"    {RED}•{RESET} {e}")
         else:
-            print(f"\n  {GREEN}✓ Tous les générateurs ont tourné sans erreur{RESET}")
+            print(f"\n  {GREEN}✓ Aucune erreur — cohérence page.tsx↔page-client.tsx OK{RESET}")
 
         # TSC optionnel
         tsc_ok = None
         if args.tsc:
-            print(f"\n{CYAN}▶ TypeScript check (tsc --noEmit)...{RESET}")
+            print(f"  {CYAN}▶ TypeScript check...{RESET}", end="", flush=True)
             tsc_ok, tsc_out = _run_tsc(workdir)
             if tsc_ok:
-                print(f"  {GREEN}✓ tsc OK — aucune erreur TypeScript{RESET}")
+                print(f" {GREEN}✓ tsc OK{RESET}")
             else:
-                print(f"  {RED}✗ tsc FAILED{RESET}")
-                if tsc_out:
-                    lines = tsc_out.splitlines()[:20]
-                    for line in lines:
-                        print(f"    {line}")
-                    if len(tsc_out.splitlines()) > 20:
-                        print(f"    … +{len(tsc_out.splitlines()) - 20} lignes supplémentaires")
+                print(f" {RED}✗ tsc FAILED{RESET}")
+                lines = tsc_out.splitlines()[:15]
+                for line in lines:
+                    print(f"    {line}")
+                if len(tsc_out.splitlines()) > 15:
+                    print(f"    … +{len(tsc_out.splitlines()) - 15} lignes")
 
-        # Résultat final
-        print()
-        if has_errors or tsc_ok is False:
-            print(f"{RED}{BOLD}✗ BUILD_FAILED{RESET} — corriger les erreurs ci-dessus")
-            return 1
-        else:
-            print(f"{GREEN}{BOLD}✓ GENERATORS_OK{RESET}" + (" + TSC_OK" if tsc_ok else " (tsc non lancé — ajouter --tsc)"))
-            return 0
+        success = not has_errors and tsc_ok is not False
+        status = f"{GREEN}{BOLD}✓ OK{RESET}" if success else f"{RED}{BOLD}✗ FAILED{RESET}"
+        print(f"\n  Résultat : {status}")
+        return success
 
     finally:
         if not args.keep:
             shutil.rmtree(workdir, ignore_errors=True)
         else:
-            print(f"\n  Workdir conservé : {workdir}")
+            print(f"  Workdir conservé : {workdir}")
+
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Test rapide des générateurs déterministes")
+    parser.add_argument("--spec", default=str(_DEFAULT_FIXTURE), help="Chemin vers une fixture spec JSON")
+    parser.add_argument("--all", action="store_true", help="Lancer toutes les fixtures du dossier fixtures/")
+    parser.add_argument("--tsc", action="store_true", help="Lancer tsc --noEmit après génération")
+    parser.add_argument("--keep", action="store_true", help="Conserver le dossier temporaire")
+    args = parser.parse_args()
+
+    GREEN  = "\033[32m"
+    RED    = "\033[31m"
+    BOLD   = "\033[1m"
+    RESET  = "\033[0m"
+
+    print(f"\n{BOLD}═══ Test Générateurs Déterministes ═══{RESET}")
+
+    if args.all:
+        fixtures = sorted(_FIXTURES_DIR.glob("*.json"))
+        if not fixtures:
+            print(f"{RED}Aucune fixture trouvée dans {_FIXTURES_DIR}{RESET}")
+            return 1
+        print(f"  {len(fixtures)} fixture(s) trouvée(s)\n")
+        results_by_fixture: dict[str, bool] = {}
+        for fx in fixtures:
+            ok = _run_one_fixture(fx, args)
+            results_by_fixture[fx.name] = ok
+
+        print(f"\n{BOLD}{'═'*60}{RESET}")
+        print(f"{BOLD}  Récapitulatif{RESET}")
+        all_ok = True
+        for name, ok in results_by_fixture.items():
+            icon = f"{GREEN}✓{RESET}" if ok else f"{RED}✗{RESET}"
+            print(f"    {icon}  {name}")
+            if not ok:
+                all_ok = False
+        print()
+        if all_ok:
+            print(f"{GREEN}{BOLD}✓ TOUTES LES FIXTURES OK{RESET}")
+            return 0
+        else:
+            failed = sum(1 for v in results_by_fixture.values() if not v)
+            print(f"{RED}{BOLD}✗ {failed}/{len(fixtures)} FIXTURE(S) EN ÉCHEC{RESET}")
+            return 1
+    else:
+        spec_path = Path(args.spec)
+        if not spec_path.is_absolute():
+            spec_path = Path(__file__).parent / args.spec
+        if not spec_path.exists():
+            print(f"{RED}✗ Fixture introuvable : {spec_path}{RESET}")
+            return 1
+        ok = _run_one_fixture(spec_path, args)
+        print()
+        return 0 if ok else 1
 
 
 if __name__ == "__main__":

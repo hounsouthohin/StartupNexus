@@ -1,0 +1,40 @@
+{
+  "project_name": "type-d-public-slug",
+  "stack_id": "nextjs-clerk-prisma",
+  "description": "Type D — pages publiques sans auth + pages privées avec auth, routing par slug @unique. Cas représentatif : writer-pad (Article slug+published → Category slug, Resource → Article).",
+  "models": [
+    "Article { id String @id @default(uuid()), title String, content String, excerpt String?, slug String @unique, published Boolean @default(false), categoryId String, category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade), userId String, resources Resource[], createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }",
+    "Category { id String @id @default(uuid()), name String, slug String @unique, userId String, articles Article[], createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }",
+    "Resource { id String @id @default(uuid()), title String, url String, description String?, articleId String, article Article @relation(fields: [articleId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }"
+  ],
+  "enums": {},
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/articles", "auth": false, "model": "Article", "page_type": "list"},
+    {"path": "/articles/[slug]", "auth": false, "model": "Article", "page_type": "detail-slug"},
+    {"path": "/dashboard", "auth": true, "page_type": "custom"},
+    {"path": "/dashboard/articles", "auth": true, "model": "Article", "page_type": "list"},
+    {"path": "/dashboard/articles/new", "auth": true, "model": "Article", "page_type": "create"},
+    {"path": "/dashboard/articles/[slug]/edit", "auth": true, "model": "Article", "page_type": "edit"},
+    {"path": "/dashboard/categories", "auth": true, "model": "Category", "page_type": "list"},
+    {"path": "/dashboard/categories/new", "auth": true, "model": "Category", "page_type": "create"},
+    {"path": "/dashboard/categories/[slug]/edit", "auth": true, "model": "Category", "page_type": "edit"},
+    {"path": "/dashboard/resources", "auth": true, "model": "Resource", "page_type": "list"},
+    {"path": "/dashboard/resources/new", "auth": true, "model": "Resource", "page_type": "create"},
+    {"path": "/dashboard/resources/[id]/edit", "auth": true, "model": "Resource", "page_type": "edit"}
+  ],
+  "routes": [],
+  "title_plurals": {
+    "Article": "Articles",
+    "Category": "Catégories",
+    "Resource": "Ressources"
+  },
+  "ui_labels": {
+    "Article": {"title": "Titre", "content": "Contenu", "excerpt": "Résumé", "published": "Publié", "categoryId": "Catégorie"},
+    "Category": {"name": "Nom", "slug": "Slug"},
+    "Resource": {"title": "Titre", "url": "URL", "description": "Description", "articleId": "Article"}
+  },
+  "enum_value_labels": {},
+  "user_flows": [],
+  "pages_detail": {}
+}

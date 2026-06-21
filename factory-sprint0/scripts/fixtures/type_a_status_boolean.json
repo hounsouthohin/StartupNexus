@@ -1,0 +1,44 @@
+{
+  "project_name": "type-a-status-boolean",
+  "stack_id": "nextjs-clerk-prisma",
+  "description": "Type A — modèles avec enum status, champ Boolean isPaid, et relations FK. Cas représentatif : freelance-tracker (Client → Project → Invoice).",
+  "models": [
+    "Client { id String @id @default(uuid()), name String, email String?, company String?, userId String, projects Project[], createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }",
+    "Project { id String @id @default(uuid()), title String, description String?, status ProjectStatus @default(proposal), isPaid Boolean @default(false), clientId String, client Client @relation(fields: [clientId], references: [id], onDelete: Cascade), userId String, invoices Invoice[], createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }",
+    "Invoice { id String @id @default(uuid()), referenceNumber String, amount String, dueDate DateTime?, isPaid Boolean @default(false), projectId String, project Project @relation(fields: [projectId], references: [id], onDelete: Cascade), userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }"
+  ],
+  "enums": {
+    "ProjectStatus": ["proposal", "active", "completed", "cancelled"]
+  },
+  "pages": [
+    {"path": "/", "auth": true, "page_type": "custom"},
+    {"path": "/clients", "auth": true, "model": "Client", "page_type": "list"},
+    {"path": "/clients/new", "auth": true, "model": "Client", "page_type": "create"},
+    {"path": "/clients/[id]", "auth": true, "model": "Client", "page_type": "detail"},
+    {"path": "/clients/[id]/edit", "auth": true, "model": "Client", "page_type": "edit"},
+    {"path": "/projects", "auth": true, "model": "Project", "page_type": "list"},
+    {"path": "/projects/new", "auth": true, "model": "Project", "page_type": "create"},
+    {"path": "/projects/[id]", "auth": true, "model": "Project", "page_type": "detail"},
+    {"path": "/projects/[id]/edit", "auth": true, "model": "Project", "page_type": "edit"},
+    {"path": "/invoices", "auth": true, "model": "Invoice", "page_type": "list"},
+    {"path": "/invoices/new", "auth": true, "model": "Invoice", "page_type": "create"},
+    {"path": "/invoices/[id]", "auth": true, "model": "Invoice", "page_type": "detail"},
+    {"path": "/invoices/[id]/edit", "auth": true, "model": "Invoice", "page_type": "edit"}
+  ],
+  "routes": [],
+  "title_plurals": {
+    "Client": "Clients",
+    "Project": "Projets",
+    "Invoice": "Factures"
+  },
+  "ui_labels": {
+    "Client": {"name": "Nom", "email": "Email", "company": "Entreprise"},
+    "Project": {"title": "Titre", "description": "Description", "status": "Statut", "isPaid": "Payé"},
+    "Invoice": {"referenceNumber": "Numéro de Référence", "amount": "Montant", "dueDate": "Date d'Échéance", "isPaid": "Payé"}
+  },
+  "enum_value_labels": {
+    "ProjectStatus": {"proposal": "Proposition", "active": "Actif", "completed": "Terminé", "cancelled": "Annulé"}
+  },
+  "user_flows": [],
+  "pages_detail": {}
+}

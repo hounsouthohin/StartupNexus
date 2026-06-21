@@ -114,6 +114,12 @@ class StatusFlowModule(FeatureModule):
                 has_search=has_search,
                 has_slug=ctx.has_slug,
                 empty_state_message=_empty_msg,
+                # tokens sémantiques CSS variables (design_system non transmis → "normal")
+                primary="primary",
+                primary_hover="primary/85",
+                primary_light="primary/10",
+                primary_ring="primary",
+                p_cls="p-6",
             )
         except Exception as e:
             logger.error("[module_status_flow] rendu template échoué pour %s : %s", ctx.name, e)

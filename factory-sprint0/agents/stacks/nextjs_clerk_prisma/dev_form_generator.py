@@ -190,6 +190,8 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         has_detail=has_detail,
         status_field=status_field,
         status_labels=status_labels,
+        status_values=list(status_labels.keys()),
+        has_search=False,
         empty_state_message=empty_state_message,
         **(design_tokens or {}),
     )
