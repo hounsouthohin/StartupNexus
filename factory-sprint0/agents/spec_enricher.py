@@ -27,14 +27,60 @@ import re
 
 logger = logging.getLogger(__name__)
 
-# Méthodes valides connues du service map (doit rester synchrone avec service_modules/)
-_VALID_SERVICE_METHODS = frozenset({
-    "getAll", "getById", "create", "update", "delete",
-    "getAllWithRelations", "getByIdWithRelations",
-    "getPublished", "getPublicAll", "getPublicById",
-    "getBySlug", "getBySlugOwned", "getBySlugWithRelations",
-    "getPublicByIdWithRelations",
-})
+_VISIBILITY_FIELD_NAMES = frozenset({"published", "ispublic", "is_public", "public", "visible", "isvisible"})
+
+# FK field pattern — détecte les champs comme authorId, projectId, etc.
+_FK_FIELD_RE = re.compile(r'\b([a-z]\w*)Id\b')
+
+
+def _model_flags_from_str(model_str: str, model_name: str, pages: list[dict]) -> dict:
+    """Dérive les flags de génération de méthodes depuis la définition brute d'un modèle."""
+    s = model_str.lower()
+
+    has_slug = bool(re.search(r'\bslug\b', s)) and ('@unique' in s or 'unique' in s)
+    has_relations = '@relation' in s
+
+    # Public : champ boolean de visibilité OU page publique déclarée dans le brief
+    has_public_field = any(re.search(rf'\b{v}\b', s) for v in _VISIBILITY_FIELD_NAMES)
+    has_public_page = any(
+        not p.get("auth", True) and p.get("model") == model_name
+        for p in pages if isinstance(p, dict)
+    )
+
+    # FK parents : champs xyzId → model "Xyz" (pour ChildModule)
+    fk_parent_names = [
+        m.group(1)[0].upper() + m.group(1)[1:]
+        for m in _FK_FIELD_RE.finditer(model_str)
+        if m.group(1) not in {"id", "user", "clerk"}
+    ]
+
+    return {
+        "has_public": has_public_field or has_public_page,
+        "has_slug": has_slug,
+        "has_relations": has_relations,
+        "has_fk_fields": bool(fk_parent_names),
+        "fk_parent_names": fk_parent_names,
+    }
+
+
+def _build_model_methods_index(brief_models: list[str], pages: list[dict]) -> dict[str, frozenset]:
+    """Construit {model_name: frozenset_méthodes_valides} depuis les modèles du brief."""
+    try:
+        from agents.stacks.nextjs_clerk_prisma.service_modules import (
+            valid_methods_for_flags, is_valid_method_for_model as _unused,
+        )
+    except ImportError:
+        return {}
+
+    index: dict[str, frozenset] = {}
+    for model_str in brief_models:
+        parts = model_str.split()
+        if not parts:
+            continue
+        model_name = parts[0]
+        flags = _model_flags_from_str(model_str, model_name, pages)
+        index[model_name] = valid_methods_for_flags(**flags)
+    return index
 
 
 def _camel(name: str) -> str:
@@ -69,19 +115,54 @@ def _detect_model_from_path(path: str, model_names: list[str]) -> str | None:
     return None
 
 
-def _is_valid_data_fetches(data_fetches: list) -> bool:
-    """Vérifie que les data_fetches LLM utilisent des méthodes connues."""
+def _is_valid_data_fetches(data_fetches: list, model_methods_index: dict | None = None) -> bool:
+    """
+    Vérifie que les data_fetches LLM utilisent des méthodes valides.
+    Avec model_methods_index : validation per-modèle (plus précise).
+    Sans index (fallback) : rejette uniquement les méthodes notoirement invalides.
+    """
     if not data_fetches:
-        return True  # vide = neutre, pas invalide
+        return True
+
+    try:
+        from agents.stacks.nextjs_clerk_prisma.service_modules import is_valid_method_for_model
+    except ImportError:
+        is_valid_method_for_model = None
+
+    _KNOWN_INVALID = frozenset({"getPublished"})
+
     for fetch in data_fetches:
         if not isinstance(fetch, dict):
             return False
         service_call = fetch.get("service", "")
-        # Extrait le nom de méthode depuis "xxxService.method(args)"
-        match = re.search(r"\.(\w+)\(", service_call)
-        if match and match.group(1) not in _VALID_SERVICE_METHODS:
-            # Méthode inconnue → data_fetches LLM invalides
+        method_match = re.search(r"\.(\w+)\(", service_call)
+        if not method_match:
+            continue
+        method = method_match.group(1)
+
+        if model_methods_index and is_valid_method_for_model:
+            # Résolution per-modèle depuis "xyzService.method()" → model "Xyz"
+            svc_match = re.match(r"([a-z]\w*)Service\.", service_call)
+            if svc_match:
+                svc_base = svc_match.group(1)
+                model_name = next(
+                    (m for m in model_methods_index
+                     if m[0].lower() + m[1:] == svc_base or m.lower() == svc_base),
+                    None,
+                )
+                if model_name:
+                    has_fk_fields = any(
+                        m.startswith("getBy") and m.endswith("Id")
+                        for m in model_methods_index.get(model_name, frozenset())
+                    )
+                    if not is_valid_method_for_model(method, model_methods_index[model_name], has_fk_fields):
+                        return False
+                    continue
+
+        # Fallback : rejette les méthodes notoirement invalides
+        if method in _KNOWN_INVALID:
             return False
+
     return True
 
 
@@ -164,6 +245,9 @@ def spec_enricher_node(state: dict) -> dict:
 
     model_names = [m.split()[0] for m in brief_models if m.split()]
 
+    # Index per-modèle : {ModelName: frozenset_méthodes_valides}
+    model_methods_index = _build_model_methods_index(brief_models, pages)
+
     # Construire un index {path: {auth, page_type, model}} depuis les pages
     page_index: dict[str, dict] = {}
     for p in pages:
@@ -195,7 +279,7 @@ def spec_enricher_node(state: dict) -> dict:
         existing_fetches: list = detail.get("data_fetches", [])
 
         # Si le LLM a fourni des data_fetches valides → les conserver
-        if existing_fetches and _is_valid_data_fetches(existing_fetches):
+        if existing_fetches and _is_valid_data_fetches(existing_fetches, model_methods_index):
             updated_detail[path] = detail
             continue
 

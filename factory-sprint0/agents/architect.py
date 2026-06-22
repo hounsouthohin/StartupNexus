@@ -327,24 +327,22 @@ async def semantic_annotator_node(state: AgentState) -> dict:
 
 # ── Pages detail node (LLM — génère pages_detail depuis brief structuré) ─────
 
-_FACTORY_CAPABILITIES = """\
-## CONTRAINTES TECHNIQUES (informations supplémentaires)
-
-### Convention paramètres dynamiques — INVARIANT TypeScript
-- Segment [id]   → params.id   dans TypeScript (toujours — jamais params.taskId, params.postId, etc.)
-- Segment [slug] → params.slug dans TypeScript (toujours)
-
-### [CROSS_ENTITY] — signal pour données d'un modèle secondaire
-Si une page de type "detail" doit AUSSI afficher les données d'un modèle ENFANT (un modèle qui a une FK vers le modèle principal),
-ajouter le tag [CROSS_ENTITY: NomDuModèle] dans la description de cette page.
-Exemple : /projects/[id] qui doit montrer ses tâches → ajouter [CROSS_ENTITY: Task]
-
-### Design system — auto-généré (ne PAS décrire dans pages_detail)
-- La sidebar, le layout principal, les couleurs : générés automatiquement depuis `design_system`
-- Les composants UI (Button, Card, Table, Badge, Input…) : shadcn/ui disponibles automatiquement
-- NE PAS écrire dans pages_detail : "Utilise bg-indigo-600", "bouton primaire vert", "sidebar noire"
-- Le dev_agent reçoit les tokens de couleur configurés — décrire UNIQUEMENT la logique fonctionnelle\
-"""
+def _get_factory_capabilities() -> str:
+    """Génère les contraintes techniques injectées dans pages_detail_node depuis service_modules."""
+    try:
+        from agents.stacks.nextjs_clerk_prisma.service_modules import build_factory_capabilities_string
+        return build_factory_capabilities_string()
+    except ImportError:
+        # Fallback statique si service_modules non disponible (autre stack)
+        return (
+            "## CONTRAINTES TECHNIQUES\n\n"
+            "### Convention paramètres dynamiques\n"
+            "- Segment [id]   → params.id   (jamais params.taskId)\n"
+            "- Segment [slug] → params.slug (toujours)\n\n"
+            "### Design system — auto-généré (ne PAS décrire dans pages_detail)\n"
+            "- La sidebar, le layout, les couleurs : générés automatiquement\n"
+            "- Décrire UNIQUEMENT la logique fonctionnelle"
+        )
 
 _PAGES_DETAIL_SYSTEM_PROMPT = """\
 Tu génères les contrats STRUCTURÉS des pages CUSTOM d'une application Next.js 14.
@@ -418,7 +416,7 @@ Page hub avec filtrage inline :
 
 ## PAGES PUBLIQUES (auth=false) — RÈGLE ABSOLUE
 Pour toute page publique (landing, home `/`, page vitrine sans connexion requise) :
-- `data_fetches` : utiliser UNIQUEMENT `getPublicAll()`, `getPublished()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)`
+- `data_fetches` : utiliser UNIQUEMENT `getPublicAll()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)` ni `getPublished()` (n'existe pas)
 - La `description` NE DOIT PAS contenir : "auth()", "userId", "redirect", "connexion requise", "vérifie si connecté"
 - La `description` DOIT préciser explicitement : "page publique — aucun appel Clerk"
 - Le dev executor lira cette description et n'ajoutera PAS `auth()` si ces mots sont absents\
@@ -488,7 +486,7 @@ async def pages_detail_node(state: AgentState) -> dict:
         context["architecture"] = architecture
 
     messages = [
-        SystemMessage(content=_PAGES_DETAIL_SYSTEM_PROMPT + "\n\n" + _FACTORY_CAPABILITIES),
+        SystemMessage(content=_PAGES_DETAIL_SYSTEM_PROMPT + "\n\n" + _get_factory_capabilities()),
         _HM(content=json.dumps(context, ensure_ascii=False)),
     ]
 
@@ -700,7 +698,10 @@ async def planner_node(state: AgentState) -> dict:
             )
             if not _parent_list:
                 continue
+            _slug_path = f"{_parent_list}/[slug]"
             _detail_path = f"{_parent_list}/[id]"
+            if _slug_path in _declared_detail_paths or _slug_path in seen_paths:
+                continue  # une page [slug] existe déjà pour ce parent → pas de conflit [id]
             if _detail_path not in _declared_detail_paths and _detail_path not in seen_paths:
                 pages.append(AppPage(
                     path=_detail_path,
