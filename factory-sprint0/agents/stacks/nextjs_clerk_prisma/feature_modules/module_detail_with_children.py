@@ -170,6 +170,18 @@ class DetailWithChildrenModule(FeatureModule):
             # vers une page publique (ex: /blog) qui n'a pas d'actions.ts.
             child_list_page = spec.get_list_page_for_model(child_name) or f"/{child_kebab}s"
 
+            # Base du chemin détail de l'enfant (ex: /projects) — None si pas de page detail déclarée.
+            _child_detail_page = next(
+                (p for p in spec_pages
+                 if getattr(p, "model", None) == child_name
+                 and getattr(p, "page_type", None) in ("detail", "detail-slug")),
+                None,
+            )
+            _child_detail_base: str | None = None
+            if _child_detail_page:
+                _static = [s for s in _child_detail_page.path.strip("/").split("/") if not s.startswith("[")]
+                _child_detail_base = "/" + "/".join(_static) if _static else None
+
             children_ctx.append({
                 "name": child_name,
                 "camel": child_camel,
@@ -181,6 +193,7 @@ class DetailWithChildrenModule(FeatureModule):
                 "create_fields": _get_child_create_fields(child_ctx_obj),
                 "actions_import": f"@/app/{child_list_page.lstrip('/')}/actions",
                 "title_plural": (child_ctx_obj.title_plural if child_ctx_obj else _title_plurals_spec.get(child_name, f"{child_name}s")),
+                "detail_base": _child_detail_base,
             })
 
         if not children_ctx:

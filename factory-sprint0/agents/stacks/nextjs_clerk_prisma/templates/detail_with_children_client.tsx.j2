@@ -82,13 +82,20 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
                   <p className="text-sm text-foreground">{String(c.{{ df }} ?? '')}</p>
                   {% endfor %}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete{{ child.name }}(c.id)}
-                  className="shrink-0 text-xs text-red-600 border border-red-200 rounded px-2 py-1 hover:bg-red-50"
-                >
-                  Supprimer
-                </button>
+                <div className="flex shrink-0 gap-2 items-center">
+                  {% if child.detail_base %}
+                  <Link href={`{{ child.detail_base }}/${c.id}`} className="text-xs text-primary border border-primary rounded px-2 py-1 hover:bg-primary/10">
+                    Voir
+                  </Link>
+                  {% endif %}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete{{ child.name }}(c.id)}
+                    className="text-xs text-red-600 border border-red-200 rounded px-2 py-1 hover:bg-red-50"
+                  >
+                    Supprimer
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

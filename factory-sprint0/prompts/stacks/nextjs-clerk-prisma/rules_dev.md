@@ -52,7 +52,8 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
 
     - JAMAIS appeler `prisma.*` directement depuis page.tsx
     - JAMAIS recréer un fichier service — il est pré-généré et protégé
-    - **JAMAIS inventer une méthode absente de CONTRACTS.md** — `getPublished`, `getActiveCount`, `getByStatus`, `countBy`, `getBy{Parent}Id` et toute méthode non listée N'EXISTENT PAS → TS2339 fatal au build.
+    - **JAMAIS inventer une méthode absente de CONTRACTS.md** — `getPublished`, `getActiveCount`, `getByStatus`, `countBy` et toute méthode non listée dans CONTRACTS.md N'EXISTENT PAS → TS2339 fatal au build.
+    - `getBy{Parent}Id(userId, parentId)` EXISTE uniquement pour les modèles ayant une FK (ex: `getByProjectId` pour Task avec `projectId`). Vérifier CONTRACTS.md — absent = n'existe pas pour ce modèle.
     - **Pour les agrégations** (compter les actifs, sommer les budgets, filtrer par statut) : utiliser `getAll(userId)` puis calculer en TypeScript. Ex : `const active = projects.filter(p => p.status === 'active')` / `const total = active.reduce((s, p) => s + (p.budget ?? 0), 0)`
     - **Pour les données d'enfants liés** : utiliser `getAllWithRelations(userId)` ou `getByIdWithRelations(userId, id)` sur le modèle parent — les enfants sont inclus dans la réponse.
 

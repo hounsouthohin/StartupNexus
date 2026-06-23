@@ -669,6 +669,17 @@ async def run_dev_agent(
         except Exception as _db_err:
             logger.warning("[dev_graph] design_brief non bloquant : %s", _db_err)
 
+    # ── Shell Enricher (Phase 4.1) ───────────────────────────────────
+    # Injecte les icônes Lucide dans DashboardShell/TopNavShell depuis nav_icons du design_brief.
+    # Doit tourner APRÈS design_brief (qui écrit DESIGN_BRIEF.json) et AVANT page_enricher.
+    # TSC guard intégré — rollback si TypeScript échoue.
+    if spec_obj is not None and _design_brief and _prev_cmd_ok:
+        try:
+            from .dev_shell_enricher import enrich_shell_with_nav_icons as _enrich_shell
+            await _enrich_shell(_design_brief, _design_system, project_workdir, template_written)
+        except Exception as _se_err:
+            logger.warning("[dev_graph] shell_enricher non bloquant : %s", _se_err)
+
     # ── Page Enricher (Sprint C) ─────────────────────────────────────
     # Enrichit les page-client.tsx list/detail avec badges, icônes, layouts riches.
     # TSC guard intégré : rollback automatique si TypeScript échoue après enrichissement.

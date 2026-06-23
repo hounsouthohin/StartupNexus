@@ -66,9 +66,7 @@ def _model_flags_from_str(model_str: str, model_name: str, pages: list[dict]) ->
 def _build_model_methods_index(brief_models: list[str], pages: list[dict]) -> dict[str, frozenset]:
     """Construit {model_name: frozenset_méthodes_valides} depuis les modèles du brief."""
     try:
-        from agents.stacks.nextjs_clerk_prisma.service_modules import (
-            valid_methods_for_flags, is_valid_method_for_model as _unused,
-        )
+        from agents.stacks.nextjs_clerk_prisma.service_modules import valid_methods_for_flags
     except ImportError:
         return {}
 

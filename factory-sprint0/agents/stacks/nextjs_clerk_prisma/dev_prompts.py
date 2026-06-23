@@ -287,6 +287,38 @@ def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
                 as_var = str(f.get("as", f.get("as_var", ""))).strip()
                 if svc:
                     lines.append(f"  const {as_var} = await {svc}" if as_var else f"  await {svc}")
+
+        # Dashboard overview : injecter un pattern de metric cards si multiple entités
+        _is_dashboard = page_path.rstrip("/") in ("", "/dashboard")
+        if _is_dashboard and len(fetches) >= 2:
+            _vars = [f.get("as", f.get("as_var", "")) for f in fetches if f.get("as") or f.get("as_var")]
+            _routes = []
+            for f in fetches:
+                svc = str(f.get("service", ""))
+                # Extraire le nom du service pour déduire la route (clientService → /clients)
+                import re as _re
+                m = _re.match(r"(\w+)Service\.", svc)
+                if m:
+                    _routes.append("/" + m.group(1).lower() + "s")
+            _card_examples = "\n".join(
+                f'    <div className="bg-card border border-border rounded-lg p-6">\n'
+                f'      <p className="text-sm text-muted-foreground mb-1">...</p>\n'
+                f'      <p className="text-3xl font-bold text-foreground mb-4">{{{v}.length}}</p>\n'
+                f'      <Link href="{r}" className="text-sm text-primary hover:underline">Gérer →</Link>\n'
+                f'    </div>'
+                for v, r in zip(_vars, _routes) if v and r
+            )
+            lines.append(
+                "\nPATTERN ATTENDU — metric cards (NE PAS faire de listes plates) :\n"
+                "Utiliser Promise.all pour les fetches. Afficher une grille de metric cards :\n"
+                '<main className="container mx-auto p-8">\n'
+                '  <h1 className="text-2xl font-bold text-foreground mb-6">Tableau de bord</h1>\n'
+                '  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">\n'
+                + _card_examples + "\n"
+                "  </div>\n"
+                "</main>"
+            )
+
         if interactive:
             lines.append(_page_detail_interactive_suffix(page_path))
         return "\n".join(lines)
@@ -449,6 +481,21 @@ Méthodes :
             "  import { StatCard } from '@/components/StatCard'  ← carte métrique custom\n"
             "\n⚠️  N'utilise JAMAIS bg-blue-600 / text-blue-600 ni aucune couleur Tailwind hardcodée.\n"
             "     Utilise TOUJOURS les tokens sémantiques ci-dessus (bg-primary, text-foreground, etc.).\n"
+            "\n══════════════════════════════════════════════════════════════\n"
+            "DESIGN BRIEF — DÉCISIONS VISUELLES PAR ENTITÉ\n"
+            "══════════════════════════════════════════════════════════════\n"
+            "Le fichier DESIGN_BRIEF.json existe à la racine du projet (déjà écrit).\n"
+            "Pour toute page custom que tu génères :\n"
+            "  1. read_file('DESIGN_BRIEF.json') pour lire les décisions visuelles\n"
+            "  2. Utilise entities.<NomModèle>.icon → icône Lucide (import depuis 'lucide-react')\n"
+            "  3. Utilise animation_style → 'spring' = framer-motion, 'ease' = transition CSS, 'none' = rien\n"
+            "  4. Utilise entities.<NomModèle>.list_card_layout → 'hero'/'compact'/'standard'\n"
+            "  5. Les icônes nav sont dans nav_icons — déjà injectées dans le shell (ne pas les re-créer)\n"
+            "\nExemple d'utilisation dans une page custom :\n"
+            "  import { ChefHat } from 'lucide-react'   ← icon lu depuis DESIGN_BRIEF.json\n"
+            "  <h1><ChefHat className='w-5 h-5 inline-block mr-2' />Mes recettes</h1>\n"
+            "\n⚠️  Les pages list/detail avec `model` sont déjà enrichies — ne pas les réécrire.\n"
+            "     DESIGN_BRIEF.json est utile UNIQUEMENT pour les pages custom (sans `model`).\n"
         )
 
     # page_links — contrat de navigation par page

@@ -191,67 +191,81 @@ def _build_globals_css(design_system: dict) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# tailwind.config.js — format shadcn (CSS variables)
+# tailwind.config.js — format shadcn (CSS variables) — dynamique selon preset
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_TAILWIND_CONFIG = '''\
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+def _build_tailwind_config(design_system: dict) -> str:
+    """Génère tailwind.config.js avec les fonts du preset au lieu de Inter hardcodé."""
+    font_heading = design_system.get("font_heading", "Inter")
+    font_body    = design_system.get("font_body",    "Inter")
+
+    def _js_font_array(font: str) -> str:
+        if font == "Inter":
+            return '["Inter", "system-ui", "sans-serif"]'
+        return f'["{font}", "system-ui", "sans-serif"]'
+
+    sans_stack    = _js_font_array(font_body)
+    heading_stack = _js_font_array(font_heading)
+
+    return f'''\
+/** @type {{import('tailwindcss').Config}} */
+module.exports = {{
   darkMode: ["class"],
   content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{{js,ts,jsx,tsx,mdx}}",
+    "./components/**/*.{{js,ts,jsx,tsx,mdx}}",
+    "./lib/**/*.{{js,ts,jsx,tsx,mdx}}",
   ],
-  theme: {
-    extend: {
-      colors: {
+  theme: {{
+    extend: {{
+      colors: {{
         background:  "hsl(var(--background))",
         foreground:  "hsl(var(--foreground))",
-        card: {
+        card: {{
           DEFAULT:    "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
-        },
-        popover: {
+        }},
+        popover: {{
           DEFAULT:    "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
-        },
-        primary: {
+        }},
+        primary: {{
           DEFAULT:    "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
+        }},
+        secondary: {{
           DEFAULT:    "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
-        },
-        muted: {
+        }},
+        muted: {{
           DEFAULT:    "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
-        },
-        accent: {
+        }},
+        accent: {{
           DEFAULT:    "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
-        },
-        destructive: {
+        }},
+        destructive: {{
           DEFAULT:    "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
-        },
+        }},
         border: "hsl(var(--border))",
         input:  "hsl(var(--input))",
         ring:   "hsl(var(--ring))",
-      },
-      borderRadius: {
+      }},
+      borderRadius: {{
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-      },
-    },
-  },
+      }},
+      fontFamily: {{
+        sans:    {sans_stack},
+        heading: {heading_stack},
+      }},
+    }},
+  }},
   plugins: [require("tailwindcss-animate")],
-};
+}};
 '''
 
 _POSTCSS_CONFIG = '''\
@@ -416,8 +430,8 @@ def generate_design_system(project_workdir: str, design_system: Dict | None = No
     # 1 — globals.css (CSS variables dynamiques)
     _write("app/globals.css", _build_globals_css(ds))
 
-    # 2 — tailwind.config.js (format shadcn)
-    _write("tailwind.config.js", _TAILWIND_CONFIG)
+    # 2 — tailwind.config.js (fonts du preset injectées dynamiquement)
+    _write("tailwind.config.js", _build_tailwind_config(ds))
 
     # 3 — postcss.config.js
     _write("postcss.config.js", _POSTCSS_CONFIG)

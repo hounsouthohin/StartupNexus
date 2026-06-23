@@ -485,6 +485,45 @@ async def pages_detail_node(state: AgentState) -> dict:
     if architecture:
         context["architecture"] = architecture
 
+    # ── 3.1 Injection méthodes valides per-modèle dans le contexte LLM ──────
+    # Chaque modèle reçoit la liste exacte des méthodes que son service aura —
+    # le LLM ne peut pas invoquer une méthode qui n'est pas dans cette liste.
+    _model_methods_index: dict[str, frozenset] = {}
+    try:
+        from agents.stacks.nextjs_clerk_prisma.service_modules import valid_methods_for_flags as _vmf
+        import re as _re2
+        _VIS = frozenset({"published", "ispublic", "is_public", "public", "visible", "isvisible"})
+        _FK_RE = _re2.compile(r'\b([a-z]\w*)Id\b')
+        _per_model: dict[str, list[str]] = {}
+        for _ms in (models if isinstance(models, list) else []):
+            _ms_str = _ms if isinstance(_ms, str) else ""
+            _parts = _ms_str.split()
+            if not _parts:
+                continue
+            _mname = _parts[0]
+            _sl = _ms_str.lower()
+            _fk_parents = [
+                m.group(1)[0].upper() + m.group(1)[1:]
+                for m in _FK_RE.finditer(_ms_str)
+                if m.group(1) not in {"id", "user", "clerk"}
+            ]
+            _flags = {
+                "has_public": any(_re2.search(rf'\b{v}\b', _sl) for v in _VIS) or any(
+                    not p.get("auth", True) and p.get("model") == _mname
+                    for p in (brief.get("pages", []) or []) if isinstance(p, dict)
+                ),
+                "has_slug": bool(_re2.search(r'\bslug\b', _sl)) and '@unique' in _ms_str,
+                "has_relations": '@relation' in _ms_str,
+                "has_fk_fields": bool(_fk_parents),
+                "fk_parent_names": _fk_parents,
+            }
+            _model_methods_index[_mname] = _vmf(**_flags)
+            _per_model[_mname] = sorted(_model_methods_index[_mname])
+        if _per_model:
+            context["valid_service_methods"] = _per_model
+    except Exception as _vmf_err:
+        logger.warning("[pages_detail] injection méthodes per-modèle échouée (non bloquant) : %s", _vmf_err)
+
     messages = [
         SystemMessage(content=_PAGES_DETAIL_SYSTEM_PROMPT + "\n\n" + _get_factory_capabilities()),
         _HM(content=json.dumps(context, ensure_ascii=False)),
@@ -532,6 +571,68 @@ async def pages_detail_node(state: AgentState) -> dict:
         elif isinstance(v, str) and v.strip():
             _validated[k] = v  # backward compat string
     pages_detail = _validated
+
+    # ── 3.2 Correction inline des méthodes invalides ─────────────────────────
+    # Double protection avant spec_enricher : corrige immédiatement les méthodes
+    # que le LLM a produites mais qui ne correspondent pas au service du modèle.
+    if _model_methods_index:
+        try:
+            from agents.stacks.nextjs_clerk_prisma.service_modules import is_valid_method_for_model as _ivmm
+            import re as _re3
+            _total_corrected = 0
+            _corrections: dict = {}  # chemin → detail corrigé (évite modifier dict en cours d'itération)
+            for _path, _detail in pages_detail.items():
+                if not isinstance(_detail, dict):
+                    continue
+                _fetches = _detail.get("data_fetches") or []
+                if not isinstance(_fetches, list):
+                    continue
+                _page_auth = next(
+                    (p.get("auth", True) for p in custom_pages
+                     if isinstance(p, dict) and p.get("path") == _path),
+                    True,
+                )
+                _fixed: list = []
+                _path_corrected = 0  # compteur réinitialisé par path
+                for _fetch in _fetches:
+                    if not isinstance(_fetch, dict):
+                        _fixed.append(_fetch)
+                        continue
+                    _svc_call = _fetch.get("service", "")
+                    _m_match = _re3.search(r"\.(\w+)\(", _svc_call)
+                    _s_match = _re3.match(r"([a-z]\w*)Service\.", _svc_call)
+                    if not _m_match or not _s_match:
+                        _fixed.append(_fetch)
+                        continue
+                    _method = _m_match.group(1)
+                    _svc_base = _s_match.group(1)
+                    _mname = next(
+                        (m for m in _model_methods_index
+                         if m[0].lower() + m[1:] == _svc_base or m.lower() == _svc_base),
+                        None,
+                    )
+                    if _mname and not _ivmm(_method, _model_methods_index[_mname], any(
+                        mv.startswith("getBy") and mv.endswith("Id")
+                        for mv in _model_methods_index[_mname]
+                    )):
+                        _correct_method = "getAll(userId)" if _page_auth else "getPublicAll()"
+                        _corrected_call = f"{_svc_base}Service.{_correct_method}"
+                        logger.warning(
+                            "[pages_detail] correction '%s' : %s → %s",
+                            _path, _svc_call, _corrected_call,
+                        )
+                        _fixed.append({**_fetch, "service": _corrected_call})
+                        _path_corrected += 1
+                    else:
+                        _fixed.append(_fetch)
+                if _path_corrected:
+                    _corrections[_path] = {**_detail, "data_fetches": _fixed}
+                    _total_corrected += _path_corrected
+            pages_detail.update(_corrections)
+            if _total_corrected:
+                logger.info("[pages_detail] ✓ %d méthode(s) corrigées inline", _total_corrected)
+        except Exception as _corr_err:
+            logger.warning("[pages_detail] correction inline échouée (non bloquant) : %s", _corr_err)
 
     _expected_paths = {p.get("path") if isinstance(p, dict) else str(p) for p in pages}
     logger.info("[pages_detail] pages attendues: %s", sorted(_expected_paths))

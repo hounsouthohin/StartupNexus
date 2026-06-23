@@ -290,6 +290,9 @@ def _nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
         seen.add(path)
         parts = [p for p in path.strip("/").split("/") if p]
         if not parts:
+            # Home "/" auth_required = page d'entrée dashboard → inclure dans le nav
+            label = _LABEL_OVERRIDES.get("dashboard", "Tableau de bord")
+            items.append({"href": "/", "label": label, "exact": True})
             continue
         label = _label(parts[-1])
         items.append({"href": path, "label": label, "exact": _is_exact(path)})

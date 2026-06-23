@@ -23,6 +23,42 @@
     "hero_style":     "minimal",
     "layout_type":    "sidebar"
   },
+  "saas_project": {
+    "primary_color":  "indigo-600",
+    "font_heading":   "Inter",
+    "font_body":      "Inter",
+    "sidebar_bg":     "indigo-900",
+    "density":        "compact",
+    "card_style":     "elevated",
+    "list_style":     "table",
+    "animation_level":"standard",
+    "hero_style":     "minimal",
+    "layout_type":    "sidebar"
+  },
+  "saas_crm": {
+    "primary_color":  "violet-600",
+    "font_heading":   "Inter",
+    "font_body":      "Inter",
+    "sidebar_bg":     "slate-900",
+    "density":        "compact",
+    "card_style":     "elevated",
+    "list_style":     "table",
+    "animation_level":"standard",
+    "hero_style":     "minimal",
+    "layout_type":    "sidebar"
+  },
+  "saas_analytics": {
+    "primary_color":  "cyan-600",
+    "font_heading":   "Inter",
+    "font_body":      "Inter",
+    "sidebar_bg":     "slate-900",
+    "density":        "compact",
+    "card_style":     "flat",
+    "list_style":     "table",
+    "animation_level":"none",
+    "hero_style":     "minimal",
+    "layout_type":    "sidebar"
+  },
   "marketplace": {
     "primary_color":  "violet-600",
     "font_heading":   "Plus Jakarta Sans",

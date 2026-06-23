@@ -60,8 +60,8 @@ Ce fichier compile correctement — ton seul rôle est d'améliorer son apparenc
 ## ENRICHISSEMENTS À APPLIQUER
 
 ### Icône d'entité
-Ajouter : import {{ {icon} }} from "lucide-react"
-Placer <{icon} className="w-5 h-5 text-primary inline-block mr-2" /> avant le texte du H1.
+L'import {{ {icon} }} from "lucide-react" est déjà présent dans le fichier.
+Placer <{icon} className="w-5 h-5 text-primary inline-block mr-2" /> immédiatement avant le texte du premier h1 ou h2 visible.
 
 ### Badges pour badge_fields
 Pour chaque champ dans badge_fields, remplacer l'affichage texte brut par un badge coloré.
@@ -162,6 +162,22 @@ def _build_enrichment_prompt(entity_brief: dict, animation_style: str) -> str:
     )
 
 
+# ─── Injection déterministe de l'import Lucide ───────────────────────────────
+
+def _inject_icon_import(code: str, icon: str) -> str:
+    """Ajoute `import { Icon } from "lucide-react"` après le dernier import existant.
+    No-op si lucide-react est déjà importé."""
+    if "lucide-react" in code:
+        return code
+    idx = code.rfind("\nimport ")
+    if idx == -1:
+        return code
+    line_end = code.find("\n", idx + 1)
+    if line_end == -1:
+        line_end = len(code)
+    return code[:line_end + 1] + f'import {{ {icon} }} from "lucide-react"\n' + code[line_end + 1:]
+
+
 # ─── LLM enrichissement (1 fichier) ─────────────────────────────────────────
 
 async def _enrich_single(
@@ -170,11 +186,14 @@ async def _enrich_single(
     animation_style: str,
     llm,
 ) -> str | None:
-    """Appelle le LLM pour enrichir un fichier. Retourne le code enrichi ou None si échec."""
+    """Injecte l'import Lucide déterministiquement, puis appelle le LLM pour le reste."""
     from langchain_core.messages import SystemMessage, HumanMessage
 
+    icon = entity_brief.get("icon", "Layers")
+    code_with_import = _inject_icon_import(original_code, icon)
+
     system = _build_enrichment_prompt(entity_brief, animation_style)
-    human  = f"Fichier à enrichir :\n\n```typescript\n{original_code}\n```"
+    human  = f"Fichier à enrichir :\n\n```typescript\n{code_with_import}\n```"
 
     try:
         response = await llm.ainvoke([
@@ -189,10 +208,10 @@ async def _enrich_single(
                 l for l in lines
                 if not l.startswith("```")
             ).strip()
-        return content if content else None
+        return content if content else code_with_import
     except Exception as _e:
-        logger.warning("[page_enricher] LLM enrichissement échoué : %s", _e)
-        return None
+        logger.warning("[page_enricher] LLM enrichissement échoué : %s — retour avec import injecté", _e)
+        return code_with_import
 
 
 # ─── Point d'entrée ──────────────────────────────────────────────────────────
