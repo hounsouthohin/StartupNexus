@@ -164,6 +164,133 @@ def _is_valid_data_fetches(data_fetches: list, model_methods_index: dict | None 
     return True
 
 
+def _get_static_prefix(path: str) -> str:
+    """Retourne le préfixe statique d'un chemin (avant le premier segment dynamique)."""
+    parts = path.split("/")
+    static = []
+    for part in parts:
+        if part.startswith("["):
+            break
+        static.append(part)
+    return "/".join(static)
+
+
+def _get_first_dynamic_segment(path: str) -> str | None:
+    """Retourne le premier segment dynamique [xxx] trouvé dans le chemin."""
+    for part in path.split("/"):
+        if part.startswith("[") and part.endswith("]"):
+            return part
+    return None
+
+
+def _fix_routing_conflicts(
+    pages: list[dict],
+    brief_models: list[str],
+    pages_detail: dict,
+    page_links: dict,
+) -> tuple[list[dict], dict, dict, bool]:
+    """
+    Détecte et corrige les conflits de segments dynamiques siblings.
+
+    Cas typique : /dashboard/categories/[slug]/edit ET /dashboard/categories/[id]
+    coexistent sous le même parent → Next.js rejette le build.
+
+    Règle de normalisation :
+    - modèle avec slug @unique → segment canonique = [slug]
+    - sinon → [id]
+
+    Corrige pages[], pages_detail{} et page_links{}.
+    """
+    from collections import defaultdict
+
+    model_has_slug: dict[str, bool] = {}
+    for model_str in brief_models:
+        parts = model_str.split()
+        if not parts:
+            continue
+        name = parts[0]
+        s = model_str.lower()
+        has_slug = bool(re.search(r"\bslug\b", s)) and ("@unique" in s or "unique" in s)
+        model_has_slug[name] = has_slug
+
+    # Grouper par préfixe statique → segments vus + modèles associés
+    # On n'exige PAS que model soit présent : le conflit Next.js existe indépendamment
+    prefix_segments: dict[str, set] = defaultdict(set)
+    prefix_models: dict[str, set] = defaultdict(set)
+    for page in pages:
+        path = page.get("path", "")
+        seg = _get_first_dynamic_segment(path)
+        if not seg:
+            continue
+        prefix = _get_static_prefix(path)
+        prefix_segments[prefix].add(seg)
+        model = page.get("model")
+        if model:
+            prefix_models[prefix].add(model)
+
+    # Identifier les préfixes conflictuels
+    conflicts_to_fix: dict[str, str] = {}  # prefix → canonical_segment
+    for prefix, segments in prefix_segments.items():
+        if len(segments) <= 1:
+            continue
+        models_here = prefix_models.get(prefix, set())
+        use_slug = any(model_has_slug.get(m, False) for m in models_here)
+        canonical = "[slug]" if use_slug else "[id]"
+        conflicts_to_fix[prefix] = canonical
+        logger.warning(
+            "[spec_enricher] conflit routing sous '%s' → segments=%s → normalisé en %s",
+            prefix, segments, canonical,
+        )
+
+    if not conflicts_to_fix:
+        return pages, pages_detail, page_links, False
+
+    # Construire la carte de renommage {ancien_chemin: nouveau_chemin}
+    path_remap: dict[str, str] = {}
+    for page in pages:
+        path = page.get("path", "")
+        prefix = _get_static_prefix(path)
+        if prefix not in conflicts_to_fix:
+            continue
+        canonical = conflicts_to_fix[prefix]
+        new_path = re.sub(r"\[(?:id|slug)\]", canonical, path)
+        if new_path != path:
+            path_remap[path] = new_path
+
+    if not path_remap:
+        return pages, pages_detail, page_links, False
+
+    # Corriger les pages
+    fixed_pages: list[dict] = []
+    for page in pages:
+        path = page.get("path", "")
+        if path not in path_remap:
+            fixed_pages.append(page)
+            continue
+        new_path = path_remap[path]
+        fixed_page = {**page, "path": new_path}
+        old_seg = _get_first_dynamic_segment(path)
+        new_seg = _get_first_dynamic_segment(new_path)
+        if old_seg != new_seg:
+            if new_seg == "[slug]" and page.get("page_type") == "detail":
+                fixed_page["page_type"] = "detail-slug"
+            elif new_seg == "[id]" and page.get("page_type") == "detail-slug":
+                fixed_page["page_type"] = "detail"
+        logger.info("[spec_enricher] routing fix : '%s' → '%s'", path, new_path)
+        fixed_pages.append(fixed_page)
+
+    # Corriger les clés de pages_detail
+    fixed_detail: dict = {path_remap.get(p, p): v for p, v in pages_detail.items()}
+
+    # Corriger les clés et valeurs de page_links
+    fixed_links: dict = {
+        path_remap.get(p, p): [path_remap.get(lp, lp) for lp in (links or [])]
+        for p, links in page_links.items()
+    }
+
+    return fixed_pages, fixed_detail, fixed_links, True
+
+
 def _compute_data_fetches(
     page_path: str,
     page_auth: bool,
@@ -240,6 +367,14 @@ def spec_enricher_node(state: dict) -> dict:
 
     brief_models: list[str] = brief.get("models", [])
     pages: list[dict] = [p for p in brief.get("pages", []) if isinstance(p, dict)]
+
+    # ── Fix routing conflicts (déterministe, avant tout traitement) ───────────
+    _page_links: dict = brief.get("page_links", {}) or {}
+    pages, pages_detail, _page_links, _routing_changed = _fix_routing_conflicts(
+        pages, brief_models, pages_detail, _page_links
+    )
+    if _routing_changed:
+        brief = {**brief, "pages": pages, "pages_detail": pages_detail, "page_links": _page_links}
 
     model_names = [m.split()[0] for m in brief_models if m.split()]
 
@@ -320,14 +455,15 @@ def spec_enricher_node(state: dict) -> dict:
     except Exception as _dr_err:
         logger.warning("[spec_enricher] design_resolver échoué : %s", _dr_err)
 
-    if overridden == 0 and not design_injected:
+    if overridden == 0 and not design_injected and not _routing_changed:
         logger.debug("[spec_enricher] aucune modification → skip")
         return {}
 
     updated_brief = {**brief, "pages_detail": updated_detail} if overridden > 0 else brief
     logger.info(
-        "[spec_enricher] ✓ %d data_fetches corrigé(s) | design=%s",
+        "[spec_enricher] ✓ %d data_fetches corrigé(s) | routing_fixed=%s | design=%s",
         overridden,
+        _routing_changed,
         brief.get("design_system", {}).get("preset_name", "?"),
     )
     return {"brief": updated_brief}

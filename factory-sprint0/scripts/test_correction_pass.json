@@ -1,16 +1,17 @@
 [
   {
-    "project_name": "freelance-tracker",
-    "brief": {
-      "description": "Application de gestion freelance. Je gère mes clients, mes projets et mes factures depuis un espace entièrement privé après connexion. Chaque client a un nom, un email optionnel et une entreprise optionnelle. Chaque projet est lié à un client via clientId : il a un titre, une description optionnelle, un statut parmi 'proposal', 'active', 'completed', 'cancelled', et un champ isPaid (Boolean, false par défaut) indiquant si le paiement a été reçu. Chaque facture est liée à un projet via projectId : elle a un numéro de référence (String), un montant en texte (String, ex: '1500€'), une date d'échéance optionnelle (DateTime), et un champ isPaid (Boolean, false par défaut). La liste des projets doit afficher le nom du client directement dans chaque ligne — les projets sont liés aux clients. La liste des factures doit afficher le titre du projet associé. Le tableau de bord principal donne une vue d'ensemble : clients récents, projets actifs, factures en attente de paiement. Le design est professionnel et sobre — sidebar sombre (navy), contenu en blanc, tables structurées, badges de statut colorés (vert=completed, orange=active, gris=proposal, rouge=cancelled). Aucune page n'est publique — toutes requièrent une connexion Clerk."
-    }
-  },
-  {
     "project_name": "writer-pad",
     "brief": {
       "description": "Application d'écriture et de publication personnelle. Je rédige des articles depuis mon espace privé et je choisis lesquels sont visibles par mes lecteurs. Chaque article a un titre, un contenu (texte long), un résumé court optionnel, un slug unique dérivé du titre (String avec contrainte @unique), un champ published (Boolean, false par défaut) pour contrôler la visibilité publique, et il appartient à une catégorie via categoryId. Les catégories ont un nom et un slug unique (String @unique). Un article peut avoir des ressources liées via articleId : chaque ressource a un titre, une URL (String) et une description optionnelle — ce sont des liens de référence ou d'inspiration. Les visiteurs peuvent parcourir tous les articles publiés sur la page d'accueil sans créer de compte, et lire chaque article sur /articles/[slug] sans authentification. Je gère mes articles, mes catégories et mes ressources depuis mon tableau de bord privé accessible après connexion Clerk. Le tableau de bord liste tous mes articles (publiés et brouillons) avec un badge visible/brouillon et la catégorie. La page d'accueil publique affiche les articles publiés sous forme de cartes avec titre, résumé et date. Le design est éditorial et propre — fond blanc, accent indigo/violet, typographie soignée pour la lecture, sidebar sobre."
     }
   },
+  {
+    "project_name": "freelance-tracker",
+    "brief": {
+      "description": "Application de gestion freelance. Je gère mes clients, mes projets et mes factures depuis un espace entièrement privé après connexion. Chaque client a un nom, un email optionnel et une entreprise optionnelle. Chaque projet est lié à un client via clientId : il a un titre, une description optionnelle, un statut parmi 'proposal', 'active', 'completed', 'cancelled', et un champ isPaid (Boolean, false par défaut) indiquant si le paiement a été reçu. Chaque facture est liée à un projet via projectId : elle a un numéro de référence (String), un montant en texte (String, ex: '1500€'), une date d'échéance optionnelle (DateTime), et un champ isPaid (Boolean, false par défaut). La liste des projets doit afficher le nom du client directement dans chaque ligne — les projets sont liés aux clients. La liste des factures doit afficher le titre du projet associé. Le tableau de bord principal donne une vue d'ensemble : clients récents, projets actifs, factures en attente de paiement. Le design est professionnel et sobre — sidebar sombre (navy), contenu en blanc, tables structurées, badges de statut colorés (vert=completed, orange=active, gris=proposal, rouge=cancelled). Aucune page n'est publique — toutes requièrent une connexion Clerk."
+    }
+  },
+  
   {
     "project_name": "sprint-board",
     "brief": {
