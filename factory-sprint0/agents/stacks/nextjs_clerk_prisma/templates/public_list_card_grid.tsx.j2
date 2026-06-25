@@ -30,11 +30,15 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                   {String(item.{{ primary_field }} ?? '—')}
                 </h2>
                 {% for field in display_fields[1:3] %}
-                <p className="text-sm text-muted-foreground mb-1 line-clamp-2">
-                  <span className="font-medium">{{ field_labels.get(field, field) }} :</span>{' '}
+                <p className="text-sm text-muted-foreground mb-1 line-clamp-3">
                   {String(item.{{ field }} ?? '—')}
                 </p>
                 {% endfor %}
+                {% if parent_relations %}
+                <p className="text-xs text-muted-foreground mt-2">
+                  {% for rel in parent_relations %}{String((item as any).{{ rel.related_camel }}?.{{ rel.display_field }} ?? '')}{% endfor %}
+                </p>
+                {% endif %}
                 {% endif %}
               </div>
               {% if has_detail %}

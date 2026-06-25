@@ -74,6 +74,9 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
    - Si aucune méthode sans userId n'existe dans la Service Map → génère juste le JSX sans fetch de données
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
    - Client Component navigation : TOUJOURS useRouter depuis 'next/navigation' — JAMAIS 'next/router' (Pages Router)
+   - DESIGN : utiliser EXCLUSIVEMENT les tokens du design system (text-foreground, text-muted-foreground,
+     border-border, bg-card, bg-muted) — JAMAIS les classes Tailwind raw (text-gray-500, border-gray-200)
+   - NAVIGATION : chaque card ou item de liste DOIT avoir un <Link href="..."> vers la page de détail correspondante
      ✅  import { useRouter } from 'next/navigation'   → router.refresh() disponible
      ❌  import { useRouter } from 'next/router'       → INTERDIT (App Router) + router.refresh() absent → TS2339
 
@@ -195,5 +198,15 @@ CAS 2 — Server Action reçoit une date string → z.coerce.date() dans le sch�
 CAS 3 — Rendu JSX direct :
   ✅  {item.createdAt}  ← déjà string (SerializedXxx)
   ❌  {item.createdAt.toISOString()}  ← TS2551 si item vient du service
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — PAGES PUBLIQUES : LECTURE SEULE
+══════════════════════════════════════════════════════════════
+Les pages avec auth_required = false sont visibles par des visiteurs non connectés.
+  ❌ JAMAIS de formulaire de création, modification ou suppression sur ces pages
+  ❌ JAMAIS d'import d'actions de mutation (createXxx, updateXxx, deleteXxx)
+  ❌ JAMAIS de bouton "Supprimer" ou "Modifier" visible par un visiteur
+  ✅ Affichage READ-ONLY uniquement : titre, texte, images, liens de navigation
+  ✅ Si la page affiche des relations enfants (ex: ressources d'un article) → liste en lecture seule, sans formulaire
 
 {{ stack_rules_block }}

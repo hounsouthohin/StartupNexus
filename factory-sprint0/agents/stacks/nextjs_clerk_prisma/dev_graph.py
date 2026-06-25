@@ -797,15 +797,10 @@ async def run_dev_agent(
         # Indépendant de validated_files (supprimé avec PV) — robuste aux redémarrages.
         _plan = state.get("file_plan") or []  # None (échec planner) ou [] traités pareil
         _plan_failed = state.get("file_plan") is None  # planner a levé une exception
-        # DEBUG TEMP — plan + disk state
-        for _pe in _plan:
-            _pe_abs = os.path.join(project_workdir, _pe["path"])
-            logger.info("[executor-debug] plan entry: %s | exists=%s | role=%s", _pe["path"], os.path.exists(_pe_abs), _pe.get("role"))
         _next_entry = next(
             (e for e in _plan if not os.path.exists(os.path.join(project_workdir, e["path"]))),
             None,
         )
-        logger.info("[executor-debug] _next_entry: %s", _next_entry["path"] if _next_entry else None)
         # Pour example-anchor : fichiers du plan déjà présents sur disque
         _written_set = {e["path"] for e in _plan if os.path.exists(os.path.join(project_workdir, e["path"]))}
 
@@ -900,10 +895,34 @@ async def run_dev_agent(
                 _hint = _next_entry.get("context_hint", "")
                 _path = _next_entry["path"]
 
+                # Injection brief fonctionnel par fichier — pages custom uniquement.
+                # Le LLM reçoit la description exacte de la page (depuis pages_detail)
+                # et les user_flows correspondants au moment de générer ce fichier.
+                _file_brief = ""
+                if spec_obj and _role in ("page", "page_client"):
+                    _rt = _path[3:] if _path.startswith("app") else _path
+                    _rt = re.sub(r"/(page|page-client|loading|error)\.tsx?$", "", _rt)
+                    _rt = "/" if not _rt else (_rt if _rt.startswith("/") else "/" + _rt)
+                    _pd_map = getattr(spec_obj, "pages_detail", {}) or {}
+                    _pd_entry = _pd_map.get(_rt)
+                    if isinstance(_pd_entry, dict) and _pd_entry.get("description"):
+                        _file_brief = f"\nEXIGENCES BRIEF POUR CETTE PAGE : {_pd_entry['description']}"
+                        _data_fetches = _pd_entry.get("data_fetches", [])
+                        if _data_fetches and isinstance(_data_fetches, list):
+                            _fetches_str = " | ".join(
+                                f"{f.get('as', '?')}: {f.get('service', '?')}"
+                                for f in _data_fetches if isinstance(f, dict)
+                            )
+                            if _fetches_str:
+                                _file_brief += f"\nAPPELS SERVICE : {_fetches_str}"
+                        _page_flows = [f for f in (getattr(spec_obj, "user_flows", []) or []) if _rt in f]
+                        if _page_flows:
+                            _file_brief += "\nFLOWS : " + " | ".join(_page_flows[:2])
+
                 _rule = _role_rules_from_config.get(_role, "")
                 _ctx = (
-                    f"CONTEXTE : {_hint}\n\nREGLE {_role.upper()} :\n{_rule}"
-                    if _rule else f"CONTEXTE : {_hint}"
+                    f"CONTEXTE : {_hint}{_file_brief}\n\nREGLE {_role.upper()} :\n{_rule}"
+                    if _rule else f"CONTEXTE : {_hint}{_file_brief}"
                 )
 
                 # Dépendances disque + standard RAG ciblé sur ce rôle (dev_context.py).

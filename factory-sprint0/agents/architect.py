@@ -407,6 +407,17 @@ Page hub avec filtrage inline :
 }
 ```
 
+## FILTRAGE SÉMANTIQUE — RÈGLE OBLIGATOIRE
+
+Quand la description originale du brief contient des sous-ensembles de données, les rendre EXPLICITES dans la description ET dans les data_fetches :
+
+- "actifs" / "en cours" → ajouter dans description : "(côté client : filtrer où status === 'active' ou status === 'in_progress')"
+- "en attente" / "impayées" / "non payées" → ajouter : "(côté client : filtrer où isPaid === false)"
+- "récents" → ajouter : "(prendre les 5 premiers par ordre de création décroissant)"
+- "cette semaine" / "du mois" → ajouter : "(côté client : filtrer par createdAt dans la période)"
+
+Le filtrage se fait TOUJOURS côté client (dans le composant React) — les services retournent tout (getAll ou getAllWithRelations), le composant filtre.
+
 ## CONTRAINTES
 - Ne décris QUE les pages custom reçues dans le tableau "pages"
 - Les clés commencent par "/"
@@ -801,8 +812,13 @@ async def planner_node(state: AgentState) -> dict:
                 continue
             _slug_path = f"{_parent_list}/[slug]"
             _detail_path = f"{_parent_list}/[id]"
-            if _slug_path in _declared_detail_paths or _slug_path in seen_paths:
-                continue  # une page [slug] existe déjà pour ce parent → pas de conflit [id]
+            # Vérifie si [slug] est déjà utilisé sous ce parent — exact OU comme préfixe
+            # (ex: /dashboard/categories/[slug]/edit signale que [slug] est en usage)
+            _slug_in_use = any(
+                p == _slug_path or p.startswith(f"{_slug_path}/") for p in seen_paths
+            ) or _slug_path in _declared_detail_paths
+            if _slug_in_use:
+                continue  # [slug] déjà présent → ajouter [id] créerait un conflit Next.js
             if _detail_path not in _declared_detail_paths and _detail_path not in seen_paths:
                 pages.append(AppPage(
                     path=_detail_path,

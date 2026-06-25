@@ -69,9 +69,13 @@ Pour CHAQUE page dans `pages`, liste les chemins `<Link href>` valides dans ce c
 _PAGE_DEDUCTION_RULES = """\
 ## RÈGLES DE DÉDUCTION PAGES
 
-### RÈGLE 5 — Page détail obligatoire pour tout modèle parent avec enfants FK
-Si un modèle PARENT a au moins un modèle ENFANT dont la FK pointe vers lui, la page `/{parent-kebab}/[id]` de type "detail" est OBLIGATOIRE.
-Ex : `Project` a `Task` via `projectId` → `/projects/[id]` OBLIGATOIRE.
+### RÈGLE 5 — Page détail pour tout modèle parent avec enfants FK
+Si un modèle PARENT a au moins un modèle ENFANT dont la FK pointe vers lui, une page détail PEUT être nécessaire.
+**Sélection du segment — NON-NÉGOCIABLE, inconditionnelle :**
+- Si le parent **N'A PAS** `slug String @unique` → `/{parent}/[id]` (page_type: "detail") OBLIGATOIRE.
+- Si le parent **A** `slug String @unique` → **JAMAIS `[id]` pour ce parent**, sans exception, même si c'est un parent FK. RÈGLE 9 prime toujours sur RÈGLE 5. Si le brief demande une vue détail publique → `/{parent}/[slug]` (detail-slug). Sinon → ne rien ajouter, la liste + l'edit via `[slug]` suffisent.
+Ex : `Project` (sans slug) a `Task` via `projectId` → `/projects/[id]` OBLIGATOIRE.
+Ex : `Category` a `slug @unique` et `Article` via `categoryId` → JAMAIS `/dashboard/categories/[id]`. Zero page détail [id] pour Category.
 
 ### RÈGLE 6 — Tous les champs mentionnés dans le brief
 Tout attribut nommé dans le brief DOIT être présent dans le modèle. Principe : inférer, jamais supprimer.
@@ -89,11 +93,11 @@ Si un modèle a des pages publiques ET des pages d'admin privées, il DOIT avoir
 - Modèle public SANS slug (ex: `isPublic Boolean`, `published Boolean`) → `[id]` UNIQUEMENT, jamais `[slug]`.
   ERREUR FATALE : générer à la fois `/{model}/[id]` et `/{model}/[slug]` → conflit de routing Next.js → build impossible.
   Si le modèle N'A PAS `slug String @unique`, utiliser UNIQUEMENT `[id]` pour toutes les pages de détail (auth: true ou false selon la page).
-- Modèle avec `slug String @unique` → **INTERDICTION ABSOLUE de générer `/{model}/[id]` comme page standalone**.
-  Le slug remplace [id] pour toutes les pages publiques. Pattern obligatoire :
+- Modèle avec `slug String @unique` → **INTERDICTION ABSOLUE de générer `/{model}/[id]`**, sous QUELQUE PRÉTEXTE QUE CE SOIT — y compris si RÈGLE 5 s'applique. Le slug remplace [id] partout pour ce modèle.
+  Pattern obligatoire :
   - Détail public : `/{model}/[slug]` (page_type: "detail-slug", auth: false)
   - Édition privée : `/dashboard/{model}/[id]/edit` (page_type: "edit", auth: true) — JAMAIS `/{model}/[id]/edit`
-  - Ne PAS générer `/{model}/[id]` du tout — ce chemin n'existe pas si le modèle a un slug.\
+  - Jamais `/{model}/[id]` — ce chemin est banni pour tout modèle avec `slug String @unique`.\
 """
 
 _PAGE_FEW_SHOT = """\
@@ -175,6 +179,51 @@ _PAGE_FEW_SHOT = """\
     "primary_color": "indigo-600",
     "sidebar_bg": "white",
     "brand_name": "Mon Blog"
+  }
+}
+```
+
+### Modèles donnés : Category (slug String @unique, articles Article[]), Article (categoryId FK → Category, slug String @unique, published Boolean)
+PATTERN GÉNÉRAL : tout modèle avec `slug String @unique` qui est aussi un parent FK → RÈGLE 9 prime toujours sur RÈGLE 5 → JAMAIS de `[id]` pour ce modèle, même s'il a des enfants FK. Valable pour Category, Tag, ProductFamily, Author, ou tout autre modèle slug+parent.
+```json
+{
+  "pages": [
+    {"path": "/", "auth": false, "page_type": "custom"},
+    {"path": "/articles", "auth": false, "model": "Article", "page_type": "list"},
+    {"path": "/articles/[slug]", "auth": false, "model": "Article", "page_type": "detail-slug"},
+    {"path": "/dashboard", "auth": true, "model": null, "page_type": "custom"},
+    {"path": "/dashboard/categories", "auth": true, "model": "Category", "page_type": "list"},
+    {"path": "/dashboard/categories/new", "auth": true, "model": "Category", "page_type": "create"},
+    {"path": "/dashboard/categories/[slug]/edit", "auth": true, "model": "Category", "page_type": "edit"},
+    {"path": "/dashboard/articles", "auth": true, "model": "Article", "page_type": "list"},
+    {"path": "/dashboard/articles/new", "auth": true, "model": "Article", "page_type": "create"},
+    {"path": "/dashboard/articles/[id]/edit", "auth": true, "model": "Article", "page_type": "edit"}
+  ],
+  "routes": [],
+  "user_flows": [
+    "Sur /articles : un visiteur parcourt les articles publiés",
+    "Sur /articles/[slug] : un visiteur lit un article",
+    "Sur /dashboard/categories : l'utilisateur gère ses catégories",
+    "Sur /dashboard/articles : l'utilisateur liste tous ses articles avec leur catégorie"
+  ],
+  "ui_labels": {
+    "Category": {"name": "Nom", "slug": "Slug"},
+    "Article": {"title": "Titre", "published": "Publié", "categoryId": "Catégorie"}
+  },
+  "title_plurals": {"Category": "Catégories", "Article": "Articles"},
+  "enum_value_labels": {},
+  "page_links": {
+    "/articles": ["/articles/[slug]"],
+    "/dashboard/categories": ["/dashboard/categories/new"],
+    "/dashboard/articles": ["/dashboard/articles/new"]
+  },
+  "design_system": {
+    "mood": "éditorial, propre",
+    "animation_level": "standard",
+    "density": "normal",
+    "primary_color": "indigo-600",
+    "sidebar_bg": "white",
+    "brand_name": "Writer Pad"
   }
 }
 ```\

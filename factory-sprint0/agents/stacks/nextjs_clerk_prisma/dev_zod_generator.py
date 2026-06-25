@@ -101,9 +101,10 @@ def _generate_update_schema(model, enums: "dict | None" = None, ctx=None) -> lis
     if ctx is not None:
         for fi in ctx.editable_fields:
             if fi.base_type == "Boolean":
-                # Unchecked checkbox envoie rien dans FormData → preprocess retourne false
+                # Unchecked checkbox → undefined dans FormData → .optional() pour ne pas
+                # écraser la valeur existante lors d'un update partiel (ex: update title seul)
                 fields_lines.append(
-                    f"  {fi.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).default(false),"
+                    f"  {fi.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).optional(),"
                 )
             else:
                 zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
@@ -130,7 +131,7 @@ def _generate_update_schema(model, enums: "dict | None" = None, ctx=None) -> lis
         base_type = field.type.rstrip("?").rstrip("[]")
         if base_type == "Boolean":
             fields_lines.append(
-                f"  {field.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).default(false),"
+                f"  {field.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).optional(),"
             )
         else:
             zod_type = _prisma_type_to_zod(field.type, field.attributes, enums=enums)

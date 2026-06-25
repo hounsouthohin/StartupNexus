@@ -187,9 +187,12 @@ def generate_types_file(
                 _rel_model = _spec_models_by_name.get(_base_rel)
                 if _rel_model is not None:
                     _rel_field_strs: list[str] = []
+                    _rel_owner_name = (getattr(_rel_model, "resolved_owner", lambda: None)() or "").lower()
                     for _rf in _rel_model.fields:
                         if _is_relation(_rf.type, _rf.attributes, spec_enums):
                             continue
+                        if _rel_owner_name and _rf.name.lower() == _rel_owner_name:
+                            continue  # userId du modèle lié — non exposé au client
                         _rb = _rf.type.rstrip("?").rstrip("[]")
                         if _rb == "DateTime":
                             _rt = "string | null" if _rf.type.endswith("?") else "string"

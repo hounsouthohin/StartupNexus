@@ -131,7 +131,7 @@ def _fk_to_ctx(fk, display: str) -> dict:
 
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
-def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None) -> str:
+def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None, parent_relations: "list | None" = None) -> str:
     auth_required = getattr(page, "auth_required", True)
     # Pour les pages publiques, ctx.list_page_path pointe vers la liste authentifiée
     # (spec.get_list_page_for_model priorise auth=True). Utiliser page.path directement
@@ -141,6 +141,13 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
     else:
         list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     fields = ctx.display_fields
+    # Pages publiques : exclure les champs textarea (texte long) des cards de listing.
+    # Un excerpt/résumé court suffit ; afficher content entier dans une card est contre-UX.
+    if not auth_required:
+        _textarea_set = {fi.name for fi in ctx.editable_fields if fi.input_type == "textarea"}
+        fields = [f for f in fields if f not in _textarea_set]
+    # Champs boolean pour les badges visuels dans les cards (ex: published → Publié/Brouillon)
+    _boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
     _model_labels = ctx.ui_labels
     _enum_value_labels = ctx.enum_value_labels
     status_field = None
@@ -193,6 +200,8 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         status_values=list(status_labels.keys()),
         has_search=False,
         empty_state_message=empty_state_message,
+        parent_relations=parent_relations or [],
+        boolean_fields=_boolean_fields,
         **(design_tokens or {}),
     )
 
@@ -402,7 +411,15 @@ def generate_all_page_clients(
             if page_type == "list":
                 rel = f"app/{page_path_clean}/page-client.tsx" if page_path_clean else "app/page-client.tsx"
                 _empty_msg = _empty_states.get(page.path, "")
-                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens)
+                _parent_rels = [
+                    {
+                        "related_camel": fk.related_camel,
+                        "display_field": _related_display(fk, model_contexts),
+                        "label": ctx.ui_labels.get(fk.field_name, fk.related_model),
+                    }
+                    for fk in ctx.fk_fields
+                ]
+                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens, parent_relations=_parent_rels)
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_create_client(page, ctx, model_contexts, spec=spec, design_tokens=tokens)
@@ -524,6 +541,10 @@ def generate_parent_detail_pages(
         list_path = parent_ctx.list_page_path
         if not list_path:
             continue  # Pas de page liste → pas de détail auto-généré
+
+        if parent_ctx.has_slug:
+            logger.info("[form_gen] parent detail ignoré pour '%s' : has_slug=True → conflit [id] vs [slug]", parent_name)
+            continue
 
         detail_path = f"{list_path}/[id]"
         page_path_clean = detail_path.strip("/")
