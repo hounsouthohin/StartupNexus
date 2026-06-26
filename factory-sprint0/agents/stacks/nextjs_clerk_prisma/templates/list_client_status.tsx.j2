@@ -97,7 +97,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
           <p>{list.length === 0 ? "{{ empty_state_message if empty_state_message else 'Aucun ' + camel + ' pour le moment.' }}" : 'Aucun résultat pour ce filtre.'}</p>
         </div>
       ) : (
-        <div className="overflow-hidden shadow-sm border border-border rounded-lg">
+        <div className="overflow-hidden {{ card_cls }}">
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted">
               <tr>
@@ -115,7 +115,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
             </thead>
             <tbody className="bg-card divide-y divide-border">
               {filtered.map(item => (
-                <tr key={item.id} className="hover:bg-muted/50">
+                <tr key={item.id} className="hover:bg-muted/50 {{ transition_cls }}">
                   {% for field in display_fields %}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{String(item.{{ field }} ?? '')}</td>
                   {% endfor %}

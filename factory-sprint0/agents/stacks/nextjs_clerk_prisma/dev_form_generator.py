@@ -315,6 +315,7 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
             labels = _enum_value_labels.get(ef.base_type, {}) or {}
             if labels:
                 value_labels[ef.name] = labels
+    boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
     return _render(
         "detail_client.tsx.j2",
         name=ctx.name,
@@ -329,6 +330,7 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
         has_delete=auth_required,
         title_field=_title_field,
         textarea_fields=textarea_fields or set(),
+        boolean_fields=boolean_fields,
         **(design_tokens or {}),
     )
 

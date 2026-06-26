@@ -245,6 +245,7 @@ class DetailWithChildrenModule(FeatureModule):
                                 ev_labels = _enum_value_labels.get(ef.base_type, {})
                                 cf["enum_labels"] = ev_labels
 
+        _boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
         try:
             content = _jinja_env.get_template("detail_with_children_client.tsx.j2").render(
                 name=ctx.name,
@@ -258,6 +259,7 @@ class DetailWithChildrenModule(FeatureModule):
                 title_plural=ctx.title_plural,
                 children=children_ctx,
                 auth_required=auth_required,
+                boolean_fields=_boolean_fields,
                 # tokens sémantiques CSS variables (tailwind.config.js → hsl(var(--primary)))
                 primary="primary",
                 primary_hover="primary/85",
@@ -266,6 +268,7 @@ class DetailWithChildrenModule(FeatureModule):
                 # design_system non transmis par run_feature_modules → valeurs par défaut "normal"/"elevated"
                 p_cls="p-6",
                 card_cls="bg-card rounded-lg shadow-sm border border-border",
+                transition_cls="transition-colors duration-150",
             )
         except Exception as e:
             logger.error("[detail_with_children] erreur template %s : %s", ctx.name, e)

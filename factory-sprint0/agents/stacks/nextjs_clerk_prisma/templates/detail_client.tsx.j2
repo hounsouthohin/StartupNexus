@@ -58,7 +58,11 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
           <div className="px-6 py-4 grid grid-cols-3 gap-4">
             <dt className="text-sm font-medium text-muted-foreground">{{ field_labels.get(field, field) }}</dt>
             <dd className="text-sm text-foreground col-span-2">
-              {% if value_labels and field in value_labels %}
+              {% if field in boolean_fields %}
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                {item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}
+              </span>
+              {% elif value_labels and field in value_labels %}
               {(FIELD_VALUE_LABELS['{{ field }}'] ?? {})[String(item.{{ field }})] ?? String(item.{{ field }} ?? '—')}
               {% else %}
               {String(item.{{ field }} ?? '—')}

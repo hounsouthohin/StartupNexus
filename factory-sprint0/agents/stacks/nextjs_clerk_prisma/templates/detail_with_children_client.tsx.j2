@@ -60,7 +60,11 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
           <div>
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{{ field_labels.get(field, field) }}</span>
             <p className="mt-1 text-sm text-foreground">
-              {% if enum_display.get(field) %}
+              {% if field in boolean_fields %}
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                {item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}
+              </span>
+              {% elif enum_display.get(field) %}
               {({{ enum_display[field] | tojson }} as Record<string, string>)[String(item.{{ field }} ?? '')] ?? String(item.{{ field }} ?? '')}
               {% else %}
               {String(item.{{ field }} ?? '')}

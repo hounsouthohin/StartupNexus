@@ -61,7 +61,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
           {% endif %}
         </div>
       ) : (
-        <div className="overflow-hidden shadow-sm border border-border rounded-lg">
+        <div className="overflow-hidden {{ card_cls }}">
           <table className="min-w-full divide-y divide-border">
             <thead className="bg-muted">
               <tr>
@@ -84,12 +84,16 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
             </thead>
             <tbody className="bg-card divide-y divide-border">
               {list.map(item => (
-                <tr key={item.id} className="hover:bg-muted/50">
+                <tr key={item.id} className="hover:bg-muted/50 {{ transition_cls }}">
                   {% for field in display_fields %}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {% if status_field and status_labels and field == status_field %}
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-muted text-foreground">
                       {STATUS_LABELS[item.{{ field }}] ?? String(item.{{ field }} ?? '')}
+                    </span>
+                    {% elif field in boolean_fields %}
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}
                     </span>
                     {% else %}
                     {String(item.{{ field }} ?? '')}

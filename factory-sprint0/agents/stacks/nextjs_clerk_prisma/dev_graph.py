@@ -250,6 +250,19 @@ async def run_dev_agent(
         except Exception as _mc_err:
             logger.warning(f"[dev_graph] build_all_contexts non bloquant : {_mc_err}")
 
+    # ── Niveau 1 — Page Contract Calculator ─────────────────────────────────
+    # Contrats navigation/données pour toutes les pages modèle.
+    # Injectés dans _file_brief par executor_node (voir closure ci-dessous).
+    # Distinct de _page_contracts (planner.py) qui couvre uniquement les pages
+    # [INTERACTIVE] et injecte des hints service dans context_hint du plan.
+    _page_nav_contracts: dict = {}
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .dev_page_contract import compute_page_contracts as _compute_contracts
+            _page_nav_contracts = _compute_contracts(spec_obj, _model_contexts)
+        except Exception as _pc_err:
+            logger.warning("[dev_graph] page_contract non bloquant : %s", _pc_err)
+
     # ══ FONDATIONS — générés avant tout fichier UI ════════════════════════════
     # Ordre correct : types → schemas → services → actions → pages → page-clients
     # Les pages et page-clients importent ces fichiers — ils doivent exister sur
@@ -918,6 +931,28 @@ async def run_dev_agent(
                         _page_flows = [f for f in (getattr(spec_obj, "user_flows", []) or []) if _rt in f]
                         if _page_flows:
                             _file_brief += "\nFLOWS : " + " | ".join(_page_flows[:2])
+
+                    # ── Niveau 1 : injection contrat de page ─────────────────
+                    # Données navigation déterministes : slug_field, detail_path,
+                    # badge_fields, service_method — élimine toute la classe de
+                    # bugs LLM liés aux liens et aux services (slug vs id, etc.).
+                    if _page_nav_contracts and _role in ("page", "page_client"):
+                        from .dev_page_contract import format_own_contract, format_nav_contracts
+                        _own = _page_nav_contracts.get(_rt)
+                        if _own:
+                            # Page modèle en fallback LLM → son propre contrat
+                            _file_brief += format_own_contract(_own)
+                        else:
+                            # Page custom (home, dashboard overview) →
+                            # référence navigation de toutes les entités
+                            _nav_ctx = (
+                                "private"
+                                if any(kw in _rt for kw in ("/dashboard", "/admin", "/manage"))
+                                else "public"
+                            )
+                            _nav_block = format_nav_contracts(_page_nav_contracts, _nav_ctx)
+                            if _nav_block:
+                                _file_brief += _nav_block
 
                 _rule = _role_rules_from_config.get(_role, "")
                 _ctx = (
