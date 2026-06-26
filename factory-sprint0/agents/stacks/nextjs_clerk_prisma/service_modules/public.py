@@ -17,6 +17,16 @@ class PublicModule(ServiceMethodModule):
         _sel = scalar_select_block(ctx)
         _map = dt_inline_map(ctx)
 
+        # Ajouter les relations FK non-tableau dans le select de getPublicAll
+        # → item.category?.name disponible dans les templates de liste publique
+        # (les relations tableau comme resources[] sont exclues — trop coûteux pour une liste)
+        all_contexts = kwargs.get("all_contexts") or {}
+        _fk_only = [r for r in ctx.relation_fields if not r.is_array]
+        if _fk_only:
+            from .base import relation_nested_select
+            _fk_sel = ", ".join(relation_nested_select(r, ctx, all_contexts) for r in _fk_only)
+            _sel = _sel + ", " + _fk_sel
+
         # ── getPublicById — filtre de visibilité pour éviter l'IDOR ──────────
         _pub_by_id_filter = ""
         _vis_field_p = next(

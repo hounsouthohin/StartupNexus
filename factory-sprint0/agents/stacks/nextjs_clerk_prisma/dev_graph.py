@@ -414,7 +414,7 @@ async def run_dev_agent(
     if spec_obj is not None and _model_contexts:
         try:
             from .dev_hub_generator import generate_hub_page as _gen_hub
-            _hub_files = _gen_hub(spec_obj, _model_contexts, project_workdir)
+            _hub_files = _gen_hub(spec_obj, _model_contexts, project_workdir, pages_detail=getattr(spec_obj, "pages_detail", {}) or {})
             template_written.update(_hub_files)
         except Exception as _hub_err:
             logger.warning("[dev_graph] hub_generator non bloquant : %s", _hub_err)
@@ -1249,6 +1249,23 @@ async def run_dev_agent(
         if "webhook" in r.get("path", "").lower() or "stripe" in r.get("path", "").lower()
     ]
 
+    # Injecter le design brief directement dans le HumanMessage pour les pages custom (home, dashboard).
+    # Le LLM ne lit pas toujours DESIGN_BRIEF.json via read_file — l'injection garantit qu'il reçoit
+    # les tokens visuels (primary_color, brand_name, density, animation_style) sans appel outil.
+    _brief_hint = ""
+    if _design_brief:
+        import json as _json_hint
+        _brief_compact = {
+            k: v for k, v in _design_brief.items()
+            if k in ("brand_name", "primary_color", "density", "animation_style", "entities", "nav_icons")
+        }
+        _brief_hint = (
+            "\n\nDESIGN_BRIEF (déjà disponible — NE PAS appeler read_file pour ce fichier) :\n"
+            + _json_hint.dumps(_brief_compact, ensure_ascii=False, indent=2)
+            + "\nUtilise brand_name pour les titres/hero, primary_color pour les accents, "
+            "density pour les paddings, animation_style pour framer-motion (si 'spring') ou transitions CSS."
+        )
+
     initial_state: DevState = {
         "messages": [
             SystemMessage(content=system_prompt),
@@ -1260,6 +1277,7 @@ async def run_dev_agent(
                 + f"\nFingerprint spec : {spec.get('spec_fingerprint', 'n/a')}\n"
                 "Toutes les pages avec model (list/create/detail/edit) sont PRÉ-GÉNÉRÉES "
                 "et verrouillées. Consulte le plan pour la liste exacte des fichiers à créer."
+                + _brief_hint
             )),
             *([HumanMessage(content=extra_feedback)] if extra_feedback else []),
         ],

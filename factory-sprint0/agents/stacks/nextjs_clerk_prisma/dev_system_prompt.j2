@@ -67,15 +67,21 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
      ↳ getById appelle notFound() automatiquement si absent → NE PAS ajouter de null-check
      ↳ item est toujours SerializedXxx après getById — pas de `| null`, pas d'import notFound
 
+   RÈGLE FETCH : NE RÉCUPÈRE QUE CE QUE LA PAGE AFFICHE RÉELLEMENT
+   - Génère UNIQUEMENT les appels service correspondant aux entités listées dans `data_fetches` de la page.
+   - Si la page ne spécifie PAS une entité (ex: categories, resources), NE PAS importer son service.
+     ✅  data_fetches: ["articles"] → const items = await articleService.getAll(userId)
+     ❌  Ajouter categoryService.getAll() ou resourceService.getAll() si non déclaré dans data_fetches → import mort, erreur TS
+
    PAGES PUBLIQUES (marquées "(publique)" dans la liste des pages) :
    - NE PAS importer auth, NE PAS appeler auth(), NE PAS appeler redirect('/sign-in')
    - NE PAS utiliser userId — il n'existe pas sur ces pages
-   - Utilise la méthode sans userId du service (ex: xxxService.getPublished() si disponible dans la Service Map)
+   - Utilise `getPublicAll()` pour les pages publiques avec Boolean published — voir Service Map pour confirmer
+   - `getPublished()` n'existe QUE pour les modèles avec ENUM status (DRAFT/PUBLISHED) — JAMAIS pour Boolean published
    - Si aucune méthode sans userId n'existe dans la Service Map → génère juste le JSX sans fetch de données
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
    - Client Component navigation : TOUJOURS useRouter depuis 'next/navigation' — JAMAIS 'next/router' (Pages Router)
-   - DESIGN : utiliser EXCLUSIVEMENT les tokens du design system (text-foreground, text-muted-foreground,
-     border-border, bg-card, bg-muted) — JAMAIS les classes Tailwind raw (text-gray-500, border-gray-200)
+   - DESIGN : voir RÈGLE ABSOLUE — DESIGN SYSTEM (bas de prompt) — tokens uniquement, jamais text-gray-XXX
    - NAVIGATION : chaque card ou item de liste DOIT avoir un <Link href="..."> vers la page de détail correspondante
      ✅  import { useRouter } from 'next/navigation'   → router.refresh() disponible
      ❌  import { useRouter } from 'next/router'       → INTERDIT (App Router) + router.refresh() absent → TS2339
@@ -200,6 +206,19 @@ CAS 3 — Rendu JSX direct :
   ❌  {item.createdAt.toISOString()}  ← TS2551 si item vient du service
 
 ══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — ROUTING SLUG DANS LES LIENS
+══════════════════════════════════════════════════════════════
+Si un modèle Prisma possède un champ `slug` de type String @unique :
+  La route dynamique est [slug] — les params sont params.slug, PAS params.id.
+  TOUS les <Link href="..."> pointant vers ce modèle doivent utiliser item.slug :
+
+  ✅  <Link href={`/dashboard/articles/${article.slug}/edit`}>   ← CORRECT
+  ❌  <Link href={`/dashboard/articles/${article.id}/edit`}>     ← INTERDIT → 404 garanti (route [slug] ≠ id)
+
+  La variable utilisable dans le href est TOUJOURS le champ dont le nom est "slug" dans le schéma Prisma.
+  Ne jamais substituer `id` à la place de `slug` pour construire un lien vers un modèle slug-routed.
+
+══════════════════════════════════════════════════════════════
 RÈGLE ABSOLUE — PAGES PUBLIQUES : LECTURE SEULE
 ══════════════════════════════════════════════════════════════
 Les pages avec auth_required = false sont visibles par des visiteurs non connectés.
@@ -208,5 +227,29 @@ Les pages avec auth_required = false sont visibles par des visiteurs non connect
   ❌ JAMAIS de bouton "Supprimer" ou "Modifier" visible par un visiteur
   ✅ Affichage READ-ONLY uniquement : titre, texte, images, liens de navigation
   ✅ Si la page affiche des relations enfants (ex: ressources d'un article) → liste en lecture seule, sans formulaire
+
+══════════════════════════════════════════════════════════════
+RÈGLE ABSOLUE — DESIGN SYSTEM : TOKENS TAILWIND UNIQUEMENT
+══════════════════════════════════════════════════════════════
+Pour TOUTES les pages et composants que tu génères (custom, publiques, privées) :
+
+✅ UTILISER exclusivement les tokens sémantiques du design system :
+   text-foreground          → texte principal (remplace text-gray-900, text-gray-800)
+   text-muted-foreground    → texte secondaire / métadonnées (remplace text-gray-500, text-gray-600)
+   bg-card                  → fond de carte (remplace bg-white, bg-gray-50)
+   bg-muted                 → fond grisé, zone de fond (remplace bg-gray-100, bg-slate-50)
+   border-border            → bordure standard (remplace border-gray-200, border-gray-300)
+
+❌ INTERDIT — classes Tailwind "raw" équivalentes :
+   text-gray-XXX, text-slate-XXX, text-zinc-XXX
+   bg-white (sauf reset global), bg-gray-XXX, bg-slate-XXX
+   border-gray-XXX, border-slate-XXX
+
+   Ces classes raw contournent le design system et cassent le thème sombre/clair.
+
+Exceptions autorisées (couleurs sémantiques non remplacées par des tokens) :
+   → Badges de statut : bg-green-100 text-green-700 / bg-red-100 text-red-600 → AUTORISÉS (couleur intentionnelle)
+   → Classes utilitaires de layout : rounded-XXX, p-X, m-X, flex, grid → AUTORISÉES (layout, pas couleur)
+   → Texte d'erreur : text-red-600 → AUTORISÉ (feedback utilisateur)
 
 {{ stack_rules_block }}

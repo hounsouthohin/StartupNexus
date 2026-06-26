@@ -109,9 +109,22 @@ class DetailWithChildrenModule(FeatureModule):
             return {}
 
         detail_path = detail_page.path
+        auth_required = bool(getattr(detail_page, "auth_required", True))
 
-        # list_path : depuis ctx ou déduit depuis le chemin détail ou chemin conventionnel
-        list_path = ctx.list_page_path
+        # list_path : back link de navigation retour
+        # Page détail publique → liste publique du modèle (pas /dashboard/xxx privé)
+        # Page détail privée  → liste privée via ctx.list_page_path
+        if not auth_required:
+            _public_list = next(
+                (p for p in spec_pages
+                 if getattr(p, "model", None) == ctx.name
+                 and getattr(p, "page_type", None) == "list"
+                 and not getattr(p, "auth_required", True)),
+                None,
+            )
+            list_path = _public_list.path if _public_list else None
+        else:
+            list_path = ctx.list_page_path
         if not list_path and detail_path:
             _segs = [s for s in detail_path.strip("/").split("/") if not s.startswith("[")]
             list_path = "/" + "/".join(_segs) if _segs else f"/{ctx.kebab}s"
@@ -244,6 +257,7 @@ class DetailWithChildrenModule(FeatureModule):
                 enum_display=enum_display,
                 title_plural=ctx.title_plural,
                 children=children_ctx,
+                auth_required=auth_required,
                 # tokens sémantiques CSS variables (tailwind.config.js → hsl(var(--primary)))
                 primary="primary",
                 primary_hover="primary/85",

@@ -3,7 +3,7 @@
 BUILD        : ✅ SUCCESS
 REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (NOT_RUN)
-TESTS        : ✗ 2 test(s) — FAIL tests/schemas.test.ts | FAIL tests/services.test.ts | T
+TESTS        : ✗ 2 test(s) — FAIL tests/services.test.ts | PASS tests/middleware.test.ts 
 SEMGREP      : ⚠ 3 finding(s)
 
 PATTERNS DÉTECTÉS :
@@ -32,5 +32,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : a99bf7ad-3350-48d6-8658-e20174a8d0f4
-DURÉE        : 5min 34s
+RUN_ID       : 00ef6a5a-dbc7-406f-8b1e-d561af57ba23
+DURÉE        : 2min 17s

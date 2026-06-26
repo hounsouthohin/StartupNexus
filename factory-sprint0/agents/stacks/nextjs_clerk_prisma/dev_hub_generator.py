@@ -29,15 +29,25 @@ def _service_import(camel: str, kebab: str) -> str:
     return f"import {{ {_service_var(camel)} }} from '@/lib/services/{kebab}.service'"
 
 
-def generate_hub_page(spec_obj, model_contexts: dict, project_workdir: str) -> dict[str, str]:
+def generate_hub_page(spec_obj, model_contexts: dict, project_workdir: str, pages_detail: dict | None = None) -> dict[str, str]:
     """
-    Génère app/dashboard/page.tsx de manière déterministe.
+    Génère app/dashboard/page.tsx de manière déterministe (stat_cards multi-entités).
+
+    Skip si pages_detail["/dashboard"] a des data_fetches explicites — dans ce cas
+    l'architect a défini une structure custom (ex: item_list) → le LLM la génère.
 
     Retourne {path: content} à intégrer dans template_written.
     Retourne {} si spec_obj est None ou s'il n'y a pas de modèles.
     """
     if spec_obj is None or not model_contexts:
         return {}
+
+    # Si l'architect a défini des data_fetches spécifiques pour /dashboard → laisser le LLM générer
+    if pages_detail and isinstance(pages_detail, dict):
+        _dash = pages_detail.get("/dashboard") or pages_detail.get("dashboard")
+        if isinstance(_dash, dict) and _dash.get("data_fetches"):
+            logger.info("[hub_generator] pages_detail /dashboard présent → skip (LLM génèrera via ui_pattern hint)")
+            return {}
 
     models = [ctx for ctx in model_contexts.values() if ctx.list_page_path]
     if not models:

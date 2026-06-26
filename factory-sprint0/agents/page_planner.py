@@ -54,9 +54,9 @@ Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics sta
 ### MÉTHODES DE SERVICE (contrat IMMUABLE — utiliser dans data_fetches)
 - `xxxService.getAll(userId)` / `getById(userId, id)` / `create` / `update` / `delete`
 - `xxxService.getAllWithRelations(userId)` — si modèle a @relation
-- `xxxService.getPublished()` — si modèle a un champ published/status
+- `xxxService.getPublished()` — UNIQUEMENT si modèle a un ENUM status (ex: DRAFT/PUBLISHED) — N'EXISTE PAS pour Boolean published
+- `xxxService.getPublicAll()` — si modèle a Boolean published OU pour toute liste publique (JAMAIS getPublished pour un Boolean)
 - `xxxService.getBySlug(slug)` — si modèle a `slug String @unique`
-- `xxxService.getPublicAll()` — si pages publiques
 - `childService.getBy{Parent}Id(userId, parentId)` — si modèle enfant
 
 ### page_links — contrat de navigation (OBLIGATOIRE)

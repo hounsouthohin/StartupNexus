@@ -1,11 +1,15 @@
 'use client'
 
+{% if auth_required %}
 import { useState, useActionState } from 'react'
+{% endif %}
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
 {% for child in children %}
 import type { {{ child.serialized_type }} } from '@/lib/types'
+{% if auth_required %}
 import { create{{ child.name }}, delete{{ child.name }} } from '{{ child.actions_import }}'
+{% endif %}
 {% endfor %}
 
 interface {{ client_name }}Props {
@@ -13,6 +17,7 @@ interface {{ client_name }}Props {
 }
 
 export default function {{ client_name }}({ item }: {{ client_name }}Props) {
+{% if auth_required %}
 {% for child in children %}
   const [{{ child.camel }}List, set{{ child.name }}List] = useState<{{ child.serialized_type }}[]>(
     (item.{{ child.relation_field }} as {{ child.serialized_type }}[] | undefined) ?? []
@@ -40,6 +45,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
   }
 
 {% endfor %}
+{% endif %}
   return (
     <main className="container mx-auto {{ p_cls }} max-w-4xl">
       {/* ── Détail {{ name }} ── */}
@@ -71,23 +77,33 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
         <h2 className="text-lg font-semibold text-foreground mb-4">{{ child.title_plural }}</h2>
 
         {/* Liste */}
+        {% if auth_required %}
         {{ '{' }}{{ child.camel }}List.length === 0 ? (
+        {% else %}
+        {{ '{' }}((item.{{ child.relation_field }} as {{ child.serialized_type }}[] | undefined) ?? []).length === 0 ? (
+        {% endif %}
           <p className="text-muted-foreground text-sm py-4 text-center">Aucun élément pour l'instant.</p>
         ) : (
           <ul className="space-y-3 mb-6">
+            {% if auth_required %}
             {{ '{' }}{{ child.camel }}List.map(c => (
+            {% else %}
+            {{ '{' }}((item.{{ child.relation_field }} as {{ child.serialized_type }}[] | undefined) ?? []).map(c => (
+            {% endif %}
               <li key={c.id} className="bg-card rounded-lg border border-border p-4 flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-1">
                   {% for df in child.display_fields %}
                   <p className="text-sm text-foreground">{String(c.{{ df }} ?? '')}</p>
                   {% endfor %}
                 </div>
+                {% if child.detail_base or auth_required %}
                 <div className="flex shrink-0 gap-2 items-center">
                   {% if child.detail_base %}
                   <Link href={`{{ child.detail_base }}/${c.id}`} className="text-xs text-primary border border-primary rounded px-2 py-1 hover:bg-primary/10">
                     Voir
                   </Link>
                   {% endif %}
+                  {% if auth_required %}
                   <button
                     type="button"
                     onClick={() => handleDelete{{ child.name }}(c.id)}
@@ -95,12 +111,15 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
                   >
                     Supprimer
                   </button>
+                  {% endif %}
                 </div>
+                {% endif %}
               </li>
             ))}
           </ul>
         )}
 
+        {% if auth_required %}
         {/* Formulaire de création */}
         {{ '{' }}{{ child.camel }}Error && (
           <p className="mb-3 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{{ '{' }}{{ child.camel }}Error}</p>
@@ -173,6 +192,7 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
             {{ '{' }}{{ child.camel }}Pending ? 'En cours…' : 'Ajouter'}
           </button>
         </form>
+        {% endif %}
       </section>
       {% endfor %}
     </main>

@@ -272,6 +272,12 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
                     f"\n\nType disponible (CHAMPS EXACTS — ne pas inventer d'autres) :\n"
                     f"```typescript\n{_serial_type}\n```"
                 )
+            else:
+                logger.warning(
+                    "[dev_context] Serialized%s introuvable dans lib/types.ts — "
+                    "le LLM n'aura pas les champs exacts du modèle",
+                    _client_model.name,
+                )
         break  # actions.ts trouvé
 
     else:
@@ -292,6 +298,12 @@ def _dep_page_client(path: str, spec_obj, workdir: str) -> str:
                     f"```typescript\n{_serial_type}\n```\n"
                     f"⚠️  PAGE PUBLIQUE : PAS d'import depuis './actions' — "
                     f"ce fichier n'existe pas ici. NE PAS importer deleteXxx ni createXxx.\n"
+                )
+            else:
+                logger.warning(
+                    "[dev_context] Serialized%s introuvable dans lib/types.ts (page publique) — "
+                    "le LLM n'aura pas les champs exacts du modèle",
+                    _client_model.name,
                 )
 
     # ── Labels UI (C6) — title_plural depuis page_planner (LLM architect) ──────────
@@ -384,10 +396,37 @@ def _dep_page(path: str, spec_obj, workdir: str, manifest=None, service_map_str:
             )
         elif service_map_str:
             # Page custom (dashboard, hub…) : aucun service résolu par segment.
-            # D2 — Injecter CONTRACTS.md (méthodes exactes) en priorité sur service_map (résumé).
+            # D2 — Injecter CONTRACTS.md filtré sur les services utilisés (data_fetches).
+            # Limite 1000 chars (réduit de 2000) : la service_map est déjà dans le system prompt.
             _contracts_path = os.path.join(workdir, "CONTRACTS.md")
-            _contracts_content = _read_file_safe(_contracts_path, 2000)
+            _contracts_content = _read_file_safe(_contracts_path, 1000)
             if _contracts_content:
+                # Filtre par services utilisés dans data_fetches de cette page
+                _page_route = "/" + "/".join(path.split("/")[1:-1])
+                _pages_detail = getattr(spec_obj, "pages_detail", None) or {}
+                _page_detail = _pages_detail.get(_page_route) or {}
+                _data_fetches = (
+                    _page_detail.get("data_fetches") if isinstance(_page_detail, dict)
+                    else getattr(_page_detail, "data_fetches", None)
+                ) or []
+                _services_used = set()
+                for _fetch in _data_fetches:
+                    _svc_str = str(
+                        _fetch.get("service", "") if isinstance(_fetch, dict)
+                        else getattr(_fetch, "service", "")
+                    )
+                    _sm = _re.match(r"(\w+)Service", _svc_str)
+                    if _sm:
+                        _services_used.add(_sm.group(1).lower())
+                # Si on identifie des services précis → filtrer ; sinon injecter tel quel
+                if _services_used:
+                    _filtered = "\n".join(
+                        line for line in _contracts_content.split("\n")
+                        if not line.strip() or any(
+                            s in line.lower() for s in _services_used
+                        ) or line.startswith("#")
+                    )
+                    _contracts_content = _filtered or _contracts_content
                 dep = (
                     f"\nCONTRACTS.md (méthodes exactes disponibles — utiliser CES signatures) :\n"
                     f"```\n{_contracts_content}\n```"

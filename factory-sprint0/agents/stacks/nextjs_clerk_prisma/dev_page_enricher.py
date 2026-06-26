@@ -36,6 +36,46 @@ _BADGE_COLOR_CLS: dict[str, str] = {
     "teal":   "bg-teal-100 text-teal-700",
 }
 
+# ─── Contexte structurel par page (auth, boolean fields, textarea fields) ────
+
+_STRUCTURAL_RULES_SECTION = """\
+## CONTEXTE STRUCTUREL DE LA PAGE
+- auth_required  : {auth_required}
+- page_type      : {page_type}
+- boolean_fields : {boolean_fields}
+- textarea_fields: {textarea_fields}
+
+## RÈGLES STRUCTURELLES (priorité absolue sur toute règle visuelle)
+
+### [A] Pages publiques (auth_required = false)
+Si auth_required est false :
+  ❌ Ne jamais importer createXxx, updateXxx, deleteXxx
+  ❌ Ne jamais ajouter de formulaire de création ou de modification
+  ❌ Ne jamais afficher de bouton "Supprimer" ou "Modifier"
+  ❌ Ne jamais appeler useActionState ni useFormState
+  ✅ Affichage READ-ONLY uniquement : titres, textes, liens de navigation
+
+### [B] Champs boolean (boolean_fields)
+Pour chaque champ dont le nom est dans boolean_fields :
+  ❌ Interdit : {{String(item.champ ?? '—')}} — texte brut pour un boolean
+  ✅ Remplacer par un badge inline. Exemples :
+     "published" :
+       item.published
+         ? <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Publié</span>
+         : <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Brouillon</span>
+     "isPaid" :
+       item.isPaid
+         ? <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Payé</span>
+         : <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-600">En attente</span>
+     Cas général : utiliser le libellé métier du champ (label UI), jamais les valeurs "true"/"false".
+
+### [C] Champs textarea en liste publique
+Si auth_required = false ET page_type = list :
+  Les champs dans textarea_fields ne doivent PAS apparaître dans les cards de liste.
+  Un texte long dans une card publique est une mauvaise UX pour les visiteurs.
+
+"""
+
 # ─── System prompt d'enrichissement ─────────────────────────────────────────
 
 _ENRICHMENT_PROMPT = """\
@@ -102,6 +142,49 @@ def _should_enrich(path: str) -> bool:
     return "new" not in parts and "edit" not in parts
 
 
+def _build_page_context(path: str, spec_obj, model_contexts: dict) -> dict:
+    """Contexte structurel injecté dans le prompt pour chaque page enrichie.
+
+    Retourne un dict avec :
+      - auth_required   : bool  — la page est-elle protégée par Clerk ?
+      - page_type       : str   — "list" | "detail" | "detail-slug" | …
+      - boolean_fields  : list  — champs de type Boolean du modèle (pour badges)
+      - textarea_fields : list  — champs textarea (à exclure des cards publiques)
+    """
+    # Reconstruire le path spec depuis le chemin template_written
+    # ex: "app/dashboard/articles/page-client.tsx" → "/dashboard/articles"
+    #     "app/articles/[slug]/page-client.tsx"    → "/articles/[slug]"
+    norm = path.replace("\\", "/")
+    norm = norm.removeprefix("app/").removesuffix("/page-client.tsx").strip("/")
+    spec_path = "/" + norm if norm else "/"
+
+    page = next(
+        (p for p in (getattr(spec_obj, "pages", []) or [])
+         if getattr(p, "path", "") == spec_path),
+        None,
+    )
+
+    auth_required = getattr(page, "auth_required", True) if page else True
+    page_type     = getattr(page, "page_type",     "list") if page else "list"
+    model_name    = getattr(page, "model",          None)  if page else None
+
+    boolean_fields:  list[str] = []
+    textarea_fields: list[str] = []
+
+    if model_name:
+        ctx = model_contexts.get(model_name)
+        if ctx:
+            boolean_fields  = [f.name for f in ctx.editable_fields if f.base_type == "Boolean"]
+            textarea_fields = [f.name for f in ctx.editable_fields if f.input_type == "textarea"]
+
+    return {
+        "auth_required":   auth_required,
+        "page_type":       page_type,
+        "boolean_fields":  boolean_fields,
+        "textarea_fields": textarea_fields,
+    }
+
+
 def _build_path_to_model(spec_obj) -> dict[str, str]:
     """Construit {path_prefix_lower: model_name} depuis spec_obj.pages."""
     mapping: dict[str, str] = {}
@@ -151,15 +234,27 @@ def _entity_from_path(path: str, model_contexts: dict, path_to_model: dict | Non
     return None
 
 
-def _build_enrichment_prompt(entity_brief: dict, animation_style: str) -> str:
+def _build_enrichment_prompt(entity_brief: dict, animation_style: str, page_context: dict | None = None) -> str:
+    """Construit le prompt complet : règles structurelles (auth, booleans) + règles visuelles (design brief)."""
+    ctx = page_context or {}
+
+    structural = _STRUCTURAL_RULES_SECTION.format(
+        auth_required=ctx.get("auth_required", True),
+        page_type=ctx.get("page_type", "list"),
+        boolean_fields=", ".join(ctx.get("boolean_fields", [])) or "(aucun)",
+        textarea_fields=", ".join(ctx.get("textarea_fields", [])) or "(aucun)",
+    )
+
     use_motion = animation_style == "spring"
-    return _ENRICHMENT_PROMPT.format(
+    visual = _ENRICHMENT_PROMPT.format(
         entity_brief_json=json.dumps(entity_brief, ensure_ascii=False, indent=2),
         animation_style=animation_style,
         icon=entity_brief.get("icon", "Layers"),
         motion_rule=_MOTION_RULE if use_motion else "",
         motion_instructions=_MOTION_INSTRUCTIONS if use_motion else "",
     )
+
+    return structural + visual
 
 
 # ─── Injection déterministe de l'import Lucide ───────────────────────────────
@@ -185,6 +280,7 @@ async def _enrich_single(
     entity_brief: dict,
     animation_style: str,
     llm,
+    page_context: dict | None = None,
 ) -> str | None:
     """Injecte l'import Lucide déterministiquement, puis appelle le LLM pour le reste."""
     from langchain_core.messages import SystemMessage, HumanMessage
@@ -192,7 +288,7 @@ async def _enrich_single(
     icon = entity_brief.get("icon", "Layers")
     code_with_import = _inject_icon_import(original_code, icon)
 
-    system = _build_enrichment_prompt(entity_brief, animation_style)
+    system = _build_enrichment_prompt(entity_brief, animation_style, page_context)
     human  = f"Fichier à enrichir :\n\n```typescript\n{code_with_import}\n```"
 
     try:
@@ -257,10 +353,12 @@ async def enrich_page_clients(
         entity_brief = entities.get(entity_name)
         if not entity_brief:
             continue
+        page_ctx = _build_page_context(path, spec_obj, model_contexts)
         candidates[path] = {
             "original":     template_written[path],
             "entity_name":  entity_name,
             "entity_brief": entity_brief,
+            "page_context": page_ctx,
         }
 
     if not candidates:
@@ -278,6 +376,7 @@ async def enrich_page_clients(
             info["entity_brief"],
             animation_style,
             llm,
+            page_context=info.get("page_context"),
         )
         if enriched_code and enriched_code != info["original"]:
             enriched[path] = enriched_code

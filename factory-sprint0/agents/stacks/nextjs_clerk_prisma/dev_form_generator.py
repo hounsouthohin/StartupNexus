@@ -146,8 +146,19 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
     if not auth_required:
         _textarea_set = {fi.name for fi in ctx.editable_fields if fi.input_type == "textarea"}
         fields = [f for f in fields if f not in _textarea_set]
+        # Pages publiques : exclure les champs boolean des cards (ex: published → "true/false" = mauvaise UX)
+        _boolean_set = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
+        fields = [f for f in fields if f not in _boolean_set]
     # Champs boolean pour les badges visuels dans les cards (ex: published → Publié/Brouillon)
     _boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
+    # Pages privées : promouvoir les booleans juste après le titre (position 1)
+    # Le template montre display_fields[1:3] — sans promotion, un boolean en position 3+
+    # ne déclenche jamais le badge (ex: Article : title/content/excerpt/published → published hors fenêtre)
+    if auth_required and _boolean_fields:
+        _bool_in  = [f for f in fields if f in _boolean_fields]
+        _non_bool = [f for f in fields if f not in _boolean_fields]
+        if _bool_in and len(_non_bool) >= 1:
+            fields = [_non_bool[0]] + _bool_in + _non_bool[1:]
     _model_labels = ctx.ui_labels
     _enum_value_labels = ctx.enum_value_labels
     status_field = None

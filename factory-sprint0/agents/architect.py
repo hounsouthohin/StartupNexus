@@ -427,10 +427,31 @@ Le filtrage se fait TOUJOURS côté client (dans le composant React) — les ser
 
 ## PAGES PUBLIQUES (auth=false) — RÈGLE ABSOLUE
 Pour toute page publique (landing, home `/`, page vitrine sans connexion requise) :
-- `data_fetches` : utiliser UNIQUEMENT `getPublicAll()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)` ni `getPublished()` (n'existe pas)
+- `data_fetches` : utiliser UNIQUEMENT `getPublicAll()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)`
+- `getPublished()` n'existe QUE si le modèle a un ENUM status (DRAFT/PUBLISHED) — JAMAIS pour Boolean published
+- Pour Boolean published : TOUJOURS `getPublicAll()`, jamais `getPublished()`
 - La `description` NE DOIT PAS contenir : "auth()", "userId", "redirect", "connexion requise", "vérifie si connecté"
 - La `description` DOIT préciser explicitement : "page publique — aucun appel Clerk"
-- Le dev executor lira cette description et n'ajoutera PAS `auth()` si ces mots sont absents\
+- Le dev executor lira cette description et n'ajoutera PAS `auth()` si ces mots sont absents
+
+## EXEMPLE CRITIQUE — Boolean published vs ENUM status
+
+### ❌ INTERDIT — modèle avec Boolean published (ex: Article.published)
+```json
+{"/articles": {"data_fetches": [{"service": "articleService.getPublished()", "as": "articles"}]}}
+```
+`getPublished()` n'existe pas pour Boolean — BUILD_FAILED garanti.
+
+### ✅ CORRECT — Boolean published
+```json
+{"/articles": {"description": "page publique — aucun appel Clerk. Liste les articles publiés.", "data_fetches": [{"service": "articleService.getPublicAll()", "as": "articles"}], "interactive": false}}
+```
+
+### ✅ CORRECT — ENUM status (ex: Post.status = DRAFT | PUBLISHED)
+```json
+{"/posts": {"description": "page publique — aucun appel Clerk. Liste les posts publiés.", "data_fetches": [{"service": "postService.getPublished()", "as": "posts"}], "interactive": false}}
+```
+`getPublished()` existe seulement quand le modèle a un ENUM status, pas un Boolean.\
 """
 
 

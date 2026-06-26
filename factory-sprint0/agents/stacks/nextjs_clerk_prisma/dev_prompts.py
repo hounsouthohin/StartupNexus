@@ -192,7 +192,7 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
             "import Link from next/link Link href navigation cliquable lien"
         ),
         "public-pages": (
-            "page publique sans auth no auth_required getPublished "
+            "page publique sans auth no auth_required getPublicAll "
             "visiteur liste publique without userId public route"
         ),
         "page_client_ui": (
@@ -255,6 +255,45 @@ def _page_detail_interactive_suffix(page_path: str) -> str:
     )
 
 
+def _compute_ui_pattern(detail: dict) -> None:
+    """Calcule et injecte ui_pattern dans un pages_detail entry (in-place).
+
+    Valeurs possibles (extensibles) :
+      "stat_cards" — grille de metric cards avec compteurs (dashboard overview)
+      "item_list"  — liste complète des items d'une entité principale
+      "mixed"      — combinaison (futur)
+      "chart"      — dashboard analytique (futur)
+
+    Déclencheur : pages avec 2+ data_fetches sans ui_pattern déjà défini par l'architect.
+    L'architect peut toujours prendre la main en posant ui_pattern lui-même dans pages_detail.
+    """
+    import re as _re
+
+    if "ui_pattern" in detail:
+        return  # déjà défini (architect ou run précédent)
+
+    fetches = detail.get("data_fetches", []) or []
+    desc = (detail.get("description", "") or "").strip()
+
+    # Signal "Liste tous les X" — prioritaire, indépendant du nb de fetches.
+    # Couvre le cas dashboard 1 seul fetch + description "Liste tous les articles".
+    if _re.search(r'(?i)(?:^|[.!]\s+)liste\s+tous\s+les?\b', desc):
+        detail["ui_pattern"] = "item_list"
+        if fetches:
+            svc = fetches[0].get("service", "")
+            m = _re.match(r"(\w+)Service\.", svc)
+            if m:
+                detail["list_entity"] = m.group(1).capitalize()
+            detail["list_var"] = fetches[0].get("as", "items")
+        return
+
+    if len(fetches) < 2:
+        return  # page simple → pas de pattern forcé
+
+    # Default multi-fetch : stat_cards (résumé chiffré de plusieurs entités)
+    detail["ui_pattern"] = "stat_cards"
+
+
 def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
     """
     Retourne le bloc pages_detail pour une page spécifique.
@@ -288,15 +327,19 @@ def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
                 if svc:
                     lines.append(f"  const {as_var} = await {svc}" if as_var else f"  await {svc}")
 
-        # Dashboard overview : injecter un pattern de metric cards si multiple entités
-        _is_dashboard = page_path.rstrip("/") in ("", "/dashboard")
-        if _is_dashboard and len(fetches) >= 2:
+        # ── ui_pattern : détermine le layout de rendu pour les pages multi-fetch ──
+        # _compute_ui_pattern() injecte ui_pattern in-place si absent (lazy, non-bloquant).
+        _compute_ui_pattern(detail)
+        _ui_pattern = detail.get("ui_pattern")
+
+        import re as _re
+
+        if _ui_pattern == "stat_cards":
+            # Grille de metric cards (dashboard overview multi-entités)
             _vars = [f.get("as", f.get("as_var", "")) for f in fetches if f.get("as") or f.get("as_var")]
             _routes = []
             for f in fetches:
                 svc = str(f.get("service", ""))
-                # Extraire le nom du service pour déduire la route (clientService → /clients)
-                import re as _re
                 m = _re.match(r"(\w+)Service\.", svc)
                 if m:
                     _routes.append("/" + m.group(1).lower() + "s")
@@ -316,6 +359,44 @@ def get_page_detail_hint(spec: "ProjectSpec", page_path: str) -> str:
                 '  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">\n'
                 + _card_examples + "\n"
                 "  </div>\n"
+                "</main>"
+            )
+
+        elif _ui_pattern == "item_list":
+            # Liste complète d'une entité principale (NE PAS utiliser des stat cards)
+            _entity  = detail.get("list_entity", "")
+            _var     = detail.get("list_var", fetches[0].get("as", "items") if fetches else "items")
+            _svc     = fetches[0].get("service", "") if fetches else ""
+            # Résoudre la route de création depuis le spec (source de vérité)
+            # Évite l'heuristique fragile "articleService → /articles/new"
+            # qui raterait "/dashboard/articles/new"
+            _create_route = ""
+            if _entity:
+                _list_route = getattr(spec, "get_list_page_for_model", lambda _: None)(_entity)
+                if _list_route:
+                    _create_route = _list_route.rstrip("/") + "/new"
+            if not _create_route:
+                _m2 = _re.match(r"(\w+)Service\.", _svc)
+                if _m2:
+                    _create_route = "/" + _m2.group(1).lower() + "s/new"
+            lines.append(
+                f"\nPATTERN ATTENDU — liste d'entités (ui_pattern=item_list) :\n"
+                f"Afficher la liste complète des {_var} ({_entity}) avec leurs champs.\n"
+                "RÈGLES OBLIGATOIRES :\n"
+                "  - NE PAS utiliser des compteurs (stat cards) — afficher les items directement\n"
+                "  - Les champs booléens (published, isPaid, isActive) → badge coloré, JAMAIS du texte brut\n"
+                "    Exemple published : item.published\n"
+                '      ? <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Publié</span>\n'
+                '      : <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Brouillon</span>\n'
+                "  - Inclure un lien vers la page d'édition ou de détail de chaque item\n"
+                + (f"  - Inclure un bouton <Link href=\"{_create_route}\">Nouveau</Link>\n" if _create_route else "")
+                + "Structure minimale :\n"
+                '<main className="container mx-auto p-8">\n'
+                '  <div className="flex items-center justify-between mb-6">\n'
+                '    <h1 className="text-2xl font-bold text-foreground">...</h1>\n'
+                + (f'    <Link href="{_create_route}" className="px-4 py-2 bg-primary text-white rounded-md text-sm">Nouveau</Link>\n' if _create_route else "")
+                + "  </div>\n"
+                f"  {{/* liste des {_var} avec badge boolean + lien edit */}}\n"
                 "</main>"
             )
 
