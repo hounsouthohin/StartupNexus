@@ -49,6 +49,7 @@ describe('createRecipeSchema', () => {
 
 Pour chaque service trouvé dans `lib/services/*.service.ts` :
 - Mocker `@/lib/prisma` avec `jest.mock()`
+- CRITIQUE : Toujours inclure `__esModule: true` dans `jest.mock('@/lib/prisma', ...)` — sans cela le mock ne fonctionne pas (ES module interop)
 - Tester que `getAll(userId)` retourne un tableau
 - Fichier cible : `tests/services/[model].service.test.ts`
 

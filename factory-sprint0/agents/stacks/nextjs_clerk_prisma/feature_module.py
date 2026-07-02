@@ -102,6 +102,7 @@ def run_feature_modules(
     model_contexts: dict,
     enriched_spec,
     workdir: str,
+    design_system: dict | None = None,
 ) -> dict[str, str]:
     """
     Dispatcher principal — appelé UNE FOIS par run dans dev_graph.py.
@@ -122,7 +123,7 @@ def run_feature_modules(
             try:
                 if not module.should_activate(enriched_spec, ctx):
                     continue
-                files = module.generate(spec, ctx, enriched_spec, workdir, model_contexts=model_contexts)
+                files = module.generate(spec, ctx, enriched_spec, workdir, model_contexts=model_contexts, design_system=design_system)
                 if files:
                     logger.info(
                         "[feature_module] %s → %s (%d fichier(s))",

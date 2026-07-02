@@ -223,12 +223,29 @@ async def run_dev_agent(
         with open(schema_path, "w", encoding="utf-8") as f:
             f.write(schema_content)
         template_written["prisma/schema.prisma"] = schema_content
+        # Validation structurelle immédiate — évite de découvrir le problème 5 min plus
+        # tard au moment de `prisma generate` pendant le build Next.js.
+        _schema_errors = []
+        if "datasource db" not in schema_content:
+            _schema_errors.append("bloc datasource db manquant")
+        if "generator client" not in schema_content:
+            _schema_errors.append("bloc generator client manquant")
+        if schema_content.count("model ") < len(spec_obj.models):
+            _schema_errors.append(
+                f"{schema_content.count('model ')} blocs model générés pour "
+                f"{len(spec_obj.models)} modèles attendus"
+            )
+        if schema_content.count("{") != schema_content.count("}"):
+            _schema_errors.append("accolades non équilibrées dans schema.prisma")
+        if _schema_errors:
+            raise RuntimeError(f"schema.prisma invalide : {'; '.join(_schema_errors)}")
         logger.info(
             f"[dev_graph] schema.prisma matérialisé depuis ProjectSpec "
             f"({len(spec_obj.models)} modèles)"
         )
     except Exception as _se:
-        logger.warning(f"[dev_graph] ProjectSpec/schema déterministe non bloquant : {_se}")
+        logger.error(f"[dev_graph] schema.prisma FATAL : {_se}", exc_info=True)
+        raise
 
     # ── Contextes modèles (calculés UNE SEULE FOIS, partagés par tous les générateurs) ─
     # ModelGenerationContext est la source unique de vérité pour la détection de champs,
@@ -248,7 +265,8 @@ async def run_dev_agent(
                 len(_model_contexts), bool(_enriched_spec),
             )
         except Exception as _mc_err:
-            logger.warning(f"[dev_graph] build_all_contexts non bloquant : {_mc_err}")
+            logger.error(f"[dev_graph] build_all_contexts FATAL : {_mc_err}", exc_info=True)
+            raise RuntimeError(f"build_all_contexts failed: {_mc_err}") from _mc_err
 
     # ── Niveau 1 — Page Contract Calculator ─────────────────────────────────
     # Contrats navigation/données pour toutes les pages modèle.
@@ -334,7 +352,7 @@ async def run_dev_agent(
     if spec_obj is not None:
         try:
             from .dev_layout_generator import generate_layout
-            _layout_files = generate_layout(project_workdir, project_name, spec)
+            _layout_files = generate_layout(project_workdir, project_name, spec, spec_obj=spec_obj)
             template_written.update(_layout_files)
             logger.info("[dev_graph] layout shell généré (layout_type=%s, sidebar_bg=%s)",
                         _design_system.get("layout_type", "sidebar"),
@@ -438,30 +456,12 @@ async def run_dev_agent(
             from .feature_module import load_feature_modules, run_feature_modules
             _fm_names = stack_cfg.get("feature_modules", [])
             load_feature_modules(_fm_names, package=__name__.rsplit(".", 1)[0])
-            _feature_files = run_feature_modules(spec_obj, _model_contexts, _enriched_spec, project_workdir)
+            _feature_files = run_feature_modules(spec_obj, _model_contexts, _enriched_spec, project_workdir, design_system=_design_system)
             template_written.update(_feature_files)
             if _feature_files:
                 logger.info("[dev_graph] %d fichier(s) de feature modules", len(_feature_files))
         except Exception as _fm_err:
             logger.warning("[dev_graph] feature_modules non bloquant : %s", _fm_err)
-
-    # ── Guard pré-build : selects enum sans options ──────────────────────────
-    # Détecte les <select> générés sans aucun <option value="..."> réel.
-    # Cause : champ enum dont spec_enums est vide ET annotation sémantique absente.
-    # Impact : l'utilisateur voit un select vide → soumission impossible ou valeur vide.
-    # Niveau : WARNING (non bloquant) — le build peut encore réussir mais l'UX est cassée.
-    _empty_select_re = re.compile(r'<select[^>]+name=["\'](\w+)["\'][^>]*>(.*?)</select>', re.DOTALL)
-    _real_option_re = re.compile(r'<option\s+value=["\'][^"\']+["\']')
-    for _tw_path, _tw_content in list(template_written.items()):
-        if not _tw_path.endswith(".tsx"):
-            continue
-        for _sel_field, _sel_body in _empty_select_re.findall(_tw_content):
-            if not _real_option_re.search(_sel_body):
-                logger.warning(
-                    "[dev_graph] GENERATION_WARNING: %s — <select name='%s'> sans options. "
-                    "Vérifier spec_enums ou annotation sémantique du champ.",
-                    _tw_path, _sel_field,
-                )
 
     # ── Guard pré-build : cohérence page.tsx → page-client.tsx ─────────────
     # Après tous les générateurs déterministes, vérifie que chaque page.tsx
@@ -1111,6 +1111,12 @@ async def run_dev_agent(
                 return END
 
         if state.get("success", False):
+            return END
+
+        # plan_failed : file_plan is None = échec planner (distinct de [] = plan vide légitime).
+        # Sortie immédiate — pas de retry LLM possible sans plan.
+        if state.get("file_plan") is None:
+            logger.error("[route_after_tools] file_plan is None (plan_failed) — arrêt immédiat")
             return END
 
         # F-08: circuit breaker — limite le nombre de tours de génération (hors correction build)

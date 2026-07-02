@@ -95,7 +95,7 @@ class DetailWithChildrenModule(FeatureModule):
             return False
         return any(r.is_array for r in ctx.relation_fields)
 
-    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
+    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None, design_system: "dict | None" = None) -> dict[str, str]:
         spec_pages = getattr(spec, "pages", []) or []
 
         # Trouver la page détail de ce modèle dans le spec (par model, indépendamment de list_page_path)
@@ -220,6 +220,11 @@ class DetailWithChildrenModule(FeatureModule):
         _title_plurals_spec = getattr(spec, "title_plurals", {}) or {}
 
         display_fields = ctx.display_fields
+        # Pages publiques : exclure les champs boolean éditoriaux (published, is_draft…)
+        # qui n'ont pas de sens pour les visiteurs non-authentifiés.
+        if not auth_required:
+            _bool_set = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
+            display_fields = [f for f in display_fields if f not in _bool_set]
         field_labels = {f: _model_labels.get(f, f) for f in display_fields}
 
         # Enrichir les labels enum des champs d'affichage
@@ -246,6 +251,8 @@ class DetailWithChildrenModule(FeatureModule):
                                 cf["enum_labels"] = ev_labels
 
         _boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
+        from ..dev_form_generator import _design_tokens
+        _tokens = _design_tokens(design_system)
         try:
             content = _jinja_env.get_template("detail_with_children_client.tsx.j2").render(
                 name=ctx.name,
@@ -260,15 +267,7 @@ class DetailWithChildrenModule(FeatureModule):
                 children=children_ctx,
                 auth_required=auth_required,
                 boolean_fields=_boolean_fields,
-                # tokens sémantiques CSS variables (tailwind.config.js → hsl(var(--primary)))
-                primary="primary",
-                primary_hover="primary/85",
-                primary_light="primary/10",
-                primary_ring="primary",
-                # design_system non transmis par run_feature_modules → valeurs par défaut "normal"/"elevated"
-                p_cls="p-6",
-                card_cls="bg-card rounded-lg shadow-sm border border-border",
-                transition_cls="transition-colors duration-150",
+                **_tokens,
             )
         except Exception as e:
             logger.error("[detail_with_children] erreur template %s : %s", ctx.name, e)

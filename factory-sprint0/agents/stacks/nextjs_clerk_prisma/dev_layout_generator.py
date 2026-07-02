@@ -277,8 +277,9 @@ def _is_dynamic(path: str) -> bool:
     return any(seg in path for seg in ("/new", "/edit", "[", "{", "..."))
 
 
-def _nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
+def _nav_items(pages: List[Any], extra_labels: Dict[str, str] | None = None) -> List[Dict[str, Any]]:
     """Pages authentifiées → liens sidebar / AUTH_NAV topnav."""
+    extra_labels = extra_labels or {}
     seen: set[str] = set()
     items: List[Dict[str, Any]] = []
     for page in pages:
@@ -290,18 +291,18 @@ def _nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
         seen.add(path)
         parts = [p for p in path.strip("/").split("/") if p]
         if not parts:
-            # Home "/" auth_required = page d'entrée dashboard → inclure dans le nav
             label = _LABEL_OVERRIDES.get("dashboard", "Tableau de bord")
             items.append({"href": "/", "label": label, "exact": True})
             continue
-        label = _label(parts[-1])
+        label = extra_labels.get(path) or _label(parts[-1])
         items.append({"href": path, "label": label, "exact": _is_exact(path)})
     items.sort(key=lambda x: (len(x["href"].split("/")), x["href"]))
     return items
 
 
-def _public_nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
+def _public_nav_items(pages: List[Any], extra_labels: Dict[str, str] | None = None) -> List[Dict[str, Any]]:
     """Pages publiques → PUBLIC_NAV topnav (visible non-authentifiés)."""
+    extra_labels = extra_labels or {}
     seen: set[str] = set()
     items: List[Dict[str, Any]] = []
     for page in pages:
@@ -314,7 +315,7 @@ def _public_nav_items(pages: List[Any]) -> List[Dict[str, Any]]:
             continue
         seen.add(path)
         parts = [p for p in path.strip("/").split("/") if p]
-        label = _label(parts[-1]) if parts else "Accueil"
+        label = extra_labels.get(path) or (_label(parts[-1]) if parts else "Accueil")
         items.append({"href": path, "label": label, "exact": True if not parts else _is_exact(path)})
     items.sort(key=lambda x: (len(x["href"].split("/")), x["href"]))
     return items
@@ -395,9 +396,10 @@ def _generate_sidebar_layout(
     app_name: str,
     pages: List[Any],
     tokens: Dict[str, str],
+    extra_labels: Dict[str, str] | None = None,
 ) -> Dict[str, str]:
     """Génère DashboardShell.tsx + layout.tsx (sidebar)."""
-    nav = _nav_items(pages)
+    nav = _nav_items(pages, extra_labels)
     public_paths = [
         _path_of(p) for p in pages
         if not _auth_of(p) and _path_of(p) and not _path_of(p).startswith("/sign-")
@@ -436,10 +438,11 @@ def _generate_topnav_layout(
     app_name: str,
     pages: List[Any],
     tokens: Dict[str, str],
+    extra_labels: Dict[str, str] | None = None,
 ) -> Dict[str, str]:
     """Génère TopNavShell.tsx + layout.tsx (topnav)."""
-    auth_nav    = _nav_items(pages)
-    public_nav  = _public_nav_items(pages)
+    auth_nav    = _nav_items(pages, extra_labels)
+    public_nav  = _public_nav_items(pages, extra_labels)
     transition  = tokens["transition"]
 
     def _nav_line(item: Dict[str, Any]) -> str:
@@ -485,19 +488,32 @@ def generate_layout(
     project_workdir: str,
     project_name: str,
     project_spec: Dict[str, Any],
+    spec_obj: Any = None,
 ) -> Dict[str, str]:
     """
     Écrit le shell (sidebar ou topnav) + layout.tsx sur disque.
     Retourne {rel_path: content} pour intégration dans template_written.
     Lit project_spec["design_system"]["layout_type"] pour choisir le shell.
+    spec_obj : ProjectSpec objet optionnel — source de title_plurals pour labels nav localisés.
     """
-    pages: List[Any]         = project_spec.get("pages", [])
+    pages: List[Any]              = project_spec.get("pages", [])
     design_system: Dict[str, Any] = project_spec.get("design_system", {}) or {}
-    app_name   = _app_display_name(project_name)
+    app_name    = _app_display_name(project_name)
     layout_type = design_system.get("layout_type", "sidebar")
-    tokens     = _resolve_design(design_system, app_name)
+    tokens      = _resolve_design(design_system, app_name)
+
+    # Mapping path → label localisé depuis title_plurals (ex: /invoices → "Factures")
+    _title_plurals: Dict[str, str] = (
+        getattr(spec_obj, "title_plurals", None) or project_spec.get("title_plurals", {})
+    ) or {}
+    extra_labels: Dict[str, str] = {}
+    for page in pages:
+        _model = page.get("model") if isinstance(page, dict) else getattr(page, "model", None)
+        _path  = _path_of(page)
+        if _model and _path and _model in _title_plurals:
+            extra_labels[_path] = _title_plurals[_model]
 
     if layout_type == "topnav":
-        return _generate_topnav_layout(project_workdir, app_name, pages, tokens)
+        return _generate_topnav_layout(project_workdir, app_name, pages, tokens, extra_labels)
     else:
-        return _generate_sidebar_layout(project_workdir, app_name, pages, tokens)
+        return _generate_sidebar_layout(project_workdir, app_name, pages, tokens, extra_labels)

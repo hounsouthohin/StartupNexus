@@ -108,6 +108,12 @@ def _field_to_ctx(field, spec_enums: dict, enum_value_labels: dict | None = None
         # Priorité 1 : valeurs déjà résolues dans FieldInfo (enum Prisma ou String contraint)
         ev = list(field.allowed_values) if field.allowed_values else spec_enums.get(field.base_type, [])
         el = (enum_value_labels or {}).get(field.base_type, {})
+        if not ev:
+            logger.warning(
+                "[dev_form_generator] GENERATION_WARNING: champ '%s' (type=%s) → "
+                "enum-select sans valeurs. Vérifier spec_enums ou annotation sémantique.",
+                field.name, field.base_type,
+            )
     else:
         ev, el = [], {}
     return {
@@ -169,6 +175,14 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
             if ef.name == "status" and ef.input_type == "enum-select":
                 status_labels = _enum_value_labels.get(ef.base_type, {}) or {}
                 break
+    # field_enum_labels : traduction des enums non-status dans les colonnes display
+    field_enum_labels: dict[str, dict[str, str]] = {}
+    for _ef in ctx.editable_fields:
+        if _ef.name in fields and _ef.name != (status_field or "") and _ef.input_type == "enum-select":
+            _labels = _enum_value_labels.get(_ef.base_type, {})
+            if _labels:
+                field_enum_labels[_ef.name] = _labels
+
     # has_detail : vrai si une page detail est déclarée dans le spec pour ce modèle
     # Active le lien "Voir" dans la colonne Actions du tableau
     _detail_path = f"{list_path}/[id]"
@@ -209,6 +223,7 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         status_field=status_field,
         status_labels=status_labels,
         status_values=list(status_labels.keys()),
+        field_enum_labels=field_enum_labels,
         has_search=False,
         empty_state_message=empty_state_message,
         parent_relations=parent_relations or [],

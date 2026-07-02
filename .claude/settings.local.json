@@ -4,7 +4,9 @@
       "PowerShell(docker exec factory-worker bash -c \"cat '/app/generated-projects/project-hub/app/tasks/[id]/page-client.tsx'\" 2>&1)",
       "PowerShell(docker exec factory-worker python -c \"import sys; sys.path.insert\\(0,'.'\\); from scripts.brief_catalog import get_batch_projects; p = get_batch_projects\\(1\\); print\\(p[0]['project_name']\\)\" 2>&1)",
       "PowerShell(docker exec factory-worker bash -c \"ls /app/snapshots/ 2>&1 | grep event\")",
-      "PowerShell(docker exec factory-worker find /app/generated-projects/event-board -name \"globals.css\" 2>&1)"
+      "PowerShell(docker exec factory-worker find /app/generated-projects/event-board -name \"globals.css\" 2>&1)",
+      "PowerShell(docker exec factory-worker cat /app/generated-projects/personal-blog/prisma/schema.prisma)",
+      "PowerShell(python \"C:\\\\Users\\\\BAMBAR~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-BAMBARA-Arthur-Desktop-StartupNexus\\\\154f0ddf-d1c6-407f-86cc-1b42da808cb2\\\\scratchpad\\\\test_contracts.py\")"
     ]
   }
 }

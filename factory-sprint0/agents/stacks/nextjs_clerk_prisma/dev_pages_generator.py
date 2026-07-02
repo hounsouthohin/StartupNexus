@@ -289,6 +289,7 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     is_detail = page.page_type in ("detail", "detail-slug")
     is_slug_detail = page.page_type == "detail-slug"
     has_relations = ctx.has_relations if ctx is not None else _model_has_relations(model_obj)
+    _has_slug_ctx = ctx.has_slug if ctx is not None else any(f.name.lower() == "slug" for f in model_obj.fields)
 
     # Champs FK pour pages create
     fk_list: list[tuple[str, str, str]] = []
@@ -352,8 +353,7 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
 
     if is_detail:
         if is_slug_detail:
-            _has_slug_field = any(f.name.lower() == "slug" for f in model_obj.fields)
-            if _has_slug_field:
+            if _has_slug_ctx:
                 svc_method = f"getBySlugWithRelations(slug)" if has_relations else f"getBySlug(slug)"
             elif page.auth_required:
                 logger.warning(

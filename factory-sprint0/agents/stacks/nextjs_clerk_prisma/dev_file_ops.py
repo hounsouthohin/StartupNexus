@@ -83,14 +83,15 @@ def write_template_files(
             content = template_path.read_text(encoding="utf-8")
             content = content.replace("{project_name}", project_name)
             # Injecte la route principale depuis le spec.
-            # Priorité : /dashboard (hub post-auth) → première page list → "/"
+            # Priorité : /dashboard (hub post-auth) → première page list AUTH-REQUIRED → "/"
+            # Note : on filtre sur auth_required pour éviter /blog (liste publique) comme cible post-login.
             _pages = spec_dict.get("pages", []) or []
             _dashboard_page = next(
                 (p for p in _pages if isinstance(p, dict) and p.get("path") == "/dashboard"),
                 None,
             )
             _list_page = next(
-                (p for p in _pages if isinstance(p, dict) and p.get("page_type") == "list"),
+                (p for p in _pages if isinstance(p, dict) and p.get("page_type") == "list" and p.get("auth_required")),
                 None,
             )
             _main_route = (

@@ -157,6 +157,13 @@ async def generate_design_brief(
             HumanMessage(content=json.dumps(context, ensure_ascii=False)),
         ]
         response = await llm.ainvoke(messages)
+        _usage = getattr(response, "usage_metadata", {}) or {}
+        logger.info(
+            "[design_brief] tokens — input=%s output=%s total=%s",
+            _usage.get("input_tokens", "?"),
+            _usage.get("output_tokens", "?"),
+            _usage.get("total_tokens", "?"),
+        )
         brief: dict = json.loads(response.content)
     except json.JSONDecodeError as _je:
         logger.error("[design_brief] réponse non-JSON : %s", _je)

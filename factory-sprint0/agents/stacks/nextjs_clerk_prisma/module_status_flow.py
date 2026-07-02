@@ -86,6 +86,15 @@ class StatusFlowModule(FeatureModule):
         fields = ctx.display_fields[:2]
         _model_labels = ctx.ui_labels
 
+        # field_enum_labels : enums non-status dans display_fields (ex: priority)
+        _field_enum_labels: dict[str, dict[str, str]] = {}
+        for _ef in ctx.editable_fields:
+            if _ef.name in fields and _ef.name != "status" and _ef.input_type == "enum-select":
+                _lbls = _enum_value_labels.get(_ef.base_type, {})
+                if _lbls:
+                    _field_enum_labels[_ef.name] = _lbls
+        _boolean_fields = {_ef.name for _ef in ctx.editable_fields if _ef.base_type == "Boolean"}
+
         # empty_state_message depuis ux_hints (produit par le semantic annotator)
         _empty_msg = ""
         try:
@@ -111,6 +120,8 @@ class StatusFlowModule(FeatureModule):
                 status_field="status",
                 status_values=status_values,
                 status_labels=status_labels,
+                field_enum_labels=_field_enum_labels,
+                boolean_fields=_boolean_fields,
                 has_search=has_search,
                 has_slug=ctx.has_slug,
                 empty_state_message=_empty_msg,

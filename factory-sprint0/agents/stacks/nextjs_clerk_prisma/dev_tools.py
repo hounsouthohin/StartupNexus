@@ -51,6 +51,12 @@ def set_workdir(path: str | None) -> None:
     _workdir_cv.set(path)
 
 
+def _norm_rel_path(p: str) -> str:
+    """Normalise un chemin en posix relatif : supprime ./ et / préfixes, backslash → /."""
+    from pathlib import Path as _Path
+    return _Path(str(p).strip()).as_posix().lstrip("/")
+
+
 def set_protected_files(paths: list[str] | set[str] | None) -> None:
     """
     Définit la liste des fichiers protégés contre réécriture pendant un run.
@@ -60,7 +66,7 @@ def set_protected_files(paths: list[str] | set[str] | None) -> None:
         _protected_cv.set(frozenset())
         return
     _protected_cv.set(frozenset(
-        str(p).strip().replace("\\", "/").lstrip("/")
+        _norm_rel_path(p)
         for p in paths
         if str(p).strip()
     ))
@@ -90,7 +96,7 @@ def write_file(path: str, content: str) -> str:
     """
     import json as _json
     try:
-        norm_path = str(path).strip().replace("\\", "/").lstrip("/")
+        norm_path = _norm_rel_path(path)
         abs_path = _safe_path(path)
 
         # Guard 1 : fichiers protégés par template (écrits par la factory avant le LLM).
