@@ -71,6 +71,26 @@ def _parent_paths(ctx, spec) -> tuple[str, str]:
 
 # ── Générateur principal ─────────────────────────────────────────────────────
 
+def _m2m_parse_lines(schema: str, ctx, indent: str = "    ") -> list[str]:
+    """
+    Lignes TS de parsing du FormData vers le schema Zod.
+
+    Sans M2M : Object.fromEntries direct (comportement historique).
+    Avec M2M : Object.fromEntries PERD les valeurs multiples d'un <select multiple> —
+    les ids M2M sont récupérés via formData.getAll() avant le parse.
+    """
+    m2m = list(getattr(ctx, "m2m_fields", []) or []) if ctx is not None else []
+    if not m2m:
+        return [f"{indent}const validated = {schema}.parse(Object.fromEntries(formData) as Record<string, unknown>)"]
+    lines = [f"{indent}const _raw = Object.fromEntries(formData) as Record<string, unknown>"]
+    for mf in m2m:
+        lines.append(
+            f"{indent}_raw.{mf.input_name} = formData.getAll('{mf.input_name}').map(String).filter(v => v.length > 0)"
+        )
+    lines.append(f"{indent}const validated = {schema}.parse(_raw)")
+    return lines
+
+
 def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> str:
     """
     Génère le contenu complet du fichier actions.ts pour un modèle.
@@ -116,7 +136,7 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
     if is_child:
         create_body_lines = [
             "  try {",
-            f"    const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+            *_m2m_parse_lines(f"Create{name}Schema", ctx),
             f"    await {camel}Service.create(userId, validated)",
             f"    revalidatePath({create_revalidate})",
             f"    redirect({create_redirect})",
@@ -129,7 +149,7 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
     else:
         create_body_lines = [
             "  try {",
-            f"    const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+            *_m2m_parse_lines(f"Create{name}Schema", ctx),
             f"    await {camel}Service.create(userId, validated)",
             "  } catch (e) {",
             "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
@@ -160,7 +180,7 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
         "  try {",
-        f"    const validated = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+        *_m2m_parse_lines(f"Update{name}Schema", ctx),
         f"    await {camel}Service.update(userId, id, validated)",
         "  } catch (e) {",
         "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
@@ -331,7 +351,7 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
         "  try {",
-        f"    const validated = Create{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+        *_m2m_parse_lines(f"Create{name}Schema", ctx),
         f"    await {camel}Service.create(userId, validated)",
         "  } catch (e) {",
         "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
@@ -345,7 +365,7 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
         "  try {",
-        f"    const validated = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+        *_m2m_parse_lines(f"Update{name}Schema", ctx),
         f"    await {camel}Service.update(userId, id, validated)",
         "  } catch (e) {",
         "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",

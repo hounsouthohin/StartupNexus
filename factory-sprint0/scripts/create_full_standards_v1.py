@@ -4419,6 +4419,94 @@ BAD:
 
 
 # =============================================================================
+# ZONE 32 — CMS / TYPE D-COMPLET (Sprint 5 — Juil 2026)
+# Territoire LLM : pages custom publiques (home, landing) + affichage M2M/contenu.
+# Les mécaniques M2M (connect/set, multi-select) et SEO (sitemap/robots/generateMetadata
+# des detail-slug) sont DÉTERMINISTES — ces standards protègent le territoire LLM adjacent.
+# =============================================================================
+
+ZONE_32_CMS = [
+    _s("32-cms", "pages", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Relations many-to-many (tags) — affichage dans les pages custom via optional chaining + map
+RAISON: SerializedXxx déclare les relations M2M en tableau OPTIONNEL (tags?: {...}[]). Elles ne sont chargées que par getAllWithRelations/getByIdWithRelations/getBySlugWithRelations. Accéder à item.tags.map sans fallback → TS18048 ou crash runtime si la relation n'est pas incluse.
+EXEMPLE_VALIDE:
+  const posts = await postService.getAllWithRelations(userId)
+  {(post.tags ?? []).map(tag => (
+    <span key={tag.id} className="inline-flex px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary">
+      {tag.name}
+    </span>
+  ))}
+EXEMPLE_INVALIDE:
+  const posts = await postService.getAll(userId)  // ← tags absents du résultat
+  {post.tags.map(tag => ...)}  // ← TS18048 : tags possiblement undefined
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("32-cms", "pages", """ACTION: INTERDIT
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Fichiers SEO pré-générés — app/sitemap.ts et app/robots.ts sont déterministes, NE JAMAIS les recréer
+RAISON: Le pipeline génère sitemap.ts (routes publiques + slugs dynamiques via getPublicAll) et robots.ts (disallow des routes auth). Les recréer écrase la version correcte. Le generateMetadata des pages detail-slug publiques est aussi pré-généré dans leur page.tsx.
+EXEMPLE_VALIDE:
+  // Pour une page custom PUBLIQUE (home, landing), ajouter uniquement un metadata statique :
+  import type { Metadata } from 'next'
+  export const metadata: Metadata = {
+    title: 'Mon Blog — Accueil',
+    description: 'Articles et actualités.',
+  }
+EXEMPLE_INVALIDE:
+  // write_file('app/sitemap.ts', ...)  ← fichier protégé, déjà généré
+  // write_file('app/robots.ts', ...)   ← fichier protégé, déjà généré
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("32-cms", "pages", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Draft/publish — les pages publiques reçoivent du contenu DÉJÀ filtré par le service, ne pas re-filtrer
+RAISON: getPublicAll() filtre côté base (published: true ou status enum publié). Re-filtrer côté client (posts.filter(p => p.published)) est inutile et casse quand le champ n'est pas exposé dans SerializedXxx. Inversement, une page privée dashboard qui veut TOUT montrer (drafts inclus) utilise getAll(userId), jamais getPublicAll().
+EXEMPLE_VALIDE:
+  // page publique
+  const posts = await postService.getPublicAll()   // déjà filtré publié
+  // page privée (drafts + publiés)
+  const all = await postService.getAll(userId)
+EXEMPLE_INVALIDE:
+  const posts = (await postService.getPublicAll()).filter(p => p.published)  // re-filtre inutile
+  const drafts = await postService.getPublicAll()  // ← ne contiendra JAMAIS les drafts
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("32-cms", "pages", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Contenu long (content/body) — affichage public en prose avec whitespace-pre-wrap
+RAISON: Le champ content d'un article est du texte multi-paragraphes. Sans whitespace-pre-wrap, les sauts de ligne disparaissent et l'article devient un bloc illisible. Ne jamais utiliser dangerouslySetInnerHTML sur du contenu texte (XSS + inutile).
+EXEMPLE_VALIDE:
+  <div className="max-w-2xl mx-auto">
+    <p className="text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
+  </div>
+EXEMPLE_INVALIDE:
+  <div dangerouslySetInnerHTML={{ __html: post.content }} />  // XSS si contenu non contrôlé
+  <p>{post.content}</p>  // sauts de ligne perdus
+STATUS: active
+VERSION: 1.0"""),
+
+    _s("32-cms", "pages", """ACTION: OBLIGATOIRE
+STACK: nextjs-clerk-prisma
+TECHNOLOGIE: Multi-select M2M dans les formulaires — pré-généré en groupe de checkboxes name="xxxIds", ne pas réinventer
+RAISON: Les formulaires create/edit des modèles M2M sont des templates déterministes : groupe de checkboxes name="tagIds" + Server Action qui lit formData.getAll('tagIds'). Un <select multiple> combiné à Object.fromEntries PERD toutes les valeurs sauf la dernière. Si une page custom doit proposer une sélection multiple, utiliser le même pattern checkbox + formData.getAll.
+EXEMPLE_VALIDE:
+  {tagOptions.map(opt => (
+    <label key={opt.id}><input type="checkbox" name="tagIds" value={opt.id} /> {opt.name}</label>
+  ))}
+  // côté action (pré-générée) : formData.getAll('tagIds')
+EXEMPLE_INVALIDE:
+  <select multiple name="tagIds">...</select>
+  // + Object.fromEntries(formData) → une seule valeur conservée, sélection silencieusement perdue
+STATUS: active
+VERSION: 1.0"""),
+]
+
+
+# =============================================================================
 # ZONE HARD RULES — Standards issus de enrich_qdrant.py
 # =============================================================================
 
@@ -4821,6 +4909,7 @@ ALL_STANDARDS = (
     + _zone_inactive(ZONE_28_CONNECTION_POOLING)  # lib/prisma.ts = Level A
     + ZONE_30_HEALTHCHECK          # actif : webhooks /api/health pré-générés (Level B)
     + ZONE_31_LEVEL_B_PAGES        # actif : useActionState, public pages, empty state, Link pattern
+    + ZONE_32_CMS                  # actif : Sprint 5 Type D — M2M affichage, SEO protégé, draft/publish, contenu long
     + ZONE_HARD_RULES              # actif : Clerk, Prisma7, auth guard — patterns transversaux
     + _zone_inactive(ZONE_UI_PAGE_CLIENT)  # inactif Sprint 4.7 — page-client.tsx CRUD = Level A (dev_form_generator)
     + ZONE_ARCHITECT_PAGES_DETAIL  # Mai 2026 — pages_detail structurel (agent_context=architect)

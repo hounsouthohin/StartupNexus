@@ -1,6 +1,6 @@
 # ROADMAP — SOFTWARE AGENT FACTORY
-## Version 3.8 — Mise à jour 18 Juin 2026
-## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9) · v3.6 (06 Juin — FrontendActivity 3 couches) · v3.7 (06 Juin — FrontendAgent ReAct planifié) · v3.8 (18 Juin — FrontendAgent ANNULÉ ; design intégré dans pipeline déterministe ; Plan6 committé ; Sprint 4.9 reséquencé : 4.9A supprimé, 4.9C devient première priorité)
+## Version 3.9 — Mise à jour 6 Juillet 2026
+## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9) · v3.6 (06 Juin — FrontendActivity 3 couches) · v3.7 (06 Juin — FrontendAgent ReAct planifié) · v3.8 (18 Juin — FrontendAgent ANNULÉ ; design intégré dans pipeline déterministe ; Plan6 committé ; Sprint 4.9 reséquencé) · **v3.9 (06 Juil — Priorité EXPANSION : sprints 5-10 reséquencés selon typeApps.md v2.0 (D→I→K→H→G→E→B), règle des 4 lots, D25-D28 réglées, 3/3 BUILD_SUCCESS writer-pad/freelance-tracker/sprint-board, 4.9C reste disponible en parallèle à la demande)**
 
 ---
 
@@ -77,15 +77,19 @@ Un build_success sans frontend décent ni validation visuelle n'est pas un livra
 
 ---
 
-## ÉTAT ACTUEL — 18 Juin 2026 (Niveau 1 stable, perfectionnement moteur en cours)
+## ÉTAT ACTUEL — 6 Juillet 2026 (Niveau 1 stable — PHASE EXPANSION ENGAGÉE)
 
 ### Acquis confirmés
 
 **Pipeline Temporal complet :**
 `architect_activity → dev_test_activity → review_activity → correction_pass_activity → qa_activity → learner_activity`
-*(github_activity en PAUSE volontaire — condition de réactivation : Sprint 5D)*
+*(github_activity en PAUSE volontaire — condition de réactivation : Sprint 9C)*
 
 **Build stable :** Type A validé sur project-hub, task-manager, leave-manager, learn-hub, recipe-manager, expense-tracker, app-simple (7/7 BUILD_SUCCESS). Type D (personal-blog) : BUILD_SUCCESS. event-board (pages publiques/privées mixtes) : BUILD_SUCCESS validé.
+
+**Runs Juillet 2026 (3/3 BUILD_SUCCESS) :** writer-pad (Type D : slug, public/privé, dual-nav), freelance-tracker (FK chain 3 niveaux), sprint-board (3 enums multi-enum). Fixes qualité appliqués : enum labels dans badges/colonnes, nav labels localisés (title_plurals), boolean exclu des pages publiques, D25-D28 réglées.
+
+**Référence expansion : typeApps.md v2.0 (6 Juil 2026)** — états L1-L16 vérifiés dans le code, chemin D→I→K→H→G→E→B, règle des 4 lots.
 
 **Plan6 committé (10 Juin 2026) :**
 - **A1** — `dev_actions_generator.py` : `return { error }` → `throw new Error()` dans catch (erreurs formulaires visibles)
@@ -570,90 +574,125 @@ Playwright Python (host) · Tailwind theme tokens · VisualSpec architect · Neo
 
 ---
 
-## SPRINT 5 — Mode Replay + Type D Blog/CMS
-## Deadline : Juillet–Août 2026 | STATUT : Planifié
+## SPRINT 5 — Type D-complet : Blog/CMS *(80% déjà fait — writer-pad)*
+## Deadline : Juillet 2026 | STATUT : PROCHAIN — priorité expansion (v3.9)
 
-**Condition GitHub agent :** Level A stable sur ≥10 runs consécutifs.
+**Règle des 4 lots (typeApps.md v2.0 §3.5)** : chaque expansion livre Squelette + Connaissance + Design + Garde-fous, puis une passe de cohérence (rules_dev / CONTEXT_QUERIES / capabilities string / standards).
 
-### 5A — Mode Replay
-Comparer run N (échoué) vs run N-1 (réussi) : fichiers générés (diff), standards RAG (IDs Qdrant), décisions LLM.
-
-### 5B — Standards Maintenance Agent
-Pattern récurrent (N ≥ 3) → web search ALLOWLIST → LLM génère standard → Mode Replay valide → validation humaine → Qdrant.
-
-### 5C — Compatibility Matrix dynamique
-```json
-{"next": "14.2.25", "clerk": "6.x", "prisma": "7.x"} → "validated"
-```
-
-### 5D — Expansion Type D : Blog / CMS
-| Générateur | Contenu |
+### Lot 1 — Squelette
+| Livrable | Contenu |
 |-----------|---------|
-| `dev_seo_generator.py` | `<meta>` tags, `og:image`, `sitemap.xml` |
-| Template `rich_textarea.tsx.j2` | Textarea enrichi pour champ `content` |
+| `dev_seo_generator.py` | `generateMetadata()` par page publique, `og:image`, `sitemap.xml`, `robots.txt` |
+| M2M dans service_modules | Détection `Tag[]` sans @relation → include dans getAllWithRelations + connect dans create |
+| Template `rich_textarea.tsx.j2` | Textarea enrichi pour champ `content` long |
 
-Nouveaux standards Qdrant (~6) : SEO metadata, content field, category/tag, draft/publish lifecycle, slug routing, getPublished() pagination.
+### Lot 2 — Connaissance
+~6 standards Qdrant : SEO metadata, draft/publish lifecycle, M2M tags, content field. Architect : déjà à jour (editorial, slug_routing, public_pages connus).
 
-**Signal architect Type D :** "blog", "article", "post", "publication" → `has_slug: true` + `status` draft/published.
+### Lot 3 — Design : rien (preset editorial + layout hero existants)
+### Lot 4 — Garde-fous : rien de nouveau (checks publics existants)
 
-**Signal clôture :** `is_useful_app: true` sur personal-blog re-run post-générateurs.
+**Brief de validation :** blog avec tags M2M, SEO, draft/publié, contenu long.
+**Signal clôture :** BUILD_SUCCESS + sitemap.xml présent + tags fonctionnels + `is_useful_app: true`.
+
+*(Reportés en flux secondaire : 5A Mode Replay · 5B Standards Maintenance Agent · 5C Compatibility Matrix — non bloquants pour l'expansion.)*
 
 ---
 
-## SPRINT 6 — Type G Booking + GitHub agent
-## Deadline : Août–Septembre 2026 | STATUT : Planifié
+## SPRINT 6 — Type I : Workflow / Approbation *(quasi débloqué)*
+## Deadline : Août 2026 | STATUT : Planifié
 
-**Condition d'entrée :** Type A ≥5 runs · Type D ≥2 runs · review_activity validé.
+**Pourquoi avant G et K (v3.9)** : L8 (enums) et L6 (filtrage statut) déjà résolus dans le code ; le semantic_annotator extrait déjà les status-enum « dans l'ordre logique du workflow ». Seul le cœur FSM manque.
 
-### 6A — Type G : Booking / Réservation
-| Générateur | Contenu |
+### Lot 1 — Squelette
+| Livrable | Contenu |
 |-----------|---------|
-| `dev_booking_generator.py` | Slot model, queries conflit, booking FSM |
-| Template `calendar_picker.tsx.j2` | Date/time picker |
+| `service_modules/transition.py` | `transitionTo(userId, id, newStatus)` — refuse les transitions illégales |
+| `project_spec.py` | Champ `status_transitions: dict` (ex: `{"draft": ["submitted"], "submitted": ["approved", "rejected"]}`) |
+| Template détail | Boutons de transition (état courant → actions légales uniquement) |
 
-Standards Qdrant (~10) : conflit créneaux, état machine, timezone, politique annulation, disponibilités récurrentes.
+### Lot 2 — Connaissance
+- semantic_annotator : annoter les transitions légales (extension status-enum existant)
+- domain_interpreter : few-shot congés (soumis → approuvé/rejeté)
+- ~8 standards Qdrant (FSM pattern, anti-update-direct, audit trail)
+- CONTEXT_QUERY `workflow-pages` dans dev_prompts.py
 
-### 6B — GitHub agent réactivation
-Repo `factory-generated-apps` · branche par projet · PR avec run_report en description.
+### Lot 3 — Design : rien (conventions badges pending/approved/rejected déjà dans design_brief)
+### Lot 4 — Garde-fous
+- Check reviewer Layer 1 : « update direct du champ status hors transitionTo »
+- Entrée `if_transitions` dans SERVICE_METHOD_REGISTRY (propagation auto architect + enricher)
 
----
-
-## SPRINT 7 — Type I Workflow/Approval + Level B Fondations
-## Deadline : Septembre–Octobre 2026 | STATUT : Planifié
-
-### 7A — Type I : Workflow / Approbation
-`dev_fsm_generator.py` : FSM configurable, transitions légales uniquement.
-Standards Qdrant (~8) : FSM pattern, notification triggers, audit trail, parallel approvals.
-
-### 7B — Level B Fondations
-```python
-organizations: bool = False
-roles: list[str] = []
-```
-`dev_membership_generator.py` → membership.service.ts + permissions.ts + orgId injection.
+**Brief de validation :** demandes de congé — employé soumet, manager approuve/rejette.
+**Signal clôture :** transition illégale refusée par le service + boutons UI corrects + `is_useful_app: true`.
 
 ---
 
-## SPRINT 8 — Level B Multi-tenant Complet + RBAC
+## SPRINT 7 — Type K : Multi-Role / RBAC
+## Deadline : Septembre 2026 | STATUT : Planifié
+
+**Le vrai chantier Lot 2 de la série** : le concept « rôle » est absent des 8 niveaux du pipeline. Clerk `publicMetadata.role` — pas de modèle Prisma Role. L'invariant single-tenant n'est PAS violé (admin = lecteur privilégié, pas second propriétaire).
+
+### Lot 1 — Squelette
+| Livrable | Contenu |
+|-----------|---------|
+| `dev_rbac_generator.py` | Guards rôle dans Server Actions + `getAllAsAdmin()` |
+| Middleware template | Routes /admin/* vs routes user |
+| `dev_layout_generator.py` | Nav conditionnelle par rôle |
+| `project_spec.py` | Champ `roles: list[str]` |
+
+### Lot 2 — Connaissance *(dominant)*
+- Few-shots admin/portail dans domain_interpreter ET page_planner (pattern /admin/*)
+- Standards LK1-LK4 · règle rules_dev « page admin vérifie le rôle » · CONTEXT_QUERY `admin-pages`
+- brief_guide.md : nuancer « un seul acteur » → un seul propriétaire de données, plusieurs niveaux de lecture
+
+### Lot 3 — Design : nav_icons admin dans design_brief
+### Lot 4 — Garde-fous **(OBLIGATOIRE avant le 1er run)**
+- Check reviewer : « page /admin sans vérification de rôle » — faille sécurité silencieuse sinon
+
+**Brief de validation :** SaaS admin+user — admin voit tout, user voit ses données.
+**Signal clôture :** reviewer 0 finding rôle + nav différenciée + `is_useful_app: true`.
+
+---
+
+## SPRINT 8 — Type H : Dashboard / Analytics *(le plus agentique)*
 ## Deadline : Octobre 2026 | STATUT : Planifié
 
-Stack `nextjs-clerk-orgs-prisma` complète · RBAC Guards dans templates · Dashboard Gouvernance (http://localhost:3001).
+### Lot 1 — Squelette
+| Livrable | Contenu |
+|-----------|---------|
+| `service_modules/aggregation.py` | count/sum/avg/groupBy selon annotation `analytics` |
+| StatCard enrichi + pagination getAll | L4 + composant métrique |
 
-**Signal :** ≥1 run Notion/Slack clone avec `is_useful_app: true` · RBAC vérifié par reviewer.
+### Lot 2 — Connaissance
+- ⚠ **RÉÉCRIRE rules_dev.md règle 12** (« agrégations = getAll + calcul TS ») — contradiction directe avec AggregationModule sinon (piège cohérence identifié 6 Juil)
+- Annotation `kpis` dans semantic_annotator · standards charts/recharts · CONTEXT_QUERY `analytics-pages`
+
+### Lot 3 — Design : archétype chart_type par entité dans design_brief + recharts au package template
+### Lot 4 — Garde-fous : entrée `if_analytics` registre + check N+1 dashboards
+
+**Brief de validation :** dashboard commercial — CA du mois, taux de conversion, chart d'évolution.
+**Signal clôture :** agrégations exécutées en DB (pas getAll+filter) + recharts rendu + `is_useful_app: true`.
 
 ---
 
-## SPRINT 9 — Stripe + Type E/H + Stack Versioning
+## SPRINT 9 — Type G Booking + Type E E-commerce (début)
 ## Deadline : Novembre 2026 | STATUT : Planifié
 
-`dev_billing_generator.py` (Stripe subscription + webhook) · `dev_cart_generator.py` · `dev_dashboard_generator.py` (aggregation queries + chart endpoints) · Stack versioning avec Compatibility Matrix.
+### 9A — Type G : Booking *(réutilise la FSM du Sprint 6)*
+`dev_booking_generator.py` (conflits de créneaux, disponibilités) · `calendar_picker.tsx.j2` + module CalendarView (le signal `calendar_view` existe dans le catalogue features — aucun module ne l'implémente aujourd'hui) · standards timezone/annulation (~10).
+
+### 9B — Type E fondations : L10 Decimal (`_serialize` + toNumber) · L15 $transaction (`createWithItems`)
+
+### 9C — GitHub agent réactivation (condition : Level A stable ≥10 runs)
 
 ---
 
-## SPRINT 10 — Level C Marketplace + Stack 2 + Production Ready
+## SPRINT 10 — Type E complet (Stripe) + Type F Social + Level B préparation
 ## Deadline : Décembre 2026 | STATUT : Planifié
 
-Stack `nextjs-marketplace-prisma` (two-actor BUYER/SELLER) · Stack 2 `vue-fastapi-sqlalchemy` · Playwright E2E sur URL Vercel · Démo 50 projets (80% `is_production_ready: true`).
+`dev_billing_generator.py` (Stripe + webhooks) · `dev_cart_generator.py` · Type F (feed, M2M hérité de D, compteurs hérités de H) · Préparation B : plan de casse de l'invariant single-tenant (touche domain_interpreter + ProjectSpec + tous les service_modules + reviewer — batterie de non-régression A→H obligatoire).
+
+*(Type B complet, C Marketplace, J Fichiers, Stack 2 : 2027 — après validation des 8 types fondamentaux.)*
 
 ---
 
@@ -662,21 +701,29 @@ Stack `nextjs-marketplace-prisma` (two-actor BUYER/SELLER) · Stack 2 `vue-fasta
 | Type | Nom | Generators manquants | Standards requis | Signal architect | Sprint |
 |------|-----|---------------------|-----------------|-----------------|--------|
 | **A** | CRUD SaaS | ✅ Complet | ✅ 116 actifs | — | ✅ 4.7 |
-| **D** | Blog/CMS | `dev_seo_generator.py`, `rich_textarea.j2` | ~6 (SEO, content, draft/publish) | "blog", "article", "post" | 5 |
-| **G** | Booking | `dev_booking_generator.py`, `calendar_picker.j2` | ~10 (slots, FSM, timezone) | "réservation", "créneau" | 6 |
-| **I** | Workflow | `dev_fsm_generator.py`, `notification_model.j2` | ~8 (FSM, audit trail) | "approbation", "workflow" | 7 |
-| **B** | Multi-tenant | `dev_membership_generator.py`, stack `nextjs-clerk-orgs` | ~12 (tenant isolation, RBAC) | "organisation", "workspace" | 7–8 |
-| **H** | Dashboard | `dev_dashboard_generator.py` | ~6 (groupBy, chart endpoints) | "analytique", "dashboard" | 9 |
-| **E** | E-commerce | `dev_billing_generator.py`, `dev_cart_generator.py` | ~15 (Stripe, checkout) | "boutique", "paiement" | 9 |
-| **F** | Social | many-to-many, real-time module | ~10 (follows, feeds) | "réseau", "posts", "like" | 10+ |
-| **C** | Marketplace | nécessite B + E | ~20 (escrow, listing lifecycle) | "acheteur", "vendeur" | 10 |
-| **J** | File Mgmt | `dev_storage_generator.py` | ~8 (upload, permissions) | "fichier", "document", "upload" | 10+ |
+| **D** | Blog/CMS *(80% fait)* | `dev_seo_generator.py`, M2M service, `rich_textarea.j2` | ~6 (SEO, draft/publish, M2M) | ✅ déjà connus (editorial/slug/public) | 5 |
+| **I** | Workflow | `service_modules/transition.py` (FSM) | ~8 (FSM, anti-update-direct, audit) | status-enum ordre workflow ✅ + transitions à annoter | 6 |
+| **K** | RBAC | `dev_rbac_generator.py`, middleware rôles, nav conditionnelle | ~4 (LK1-LK4) + règle rules_dev | "admin", "manager", "portail" — few-shots À CRÉER | 7 |
+| **H** | Dashboard | `service_modules/aggregation.py`, StatCard, pagination | ~6 (groupBy, recharts) + **réécrire règle 12** | annotation `kpis` à créer | 8 |
+| **G** | Booking | `dev_booking_generator.py`, CalendarView (signal existe, module absent) | ~10 (slots, timezone) | "réservation", "créneau" — catalogue ✅ | 9 |
+| **E** | E-commerce | Decimal + $transaction + `dev_billing/cart_generator.py` | ~15 (Stripe, checkout) | "boutique", "paiement" | 9–10 |
+| **F** | Social | hérite M2M (D) + compteurs (H) + feed paginé | ~10 (follows, feeds) | "réseau", "posts", "like" | 10 |
+| **B** | Multi-tenant ⚠ | casse invariant single-tenant (domain_interpreter) | ~12 (tenant isolation) | "organisation", "workspace" | 2027 |
+| **C** | Marketplace | nécessite D + E + B | ~20 (escrow, listing lifecycle) | "acheteur", "vendeur" | 2027 |
+| **J** | File Mgmt | `dev_storage_generator.py` + intégration S3/R2 | ~8 (upload, permissions) | "fichier", "document", "upload" | 2027 |
 
-**Règle d'expansion (PRINCIPE 7) :**
+**Règle d'expansion v3.9 (PRINCIPE 7 + règle des 4 lots — typeApps.md v2.0 §3.5) :**
 ```
-Nouveau type → identifier colonne vertébrale déterministe → encoder en générateur
-→ écrire standards Qdrant → enseigner signaux à l'architect → LLM garde uniquement le custom
+Nouveau type → LOT 1 Squelette (modules + templates + ProjectSpec + flags contexte)
+             → LOT 2 Connaissance (few-shots architect + annotator + standards + CONTEXT_QUERY
+                                   + MISE À JOUR rules_dev — jamais juste ajout)
+             → LOT 3 Design (archétypes design_brief + presets)
+             → LOT 4 Garde-fous (check reviewer L1 + SERVICE_METHOD_REGISTRY)
+             → PASSE DE COHÉRENCE (aucune instruction ancienne ne contredit la nouvelle capacité)
+             → RUN DE VALIDATION (brief de test typeApps.md §7) avant le type suivant
 ```
+Mécanisme d'auto-propagation : toute méthode ajoutée au SERVICE_METHOD_REGISTRY est
+automatiquement connue de l'architect (capabilities string) et validée par le spec_enricher.
 
 ---
 
@@ -728,16 +775,16 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | ~~Juillet 2026~~ | ~~**4.9B**~~ | ~~FrontendAgent ProjectSpec~~ | ~~frontend différencié par domaine~~ | ❌ ANNULÉ |
 | Juin 2026 | **Design système intégré** | 7 presets domaine + CSS vars + shadcn dans pipeline | apps avec couleurs/fonts/density par domaine | ✅ |
 | Juin 2026 | **Plan6 A1-A6** | Fixes déterministes : delete, navigation, IDOR, datasource | validation en cours sur nouveaux runs | ✅ commité / ⏳ validé |
-| Juillet 2026 | **D25-D28 (immédiat)** | Fixes templates : H1 statique, __esModule, checkbox, post-auth | 4 lignes de code, 0 LLM | ⏳ |
+| ~~Juillet 2026~~ | **D25-D28 (immédiat)** | Fixes templates : H1 statique, __esModule, checkbox, post-auth | 4 fixes indépendants | ✅ 06 Juil 2026 |
 | Juillet 2026 | **D23-D24** | Private list cards + layout_hint LLM | variation structurelle par domaine | ⏳ |
-| Juillet 2026 | **4.9C** | QA visuel (la scène) — Playwright host | `qa_score ≥ 0.8`, vidéos Windows | ⏳ |
-| Juillet 2026 | **4.9D–E** | Correction agentique depuis QA + Production deploy (Vercel+Neon+Clerk) | URL Vercel livrée, DY3/7 résolus | ⏳ |
-| Juil–Août 2026 | 5 | Mode Replay + Standards Web + Type D | `is_useful_app: true` personal-blog | ⏳ |
-| Août–Sept 2026 | 6 | Type G Booking + GitHub réactivé | `is_useful_app: true` booking brief | ⏳ |
-| Sept–Oct 2026 | 7 | Type I Workflow + Level B fondations | `is_useful_app: true` approval brief | ⏳ |
-| Octobre 2026 | 8 | Level B complet + RBAC + Dashboard | Notion clone `is_useful_app: true` | ⏳ |
-| Novembre 2026 | 9 | Stripe + Type E/H + Stack versioning | E-commerce `is_useful_app: true` | ⏳ |
-| Décembre 2026 | 10 | Type C Marketplace + Stack 2 + Démo 50 | 50 projets déployés, 80% score≥70 | ⏳ |
+| À la demande | **4.9C–E** | QA visuel (la scène) + correction QA + Deploy — **en parallèle de l'expansion, non bloquant** | `qa_score ≥ 0.8`, URL Vercel | ⏳ |
+| Juillet 2026 | **5** | Type D-complet (SEO + M2M + rich textarea) | `is_useful_app: true` blog+tags | ⏳ PROCHAIN |
+| Août 2026 | **6** | Type I Workflow (TransitionModule FSM) | transition illégale refusée + `is_useful_app: true` | ⏳ |
+| Septembre 2026 | **7** | Type K RBAC (guards rôle + nav conditionnelle) | reviewer 0 finding rôle | ⏳ |
+| Octobre 2026 | **8** | Type H Dashboard (AggregationModule + recharts) | agrégations en DB + charts rendus | ⏳ |
+| Novembre 2026 | **9** | Type G Booking + Type E fondations (Decimal, $transaction) | `is_useful_app: true` booking brief | ⏳ |
+| Décembre 2026 | **10** | Type E complet (Stripe) + Type F + préparation B | e-commerce `is_useful_app: true` | ⏳ |
+| 2027 | 11+ | Type B multi-tenant + C Marketplace + J + Stack 2 + Démo 50 | 50 projets déployés, 80% score≥70 | ⏳ |
 
 ---
 
@@ -821,6 +868,8 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | **Juin 2026** | **FrontendAgent ReAct (4.9A v3.7) ANNULÉ — design intégré dans pipeline déterministe** | **Raison : coût LLM non justifié, contexte dev préservé, design_resolver + CSS vars suffisants pour variation par domaine. Limitation acceptée : structure identique (sidebar, tables).** |
 | **10 Juin 2026** | **Plan6 — Refactorisation majeure (Blocs A–D)** | **6 bug fixes déterministes (A1-A6), Type K RBAC dans typeApps, service_modules/ assembler, architect décomposé (domain_interpreter + page_planner + spec_enricher).** |
 | **Juin 2026** | **Design system intégré dans dev_graph (Sprint 4.9A replacement)** | **design_resolver (7 presets) → dev_design_system_generator (CSS vars + shadcn) → dev_layout_generator (DashboardShell) → dev_form_generator (tokens sémantiques). Limitation D23 : pas de variant cards pour listes privées.** |
+| **06 Juil 2026** | **Priorité EXPANSION avant la Scène (4.9C) — sprints 5-10 reséquencés D→I→K→H→G→E→B** | **Lecture complète 8-niveaux : L3/L5/L6/L8/L14 déjà résolues dans le code (typeApps.md v1.0 obsolète). Type I quasi débloqué (semantic_annotator extrait déjà l'ordre workflow). Type K = concept rôle absent partout (chantier Lot 2). 4.9C reste disponible à la demande, non bloquant.** |
+| **06 Juil 2026** | **Règle des 4 lots pour toute expansion (typeApps.md v2.0 §3.5)** | **Squelette + Connaissance + Design + Garde-fous, jamais l'un sans les autres + passe de cohérence. Piège identifié : rules_dev règle 12 (« agrégations = getAll + calcul TS ») contredirait l'AggregationModule du Type H si non réécrite — toute expansion inclut la mise à jour des instructions existantes, pas seulement l'ajout.** |
 
 ---
 

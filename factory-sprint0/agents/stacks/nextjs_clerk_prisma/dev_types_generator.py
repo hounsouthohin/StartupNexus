@@ -160,8 +160,14 @@ def generate_types_file(
         # Direction A : Omit<Prisma.XxxUncheckedCreateInput, auto_fields>
         # → type toujours aligné sur ce que Prisma attend, y compris les enums stricts.
         # UncheckedCreateInput est un plain TS interface → Omit fonctionne correctement.
+        # M2M : le champ relation (tags) est retiré du Create — remplacé par
+        # {related}Ids?: string[] (le service traduit en connect/set).
+        _m2m_list = list(ctx.m2m_fields) if ctx is not None else []
+        _m2m_omit = {mf.name for mf in _m2m_list}
+        _omit_ts_full = " | ".join(f"'{fn}'" for fn in sorted(_omit_set | _m2m_omit))
+        _m2m_ext = "".join(f" & {{ {mf.input_name}?: string[] }}" for mf in _m2m_list)
         lines.append(f"// Types d'entrée pour {model.name}")
-        lines.append(f"export type {create_type_name} = Omit<Prisma.{model.name}UncheckedCreateInput, {_omit_ts}>")
+        lines.append(f"export type {create_type_name} = Omit<Prisma.{model.name}UncheckedCreateInput, {_omit_ts_full}>{_m2m_ext}")
         lines.append(f"export type {update_type_name} = Partial<{create_type_name}>")
         lines.append("")
 

@@ -472,6 +472,37 @@ class ProjectSpec(BaseModel):
                             f"  {_inv_name} {_m.name}[]"
                         )
 
+        # Guard P1012 (bis) : many-to-many implicite déclaré d'un seul côté.
+        # Prisma exige les DEUX côtés en tableau (Post.tags Tag[] ↔ Tag.posts Post[]).
+        # Un champ tableau vers un modèle SANS FK inverse est un M2M implicite —
+        # si le côté opposé manque, on l'injecte.
+        _model_by_name = {m.name: m for m in self.models}
+        for _m in self.models:
+            for _f in _m.fields:
+                if "[]" not in _f.type or "@relation" in (_f.attributes or ""):
+                    continue
+                _target_name = _f.type.rstrip("?").rstrip("[]")
+                _target = _model_by_name.get(_target_name)
+                if _target is None:
+                    continue
+                # FK inverse chez le cible → côté inverse d'un 1-N, pas un M2M
+                _has_fk_back = any(
+                    _tf.name.endswith("Id") and _tf.name != "id"
+                    and (_tf.name[:-2][0].upper() + _tf.name[:-2][1:] if _tf.name[:-2] else "") == _m.name
+                    for _tf in _target.fields
+                )
+                if _has_fk_back:
+                    continue
+                if _m.name in _existing_array_types.get(_target_name, set()):
+                    continue  # côté inverse déjà déclaré
+                _key = (_target_name, _m.name)
+                if _key not in _injected:
+                    _injected.add(_key)
+                    _inv_name = _m.name[0].lower() + _m.name[1:] + "s"
+                    _inverse_to_inject.setdefault(_target_name, []).append(
+                        f"  {_inv_name} {_m.name}[]"
+                    )
+
         for model in self.models:
             lines.append(f"model {model.name} {{")
             _field_names = {f.name.lower() for f in model.fields}

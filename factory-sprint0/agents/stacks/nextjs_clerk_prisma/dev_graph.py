@@ -404,6 +404,19 @@ async def run_dev_agent(
         except Exception as _pg_err:
             logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
 
+    # ── Génération déterministe : SEO (sitemap.ts + robots.ts) ────────────────
+    # Sprint 5 (Type D-complet) — uniquement si l'app a des pages publiques.
+    # Le generateMetadata des pages detail-slug publiques est émis par _gen_page_full.
+    if spec_obj is not None:
+        try:
+            from .dev_seo_generator import generate_seo_files
+            _seo_files = generate_seo_files(spec_obj, _model_contexts or {}, project_workdir)
+            template_written.update(_seo_files)
+            if _seo_files:
+                logger.info("[dev_graph] %d fichiers SEO générés : %s", len(_seo_files), list(_seo_files.keys()))
+        except Exception as _seo_err:
+            logger.warning(f"[dev_graph] seo generator non bloquant : {_seo_err}")
+
     # ── Génération déterministe : page-client.tsx (Level A) ──────────────────
     # Tous les page-client.tsx CRUD standard sont maintenant déterministes :
     # list (table Tailwind), create (form + FK selects), edit (form + defaultValues), detail.

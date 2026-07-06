@@ -97,6 +97,20 @@ class RelationFieldInfo:
     is_array: bool
 
 
+@dataclass(frozen=True)
+class M2MFieldInfo:
+    """
+    Relation many-to-many implicite Prisma (ex: `tags Tag[]` sans @relation,
+    où Tag n'a PAS de FK vers ce modèle — sinon ce serait le côté inverse d'un 1-N).
+    input_name : nom du champ formulaire/Zod portant les ids sélectionnés (ex: "tagIds").
+    """
+    name: str            # "tags" — nom du champ relation sur le modèle
+    related_model: str   # "Tag"
+    related_camel: str   # "tag"
+    related_kebab: str   # "tag"
+    input_name: str      # "tagIds"
+
+
 # ── Contexte principal ────────────────────────────────────────────────────────
 
 @dataclass
@@ -137,6 +151,11 @@ class ModelGenerationContext:
     # relation_fields : champs @relation pour include:{} de getAllWithRelations().
     relation_fields: list[RelationFieldInfo]
 
+    # m2m_fields : relations many-to-many implicites (Post.tags Tag[] ↔ Tag.posts Post[]).
+    #   Sous-ensemble de relation_fields (is_array=True, sans FK inverse chez le related).
+    #   Portent la sélection multiple dans les formulaires (connect/set dans le service).
+    m2m_fields: list[M2MFieldInfo]
+
     # display_fields : jusqu'à 4 champs scalaires affichables dans les listes UI.
     display_fields: list[str]
 
@@ -145,6 +164,7 @@ class ModelGenerationContext:
     has_status: bool          # modèle a un champ "status" → badge coloré + getPublished()
     has_published_bool: bool  # modèle a un champ "Boolean published" → filtre getPublicAll()
     has_relations: bool       # au moins un @relation → active getAllWithRelations()
+    has_m2m: bool             # au moins une relation many-to-many implicite → multi-select + connect
 
     # ── Contexte pages (nécessite spec) ───────────────────────────────────────
     # has_public_pages : au moins une page auth=False avec model=ce modèle.
@@ -310,6 +330,53 @@ def _resolve_fk_fields(model, model_names: set[str], owner: str) -> list[FKField
     return result
 
 
+def _model_has_fk_to(candidate_model, target_name: str, model_names: set[str]) -> bool:
+    """True si candidate_model a un champ FK (xxxId) résolvant vers target_name."""
+    for f in candidate_model.fields:
+        if not f.name.endswith("Id") or f.name == "id":
+            continue
+        base = f.name[:-2]
+        related = base[0].upper() + base[1:] if base else ""
+        if related == target_name:
+            return True
+        # Fallback suffix (même logique que _resolve_fk_fields) : "Category" → "RecipeCategory"
+        if related not in model_names and target_name.endswith(related) and related:
+            return True
+    return False
+
+
+def _resolve_m2m_fields(model, spec, model_names: set[str], spec_enums: dict) -> list[M2MFieldInfo]:
+    """
+    Détecte les relations many-to-many implicites Prisma.
+
+    Critère : champ tableau (`Tag[]`) dont le type est un modèle connu ET dont le
+    modèle cible n'a PAS de FK vers ce modèle. Si le cible a une FK (Comment.postId),
+    le champ tableau est le côté inverse d'un 1-N — pas un M2M.
+    """
+    result: list[M2MFieldInfo] = []
+    all_models = {m.name: m for m in spec.models}
+    for f in model.fields:
+        if "[]" not in f.type:
+            continue
+        base = f.type.rstrip("?").rstrip("[]")
+        if base in _PRISMA_SCALAR_TYPES or base in spec_enums:
+            continue  # tableau scalaire ou enum — pas une relation
+        related = all_models.get(base)
+        if related is None:
+            continue
+        if _model_has_fk_to(related, model.name, model_names):
+            continue  # côté inverse d'un 1-N — géré par relation_fields/ChildModule
+        related_camel = _pascal_to_camel(base)
+        result.append(M2MFieldInfo(
+            name=f.name,
+            related_model=base,
+            related_camel=related_camel,
+            related_kebab=_pascal_to_kebab(base),
+            input_name=f"{related_camel}Ids",
+        ))
+    return result
+
+
 def _resolve_display_fields(
     model,
     owner: str,
@@ -354,6 +421,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
 
     fk_fields = _resolve_fk_fields(model, model_names, owner)
     fk_field_names = {fk.field_name for fk in fk_fields}
+    m2m_fields = _resolve_m2m_fields(model, spec, model_names, spec_enums)
 
     editable: list[FieldInfo] = []
     datetime_fields: list[DatetimeFieldInfo] = []
@@ -454,11 +522,13 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         fk_fields=fk_fields,
         datetime_fields=datetime_fields,
         relation_fields=relation_fields,
+        m2m_fields=m2m_fields,
         display_fields=_resolve_display_fields(model, owner, frozenset(model_names), spec_enums=spec_enums),
         has_slug=has_slug,
         has_status=has_status,
         has_published_bool=has_published_bool,
         has_relations=bool(relation_fields),
+        has_m2m=bool(m2m_fields),
         has_public_pages=has_public_pages,
         has_public_list=has_public_list,
         has_public_detail=has_public_detail,

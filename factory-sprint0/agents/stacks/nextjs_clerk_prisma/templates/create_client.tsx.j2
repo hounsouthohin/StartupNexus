@@ -3,17 +3,17 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { create{{ name }} } from '{{ actions_import }}'
-{% for fk in fk_fields %}
-import type { Serialized{{ fk.related_model }} } from '@/lib/types'
+{% for tm in option_type_imports %}
+import type { Serialized{{ tm }} } from '@/lib/types'
 {% endfor %}
 
-{% if fk_fields %}
+{% if fk_props %}
 interface {{ client_name }}Props {
   {{ fk_props }}
 }
 {% endif %}
 
-export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure }} }: {{ client_name }}Props{% endif %}) {
+export default function {{ client_name }}({% if fk_props %}{ {{ fk_destructure }} }: {{ client_name }}Props{% endif %}) {
   const [error, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       try { await create{{ name }}(formData); return null }
@@ -41,7 +41,7 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
           <textarea
             id="{{ field.name }}"
             name="{{ field.name }}"
-            rows={4}
+            rows={{ '{' }}{{ 12 if field.name in ('content', 'body') else 4 }}}
             {% if not field.is_optional and not field.has_default %}required{% endif %}
             className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
@@ -93,6 +93,27 @@ export default function {{ client_name }}({% if fk_fields %}{ {{ fk_destructure 
               <option key={opt.id} value={opt.id}>{String(opt.{{ fk.related_display }} ?? opt.id)}</option>
             ))}
           </select>
+        </div>
+        {% endfor %}
+
+        {% for mf in m2m_fields %}
+        <div>
+          <span className="block text-sm font-medium text-foreground mb-1">{{ mf.label }}</span>
+          <div className="max-h-40 overflow-y-auto border border-border rounded-md p-3 space-y-2">
+            {{ '{' }}{{ mf.related_camel }}Options.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun élément disponible.</p>
+            ) : {{ mf.related_camel }}Options.map(opt => (
+              <label key={opt.id} className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  name="{{ mf.input_name }}"
+                  value={opt.id}
+                  className="h-4 w-4 text-{{ primary }} border-border rounded"
+                />
+                <span>{String(opt.{{ mf.related_display }} ?? opt.id)}</span>
+              </label>
+            ))}
+          </div>
         </div>
         {% endfor %}
 

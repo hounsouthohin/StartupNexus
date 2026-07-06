@@ -29,6 +29,27 @@ class SlugModule(ServiceMethodModule):
         else:
             _pub_filter = ""
 
+        # M2M : getBySlugOwned charge les relations pour préselection dans le form edit
+        # (SerializedXxx déclare les relations en optionnel — rétrocompatible).
+        if getattr(ctx, "has_m2m", False) and ctx.relation_fields:
+            _owned_sel = build_rel_select(ctx, all_contexts)
+            _owned_map = dt_map_with_relations(ctx, all_contexts)
+            _owned_lines = [
+                f"  getBySlugOwned: async ({owner}: string, slug: string): Promise<{serialized}> => {{",
+                f"    const item = await prisma.{camel}.findFirst({{ where: {{ slug, {owner} }}, select: {{ {_owned_sel} }} }})",
+                "    if (!item) notFound()",
+                f"    return ({_owned_map})(item) as {serialized}",
+                "  },",
+            ]
+        else:
+            _owned_lines = [
+                f"  getBySlugOwned: async ({owner}: string, slug: string): Promise<{serialized}> => {{",
+                f"    const item = await prisma.{camel}.findFirst({{ where: {{ slug, {owner} }} }})",
+                "    if (!item) notFound()",
+                "    return _serialize(item)",
+                "  },",
+            ]
+
         lines: list[str] = [
             "",
             f"  getBySlug: async (slug: string): Promise<{serialized}> => {{",
@@ -37,11 +58,7 @@ class SlugModule(ServiceMethodModule):
             "    return _serialize(item)",
             "  },",
             "",
-            f"  getBySlugOwned: async ({owner}: string, slug: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findFirst({{ where: {{ slug, {owner} }} }})",
-            "    if (!item) notFound()",
-            "    return _serialize(item)",
-            "  },",
+            *_owned_lines,
         ]
 
         if ctx.relation_fields:

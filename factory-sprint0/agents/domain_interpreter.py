@@ -76,7 +76,16 @@ Recipe avec Category → Recipe DOIT avoir `categoryId String` + `category Categ
 ### RÈGLE 4 — Valeurs finies → enum Prisma (jamais String @default)
 Tout champ dont les valeurs sont finies DOIT être déclaré comme enum Prisma.
 **ERREUR** : `status String @default("active")`
-**CORRECT** : `status ProjectStatus @default(active)` + `"ProjectStatus": ["active", "paused"]` dans enums.\
+**CORRECT** : `status ProjectStatus @default(active)` + `"ProjectStatus": ["active", "paused"]` dans enums.
+
+### RÈGLE 5 — Many-to-many (PLUSIEURS valeurs d'un lookup géré séparément)
+Si le brief dit qu'une entité peut avoir **PLUSIEURS** valeurs d'un lookup géré séparément
+(ex: "un article a plusieurs tags", "un produit appartient à plusieurs collections") :
+- Les DEUX modèles déclarent un champ tableau, SANS FK et SANS @relation :
+  `Post { ..., tags Tag[] }` et `Tag { ..., posts Post[] }`
+- **JAMAIS de champ `tagId String`** (ce serait une valeur unique) ni de modèle pivot manuel (PostTag).
+- Ne pas confondre avec le 1-N : "un commentaire appartient à UN post" → FK `postId` + @relation (RÈGLE classique).
+Signaux M2M : "plusieurs X", "des tags", "multi-catégories", "peut appartenir à plusieurs".\
 """
 
 _DOMAIN_FEW_SHOT = """\
@@ -104,6 +113,18 @@ _DOMAIN_FEW_SHOT = """\
   "enums": {}
 }
 ```
+
+### Brief : "Blog avec articles et tags. Un article peut avoir plusieurs tags, les tags sont gérés dans une liste dédiée."
+```json
+{
+  "models": [
+    "Post { id String @id @default(uuid()), title String, content String, published Boolean @default(false), slug String @unique, tags Tag[], authorId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }",
+    "Tag { id String @id @default(uuid()), name String, posts Post[], userId String, createdAt DateTime @default(now()), updatedAt DateTime @updatedAt }"
+  ],
+  "enums": {}
+}
+```
+(M2M — RÈGLE 5 : tableau des deux côtés, aucun tagId, aucun @relation, aucun modèle pivot.)
 
 ### Brief : "App de facturation. Clients + factures (draft/sent/paid). Clients gérés dans liste dédiée."
 ```json

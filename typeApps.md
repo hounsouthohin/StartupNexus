@@ -1,21 +1,25 @@
+# Software Agent Factory — Carte de graduation des applications
+## Version 2.0 — Mise à jour 6 Juillet 2026 (post-lecture complète 8 niveaux)
+## Historique : v1.0 (Mai 2026) · v2.0 (6 Juil 2026 — états L1-L16 vérifiés dans le code, chemin de graduation recalculé, règle des 4 lots)
+
+---
+
 ###### FRONTEND
 
 Niveau frontend par type d'app
-Type	Qui voit l'app	Niveau frontend nécessaire
-A	Le propriétaire (lui seul)	Shell propre + tables lisibles + formulaires corrects. Rien de plus.
-D	L'auteur (privé) + les visiteurs (public)	Premier type où la qualité visuelle compte — le public voit le résultat
-G	Clients + staff	Shell + CalendarView — la vue calendrier est le cœur de l'app
-I	Employés + managers	Shell + StatusFlow (filtres, badges d'approbation)
-E	Acheteurs (public)	Grille produits, pages publiques polished
-H	Analysts internes	Charts (recharts) — StatCards avancées
-F	Utilisateurs grand public	Feed, profils — UX grand public
-K	Admin + utilisateurs	Nav conditionnelle par rôle, guards visuels
-B+	Équipes	Workspace selector, navigation complexe
+| Type | Qui voit l'app | Niveau frontend nécessaire |
+|---|---|---|
+| A | Le propriétaire (lui seul) | Shell propre + tables lisibles + formulaires corrects. Rien de plus. |
+| D | L'auteur (privé) + les visiteurs (public) | Premier type où la qualité visuelle compte — le public voit le résultat |
+| I | Employés + managers | Shell + StatusFlow (filtres, badges d'approbation, boutons de transition) |
+| K | Admin + utilisateurs | Nav conditionnelle par rôle, guards visuels |
+| H | Analysts internes | Charts (recharts) — StatCards avancées |
+| G | Clients + staff | Shell + CalendarView — la vue calendrier est le cœur de l'app |
+| E | Acheteurs (public) | Grille produits, pages publiques polished |
+| F | Utilisateurs grand public | Feed, profils — UX grand public |
+| B+ | Équipes | Workspace selector, navigation complexe |
 
-
-
-
-# Software Agent Factory — Carte de graduation des applications
+---
 
 ## 1. Types d'applications cibles (stack nextjs-clerk-prisma)
 
@@ -35,485 +39,223 @@ B+	Équipes	Workspace selector, navigation complexe
 
 ---
 
-## 2. État actuel — Type A validé (Mai 2026)
+## 2. État actuel — Juillet 2026
 
-### Ce que la factory sait faire aujourd'hui
+### Type A — VALIDÉ ✅
+7+ projets BUILD_SUCCESS (project-hub, task-manager, leave-manager, learn-hub, recipe-manager, expense-tracker, app-simple) + 3 runs récents 3/3 (writer-pad, freelance-tracker, sprint-board).
 
-- **3 modèles Prisma** avec relations parent-enfant (FK simple)
-- **4 pages** : 2 listes + 2 formulaires de création, toutes protégées par Clerk
-- **Services DAL** : getAll(userId), getById(userId, id), create(userId, data), update(userId, id, data), delete(userId, id)
-- **Server Actions** : auth() + guard + service call + revalidatePath — générés par template (zéro variance LLM)
-- **Sécurité** : double contrainte `where: { id, userId }` sur update/delete — vérifiée par le reviewer agent
-- **Entités enfant** : userId obligatoire sur tous les modèles, même les enfants (fix Mai 2026)
+### Type D — À 80% ✅ (writer-pad, Juillet 2026)
+writer-pad prouve : pages publiques + privées mixtes, slug routing, published Boolean, dual-nav (TopNavShell public / DashboardShell privé), design preset editorial. **Restent : SEO, many-to-many (tags), rich textarea.**
 
-### Validé sur
-
-| Projet | Entités | Reviewer verdict |
-|---|---|---|
-| project-hub | Project, Task, Comment | COHERENT sec=100 après correction |
-| contact-crm | Company, Contact, Interaction | COHERENT sec=100 après correction |
-| leave-manager | Department, Employee, LeaveRequest | COHERENT sec=100 après correction |
-| invoice-tracker | Client, Invoice, InvoiceItem | COHERENT sec=100 après correction (bug child entity fixé) |
-
-### Limites résiduelles connues du Type A
-
-- `tests_passed: false` — les tests Jest ne sont pas encore fonctionnels (non bloquant pour le build)
-- `user_flows_covered: 2/5` — le Journey Validator ne couvre que les flows create/delete, pas les flows de lecture
-- Reviewer corrige systématiquement ~3 IDOR au premier passage (services générés sans userId dans where) — acceptable car reviewer les corrige, mais idéalement à réduire à 0
+### Capacités transverses acquises depuis la v1.0
+- 3 enums Prisma sur un même modèle (sprint-board) + labels traduits (enum_value_labels → badges + selects)
+- FK chains 3 niveaux avec detail_with_children (freelance-tracker : Client → Project → Invoice)
+- Design system déterministe : 7 presets domaine + CSS variables + shadcn/ui
+- Design Brief LLM (icônes/badges/layouts par entité) + Page Enricher TSC-guardé
+- Reviewer deux couches (Layer 1 déterministe IDOR/CROSS_USER/AUTH + Layer 2 LLM sémantique)
+- Plan-and-Execute dev LLM : contexte par fichier (context_hint + pages_detail + page contracts + RAG par rôle + example anchoring)
 
 ---
 
-## 3. Chemin de graduation recommandé
+## 3. Chemin de graduation — RECALCULÉ (Juillet 2026)
 
 ```
-A (validé) → D (prochain test) → K → G → I → E → H → F → B → C → J
+A (validé) → D-complet → I → K → H → G → E → F → B → C → J
 ```
 
-Chaque flèche = une ou deux limitations à corriger avant de passer au type suivant.
+**Pourquoi ce nouvel ordre (ancien : A→D→K→G→I) :** la lecture du code (6 Juil 2026) montre que les
+limitations bloquantes déclarées pour I (L8 enums, L6 filtrage) sont **déjà résolues**, tandis que K
+introduit un concept (rôle) absent des 8 niveaux du pipeline, et G exige la logique métier temporelle
+la plus lourde (conflits de créneaux + CalendarView inexistante). L'ordre suit la complexité IA
+croissante : D ≈ 0% de travail prompt, I ≈ 20%, K ≈ 40%, H ≈ 50%.
+
+---
+
+## 3.5. RÈGLE DES 4 LOTS — obligatoire pour toute expansion
+
+Une expansion n'est PAS un générateur. Chaque nouveau type livre **4 lots synchronisés** —
+jamais l'un sans les autres :
+
+| Lot | Contenu | Fichiers types |
+|---|---|---|
+| **1 — Squelette** | Modules service/feature + templates Jinja2 + champs ProjectSpec + flags ModelGenerationContext | `service_modules/*.py`, `feature_modules/*.py`, `templates/*.j2`, `project_spec.py`, `dev_model_context.py` |
+| **2 — Connaissance** | Few-shots architect (domain_interpreter + page_planner) + annotations semantic_annotator + standards Qdrant + CONTEXT_QUERY + **mise à jour** (pas juste ajout) de rules_dev.md | `domain_interpreter.py`, `page_planner.py`, `architect.py`, `create_full_standards_v1.py`, `dev_prompts.py`, `rules_dev.md` |
+| **3 — Design** | Archétypes design_brief (icônes/layouts du type) + preset si nouveau domaine | `dev_design_brief.py`, `design_presets.json` |
+| **4 — Garde-fous** | Check reviewer Layer 1 + entrée SERVICE_METHOD_REGISTRY (propage auto vers architect + spec_enricher) | `reviewer.py`, `service_modules/__init__.py` |
+
+**Passe de cohérence finale obligatoire** : relire rules_dev.md + CONTEXT_QUERIES +
+build_factory_capabilities_string + standards Qdrant → aucune instruction ancienne ne doit
+contredire la nouvelle capacité. Exemple de piège réel : rules_dev.md règle 12 dit
+« agrégations = getAll + calcul TypeScript » — contradiction directe avec le futur
+AggregationModule du Type H si non réécrite.
+
+**Mécanisme d'auto-propagation (à exploiter)** : toute méthode ajoutée dans
+`SERVICE_METHOD_REGISTRY` est automatiquement connue de l'architect
+(via build_factory_capabilities_string) et validée par le spec_enricher — zéro modification
+de prompt architecte nécessaire pour les méthodes de service.
 
 ---
 
 ## 4. Carte détaillée par type
 
-### Type D — Blog / CMS
-**Nouveauté critique :** Routes à visibilité mixte — certaines pages sont publiques (auth=false), d'autres privées (auth=true)
+### Phase 2 — Type D-complet : Blog / CMS *(80% fait)*
+**Nouveauté critique :** SEO + relations many-to-many (tags).
 
-Limitations à corriger :
-| Limite | Description | Priorité |
+État des limitations :
+| Limite | Description | État |
 |---|---|---|
-| **L3** | Services sans filtre userId pour les modèles publics | 🔴 Bloquant |
-| **L14** | Pas de getBySlug (URLs /posts/mon-titre) | 🟠 Important |
-| **L11** | Many-to-many ignoré (Post ↔ Tag) | 🟠 Important |
-| **L8** | Enums → string (DRAFT/PUBLISHED/ARCHIVED) | 🟡 Qualité |
-| **L5** | Pas de tri par createdAt DESC | 🟡 UX |
+| L3 | Services sans filtre userId pour modèles publics | ✅ RÉSOLU (PublicModule) |
+| L14 | getBySlug | ✅ RÉSOLU (SlugModule) |
+| L8 | Enums → string | ✅ RÉSOLU (spec.enums + z.enum + enum-select) |
+| L5 | Tri par createdAt DESC | ✅ RÉSOLU (orderBy dans getPublished/getPublicAll) |
+| **L11** | **Many-to-many ignoré (Post ↔ Tag)** | ❌ À faire |
+| **SEO** | **metadata, og:image, sitemap.xml** | ❌ À faire (dev_seo_generator) |
 
-Quand D est validé, la factory peut générer : blogs, portfolios, sites de documentation, wikis internes.
+4 lots :
+- **Lot 1** : `dev_seo_generator.py` (metadata + sitemap), extension relations M2M dans service_modules, template `rich_textarea` pour champ content
+- **Lot 2** : ~6 standards (SEO metadata, draft/publish lifecycle, M2M tags) — architect connaît déjà editorial/slug/public
+- **Lot 3** : rien (preset editorial + layout hero existants)
+- **Lot 4** : rien de nouveau (checks publics existants)
+
+**Débloque :** blogs complets, portfolios avec tags, documentation, wikis.
 
 ---
 
-### Type K — Multi-Role / RBAC
-**Nouveauté critique :** Plusieurs rôles utilisateurs dans la même app via Clerk `publicMetadata.role` — les routes, les services et la navigation varient selon le rôle
+### Phase 3 — Type I : Workflow / Approbation *(quasi débloqué)*
+**Nouveauté critique :** machine à états (FSM) — transitions de statut légales uniquement.
 
-Limitations à corriger :
-| Limite | Description | Priorité |
+État des limitations :
+| Limite | Description | État |
 |---|---|---|
-| **LK1** | Middleware Clerk ne porte qu'un seul niveau d'auth — aucune logique de rôle dans `middleware.ts` | 🔴 Bloquant |
-| **LK2** | Services sans filtre par rôle — admin et user voient les mêmes données, pas de `where: { role: ... }` ni de méthode `getAsAdmin()` | 🔴 Bloquant |
-| **LK3** | Nav sidebar fixe — aucune branche selon le rôle de l'utilisateur connecté | 🟠 Important |
-| **LK4** | Pas de flow de création/assignation de rôle dans les Server Actions (ex. `promoteToAdmin(userId)`) | 🟠 Important |
+| L8 | Enums | ✅ RÉSOLU |
+| L6 | Filtrage par statut | ✅ RÉSOLU (module_status_flow) |
+| **FSM** | **Aucune validation de transition — update direct du status possible** | ❌ Le cœur du type |
 
-Note : Les rôles Clerk vivent dans `publicMetadata` — pas de modèle Prisma `Role`. Lire le rôle = `(await currentUser())?.publicMetadata.role`. Les guards sont dans les Server Actions, pas dans le middleware (qui reste stateless).
+4 lots :
+- **Lot 1** : `service_modules/transition.py` (TransitionModule → `transitionTo(userId, id, newStatus)` avec table des transitions légales), champ `status_transitions` dans ProjectSpec, boutons de transition dans template détail
+- **Lot 2** : semantic_annotator annote les transitions légales (extension du status-enum qui extrait déjà l'ordre workflow), few-shot congés dans domain_interpreter, ~8 standards (FSM pattern, anti-update-direct), CONTEXT_QUERY `workflow-pages`
+- **Lot 3** : rien (conventions badges pending/approved/rejected déjà dans design_brief)
+- **Lot 4** : check reviewer « update direct du champ status hors transitionTo » + entrée registre `if_transitions`
 
-Quand K est validé, la factory peut générer : admin + portail utilisateur, manager + employé, content editor + reader.
+**Débloque :** workflows RH, validation de commandes, review de contenu, approbations.
 
 ---
 
-### Type G — Booking / Calendrier
-**Nouveauté critique :** Logique métier sur les DateTime (créneaux, disponibilités, conflits)
+### Phase 4 — Type K : Multi-Role / RBAC
+**Nouveauté critique :** rôles via Clerk `publicMetadata.role` — routes, services et navigation varient selon le rôle. Concept absent des 8 niveaux aujourd'hui → vrai chantier de connaissance (Lot 2 dominant).
 
-Limitations à corriger :
-| Limite | Description | Priorité |
+| Limite | Description | État |
 |---|---|---|
-| **L5** | Pas de tri par date | 🔴 Bloquant |
-| **L6** | Pas de filtrage par statut/date | 🔴 Bloquant |
-| **L8** | Enums (PENDING/CONFIRMED/CANCELLED) | 🟠 Important |
+| LK1 | Aucune logique de rôle dans middleware.ts | ❌ |
+| LK2 | Pas de getAllAsAdmin() ni guard rôle dans les services/actions | ❌ |
+| LK3 | Nav sidebar fixe, aucune branche par rôle | ❌ |
+| LK4 | Pas de flow d'assignation de rôle | ❌ |
 
-Quand G est validé, la factory peut générer : outils de prise de RDV, plannings, systèmes de réservation simple.
+4 lots :
+- **Lot 1** : `dev_rbac_generator.py` (guards rôle dans Server Actions + getAllAsAdmin), extension middleware template, nav conditionnelle dans layout generator, champ `roles: []` dans ProjectSpec
+- **Lot 2** : **le plus gros lot** — few-shots admin/portail dans domain_interpreter ET page_planner (pattern /admin/*), standards LK1-LK4, règle rules_dev « page admin vérifie le rôle », CONTEXT_QUERY `admin-pages`, nuance brief_guide (un seul propriétaire de données, plusieurs niveaux de lecture)
+- **Lot 3** : nav_icons admin dans design_brief
+- **Lot 4** : **OBLIGATOIRE avant le 1er run** — check reviewer « page /admin sans vérification de rôle » (faille sécurité sinon silencieuse)
+
+Note : l'invariant single-tenant (userId sur tous les modèles) n'est PAS violé par K — l'admin
+est un lecteur privilégié, pas un second propriétaire. C'est B qui casse l'invariant, pas K.
+
+**Débloque :** admin + portail utilisateur, manager + employé, éditeur + lecteur.
 
 ---
 
-### Type I — Workflow / Approbation
-**Nouveauté critique :** Transitions de statut multi-étapes avec règles métier
+### Phase 5 — Type H : Dashboard / Analytics *(le type le plus agentique)*
+**Nouveauté critique :** agrégations Prisma (count, sum, avg, groupBy) + composition visuelle libre (recharts).
 
-Limitations à corriger :
-| Limite | Description | Priorité |
+| Limite | Description | État |
 |---|---|---|
-| **L8** | Enums (PENDING/APPROVED/REJECTED) | 🔴 Bloquant |
-| **L6** | Filtrage par statut | 🔴 Bloquant |
+| L13 | Pas de méthodes d'agrégation | ❌ Bloquant (type entier) |
+| L4 | Pas de pagination | ❌ (partiel : getPublished paginé) |
+| L12 | Json → unknown | ❌ |
 
-Note : leave-manager couvre déjà une grande partie de ce type — I est le plus proche de A après D.
+4 lots :
+- **Lot 1** : `service_modules/aggregation.py` (count/sum/avg/groupBy selon annotation `analytics`), StatCard enrichi, pagination getAll
+- **Lot 2** : ⚠ **RÉÉCRIRE rules_dev règle 12** (contradiction sinon), annotation `kpis` dans semantic_annotator, standards charts/recharts, CONTEXT_QUERY `analytics-pages`
+- **Lot 3** : archétype chart_type par entité dans design_brief + recharts dans package template
+- **Lot 4** : entrée registre `if_analytics` + check N+1 sur les pages dashboard
 
-Quand I est validé, la factory peut générer : workflows RH, processus de validation, systèmes d'approbation.
+**Débloque :** tableaux de bord de métriques, reporting, analytics internes.
 
 ---
 
-### Type E — E-commerce
-**Nouveauté critique :** Catalogue public + transactions atomiques + montants Decimal
+### Phase 6 — Type G : Booking / Calendrier
+**Nouveauté critique :** logique métier temporelle (conflits de créneaux, disponibilités) + CalendarView (composant UI inexistant). Réutilise la FSM du Type I (pending → confirmed → cancelled).
 
-Limitations à corriger :
-| Limite | Description | Priorité |
+| Limite | Description | État |
 |---|---|---|
-| **L3** | Catalogue produits public (pas de userId sur listing) | 🔴 Bloquant |
-| **L10** | Decimal non sérialisé (prix, montants) | 🔴 Bloquant |
-| **L15** | Create atomique (Order + OrderItems via $transaction) | 🔴 Bloquant |
-| **L4** | Pas de pagination (catalogue de 1000+ produits) | 🟠 Important |
-| **L14** | Pas de getBySlug (URLs produits) | 🟠 Important |
-| **L9** | Soft delete ignoré (commandes annulées) | 🟡 Qualité |
+| L5/L6 | Tri + filtrage par date | ✅/partiel |
+| Conflits | Détection de chevauchement de créneaux | ❌ Nouveau territoire métier |
+| CalendarView | Vue calendrier | ❌ Signal `calendar_view` déclaré dans le catalogue features mais AUCUN module ne l'implémente |
 
-Quand E est validé, la factory peut générer : boutiques en ligne simples, catalogues, systèmes de commande.
+**Débloque :** prise de RDV, plannings, réservations.
 
 ---
 
-### Type H — Dashboard / Analytics
-**Nouveauté critique :** Requêtes d'agrégation (count, sum, avg, groupBy)
+### Phase 7 — Type E : E-commerce
+3 chantiers indépendants : L10 (Decimal non sérialisé), L15 ($transaction Order+Items), Stripe (intégration externe + webhooks). Réutilise D (catalogue public + slug) et H (agrégations totaux).
 
-Limitations à corriger :
-| Limite | Description | Priorité |
-|---|---|---|
-| **L13** | Pas de méthodes d'agrégation Prisma | 🔴 Bloquant (type H entier) |
-| **L4** | Pas de pagination | 🔴 Bloquant |
-| **L12** | Json → unknown (metadata, event data) | 🟠 Important |
+### Phase 8 — Type F : Social
+L11 (M2M — hérité de D-complet), L4 (pagination feed — héritée de H), compteurs (L13 — hérités de H).
 
-Quand H est validé, la factory peut générer : tableaux de bord de métriques, outils de reporting, analytics internes.
+### Phase 9 — Type B : Multi-tenant ⚠ SAUT ARCHITECTURAL
+L2 : owner = userId **hardcodé dans l'invariant du domain_interpreter** (« TOUS les modèles DOIVENT avoir userId String »). Casser cet invariant touche le prompt architect, le ProjectSpec, tous les service_modules et le reviewer. À faire en DERNIER des types fondamentaux, avec une batterie de tests de non-régression sur les types A→H.
 
----
-
-### Type F — Social / Communauté
-**Nouveauté critique :** Relations many-to-many (follows, likes) et feed paginé
-
-Limitations à corriger :
-| Limite | Description | Priorité |
-|---|---|---|
-| **L11** | Many-to-many ignoré | 🔴 Bloquant |
-| **L4** | Pagination (feed infini) | 🔴 Bloquant |
-| **L5** | Tri chronologique inversé | 🔴 Bloquant |
-| **L13** | Compteurs (likes, followers) | 🟠 Important |
-
-Quand F est validé, la factory peut générer : fils d'actualité, systèmes de commentaires, communautés légères.
+### Phase 10 — Types C (Marketplace = D+E+B) et J (Fichiers = intégration S3/R2 externe)
 
 ---
 
-### Type B — Multi-tenant SaaS
-**Nouveauté critique :** Ownership par organisation (workspaceId) plutôt que par userId individuel
+## 5. Tableau de synthèse — phases
 
-Limitations à corriger :
-| Limite | Description | Priorité |
-|---|---|---|
-| **L2** | Owner = userId hardcodé — ne supporte pas organizationId | 🔴 Bloquant (architecture complète) |
-| **L7** | Relations à 1 niveau (workspace → channels → messages nécessite 2 niveaux) | 🔴 Bloquant |
-| **L15** | Create atomique (workspace + member owner) | 🔴 Bloquant |
-
-Note : B est le plus gros saut architectural — L2 implique de revoir le ProjectSpec, le générateur de services, et les Server Actions.
-
----
-
-### Type C — Marketplace / Platform
-**Nouveauté critique :** Deux types d'utilisateurs (vendeur/acheteur) avec ownership dual
-
-Dépend de : D (routes publiques) + E (catalogue + commandes) + B (multi-ownership)
-C'est la combinaison la plus complexe — à traiter en dernier.
+| Phase | Type | Travail restant | Part IA du travail | Apps débloquées |
+|---|---|---|---|---|
+| 1 ✅ | A | — | — | CRM, HR, billing, gestion |
+| 2 | **D-complet** | SEO + M2M + rich textarea | ~0% | blogs, CMS, portfolios, wikis |
+| 3 | **I** | TransitionModule + transitions annotées | ~20% | approbations, workflows RH |
+| 4 | **K** | RBAC generator + few-shots admin | ~40% | admin+portail, manager+employé |
+| 5 | **H** | AggregationModule + réécriture règle 12 | ~50% | dashboards, reporting |
+| 6 | G | Conflits créneaux + CalendarView | ~30% | booking, plannings |
+| 7 | E | Decimal + $transaction + Stripe | ~30% | boutiques |
+| 8 | F | Feed + compteurs (hérite D+H) | ~30% | communautés |
+| 9 | B | Casser invariant single-tenant | ~60% | multi-tenant SaaS |
+| 10 | C, J | Combinaisons + intégrations externes | — | marketplaces, GED |
 
 ---
 
-### Type J — Gestion de fichiers / Documents
-**Nouveauté critique :** Upload de fichiers vers un service externe (S3/Cloudflare R2), métadonnées, permissions
+## 6. Audit des limites déterministes (états vérifiés dans le code — 6 Juil 2026)
 
-Limitations à corriger :
-| Limite | Description | Priorité |
-|---|---|---|
-| **L12** | Json → unknown (métadonnées fichiers) | 🟠 Important |
-| **L9** | Soft delete (versioning — fichier archivé, pas supprimé) | 🟠 Important |
-| Intégration externe | Upload S3/R2 — hors scope générateur actuel | 🔴 Nouveau territoire |
-
-Note : J nécessite une intégration externe que le générateur ne gère pas du tout aujourd'hui.
-
----
-
-## 5. Tableau de synthèse — Limitations à corriger par phase
-
-| Phase | Type | Limitations clés | Apps débloquées |
+| # | Limite | État | Preuve code |
 |---|---|---|---|
-| Phase 1 ✅ | A | L1, L16 (fixes faits), child entity userId | project-hub, CRM, HR, billing |
-| Phase 2 | **D** | **L3, L14, L11, L8, L5** | blogs, CMS, portfolios, wikis |
-| Phase 2.5 | **K** | **LK1, LK2, LK3, LK4** | admin + portail, manager + employé |
-| Phase 3 | G + I | L5, L6, L8 | booking, RH, approval workflows |
-| Phase 4 | E | L3, L10, L15, L4, L14 | e-commerce, boutiques |
-| Phase 5 | H | L13, L4, L12 | dashboards, analytics |
-| Phase 6 | F | L11, L4, L5, L13 | social, communautés |
-| Phase 7 | B | L2, L7, L15 | multi-tenant SaaS |
-| Phase 8 | C | D + E + B | marketplaces |
-| Phase 9 | J | L9, L12 + intégration externe | gestion de fichiers |
+| L1 | Omit<PrismaType> Prisma 7 | ✅ Corrigé Sprint 2 | dev_types_generator énumère les champs |
+| L2 | Owner = userId hardcodé | ❌ Phase 9 (B) | invariant domain_interpreter + _resolve_owner |
+| L3 | Modèles publics | ✅ RÉSOLU | PublicModule (getPublicAll/getPublicById) + has_public_pages |
+| L4 | Pagination | ⚠ Partiel | getPublished paginé ; getAll non — Phase 5 |
+| L5 | Tri | ✅ RÉSOLU | orderBy createdAt desc dans les modules publics |
+| L6 | Filtrage par statut | ✅ RÉSOLU | module_status_flow (filtre client) + required_queries |
+| L7 | Relations 1 niveau | ⚠ Partiel | getByIdWithRelations 1 niveau — suffisant jusqu'à E |
+| L8 | Enums → string | ✅ RÉSOLU | spec.enums → z.enum + enum-select + enum_value_labels |
+| L9 | Soft delete | ❌ Phase 7+ | _AUTO_FIELDS exclut deletedAt mais aucun where deletedAt:null |
+| L10 | Decimal non sérialisé | ❌ Phase 7 (E) | _serialize ne touche que DateTime |
+| L11 | Many-to-many | ❌ Phase 2 (D-complet) | is_array → skip dans editable_fields |
+| L12 | Json → unknown | ❌ Phase 5+ | _PRISMA_TO_TS mappe Json → unknown |
+| L13 | Agrégations | ❌ Phase 5 (H) | aucun module aggregate |
+| L14 | getBySlug | ✅ RÉSOLU | SlugModule (3 méthodes : getBySlug, getBySlugOwned, getBySlugWithRelations) |
+| L15 | Create atomique $transaction | ❌ Phase 7 (E) | un seul prisma.create par module |
+| L16 | Actions 100% LLM | ✅ Corrigé Sprint 4 | dev_actions_generator déterministe |
+| LK1-4 | RBAC | ❌ Phase 4 (K) | le mot « role » absent de tous les générateurs |
+| FSM | Transitions non validées | ❌ Phase 3 (I) | update() accepte n'importe quel status |
 
 ---
 
-## 6. Audit des limites déterministes (détail technique)
-
-### L1 — Omit<PrismaType, K> ne fonctionne pas avec Prisma 7
-Fichier : `dev_types_generator.py` ligne 208
-
-Impact : `SerializedXxx = { createdAt: string }` seulement — id, content, tous les autres champs manquants
-
-Apps bloquées : TOUS — bloque le BUILD dès qu'un modèle a un champ DateTime
-
-Fix : Générer un type explicite en énumérant tous les champs scalaires ✅ **Corrigé Sprint 2**
-
----
-
-### L2 — Owner = toujours userId, un seul propriétaire par modèle
-Fichier : `dev_service_generator.py` ligne 67 — `_resolve_owner(model)` retourne userId par défaut
-
-Ce que ça produit :
-```typescript
-getAll: async (userId: string) => prisma.project.findMany({ where: { userId } })
-```
-Problème : en Multi-tenant, le modèle appartient à un `organizationId` ou `workspaceId`, pas à `userId`. En Marketplace, un Product appartient à un `sellerId`, pas un userId générique. En Social, un Post peut avoir `authorId` + `communityId`.
-
-Apps bloquées : B (multi-tenant), C (marketplace), G (booking team-based)
-
-Fix : ProjectSpec doit exposer `owner_type: "user" | "organization" | "public"` + `owner_field: string` — le générateur lit ces champs
-
----
-
-### L3 — Aucun modèle public (sans owner)
-Fichier : `dev_service_generator.py` ligne 103 — `where: { userId }` toujours injecté
-
-Problème : Un catalogue de produits, un article de blog publié, une fiche vendeur — ces modèles se lisent sans authentification. Actuellement le service force un userId qui n'existe pas → résultats vides ou erreur runtime.
-
-Apps bloquées : C (listings publics), D (articles publiés), E (catalogue produits)
-
-Fix : Détecter quand `resolved_owner()` retourne null (modèle public) → générer `getAll(): Promise<SerializedXxx[]>` sans where
-
----
-
-### L4 — getAll sans pagination
-Fichier : `dev_service_generator.py` ligne 104
-
-Ce que ça produit :
-```typescript
-const items = await prisma.project.findMany({ where: { userId } })  // ALL records
-```
-Problème : 1 000 produits e-commerce ? 50 000 articles de blog ? La requête charge tout en mémoire, le serveur s'effondre.
-
-Apps bloquées : D, E, F, H, I — toute app au-delà de ~100 enregistrements
-
-Fix : Ajouter `take?` et `skip?` optionnels + retourner `{ data: SerializedXxx[], total: number }`
-
----
-
-### L5 — getAll sans tri
-Fichier : `dev_service_generator.py` ligne 104 — aucun `orderBy`
-
-Problème : Un feed social non trié par `createdAt DESC` est inutilisable. Un catalogue produits sans `orderBy: { price: 'asc' }` est incohérent.
-
-Apps bloquées : D (articles par date), E (produits par prix), F (feed chronologique), G (créneaux triés)
-
-Fix : Détecter les champs `createdAt`/`updatedAt` → `orderBy: { createdAt: 'desc' }` par défaut ; rendre configurable dans ProjectSpec
-
----
-
-### L6 — getAll sans filtrage ni recherche
-Fichier : `dev_service_generator.py` ligne 104
-
-Problème : Impossible de faire `getByStatus('PENDING')`, `searchByName('claude')`, `getByCategory('tech')` — le service ne génère aucune méthode de filtrage.
-
-Apps bloquées : C (filtrer par catégorie), D (filtrer par tag/status), E (filtrer par prix), F (filtrer par type de post), I (filtrer par statut d'approbation)
-
-Fix : Détecter les champs `status`, `category`, `type` dans le schéma → générer `getByStatus(userId, status)` ou une méthode générique `findMany(userId, where?)`
-
----
-
-### L7 — Relations à un seul niveau (include: { relation: true })
-Fichier : `dev_service_generator.py` ligne 115-122
-
-Ce que ça produit :
-```typescript
-prisma.project.findMany({ include: { tasks: true } })  // ← tasks sans leurs comments
-```
-Problème : Pour afficher Project → Tasks → Comments, un seul niveau ne suffit pas. Pour Order → OrderItems → Product, il faut `include: { items: { include: { product: true } } }`.
-
-Apps bloquées : B (workspace → channels → messages), C (order → items → products), D (article → sections → blocks), E idem
-
-Fix : ProjectSpec expose `include_depth: number` ou des relations imbriquées explicites → le générateur construit le bloc include en récursif
-
----
-
-### L8 — Enums Prisma mappés en string
-Fichier : `dev_types_generator.py` ligne 63 — `_PRISMA_TO_TS.get(base, "string" if base[0].isupper()...)`
-
-Ce que ça produit pour Status enum :
-```typescript
-// Devrait être :  status: Status  (depuis @prisma/client)
-// Est généré :    status: string  ← TypeScript ne valide plus les valeurs
-```
-Problème : `status: "APPROVD"` (faute de frappe) passe TypeScript. L'enum est la protection contre ça.
-
-Apps bloquées : I (PENDING/APPROVED/REJECTED), E (PENDING/PAID/SHIPPED/DELIVERED), D (DRAFT/PUBLISHED/ARCHIVED), F (PUBLIC/PRIVATE/FOLLOWERS_ONLY)
-
-Fix : Détecter les Enums depuis ProjectSpec → `import type { Status } from '@prisma/client'` → `status: Status` dans les types
-
----
-
-### L9 — Soft delete (deletedAt) non géré
-Fichier : `dev_types_generator.py` ligne 40 — `"deletedat"` dans `_AUTO_FIELDS` (exclu des inputs) mais `dev_service_generator.py` n'ajoute jamais `where: { deletedAt: null }`
-
-Ce que ça produit :
-```typescript
-getAll: async (userId) => prisma.contact.findMany({ where: { userId } })
-// retourne AUSSI les contacts supprimés
-```
-Apps bloquées : C (contacts CRM supprimés), D (articles archivés), E (commandes annulées), F (posts supprimés), J (documents supprimés)
-
-Fix : Détecter `deletedAt DateTime?` dans le schéma → ajouter automatiquement `deletedAt: null` au where
-
----
-
-### L10 — Decimal non sérialisé (comme DateTime)
-Fichier : `dev_types_generator.py` ligne 31 — `"Decimal": "number"` + `dev_service_generator.py` — `_serialize` ne touche pas les Decimal
-
-Problème : Prisma retourne `Decimal` (objet Prisma custom), pas un `number` JavaScript. `.toNumber()` est nécessaire. Sans sérialisation, `JSON.stringify` échoue en production et le Client Component plante.
-
-Apps bloquées : E (prix produits), H (métriques financières), tout SaaS avec montants exacts
-
-Fix : Decimal dans `_PRISMA_TO_TS` → `number` dans le type ET `_serialize` ajoute `field: item.field.toNumber()` comme pour DateTime
-
----
-
-### L11 — Relations many-to-many non supportées
-Fichier : `dev_service_generator.py` ligne 47 — `_relation_fields` détecte uniquement `@relation` explicite
-
-Problème : Les relations implicites many-to-many (Post ↔ Tag via table pivot auto-générée par Prisma) n'ont pas de `@relation` dans les champs — le générateur les ignore complètement.
-
-Apps bloquées : D (articles ↔ tags/catégories), C (produits ↔ tags), F (users ↔ groups), E (produits ↔ promotions)
-
-Fix : Détecter les champs de type tableau (`Tag[]`, `Category[]`) sans `@relation` → les inclure dans `getAllWithRelations`
-
----
-
-### L12 — Champs Json inutilisables
-Fichier : `dev_types_generator.py` ligne 34 — `"Json": "unknown"`
-
-Problème : `content: unknown` force des casts partout. Le LLM ne sait pas comment typer/utiliser ce champ → improvise → erreurs TypeScript.
-
-Apps bloquées : D (rich text en JSON), H (event metadata), J (document content), tout app avec config flexible
-
-Fix : Accepter un champ optionnel `json_type` dans ProjectSpec (`json_type: "Record<string, unknown>"` ou une interface nommée) → le générateur l'utilise
-
----
-
-### L13 — Pas de méthodes d'agrégation (count, sum, avg)
-Fichier : `dev_service_generator.py` — aucun `prisma.model.aggregate()` généré
-
-Problème : Un dashboard avec "42 projets actifs", "€12,500 de CA ce mois" ou "85 nouveaux utilisateurs" nécessite des agrégations. Le LLM les improvise dans les Server Components → erreurs, requêtes N+1.
-
-Apps bloquées : H (ENTIÈREMENT), E (totaux commandes), F (compteurs likes/follows), I (taux d'approbation)
-
-Fix : Détecter les modèles marqués `analytics: true` dans ProjectSpec → générer `count(userId)`, `aggregate(userId, field)`
-
----
-
-### L14 — getById uniquement par id, pas par slug
-Fichier : `dev_service_generator.py` ligne 108 — `where: { id, userId }` seulement
-
-Problème : Un blog, un portfolio, un e-commerce veulent des URLs `/articles/mon-titre-article` — slug unique, SEO-friendly. Aucune méthode générée pour ça.
-
-Apps bloquées : D (blog), E (produits), C (profils vendeurs)
-
-Fix : Détecter les champs nommés `slug` avec `@unique` → générer `getBySlug(slug: string): Promise<SerializedXxx | null>`
-
----
-
-### L15 — create atomique (multi-modèles) non généré
-Fichier : `dev_service_generator.py` ligne 126 — un seul `prisma.model.create()`
-
-Problème : Créer une Order avec ses OrderItems doit être atomique (`$transaction`). Créer un Workspace avec son WorkspaceMember (rôle owner) est toujours couplé. Le générateur ne gère qu'un modèle à la fois.
-
-Apps bloquées : E (commandes + items), B (workspace + member owner), G (booking + confirmation)
-
-Fix : ProjectSpec expose des `transactions: [{ trigger: "createOrder", models: ["Order", "OrderItem"] }]` → générateur crée une méthode `createWithItems(userId, data, items)` avec `$transaction`
-
----
-
-### L16 — Actions 100% LLM (le plus critique après L1)
-Fichier : aucun — les `app/*/actions.ts` sont entièrement générés par le LLM
-
-✅ **Corrigé Sprint 4** — les actions CRUD sont désormais générées par `dev_actions_generator.py` (template déterministe). Le LLM ne génère que les actions métier complexes.
-
----
-
-## 7. Priorités par niveau d'évolution
-
-| # | Limite | Apps débloquées | Priorité |
-|---|---|---|---|
-| L1 | Bug Omit<PrismaType> | TOUS | ✅ Corrigé |
-| L16 | Actions 100% LLM | TOUS | ✅ Corrigé |
-| **L3** | **Pas de modèle public** | **C, D, E** | **🔴 Phase 2 — Blog/CMS** |
-| **L14** | **Pas de getBySlug** | **C, D, E** | **🔴 Phase 2 — Blog/CMS** |
-| L10 | Decimal non sérialisé | E, H | 🟠 Phase 4 — E-commerce |
-| L8 | Enums → string | D, E, I | 🟠 Phase 2-3 |
-| L4 | Pas de pagination | D, E, F, H | 🟠 Phase 4 |
-| L9 | Soft delete ignoré | C, D, E, F | 🟡 Phase 4-5 |
-| L5 | Pas de tri | D, E, F, G | 🟡 Phase 2-3 |
-| L2 | Owner = userId hardcodé | B, C, G | 🟡 Phase 7 |
-| L7 | Relations 1 niveau | B, C, D, E | 🟡 Phase 4-5 |
-| L11 | Many-to-many ignoré | C, D, F | 🟡 Phase 2-3 |
-| L6 | Pas de filtrage | C, D, E, F, I | 🟡 Phase 3-4 |
-| L13 | Pas d'agrégations | H entier | 🟡 Phase 5 |
-| L12 | Json → unknown | D, H, J | 🟢 Phase 5-6 |
-| L15 | Create atomique | B, E, G | 🟢 Phase 4-7 |
-
----
-
-## 8. Prochain test — Type D : Blog/CMS (L1+)
-
-**Objectif :** Tester la factory sur des pages à visibilité mixte — public vs privé dans la même app.
-
-**Ce qui est nouveau par rapport au Type A :**
-- Pages publiques : pas d'appel `auth()` bloquant, service sans filtre userId
-- Pages privées : pattern habituel avec auth() + redirect
-- Champ `status` (draft/published) utilisé pour filtrer la visibilité publique
-
-**Brief :**
-
-```json
-{
-  "project_name": "personal-blog",
-  "brief": {
-    "description": "Blog personnel SaaS. L'auteur gère ses articles et catégories depuis son tableau de bord privé. Les visiteurs peuvent lire les articles publiés sans compte.",
-    "architecture": "SaaS single-tenant — tableau de bord protégé par Clerk, lectures publiques sans auth. Post est lié à Category via categoryId (owner_field=userId sur Post). Un Post a un champ status String: 'draft' par défaut, 'published' quand publié — seuls les posts published sont visibles sur /blog. Comment est lié à Post via postId (owner_field=authorId). RÈGLE CRITIQUE : les routes /blog et /blog/new sont publiques — leurs Server Components NE DOIVENT PAS appeler auth() ni redirect('/sign-in'). Les routes /dashboard et /categories sont protégées — elles appellent auth() + redirect. postService.getPublished() filtre where: { status: 'published' } SANS userId. postService.getAll(userId) filtre where: { userId }. Mutations via Server Actions (actions.ts) — jamais de routes API pour les mutations.",
-    "models": [
-      "Category { id String @id @default(uuid()), name String, userId String, createdAt DateTime @default(now()), @@index([userId]) }",
-      "Post { id String @id @default(uuid()), title String, excerpt String?, status String @default('draft'), categoryId String, userId String, createdAt DateTime @default(now()), @@index([userId]), @@index([categoryId]), @@index([status]) }",
-      "Comment { id String @id @default(uuid()), content String, postId String, authorId String, createdAt DateTime @default(now()), @@index([postId]) }"
-    ],
-    "pages": [
-      { "path": "/blog",           "auth": false },
-      { "path": "/blog/new",       "auth": false },
-      { "path": "/dashboard",      "auth": true  },
-      { "path": "/categories",     "auth": true  },
-      { "path": "/categories/new", "auth": true  }
-    ],
-    "pages_detail": {
-      "/blog": "PAGE PUBLIQUE — aucun auth() requis. Liste des posts avec status='published'. Affiche : titre, extrait (ou '-'), date de création. Lien 'Écrire un article' → /blog/new. État vide : 'Aucun article publié pour l\\'instant.'. [INTERACTIVE]",
-      "/blog/new": "PAGE PUBLIQUE — aucun auth() requis. Formulaire de création d'article. Champs : titre (input text, required), extrait (textarea, optionnel), categoryId (input text, required, placeholder 'ID de la catégorie'). Bouton 'Publier'. Submit → Server Action createPost({ title, excerpt, categoryId }) → redirect /dashboard. [INTERACTIVE]",
-      "/dashboard": "PAGE PROTÉGÉE — auth() + redirect('/sign-in') obligatoires. Liste de TOUS les articles de l'auteur connecté (drafts + published). Affiche : titre, statut (badge : draft=gris, published=vert), date de création. Bouton 'Supprimer' par ligne → Server Action deletePost(id). État vide : 'Aucun article. Créez votre premier article sur /blog/new.'. [INTERACTIVE]",
-      "/categories": "PAGE PROTÉGÉE — auth() + redirect('/sign-in') obligatoires. Liste des catégories de l'auteur. Affiche : nom, date de création. Bouton 'Nouvelle catégorie' → /categories/new. Bouton 'Supprimer' par ligne → Server Action deleteCategory(id). État vide : 'Aucune catégorie.'. [INTERACTIVE]",
-      "/categories/new": "PAGE PROTÉGÉE — auth() + redirect('/sign-in') obligatoires. Formulaire de création de catégorie. Champ : nom (input text, required). Bouton 'Créer la catégorie'. Submit → Server Action createCategory({ name }) → redirect /categories. [INTERACTIVE]"
-    },
-    "routes": [
-      { "method": "POST",   "path": "/api/posts" },
-      { "method": "DELETE", "path": "/api/posts/[id]" },
-      { "method": "POST",   "path": "/api/categories" },
-      { "method": "DELETE", "path": "/api/categories/[id]" }
-    ],
-    "user_flows": [
-      "Un visiteur lit les articles publiés : /blog → postService.getPublished() sans auth",
-      "L'auteur écrit un article : /blog/new → Server Action createPost() → redirect /dashboard",
-      "L'auteur gère ses articles : /dashboard → postService.getAll(userId) avec auth",
-      "L'auteur supprime un article : bouton Supprimer → Server Action deletePost(id)",
-      "L'auteur crée une catégorie : /categories/new → Server Action createCategory() → redirect /categories"
-    ]
-  }
-}
-```
-
-**Commande de test :**
-
-```bash
-python -m scripts.run_batch --briefs scripts/test_blog_only.json --review-mode
-```
-
-**Ce qu'on observe :**
-- Le dev LLM génère-t-il `/blog` sans `auth()` bloquant ?
-- `postService` a-t-il une méthode `getPublished()` sans filtre userId ?
-- Le reviewer détecte-t-il les pages publiques qui ne doivent PAS être marquées MISSING_AUTH ?
-- La re-review donne-t-elle COHERENT ?
+## 7. Briefs de test par phase (à exécuter pour valider chaque type)
+
+| Phase | Brief de validation | Signal de succès |
+|---|---|---|
+| 2 (D) | Blog avec tags M2M, SEO, draft/publié, contenu long | build + sitemap.xml + tags fonctionnels + `is_useful_app: true` |
+| 3 (I) | Demandes de congé : employé soumet, manager approuve/rejette | transition illégale refusée par le service + boutons UI corrects |
+| 4 (K) | SaaS admin+user : admin voit tout, user voit ses données | reviewer 0 finding rôle + nav différente par rôle |
+| 5 (H) | Dashboard commercial : CA du mois, taux de conversion, chart évolution | agrégations en DB (pas de getAll+filter) + recharts rendu |

@@ -296,12 +296,20 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     if is_create and spec is not None:
         fk_list = _fk_fields(model_obj, spec)
 
+    # Relations M2M pour pages create — options du multi-select (tags, catégories…)
+    m2m_list = list(getattr(ctx, "m2m_fields", []) or []) if (is_create and ctx is not None) else []
+
     # CROSS_ENTITY : les enfants sont inclus dans item via getByIdWithRelations.
     # module_detail_with_children génère page-client.tsx déterministiquement.
     # page.tsx ne fetch plus les enfants séparément — pattern unifié.
 
+    # SEO : generateMetadata sur les pages detail-slug PUBLIQUES (title/description/og)
+    _seo_metadata = bool(is_slug_detail and not page.auth_required and _has_slug_ctx)
+
     lines: list[str] = []
 
+    if _seo_metadata:
+        lines.append("import type { Metadata } from 'next'")
     if page.auth_required:
         lines.append("import { auth } from '@clerk/nextjs/server'")
 
@@ -327,6 +335,15 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
             f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
         )
 
+    # Imports services M2M pour le multi-select (create) — dédupliqués vs FK
+    _fk_camels = {rc for _f, _m, rc in fk_list}
+    for _mf in m2m_list:
+        if _mf.related_camel in _fk_camels:
+            continue
+        lines.append(
+            f"import {{ {_mf.related_camel}Service }} from '@/lib/services/{_mf.related_kebab}.service'"
+        )
+
     if is_slug_detail:
         fn_params = "{ params }: { params: Promise<{ slug: string }> }"
     elif is_detail:
@@ -336,6 +353,13 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     lines += [
         "",
         "export const dynamic = 'force-dynamic'",
+    ]
+
+    if _seo_metadata:
+        from .dev_seo_generator import build_generate_metadata_block
+        lines += build_generate_metadata_block(page, model_obj, camel)
+
+    lines += [
         "",
         f"export default async function {component}({fn_params}) {{",
     ]
@@ -393,18 +417,23 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
             f"  return <{client} items={{items}} />",
         ]
     else:
-        if fk_list:
+        # Fetch des options M2M (multi-select) — dédupliqué vs FK (même service possible)
+        _m2m_to_fetch = [mf for mf in m2m_list if mf.related_camel not in _fk_camels]
+        if fk_list or _m2m_to_fetch:
             # Fetch des options pour chaque select FK
             for _fk_field, _related_model, related_camel in fk_list:
                 if page.auth_required:
                     lines.append(f"  const {related_camel}Options = await {related_camel}Service.getAll(userId)")
                 else:
                     lines.append(f"  const {related_camel}Options = await {related_camel}Service.getPublicAll()")
-            fk_props = " ".join(
-                f"{related_camel}Options={{{related_camel}Options}}"
-                for _fk_field, _related_model, related_camel in fk_list
-            )
-            lines.append(f"  return <{client} {fk_props} />")
+            for _mf in _m2m_to_fetch:
+                if page.auth_required:
+                    lines.append(f"  const {_mf.related_camel}Options = await {_mf.related_camel}Service.getAll(userId)")
+                else:
+                    lines.append(f"  const {_mf.related_camel}Options = await {_mf.related_camel}Service.getPublicAll()")
+            _all_option_camels = [rc for _f, _m, rc in fk_list] + [mf.related_camel for mf in _m2m_to_fetch]
+            props = " ".join(f"{rc}Options={{{rc}Options}}" for rc in _all_option_camels)
+            lines.append(f"  return <{client} {props} />")
         else:
             lines.append(f"  return <{client} />")
 
@@ -509,11 +538,12 @@ def _find_detail_model(page, spec):
 
 # ── Edit pages (CRUD update form) ────────────────────────────────────────────
 
-def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug: bool = False) -> str:
+def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug: bool = False, ctx=None) -> str:
     """
     page.tsx déterministe pour la page edit d'un modèle :
     auth() + getById(userId, params.id/slug) + fetch FK options + <EditClient item={item} ...options />
     fk_list : liste de (field_name, related_model, related_camel) depuis ModelGenerationContext.fk_fields
+    ctx : ModelGenerationContext — M2M : fetch des options + lookup avec relations (préselection).
     """
     name = model_obj.name
     camel = pascal_to_camel(name)
@@ -521,6 +551,7 @@ def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug
     client = f"{name}EditClient"
     component = f"{name}EditPage"
     param_key = "slug" if has_slug else "id"
+    m2m_list = list(getattr(ctx, "m2m_fields", []) or []) if ctx is not None else []
 
     lines: list[str] = [
         "import { auth } from '@clerk/nextjs/server'",
@@ -529,13 +560,29 @@ def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug
     ]
 
     # Imports services FK
+    _fk_camels = {rc for _f, _m, rc in fk_list}
     for _fk_field, related_model, related_camel in fk_list:
         related_kebab = pascal_to_kebab(related_model)
         lines.append(
             f"import {{ {related_camel}Service }} from '@/lib/services/{related_kebab}.service'"
         )
 
-    lookup_method = "getBySlugOwned" if has_slug else "getById"
+    # Imports services M2M (dédupliqués vs FK)
+    _m2m_to_fetch = [mf for mf in m2m_list if mf.related_camel not in _fk_camels]
+    for _mf in _m2m_to_fetch:
+        lines.append(
+            f"import {{ {_mf.related_camel}Service }} from '@/lib/services/{_mf.related_kebab}.service'"
+        )
+
+    # Lookup : avec M2M, l'item doit inclure ses relations pour préselectionner
+    # le multi-select. [slug] → getBySlugOwned (enrichi côté service si has_m2m),
+    # [id] → getByIdWithRelations (owned, existe dès qu'il y a des relations).
+    if has_slug:
+        lookup_method = "getBySlugOwned"
+    elif m2m_list:
+        lookup_method = "getByIdWithRelations"
+    else:
+        lookup_method = "getById"
     lines += [
         f"import {client} from './page-client'",
         "",
@@ -553,13 +600,15 @@ def _gen_page_full_edit(model_obj, fk_list: "list[tuple[str,str,str]]", has_slug
     for _fk_field, _related_model, related_camel in fk_list:
         lines.append(f"  const {related_camel}Options = await {related_camel}Service.getAll(userId)")
 
-    # JSX return avec item + fk options
-    if fk_list:
-        fk_props = " ".join(
-            f"{related_camel}Options={{{related_camel}Options}}"
-            for _fk_field, _related_model, related_camel in fk_list
-        )
-        lines.append(f"  return <{client} item={{item}} {fk_props} />")
+    # Fetch des options M2M
+    for _mf in _m2m_to_fetch:
+        lines.append(f"  const {_mf.related_camel}Options = await {_mf.related_camel}Service.getAll(userId)")
+
+    # JSX return avec item + fk/m2m options
+    _all_option_camels = [rc for _f, _m, rc in fk_list] + [mf.related_camel for mf in _m2m_to_fetch]
+    if _all_option_camels:
+        props = " ".join(f"{rc}Options={{{rc}Options}}" for rc in _all_option_camels)
+        lines.append(f"  return <{client} item={{item}} {props} />")
     else:
         lines.append(f"  return <{client} item={{item}} />")
 
@@ -647,7 +696,7 @@ def generate_edit_page_stubs(
         ]
 
         if not os.path.exists(page_abs):
-            page_content = _gen_page_full_edit(model, fk_list_for_edit, has_slug=has_slug)
+            page_content = _gen_page_full_edit(model, fk_list_for_edit, has_slug=has_slug, ctx=ctx)
             with open(page_abs, "w", encoding="utf-8") as f:
                 f.write(page_content)
             written[page_rel] = page_content

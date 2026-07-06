@@ -115,6 +115,9 @@ def _generate_update_schema(model, enums: "dict | None" = None, ctx=None) -> lis
                 fields_lines.append(f"  {fi.name}: {zod_type},")
         for fk in ctx.fk_fields:
             fields_lines.append(f"  {fk.field_name}: z.string().optional(),")
+        for m2m in getattr(ctx, "m2m_fields", []) or []:
+            # Multi-select M2M — ids envoyés via formData.getAll(input_name)
+            fields_lines.append(f"  {m2m.input_name}: z.array(z.string()).optional(),")
         return fields_lines
 
     # Fallback depuis model (sans ctx)
@@ -161,6 +164,9 @@ def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> lis
             fields_lines.append(f"  {fi.name}: {zod_type},")
         for fk in ctx.fk_fields:
             fields_lines.append(f"  {fk.field_name}: z.string().min(1),")
+        for m2m in getattr(ctx, "m2m_fields", []) or []:
+            # Multi-select M2M — optionnel à la création (tags facultatifs)
+            fields_lines.append(f"  {m2m.input_name}: z.array(z.string()).optional(),")
         return fields_lines
 
     # Fallback : recalcul depuis model (compatibilité)

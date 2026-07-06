@@ -232,18 +232,56 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
     )
 
 
+def _m2m_to_ctx(ctx: ModelGenerationContext, fk_fields: list, model_contexts: dict) -> list[dict]:
+    """
+    Contexte template des relations M2M (checkbox group dans create/edit).
+    needs_prop=False si le modèle lié est déjà fourni en options par un FK
+    (même prop {camel}Options — pas de doublon).
+    """
+    _model_labels = ctx.ui_labels
+    _fk_camels = {fk["related_camel"] for fk in fk_fields}
+    result: list[dict] = []
+    for mf in getattr(ctx, "m2m_fields", []) or []:
+        _rel_ctx = model_contexts.get(mf.related_model)
+        _disp = (_rel_ctx.display_fields[0] if _rel_ctx and _rel_ctx.display_fields else "id")
+        result.append({
+            "name": mf.name,
+            "related_model": mf.related_model,
+            "related_camel": mf.related_camel,
+            "input_name": mf.input_name,
+            "related_display": _disp,
+            "label": _model_labels.get(
+                mf.name,
+                _rel_ctx.title_plural if _rel_ctx else f"{mf.related_model}s",
+            ),
+            "needs_prop": mf.related_camel not in _fk_camels,
+        })
+    return result
+
+
 def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, spec=None, design_tokens: dict | None = None) -> str:
     list_path = ctx.list_page_path or f"/{ctx.kebab}s"
     list_dir = list_path.lstrip("/")
     _model_labels = ctx.ui_labels
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
     editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
-    fk_props = ", ".join(
+    m2m_fields = _m2m_to_ctx(ctx, fk_fields, model_contexts)
+    # Props options : FK + M2M (dédupliqués) — même convention {camel}Options
+    _prop_parts = [
         f"{fk['related_camel']}Options: Serialized{fk['related_model']}[]"
         for fk in fk_fields
-    )
-    fk_destructure = ", ".join(f"{fk['related_camel']}Options" for fk in fk_fields)
-    fk_type_imports = ", ".join(f"Serialized{fk['related_model']}" for fk in fk_fields)
+    ]
+    _destr_parts = [f"{fk['related_camel']}Options" for fk in fk_fields]
+    _import_models = [fk["related_model"] for fk in fk_fields]
+    for _mf in m2m_fields:
+        if _mf["needs_prop"]:
+            _prop_parts.append(f"{_mf['related_camel']}Options: Serialized{_mf['related_model']}[]")
+            _destr_parts.append(f"{_mf['related_camel']}Options")
+            if _mf["related_model"] not in _import_models:
+                _import_models.append(_mf["related_model"])
+    fk_props = ", ".join(_prop_parts)
+    fk_destructure = ", ".join(_destr_parts)
+    fk_type_imports = ", ".join(f"Serialized{m}" for m in _import_models)
     _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
     for _fk in fk_fields:
         _field_labels[_fk["field_name"]] = _model_labels.get(_fk["field_name"], _fk["related_model"])
@@ -257,7 +295,9 @@ def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, 
         # Import absolu via @/ — résolvable depuis n'importe quelle profondeur
         actions_import=f"@/app/{list_dir}/actions",
         type_imports=fk_type_imports,
+        option_type_imports=_import_models,
         fk_fields=fk_fields,
+        m2m_fields=m2m_fields,
         editable_fields=editable_fields,
         fk_props=fk_props,
         fk_destructure=fk_destructure,
@@ -272,6 +312,7 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     _model_labels = ctx.ui_labels
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
     editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
+    m2m_fields = _m2m_to_ctx(ctx, fk_fields, model_contexts)
     _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
     for _fk in fk_fields:
         _field_labels[_fk["field_name"]] = _model_labels.get(_fk["field_name"], _fk["related_model"])
@@ -283,6 +324,7 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
         list_path=list_path,
         list_dir=list_dir,
         fk_fields=fk_fields,
+        m2m_fields=m2m_fields,
         editable_fields=editable_fields,
         field_labels=_field_labels,
         **(design_tokens or {}),

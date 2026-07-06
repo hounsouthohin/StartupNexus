@@ -6,6 +6,9 @@ import type { {{ serialized_type }} } from '@/lib/types'
 {% for fk in fk_fields %}
 import type { Serialized{{ fk.related_model }} } from '@/lib/types'
 {% endfor %}
+{% for mf in m2m_fields if mf.needs_prop %}
+import type { Serialized{{ mf.related_model }} } from '@/lib/types'
+{% endfor %}
 import { update{{ name }} } from '@/app/{{ list_dir }}/actions'
 
 interface {{ client_name }}Props {
@@ -13,9 +16,12 @@ interface {{ client_name }}Props {
   {% for fk in fk_fields %}
   {{ fk.related_camel }}Options: Serialized{{ fk.related_model }}[]
   {% endfor %}
+  {% for mf in m2m_fields if mf.needs_prop %}
+  {{ mf.related_camel }}Options: Serialized{{ mf.related_model }}[]
+  {% endfor %}
 }
 
-export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk.related_camel }}Options{% endfor %} }: {{ client_name }}Props) {
+export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk.related_camel }}Options{% endfor %}{% for mf in m2m_fields if mf.needs_prop %}, {{ mf.related_camel }}Options{% endfor %} }: {{ client_name }}Props) {
   const [error, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       try { await update{{ name }}.bind(null, item.id)(formData); return null }
@@ -43,7 +49,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
           <textarea
             id="{{ field.name }}"
             name="{{ field.name }}"
-            rows={4}
+            rows={{ '{' }}{{ 12 if field.name in ('content', 'body') else 4 }}}
             defaultValue={item.{{ field.name }} ?? ''}
             className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
@@ -113,6 +119,28 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
               <option key={opt.id} value={opt.id}>{String(opt.{{ fk.related_display }} ?? opt.id)}</option>
             ))}
           </select>
+        </div>
+        {% endfor %}
+
+        {% for mf in m2m_fields %}
+        <div>
+          <span className="block text-sm font-medium text-foreground mb-1">{{ mf.label }}</span>
+          <div className="max-h-40 overflow-y-auto border border-border rounded-md p-3 space-y-2">
+            {{ '{' }}{{ mf.related_camel }}Options.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun élément disponible.</p>
+            ) : {{ mf.related_camel }}Options.map(opt => (
+              <label key={opt.id} className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  name="{{ mf.input_name }}"
+                  value={opt.id}
+                  defaultChecked={(item.{{ mf.name }} ?? []).some(rel => rel.id === opt.id)}
+                  className="h-4 w-4 text-{{ primary }} border-border rounded"
+                />
+                <span>{String(opt.{{ mf.related_display }} ?? opt.id)}</span>
+              </label>
+            ))}
+          </div>
         </div>
         {% endfor %}
 
