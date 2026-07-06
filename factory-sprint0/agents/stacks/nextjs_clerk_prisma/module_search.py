@@ -55,7 +55,7 @@ class SearchModule(FeatureModule):
         # Pas d'heuristique : c'est l'architect qui décide, pas le générateur.
         return bool(enriched_spec and enriched_spec.has_feature("search"))
 
-    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
+    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None, design_system: "dict | None" = None) -> dict[str, str]:
         list_path = ctx.list_page_path
         list_dir = list_path.lstrip("/")
         route = list_dir
@@ -81,6 +81,11 @@ class SearchModule(FeatureModule):
         except Exception:
             pass
 
+        # Tokens design (card_cls, p_cls, primary…) — source unique : dev_form_generator.
+        # Le template évolue avec le form generator ; passer **tokens garantit la synchro.
+        from .dev_form_generator import _design_tokens
+        _tokens = _design_tokens(design_system)
+
         try:
             content = _jinja_env.get_template("list_client_search.tsx.j2").render(
                 name=ctx.name,
@@ -96,6 +101,7 @@ class SearchModule(FeatureModule):
                 has_delete=auth_required,
                 has_slug=ctx.has_slug,
                 empty_state_message=_empty_msg,
+                **_tokens,
             )
         except Exception as e:
             logger.error("[module_search] rendu template échoué pour %s : %s", ctx.name, e)

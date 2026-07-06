@@ -50,7 +50,7 @@ class StatusFlowModule(FeatureModule):
         has_feature = bool(enriched_spec and enriched_spec.has_feature("status_flow"))
         return bool((has_feature or ctx.has_status) and ctx.list_page_path)
 
-    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None) -> dict[str, str]:
+    def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None, design_system: "dict | None" = None) -> dict[str, str]:
         list_path = ctx.list_page_path
         list_dir = list_path.lstrip("/")
         route = list_dir
@@ -104,6 +104,24 @@ class StatusFlowModule(FeatureModule):
         except Exception:
             pass
 
+        # Tokens design (card_cls, p_cls, transition_cls, primary…) — source unique :
+        # dev_form_generator._design_tokens. Les tokens hardcodés partiels avaient tué
+        # le module ('card_cls' undefined) quand le template a évolué.
+        from .dev_form_generator import _design_tokens, _related_display
+        _tokens = _design_tokens(design_system)
+
+        # Colonnes des parents FK (ex: nom du client sur la liste des projets) —
+        # même construction que dev_form_generator pour ne pas perdre la colonne
+        # quand ce module écrase le page-client de base.
+        _parent_rels = [
+            {
+                "related_camel": fk.related_camel,
+                "display_field": _related_display(fk, model_contexts or {}),
+                "label": ctx.ui_labels.get(fk.field_name, fk.related_model),
+            }
+            for fk in ctx.fk_fields
+        ]
+
         try:
             content = _jinja_env.get_template("list_client_status.tsx.j2").render(
                 name=ctx.name,
@@ -125,12 +143,8 @@ class StatusFlowModule(FeatureModule):
                 has_search=has_search,
                 has_slug=ctx.has_slug,
                 empty_state_message=_empty_msg,
-                # tokens sémantiques CSS variables (design_system non transmis → "normal")
-                primary="primary",
-                primary_hover="primary/85",
-                primary_light="primary/10",
-                primary_ring="primary",
-                p_cls="p-6",
+                parent_relations=_parent_rels,
+                **_tokens,
             )
         except Exception as e:
             logger.error("[module_status_flow] rendu template échoué pour %s : %s", ctx.name, e)

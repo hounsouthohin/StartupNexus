@@ -57,7 +57,7 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
     - **Pour les agrégations** (compter les actifs, sommer les budgets, filtrer par statut) : utiliser `getAll(userId)` puis calculer en TypeScript. Ex : `const active = projects.filter(p => p.status === 'active')` / `const total = active.reduce((s, p) => s + (p.budget ?? 0), 0)`
     - **Pour les données d'enfants liés** : utiliser `getAllWithRelations(userId)` ou `getByIdWithRelations(userId, id)` sur le modèle parent — les enfants sont inclus dans la réponse.
 
-13. **[IMPORTANT] FICHIERS PRÉ-GÉNÉRÉS** : ne pas créer `app/api/health/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/components/navigation.tsx`, `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx` — pré-générés par le pipeline.
+13. **[IMPORTANT] FICHIERS PRÉ-GÉNÉRÉS** : ne pas créer `app/api/health/route.ts`, `app/api/webhooks/clerk/route.ts`, `app/components/navigation.tsx`, `app/loading.tsx`, `app/error.tsx`, `app/not-found.tsx`, `app/sitemap.ts`, `app/robots.ts` — pré-générés par le pipeline. Le `generateMetadata()` des pages détail publiques ([slug]) est aussi pré-généré dans leur page.tsx.
 
 14. **[BONNE PRATIQUE] PAGE-CLIENT ÉTAT VIDE — PAGES LIST CUSTOM** : tout `page-client.tsx` de type list DOIT gérer `items.length === 0` :
     ```tsx

@@ -193,7 +193,8 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
         ),
         "public-pages": (
             "page publique sans auth no auth_required getPublicAll "
-            "visiteur liste publique without userId public route"
+            "visiteur liste publique without userId public route "
+            "published draft content article tags many-to-many sitemap metadata SEO"
         ),
         "page_client_ui": (
             "dashboard SerializedXxx props Client Component "

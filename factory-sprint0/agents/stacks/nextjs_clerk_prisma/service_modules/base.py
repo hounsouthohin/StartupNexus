@@ -54,7 +54,7 @@ def scalar_select_block(ctx: "ModelGenerationContext") -> str:
 
 def dt_inline_map(ctx: "ModelGenerationContext") -> str:
     """
-    Map function TypeScript inline : convertit les champs DateTime en ISO string.
+    Map function TypeScript inline : convertit DateTime → ISO string ET Decimal → number.
     Utilisé pour les findMany avec select (owner exclu du résultat).
     """
     dt_parts = []
@@ -65,6 +65,13 @@ def dt_inline_map(ctx: "ModelGenerationContext") -> str:
             dt_parts.append(f"{df.name}: item.{df.name} ? item.{df.name}.toISOString() : null")
         else:
             dt_parts.append(f"{df.name}: item.{df.name}.toISOString()")
+    for dcf in getattr(ctx, "decimal_fields", []) or []:
+        if dcf.name == ctx.owner:
+            continue
+        if dcf.is_nullable:
+            dt_parts.append(f"{dcf.name}: item.{dcf.name} != null ? Number(item.{dcf.name}) : null")
+        else:
+            dt_parts.append(f"{dcf.name}: Number(item.{dcf.name})")
     if not dt_parts:
         return "item => item"
     return "item => ({ ...item, " + ", ".join(dt_parts) + " })"
@@ -83,13 +90,21 @@ def dt_map_with_relations(ctx: "ModelGenerationContext", all_contexts: dict) -> 
             root_parts.append(f"{df.name}: item.{df.name} ? item.{df.name}.toISOString() : null")
         else:
             root_parts.append(f"{df.name}: item.{df.name}.toISOString()")
+    for dcf in getattr(ctx, "decimal_fields", []) or []:
+        if dcf.name == ctx.owner:
+            continue
+        if dcf.is_nullable:
+            root_parts.append(f"{dcf.name}: item.{dcf.name} != null ? Number(item.{dcf.name}) : null")
+        else:
+            root_parts.append(f"{dcf.name}: Number(item.{dcf.name})")
 
     rel_parts = []
     for r in ctx.relation_fields:
         field = next((f for f in ctx.model.fields if f.name == r.name), None)
         related_name = field.type.rstrip("?").rstrip("[]") if field else None
         related_ctx = all_contexts.get(related_name) if related_name else None
-        if not related_ctx or not related_ctx.datetime_fields:
+        _related_decimals = list(getattr(related_ctx, "decimal_fields", []) or []) if related_ctx else []
+        if not related_ctx or (not related_ctx.datetime_fields and not _related_decimals):
             continue
         selected_in_nested = {"id"} | set(related_ctx.display_fields)
         if r.is_array:
@@ -98,6 +113,11 @@ def dt_map_with_relations(ctx: "ModelGenerationContext", all_contexts: dict) -> 
                  if rdf.is_nullable else f"{rdf.name}: c.{rdf.name}.toISOString()")
                 for rdf in related_ctx.datetime_fields
                 if rdf.name in selected_in_nested
+            ] + [
+                (f"{rdc.name}: c.{rdc.name} != null ? Number(c.{rdc.name}) : null"
+                 if rdc.is_nullable else f"{rdc.name}: Number(c.{rdc.name})")
+                for rdc in _related_decimals
+                if rdc.name in selected_in_nested
             ]
             if not nested_dt:
                 continue
@@ -110,6 +130,11 @@ def dt_map_with_relations(ctx: "ModelGenerationContext", all_contexts: dict) -> 
                  if rdf.is_nullable else f"{rdf.name}: item.{r.name}.{rdf.name}.toISOString()")
                 for rdf in related_ctx.datetime_fields
                 if rdf.name in selected_in_nested
+            ] + [
+                (f"{rdc.name}: item.{r.name}.{rdc.name} != null ? Number(item.{r.name}.{rdc.name}) : null"
+                 if rdc.is_nullable else f"{rdc.name}: Number(item.{r.name}.{rdc.name})")
+                for rdc in _related_decimals
+                if rdc.name in selected_in_nested
             ]
             if not nested_dt:
                 continue

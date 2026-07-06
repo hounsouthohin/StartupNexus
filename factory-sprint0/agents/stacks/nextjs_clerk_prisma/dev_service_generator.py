@@ -36,25 +36,33 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_serialize_fn(ctx: ModelGenerationContext) -> list[str]:
-    """Génère la fonction _serialize pour les findFirst/findUnique (type Prisma complet)."""
+    """Génère la fonction _serialize pour les findFirst/findUnique (type Prisma complet).
+    Convertit DateTime → ISO string ET Decimal → number (Prisma retourne un objet Decimal,
+    jamais un number JS — sans Number(), TS2352 au build + crash de sérialisation RSC)."""
     name = ctx.name
     owner = ctx.owner
     serialized = ctx.serialized_type
     dt_fields = ctx.datetime_fields
+    dec_fields = getattr(ctx, "decimal_fields", []) or []
 
-    if dt_fields:
-        dt_lines = []
+    if dt_fields or dec_fields:
+        conv_lines = []
         for df in dt_fields:
             if df.is_nullable:
-                dt_lines.append(f"  {df.name}: rest.{df.name} ? rest.{df.name}.toISOString() : null,")
+                conv_lines.append(f"  {df.name}: rest.{df.name} ? rest.{df.name}.toISOString() : null,")
             else:
-                dt_lines.append(f"  {df.name}: rest.{df.name}.toISOString(),")
+                conv_lines.append(f"  {df.name}: rest.{df.name}.toISOString(),")
+        for dcf in dec_fields:
+            if dcf.is_nullable:
+                conv_lines.append(f"  {dcf.name}: rest.{dcf.name} != null ? Number(rest.{dcf.name}) : null,")
+            else:
+                conv_lines.append(f"  {dcf.name}: Number(rest.{dcf.name}),")
         return [
             f"const _serialize = (item: {name}): {serialized} => {{",
             f"  const {{ {owner}: _owner, ...rest }} = item",
             "  return ({",
             "    ...rest,",
-            *dt_lines,
+            *conv_lines,
             f"  }}) as {serialized}",
             "}",
             "",

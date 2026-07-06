@@ -91,6 +91,14 @@ class DatetimeFieldInfo:
 
 
 @dataclass(frozen=True)
+class DecimalFieldInfo:
+    """Champ Decimal — Prisma retourne un objet Decimal, jamais un number JS.
+    _serialize() doit appeler .toNumber() (même pattern que DateTime → toISOString)."""
+    name: str
+    is_nullable: bool
+
+
+@dataclass(frozen=True)
 class RelationFieldInfo:
     """Champ @relation — inclus dans include:{} de getAllWithRelations()."""
     name: str
@@ -147,6 +155,9 @@ class ModelGenerationContext:
 
     # datetime_fields : champs DateTime pour générer _serialize() dans le service.
     datetime_fields: list[DatetimeFieldInfo]
+
+    # decimal_fields : champs Decimal — convertis via .toNumber() dans les serializers.
+    decimal_fields: list[DecimalFieldInfo]
 
     # relation_fields : champs @relation pour include:{} de getAllWithRelations().
     relation_fields: list[RelationFieldInfo]
@@ -425,6 +436,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
 
     editable: list[FieldInfo] = []
     datetime_fields: list[DatetimeFieldInfo] = []
+    decimal_fields: list[DecimalFieldInfo] = []
     relation_fields: list[RelationFieldInfo] = []
     has_slug = False
     has_status = False
@@ -452,6 +464,10 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         # DateTime → pour _serialize()
         if base_type == "DateTime":
             datetime_fields.append(DatetimeFieldInfo(name=f.name, is_nullable=is_optional))
+
+        # Decimal → .toNumber() dans les serializers (objet Prisma Decimal ≠ number JS)
+        if base_type == "Decimal":
+            decimal_fields.append(DecimalFieldInfo(name=f.name, is_nullable=is_optional))
 
         # Champs éditables : ni auto, ni owner, ni FK (FK gérés séparément)
         if _is_auto_field(f.name, f.attributes):
@@ -521,6 +537,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         editable_fields=editable,
         fk_fields=fk_fields,
         datetime_fields=datetime_fields,
+        decimal_fields=decimal_fields,
         relation_fields=relation_fields,
         m2m_fields=m2m_fields,
         display_fields=_resolve_display_fields(model, owner, frozenset(model_names), spec_enums=spec_enums),

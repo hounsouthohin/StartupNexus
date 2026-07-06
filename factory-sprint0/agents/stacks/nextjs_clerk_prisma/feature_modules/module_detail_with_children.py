@@ -98,14 +98,26 @@ class DetailWithChildrenModule(FeatureModule):
     def generate(self, spec, ctx, enriched_spec, workdir: str, model_contexts: "dict | None" = None, design_system: "dict | None" = None) -> dict[str, str]:
         spec_pages = getattr(spec, "pages", []) or []
 
-        # Trouver la page détail de ce modèle dans le spec (par model, indépendamment de list_page_path)
+        # Trouver la page détail PRIVÉE de ce modèle (par model, indépendamment de list_page_path).
+        # Les pages détail publiques ne rendent JAMAIS les enfants : les modèles enfants portent
+        # souvent des données personnelles (nom, email des participants…) qui ne doivent pas être
+        # exposées aux visiteurs non authentifiés. Le page-client détail de base (form generator)
+        # reste en place pour la version publique. (Fuite PII réelle : club-running, 6 Juil 2026.)
+        _detail_pages = [
+            p for p in spec_pages
+            if getattr(p, "model", None) == ctx.name
+            and getattr(p, "page_type", None) in ("detail", "detail-slug")
+        ]
         detail_page = next(
-            (p for p in spec_pages
-             if getattr(p, "model", None) == ctx.name
-             and getattr(p, "page_type", None) in ("detail", "detail-slug")),
+            (p for p in _detail_pages if getattr(p, "auth_required", True)),
             None,
         )
         if detail_page is None:
+            if _detail_pages:
+                logger.info(
+                    "[detail_with_children] %s : page(s) détail publique(s) uniquement — "
+                    "enfants non rendus (protection PII).", ctx.name,
+                )
             return {}
 
         detail_path = detail_page.path
@@ -152,6 +164,10 @@ class DetailWithChildrenModule(FeatureModule):
 
         # Contextes ModelGenerationContext pour les champs enrichis (ne pas écraser le paramètre)
         all_model_contexts = model_contexts or {}
+
+        # title_plurals : fallback spec si le ctx enfant n'est pas disponible.
+        # DOIT être défini AVANT la boucle children_ctx qui l'utilise (UnboundLocalError sinon).
+        _title_plurals_spec = getattr(spec, "title_plurals", {}) or {}
 
         children_ctx = []
         for child_name, child_model in child_prisma_models.items():
@@ -215,9 +231,6 @@ class DetailWithChildrenModule(FeatureModule):
         # Labels UI — depuis ModelGenerationContext (source unifiée)
         _model_labels = ctx.ui_labels
         _enum_value_labels = ctx.enum_value_labels
-        # title_plural pour les enfants : depuis leur ModelGenerationContext (source unifiée)
-        # Fallback spec si le ctx enfant n'est pas encore disponible à ce stade
-        _title_plurals_spec = getattr(spec, "title_plurals", {}) or {}
 
         display_fields = ctx.display_fields
         # Pages publiques : exclure les champs boolean éditoriaux (published, is_draft…)

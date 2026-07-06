@@ -130,6 +130,20 @@ def run_feature_modules(
                         module.name, ctx.name, len(files),
                     )
                     all_written.update(files)
+            except TypeError as exc:
+                # Signature incompatible (ex: kwarg design_system non accepté) = bug de
+                # contrat module/dispatcher, PAS un cas métier. Un module activé qui ne
+                # peut même pas être appelé doit faire échouer le run — sinon la feature
+                # disparaît silencieusement (cause réelle : search/status_flow morts Juil 2026).
+                if "unexpected keyword argument" in str(exc):
+                    raise RuntimeError(
+                        f"FEATURE_MODULE_SIGNATURE_MISMATCH: {module.name}.generate() — {exc}. "
+                        "Aligner la signature du module sur le dispatcher run_feature_modules()."
+                    ) from exc
+                logger.error(
+                    "[feature_module] %s / %s non bloquant : %s",
+                    module.name, ctx.name, exc,
+                )
             except Exception as exc:
                 logger.error(
                     "[feature_module] %s / %s non bloquant : %s",
