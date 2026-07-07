@@ -137,7 +137,20 @@ def _fk_to_ctx(fk, display: str) -> dict:
 
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
-def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None, parent_relations: "list | None" = None) -> str:
+def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None, parent_relations: "list | None" = None, has_search: bool = False) -> str:
+    """
+    RENDERER UNIQUE des page-client.tsx de liste (unification DY6 — Juil 2026).
+    Remplace les ex-modules module_status_flow et module_search : deux chemins de rendu
+    pour le même fichier avec des contextes divergents = désynchronisation garantie
+    (mort silencieuse des modules constatée sur les runs des 6 Juil).
+
+    Arbre de décision (le fonctionnel prime sur l'esthétique) :
+      public            → public_list_card_grid / public_list_client
+      auth + status     → list_client_status  (filtre statut, compose has_search)
+      auth + card-grid  → list_client_card_grid
+      sinon             → list_client         (bloc recherche optionnel via has_search)
+    has_search : feature "search" déclarée par l'architect (enriched_spec) — jamais d'heuristique.
+    """
     auth_required = getattr(page, "auth_required", True)
     # Pour les pages publiques, ctx.list_page_path pointe vers la liste authentifiée
     # (spec.get_list_page_for_model priorise auth=True). Utiliser page.path directement
@@ -169,11 +182,16 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
     _enum_value_labels = ctx.enum_value_labels
     status_field = None
     status_labels: dict = {}
+    status_values: list = []
     if ctx.has_status:
         status_field = "status"
         for ef in ctx.editable_fields:
             if ef.name == "status" and ef.input_type == "enum-select":
-                status_labels = _enum_value_labels.get(ef.base_type, {}) or {}
+                # spec_enums = source de vérité des valeurs ; labels = traduction optionnelle
+                # (fallback valeur brute — un enum sans labels garde son filtre statut).
+                status_values = list(ef.allowed_values) or list(ctx.spec_enums.get(ef.base_type, []))
+                _raw_labels = _enum_value_labels.get(ef.base_type, {}) or {}
+                status_labels = {v: _raw_labels.get(v, v) for v in status_values}
                 break
     # field_enum_labels : traduction des enums non-status dans les colonnes display
     field_enum_labels: dict[str, dict[str, str]] = {}
@@ -192,16 +210,18 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         p.path in (_detail_path, _slug_detail_path) and p.page_type in ("detail", "detail-slug")
         for p in _spec_pages
     )
-    # Pages publiques → template dédié selon list_style du preset
-    # Pages auth card-grid → cards avec actions (Voir/Modifier/Supprimer)
-    # Pages auth table → tableau standard
+    # Arbre de décision UNIQUE (le fonctionnel prime sur l'esthétique) :
+    # le filtre statut demandé par le brief l'emporte sur le style card-grid du preset.
+    # Limitation connue : pas de variante card-grid avec filtre statut/recherche (table).
     _ls = (design_tokens or {}).get("list_style", "table")
     if not auth_required:
         template = "public_list_card_grid.tsx.j2" if _ls == "card-grid" else "public_list_client.tsx.j2"
+    elif ctx.has_status and status_values:
+        template = "list_client_status.tsx.j2"
+    elif has_search:
+        template = "list_client.tsx.j2"  # bloc recherche intégré via has_search
     elif _ls == "card-grid":
         template = "list_client_card_grid.tsx.j2"
-    elif ctx.has_status and status_labels:
-        template = "list_client_status.tsx.j2"
     else:
         template = "list_client.tsx.j2"
 
@@ -222,9 +242,9 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         has_detail=has_detail,
         status_field=status_field,
         status_labels=status_labels,
-        status_values=list(status_labels.keys()),
+        status_values=status_values,
         field_enum_labels=field_enum_labels,
-        has_search=False,
+        has_search=bool(has_search and auth_required),
         empty_state_message=empty_state_message,
         parent_relations=parent_relations or [],
         boolean_fields=_boolean_fields,
@@ -331,7 +351,7 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     )
 
 
-def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None, textarea_fields: set | None = None) -> str:
+def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None, textarea_fields: set | None = None, model_contexts: dict | None = None) -> str:
     auth_required = getattr(page, "auth_required", True)
     page_path = getattr(page, "path", None)
     if not auth_required and page_path:
@@ -373,8 +393,22 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
             if labels:
                 value_labels[ef.name] = labels
     boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
+    # Relations M2M affichées en badges (tags…) — les données sont chargées par les
+    # variantes WithRelations ; `?? []` couvre les lookups sans relations (rien affiché).
+    m2m_display = [
+        {
+            "name": mf.name,
+            "display_field": (
+                (model_contexts or {}).get(mf.related_model).display_fields[0]
+                if (model_contexts or {}).get(mf.related_model) and (model_contexts or {}).get(mf.related_model).display_fields
+                else "id"
+            ),
+        }
+        for mf in (getattr(ctx, "m2m_fields", []) or [])
+    ]
     return _render(
         "detail_client.tsx.j2",
+        m2m_display=m2m_display,
         name=ctx.name,
         serialized_type=ctx.serialized_type,
         client_name=path_to_client_component(page.path),
@@ -489,14 +523,22 @@ def generate_all_page_clients(
                     }
                     for fk in ctx.fk_fields
                 ]
-                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens, parent_relations=_parent_rels)
+                # Feature "search" déclarée par l'architect (jamais d'heuristique) —
+                # consommée ici depuis l'unification DY6 (ex-module_search supprimé).
+                _has_search = bool(
+                    enriched_spec is not None
+                    and getattr(enriched_spec, "has_feature", None)
+                    and enriched_spec.has_feature("search")
+                )
+                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens, parent_relations=_parent_rels, has_search=_has_search)
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_create_client(page, ctx, model_contexts, spec=spec, design_tokens=tokens)
             elif page_type in ("detail", "detail-slug"):
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_detail_client(page, ctx, spec=spec, design_tokens=tokens,
-                                             textarea_fields=_textarea_fields.get(ctx.name))
+                                             textarea_fields=_textarea_fields.get(ctx.name),
+                                             model_contexts=model_contexts)
             elif page_type == "edit":
                 # page-client.tsx déterministe pour la page d'édition.
                 # Le page.tsx est généré par generate_edit_page_stubs() dans dev_pages_generator.py.
@@ -661,7 +703,7 @@ def generate_parent_detail_pages(
                 written[page_rel] = page_content
 
             if not os.path.exists(client_abs):
-                client_content = _gen_detail_client(synthetic_page, parent_ctx, spec=spec, design_tokens=tokens)
+                client_content = _gen_detail_client(synthetic_page, parent_ctx, spec=spec, design_tokens=tokens, model_contexts=model_contexts)
                 with open(client_abs, "w", encoding="utf-8") as f:
                     f.write(client_content)
                 written[client_rel] = client_content

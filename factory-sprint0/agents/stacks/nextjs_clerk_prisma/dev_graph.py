@@ -941,6 +941,40 @@ async def run_dev_agent(
                             )
                             if _fetches_str:
                                 _file_brief += f"\nAPPELS SERVICE : {_fetches_str}"
+
+                        # ── Contrat KPI → expressions TypeScript EXACTES ──────
+                        # Le contrat structuré (kpis[]) est compilé ici en code que le
+                        # LLM copie tel quel — fin du « total en euros » rendu en .length
+                        # (prose ré-interprétée, constaté 2 runs — Juil 2026).
+                        _kpis = _pd_entry.get("kpis", [])
+                        if _kpis and isinstance(_kpis, list):
+                            _kpi_lines: list[str] = []
+                            for _k in _kpis:
+                                if not isinstance(_k, dict) or not _k.get("source"):
+                                    continue
+                                _src = _k["source"]
+                                _base = (
+                                    f"{_src}.filter(x => String(x.{_k['filter_field']}) === '{_k['filter_value']}')"
+                                    if _k.get("filter_field") and _k.get("filter_value") else _src
+                                )
+                                _agg = _k.get("agg", "count")
+                                _fld = _k.get("field", "")
+                                if _agg == "sum" and _fld:
+                                    _expr = f"{_base}.reduce((s, x) => s + (Number(x.{_fld}) || 0), 0)"
+                                elif _agg == "avg" and _fld:
+                                    _expr = (
+                                        f"({_base}.length ? {_base}.reduce((s, x) => s + (Number(x.{_fld}) || 0), 0) / {_base}.length : 0)"
+                                    )
+                                else:
+                                    _expr = f"{_base}.length"
+                                _kpi_lines.append(f"- « {_k.get('label', '?')} » = {_expr}")
+                            if _kpi_lines:
+                                _file_brief += (
+                                    "\nKPIS OBLIGATOIRES — utilise EXACTEMENT ces expressions "
+                                    "(ne PAS les remplacer par .length ni les recalculer autrement) :\n"
+                                    + "\n".join(_kpi_lines)
+                                )
+
                         _page_flows = [f for f in (getattr(spec_obj, "user_flows", []) or []) if _rt in f]
                         if _page_flows:
                             _file_brief += "\nFLOWS : " + " | ".join(_page_flows[:2])

@@ -140,6 +140,28 @@ def _check_page_auth(rel_path: str, content: str, auth_required: bool) -> list[d
     return findings
 
 
+def _check_public_pii(rel_path: str, content: str) -> list[dict]:
+    """
+    Pages PUBLIQUES : détecte le rendu de champs PII (email, téléphone) dans le JSX.
+    Origine : club-running (06 Juil 2026) — noms + emails des participants exposés
+    aux visiteurs sur /run-events/[id] ; reviewer L1 et L2 aveugles (COHERENT 100).
+    Cible les accès de rendu (.email dans le corps), pas les définitions de type.
+    """
+    findings = []
+    _PII_MARKERS = (".email", ".phone", ".phoneNumber", ".telephone")
+    for marker in _PII_MARKERS:
+        if marker in content:
+            findings.append({
+                "severity": "WARNING",
+                "type": "PII_PUBLIC_EXPOSURE",
+                "file": rel_path,
+                "evidence": f"Page publique rend un champ personnel ('{marker}') visible sans authentification.",
+                "fix": "Retirer ce champ de la page publique — les données personnelles (email, téléphone) ne doivent apparaître que sur les pages authentifiées.",
+            })
+            break  # un finding par fichier suffit
+    return findings
+
+
 def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
     """
     Layer 1 — Checks sécurité déterministes, sans LLM.
@@ -148,6 +170,7 @@ def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
     1. IDOR       : update/delete sans owner dans where (services)
     2. CROSS_USER : findMany sans filtre owner (services)
     3. AUTH_GUARD : pages privées sans auth() / pages publiques avec auth() bloquant
+    4. PII_PUBLIC : champs personnels (email/téléphone) rendus sur pages publiques
 
     Lit les vrais fichiers générés — pas d'hallucination possible.
     """
@@ -183,6 +206,12 @@ def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
                 all_findings.extend(
                     _check_page_auth(rel_path, content, page_auth_map[page_path])
                 )
+
+        # Pages publiques (page.tsx + page-client.tsx) — PII rendue sans auth
+        if rel_path.endswith(("page.tsx", "page-client.tsx")) and rel_path.startswith("app/"):
+            _pii_page_path = _file_to_page_path(rel_path.replace("page-client.tsx", "page.tsx"))
+            if page_auth_map.get(_pii_page_path) is False:
+                all_findings.extend(_check_public_pii(rel_path, content))
 
     logger.info(
         "[reviewer] Layer 1 déterministe : %d findings (IDOR=%d, CROSS_USER=%d, AUTH=%d)",

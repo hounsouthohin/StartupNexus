@@ -70,6 +70,26 @@ class DataFetchContract(BaseModel):
     # ex: "projects" — nom de la variable const dans le Server Component
 
 
+class KPIDeclaration(BaseModel):
+    """Contrat structuré d'un indicateur de dashboard (Juil 2026 — transport KPI).
+
+    Remplace la prose ('affiche le total mensuel en euros des actifs') que le LLM dev
+    ré-interprétait mal (count au lieu de sum, constaté 2 runs consécutifs).
+    L'executor compile ce contrat en expression TypeScript EXACTE injectée dans le prompt."""
+    label: str = ""
+    # Libellé affiché. Ex: "Total mensuel (€)"
+    source: str = ""
+    # Variable des data_fetches portant les données. Ex: "subscriptions"
+    agg: str = "count"
+    # "count" → .length | "sum" → reduce(+field) | "avg" → sum/length
+    field: str = ""
+    # Champ numérique agrégé — OBLIGATOIRE pour sum/avg. Ex: "monthlyPrice"
+    filter_field: str = ""
+    # Champ de filtre optionnel. Ex: "status"
+    filter_value: str = ""
+    # Valeur du filtre. Ex: "active"
+
+
 class PageDetailContract(BaseModel):
     """Contrat structuré pour une page custom (dashboard, landing, hub...).
     Produit par pages_detail_node — remplace les strings libres 'INTERACTIVE' de l'ancien format."""
@@ -80,6 +100,8 @@ class PageDetailContract(BaseModel):
     interactive: bool = False
     # True si la page combine données serveur ET interactions utilisateur
     # (filtres, formulaires inline, boutons d'action) → SPLIT page.tsx + page-client.tsx requis
+    kpis: list[KPIDeclaration] = Field(default_factory=list)
+    # Indicateurs chiffrés du dashboard — compilés en expressions TS exactes par l'executor.
 
 
 class UXHints(BaseModel):

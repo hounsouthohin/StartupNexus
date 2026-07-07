@@ -284,9 +284,12 @@ class TodoPilotWorkflow:
                         "summary": review_report.get("summary", ""),
                     }
 
-                    # ── Correction pass si DEGRADED ou INCOHERENT ─────────────
-                    # Déclenche sur findings actionnables (pas targeted_fixes, toujours vide).
-                    if review_verdict in ("DEGRADED", "INCOHERENT"):
+                    # ── Correction pass sur findings actionnables ─────────────
+                    # Signal roadmap 4.8A' : ≥1 finding CRITICAL/WARNING de type fixable —
+                    # INDÉPENDAMMENT du verdict. Un COHERENT à 80 avec un WRONG_AUTH réel
+                    # (club-running 06 Juil : page publique générée avec auth) doit déclencher
+                    # la correction ; l'ancien gate sur DEGRADED/INCOHERENT la court-circuitait.
+                    if review_report:
                         _CORRECTION_FIXABLE = {"WRONG_AUTH", "MISSING_AUTH", "BRIEF_CONFORMITY"}
                         all_review_findings = review_report.get("findings", []) or []
                         actionable_findings = [

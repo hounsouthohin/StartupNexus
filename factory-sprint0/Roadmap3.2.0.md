@@ -811,7 +811,7 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | D17 | Decimal non sérialisé dans `_serialize` | 4.7D (F10) | ⏳ |
 | D18 | Enum : union literals au lieu d'imports Prisma | 5 | ⏳ |
 | D19 | `prebuild_pipeline.py` orchestrateur séparé de `dev_graph` | 4.9B | ⏳ |
-| D20 | `module_search`/`status_flow` lisent heuristiques au lieu de `enriched_spec.features` | 4.9 (DY1) | ⏳ |
+| D20 | `module_search`/`status_flow` lisent heuristiques au lieu de `enriched_spec.features` | 4.9 (DY1) | ✅ 06 Juil (modules supprimés — unification DY6) |
 | D21 | `rules_dev.md` : ~25 règles sur fichiers déterministes = bruit LLM | 4.9 (DY3) | ⏳ |
 | D22 | `role_rag_queries` "service" et "actions" actifs mais inutiles (déterministes) | 4.9 (DY7) | ⏳ |
 | D23 | `list_style: "cards"` dans presets mais aucun template list cards privé → toujours table | `dev_form_generator.py` + `list_client_card_grid.tsx.j2` | 4.9 |
@@ -827,12 +827,12 @@ App générée → github_activity → factory-generated-apps (branche par proje
 
 | # | Dysfonctionnement | Fichiers concernés | Sprint |
 |---|---|---|---|
-| DY1 | Module system mort : `should_activate()` lit heuristiques au lieu de `enriched_spec.features[]` | `module_search.py`, `module_status_flow.py` | 4.9 |
+| ~~DY1~~ | ~~Module system mort : heuristiques au lieu de features[]~~ **✅ RÉSOLU 06 Juil 2026 par l'unification DY6** — la feature `search` est consommée par le form generator depuis `enriched_spec.has_feature()` ; `status` reste structurel (ctx.has_status, déterministe) | `dev_form_generator.py` | ✅ |
 | DY2 | Fracture CROSS_ENTITY : `_gen_page_full()` deux fetches séparés au lieu de `getByIdWithRelations` — `module_detail_with_children` neutralisé | `dev_pages_generator.py`, `module_detail_with_children.py` | 4.9 |
 | DY3 | `rules_dev.md` : 36 règles dont ~25 sur fichiers déterministes (services, actions) = bruit dans le contexte LLM | `prompts/rules_dev.md` | 4.9 |
 | DY4 | `code_role_hints` JSON et `rules_dev.md` se chevauchent — une règle dans deux endroits | `config/stacks/*.json`, `prompts/rules_dev.md` | 4.9 |
 | DY5 | Architect génère `pages_detail` pour toutes les pages y compris les déterministes (inutile) | `agents/architect.py` pages_detail_node | 4.9 |
-| DY6 | Générateurs (backbone, toujours actifs) et modules (conditionnels) : deux systèmes non unifiés | `dev_graph.py`, `feature_modules/` | 5 |
+| ~~DY6~~ | ~~Générateurs et modules : deux systèmes non unifiés~~ **✅ RÉSOLU 06 Juil 2026** — les listes ont UN renderer unique (`_gen_list_client`, arbre public→status→search→card-grid) ; `module_status_flow` + `module_search` SUPPRIMÉS (leur double-rendu divergent causait la mort silencieuse : TypeError design_system + template search jamais valide + card_cls). `list_client_search.tsx.j2` fusionné dans `list_client.tsx.j2` (bloc has_search). Le registre feature_modules reste pour les vrais modules (detail_with_children, futur calendar_view) | `dev_form_generator.py` | ✅ |
 | DY7 | `role_rag_queries` "service" et "actions" actifs mais services/actions sont déterministes → requêtes Qdrant inutiles | `config/stacks/nextjs-clerk-prisma.json` | 4.9 |
 
 ---

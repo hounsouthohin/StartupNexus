@@ -150,7 +150,10 @@ Types à annoter :
 - "status-enum"    → enum de statut workflow. Inclure "values" dans l'ordre logique du workflow.
 - "priority-enum"  → enum de priorité. Inclure "values" du plus faible au plus fort.
 - "currency"       → montant monétaire (amount, price, cost, budget, salary)
-- "date"           → date sans heure (birthDate, dueDate, startDate, endDate — type String ou DateTime)
+- "date"           → date SANS heure (birthDate, dueDate — l'heure n'a pas de sens pour ce champ)
+- "datetime"       → date ET heure (rendez-vous, créneau, échéance horaire). Si le brief dit
+                     "date et heure" ou si l'heure est significative → TOUJOURS "datetime", jamais "date"
+                     (un rendez-vous annoté "date" perd son heure dans le formulaire — bug réel).
 - "url"            → lien web (website, url, link, avatar, imageUrl)
 - "email"          → adresse email (email, contactEmail)
 
@@ -355,10 +358,25 @@ IMPORTANT : ta réponse est un objet JSON PLAT. Chaque clé est un path de page.
 
 ## FORMAT OBLIGATOIRE — objet structuré par page
 
-Chaque valeur est un objet avec exactement ces 3 champs :
+Chaque valeur est un objet avec ces champs :
 - "description"   : string — ce qui s'affiche sur cette page (compteurs, résumés, liens)
 - "data_fetches"  : liste  — appels de service nécessaires. Format : {"service": "xxxService.method(args)", "as": "varName"}
 - "interactive"   : bool   — true si la page a des interactions utilisateur (filtres, formulaires inline, boutons d'action)
+- "kpis"          : liste  — OBLIGATOIRE dès que la page affiche des indicateurs chiffrés. [] sinon.
+
+## KPIS — CONTRAT STRUCTURÉ DES INDICATEURS (règle inconditionnelle)
+
+Chaque indicateur chiffré mentionné dans le brief DOIT être déclaré dans "kpis" :
+{"label": "...", "source": "varName des data_fetches", "agg": "count|sum|avg", "field": "champNumérique", "filter_field": "champ", "filter_value": "valeur"}
+
+Choix de "agg" — définitions strictes :
+- "count" = NOMBRE d'éléments ("combien d'abonnements actifs") — field reste ""
+- "sum"   = TOTAL d'un champ numérique ("total mensuel en euros", "chiffre d'affaires") — field OBLIGATOIRE
+- "avg"   = MOYENNE d'un champ numérique ("durée moyenne", "panier moyen") — field OBLIGATOIRE
+⚠ INTERDIT : un montant/total exprimé dans une devise ou une unité ("total en euros", "km parcourus")
+n'est JAMAIS un "count". Si le brief dit "total mensuel en euros des abonnements actifs" :
+❌ {"label": "Total mensuel", "agg": "count", "filter_field": "status", "filter_value": "active"}
+✅ {"label": "Total mensuel (€)", "source": "subscriptions", "agg": "sum", "field": "monthlyPrice", "filter_field": "status", "filter_value": "active"}
 
 ## RÈGLE — pages custom
 
@@ -371,16 +389,20 @@ Pour chaque page custom, identifier :
 
 ## EXEMPLES
 
-Page dashboard après connexion :
+Page dashboard après connexion (brief : "total du budget en euros des projets actifs, nombre de tâches") :
 ```json
 {
   "/dashboard": {
-    "description": "Hub principal. Affiche projects.length projets actifs et tasks.length tâches. Liens rapides vers /projects/new et /tasks/new.",
+    "description": "Hub principal. Affiche le budget total des projets actifs et le nombre de tâches. Liens rapides vers /projects/new et /tasks/new.",
     "data_fetches": [
       {"service": "projectService.getAll(userId)", "as": "projects"},
       {"service": "taskService.getAll(userId)", "as": "tasks"}
     ],
-    "interactive": false
+    "interactive": false,
+    "kpis": [
+      {"label": "Budget total (€)", "source": "projects", "agg": "sum", "field": "budget", "filter_field": "status", "filter_value": "active"},
+      {"label": "Tâches", "source": "tasks", "agg": "count", "field": "", "filter_field": "", "filter_value": ""}
+    ]
   }
 }
 ```

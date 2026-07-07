@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Champs candidats pour title / description dans generateMetadata
 _TITLE_CANDIDATES = ("title", "name", "heading", "label", "subject")
-_DESC_CANDIDATES = ("excerpt", "summary", "description", "content", "body")
+_DESC_CANDIDATES = ("excerpt", "summary", "description", "content", "body", "instructions", "details", "text")
 
 
 def _static_prefix(path: str) -> str:

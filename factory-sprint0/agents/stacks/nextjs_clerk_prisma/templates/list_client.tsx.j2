@@ -1,6 +1,6 @@
 'use client'
 
-{% if has_delete %}
+{% if has_delete or has_search %}
 import { useState } from 'react'
 {% endif %}
 import Link from 'next/link'
@@ -27,6 +27,17 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   {% else %}
   const list = items
   {% endif %}
+  {% if has_search %}
+  const [query, setQuery] = useState('')
+  const filtered = query
+    ? list.filter(item =>
+        [{% for field in display_fields %}'{{ field }}'{% if not loop.last %}, {% endif %}{% endfor %}]
+          .some(k => String((item as Record<string, unknown>)[k] ?? '').toLowerCase().includes(query.toLowerCase()))
+      )
+    : list
+  {% else %}
+  const filtered = list
+  {% endif %}
 
   {% if has_delete %}
   const handleDelete = async (id: string) => {
@@ -51,9 +62,25 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
         {% endif %}
       </div>
 
-      {list.length === 0 ? (
+      {% if has_search %}
+      <div className="mb-4">
+        <input
+          type="search"
+          placeholder="Rechercher…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          className="w-full max-w-sm px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+        />
+      </div>
+
+      {% endif %}
+      {filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
+          {% if has_search %}
+          <p className="text-lg">{query ? 'Aucun résultat pour cette recherche.' : "{{ empty_state_message if empty_state_message else 'Aucun ' + camel + ' pour le moment.' }}"}</p>
+          {% else %}
           <p className="text-lg">{{ empty_state_message if empty_state_message else "Aucun " + camel + " pour le moment." }}</p>
+          {% endif %}
           {% if auth_required %}
           <Link href="{{ list_path }}/new" className="mt-4 inline-block text-{{ primary }} hover:underline text-sm">
             Créer le premier
@@ -83,7 +110,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
               </tr>
             </thead>
             <tbody className="bg-card divide-y divide-border">
-              {list.map(item => (
+              {filtered.map(item => (
                 <tr key={item.id} className="hover:bg-muted/50 {{ transition_cls }}">
                   {% for field in display_fields %}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">

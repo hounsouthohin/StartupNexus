@@ -41,7 +41,7 @@ export default function {{ client_name }}({% if fk_props %}{ {{ fk_destructure }
           <textarea
             id="{{ field.name }}"
             name="{{ field.name }}"
-            rows={{ '{' }}{{ 12 if field.name in ('content', 'body') else 4 }}}
+            rows={{ '{' }}{{ 12 if field.name in ('content', 'body', 'instructions') else 4 }}}
             {% if not field.is_optional and not field.has_default %}required{% endif %}
             className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
           />
