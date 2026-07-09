@@ -148,17 +148,17 @@ def _check_public_pii(rel_path: str, content: str) -> list[dict]:
     Cible les accès de rendu (.email dans le corps), pas les définitions de type.
     """
     findings = []
-    _PII_MARKERS = (".email", ".phone", ".phoneNumber", ".telephone")
-    for marker in _PII_MARKERS:
-        if marker in content:
-            findings.append({
-                "severity": "WARNING",
-                "type": "PII_PUBLIC_EXPOSURE",
-                "file": rel_path,
-                "evidence": f"Page publique rend un champ personnel ('{marker}') visible sans authentification.",
-                "fix": "Retirer ce champ de la page publique — les données personnelles (email, téléphone) ne doivent apparaître que sur les pages authentifiées.",
-            })
-            break  # un finding par fichier suffit
+    # Accès de rendu à un champ PII : .email, .contactEmail, .phone, .mobilePhone,
+    # .telephone, .tel… — insensible à la casse, quel que soit le préfixe camelCase.
+    _m = re.search(r"\.\w*(?:[Ee]mail|[Pp]hone|[Tt]elephone|[Mm]obile)\b", content)
+    if _m:
+        findings.append({
+            "severity": "WARNING",
+            "type": "PII_PUBLIC_EXPOSURE",
+            "file": rel_path,
+            "evidence": f"Page publique rend un champ personnel ('{_m.group(0)}') sans authentification.",
+            "fix": "Retirer ce champ de la page publique — les données personnelles (email, téléphone) ne doivent apparaître que sur les pages authentifiées.",
+        })
     return findings
 
 
@@ -189,7 +189,7 @@ def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
         page_auth_map[path] = bool(auth)
 
     for rel_path, content in generated_files.items():
-        # Services — IDOR + CROSS_USER
+        # Services — IDOR + CROSS_USER (ownership relationnel garanti par le générateur crud.py)
         if "lib/services/" in rel_path and rel_path.endswith(".service.ts"):
             all_findings.extend(_check_service_idor(rel_path, content))
             all_findings.extend(_check_service_cross_user(rel_path, content))

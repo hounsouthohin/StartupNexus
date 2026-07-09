@@ -151,6 +151,11 @@ def generate_types_file(
         _omit_set: set[str] = {"id"} | _auto_names
         if _owner:
             _omit_set.add(_owner)
+        # slug auto-généré côté service (V7) → jamais dans l'input client
+        if ctx is not None and getattr(ctx, "slug_source", ""):
+            _slug_name = next((f.name for f in model.fields if f.name.lower() == "slug"), None)
+            if _slug_name:
+                _omit_set.add(_slug_name)
         _omit_ts = " | ".join(f"'{fn}'" for fn in sorted(_omit_set))
 
         create_type_name = f"Create{model.name}Input"

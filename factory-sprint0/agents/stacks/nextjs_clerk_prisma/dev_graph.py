@@ -933,10 +933,30 @@ async def run_dev_agent(
                     _pd_entry = _pd_map.get(_rt)
                     if isinstance(_pd_entry, dict) and _pd_entry.get("description"):
                         _file_brief = f"\nEXIGENCES BRIEF POUR CETTE PAGE : {_pd_entry['description']}"
+
+                        # Sources alimentant un KPI ou une liste filtrée : chargées SANS
+                        # pagination (D4) — sinon l'agrégat/le filtre porte sur les 20 premiers.
+                        _kpis = _pd_entry.get("kpis", []) or []
+                        _flists = _pd_entry.get("filtered_lists", []) or []
+                        _agg_sources = {
+                            _e["source"] for _e in list(_kpis) + list(_flists)
+                            if isinstance(_e, dict) and _e.get("source")
+                        }
+                        _PAGINATED = ("getAll", "getAllWithRelations", "getPublicAll", "getPublished")
+
+                        def _unpaginate(_call: str) -> str:
+                            _m = re.match(r"^(\w+\.(\w+))\((.*)\)\s*$", (_call or "").strip())
+                            if not _m or _m.group(2) not in _PAGINATED:
+                                return _call
+                            _args = _m.group(3).strip()
+                            # pageSize élevé = « tout charger » pour l'agrégation (app perso)
+                            return f"{_m.group(1)}({_args + ', 1, 100000' if _args else '1, 100000'})"
+
                         _data_fetches = _pd_entry.get("data_fetches", [])
                         if _data_fetches and isinstance(_data_fetches, list):
                             _fetches_str = " | ".join(
-                                f"{f.get('as', '?')}: {f.get('service', '?')}"
+                                f"{f.get('as', '?')}: "
+                                + (_unpaginate(f.get('service', '?')) if f.get('as') in _agg_sources else f.get('service', '?'))
                                 for f in _data_fetches if isinstance(f, dict)
                             )
                             if _fetches_str:
@@ -946,7 +966,6 @@ async def run_dev_agent(
                         # Le contrat structuré (kpis[]) est compilé ici en code que le
                         # LLM copie tel quel — fin du « total en euros » rendu en .length
                         # (prose ré-interprétée, constaté 2 runs — Juil 2026).
-                        _kpis = _pd_entry.get("kpis", [])
                         if _kpis and isinstance(_kpis, list):
                             _kpi_lines: list[str] = []
                             for _k in _kpis:
@@ -973,6 +992,40 @@ async def run_dev_agent(
                                     "\nKPIS OBLIGATOIRES — utilise EXACTEMENT ces expressions "
                                     "(ne PAS les remplacer par .length ni les recalculer autrement) :\n"
                                     + "\n".join(_kpi_lines)
+                                )
+
+                        # ── Contrat LISTE FILTRÉE → expression .filter() EXACTE ──
+                        # Jumeau des KPI : évite qu'une liste conditionnelle du brief
+                        # (« sous 7 jours », « en retard ») reste en prose et soit oubliée.
+                        if _flists and isinstance(_flists, list):
+                            _fl_lines: list[str] = []
+                            for _fl in _flists:
+                                if not isinstance(_fl, dict) or not _fl.get("source") or not _fl.get("filter_field"):
+                                    continue
+                                _src = _fl["source"]
+                                _ff = _fl["filter_field"]
+                                _op = _fl.get("filter_op", "eq")
+                                _val = _fl.get("filter_value", "")
+                                if _op == "within_days":
+                                    _n = _val if str(_val).strip().isdigit() else "7"
+                                    _pred = (
+                                        f"{{ const _d = new Date(x.{_ff} as string); const _now = new Date(); "
+                                        f"const _lim = new Date(); _lim.setDate(_now.getDate() + {_n}); "
+                                        "return _d >= _now && _d <= _lim }"
+                                    )
+                                    _expr = f"{_src}.filter(x => {_pred})"
+                                elif _op == "before":
+                                    _expr = f"{_src}.filter(x => new Date(x.{_ff} as string) < new Date())"
+                                elif _op == "after":
+                                    _expr = f"{_src}.filter(x => new Date(x.{_ff} as string) > new Date())"
+                                else:  # eq
+                                    _expr = f"{_src}.filter(x => String(x.{_ff}) === '{_val}')"
+                                _fl_lines.append(f"- « {_fl.get('label', '?')} » (liste) = {_expr}")
+                            if _fl_lines:
+                                _file_brief += (
+                                    "\nLISTES FILTRÉES OBLIGATOIRES — affiche EXACTEMENT ces sous-ensembles "
+                                    "(assigne chaque expression à une const et rends-la ; ne les omets pas) :\n"
+                                    + "\n".join(_fl_lines)
                                 )
 
                         _page_flows = [f for f in (getattr(spec_obj, "user_flows", []) or []) if _rt in f]

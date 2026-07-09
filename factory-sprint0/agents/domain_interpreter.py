@@ -89,6 +89,11 @@ Signaux M2M : "plusieurs X", "des tags", "multi-catégories", "peut appartenir �
 """
 
 _DOMAIN_FEW_SHOT = """\
+## EXEMPLES — ILLUSTRATION DU FORMAT UNIQUEMENT
+⚠ Ces exemples montrent la FORME attendue (syntaxe Prisma, structure JSON), PAS des gabarits de domaine.
+Déduis TOUJOURS les modèles, champs et enums du brief réel. Si le brief parle de bibliothèque, de cabinet
+médical ou de covoiturage, n'y plaque JAMAIS les entités ci-dessous (Task, Post, Client…).
+
 ## EXEMPLES — MODÈLES UNIQUEMENT
 
 ### Brief : "Gestion de tâches avec commentaires. Statut : pending/in_progress/done."

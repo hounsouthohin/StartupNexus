@@ -90,6 +90,25 @@ class KPIDeclaration(BaseModel):
     # Valeur du filtre. Ex: "active"
 
 
+class FilteredListDeclaration(BaseModel):
+    """Contrat structuré d'une LISTE FILTRÉE de dashboard (Juil 2026 — jumeau des KPI).
+
+    Répond à la conformité fonctionnelle : la prose ('la liste de ceux dont le prélèvement
+    arrive dans les 7 prochains jours') était appliquée partiellement par le LLM et parfois
+    OMISE (constaté abo-tracker). L'executor compile ce contrat en expression .filter() exacte."""
+    label: str = ""
+    # Titre de la section. Ex: "Prélèvements sous 7 jours"
+    source: str = ""
+    # Variable des data_fetches portant les données. Ex: "subscriptions"
+    filter_field: str = ""
+    # Champ de filtre. Ex: "status", "nextBillingDate"
+    filter_op: str = "eq"
+    # "eq" → x.field === value | "within_days" → date entre maintenant et +N jours
+    # "before" → date < maintenant | "after" → date > maintenant
+    filter_value: str = ""
+    # Pour eq : la valeur ("active"). Pour within_days : le nombre de jours ("7").
+
+
 class PageDetailContract(BaseModel):
     """Contrat structuré pour une page custom (dashboard, landing, hub...).
     Produit par pages_detail_node — remplace les strings libres 'INTERACTIVE' de l'ancien format."""
@@ -102,6 +121,8 @@ class PageDetailContract(BaseModel):
     # (filtres, formulaires inline, boutons d'action) → SPLIT page.tsx + page-client.tsx requis
     kpis: list[KPIDeclaration] = Field(default_factory=list)
     # Indicateurs chiffrés du dashboard — compilés en expressions TS exactes par l'executor.
+    filtered_lists: list[FilteredListDeclaration] = Field(default_factory=list)
+    # Listes filtrées (sous-ensembles conditionnels) — compilées en .filter() exact par l'executor.
 
 
 class UXHints(BaseModel):

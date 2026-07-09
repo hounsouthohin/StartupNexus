@@ -191,6 +191,10 @@ Produis des indications UX pour améliorer l'expérience utilisateur final.
 
 ## FORMAT DE SORTIE — JSON uniquement, aucun markdown
 
+⚠ Les exemples ci-dessous illustrent la FORME du JSON, PAS des gabarits de domaine.
+Annote TOUJOURS les champs réellement présents dans les modèles reçus ; n'invente pas de champ
+et ne plaque pas ces exemples sur un brief dont le domaine est différent.
+
 Exemple pour un gestionnaire de tâches avec statut workflow :
 {
   "field_annotations": {
@@ -356,124 +360,69 @@ Tu décris UNIQUEMENT les pages custom (dashboards, hubs, landings, pages sans m
 
 IMPORTANT : ta réponse est un objet JSON PLAT. Chaque clé est un path de page.
 
-## FORMAT OBLIGATOIRE — objet structuré par page
+## FORMAT — objet structuré par page custom
 
 Chaque valeur est un objet avec ces champs :
-- "description"   : string — ce qui s'affiche sur cette page (compteurs, résumés, liens)
-- "data_fetches"  : liste  — appels de service nécessaires. Format : {"service": "xxxService.method(args)", "as": "varName"}
-- "interactive"   : bool   — true si la page a des interactions utilisateur (filtres, formulaires inline, boutons d'action)
-- "kpis"          : liste  — OBLIGATOIRE dès que la page affiche des indicateurs chiffrés. [] sinon.
+- "description"    : string — le texte statique, les liens et le contexte de la page
+- "data_fetches"   : liste  — appels service. Format : {"service": "xxxService.method(args)", "as": "varName"}
+- "interactive"    : bool   — true si interactions réelles (formulaire inline, filtre dynamique)
+- "kpis"           : liste  — les CHIFFRES agrégés affichés. [] si aucun.
+- "filtered_lists" : liste  — les LISTES d'un sous-ensemble conditionnel. [] si aucune.
 
-## KPIS — CONTRAT STRUCTURÉ DES INDICATEURS (règle inconditionnelle)
+## RAISONNEMENT — décompose ce que la page affiche (vaut pour TOUT domaine)
 
-Chaque indicateur chiffré mentionné dans le brief DOIT être déclaré dans "kpis" :
-{"label": "...", "source": "varName des data_fetches", "agg": "count|sum|avg", "field": "champNumérique", "filter_field": "champ", "filter_value": "valeur"}
+Pour chaque élément que le brief demande d'afficher, classe-le dans le bon champ :
+- un CHIFFRE unique (un total, une moyenne, un « combien de… ») → "kpis"
+- une LISTE d'un sous-ensemble conditionnel (« ceux qui… », « les X en retard/à venir ») → "filtered_lists"
+- du texte, des liens, un hero → "description"
+Ne laisse JAMAIS un chiffre ou une liste conditionnelle uniquement en prose : ce qui n'est pas
+structuré est perdu par la suite. Déduis toujours ces éléments du brief réel, jamais d'un gabarit.
 
-Choix de "agg" — définitions strictes :
-- "count" = NOMBRE d'éléments ("combien d'abonnements actifs") — field reste ""
-- "sum"   = TOTAL d'un champ numérique ("total mensuel en euros", "chiffre d'affaires") — field OBLIGATOIRE
-- "avg"   = MOYENNE d'un champ numérique ("durée moyenne", "panier moyen") — field OBLIGATOIRE
-⚠ INTERDIT : un montant/total exprimé dans une devise ou une unité ("total en euros", "km parcourus")
-n'est JAMAIS un "count". Si le brief dit "total mensuel en euros des abonnements actifs" :
-❌ {"label": "Total mensuel", "agg": "count", "filter_field": "status", "filter_value": "active"}
-✅ {"label": "Total mensuel (€)", "source": "subscriptions", "agg": "sum", "field": "monthlyPrice", "filter_field": "status", "filter_value": "active"}
+## kpis — un CHIFFRE agrégé
+{"label", "source" (var de data_fetches), "agg": "count|sum|avg", "field", "filter_field", "filter_value"}
+- "count" = NOMBRE d'éléments — field = ""
+- "sum"   = TOTAL d'un champ numérique — field obligatoire
+- "avg"   = MOYENNE d'un champ numérique — field obligatoire
+DISTINCTION : un montant/total exprimé dans une unité (une devise, des km…) est un "sum", JAMAIS un "count".
+❌ {"agg": "count"} pour « le total en euros »   ✅ {"agg": "sum", "field": "<le champ montant>"}
 
-## RÈGLE — pages custom
+## filtered_lists — une LISTE d'un sous-ensemble
+{"label", "source" (var de data_fetches), "filter_field", "filter_op": "eq|within_days|before|after", "filter_value"}
+- "eq"          = égalité (filter_value = la valeur cible)
+- "within_days" = date dans les N prochains jours (filter_value = le nombre N)
+- "before"      = date passée (en retard, terminé)
+- "after"       = date future (à venir)
+DISTINCTION : une LISTE d'éléments n'est jamais un "kpis" (qui est un chiffre unique).
 
-Une page custom est une page sans modèle Prisma direct : dashboard, home, hub, landing.
-
-Pour chaque page custom, identifier :
-1. CE QUI S'AFFICHE : stats (ex: projects.length projets actifs), compteurs, listes résumées
-2. DATA_FETCHES : appels de service exacts en ordre d'exécution
-3. INTERACTIVE : true si la page a des interactions réelles (PAS juste des liens statiques)
-
-## EXEMPLES
-
-Page dashboard après connexion (brief : "total du budget en euros des projets actifs, nombre de tâches") :
+## EXEMPLE — illustration de la FORME du JSON uniquement
+(les noms de champs/valeurs ci-dessous viennent d'un brief fictif — DÉDUIS toujours les tiens
+du brief réel, ne réutilise pas ces noms si le domaine est différent)
 ```json
 {
   "/dashboard": {
-    "description": "Hub principal. Affiche le budget total des projets actifs et le nombre de tâches. Liens rapides vers /projects/new et /tasks/new.",
-    "data_fetches": [
-      {"service": "projectService.getAll(userId)", "as": "projects"},
-      {"service": "taskService.getAll(userId)", "as": "tasks"}
-    ],
+    "description": "Tableau de bord. Liens rapides vers les pages de création.",
+    "data_fetches": [{"service": "xxxService.getAll(userId)", "as": "xxxs"}],
     "interactive": false,
-    "kpis": [
-      {"label": "Budget total (€)", "source": "projects", "agg": "sum", "field": "budget", "filter_field": "status", "filter_value": "active"},
-      {"label": "Tâches", "source": "tasks", "agg": "count", "field": "", "filter_field": "", "filter_value": ""}
-    ]
+    "kpis": [{"label": "<libellé>", "source": "xxxs", "agg": "sum", "field": "<champ montant>", "filter_field": "<champ statut>", "filter_value": "<valeur>"}],
+    "filtered_lists": [{"label": "<libellé>", "source": "xxxs", "filter_field": "<champ date>", "filter_op": "within_days", "filter_value": "7"}]
   }
 }
 ```
-
-Page d'accueil publique :
-```json
-{
-  "/": {
-    "description": "Page publique — aucun appel Clerk. Hero section avec titre et description de l'app. Lien statique vers /sign-in pour connexion. Aucun service appelé.",
-    "data_fetches": [],
-    "interactive": false
-  }
-}
-```
-
-Page hub avec filtrage inline :
-```json
-{
-  "/hub": {
-    "description": "Hub personnel. Affiche les éléments avec filtre par statut en temps réel.",
-    "data_fetches": [{"service": "itemService.getAll(userId)", "as": "items"}],
-    "interactive": true
-  }
-}
-```
-
-## FILTRAGE SÉMANTIQUE — RÈGLE OBLIGATOIRE
-
-Quand la description originale du brief contient des sous-ensembles de données, les rendre EXPLICITES dans la description ET dans les data_fetches :
-
-- "actifs" / "en cours" → ajouter dans description : "(côté client : filtrer où status === 'active' ou status === 'in_progress')"
-- "en attente" / "impayées" / "non payées" → ajouter : "(côté client : filtrer où isPaid === false)"
-- "récents" → ajouter : "(prendre les 5 premiers par ordre de création décroissant)"
-- "cette semaine" / "du mois" → ajouter : "(côté client : filtrer par createdAt dans la période)"
-
-Le filtrage se fait TOUJOURS côté client (dans le composant React) — les services retournent tout (getAll ou getAllWithRelations), le composant filtre.
 
 ## CONTRAINTES
-- Ne décris QUE les pages custom reçues dans le tableau "pages"
-- Les clés commencent par "/"
-- JSON plat (pas de wrapper)
-- data_fetches: [] si aucun appel service
-- interactive: true UNIQUEMENT si interactions réelles (formulaire inline, filtre dynamique)
+- Ne décris QUE les pages custom reçues dans le tableau "pages" (jamais les pages avec modèle)
+- Clés = paths commençant par "/", JSON plat (pas de wrapper)
+- data_fetches / kpis / filtered_lists : [] quand vide
+- interactive: true UNIQUEMENT si interactions réelles
 
 ## PAGES PUBLIQUES (auth=false) — RÈGLE ABSOLUE
-Pour toute page publique (landing, home `/`, page vitrine sans connexion requise) :
-- `data_fetches` : utiliser UNIQUEMENT `getPublicAll()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)`
-- `getPublished()` n'existe QUE si le modèle a un ENUM status (DRAFT/PUBLISHED) — JAMAIS pour Boolean published
-- Pour Boolean published : TOUJOURS `getPublicAll()`, jamais `getPublished()`
-- La `description` NE DOIT PAS contenir : "auth()", "userId", "redirect", "connexion requise", "vérifie si connecté"
-- La `description` DOIT préciser explicitement : "page publique — aucun appel Clerk"
-- Le dev executor lira cette description et n'ajoutera PAS `auth()` si ces mots sont absents
-
-## EXEMPLE CRITIQUE — Boolean published vs ENUM status
-
-### ❌ INTERDIT — modèle avec Boolean published (ex: Article.published)
-```json
-{"/articles": {"data_fetches": [{"service": "articleService.getPublished()", "as": "articles"}]}}
-```
-`getPublished()` n'existe pas pour Boolean — BUILD_FAILED garanti.
-
-### ✅ CORRECT — Boolean published
-```json
-{"/articles": {"description": "page publique — aucun appel Clerk. Liste les articles publiés.", "data_fetches": [{"service": "articleService.getPublicAll()", "as": "articles"}], "interactive": false}}
-```
-
-### ✅ CORRECT — ENUM status (ex: Post.status = DRAFT | PUBLISHED)
-```json
-{"/posts": {"description": "page publique — aucun appel Clerk. Liste les posts publiés.", "data_fetches": [{"service": "postService.getPublished()", "as": "posts"}], "interactive": false}}
-```
-`getPublished()` existe seulement quand le modèle a un ENUM status, pas un Boolean.\
+Pour toute page publique (landing, home `/`, vitrine sans connexion) :
+- data_fetches : UNIQUEMENT `getPublicAll()` ou `getBySlug()` — JAMAIS `getAll(userId)` ni `getById(userId, id)`
+- `getPublished()` n'existe QUE si le modèle a un ENUM status — pour un Boolean published, TOUJOURS `getPublicAll()`
+  ❌ Boolean published : `articleService.getPublished()` → BUILD_FAILED
+  ✅ Boolean published : `articleService.getPublicAll()`
+- La description NE DOIT PAS contenir : "auth()", "userId", "redirect", "connexion requise"
+- La description DOIT préciser : "page publique — aucun appel Clerk" (l'executor n'ajoute pas auth() sans ces mots)\
 """
 
 

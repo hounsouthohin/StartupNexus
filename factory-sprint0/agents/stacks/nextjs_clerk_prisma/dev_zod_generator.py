@@ -39,6 +39,53 @@ _PRISMA_TO_ZOD: dict[str, str] = {
 
 _AUTO_FIELDS = {"id", "createdat", "updatedat", "deletedat"}
 
+# Validation sémantique (V3+V4) — signal PRINCIPAL = nom du champ (structurel, fiable,
+# indépendant du LLM annotator), signal SECONDAIRE = annotation sémantique.
+_URL_NAMES = frozenset({"url", "website", "link", "avatar", "image", "imageurl", "photo", "picture", "lien", "siteweb"})
+# Champs numériques clairement non-négatifs (montants, mesures). Conservateur exprès :
+# on exclut score/rate/balance/delta qui peuvent légitimement être négatifs.
+# EXACT : match sur le nom entier (inclut les tokens courts/ambigus en suffixe : count, qty, age, fee).
+_POSITIVE_EXACT = frozenset({
+    "price", "prix", "amount", "montant", "cost", "cout", "budget", "salary", "salaire",
+    "fee", "frais", "quantity", "quantite", "qty", "distance", "weight", "poids",
+    "duration", "duree", "stock", "count", "age", "height", "hauteur", "length",
+    "longueur", "width", "largeur", "capacity", "capacite",
+})
+# SUFFIXE : pour les noms composés camelCase (monthlyPrice, totalAmount). Tokens ≥ 4 lettres
+# et sans ambiguïté de sous-chaîne (pas "count" → discount/account, pas "fee" → coffee).
+_POSITIVE_SUFFIX = tuple(
+    t for t in _POSITIVE_EXACT if len(t) >= 4 and t not in ("count", "cout")
+)
+
+
+def _is_positive_number_field(fn: str) -> bool:
+    """fn (déjà en minuscules) désigne-t-il un nombre non-négatif (montant/mesure) ?"""
+    return fn in _POSITIVE_EXACT or any(fn.endswith(tok) for tok in _POSITIVE_SUFFIX)
+
+
+def _semantic_zod(field_name: str, base_type: str, input_type: str, semantic_type: str, loose: bool) -> "str | None":
+    """
+    Retourne un validateur Zod sémantique COMPLET si le champ a un type métier
+    reconnu (email, url, nombre positif), sinon None (→ mapping Prisma standard).
+    `loose` = True quand le champ est optionnel/à défaut/en update → suffixe .optional().
+    """
+    fn = field_name.lower()
+    suffix = ".optional()" if loose else ""
+
+    # Email — nom du champ prioritaire, annotation en secours
+    if input_type == "email" or semantic_type == "email" or fn == "email" or fn.endswith("email"):
+        return f"z.string().email(){suffix}"
+
+    # URL
+    if input_type == "url" or semantic_type == "url" or fn in _URL_NAMES or fn.endswith("url"):
+        return f"z.string().url(){suffix}"
+
+    # Nombre non-négatif (Float/Decimal ; les Int sont déjà .nonnegative() par défaut)
+    if base_type in ("Float", "Decimal") and (semantic_type == "currency" or _is_positive_number_field(fn)):
+        return f"z.coerce.number().nonnegative(){suffix}"
+
+    return None
+
 
 @dataclass
 class SchemasFileResult:
@@ -106,13 +153,18 @@ def _generate_update_schema(model, enums: "dict | None" = None, ctx=None) -> lis
                 fields_lines.append(
                     f"  {fi.name}: z.preprocess(v => v === 'true' || v === 'on', z.boolean()).optional(),"
                 )
-            else:
-                zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
-                if zod_type == "z.string().min(1)":
-                    zod_type = "z.string()"
-                if not zod_type.endswith(".optional()"):
-                    zod_type = f"{zod_type}.optional()"
-                fields_lines.append(f"  {fi.name}: {zod_type},")
+                continue
+            # Raffinement sémantique (email/url/nombre positif) — toujours optionnel en update
+            _sem = _semantic_zod(fi.name, fi.base_type, fi.input_type, fi.semantic_type, loose=True)
+            if _sem is not None:
+                fields_lines.append(f"  {fi.name}: {_sem},")
+                continue
+            zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
+            if zod_type == "z.string().min(1)":
+                zod_type = "z.string()"
+            if not zod_type.endswith(".optional()"):
+                zod_type = f"{zod_type}.optional()"
+            fields_lines.append(f"  {fi.name}: {zod_type},")
         for fk in ctx.fk_fields:
             fields_lines.append(f"  {fk.field_name}: z.string().optional(),")
         for m2m in getattr(ctx, "m2m_fields", []) or []:
@@ -154,8 +206,14 @@ def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> lis
     if ctx is not None:
         # Source unique : ctx.editable_fields + ctx.fk_fields
         for fi in ctx.editable_fields:
+            _loose = fi.is_optional or fi.has_default
+            # Raffinement sémantique (email/url/nombre positif) prioritaire sur le mapping brut
+            _sem = _semantic_zod(fi.name, fi.base_type, fi.input_type, fi.semantic_type, _loose)
+            if _sem is not None:
+                fields_lines.append(f"  {fi.name}: {_sem},")
+                continue
             zod_type = _prisma_type_to_zod(fi.prisma_type, fi.attributes, enums=enums)
-            if fi.is_optional or fi.has_default:
+            if _loose:
                 # Optional string: drop .min(1) — empty strings from HTML forms must pass
                 if zod_type == "z.string().min(1)":
                     zod_type = "z.string()"

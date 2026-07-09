@@ -72,6 +72,7 @@ class FieldInfo:
     input_type: str     # "text" | "number" | "textarea" | "checkbox" | "datetime-local" | "enum-select"
     attributes: str     # attributs Prisma bruts (pour diagnostic)
     allowed_values: tuple[str, ...] = ()  # valeurs enum autorisées (enum Prisma ou String contraint)
+    semantic_type: str = ""  # annotation sémantique brute (email/url/currency/date…) — source Zod fine
 
 
 @dataclass(frozen=True)
@@ -171,6 +172,7 @@ class ModelGenerationContext:
     display_fields: list[str]
 
     # ── Feature flags ─────────────────────────────────────────────────────────
+    slug_source: str          # champ titre à slugifier (auto-slug côté service) ; "" = slug manuel
     has_slug: bool            # modèle a un champ "slug" → active getBySlug() et detail-slug pages
     has_status: bool          # modèle a un champ "status" → badge coloré + getPublished()
     has_published_bool: bool  # modèle a un champ "Boolean published" → filtre getPublicAll()
@@ -434,6 +436,18 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
     fk_field_names = {fk.field_name for fk in fk_fields}
     m2m_fields = _resolve_m2m_fields(model, spec, model_names, spec_enums)
 
+    # slug_source (V7) : si le modèle a un champ `slug` ET un champ titre, le slug est
+    # AUTO-GÉNÉRÉ côté service (slugify + suffixe anti-collision) — jamais saisi par l'user.
+    # slug_source = nom exact du champ titre à slugifier ; "" = slug non auto (reste manuel).
+    _TITLE_CANDIDATES = ("title", "name", "heading", "label", "subject")
+    _fields_by_lower = {f.name.lower(): f.name for f in model.fields}
+    slug_source = ""
+    if "slug" in _fields_by_lower:
+        for _c in _TITLE_CANDIDATES:
+            if _c in _fields_by_lower:
+                slug_source = _fields_by_lower[_c]
+                break
+
     editable: list[FieldInfo] = []
     datetime_fields: list[DatetimeFieldInfo] = []
     decimal_fields: list[DecimalFieldInfo] = []
@@ -478,6 +492,8 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
             continue  # FK dans fk_fields, pas dans editable_fields
         if is_array:
             continue  # Tableaux → formulaires non supportés (Level A/D)
+        if fname_lower == "slug" and slug_source:
+            continue  # slug auto-généré depuis le titre → jamais dans le formulaire (V7)
 
         _ann = (enriched_spec.field_annotations.get(f.name) if enriched_spec else None)
         _itype, _allowed = _detect_input_type_and_values(
@@ -494,6 +510,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
             input_type=_itype,
             attributes=f.attributes or "",
             allowed_values=_allowed,
+            semantic_type=(_ann.semantic_type if _ann else ""),
         ))
 
     # Guard: detail-slug page sans champ slug dans le modèle → incohérence architect
@@ -541,6 +558,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         relation_fields=relation_fields,
         m2m_fields=m2m_fields,
         display_fields=_resolve_display_fields(model, owner, frozenset(model_names), spec_enums=spec_enums),
+        slug_source=slug_source,
         has_slug=has_slug,
         has_status=has_status,
         has_published_bool=has_published_bool,

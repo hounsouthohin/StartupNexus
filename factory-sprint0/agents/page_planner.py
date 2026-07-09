@@ -101,6 +101,11 @@ Si un modèle a des pages publiques ET des pages d'admin privées, il DOIT avoir
 """
 
 _PAGE_FEW_SHOT = """\
+## EXEMPLES — ILLUSTRATION DU FORMAT UNIQUEMENT
+⚠ Ces exemples montrent la FORME attendue (structure des pages, patterns de routing), PAS des gabarits
+de domaine. Déduis TOUJOURS les pages du brief et des modèles réels reçus. Ne plaque jamais les entités
+ci-dessous (Task, Post, Category…) sur un brief dont le domaine est différent.
+
 ## EXEMPLES — PAGES UNIQUEMENT (modèles déjà connus)
 
 ### Modèles donnés : Task (status TaskStatus), Comment (taskId FK → Task)
