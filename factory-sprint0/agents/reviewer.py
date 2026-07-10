@@ -48,64 +48,11 @@ def _file_to_page_path(rel_path: str) -> str:
     return "/" + path if path else "/"
 
 
-def _check_service_idor(rel_path: str, content: str) -> list[dict]:
-    """
-    Détecte les update/delete Prisma sans champ owner dans le where.
-    Lit le code réel — jamais de faux positif possible.
-    """
-    findings = []
-    for op_match in re.finditer(r'prisma\.\w+\.(update|delete)\s*\(', content):
-        window = content[op_match.start(): op_match.start() + 500]
-        where_match = re.search(r'where\s*:\s*\{([^}]+)\}', window)
-        if not where_match:
-            continue
-        where_content = where_match.group(1)
-        has_owner = any(owner in where_content for owner in _OWNER_FIELDS)
-        if not has_owner:
-            findings.append({
-                "severity": "CRITICAL",
-                "type": "IDOR",
-                "file": rel_path,
-                "evidence": where_match.group(0)[:200].strip(),
-                "fix": "Ajouter le champ owner (userId/authorId) dans le where Prisma.",
-            })
-    return findings
-
-
-def _check_service_cross_user(rel_path: str, content: str) -> list[dict]:
-    """
-    Détecte les findMany sans filtre owner (exposition cross-user).
-    Ignore les méthodes publiques intentionnellement sans owner.
-    """
-    findings = []
-    for fm_match in re.finditer(r'prisma\.\w+\.findMany\s*\(\s*\{', content):
-        start = fm_match.start()
-        # Contexte amont pour détecter si on est dans une méthode publique
-        ctx_before = content[max(0, start - 300): start]
-        if any(pub in ctx_before for pub in _PUBLIC_METHOD_SIGNATURES):
-            continue
-        window = content[start: start + 400]
-        where_match = re.search(r'where\s*:\s*\{([^}]+)\}', window)
-        if not where_match:
-            findings.append({
-                "severity": "CRITICAL",
-                "type": "CROSS_USER_EXPOSURE",
-                "file": rel_path,
-                "evidence": fm_match.group(0)[:100].strip(),
-                "fix": "Ajouter where: { userId } pour isoler les données par utilisateur.",
-            })
-        else:
-            where_content = where_match.group(1)
-            has_owner = any(owner in where_content for owner in _OWNER_FIELDS)
-            if not has_owner:
-                findings.append({
-                    "severity": "CRITICAL",
-                    "type": "CROSS_USER_EXPOSURE",
-                    "file": rel_path,
-                    "evidence": where_match.group(0)[:200].strip(),
-                    "fix": "Ajouter le champ owner dans le where pour filtrer par utilisateur.",
-                })
-    return findings
+# NOTE (9 Juil 2026) : _check_service_idor / _check_service_cross_user SUPPRIMÉS.
+# Raison : les services sont 100% déterministes (service_modules/), protégés (le LLM ne les
+# écrit jamais) et verrouillés par tests de générateur — leur ownership est garanti à la SOURCE.
+# Les regex à where-plat produisaient des faux positifs (accolades imbriquées du fix M2M) sur du
+# code sûr. Cf. mémoire feedback_no_regex + project_guards_map (guard symptomatique retiré).
 
 
 def _check_page_auth(rel_path: str, content: str, auth_required: bool) -> list[dict]:
@@ -164,13 +111,18 @@ def _check_public_pii(rel_path: str, content: str) -> list[dict]:
 
 def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
     """
-    Layer 1 — Checks sécurité déterministes, sans LLM.
+    Layer 1 — Checks déterministes portant UNIQUEMENT sur le code écrit par le LLM (pages).
 
     Vérifie :
-    1. IDOR       : update/delete sans owner dans where (services)
-    2. CROSS_USER : findMany sans filtre owner (services)
-    3. AUTH_GUARD : pages privées sans auth() / pages publiques avec auth() bloquant
-    4. PII_PUBLIC : champs personnels (email/téléphone) rendus sur pages publiques
+    1. AUTH_GUARD : pages privées sans auth() / pages publiques avec auth() bloquant
+    2. PII_PUBLIC : champs personnels (email/téléphone) rendus sur pages publiques
+
+    Les services (lib/services/*) sont 100% DÉTERMINISTES, protégés (le LLM ne les écrit jamais)
+    et verrouillés par des tests de générateur : leur ownership est GARANTI à la source (crud.py).
+    Y appliquer des checks regex ne pouvait que produire des faux positifs — le fix ownership M2M
+    `where: { id: { in: tagIds }, userId }` (accolades imbriquées) cassait la regex à plat et faisait
+    crier CROSS_USER sur du code SÛR (9 Juil). Les checks IDOR/CROSS_USER regex sur services sont donc
+    RETIRÉS (cf. mémoire feedback_no_regex + leçon DY6 : ne pas re-vérifier du déterministe protégé).
 
     Lit les vrais fichiers générés — pas d'hallucination possible.
     """
@@ -189,12 +141,7 @@ def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
         page_auth_map[path] = bool(auth)
 
     for rel_path, content in generated_files.items():
-        # Services — IDOR + CROSS_USER (ownership relationnel garanti par le générateur crud.py)
-        if "lib/services/" in rel_path and rel_path.endswith(".service.ts"):
-            all_findings.extend(_check_service_idor(rel_path, content))
-            all_findings.extend(_check_service_cross_user(rel_path, content))
-
-        # Pages — régime auth
+        # Pages — régime auth (code LLM : garde légitime)
         # Exclut app/page.tsx racine : le pattern auth()+redirect y est intentionnel
         # (aiguillage : connecté → dashboard, non connecté → sign-in).
         if (rel_path.endswith("page.tsx")
@@ -207,18 +154,17 @@ def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
                     _check_page_auth(rel_path, content, page_auth_map[page_path])
                 )
 
-        # Pages publiques (page.tsx + page-client.tsx) — PII rendue sans auth
+        # Pages publiques (page.tsx + page-client.tsx) — PII rendue sans auth (code LLM)
         if rel_path.endswith(("page.tsx", "page-client.tsx")) and rel_path.startswith("app/"):
             _pii_page_path = _file_to_page_path(rel_path.replace("page-client.tsx", "page.tsx"))
             if page_auth_map.get(_pii_page_path) is False:
                 all_findings.extend(_check_public_pii(rel_path, content))
 
     logger.info(
-        "[reviewer] Layer 1 déterministe : %d findings (IDOR=%d, CROSS_USER=%d, AUTH=%d)",
+        "[reviewer] Layer 1 déterministe (pages LLM) : %d findings (AUTH=%d, PII=%d)",
         len(all_findings),
-        sum(1 for f in all_findings if f["type"] == "IDOR"),
-        sum(1 for f in all_findings if f["type"] == "CROSS_USER_EXPOSURE"),
         sum(1 for f in all_findings if f["type"] in ("MISSING_AUTH", "WRONG_AUTH")),
+        sum(1 for f in all_findings if f["type"] == "PII_PUBLIC_EXPOSURE"),
     )
     return all_findings
 
@@ -405,11 +351,11 @@ async def run_reviewer(
     all_findings = deterministic_findings + semantic_findings
     report["findings"] = all_findings
 
-    # Recalculer security_score depuis les findings déterministes uniquement
-    n_idor = sum(1 for f in deterministic_findings if f["type"] == "IDOR")
-    n_cross = sum(1 for f in deterministic_findings if f["type"] == "CROSS_USER_EXPOSURE")
+    # Recalculer security_score depuis les findings déterministes (pages LLM) uniquement.
+    # L'ownership des services est garanti à la source (déterministe) → non re-scoré ici.
     n_missing_auth = sum(1 for f in deterministic_findings if f["type"] == "MISSING_AUTH")
-    security_score = max(0, 100 - n_idor * 30 - n_cross * 30 - n_missing_auth * 15)
+    n_pii = sum(1 for f in deterministic_findings if f["type"] == "PII_PUBLIC_EXPOSURE")
+    security_score = max(0, 100 - n_missing_auth * 30 - n_pii * 15)
     report["security_score"] = security_score
 
     # Recalculer verdict global

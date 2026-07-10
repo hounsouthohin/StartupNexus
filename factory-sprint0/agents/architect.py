@@ -386,13 +386,20 @@ structuré est perdu par la suite. Déduis toujours ces éléments du brief rée
 DISTINCTION : un montant/total exprimé dans une unité (une devise, des km…) est un "sum", JAMAIS un "count".
 ❌ {"agg": "count"} pour « le total en euros »   ✅ {"agg": "sum", "field": "<le champ montant>"}
 
-## filtered_lists — une LISTE d'un sous-ensemble
+## filtered_lists — une LISTE d'un SOUS-ENSEMBLE CONDITIONNEL
 {"label", "source" (var de data_fetches), "filter_field", "filter_op": "eq|within_days|before|after", "filter_value"}
 - "eq"          = égalité (filter_value = la valeur cible)
 - "within_days" = date dans les N prochains jours (filter_value = le nombre N)
-- "before"      = date passée (en retard, terminé)
-- "after"       = date future (à venir)
-DISTINCTION : une LISTE d'éléments n'est jamais un "kpis" (qui est un chiffre unique).
+- "before"      = date d'un ÉVÉNEMENT déjà passée (échéance dépassée, rendez-vous terminé)
+- "after"       = date d'un ÉVÉNEMENT à venir (rendez-vous, échéance future)
+
+DISTINCTIONS (ce qui N'EST PAS un filtered_list) :
+- une LISTE n'est jamais un "kpis" (qui est un chiffre unique).
+- « les dernières / récentes / les plus récentes / les N derniers » = un TRI, PAS un filtre.
+  Les services renvoient déjà les données triées par date décroissante → affiche simplement la liste,
+  ne crée AUCUN filtered_list pour ça.
+- before/after s'appliquent à une date qui représente un ÉVÉNEMENT (échéance, rendez-vous, prélèvement),
+  JAMAIS à createdAt/updatedAt (une date de création est toujours dans le passé → filtre vide).
 
 ## EXEMPLE — illustration de la FORME du JSON uniquement
 (les noms de champs/valeurs ci-dessous viennent d'un brief fictif — DÉDUIS toujours les tiens
@@ -414,6 +421,10 @@ du brief réel, ne réutilise pas ces noms si le domaine est différent)
 - Clés = paths commençant par "/", JSON plat (pas de wrapper)
 - data_fetches / kpis / filtered_lists : [] quand vide
 - interactive: true UNIQUEMENT si interactions réelles
+- NOM DE SERVICE — INVARIANT : dans "service", toujours `<modelEnCamelCase>Service.methode(...)`.
+  Le nom commence par une MINUSCULE et se termine par "Service" (ex: modèle `Recipe` → `recipeService`,
+  modèle `RunEvent` → `runEventService`). JAMAIS le nom du modèle seul (`Recipe.getPublicAll()` est FAUX),
+  jamais de majuscule initiale (`RecipeService` est FAUX).
 
 ## PAGES PUBLIQUES (auth=false) — RÈGLE ABSOLUE
 Pour toute page publique (landing, home `/`, vitrine sans connexion) :

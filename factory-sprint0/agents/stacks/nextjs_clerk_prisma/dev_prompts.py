@@ -139,7 +139,15 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     """
     Requêtes Qdrant déclenchées en Python AVANT la génération, basées sur le contenu
     du brief. Standards sélectionnés automatiquement → injectés dans le prompt.
+
+    Interrupteur A/B (mesure de l'apport RAG — roadmap Sprint 5) : si la variable
+    d'environnement DISABLE_RAG vaut "1"/"true", aucune injection. Permet de comparer
+    deux batchs (avec/sans RAG) sur les mêmes briefs sans supprimer de code.
     """
+    import os as _os
+    if _os.getenv("DISABLE_RAG", "").strip().lower() in ("1", "true", "yes"):
+        logger.info("[mandatory-rag] DISABLE_RAG actif → aucun standard injecté (mesure A/B)")
+        return ""
     try:
         from agents.shared_tools import rag_search as _rag_fn
         from agents.stack_config import load_stack_config

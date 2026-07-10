@@ -913,6 +913,7 @@ Si présent : une seule indication suffit — le moteur fait le reste.
 | **Playwright Python (host Windows)** | QA visuel E2E — browser visible, vidéos — hors Docker | 4.9C | 2j | 🔴 Sprint 4.9C |
 | **Neon API + Clerk API + Vercel CLI** | Provisioning infra client automatisé (DB, domaine, deploy) | 4.9E | 2j | 🟠 Sprint 4.9E |
 | **Langfuse** | Observabilité : quels standards RAG sur quels runs | 4.9 | 1j | 🟠 Sprint 4.9 |
+| **Mesure de l'apport RAG (A/B)** | ⚠ PROUVÉ 9 Juil : les standards Qdrant sont bien INJECTÉS (logs mandatory-rag, 4/contexte) mais leur IMPACT causal est NON MESURÉ — les mêmes leçons sont enseignées en triple (stubs déterministes + rules_dev + contrats de page), donc le RAG est « une voix dans un chœur ». Faire un A/B : même brief avec/sans standards → diff du code généré. Décider ensuite : garder minimal (niche zone 3 = code vraiment imprévisible), étendre, ou retirer. NE PAS étendre le RAG aveuglément avant cette mesure. | 5 | 1j | 🟡 Sprint 5 |
 | **Track 2 Phase-Aware** | System prompt dev LLM surchargé → ~1500 tokens statiques | 4.9 | 3j | 🟠 Sprint 4.9 |
 | **Few-shot examples → JSON externe** | Prompt architect surchargé (~4000 → ~1500 tokens) | 4.9 | 4h | 🟠 Sprint 4.9 |
 | **fast-check** | Property-based testing : "getAll(userId) ne retourne jamais données cross-user" | 5 | 1j | 🟡 Sprint 5 |

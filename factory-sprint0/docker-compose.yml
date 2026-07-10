@@ -132,6 +132,9 @@ services:
       - FACTORY_WORKDIR=/app/generated-projects
       - SEMGREP_RULES_PATH=/app/semgrep/rules/critical.yml
       - SEMGREP_TIMEOUT=30
+      # Interrupteur A/B mesure RAG (Sprint 5) : DISABLE_RAG=1 dans le shell hôte avant
+      # `docker compose up -d factory-worker` désactive l'injection Qdrant. Vide = RAG actif.
+      - DISABLE_RAG=${DISABLE_RAG:-}
     command: bash /app/scripts/start.sh
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

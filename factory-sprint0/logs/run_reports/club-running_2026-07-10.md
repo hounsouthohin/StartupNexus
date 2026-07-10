@@ -1,0 +1,36 @@
+# FactoryRunReport — club-running — 2026-07-10
+══════════════════════════════════════════════════
+BUILD        : ✅ SUCCESS
+REVIEW       : COHERENT | sec=100 | coh=80 | 2 finding(s) → post-correction: COHERENT
+CORRECTIONS  : ✅ 1 fichier(s) — new_build: BUILD_SUCCESS
+TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | PASS tests/middleware.test.ts |
+SEMGREP      : ⚠ 1 finding(s)
+
+PATTERNS DÉTECTÉS :
+  ⚠ Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat
+  → Suggestion standard — DÉCISION REQUISE
+  🔴 Erreur de build récurrente (10×): failed (exit 1)
+> writer-pad@0.1.0 build
+> next build
+
+⚠ no 
+  → Suggestion standard — DÉCISION REQUISE
+  🔴 Erreur de build récurrente (2×): failed (exit 1)
+> event-board@0.1.0 build
+> next build
+
+⚠ no
+  → Suggestion standard — DÉCISION REQUISE
+  🔴 Erreur de build récurrente (2×): pre_run_failed (npx prisma generate): loaded prisma config f
+  → Suggestion standard — DÉCISION REQUISE
+  🔴 Erreur de build récurrente (2×): failed (exit 1)
+> app-simple@0.1.0 build
+> next build
+
+⚠ no 
+  → Suggestion standard — DÉCISION REQUISE
+  🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
+  → Suggestion standard — DÉCISION REQUISE
+
+RUN_ID       : f47f7f42-fb6f-4e1f-88d9-c81b8cdce38f
+DURÉE        : 7min 56s
