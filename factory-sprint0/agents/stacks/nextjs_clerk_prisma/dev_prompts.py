@@ -144,14 +144,15 @@ def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
     d'environnement DISABLE_RAG vaut "1"/"true", aucune injection. Permet de comparer
     deux batchs (avec/sans RAG) sur les mêmes briefs sans supprimer de code.
     """
-    import os as _os
-    if _os.getenv("DISABLE_RAG", "").strip().lower() in ("1", "true", "yes"):
-        logger.info("[mandatory-rag] DISABLE_RAG actif → aucun standard injecté (mesure A/B)")
-        return ""
     try:
+        from agents.rag_client import rag_disabled
         from agents.shared_tools import rag_search as _rag_fn
         from agents.stack_config import load_stack_config
     except Exception:
+        return ""
+
+    if rag_disabled():
+        logger.info("[mandatory-rag] DISABLE_RAG actif → aucun standard injecté (mesure A/B)")
         return ""
 
     contexts: list[str] = ["always"]

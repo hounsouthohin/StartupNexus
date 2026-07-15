@@ -16,6 +16,26 @@
 
 import { readFileSync } from 'fs'
 
+// ── Contrat (optionnel) ──────────────────────────────────────────────────────
+// --contract <path> : contrat émis par dev_graph décrivant, page par page, ce que
+// l'architect a déclaré. Sans lui, seules les règles Z* (patterns de code) tournent.
+// Les règles C* comparent le code généré au contrat — c'est le second capteur :
+// elles attrapent ce qui compile parfaitement mais ment (KPI tronqué, fetch interdit).
+let contract = null
+{
+  const i = process.argv.indexOf('--contract')
+  if (i !== -1 && process.argv[i + 1]) {
+    try {
+      contract = JSON.parse(readFileSync(process.argv[i + 1], 'utf-8'))
+    } catch {
+      contract = null
+    }
+  }
+}
+const PAGINATED_METHODS = new Set(
+  contract?.paginated_methods ?? ['getAll', 'getAllWithRelations', 'getPublicAll', 'getPublished']
+)
+
 // @typescript-eslint/parser est disponible dans node_modules du projet généré
 let parse
 try {
@@ -27,8 +47,18 @@ try {
   parse = mod.parse
 }
 
-const filePaths = process.argv.slice(2)
+const filePaths = process.argv.slice(2).filter((a, i, all) => {
+  if (a === '--contract') return false
+  if (all[i - 1] === '--contract') return false
+  return true
+})
 const violations = []
+
+// Contrat indexé par fichier de page (chemin relatif au projet).
+const contractByFile = new Map()
+for (const page of contract?.pages ?? []) {
+  if (page?.file) contractByFile.set(page.file, page)
+}
 
 for (const filePath of filePaths) {
   let code
@@ -40,17 +70,120 @@ for (const filePath of filePaths) {
 
   let ast
   try {
-    ast = parse(code, { jsx: true, loc: true, range: true, tokens: false })
-  } catch {
-    // Fichier non-parseable — on ignore (non bloquant)
+    // filePath est INDISPENSABLE : sans lui le parser suppose une extension .ts,
+    // interprète le JSX comme des assertions de type et échoue sur tout .tsx.
+    ast = parse(code, { jsx: true, loc: true, range: true, tokens: false, filePath })
+  } catch (err) {
+    // Un fichier illisible n'est PAS un fichier propre — on le signale au lieu de
+    // le sauter en silence (c'est ce silence qui a rendu le checker aveugle aux pages).
+    violations.push({
+      file: filePath,
+      line: err?.location?.start?.line ?? 0,
+      rule: 'C0-unparseable',
+      message: `Fichier non analysable par le checker (${err?.message ?? 'erreur de parsing'}) — aucune garantie qualité ne peut être donnée dessus.`,
+    })
     continue
   }
 
   walkNode(ast, filePath, violations)
   detectConsecutiveMutations(ast, filePath, violations)
+
+  const pageContract = contractByFile.get(normalizeRel(filePath))
+  if (pageContract) checkPageContract(ast, filePath, pageContract, violations)
 }
 
 process.stdout.write(JSON.stringify(violations, null, 2) + '\n')
+
+// ── Règles C* — code généré vs contrat architect ─────────────────────────────
+
+function normalizeRel(p) {
+  return p.replace(/\\/g, '/').replace(/^\.\//, '')
+}
+
+function checkPageContract(ast, filePath, page, violations) {
+  const aggSources = new Set(page.agg_sources ?? [])
+  const serviceCalls = collectServiceCalls(ast)
+
+  // C2 — l'architect a déclaré data_fetches: [] (page de présentation, sans données).
+  // Tout appel de service ici est une invention du LLM : la page ment sur son rôle,
+  // et duplique de la logique qui vit ailleurs.
+  if (page.allows_data === false) {
+    for (const call of serviceCalls) {
+      violations.push({
+        file: filePath,
+        line: call.line,
+        rule: 'C2-fetch-on-static-page',
+        message:
+          `Le contrat de « ${page.path} » déclare data_fetches: [] (aucune donnée), ` +
+          `mais la page appelle ${call.service}.${call.method}(). ` +
+          `Retirer l'appel : cette page ne doit afficher aucune donnée.`,
+      })
+    }
+    return
+  }
+
+  // C1 — un KPI / une liste filtrée agrège une source chargée par un appel PAGINÉ.
+  // Le calcul est juste, mais il porte sur les 20 premières lignes : le total affiché
+  // est silencieusement faux. Ni le build ni les tests ne peuvent le voir.
+  for (const call of serviceCalls) {
+    if (!call.assignedTo || !aggSources.has(call.assignedTo)) continue
+    if (!PAGINATED_METHODS.has(call.method)) continue
+    if (call.argCount >= 3) continue // (userId, page, pageSize) — dé-paginé explicitement
+    violations.push({
+      file: filePath,
+      line: call.line,
+      rule: 'C1-aggregate-over-paginated',
+      message:
+        `« ${call.assignedTo} » alimente un KPI ou une liste filtrée du contrat, ` +
+        `mais est chargé via ${call.method}() qui est paginé (20 lignes par défaut). ` +
+        `L'agrégat sera faux au-delà de 20 enregistrements. Charger la totalité de la source.`,
+    })
+  }
+}
+
+/**
+ * Collecte les appels `xxxService.method(...)` avec, si présent, la variable
+ * qui en reçoit le résultat (`const items = await xxxService.getAll(userId)`).
+ */
+function collectServiceCalls(ast) {
+  const calls = []
+
+  function visit(node, assignedTo) {
+    if (!node || typeof node !== 'object' || !node.type) return
+
+    if (node.type === 'VariableDeclarator' && node.id?.type === 'Identifier') {
+      visit(node.init, node.id.name)
+      return
+    }
+    if (node.type === 'AwaitExpression') {
+      visit(node.argument, assignedTo)
+      return
+    }
+
+    if (node.type === 'CallExpression' && node.callee?.type === 'MemberExpression') {
+      const objName = node.callee.object?.name
+      const method = node.callee.property?.name
+      if (objName && method && /Service$/.test(objName)) {
+        calls.push({
+          service: objName,
+          method,
+          argCount: (node.arguments || []).length,
+          assignedTo: assignedTo ?? null,
+          line: node.loc?.start?.line ?? 0,
+        })
+      }
+    }
+
+    for (const key of Object.keys(node)) {
+      const child = node[key]
+      if (Array.isArray(child)) for (const c of child) visit(c, null)
+      else if (child && typeof child === 'object' && child.type) visit(child, null)
+    }
+  }
+
+  visit(ast, null)
+  return calls
+}
 
 // ── Traversée récursive ─────────────────────────────────────────────────────
 
@@ -182,8 +315,22 @@ function isFindManyWithoutTake(node) {
   if (!args?.length) return true // findMany() sans args = pas de limite
   const firstArg = args[0]
   if (firstArg?.type !== 'ObjectExpression') return false
+  // where: { id: { in: [...] } } — le résultat est borné par la liste d'ids de l'appelant
+  // (garde d'ownership, prefetch M2M). Paginer tronquerait le jeu de validation.
+  if (isBoundedByIdIn(firstArg)) return false
   const propNames = (firstArg.properties || []).map(p => p.key?.name).filter(Boolean)
   return !propNames.includes('take') && !propNames.includes('skip')
+}
+
+function getObjectProp(objExpr, name) {
+  if (objExpr?.type !== 'ObjectExpression') return null
+  const prop = (objExpr.properties || []).find(p => p.key?.name === name)
+  return prop?.value ?? null
+}
+
+function isBoundedByIdIn(argObj) {
+  const idClause = getObjectProp(getObjectProp(argObj, 'where'), 'id')
+  return getObjectProp(idClause, 'in') !== null
 }
 
 function isFindManyWithoutSelect(node) {

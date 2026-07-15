@@ -1,0 +1,56 @@
+{
+  "run_id": "3a284c26-b4be-4b60-9f9c-ee9ad6be255e",
+  "workflow_id": "todo-pilot-abo-tracker",
+  "project_name": "abo-tracker",
+  "generated_at": "2026-07-15T12:53:48.451350+00:00",
+  "duration_seconds": 291.447171,
+  "build_success": false,
+  "build_attempted": true,
+  "build_attempts": 1,
+  "final_message": "BUILD_FAILED",
+  "root_cause_category": "unknown",
+  "last_build_error": "CONTRACT_VIOLATION — le code compile mais viole le contrat architect :\n  [C1-aggregate-over-paginated] app/dashboard/page.tsx:13 — « subscriptions » alimente un KPI ou une liste filtrée du contrat, ma",
+  "spec_coverage": 1.0,
+  "requirements_met": 12,
+  "requirements_unmet": 0,
+  "requirements_unknown": 0,
+  "requirements_total": 12,
+  "requirements_unmet_list": [],
+  "requirements_unknown_list": [],
+  "files_generated": 74,
+  "dev_files_count": 74,
+  "prisma_validate": {
+    "enabled": true,
+    "enforced": false,
+    "schema_path": "prisma/schema.prisma",
+    "cli_found": true,
+    "ran": true,
+    "ok": true,
+    "stdout": "The schema at ../tmp/prisma_validate_0ab81xbn/prisma/schema.prisma is valid 🚀\n",
+    "stderr": "Prisma schema loaded from ../tmp/prisma_validate_0ab81xbn/prisma/schema.prisma.\n"
+  },
+  "tsc_ran": true,
+  "tsc_ok": true,
+  "tsc_errors_count": 0,
+  "tsc_skipped": false,
+  "contradiction_flags": [
+    "WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)"
+  ],
+  "semantic_violations_count": 0,
+  "quality_violations_count": 1,
+  "quality_violations": [
+    {
+      "rule": "C1-aggregate-over-paginated",
+      "file": "app/dashboard/page.tsx",
+      "line": 13,
+      "reason": "« subscriptions » alimente un KPI ou une liste filtrée du contrat, mais est chargé via getAll() qui est paginé (20 lignes par défaut). L'agrégat sera faux au-delà de 20 enregistrements. Charger la totalité de la source."
+    }
+  ],
+  "tests_passed": false,
+  "user_flows_total": 5,
+  "user_flows_covered": 5,
+  "user_flows_coverage": 1.0,
+  "is_useful_app": false,
+  "clerk_compliant": true,
+  "error": "BuildFailed: CONTRACT_VIOLATION — le code compile mais viole le contrat architect :\n  [C1-aggregate-over-paginated] app/dashboard/page.tsx:13 — « subscriptions » alimente un KPI ou une liste filtrée du contrat, ma"
+}

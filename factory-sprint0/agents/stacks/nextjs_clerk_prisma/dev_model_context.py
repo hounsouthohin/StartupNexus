@@ -203,6 +203,11 @@ class ModelGenerationContext:
     #   Ex: "Tâches" pour Task. Fallback: "{ModelName}s".
     title_plural: str
 
+    # title_singular : titre singulier du modèle dans la langue du brief.
+    #   Ex: "Tâche" pour Task. Utilisé pour « Nouveau X » / « Modifier X ».
+    #   Fallback: nom brut du modèle (mieux vaut ça qu'un pluriel mécaniquement tronqué).
+    title_singular: str
+
 
 # ── Helpers de calcul ─────────────────────────────────────────────────────────
 
@@ -571,6 +576,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         enum_value_labels=getattr(spec, "enum_value_labels", None) or {},
         ui_labels=(getattr(spec, "ui_labels", None) or {}).get(name, {}),
         title_plural=(getattr(spec, "title_plurals", None) or {}).get(name, f"{name}s"),
+        title_singular=(getattr(spec, "title_singulars", None) or {}).get(name, name),
     )
 
     logger.debug(

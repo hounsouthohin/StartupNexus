@@ -5,6 +5,9 @@ import { useState } from 'react'
 {% endif %}
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
+{% if date_fields %}
+import { formatDate } from '@/lib/utils'
+{% endif %}
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% endif %}
@@ -122,6 +125,8 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                       {item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}
                     </span>
+                    {% elif field in date_fields %}
+                    {formatDate(item.{{ field }})}
                     {% else %}
                     {String(item.{{ field }} ?? '')}
                     {% endif %}

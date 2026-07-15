@@ -29,6 +29,7 @@ from .pipeline_types import StageResult, Violation
 
 STAGE_QUALITY_RULES = "quality_rules"
 CHECKER_SCRIPT = Path(__file__).resolve().parents[2] / "quality_checker" / "quality_check.mjs"
+CONTRACT_FILE = ".factory-contract.json"  # écrit par dev_graph.write_contract_file
 
 # Fichiers à analyser (seulement le code applicatif LLM)
 ANALYSED_GLOBS = ["app/api/**/*.ts", "app/api/**/*.tsx", "lib/services/**/*.ts"]
@@ -46,20 +47,23 @@ _RAG_QUERY_BY_RULE = {
 
 
 def _collect_files(project_dir: str) -> list[str]:
-    """Collecte les fichiers TypeScript applicatifs générés par le LLM."""
+    """Fichiers TypeScript applicatifs à analyser, en chemins relatifs au projet.
+
+    Relatifs (et non absolus) car le checker s'exécute avec cwd=project_dir et compare
+    ces chemins aux clés du contrat, elles-mêmes relatives (ex: "app/dashboard/page.tsx").
+    """
     targets: list[str] = []
     for root, _dirs, files in os.walk(project_dir):
         for fname in files:
             if not fname.endswith((".ts", ".tsx")):
                 continue
-            abs_path = os.path.join(root, fname)
-            rel = os.path.relpath(abs_path, project_dir).replace("\\", "/")
+            rel = os.path.relpath(os.path.join(root, fname), project_dir).replace("\\", "/")
             # Exclure les templates protégés et node_modules/.next
             if any(x in rel for x in ["node_modules", ".next", "__tests__", "jest", ".test."]):
                 continue
             if any(rel.startswith(p) or rel == p + ".ts" for p in EXCLUDED_PREFIXES):
                 continue
-            targets.append(abs_path)
+            targets.append(rel)
     return targets
 
 
@@ -95,13 +99,19 @@ async def run_quality_check(project_dir: str) -> StageResult:
             evidence="Aucun fichier applicatif à analyser",
         )
 
+    # Contrat émis par dev_graph — active les règles C* (code généré vs intention architect).
+    # Absent (stack sans contrat) → seules les règles Z* de patterns de code tournent.
+    cmd_args = ["node", "_quality_check_tmp.mjs"]
+    if os.path.exists(os.path.join(project_dir, CONTRACT_FILE)):
+        cmd_args += ["--contract", CONTRACT_FILE]
+
     # Copie du script dans le projet pour l'exécution locale
     tmp_script = os.path.join(project_dir, "_quality_check_tmp.mjs")
     try:
         shutil.copy2(str(CHECKER_SCRIPT), tmp_script)
         proc = await asyncio.to_thread(
             subprocess.run,
-            ["node", "_quality_check_tmp.mjs"] + files,
+            cmd_args + files,
             capture_output=True,
             text=True,
             cwd=project_dir,
@@ -144,25 +154,18 @@ async def run_quality_check(project_dir: str) -> StageResult:
     violations: list[Violation] = []
     lines = []
     for v in violations_raw:
-        rel = os.path.relpath(v.get("file", ""), project_dir).replace("\\", "/")
+        rel = (v.get("file", "") or "").replace("\\", "/")  # déjà relatif au projet
         line_no = v.get("line", 0) or None
         rule = v.get("rule", "")
         msg = v.get("message", "")
-        rag = _RAG_QUERY_BY_RULE.get(rule, v.get("rag_query", ""))
-        fix_hint = (
-            f"Recherche standard : rag_search('{rag}') puis corriger {rel}"
-            if rag else f"Corriger la violation {rule} dans {rel}"
-        )
         violations.append(Violation(
             rule_id=rule,
             file=rel,
             line=line_no,
             reason=msg,
-            fix_hint=fix_hint,
+            fix_hint=f"Corriger {rel}:{line_no or 0} — {msg}",
         ))
         lines.append(f"  [{rule}] {rel}:{line_no or 0} — {msg}")
-        if rag:
-            lines.append(f"    → Recherche standard : rag_search('{rag}')")
 
     evidence = "\n".join(lines)
     duration_ms = int((time.perf_counter() - started) * 1000)

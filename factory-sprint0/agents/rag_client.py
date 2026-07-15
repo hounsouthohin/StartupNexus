@@ -93,6 +93,16 @@ def _build_rag_filter(stack_id: str):
         return None
 
 
+# ── Interrupteur global RAG ───────────────────────────────────────────────────
+
+def rag_disabled() -> bool:
+    """DISABLE_RAG=1 coupe toute injection RAG (mesure A/B — roadmap Sprint 5).
+
+    Lu à chaque appel (et non au chargement du module) pour rester testable.
+    """
+    return os.getenv("DISABLE_RAG", "").strip().lower() in ("1", "true", "yes")
+
+
 # ── rag_search @tool ──────────────────────────────────────────────────────────
 
 @tool
@@ -101,6 +111,13 @@ def rag_search(query: str, k: int = DEFAULT_VECTOR_SEARCH_LIMIT) -> str:
     Recherche les standards techniques pertinents dans la base RAG (Qdrant).
     Retourne le texte des documents trouvés avec leurs scores et catégories.
     """
+    # Point de passage unique : gater ici couvre tous les appelants (bloc mandatory,
+    # RAG par-rôle, et tout futur canal) avec un seul interrupteur. Le préfixe "[RAG]"
+    # est la convention que les appelants utilisent déjà pour ne rien injecter.
+    if rag_disabled():
+        logger.info("[rag] DISABLE_RAG actif → aucune recherche (mesure A/B)")
+        return "[RAG] Désactivé (DISABLE_RAG) — continuer sans contexte RAG."
+
     run_id = get_run_id()
     store = _get_qdrant_store()
 

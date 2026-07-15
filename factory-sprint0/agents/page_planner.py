@@ -129,6 +129,7 @@ ci-dessous (Task, Post, Category…) sur un brief dont le domaine est différent
     "Comment": {"content": "Commentaire"}
   },
   "title_plurals": {"Task": "Tâches", "Comment": "Commentaires"},
+  "title_singulars": {"Task": "Tâche", "Comment": "Commentaire"},
   "enum_value_labels": {"TaskStatus": {"pending": "En attente", "in_progress": "En cours", "done": "Terminé"}},
   "page_links": {
     "/tasks": ["/tasks/new", "/tasks/[id]"],
@@ -168,6 +169,7 @@ ci-dessous (Task, Post, Category…) sur un brief dont le domaine est différent
   ],
   "ui_labels": {"Post": {"title": "Titre", "excerpt": "Extrait", "published": "Publié"}},
   "title_plurals": {"Post": "Articles"},
+  "title_singulars": {"Post": "Article"},
   "enum_value_labels": {},
   "page_links": {
     "/posts": ["/posts/[slug]"],
@@ -216,6 +218,7 @@ PATTERN GÉNÉRAL : tout modèle avec `slug String @unique` qui est aussi un par
     "Article": {"title": "Titre", "published": "Publié", "categoryId": "Catégorie"}
   },
   "title_plurals": {"Category": "Catégories", "Article": "Articles"},
+  "title_singulars": {"Category": "Catégorie", "Article": "Article"},
   "enum_value_labels": {},
   "page_links": {
     "/articles": ["/articles/[slug]"],
@@ -243,7 +246,8 @@ _PAGE_FORMAT = """\
   "routes": [],
   "user_flows": ["Sur /path : description", ...],
   "ui_labels": {"ModelName": {"fieldName": "Label lisible", ...}, ...},
-  "title_plurals": {"ModelName": "Libellé pluriel", ...},
+  "title_plurals": {"ModelName": "Libellé pluriel dans la langue du brief", ...},
+  "title_singulars": {"ModelName": "Libellé singulier dans la langue du brief", ...},
   "enum_value_labels": {"EnumName": {"val_raw": "Label affiché", ...}, ...},
   "page_links": {"/path": ["/linked-path", ...], ...},
   "design_system": {
@@ -351,6 +355,7 @@ async def page_planner_node(state: dict) -> dict:
         "design_system": result.get("design_system", {}),
         "ui_labels": result.get("ui_labels", {}),
         "title_plurals": result.get("title_plurals", {}),
+        "title_singulars": result.get("title_singulars", {}),
         "enum_value_labels": result.get("enum_value_labels", {}),
         "page_links": result.get("page_links", {}),
     }

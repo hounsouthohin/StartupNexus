@@ -17,5 +17,7 @@ services:
       - ./api:/app/api
       - ./prompts:/app/prompts
       - ./semgrep:/app/semgrep
+      - ./quality_checker:/app/quality_checker
+      - ./assets:/app/assets
       - ./init_qdrant.py:/app/init_qdrant.py
       - ../sorties.md:/sorties.md

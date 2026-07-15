@@ -859,6 +859,10 @@ async def planner_node(state: AgentState) -> dict:
     if not isinstance(brief_title_plurals, dict):
         brief_title_plurals = {}
 
+    brief_title_singulars = brief.get("title_singulars", {})
+    if not isinstance(brief_title_singulars, dict):
+        brief_title_singulars = {}
+
     brief_enum_value_labels = brief.get("enum_value_labels", {})
     if not isinstance(brief_enum_value_labels, dict):
         brief_enum_value_labels = {}
@@ -875,6 +879,7 @@ async def planner_node(state: AgentState) -> dict:
         enums=brief_enums,
         ui_labels=brief_ui_labels,
         title_plurals=brief_title_plurals,
+        title_singulars=brief_title_singulars,
         enum_value_labels=brief_enum_value_labels,
     ).with_fingerprint()
 

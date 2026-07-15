@@ -11,6 +11,7 @@ Phase 5 : outils Python natifs — MCP retiré du chemin critique
 """
 from __future__ import annotations
 
+import json
 import logging
 import operator
 import os
@@ -125,6 +126,63 @@ def _extract_error_file(error: str) -> str | None:
         if m:
             return m.group(1)
     return None
+
+
+CONTRACT_FILE = ".factory-contract.json"
+
+
+def _page_file_for_route(route: str) -> str:
+    """Route déclarée par l'architect → fichier page.tsx correspondant. '/' → app/page.tsx."""
+    r = (route or "/").strip()
+    if not r.startswith("/"):
+        r = "/" + r
+    return "app/page.tsx" if r == "/" else f"app{r.rstrip('/')}/page.tsx"
+
+
+def write_contract_file(spec_obj, project_workdir: str, protected: set[str]) -> dict:
+    """Écrit le contrat machine consommé par quality_check.mjs (règles C*).
+
+    Le compilateur TypeScript ne voit que la syntaxe : un KPI qui agrège 20 lignes sur 500
+    compile parfaitement. Ce contrat donne au checker l'intention déclarée par l'architect,
+    seule référence permettant de dire que le code ment.
+
+    Seules les pages ayant une entrée pages_detail y figurent — ce sont celles écrites par
+    le LLM. Les pages déterministes (protégées) sont exclues : leurs garanties sont tenues
+    par les générateurs, pas par un contrôle a posteriori.
+    """
+    pages: list[dict] = []
+    pd_map = getattr(spec_obj, "pages_detail", {}) or {}
+
+    for route, entry in pd_map.items():
+        if not isinstance(entry, dict):
+            continue
+        page_file = _page_file_for_route(route)
+        if page_file in protected:
+            continue
+
+        fetches = [f for f in (entry.get("data_fetches") or []) if isinstance(f, dict)]
+        agg_sources = sorted({
+            e["source"]
+            for e in list(entry.get("kpis") or []) + list(entry.get("filtered_lists") or [])
+            if isinstance(e, dict) and e.get("source")
+        })
+        pages.append({
+            "file": page_file,
+            "path": route,
+            "data_fetches": [{"as": f.get("as", ""), "service": f.get("service", "")} for f in fetches],
+            "agg_sources": agg_sources,
+            "allows_data": bool(fetches),
+        })
+
+    contract = {
+        "paginated_methods": ["getAll", "getAllWithRelations", "getPublicAll", "getPublished"],
+        "pages": pages,
+    }
+    dest = os.path.join(project_workdir, CONTRACT_FILE)
+    with open(dest, "w", encoding="utf-8") as fh:
+        json.dump(contract, fh, ensure_ascii=False, indent=2)
+    logger.info("[dev_graph] contrat qualité écrit : %d page(s) LLM sous contrat", len(pages))
+    return contract
 
 
 def _is_build_command(command: str) -> bool:
@@ -561,6 +619,12 @@ async def run_dev_agent(
     ]))
     _dev_tools_module.set_protected_files(_protected)
 
+    # Contrat machine pour le quality checker : ce que l'architect a déclaré, page par page.
+    # Le build ne voit que la syntaxe ; ce fichier permet au checker de comparer le code
+    # généré à l'intention (KPI tronqué par la pagination, fetch sur une page sans données).
+    if spec_obj is not None:
+        write_contract_file(spec_obj, project_workdir, _protected)
+
     # ── Pre-run commands (T0 refactor — lus depuis stack config) ────────
     # La liste "pre_run_commands" dans nextjs-clerk-prisma.json définit toutes les
     # commandes d'infrastructure pré-LLM. La logique Python ici est stack-agnostique :
@@ -934,99 +998,26 @@ async def run_dev_agent(
                     if isinstance(_pd_entry, dict) and _pd_entry.get("description"):
                         _file_brief = f"\nEXIGENCES BRIEF POUR CETTE PAGE : {_pd_entry['description']}"
 
-                        # Sources alimentant un KPI ou une liste filtrée : chargées SANS
-                        # pagination (D4) — sinon l'agrégat/le filtre porte sur les 20 premiers.
-                        _kpis = _pd_entry.get("kpis", []) or []
-                        _flists = _pd_entry.get("filtered_lists", []) or []
+                        # Les KPIs et listes filtrées du dashboard sont désormais CALCULÉS
+                        # de façon déterministe (dev_hub_generator) et écrits dans un fichier
+                        # protégé — plus de prose « utilise EXACTEMENT ces expressions » que le
+                        # LLM ignorait (cause de C1). Ici on ne guide plus que les pages custom
+                        # non-dashboard : quels services appeler, dé-paginés si agrégés.
+                        from .dev_hub_generator import unpaginate_call
                         _agg_sources = {
-                            _e["source"] for _e in list(_kpis) + list(_flists)
+                            _e["source"]
+                            for _e in list(_pd_entry.get("kpis", []) or []) + list(_pd_entry.get("filtered_lists", []) or [])
                             if isinstance(_e, dict) and _e.get("source")
                         }
-                        _PAGINATED = ("getAll", "getAllWithRelations", "getPublicAll", "getPublished")
-
-                        def _unpaginate(_call: str) -> str:
-                            _m = re.match(r"^(\w+\.(\w+))\((.*)\)\s*$", (_call or "").strip())
-                            if not _m or _m.group(2) not in _PAGINATED:
-                                return _call
-                            _args = _m.group(3).strip()
-                            # pageSize élevé = « tout charger » pour l'agrégation (app perso)
-                            return f"{_m.group(1)}({_args + ', 1, 100000' if _args else '1, 100000'})"
-
                         _data_fetches = _pd_entry.get("data_fetches", [])
                         if _data_fetches and isinstance(_data_fetches, list):
                             _fetches_str = " | ".join(
                                 f"{f.get('as', '?')}: "
-                                + (_unpaginate(f.get('service', '?')) if f.get('as') in _agg_sources else f.get('service', '?'))
+                                + (unpaginate_call(f.get('service', '?')) if f.get('as') in _agg_sources else f.get('service', '?'))
                                 for f in _data_fetches if isinstance(f, dict)
                             )
                             if _fetches_str:
                                 _file_brief += f"\nAPPELS SERVICE : {_fetches_str}"
-
-                        # ── Contrat KPI → expressions TypeScript EXACTES ──────
-                        # Le contrat structuré (kpis[]) est compilé ici en code que le
-                        # LLM copie tel quel — fin du « total en euros » rendu en .length
-                        # (prose ré-interprétée, constaté 2 runs — Juil 2026).
-                        if _kpis and isinstance(_kpis, list):
-                            _kpi_lines: list[str] = []
-                            for _k in _kpis:
-                                if not isinstance(_k, dict) or not _k.get("source"):
-                                    continue
-                                _src = _k["source"]
-                                _base = (
-                                    f"{_src}.filter(x => String(x.{_k['filter_field']}) === '{_k['filter_value']}')"
-                                    if _k.get("filter_field") and _k.get("filter_value") else _src
-                                )
-                                _agg = _k.get("agg", "count")
-                                _fld = _k.get("field", "")
-                                if _agg == "sum" and _fld:
-                                    _expr = f"{_base}.reduce((s, x) => s + (Number(x.{_fld}) || 0), 0)"
-                                elif _agg == "avg" and _fld:
-                                    _expr = (
-                                        f"({_base}.length ? {_base}.reduce((s, x) => s + (Number(x.{_fld}) || 0), 0) / {_base}.length : 0)"
-                                    )
-                                else:
-                                    _expr = f"{_base}.length"
-                                _kpi_lines.append(f"- « {_k.get('label', '?')} » = {_expr}")
-                            if _kpi_lines:
-                                _file_brief += (
-                                    "\nKPIS OBLIGATOIRES — utilise EXACTEMENT ces expressions "
-                                    "(ne PAS les remplacer par .length ni les recalculer autrement) :\n"
-                                    + "\n".join(_kpi_lines)
-                                )
-
-                        # ── Contrat LISTE FILTRÉE → expression .filter() EXACTE ──
-                        # Jumeau des KPI : évite qu'une liste conditionnelle du brief
-                        # (« sous 7 jours », « en retard ») reste en prose et soit oubliée.
-                        if _flists and isinstance(_flists, list):
-                            _fl_lines: list[str] = []
-                            for _fl in _flists:
-                                if not isinstance(_fl, dict) or not _fl.get("source") or not _fl.get("filter_field"):
-                                    continue
-                                _src = _fl["source"]
-                                _ff = _fl["filter_field"]
-                                _op = _fl.get("filter_op", "eq")
-                                _val = _fl.get("filter_value", "")
-                                if _op == "within_days":
-                                    _n = _val if str(_val).strip().isdigit() else "7"
-                                    _pred = (
-                                        f"{{ const _d = new Date(x.{_ff} as string); const _now = new Date(); "
-                                        f"const _lim = new Date(); _lim.setDate(_now.getDate() + {_n}); "
-                                        "return _d >= _now && _d <= _lim }"
-                                    )
-                                    _expr = f"{_src}.filter(x => {_pred})"
-                                elif _op == "before":
-                                    _expr = f"{_src}.filter(x => new Date(x.{_ff} as string) < new Date())"
-                                elif _op == "after":
-                                    _expr = f"{_src}.filter(x => new Date(x.{_ff} as string) > new Date())"
-                                else:  # eq
-                                    _expr = f"{_src}.filter(x => String(x.{_ff}) === '{_val}')"
-                                _fl_lines.append(f"- « {_fl.get('label', '?')} » (liste) = {_expr}")
-                            if _fl_lines:
-                                _file_brief += (
-                                    "\nLISTES FILTRÉES OBLIGATOIRES — affiche EXACTEMENT ces sous-ensembles "
-                                    "(assigne chaque expression à une const et rends-la ; ne les omets pas) :\n"
-                                    + "\n".join(_fl_lines)
-                                )
 
                         _page_flows = [f for f in (getattr(spec_obj, "user_flows", []) or []) if _rt in f]
                         if _page_flows:
@@ -1526,7 +1517,35 @@ async def run_dev_agent(
         result["quality_violations_count"] = quality_violations_count
         build_executed = bool(result.get("build_command_executed", False))
 
-        if disk_next and not final_success:
+        # ── Violations de contrat (C*) — BLOQUANTES ──────────────────────────────
+        # Le build ne voit que la syntaxe. Les règles C* comparent le code au contrat
+        # architect : un KPI tronqué par la pagination (C1) ou un fetch sur une page qui
+        # doit rester statique (C2) COMPILE parfaitement, mais trahit l'intention.
+        # On refuse le succès — sinon l'app "réussit" en mentant à l'utilisateur.
+        _contract_blocked = False
+        _blocking_violations = [
+            v for v in quality_violations if str(v.get("rule", "")).startswith("C")
+        ]
+        if _blocking_violations and final_success:
+            _contract_blocked = True
+            final_success = False
+            result["success"] = False
+            _bundle = "\n".join(
+                f"  [{v['rule']}] {v.get('file', '')}:{v.get('line', 0)} — {v.get('reason', '')}"
+                for v in _blocking_violations
+            )
+            result["last_build_error"] = (
+                "CONTRACT_VIOLATION — le code compile mais viole le contrat architect :\n"
+                + _bundle
+            )
+            result["root_cause_category"] = "contract_violation"
+            logger.error(
+                "[dev_graph] CONTRACT_VIOLATION — %d violation(s) C* bloquante(s) : %s",
+                len(_blocking_violations),
+                [v["rule"] for v in _blocking_violations],
+            )
+
+        if disk_next and not final_success and not _contract_blocked:
             logger.warning(
                 "[dev_graph] ANOMALIE — .next/ présent mais success=False "
                 "(build non exécuté ou erreur non capturée) — succès non accordé"

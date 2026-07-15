@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-07-15T15:15:02.386148+00:00",
+  "temporal_address": "temporal:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "sanity_mode": false,
+  "workflow_success_count": 0,
+  "workflow_failure_count": 1,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 0,
+  "build_unknown_count": 1,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 0,
+  "failure_count": 1,
+  "total_duration_seconds": 31.41,
+  "total_learner_events_delta": 0,
+  "quality_dashboard": {
+    "spec_validation_status_counts": {
+      "degraded_spec_gate_blocked": 0,
+      "semantic_violation_at_dev": 0,
+      "ok_or_partial": 1
+    },
+    "requirements_mappable_met_ratio": 0.0,
+    "build_not_run_count": 0,
+    "strict_success_rate": 0.0,
+    "usable_success_rate": 0.0
+  },
+  "phase1_scoreboard": {
+    "build_success_rate": 0.0,
+    "unknown_root_cause_rate_on_failed": 1.0,
+    "prisma_validate_ok_rate_on_runs_with_schema": 0.0,
+    "root_cause_distribution_failed": {
+      "unknown": 1
+    },
+    "ts_error_code_distribution": {},
+    "top_ts_failing_files": {},
+    "ts_signal_anomaly_count": 0
+  },
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-abo-tracker-3429e499",
+      "run_id": "019f6657-ffb1-7bdb-a0ca-2dfb04b925df",
+      "project_name": "abo-tracker",
+      "brief_description": "Suivi personnel de mes abonnements et d\u00e9penses r\u00e9currentes, enti\u00e8rement priv\u00e9 apr\u00e8s connexion. Chaque abonnement a un nom, un prix mensuel en euros (nombre d\u00e9cimal, ex: 12.99), une date de prochain pr\u00e9l\u00e8vement, et appartient \u00e0 une de mes cat\u00e9gories personnalis\u00e9es \u2014 chaque cat\u00e9gorie a un nom et une description optionnelle, g\u00e9r\u00e9es dans une liste d\u00e9di\u00e9e. Un abonnement est soit actif, soit en pause, soit r\u00e9sili\u00e9. Le tableau de bord principal affiche le total mensuel en euros de mes abonnements actifs uniquement, le nombre d'abonnements par statut, et la liste de ceux dont le pr\u00e9l\u00e8vement arrive dans les 7 prochains jours. Aucune page n'est publique.",
+      "started_at": "2026-07-15T15:14:30.934990+00:00",
+      "duration_seconds": 31.41,
+      "workflow_success": false,
+      "build_success": null,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": null,
+      "build_status": null,
+      "error": "Workflow execution failed",
+      "workflow_error_message": null,
+      "learner_events_before": 583,
+      "learner_events_after": 583,
+      "learner_events_delta": 0,
+      "result_excerpt": "",
+      "activity_results": {},
+      "run_metric": {}
+    }
+  ]
+}

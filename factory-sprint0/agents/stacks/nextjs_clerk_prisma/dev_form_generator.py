@@ -170,6 +170,8 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         fields = [f for f in fields if f not in _boolean_set]
     # Champs boolean pour les badges visuels dans les cards (ex: published → Publié/Brouillon)
     _boolean_fields = {fi.name for fi in ctx.editable_fields if fi.base_type == "Boolean"}
+    # Champs date/heure → rendus via formatDate() (fr-FR) au lieu de l'ISO brut.
+    _date_fields = {df.name for df in (ctx.datetime_fields or [])}
     # Pages privées : promouvoir les booleans juste après le titre (position 1)
     # Le template montre display_fields[1:3] — sans promotion, un boolean en position 3+
     # ne déclenche jamais le badge (ex: Article : title/content/excerpt/published → published hors fenêtre)
@@ -248,6 +250,7 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         empty_state_message=empty_state_message,
         parent_relations=parent_relations or [],
         boolean_fields=_boolean_fields,
+        date_fields=_date_fields,
         **(design_tokens or {}),
     )
 
@@ -308,6 +311,7 @@ def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, 
     return _render(
         "create_client.tsx.j2",
         name=ctx.name,
+        title_singular=ctx.title_singular or ctx.name,
         serialized_type=ctx.serialized_type,
         client_name=path_to_client_component(page.path),
         list_path=list_path,
@@ -339,6 +343,7 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     return _render(
         "edit_client.tsx.j2",
         name=ctx.name,
+        title_singular=ctx.title_singular or ctx.name,
         serialized_type=ctx.serialized_type,
         client_name=f"{ctx.name}EditClient",
         list_path=list_path,
@@ -514,7 +519,10 @@ def generate_all_page_clients(
         try:
             if page_type == "list":
                 rel = f"app/{page_path_clean}/page-client.tsx" if page_path_clean else "app/page-client.tsx"
-                _empty_msg = _empty_states.get(page.path, "")
+                # Fallback générique neutre en genre (« Aucun élément »). Le message
+                # spécifique à l'entité est le rôle de l'architect (empty_states) : y mettre
+                # « Aucun {nom} » ici supposerait le genre du mot (piège de morphologie FR).
+                _empty_msg = _empty_states.get(page.path, "") or "Aucun élément pour le moment."
                 _parent_rels = [
                     {
                         "related_camel": fk.related_camel,

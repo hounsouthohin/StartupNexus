@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "abo-tracker",
+    "brief": {
+      "description": "Suivi personnel de mes abonnements et dépenses récurrentes, entièrement privé après connexion. Chaque abonnement a un nom, un prix mensuel en euros (nombre décimal, ex: 12.99), une date de prochain prélèvement, et appartient à une de mes catégories personnalisées — chaque catégorie a un nom et une description optionnelle, gérées dans une liste dédiée. Un abonnement est soit actif, soit en pause, soit résilié. Le tableau de bord principal affiche le total mensuel en euros de mes abonnements actifs uniquement, le nombre d'abonnements par statut, et la liste de ceux dont le prélèvement arrive dans les 7 prochains jours. Aucune page n'est publique."
+    }
+  }
+]

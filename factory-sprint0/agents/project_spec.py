@@ -184,6 +184,16 @@ class ProjectSpec(BaseModel):
             "Exemple : { 'Recipe': 'Recettes', 'LeaveRequest': 'Demandes de congé' }"
         )
     )
+    title_singulars: dict = Field(
+        default_factory=dict,
+        description=(
+            "Titre singulier lisible pour chaque modèle, dans la langue du brief. "
+            "Utilisé pour « Nouveau X » / « Modifier X ». Produit par l'architect (jamais "
+            "dérivé mécaniquement du pluriel). "
+            "Format : { 'ModelName': 'Titre singulier' }. "
+            "Exemple : { 'Recipe': 'Recette', 'LeaveRequest': 'Demande de congé' }"
+        )
+    )
     enums: dict = Field(
         default_factory=dict,
         description=(

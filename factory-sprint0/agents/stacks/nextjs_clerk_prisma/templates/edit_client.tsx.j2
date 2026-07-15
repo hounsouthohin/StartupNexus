@@ -34,7 +34,7 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
     <main className="container mx-auto {{ p_cls }} max-w-xl">
       <div className="flex items-center gap-3 mb-6">
         <Link href="{{ list_path }}" className="text-muted-foreground hover:text-foreground">←</Link>
-        <h1 className="text-2xl font-bold text-foreground">Modifier {{ name }}</h1>
+        <h1 className="text-2xl font-bold text-foreground">Modifier {{ title_singular }}</h1>
       </div>
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}

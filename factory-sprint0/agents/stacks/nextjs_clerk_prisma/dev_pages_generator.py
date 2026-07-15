@@ -148,6 +148,40 @@ def _gen_not_found_tsx() -> str:
     ]) + "\n"
 
 
+def _write_static_landing(spec: "ProjectSpec", project_workdir: str) -> bool:  # type: ignore[name-defined]
+    """Écrit un app/page.tsx statique (hero + CTA sign-in) pour une landing sans données.
+
+    Honore la décision de l'architect (`data_fetches: []`) au lieu de la laisser au LLM,
+    qui inventait un fetch (violation C2). Chrome de page-portail, sans contenu de domaine :
+    titre de l'app + bouton « Se connecter ». Aucun appel de service → impossible à corrompre.
+    """
+    app_dir = os.path.join(project_workdir, "app")
+    os.makedirs(app_dir, exist_ok=True)
+    page_path = os.path.join(app_dir, "page.tsx")
+
+    app_title = (getattr(spec, "project_name", "") or "app").replace("-", " ").replace("_", " ").title()
+    app_title = app_title.replace("{", "").replace("}", "").replace("<", "").replace(">", "")
+
+    content = "\n".join([
+        "import Link from 'next/link'",
+        "",
+        "export default function HomePage() {",
+        "  return (",
+        '    <main className="min-h-screen flex flex-col items-center justify-center p-8 text-center">',
+        f'      <h1 className="text-4xl font-bold text-foreground mb-4">{app_title}</h1>',
+        '      <p className="text-muted-foreground mb-8 max-w-md">Connectez-vous pour accéder à votre espace.</p>',
+        '      <Link href="/sign-in" className="px-6 py-3 bg-primary text-white rounded-md font-medium hover:bg-primary/85">Se connecter</Link>',
+        "    </main>",
+        "  )",
+        "}",
+        "",
+    ])
+    with open(page_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    logger.info("[pages_gen] ✓ app/page.tsx landing statique déterministe (hero + sign-in)")
+    return True
+
+
 def generate_root_page_if_needed(spec: "ProjectSpec", project_workdir: str) -> bool:  # type: ignore[name-defined]
     """
     Génère un app/page.tsx déterministe (redirect) quand '/' est dans spec.pages
@@ -163,9 +197,21 @@ def generate_root_page_if_needed(spec: "ProjectSpec", project_workdir: str) -> b
     if root_page is None:
         return False
 
-    # Si pages_detail définit un contenu pour '/', le LLM doit la générer librement
+    # Si pages_detail définit un contenu pour '/', deux cas.
     pages_detail = getattr(spec, "pages_detail", {}) or {}
-    if pages_detail.get("/") or pages_detail.get(""):
+    _root_detail = pages_detail.get("/") or pages_detail.get("")
+    if _root_detail:
+        # Présentation pure (aucune donnée) → hero statique déterministe. Une landing
+        # sans data_fetches/kpis/listes a UNE seule forme correcte ; la laisser au LLM
+        # = fetch inventé sur une page qui doit rester statique (violation C2).
+        # Déclencheur GÉNÉRAL (absence de données), jamais un mot de domaine.
+        if isinstance(_root_detail, dict) and not (
+            _root_detail.get("data_fetches")
+            or _root_detail.get("kpis")
+            or _root_detail.get("filtered_lists")
+        ):
+            return _write_static_landing(spec, project_workdir)
+        # Landing avec contenu réel (data_fetches) → le LLM la génère librement.
         return False
 
     # '/' présente sans pages_detail → redirect déterministe vers la première page réelle
