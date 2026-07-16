@@ -109,6 +109,39 @@ class FilteredListDeclaration(BaseModel):
     # Pour eq : la valeur ("active"). Pour within_days : le nombre de jours ("7").
 
 
+class StatusFlowDeclaration(BaseModel):
+    """Contrat structuré d'une MACHINE À ÉTATS (Juil 2026 — 3e de la fratrie KPI/FilteredList).
+
+    Remplace la prose ('on ne doit pas pouvoir rembourser une note non approuvée') qui
+    n'atterrissait NULLE PART — constaté notes-frais : l'architect comprenait parfaitement
+    le workflow (5 états extraits dans le bon ordre, @default(draft), rejectionReason) mais
+    AUCUNE structure ne pouvait porter l'ordre ni les sauts interdits → le savoir s'évaporait.
+    L'app générée passait build + review 100/100 tout en laissant créer une note déjà
+    'remboursée', jamais soumise ni approuvée.
+
+    Le compilateur traduit ce contrat en : état initial forcé à la création + garde serveur
+    sur chaque changement d'état + boutons de transition limités aux passages permis."""
+    field: str = "status"
+    # Champ Prisma portant l'état. Ex: "status"
+    initial: str = ""
+    # État de départ de TOUTE nouvelle entité. Ex: "draft"
+    transitions: dict[str, list[str]] = Field(default_factory=dict)
+    # Graphe des passages AUTORISÉS — {état: [états directement atteignables]}.
+    # Ex: {"draft": ["submitted"], "submitted": ["approved", "refused"],
+    #      "approved": ["reimbursed"], "refused": [], "reimbursed": []}
+    # Tout passage absent de ce graphe est INTERDIT (liste blanche, jamais liste noire).
+    # État terminal = absent des clés OU valeur [] — pas de champ séparé : c'est dérivable,
+    # donc impossible de le contredire.
+
+    def is_allowed(self, current: str, target: str) -> bool:
+        """True si le passage current → target est autorisé par le graphe."""
+        return target in self.transitions.get(current, [])
+
+    def terminal_states(self) -> list[str]:
+        """États sans aucune sortie — dérivés du graphe, jamais déclarés en double."""
+        return sorted(s for s, nxt in self.transitions.items() if not nxt)
+
+
 class PageDetailContract(BaseModel):
     """Contrat structuré pour une page custom (dashboard, landing, hub...).
     Produit par pages_detail_node — remplace les strings libres 'INTERACTIVE' de l'ancien format."""
@@ -153,6 +186,12 @@ class EnrichedSpec(BaseModel):
 
     features: list[str] = Field(default_factory=list)
     # Modules à activer. Ex: "search", "pagination", "status_flow", "public_pages"
+
+    status_flows: dict[str, StatusFlowDeclaration] = Field(default_factory=dict)
+    # Clé = nom du MODÈLE (ex: "ExpenseReport"), PAS le nom du champ — deux modèles peuvent
+    # chacun avoir leur workflow (Commande ET Ticket) sans collision, contrairement à
+    # field_annotations qui est indexé par nom de champ global.
+    # Vide {} = aucun cycle de vie (un statut simple étiquette n'est pas une machine à états).
 
     ux_hints: UXHints = Field(default_factory=UXHints)
     # Contrats UX : messages d'états vides, ordre de création, actions primaires.

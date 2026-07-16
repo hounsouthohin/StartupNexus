@@ -7,6 +7,9 @@ import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% if date_fields %}
 import { formatDate } from '@/lib/utils'
 {% endif %}
+{% if currency_fields %}
+import { formatCurrency } from '@/lib/utils'
+{% endif %}
 {% if entity_icon %}
 import { {{ entity_icon }} } from 'lucide-react'
 {% endif %}
@@ -68,7 +71,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                 {% else %}
                 <p className="text-sm text-muted-foreground mb-1 line-clamp-2">
                   <span className="font-medium">{{ field_labels.get(field, field) }} :</span>{' '}
-                  {% if field in date_fields %}{formatDate(item.{{ field }})}{% else %}{String(item.{{ field }} ?? '—')}{% endif %}
+                  {% if field in date_fields %}{formatDate(item.{{ field }})}{% elif field in currency_fields %}{formatCurrency(item.{{ field }})}{% else %}{String(item.{{ field }} ?? '—')}{% endif %}
                 </p>
                 {% endif %}
                 {% endfor %}

@@ -11,6 +11,14 @@ import type { Serialized{{ mf.related_model }} } from '@/lib/types'
 {% endfor %}
 import { update{{ name }} } from '@/app/{{ list_dir }}/actions'
 
+{% if flow_field %}
+// Machine à états (type I) — miroir EXACT de la garde serveur du service.
+// Le serveur reste seul juge : ceci n'est qu'une commodité pour ne pas proposer à
+// l'utilisateur une option qui partirait en erreur.
+const FLOW_TRANSITIONS: Record<string, string[]> = {{ flow_transitions_json }}
+const FLOW_LABELS: Record<string, string> = {{ flow_labels_json }}
+{% endif %}
+
 interface {{ client_name }}Props {
   item: {{ serialized_type }}
   {% for fk in fk_fields %}
@@ -62,6 +70,21 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             defaultChecked={Boolean(item.{{ field.name }})}
             className="h-4 w-4 text-{{ primary }} border-border rounded"
           />
+          {% elif flow_field and field.name == flow_field %}
+          {# Champ sous machine à états : on ne propose QUE l'état courant (rester) et les
+             transitions permises depuis cet état. Pas d'option vide — un statut vide est
+             invalide. Un état terminal ne propose que lui-même : l'entité est figée. #}
+          <select
+            id="{{ field.name }}"
+            name="{{ field.name }}"
+            defaultValue={item.{{ field.name }}}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+          >
+            <option value={item.{{ field.name }}}>{FLOW_LABELS[item.{{ field.name }}] ?? String(item.{{ field.name }})}</option>
+            {(FLOW_TRANSITIONS[item.{{ field.name }}] ?? []).map(_s => (
+              <option key={_s} value={_s}>{FLOW_LABELS[_s] ?? _s}</option>
+            ))}
+          </select>
           {% elif field.input_type == 'enum-select' %}
           <select
             id="{{ field.name }}"

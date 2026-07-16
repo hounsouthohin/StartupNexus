@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "notes-frais",
+    "brief": {
+      "description": "Je veux une app pour gérer les notes de frais de mon équipe. Un employé crée une note de frais avec un intitulé, un montant en euros (ex: 42.50), une date de dépense, une catégorie (transport, repas, hébergement, matériel) et une description. Il la garde en brouillon tant qu'il travaille dessus, puis il la soumet. Une fois soumise, elle est examinée : elle peut être approuvée ou refusée avec un motif. Une note approuvée est remboursée quand le virement est fait. Une note refusée est définitive. On ne doit évidemment pas pouvoir rembourser une note qui n'a pas été approuvée, ni modifier une note déjà soumise. Je veux voir la liste de mes notes avec leur état, et le total en attente de remboursement. L'ambiance doit être sobre et professionnelle."
+    }
+  }
+]

@@ -205,7 +205,13 @@ def _generate_create_schema(model, enums: "dict | None" = None, ctx=None) -> lis
 
     if ctx is not None:
         # Source unique : ctx.editable_fields + ctx.fk_fields
+        # create_excluded_fields (type I) : le statut d'un workflow n'est JAMAIS saisi à la
+        # création — le service le force à status_flow.initial. Il reste dans le schéma
+        # Update (généré séparément), sinon le workflow ne pourrait jamais avancer.
+        _create_excluded = set(getattr(ctx, "create_excluded_fields", None) or [])
         for fi in ctx.editable_fields:
+            if fi.name in _create_excluded:
+                continue
             _loose = fi.is_optional or fi.has_default
             # Raffinement sémantique (email/url/nombre positif) prioritaire sur le mapping brut
             _sem = _semantic_zod(fi.name, fi.base_type, fi.input_type, fi.semantic_type, _loose)

@@ -164,7 +164,7 @@ Exemple INTERDIT : si le modèle a `published Boolean`, ne PAS écrire `"status"
 Si un modèle utilise `published Boolean` pour gérer brouillon/publié → ne rien annoter pour ce champ (Boolean exclu).
 
 ### required_queries
-Déclare les queries métier clairement nécessaires d'après le brief — AU-DELÀ des 7 méthodes CRUD standard déjà générées (getAll, getById, create, update, delete, getPublished, getBySlug).
+Déclare les queries métier clairement nécessaires d'après le brief — AU-DELÀ des méthodes standard déjà générées (getAll, getById, create, update, delete, + getPublicAll/getPublicById si pages publiques, + getBySlug si champ slug).
 Patterns disponibles :
 - "filter_by_field"    → findMany where { field: value }        (ex: getByStatus, getByCategory)
 - "search_text"        → findMany where { field: contains: q }  (ex: searchByTitle)
@@ -175,6 +175,28 @@ Ne déclare une query que si le brief la mentionne explicitement ou si elle est 
 ### features
 Liste les features actives parmi : "status_flow", "slug_routing", "public_pages", "search", "pagination", "file_upload", "calendar_view".
 Déduis-les du brief — ne liste que ce qui est clairement présent.
+
+### status_flows
+Si un modèle a un champ de statut qui décrit un CYCLE DE VIE, déclare sa machine à états.
+Indices d'un cycle de vie dans le brief : des étapes qui se suivent, un passage d'un état à un autre,
+une soumission, une validation, une approbation, un refus, une clôture, un « puis », un « une fois que ».
+
+Clé = nom du MODÈLE (ex: "ExpenseReport"), JAMAIS le nom du champ — deux modèles peuvent chacun
+avoir leur propre workflow.
+
+- "field"       : le champ Prisma portant l'état (ex: "status")
+- "initial"     : l'état de départ de toute nouvelle entité (ex: "draft")
+- "transitions" : le graphe des passages AUTORISÉS — {état: [états directement atteignables]}
+
+RÈGLES :
+- LISTE BLANCHE : ne déclare que les passages que le brief autorise. Tout passage non listé est INTERDIT.
+- Un état terminal (définitif, sans suite) → liste vide [].
+- Un état peut mener à PLUSIEURS états (ex: un dossier examiné → accepté OU rejeté).
+- Un retour en arrière n'existe QUE si le brief le décrit (ex: dépublier un article).
+- N'invente aucune étape que le brief ne décrit pas.
+- Si le statut est une simple ÉTIQUETTE sans cycle de vie (catégorie, type, priorité, niveau) →
+  NE PAS déclarer de status_flow. Une étiquette n'est pas une machine à états.
+- Laisse {} si aucun modèle n'a de cycle de vie.
 
 ### ux_hints
 Produis des indications UX pour améliorer l'expérience utilisateur final.
@@ -207,6 +229,13 @@ Exemple pour un gestionnaire de tâches avec statut workflow :
     {"name": "getByStatus", "pattern": "filter_by_field", "field": "status", "return_many": true}
   ],
   "features": ["status_flow"],
+  "status_flows": {
+    "Task": {
+      "field": "status",
+      "initial": "todo",
+      "transitions": {"todo": ["in_progress"], "in_progress": ["done", "todo"], "done": []}
+    }
+  },
   "ux_hints": {
     "empty_states": {
       "/tasks": "Aucune tâche pour le moment. Créez votre première tâche."
@@ -224,6 +253,7 @@ Exemple pour un blog public avec slug (modèle utilise `published Boolean`) :
   },
   "required_queries": [],
   "features": ["slug_routing", "public_pages"],
+  "status_flows": {},
   "ux_hints": {
     "empty_states": {
       "/blog": "Aucun article publié pour le moment.",
@@ -243,6 +273,13 @@ Exemple pour un blog avec vrai statut enum (modèle a `status PostStatus @defaul
   },
   "required_queries": [],
   "features": ["slug_routing", "public_pages", "status_flow"],
+  "status_flows": {
+    "Post": {
+      "field": "status",
+      "initial": "draft",
+      "transitions": {"draft": ["published"], "published": ["draft"]}
+    }
+  },
   "ux_hints": {
     "empty_states": {
       "/blog": "Aucun article publié pour le moment.",
@@ -253,7 +290,7 @@ Exemple pour un blog avec vrai statut enum (modèle a `status PostStatus @defaul
   }
 }
 
-Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
+Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "status_flows": {}, "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
 """
 
 
@@ -323,9 +360,11 @@ async def semantic_annotator_node(state: AgentState) -> dict:
     field_count = len(enriched.get("field_annotations", {}))
     query_count = len(enriched.get("required_queries", []))
     features = enriched.get("features", [])
+    _flows = enriched.get("status_flows", {}) or {}
     logger.info(
-        "[semantic_annotator] ✓ %d champ(s) annoté(s), %d query(ies), features=%s",
+        "[semantic_annotator] ✓ %d champ(s) annoté(s), %d query(ies), features=%s, status_flows=%s",
         field_count, query_count, features,
+        {m: f"{f.get('initial')}→{f.get('transitions')}" for m, f in _flows.items()} or "{}",
     )
 
     updated_brief = {**brief, "enriched_spec": enriched}

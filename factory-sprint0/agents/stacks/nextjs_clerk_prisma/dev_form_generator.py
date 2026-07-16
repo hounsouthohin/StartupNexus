@@ -303,7 +303,15 @@ def _gen_create_client(page, ctx: ModelGenerationContext, model_contexts: dict, 
     list_dir = list_path.lstrip("/")
     _model_labels = ctx.ui_labels
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
-    editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
+    # create_excluded_fields (type I) : le statut d'un workflow n'est jamais choisi à la
+    # création — le service le force à status_flow.initial. Le laisser ici permettrait de
+    # créer une note de frais déjà « Remboursée » (constaté notes-frais).
+    # Le formulaire d'ÉDITION, lui, le conserve : sinon le workflow ne pourrait pas avancer.
+    _create_excluded = set(getattr(ctx, "create_excluded_fields", None) or [])
+    editable_fields = [
+        _field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels)
+        for f in ctx.editable_fields if f.name not in _create_excluded
+    ]
     m2m_fields = _m2m_to_ctx(ctx, fk_fields, model_contexts)
     # Props options : FK + M2M (dédupliqués) — même convention {camel}Options
     _prop_parts = [
@@ -356,6 +364,19 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
     for _fk in fk_fields:
         _field_labels[_fk["field_name"]] = _model_labels.get(_fk["field_name"], _fk["related_model"])
+
+    # Machine à états (type I) : le select du champ d'état ne propose que les transitions
+    # permises DEPUIS L'ÉTAT COURANT — donc calculé au runtime côté client (l'état dépend de
+    # `item`). Sans ça, l'utilisateur choisit une option d'apparence légitime (« Remboursée »
+    # sur un brouillon) et se prend le throw de la garde serveur — constaté notes-frais.
+    # La garde serveur reste la seule autorité : ceci n'est qu'un confort d'usage.
+    _flow = getattr(ctx, "status_flow", None)
+    _flow_field = getattr(_flow, "field", "") if _flow else ""
+    _flow_labels: dict = {}
+    if _flow_field:
+        _fd = next((f for f in editable_fields if f.get("name") == _flow_field), None)
+        _flow_labels = (_fd or {}).get("enum_labels", {}) or {}
+
     return _render(
         "edit_client.tsx.j2",
         name=ctx.name,
@@ -368,6 +389,11 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
         m2m_fields=m2m_fields,
         editable_fields=editable_fields,
         field_labels=_field_labels,
+        flow_field=_flow_field,
+        flow_transitions_json=json.dumps(
+            dict(_flow.transitions) if _flow else {}, ensure_ascii=False, sort_keys=True,
+        ),
+        flow_labels_json=json.dumps(_flow_labels, ensure_ascii=False, sort_keys=True),
         **(design_tokens or {}),
     )
 

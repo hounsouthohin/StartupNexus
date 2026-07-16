@@ -56,6 +56,39 @@ class CrudModule(ServiceMethodModule):
             ]
         _slug_field = ", slug: _slug" if _slug_src else ""
 
+        # ── Machine à états (type I) : état initial forcé + garde de transition ──────
+        # Le client dit « on ne rembourse pas une note non approuvée » ; l'architect le
+        # déclare en graphe ; ICI seulement ça devient vrai. Sans cette garde, le graphe
+        # reste une intention — constaté notes-frais : l'app laissait créer une note déjà
+        # 'remboursée' tout en affichant build ✅ + review 100/100.
+        _flow = getattr(ctx, "status_flow", None)
+        _flow_field = getattr(_flow, "field", "") if _flow else ""
+        # Création : l'état initial est imposé côté serveur, jamais reçu du client
+        # (le champ est aussi absent de Create{Name}Input — double verrou).
+        _initial_field = f", {_flow_field}: '{_flow.initial}'" if _flow else ""
+
+        def _transition_guard(indent: str) -> list[str]:
+            """Refuse tout passage d'état absent du graphe autorisé. Liste blanche :
+            ce qui n'est pas explicitement permis est interdit."""
+            if not _flow:
+                return []
+            _map = "{ " + ", ".join(
+                f"{_s}: [{', '.join(repr(_t) for _t in _nxt)}]"
+                for _s, _nxt in sorted(_flow.transitions.items())
+            ) + " }"
+            return [
+                f"{indent}if (data.{_flow_field} !== undefined) {{",
+                f"{indent}  const _cur = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {_flow_field}: true }} }})",
+                f"{indent}  if (!_cur) notFound()",
+                f"{indent}  if (data.{_flow_field} !== _cur.{_flow_field}) {{",
+                f"{indent}    const _allowed: Record<string, string[]> = {_map}",
+                f"{indent}    if (!(_allowed[_cur.{_flow_field}] ?? []).includes(data.{_flow_field})) {{",
+                f"{indent}      throw new Error(`Transition interdite : ${{_cur.{_flow_field}}} → ${{data.{_flow_field}}}`)",
+                f"{indent}    }}",
+                f"{indent}  }}",
+                f"{indent}}}",
+            ]
+
         # ── Garde d'ownership M2M (S10) : ne connecter/set QUE les ids appartenant
         # au propriétaire — pré-filtrage en base, jamais de connexion cross-compte.
         _m2m = list(getattr(ctx, "m2m_fields", []) or [])
@@ -87,7 +120,7 @@ class CrudModule(ServiceMethodModule):
                 f"    const {{ {_destructure}, ...rest }} = data",
                 *_m2m_prefetch("    "),
                 f"    const result = await prisma.{camel}.create({{",
-                f"      data: {{ ...rest, {owner}{_slug_field}, {_connect_parts} }}",
+                f"      data: {{ ...rest, {owner}{_slug_field}{_initial_field}, {_connect_parts} }}",
                 "    })",
                 "    return _serialize(result)",
                 "  },",
@@ -95,6 +128,7 @@ class CrudModule(ServiceMethodModule):
             update_lines = [
                 f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{serialized}> => {{",
                 *_fk_guard("    "),
+                *_transition_guard("    "),
                 f"    const {{ {_destructure}, ...rest }} = data",
                 *_m2m_prefetch("    "),
                 f"    const result = await prisma.{camel}.update({{",
@@ -110,7 +144,7 @@ class CrudModule(ServiceMethodModule):
                 *_fk_guard("    "),
                 *_slug_lines("    "),
                 f"    const result = await prisma.{camel}.create({{",
-                f"      data: {{ ...data, {owner}{_slug_field} }}",
+                f"      data: {{ ...data, {owner}{_slug_field}{_initial_field} }}",
                 "    })",
                 "    return _serialize(result)",
                 "  },",
@@ -118,6 +152,7 @@ class CrudModule(ServiceMethodModule):
             update_lines = [
                 f"  update: async ({owner}: string, id: string, data: Update{name}Input): Promise<{serialized}> => {{",
                 *_fk_guard("    "),
+                *_transition_guard("    "),
                 f"    const result = await prisma.{camel}.update({{",
                 f"      where: {{ id, {owner} }},",
                 "      data: { ...data }",

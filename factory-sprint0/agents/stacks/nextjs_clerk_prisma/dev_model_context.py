@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import logging
 import re as _re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +207,20 @@ class ModelGenerationContext:
     #   Ex: "Tâche" pour Task. Utilisé pour « Nouveau X » / « Modifier X ».
     #   Fallback: nom brut du modèle (mieux vaut ça qu'un pluriel mécaniquement tronqué).
     title_singular: str
+
+    # ── Type I — Workflow / machine à états (Juil 2026) ───────────────────────
+    # status_flow : StatusFlowDeclaration produite par l'architect pour CE modèle, ou None.
+    #   None = pas de cycle de vie (statut simple étiquette, ou aucun statut) → aucun
+    #   changement de comportement, le modèle reste un CRUD classique.
+    #   Porte `initial` (état de départ) et `transitions` {état: [états atteignables]}.
+    status_flow: object = None
+
+    # create_excluded_fields : champs présents dans editable_fields mais JAMAIS saisis à la
+    #   CRÉATION — ils restent éditables ensuite. À ne pas confondre avec le slug, exclu
+    #   PARTOUT (auto-généré à vie).
+    #   Cas type I : le statut d'un workflow est forcé à `status_flow.initial` par le service ;
+    #   l'exclure aussi de l'édition figerait toute entité en brouillon pour l'éternité.
+    create_excluded_fields: list[str] = field(default_factory=list)
 
 
 # ── Helpers de calcul ─────────────────────────────────────────────────────────
@@ -453,6 +467,46 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
                 slug_source = _fields_by_lower[_c]
                 break
 
+    # ── status_flow (type I) — validation déterministe de la décision LLM ─────────
+    # L'architect DÉCIDE le graphe (il comprend le métier), mais on ne compile JAMAIS une
+    # déclaration invalide : un champ fantôme ou un état hors enum produirait du TypeScript
+    # faux. Toute déclaration douteuse → None : le modèle redevient un CRUD simple.
+    # Dégrader proprement vaut mieux que générer du faux avec assurance.
+    status_flow = None
+    create_excluded_fields: list[str] = []
+    _flows = (getattr(enriched_spec, "status_flows", None) or {}) if enriched_spec else {}
+    _decl = _flows.get(name)
+    if _decl is not None:
+        _sf_declared = getattr(_decl, "field", "") or "status"
+        _sf_real = _fields_by_lower.get(_sf_declared.lower())
+        _sf_obj = next((f for f in model.fields if f.name == _sf_real), None) if _sf_real else None
+        _enum_vals: list[str] = []
+        if _sf_obj is not None:
+            _enum_vals = list(spec_enums.get(_sf_obj.type.rstrip("?").rstrip("[]"), []) or [])
+        _initial = getattr(_decl, "initial", "") or ""
+        _raw_trans = dict(getattr(_decl, "transitions", None) or {})
+
+        if _sf_real and _enum_vals and _initial in _enum_vals:
+            # Ne garder que les états réellement présents dans l'enum Prisma : un état
+            # halluciné par le LLM ne doit jamais atteindre le compilateur.
+            _clean = {
+                _s: [_t for _t in (_nxt or []) if _t in _enum_vals]
+                for _s, _nxt in _raw_trans.items() if _s in _enum_vals
+            }
+            if any(_clean.values()):
+                from agents.semantic_spec import StatusFlowDeclaration as _SFD
+                status_flow = _SFD(field=_sf_real, initial=_initial, transitions=_clean)
+                create_excluded_fields.append(_sf_real)
+            else:
+                logger.warning(
+                    "[model_context] %s : status_flow ignoré — aucune transition exploitable", name,
+                )
+        else:
+            logger.warning(
+                "[model_context] %s : status_flow ignoré — champ=%r initial=%r hors enum %s",
+                name, _sf_declared, _initial, _enum_vals or "(aucun)",
+            )
+
     editable: list[FieldInfo] = []
     datetime_fields: list[DatetimeFieldInfo] = []
     decimal_fields: list[DecimalFieldInfo] = []
@@ -564,6 +618,8 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         m2m_fields=m2m_fields,
         display_fields=_resolve_display_fields(model, owner, frozenset(model_names), spec_enums=spec_enums),
         slug_source=slug_source,
+        status_flow=status_flow,
+        create_excluded_fields=create_excluded_fields,
         has_slug=has_slug,
         has_status=has_status,
         has_published_bool=has_published_bool,
@@ -581,9 +637,10 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
 
     logger.debug(
         "[model_context] %s : %d éditables, %d FK, %d datetime, %d relations | "
-        "slug=%s status=%s public=%s",
+        "slug=%s status=%s public=%s flow=%s",
         name, len(editable), len(fk_fields), len(datetime_fields), len(relation_fields),
         has_slug, has_status, has_public_pages,
+        (f"{status_flow.initial}→{status_flow.transitions}" if status_flow else "—"),
     )
     return ctx
 

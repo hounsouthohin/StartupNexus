@@ -5,6 +5,9 @@ import type { {{ serialized_type }} } from '@/lib/types'
 {% if date_fields %}
 import { formatDate } from '@/lib/utils'
 {% endif %}
+{% if currency_fields %}
+import { formatCurrency } from '@/lib/utils'
+{% endif %}
 {% if entity_icon %}
 import { {{ entity_icon }} } from 'lucide-react'
 {% endif %}
@@ -58,6 +61,8 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                     </span>
                     {% elif field in date_fields %}
                     {formatDate(item.{{ field }})}
+                    {% elif field in currency_fields %}
+                    {formatCurrency(item.{{ field }})}
                     {% else %}
                     {String(item.{{ field }} ?? '')}
                     {% endif %}
