@@ -10,16 +10,18 @@ import re as _re
 
 from .crud import CrudModule
 from .child import ChildModule
-from .status import StatusModule
 from .public import PublicModule
 from .relations import RelationsModule
 from .public_relations import PublicRelationsModule
 from .slug import SlugModule
 
+# getPublished (ex-StatusModule) DÉPRÉCIÉ : sa requête était identique à celle de
+# getPublicAll pour les modèles à statut (public.py, branche has_status) → 100% redondant.
+# SERVICE_METHOD_REGISTRY ne l'a jamais listé → l'architect ne le connaissait déjà pas.
+# Une seule vérité désormais : getPublicAll() pour toute liste publique, statut compris.
 SERVICE_MODULES = [
     CrudModule(),
     ChildModule(),
-    StatusModule(),
     PublicModule(),
     RelationsModule(),
     PublicRelationsModule(),

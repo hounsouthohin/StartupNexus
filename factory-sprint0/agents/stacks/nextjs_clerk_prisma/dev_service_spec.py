@@ -94,12 +94,8 @@ def build_service_spec(
             f"(userId: string, {fk.field_name}: string, page?: number) → Promise<{s}[]>",
         ))
 
-    # ── getPublished — pages publiques avec statut enum ───────────────────────
-    if ctx.has_public_pages and ctx.has_status:
-        methods.append(MethodSpec(
-            "getPublished",
-            f"() → Promise<{s}[]>  (sans owner, filtrée sur valeur publiée)",
-        ))
+    # getPublished DÉPRÉCIÉ (voir service_modules/__init__.py) : redondant avec getPublicAll,
+    # qui filtre déjà par statut publié. Ne plus le lister dans CONTRACTS.md.
 
     # ── getById ───────────────────────────────────────────────────────────────
     methods.append(MethodSpec(

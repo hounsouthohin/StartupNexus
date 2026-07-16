@@ -1,10 +1,10 @@
-# FactoryRunReport — abo-tracker — 2026-07-15
+# FactoryRunReport — club-running — 2026-07-16
 ══════════════════════════════════════════════════
 BUILD        : ✅ SUCCESS
 REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (aucun finding actionnable)
-TESTS        : ✗ 2 test(s) — FAIL tests/schemas.test.ts | PASS tests/middleware.test.ts |
-SEMGREP      : ⚠ 2 finding(s)
+TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | PASS tests/middleware.test.ts |
+SEMGREP      : ⚠ 1 finding(s)
 
 PATTERNS DÉTECTÉS :
   ⚠ Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat
@@ -32,5 +32,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : af1e1863-72ae-4d9d-9aa4-eb6ff254dd94
-DURÉE        : 2min 44s
+RUN_ID       : 041c43ad-46f1-4d3d-a257-ab9bd73ce7b7
+DURÉE        : 2min 1s

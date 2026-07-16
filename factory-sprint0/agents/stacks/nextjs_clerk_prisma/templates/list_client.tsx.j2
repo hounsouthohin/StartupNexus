@@ -8,6 +8,9 @@ import type { {{ serialized_type }} } from '@/lib/types'
 {% if date_fields %}
 import { formatDate } from '@/lib/utils'
 {% endif %}
+{% if entity_icon %}
+import { {{ entity_icon }} } from 'lucide-react'
+{% endif %}
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% endif %}
@@ -54,7 +57,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   return (
     <main className="container mx-auto {{ p_cls }}">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">{{ title_plural }}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{% if entity_icon %}<{{ entity_icon }} className="w-5 h-5 text-primary inline-block mr-2" />{% endif %}{{ title_plural }}</h1>
         {% if auth_required %}
         <Link
           href="{{ list_path }}/new"

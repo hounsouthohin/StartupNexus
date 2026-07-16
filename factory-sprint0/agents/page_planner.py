@@ -52,10 +52,9 @@ Ajouter des routes seulement pour : webhooks, exports CSV, endpoints publics sta
 - `"calendar_view"` → vue calendrier. Si brief mentionne réservations, créneaux.
 
 ### MÉTHODES DE SERVICE (contrat IMMUABLE — utiliser dans data_fetches)
-- `xxxService.getAll(userId)` / `getById(userId, id)` / `create` / `update` / `delete`
-- `xxxService.getAllWithRelations(userId)` — si modèle a @relation
-- `xxxService.getPublished()` — UNIQUEMENT si modèle a un ENUM status (ex: DRAFT/PUBLISHED) — N'EXISTE PAS pour Boolean published
-- `xxxService.getPublicAll()` — si modèle a Boolean published OU pour toute liste publique (JAMAIS getPublished pour un Boolean)
+- `xxxService.getAll(userId, page?, pageSize?)` / `getById(userId, id)` / `create` / `update` / `delete`
+- `xxxService.getAllWithRelations(userId, page?, pageSize?)` — si modèle a @relation
+- `xxxService.getPublicAll(page?, pageSize?)` — pour TOUTE liste publique (Boolean published, isPublic, OU enum de statut : le filtre est appliqué automatiquement). `getPublished` N'EXISTE PAS — getPublicAll couvre les modèles à statut.
 - `xxxService.getBySlug(slug)` — si modèle a `slug String @unique`
 - `childService.getBy{Parent}Id(userId, parentId)` — si modèle enfant
 

@@ -26,6 +26,18 @@ import jinja2
 from .dev_naming import path_to_client_component
 from .dev_model_context import ModelGenerationContext
 from .dev_pages_generator import _find_create_model as _infer_create_model, _gen_page_full
+from .dev_design_compiler import compile_entity_decor
+
+
+def _model_value_labels(ctx: ModelGenerationContext) -> dict[str, dict[str, str]]:
+    """{champ enum: {valeur: libellé}} — libellés lisibles depuis enum_value_labels."""
+    out: dict[str, dict[str, str]] = {}
+    for ef in ctx.editable_fields:
+        if getattr(ef, "input_type", "") == "enum-select":
+            labels = (ctx.enum_value_labels or {}).get(ef.base_type, {}) or {}
+            if labels:
+                out[ef.name] = labels
+    return out
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +149,8 @@ def _fk_to_ctx(fk, display: str) -> dict:
 
 # ── Générateurs individuels (chacun rend UN template) ────────────────────────
 
-def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None, parent_relations: "list | None" = None, has_search: bool = False) -> str:
+def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_message: str = "", design_tokens: dict | None = None, parent_relations: "list | None" = None, has_search: bool = False, decor: dict | None = None, currency_fields: set | None = None) -> str:
+    decor = decor or {}
     """
     RENDERER UNIQUE des page-client.tsx de liste (unification DY6 — Juil 2026).
     Remplace les ex-modules module_status_flow et module_search : deux chemins de rendu
@@ -251,6 +264,9 @@ def _gen_list_client(page, ctx: ModelGenerationContext, spec=None, empty_state_m
         parent_relations=parent_relations or [],
         boolean_fields=_boolean_fields,
         date_fields=_date_fields,
+        currency_fields=currency_fields or set(),
+        entity_icon=decor.get("icon", ""),
+        highlight_fields=decor.get("highlights", set()),
         **(design_tokens or {}),
     )
 
@@ -356,7 +372,8 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     )
 
 
-def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None, textarea_fields: set | None = None, model_contexts: dict | None = None) -> str:
+def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_tokens: dict | None = None, textarea_fields: set | None = None, model_contexts: dict | None = None, decor: dict | None = None, currency_fields: set | None = None) -> str:
+    decor = decor or {}
     auth_required = getattr(page, "auth_required", True)
     page_path = getattr(page, "path", None)
     if not auth_required and page_path:
@@ -415,6 +432,7 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
         "detail_client.tsx.j2",
         m2m_display=m2m_display,
         name=ctx.name,
+        title_singular=ctx.title_singular or ctx.name,
         serialized_type=ctx.serialized_type,
         client_name=path_to_client_component(page.path),
         list_path=list_path,
@@ -427,6 +445,11 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
         title_field=_title_field,
         textarea_fields=textarea_fields or set(),
         boolean_fields=boolean_fields,
+        date_fields={df.name for df in (ctx.datetime_fields or [])},
+        currency_fields=currency_fields or set(),
+        entity_icon=decor.get("icon", ""),
+        badge_map=decor.get("badge_map", {}),
+        highlight_fields=decor.get("highlights", set()),
         **(design_tokens or {}),
     )
 
@@ -439,11 +462,15 @@ def generate_all_page_clients(
     project_workdir: str,
     enriched_spec=None,
     design_system: dict | None = None,
+    design_brief: dict | None = None,
 ) -> dict[str, str]:
     """
     Génère déterministiquement les page-client.tsx pour toutes les pages CRUD.
     Retourne {rel_path: content} pour intégration dans template_written.
     design_system: dict depuis ProjectSpec (primary_color, etc.) — injecté dans les templates Jinja2.
+    design_brief : décisions visuelles de l'agent design (icône/badges/highlights/layout).
+      Compilées de façon déterministe via le Design Compiler et injectées dans les templates —
+      remplace l'ancien Page Enricher LLM (qui réécrivait tout et dérivait).
     """
     tokens = _design_tokens(design_system)
     written: dict[str, str] = {}
@@ -479,6 +506,22 @@ def generate_all_page_clients(
         if _overlap:
             _textarea_fields[_m_name] = _overlap
 
+    # Champs "currency" (annotation architect) → rendus via formatCurrency() (12.99 → « 12,99 € »).
+    _currency_field_names: set[str] = set()
+    if enriched_spec is not None:
+        try:
+            for _fa_name, _fa_val in (getattr(enriched_spec, "field_annotations", {}) or {}).items():
+                if (getattr(_fa_val, "semantic_type", "") or str(_fa_val)) == "currency":
+                    _currency_field_names.add(_fa_name)
+        except Exception:
+            pass
+    _currency_fields: dict[str, set] = {}
+    for _m_name, _m_ctx in model_contexts.items():
+        _m_fields = {f.name for f in getattr(_m_ctx.model, "fields", [])}
+        _overlap = _m_fields & _currency_field_names
+        if _overlap:
+            _currency_fields[_m_name] = _overlap
+
     # Modèles avec CRUD complet (list auth + create) → éligibles à l'edit page
     # Les pages create ont intentionnellement model=None (project_spec.py) — on infère
     crud_models: set[str] = set()
@@ -509,6 +552,10 @@ def generate_all_page_clients(
         if ctx is None:
             continue
 
+        # Décorations design déterministes pour ce modèle (icône, badges statiques,
+        # highlights, layout) — Design Compiler central, source unique.
+        _decor = compile_entity_decor(design_brief, ctx.name, _model_value_labels(ctx))
+
         # form_gen génère TOUJOURS le page-client.tsx de base pour les pages detail.
         # Si module_detail_with_children produit quelque chose, il écrase ensuite
         # (ordre garanti : form_gen → feature_modules). Si le module retourne {}
@@ -538,7 +585,7 @@ def generate_all_page_clients(
                     and getattr(enriched_spec, "has_feature", None)
                     and enriched_spec.has_feature("search")
                 )
-                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens, parent_relations=_parent_rels, has_search=_has_search)
+                content = _gen_list_client(page, ctx, spec=spec, empty_state_message=_empty_msg, design_tokens=tokens, parent_relations=_parent_rels, has_search=_has_search, decor=_decor, currency_fields=_currency_fields.get(ctx.name, set()))
             elif page_type == "create":
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_create_client(page, ctx, model_contexts, spec=spec, design_tokens=tokens)
@@ -546,7 +593,8 @@ def generate_all_page_clients(
                 rel = f"app/{page_path_clean}/page-client.tsx"
                 content = _gen_detail_client(page, ctx, spec=spec, design_tokens=tokens,
                                              textarea_fields=_textarea_fields.get(ctx.name),
-                                             model_contexts=model_contexts)
+                                             model_contexts=model_contexts, decor=_decor,
+                                             currency_fields=_currency_fields.get(ctx.name, set()))
             elif page_type == "edit":
                 # page-client.tsx déterministe pour la page d'édition.
                 # Le page.tsx est généré par generate_edit_page_stubs() dans dev_pages_generator.py.

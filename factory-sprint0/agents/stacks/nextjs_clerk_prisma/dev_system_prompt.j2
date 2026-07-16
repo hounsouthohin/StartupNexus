@@ -76,8 +76,8 @@ WORKFLOW (Option A — suis cet ordre STRICTEMENT)
    PAGES PUBLIQUES (marquées "(publique)" dans la liste des pages) :
    - NE PAS importer auth, NE PAS appeler auth(), NE PAS appeler redirect('/sign-in')
    - NE PAS utiliser userId — il n'existe pas sur ces pages
-   - Utilise `getPublicAll()` pour les pages publiques avec Boolean published — voir Service Map pour confirmer
-   - `getPublished()` n'existe QUE pour les modèles avec ENUM status (DRAFT/PUBLISHED) — JAMAIS pour Boolean published
+   - Utilise `getPublicAll(page?, pageSize?)` pour toute liste publique (Boolean published, isPublic OU enum de statut — le filtre est appliqué automatiquement). `getPublished` N'EXISTE PAS.
+   - Pour afficher une liste filtrée/agrégée sur une page publique (ex: « à venir ») → charger tout : `getPublicAll(1, 100000)` puis filtrer en TypeScript (sinon la pagination tronque à 20)
    - Si aucune méthode sans userId n'existe dans la Service Map → génère juste le JSX sans fetch de données
    - Si [INTERACTIVE] → split Server/Client avec page-client.tsx
    - Client Component navigation : TOUJOURS useRouter depuis 'next/navigation' — JAMAIS 'next/router' (Pages Router)

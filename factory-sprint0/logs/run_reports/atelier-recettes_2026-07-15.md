@@ -1,4 +1,4 @@
-# FactoryRunReport — abo-tracker — 2026-07-15
+# FactoryRunReport — atelier-recettes — 2026-07-15
 ══════════════════════════════════════════════════
 BUILD        : ✅ SUCCESS
 REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
@@ -32,5 +32,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : af1e1863-72ae-4d9d-9aa4-eb6ff254dd94
-DURÉE        : 2min 44s
+RUN_ID       : 9a5bea0e-598c-4f14-92b9-bb862f294a72
+DURÉE        : 3min 17s

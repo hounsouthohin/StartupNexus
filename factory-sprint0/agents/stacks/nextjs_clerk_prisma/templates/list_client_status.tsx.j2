@@ -6,6 +6,12 @@ import type { {{ serialized_type }} } from '@/lib/types'
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% endif %}
+{% if date_fields %}
+import { formatDate } from '@/lib/utils'
+{% endif %}
+{% if entity_icon %}
+import { {{ entity_icon }} } from 'lucide-react'
+{% endif %}
 
 {% set _COLOR_HINTS = {
   'pending':    'bg-yellow-100 text-yellow-800',
@@ -76,7 +82,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   return (
     <main className="container mx-auto {{ p_cls }}">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-foreground">{{ title_plural }}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{% if entity_icon %}<{{ entity_icon }} className="w-5 h-5 text-primary inline-block mr-2" />{% endif %}{{ title_plural }}</h1>
         {% if auth_required %}
         <Link href="{{ list_path }}/new" className="px-4 py-2 bg-{{ primary }} text-white rounded-md hover:bg-{{ primary_hover }} text-sm font-medium">
           Nouveau
@@ -130,7 +136,7 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
               {filtered.map(item => (
                 <tr key={item.id} className="hover:bg-muted/50 {{ transition_cls }}">
                   {% for field in display_fields if field != status_field %}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{% if field_enum_labels and field in field_enum_labels %}{FIELD_ENUM_LABELS.{{ field }}?.[String(item.{{ field }} ?? '')] ?? String(item.{{ field }} ?? '')}{% elif field in boolean_fields %}<span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}</span>{% else %}{String(item.{{ field }} ?? '')}{% endif %}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{% if field_enum_labels and field in field_enum_labels %}{FIELD_ENUM_LABELS.{{ field }}?.[String(item.{{ field }} ?? '')] ?? String(item.{{ field }} ?? '')}{% elif field in boolean_fields %}<span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}</span>{% elif field in date_fields %}{formatDate(item.{{ field }})}{% else %}{String(item.{{ field }} ?? '')}{% endif %}</td>
                   {% endfor %}
                   {% for rel in parent_relations %}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{String((item as any).{{ rel.related_camel }}?.{{ rel.display_field }} ?? '—')}</td>

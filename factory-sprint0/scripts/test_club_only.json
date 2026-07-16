@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "club-running",
+    "brief": {
+      "description": "Petit site pour mon club de course à pied. Les visiteurs voient la liste des prochaines sorties sans se connecter : chaque sortie a un titre, une date et heure de rendez-vous, un lieu de départ, une distance en kilomètres (nombre, ex: 12.5) et une description du parcours (texte long). Une sortie est soit ouverte, soit complète, soit annulée. En tant qu'organisateur, je crée et gère les sorties depuis mon espace privé après connexion, et je note les participants de chaque sortie — chaque participant a un nom et un email, rattachés à une sortie. La page de détail d'une sortie dans mon espace privé montre ses participants et permet d'en ajouter. L'ambiance du site doit être énergique et donner envie de courir."
+    }
+  }
+]

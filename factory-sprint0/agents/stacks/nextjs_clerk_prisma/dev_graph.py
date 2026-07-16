@@ -235,6 +235,10 @@ async def run_dev_agent(
     # BLOQUANT : sans package.json, npm install échoue et le run entier est compromis.
     template_written: dict = {}
     _template_error: str = ""
+    # Crashs des générateurs déterministes cœur. Un générateur qui plante ne doit PAS
+    # basculer en douce vers le LLM (Level A dégradé en improvisation, en silence) : on
+    # collecte ici et on abandonne le run avant la génération LLM (voir _prebuild_errors).
+    _generator_errors: list[str] = []
     try:
         from .dev_file_ops import write_template_files
         from agents.stack_config import load_stack_config
@@ -378,7 +382,8 @@ async def run_dev_agent(
             template_written.update(_svc_written)
             logger.info("[dev_graph] %d services DAL générés de manière déterministe", len(_svc_written))
         except Exception as _svc_err:
-            logger.warning(f"[dev_graph] service generator non bloquant : {_svc_err}")
+            _generator_errors.append(f"SERVICE_GENERATOR_FAILED: {_svc_err}")
+            logger.error("[dev_graph] service generator a échoué (bloquant) : %s", _svc_err)
 
     # ── Génération déterministe : app/**/actions.ts ───────────────────
     if spec_obj is not None:
@@ -388,7 +393,8 @@ async def run_dev_agent(
             template_written.update(_act_written)
             logger.info("[dev_graph] %d fichiers actions.ts générés de manière déterministe", len(_act_written))
         except Exception as _act_err:
-            logger.warning(f"[dev_graph] actions generator non bloquant : {_act_err}")
+            _generator_errors.append(f"ACTIONS_GENERATOR_FAILED: {_act_err}")
+            logger.error("[dev_graph] actions generator a échoué (bloquant) : %s", _act_err)
 
     # ══ UI INFRASTRUCTURE — design system, layout, navigation ════════════════════
     # Générés avant les pages pour que les composants UI existent sur disque
@@ -460,7 +466,8 @@ async def run_dev_agent(
             generate_loading_files(spec_obj, project_workdir)
             generate_error_files(spec_obj, project_workdir)
         except Exception as _pg_err:
-            logger.warning(f"[dev_graph] page generators non bloquant : {_pg_err}")
+            _generator_errors.append(f"PAGE_GENERATOR_FAILED: {_pg_err}")
+            logger.error("[dev_graph] page generators ont échoué (bloquant) : %s", _pg_err)
 
     # ── Génération déterministe : SEO (sitemap.ts + robots.ts) ────────────────
     # Sprint 5 (Type D-complet) — uniquement si l'app a des pages publiques.
@@ -487,7 +494,8 @@ async def run_dev_agent(
             template_written.update(_form_files)
             logger.info("[dev_graph] %d page-client.tsx générés de manière déterministe", len(_form_files))
         except Exception as _fg_err:
-            logger.warning(f"[dev_graph] form generator non bloquant : {_fg_err}")
+            _generator_errors.append(f"FORM_GENERATOR_FAILED: {_fg_err}")
+            logger.error("[dev_graph] form generator a échoué (bloquant) : %s", _fg_err)
 
     # ── Génération déterministe : pages détail parent auto-manquantes ───────────
     # Pour chaque modèle parent (référencé via FK par un enfant CROSS_ENTITY) qui n'a
@@ -502,7 +510,8 @@ async def run_dev_agent(
             if _parent_detail_files:
                 logger.info("[dev_graph] %d fichier(s) parent detail auto-générés", len(_parent_detail_files))
         except Exception as _pd_err:
-            logger.warning("[dev_graph] parent detail pages non bloquant : %s", _pd_err)
+            _generator_errors.append(f"PARENT_DETAIL_GENERATOR_FAILED: {_pd_err}")
+            logger.error("[dev_graph] parent detail pages ont échoué (bloquant) : %s", _pd_err)
 
     # Les pages détail parent+enfants sont gérées structurellement :
     # - page.tsx : déterministe via generate_page_stubs (flux normal, model présent)
@@ -519,7 +528,21 @@ async def run_dev_agent(
             _hub_files = _gen_hub(spec_obj, _model_contexts, project_workdir, pages_detail=getattr(spec_obj, "pages_detail", {}) or {})
             template_written.update(_hub_files)
         except Exception as _hub_err:
-            logger.warning("[dev_graph] hub_generator non bloquant : %s", _hub_err)
+            _generator_errors.append(f"HUB_GENERATOR_FAILED: {_hub_err}")
+            logger.error("[dev_graph] hub_generator a échoué (bloquant) : %s", _hub_err)
+
+    # ── Home publique déterministe : app/page.tsx avec liste filtrée ──────────
+    # Cas club : « / » public montre « prochaines sorties » (liste filtrée). Le LLM l'écrivait
+    # paginé + non filtré (C1). Patron 3a appliqué au public : fetch dé-paginé + filtre compilé.
+    # generate_root_page_if_needed a laissé « / » au LLM (data_fetches présents) ; on comble ici.
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .dev_hub_generator import generate_public_home as _gen_home
+            _home_files = _gen_home(spec_obj, _model_contexts, project_workdir, pages_detail=getattr(spec_obj, "pages_detail", {}) or {})
+            template_written.update(_home_files)
+        except Exception as _home_err:
+            _generator_errors.append(f"PUBLIC_HOME_GENERATOR_FAILED: {_home_err}")
+            logger.error("[dev_graph] public home generator a échoué (bloquant) : %s", _home_err)
 
     # ── Feature modules (registry déclaratif depuis stack JSON config) ───────
     if spec_obj is not None and _model_contexts:
@@ -532,7 +555,8 @@ async def run_dev_agent(
             if _feature_files:
                 logger.info("[dev_graph] %d fichier(s) de feature modules", len(_feature_files))
         except Exception as _fm_err:
-            logger.warning("[dev_graph] feature_modules non bloquant : %s", _fm_err)
+            _generator_errors.append(f"FEATURE_MODULES_FAILED: {_fm_err}")
+            logger.error("[dev_graph] feature_modules ont échoué (bloquant) : %s", _fm_err)
 
     # ── Guard pré-build : cohérence page.tsx → page-client.tsx ─────────────
     # Après tous les générateurs déterministes, vérifie que chaque page.tsx
@@ -540,7 +564,11 @@ async def run_dev_agent(
     # Si absent → GENERATION_ERROR avant même que le LLM démarre.
     # Cible : détecter les bugs générateur tôt (TS2307 "Cannot find module") plutôt
     # qu'après le build Next.js (~5 min plus tard).
-    _prebuild_errors: list[str] = []
+    # Seed avec les crashs de générateurs cœur (+ types/zod) : un générateur qui a planté
+    # doit abandonner le run ici, jamais laisser le LLM improviser le fichier manquant.
+    _prebuild_errors: list[str] = list(_generator_errors)
+    if _template_error:
+        _prebuild_errors.append(_template_error)
     _page_client_import_re = re.compile(r"['\"]\.\/page-client['\"]")
     for _tw_path, _tw_content in list(template_written.items()):
         if not _tw_path.endswith("page.tsx"):
@@ -601,9 +629,12 @@ async def run_dev_agent(
     # Niveau : WARNING (non bloquant).
     _mw_content = template_written.get("middleware.ts", "")
     if _mw_content:
+        # /(api|trpc) est le matcher standard de config.matcher (boilerplate Next.js),
+        # PAS une route publique. Sans cette exclusion, le guard criait au loup à CHAQUE
+        # run → on finissait par ignorer tous les warnings.
         _wildcard_re = re.compile(r"'(/[^']+)\(\.\*\)'")
         for _wc_match in _wildcard_re.findall(_mw_content):
-            if _wc_match not in ("/sign-in", "/sign-up"):
+            if _wc_match not in ("/sign-in", "/sign-up", "/(api|trpc)"):
                 logger.warning(
                     "[dev_graph] MIDDLEWARE_WARNING: pattern wildcard '%s(.*)' dans middleware.ts — "
                     "peut rendre publics des sous-chemins auth=true (ex: /recipes/new). "
@@ -770,23 +801,29 @@ async def run_dev_agent(
         except Exception as _se_err:
             logger.warning("[dev_graph] shell_enricher non bloquant : %s", _se_err)
 
-    # ── Page Enricher (Sprint C) ─────────────────────────────────────
-    # Enrichit les page-client.tsx list/detail avec badges, icônes, layouts riches.
-    # TSC guard intégré : rollback automatique si TypeScript échoue après enrichissement.
-    # Non bloquant : en cas d'échec total, les fichiers déterministes restent intacts.
-    if spec_obj is not None and _design_brief and _model_contexts and _prev_cmd_ok:
+    # ── Enrichissement visuel DÉTERMINISTE (remplace le Page Enricher LLM) ────────
+    # L'ancien Page Enricher LLM (Sprint C) réécrivait le fichier ENTIER pour appliquer le
+    # design brief → dérive systématique (classes Tailwind dynamiques purgées → badges sans
+    # couleur, colonnes fantômes). Générer ≠ éditer : un LLM qui ré-émet tout le fichier
+    # régénère et invente, il ne « touche pas juste 3 endroits ». Le design brief étant un
+    # vocabulaire FERMÉ (icône/badges/highlights/layout), il se COMPILE de façon déterministe :
+    # on re-génère les page-clients avec design_brief → le Design Compiler injecte les
+    # décorations en classes STATIQUES dans les templates. Fiable, et le design vit désormais
+    # en amont (partagé), plus dans une passe de réécriture post-hoc.
+    if spec_obj is not None and _design_brief and _model_contexts:
         try:
-            from .dev_page_enricher import enrich_page_clients as _enrich
-            _enriched_files = await _enrich(
-                spec_obj, _design_brief, _model_contexts, project_workdir, template_written
+            from .dev_form_generator import generate_all_page_clients as _regen
+            _decorated = _regen(
+                spec_obj, _model_contexts, project_workdir,
+                enriched_spec=_enriched_spec, design_system=_design_system,
+                design_brief=_design_brief,
             )
-            if _enriched_files:
-                # template_written déjà mis à jour in-place par enrich_page_clients (TSC OK)
-                _protected.update(_enriched_files.keys())
-                logger.info("[dev_graph] Page Enricher : %d fichier(s) enrichis et protégés",
-                            len(_enriched_files))
+            template_written.update(_decorated)
+            _protected.update(_decorated.keys())
+            logger.info("[dev_graph] enrichissement visuel déterministe : %d page-client(s) décoré(s)",
+                        len(_decorated))
         except Exception as _pe_err:
-            logger.warning("[dev_graph] page_enricher non bloquant : %s", _pe_err)
+            logger.warning("[dev_graph] enrichissement visuel non bloquant : %s", _pe_err)
 
     # Protéger lib/ (types, schemas, services) + app/**/actions.ts contre réécriture LLM.
     _protected.update(

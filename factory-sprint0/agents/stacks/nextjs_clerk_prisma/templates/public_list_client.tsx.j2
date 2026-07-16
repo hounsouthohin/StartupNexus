@@ -2,6 +2,12 @@
 
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
+{% if date_fields %}
+import { formatDate } from '@/lib/utils'
+{% endif %}
+{% if entity_icon %}
+import { {{ entity_icon }} } from 'lucide-react'
+{% endif %}
 {% if status_field and status_labels %}
 
 const STATUS_LABELS: Record<string, string> = {
@@ -18,7 +24,7 @@ interface {{ client_name }}Props {
 export default function {{ client_name }}({ items }: {{ client_name }}Props) {
   return (
     <main className="container mx-auto {{ p_cls }}">
-      <h1 className="text-2xl font-bold text-foreground mb-6">{{ title_plural }}</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-6">{% if entity_icon %}<{{ entity_icon }} className="w-5 h-5 text-primary inline-block mr-2" />{% endif %}{{ title_plural }}</h1>
 
       {items.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
@@ -50,6 +56,8 @@ export default function {{ client_name }}({ items }: {{ client_name }}Props) {
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-muted text-foreground">
                       {STATUS_LABELS[item.{{ field }}] ?? String(item.{{ field }} ?? '')}
                     </span>
+                    {% elif field in date_fields %}
+                    {formatDate(item.{{ field }})}
                     {% else %}
                     {String(item.{{ field }} ?? '')}
                     {% endif %}

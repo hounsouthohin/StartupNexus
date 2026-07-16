@@ -2,6 +2,15 @@
 
 import Link from 'next/link'
 import type { {{ serialized_type }} } from '@/lib/types'
+{% if date_fields %}
+import { formatDate } from '@/lib/utils'
+{% endif %}
+{% if currency_fields %}
+import { formatCurrency } from '@/lib/utils'
+{% endif %}
+{% if entity_icon %}
+import { {{ entity_icon }} } from 'lucide-react'
+{% endif %}
 {% if has_delete %}
 import { delete{{ name }} } from '@/app/{{ list_dir }}/actions'
 {% endif %}
@@ -27,9 +36,9 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
       <div className="flex items-center gap-3 mb-6">
         <Link href="{{ list_path }}" className="text-muted-foreground hover:text-foreground">←</Link>
         {% if title_field %}
-        <h1 className="text-2xl font-bold text-foreground">{String(item.{{ title_field }} ?? '{{ name }}')}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{% if entity_icon %}<{{ entity_icon }} className="w-5 h-5 text-primary inline-block mr-2" />{% endif %}{String(item.{{ title_field }} ?? '{{ title_singular }}')}</h1>
         {% else %}
-        <h1 className="text-2xl font-bold text-foreground">{{ name }}</h1>
+        <h1 className="text-2xl font-bold text-foreground">{% if entity_icon %}<{{ entity_icon }} className="w-5 h-5 text-primary inline-block mr-2" />{% endif %}{{ title_singular }}</h1>
         {% endif %}
       </div>
       {% for mf in m2m_display %}
@@ -74,6 +83,12 @@ export default function {{ client_name }}({ item }: {{ client_name }}Props) {
               <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${item.{{ field }} ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                 {item.{{ field }} ? '{{ "Publié" if field == "published" else "Oui" }}' : '{{ "Brouillon" if field == "published" else "Non" }}'}
               </span>
+              {% elif field in badge_map %}
+              {{ '{' }}{% for value, meta in badge_map[field].items() %}item.{{ field }} === '{{ value }}' ? <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium {{ meta.cls }}">{{ meta.label }}</span> : {% endfor %}<span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">{String(item.{{ field }} ?? '—')}</span>{{ '}' }}
+              {% elif field in date_fields %}
+              {formatDate(item.{{ field }})}
+              {% elif field in currency_fields %}
+              {formatCurrency(item.{{ field }})}
               {% elif value_labels and field in value_labels %}
               {(FIELD_VALUE_LABELS['{{ field }}'] ?? {})[String(item.{{ field }})] ?? String(item.{{ field }} ?? '—')}
               {% else %}

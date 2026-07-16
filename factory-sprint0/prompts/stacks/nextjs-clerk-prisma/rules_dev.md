@@ -26,7 +26,7 @@ Le LLM génère UNIQUEMENT : pages custom `app/**/page.tsx` (sans `model`), `app
 
 8. **[IMPORTANT] APP ROUTER ONLY** : JAMAIS `pages/` — tout dans `app/`.
 
-9. **[IMPORTANT] PAGES AVEC DONNÉES RÉELLES** : toute page affichant des entités DOIT appeler le service correspondant et afficher les résultats. Un `<h1>` seul sans données est INTERDIT. Inclure un état vide si la liste est vide.
+9. **[IMPORTANT] PAGES AVEC DONNÉES RÉELLES** : toute page **déclarant des `data_fetches`** DOIT appeler le service correspondant et afficher les résultats (avec un état vide si la liste est vide). EXCEPTION : une page de présentation dont le contrat dit `data_fetches: []` (landing statique, hero) NE DOIT PAS fetcher — un `<h1>` + texte + lien sont légitimes. Ne jamais inventer un fetch absent du contrat.
 
 10. **[IMPORTANT] AUTH REDIRECT PAGES** : dans les Server Components protégés, utiliser `redirect('/sign-in')` (depuis `next/navigation`) si `!userId` — JAMAIS retourner null.
 

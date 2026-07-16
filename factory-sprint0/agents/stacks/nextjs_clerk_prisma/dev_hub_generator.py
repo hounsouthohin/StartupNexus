@@ -137,6 +137,157 @@ def generate_hub_page(spec_obj, model_contexts: dict, project_workdir: str,
     return {dest: content}
 
 
+def _public_detail_link(spec_obj, model_name: str) -> str | None:
+    """Trouve la page détail PUBLIQUE d'un modèle → template de lien JS, ou None.
+    Ex: page '/run-events/[id]' (auth=false) → "/run-events/${item.id}"."""
+    for p in getattr(spec_obj, "pages", []) or []:
+        if getattr(p, "model", None) != model_name:
+            continue
+        if getattr(p, "auth_required", True):
+            continue
+        _pt = getattr(p, "page_type", "") or ""
+        _path = getattr(p, "path", "") or ""
+        if _pt == "detail-slug" and "[slug]" in _path:
+            return _path.replace("[slug]", "${item.slug}")
+        if _pt in ("detail", "detail-slug") and "[id]" in _path:
+            return _path.replace("[id]", "${item.id}")
+    return None
+
+
+def generate_public_home(spec_obj, model_contexts: dict, project_workdir: str,
+                         pages_detail: dict | None = None) -> dict[str, str]:
+    """Génère app/page.tsx PUBLIC de façon déterministe quand la home publique a une
+    liste filtrée / des KPIs (ex: club « prochaines sorties »).
+
+    Jumeau public de generate_hub_page : fetch dé-paginé (getPublicAll) + filtre compilé
+    (compile_flist_expr) → C1 ne peut plus se déclencher (le LLM n'écrit plus cette page,
+    et la source est dé-paginée + filtrée correctement). Retourne {} si non applicable.
+    """
+    if spec_obj is None or not model_contexts:
+        return {}
+    home = None
+    if isinstance(pages_detail, dict):
+        home = pages_detail.get("/") or pages_detail.get("")
+    home = home if isinstance(home, dict) else {}
+
+    flists = [f for f in (home.get("filtered_lists") or [])
+              if isinstance(f, dict) and f.get("source") and f.get("filter_field")]
+    kpis = [k for k in (home.get("kpis") or []) if isinstance(k, dict) and k.get("source")]
+    fetches = [f for f in (home.get("data_fetches") or []) if isinstance(f, dict)]
+    # Home publique statique ou sans agrégat → laissé aux autres générateurs (hero/redirect/LLM).
+    if not (flists or kpis) or not fetches:
+        return {}
+
+    content = _render_public_home(model_contexts, spec_obj, fetches, kpis, flists)
+    if not content:
+        return {}
+    dest = "app/page.tsx"
+    abs_path = pathlib.Path(project_workdir) / "app" / "page.tsx"
+    try:
+        abs_path.parent.mkdir(parents=True, exist_ok=True)
+        abs_path.write_text(content, encoding="utf-8")
+        logger.info("[hub_generator] app/page.tsx PUBLIC déterministe (liste filtrée dé-paginée)")
+    except Exception as _e:
+        logger.warning("[hub_generator] écriture home publique échouée : %s", _e)
+        return {}
+    return {dest: content}
+
+
+def _render_public_home(model_contexts: dict, spec_obj, fetches: list, kpis: list, flists: list) -> str:
+    by_camel = {c.camel: c for c in model_contexts.values()}
+    src_meta: dict[str, tuple] = {}
+    for f in fetches:
+        camel = _camel_from_service(f.get("service", ""))
+        if f.get("as") and camel:
+            ctx = by_camel.get(camel)
+            src_meta[f["as"]] = (_service_var(camel), (ctx.kebab if ctx else camel), ctx, f.get("service", ""))
+
+    used_sources = [s for s in ({k["source"] for k in kpis} | {f["source"] for f in flists}) if s in src_meta]
+    if not used_sources:
+        return ""
+
+    imports = "\n".join(
+        "import { " + src_meta[s][0] + " } from '@/lib/services/" + src_meta[s][1] + ".service'"
+        for s in sorted(used_sources)
+    )
+    fetch_lines = "\n  ".join(
+        "const " + s + " = await " + unpaginate_call(src_meta[s][3]) for s in sorted(used_sources)
+    )
+
+    kpi_consts, kpi_cards = [], []
+    for i, k in enumerate(kpis):
+        kpi_consts.append("const kpi" + str(i) + " = " + compile_kpi_expr(k))
+        kpi_cards.append(
+            '<div className="bg-card border border-border rounded-lg p-6">\n'
+            '          <p className="text-sm text-muted-foreground mb-1">' + _ts_label(k.get("label", "")) + '</p>\n'
+            '          <p className="text-3xl font-bold text-foreground">{kpi' + str(i) + '}</p>\n'
+            '        </div>'
+        )
+
+    _needs_format_date = False
+    list_consts, list_sections = [], []
+    for i, f in enumerate(flists):
+        list_consts.append("const list" + str(i) + " = " + compile_flist_expr(f))
+        ctx = src_meta.get(f["source"], (None, None, None, None))[2]
+        _date_names = {df.name for df in (ctx.datetime_fields or [])} if ctx else set()
+        fields = (ctx.display_fields[:3] if ctx and ctx.display_fields else [])
+        _detail = _public_detail_link(spec_obj, ctx.name) if ctx else None
+        _cells = []
+        for j, fld in enumerate(fields):
+            if fld in _date_names:
+                _needs_format_date = True
+                _val = "{formatDate(item." + fld + ")}"
+            else:
+                _val = "{String(item." + fld + " ?? '')}"
+            if j == 0 and _detail:
+                _cells.append('<Link href={`' + _detail + '`} className="font-medium text-primary hover:underline">' + _val + '</Link>')
+            else:
+                _cells.append(_val)
+        cells = " — ".join(_cells) if _cells else "{item.id}"
+        list_sections.append(
+            '<section className="mb-8">\n'
+            '        <h2 className="text-lg font-semibold text-foreground mb-3">' + _ts_label(f.get("label", "")) + '</h2>\n'
+            '        {list' + str(i) + '.length === 0 ? (\n'
+            '          <p className="text-muted-foreground text-sm">Aucun élément.</p>\n'
+            '        ) : (\n'
+            '          <ul className="space-y-2">\n'
+            '            {list' + str(i) + '.map(item => (\n'
+            '              <li key={item.id} className="bg-card border border-border rounded-md p-4 text-sm text-foreground">' + cells + '</li>\n'
+            '            ))}\n'
+            '          </ul>\n'
+            '        )}\n'
+            '      </section>'
+        )
+
+    _fd_import = "\nimport { formatDate } from '@/lib/utils'" if _needs_format_date else ""
+    consts_block = "\n  ".join(kpi_consts + list_consts)
+    kpi_grid = (
+        '<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">\n        '
+        + "\n        ".join(kpi_cards) + "\n      </div>"
+        if kpi_cards else ""
+    )
+    lists_block = "\n      ".join(list_sections)
+
+    return f"""import Link from 'next/link'
+{imports}{_fd_import}
+
+export const dynamic = 'force-dynamic'
+
+export default async function HomePage() {{
+  {fetch_lines}
+
+  {consts_block}
+
+  return (
+    <main className="container mx-auto p-8">
+      {kpi_grid}
+      {lists_block}
+    </main>
+  )
+}}
+"""
+
+
 def _render_simple_dashboard(model_contexts: dict) -> str:
     """Grille de compteurs par modèle. Compteur = agrégat → getAll dé-paginé."""
     models = [c for c in model_contexts.values() if c.list_page_path]
