@@ -376,6 +376,11 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     if _flow_field:
         _fd = next((f for f in editable_fields if f.get("name") == _flow_field), None)
         _flow_labels = (_fd or {}).get("enum_labels", {}) or {}
+    # Verrou d'édition : champs métier désactivés dans les états figés. Le select de statut
+    # reste TOUJOURS actif — une fiche verrouillée doit pouvoir continuer d'avancer.
+    # Un champ désactivé n'est pas soumis dans le FormData → absent de `data` après le parse
+    # Zod → la garde serveur ne le voit pas comme une modification. Les deux se complètent.
+    _flow_locked = sorted(getattr(_flow, "locked_states", None) or []) if _flow else []
 
     return _render(
         "edit_client.tsx.j2",
@@ -394,6 +399,8 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
             dict(_flow.transitions) if _flow else {}, ensure_ascii=False, sort_keys=True,
         ),
         flow_labels_json=json.dumps(_flow_labels, ensure_ascii=False, sort_keys=True),
+        flow_locked=bool(_flow_locked),
+        flow_locked_json=json.dumps(_flow_locked, ensure_ascii=False),
         **(design_tokens or {}),
     )
 

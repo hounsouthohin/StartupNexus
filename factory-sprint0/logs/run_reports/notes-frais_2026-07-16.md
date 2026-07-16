@@ -32,5 +32,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : b2ebfb59-3ea2-4bac-b60b-d7c53a854bef
-DURÉE        : 1min 36s
+RUN_ID       : 39cb8fbe-5bb8-4b50-8238-c065d001ec45
+DURÉE        : 1min 58s

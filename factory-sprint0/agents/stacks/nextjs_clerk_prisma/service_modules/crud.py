@@ -68,25 +68,53 @@ class CrudModule(ServiceMethodModule):
         _initial_field = f", {_flow_field}: '{_flow.initial}'" if _flow else ""
 
         def _transition_guard(indent: str) -> list[str]:
-            """Refuse tout passage d'état absent du graphe autorisé. Liste blanche :
-            ce qui n'est pas explicitement permis est interdit."""
+            """Garde de machine à états : verrou d'édition puis transitions autorisées.
+            Liste blanche pour les transitions (non permis = interdit) ; liste noire pour
+            le verrou (l'exception, défaut = rien de figé)."""
             if not _flow:
                 return []
             _map = "{ " + ", ".join(
                 f"{_s}: [{', '.join(repr(_t) for _t in _nxt)}]"
                 for _s, _nxt in sorted(_flow.transitions.items())
             ) + " }"
-            return [
-                f"{indent}if (data.{_flow_field} !== undefined) {{",
-                f"{indent}  const _cur = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {_flow_field}: true }} }})",
-                f"{indent}  if (!_cur) notFound()",
-                f"{indent}  if (data.{_flow_field} !== _cur.{_flow_field}) {{",
-                f"{indent}    const _allowed: Record<string, string[]> = {_map}",
-                f"{indent}    if (!(_allowed[_cur.{_flow_field}] ?? []).includes(data.{_flow_field})) {{",
-                f"{indent}      throw new Error(`Transition interdite : ${{_cur.{_flow_field}}} → ${{data.{_flow_field}}}`)",
-                f"{indent}    }}",
+            _locked = sorted(getattr(_flow, "locked_states", None) or [])
+
+            # Le verrou doit être évalué à CHAQUE update — pas seulement quand le statut
+            # change — donc l'état courant est lu inconditionnellement. Sans verrou, on
+            # garde la lecture conditionnelle : pas de requête pour un simple changement
+            # de montant.
+            _read_cur = [
+                f"{indent}const _cur = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {_flow_field}: true }} }})",
+                f"{indent}if (!_cur) notFound()",
+            ]
+            _check_transition = [
+                f"{indent}if (data.{_flow_field} !== undefined && data.{_flow_field} !== _cur.{_flow_field}) {{",
+                f"{indent}  const _allowed: Record<string, string[]> = {_map}",
+                f"{indent}  if (!(_allowed[_cur.{_flow_field}] ?? []).includes(data.{_flow_field})) {{",
+                f"{indent}    throw new Error(`Transition interdite : ${{_cur.{_flow_field}}} → ${{data.{_flow_field}}}`)",
                 f"{indent}  }}",
                 f"{indent}}}",
+            ]
+            if not _locked:
+                return [
+                    f"{indent}if (data.{_flow_field} !== undefined) {{",
+                    *[f"  {_l}" for _l in _read_cur],
+                    *[f"  {_l}" for _l in _check_transition],
+                    f"{indent}}}",
+                ]
+
+            # Verrou d'édition : les champs MÉTIER sont figés, le statut continue d'avancer
+            # (sinon une entité soumise ne pourrait plus jamais être approuvée).
+            _locked_ts = ", ".join(repr(_s) for _s in _locked)
+            return [
+                *_read_cur,
+                f"{indent}if (([{_locked_ts}] as string[]).includes(_cur.{_flow_field})) {{",
+                f"{indent}  const _touched = Object.keys(data).filter(_k => _k !== '{_flow_field}' && (data as Record<string, unknown>)[_k] !== undefined)",
+                f"{indent}  if (_touched.length > 0) {{",
+                f"{indent}    throw new Error(`Cette fiche n'est plus modifiable dans son état actuel.`)",
+                f"{indent}  }}",
+                f"{indent}}}",
+                *_check_transition,
             ]
 
         # ── Garde d'ownership M2M (S10) : ne connecter/set QUE les ids appartenant

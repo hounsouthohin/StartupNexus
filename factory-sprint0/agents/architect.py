@@ -184,9 +184,10 @@ une soumission, une validation, une approbation, un refus, une clôture, un « p
 Clé = nom du MODÈLE (ex: "ExpenseReport"), JAMAIS le nom du champ — deux modèles peuvent chacun
 avoir leur propre workflow.
 
-- "field"       : le champ Prisma portant l'état (ex: "status")
-- "initial"     : l'état de départ de toute nouvelle entité (ex: "draft")
-- "transitions" : le graphe des passages AUTORISÉS — {état: [états directement atteignables]}
+- "field"         : le champ Prisma portant l'état (ex: "status")
+- "initial"       : l'état de départ de toute nouvelle entité (ex: "draft")
+- "transitions"   : le graphe des passages AUTORISÉS — {état: [états directement atteignables]}
+- "locked_states" : états où les CHAMPS MÉTIER ne sont plus modifiables. [] si le brief n'en parle pas.
 
 RÈGLES :
 - LISTE BLANCHE : ne déclare que les passages que le brief autorise. Tout passage non listé est INTERDIT.
@@ -197,6 +198,14 @@ RÈGLES :
 - Si le statut est une simple ÉTIQUETTE sans cycle de vie (catégorie, type, priorité, niveau) →
   NE PAS déclarer de status_flow. Une étiquette n'est pas une machine à états.
 - Laisse {} si aucun modèle n'a de cycle de vie.
+
+locked_states — quand le brief dit qu'une entité n'est plus modifiable à partir d'une étape :
+  « on ne peut plus modifier une demande une fois soumise » → tous les états à partir de
+  "soumise" incluse sont verrouillés (soumise + tous ceux qui suivent), car on ne revient
+  jamais en arrière dans ces workflows.
+  ⚠ Ne JAMAIS mettre l'état initial dans locked_states : un brouillon doit rester modifiable.
+  ⚠ locked_states ne bloque QUE les champs métier — le statut continue d'avancer.
+  Laisse [] si le brief ne mentionne aucun verrouillage : ne l'invente pas.
 
 ### ux_hints
 Produis des indications UX pour améliorer l'expérience utilisateur final.
@@ -233,7 +242,8 @@ Exemple pour un gestionnaire de tâches avec statut workflow :
     "Task": {
       "field": "status",
       "initial": "todo",
-      "transitions": {"todo": ["in_progress"], "in_progress": ["done", "todo"], "done": []}
+      "transitions": {"todo": ["in_progress"], "in_progress": ["done", "todo"], "done": []},
+      "locked_states": []
     }
   },
   "ux_hints": {
@@ -277,7 +287,8 @@ Exemple pour un blog avec vrai statut enum (modèle a `status PostStatus @defaul
     "Post": {
       "field": "status",
       "initial": "draft",
-      "transitions": {"draft": ["published"], "published": ["draft"]}
+      "transitions": {"draft": ["published"], "published": ["draft"]},
+      "locked_states": []
     }
   },
   "ux_hints": {

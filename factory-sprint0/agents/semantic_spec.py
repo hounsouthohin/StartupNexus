@@ -133,6 +133,20 @@ class StatusFlowDeclaration(BaseModel):
     # État terminal = absent des clés OU valeur [] — pas de champ séparé : c'est dérivable,
     # donc impossible de le contredire.
 
+    locked_states: list[str] = Field(default_factory=list)
+    # États dans lesquels les CHAMPS MÉTIER sont figés (« ni modifier une note déjà soumise »).
+    # Le STATUT, lui, continue d'avancer via les transitions — le verrouiller figerait le
+    # workflow : une note soumise ne pourrait plus jamais être approuvée.
+    #
+    # Liste NOIRE ici, contrairement à `transitions` qui est une liste blanche — et c'est
+    # délibéré : le verrou est l'EXCEPTION. Défaut [] = rien n'est figé = comportement
+    # historique inchangé. Un oubli laisse l'app utilisable (échec permissif) ; une liste
+    # blanche mal remplie figerait des apps entières (échec bloquant).
+
+    def is_locked(self, state: str) -> bool:
+        """True si les champs métier sont figés dans cet état."""
+        return state in self.locked_states
+
     def is_allowed(self, current: str, target: str) -> bool:
         """True si le passage current → target est autorisé par le graphe."""
         return target in self.transitions.get(current, [])

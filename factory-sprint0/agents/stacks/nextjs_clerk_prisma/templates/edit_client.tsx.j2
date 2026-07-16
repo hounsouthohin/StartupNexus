@@ -17,6 +17,11 @@ import { update{{ name }} } from '@/app/{{ list_dir }}/actions'
 // l'utilisateur une option qui partirait en erreur.
 const FLOW_TRANSITIONS: Record<string, string[]> = {{ flow_transitions_json }}
 const FLOW_LABELS: Record<string, string> = {{ flow_labels_json }}
+{% if flow_locked %}
+// Verrou d'édition : dans ces états les champs métier sont figés. Le statut reste actif —
+// une fiche verrouillée doit pouvoir continuer d'avancer dans son cycle de vie.
+const FLOW_LOCKED: string[] = {{ flow_locked_json }}
+{% endif %}
 {% endif %}
 
 interface {{ client_name }}Props {
@@ -37,6 +42,9 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
     },
     null,
   )
+{% if flow_locked %}
+  const _isLocked = FLOW_LOCKED.includes(item.{{ flow_field }})
+{% endif %}
 
   return (
     <main className="container mx-auto {{ p_cls }} max-w-xl">
@@ -46,6 +54,13 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
       </div>
 
       {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}
+{% if flow_locked %}
+      {_isLocked && (
+        <p className="mb-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 px-4 py-2 rounded">
+          Les informations ne sont plus modifiables à ce stade. Vous pouvez encore faire évoluer l&apos;état.
+        </p>
+      )}
+{% endif %}
 
       <form action={formAction} className="space-y-4 {{ card_cls }} {{ p_cls }}">
         {% for field in editable_fields %}
@@ -59,7 +74,8 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             rows={{ '{' }}{{ 12 if field.name in ('content', 'body', 'instructions') else 4 }}}
             defaultValue={item.{{ field.name }} ?? ''}
-            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            {% if flow_locked %}disabled={_isLocked}{% endif %}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }} disabled:bg-muted disabled:text-muted-foreground"
           />
           {% elif field.input_type == 'checkbox' %}
           <input
@@ -68,7 +84,8 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             name="{{ field.name }}"
             value="true"
             defaultChecked={Boolean(item.{{ field.name }})}
-            className="h-4 w-4 text-{{ primary }} border-border rounded"
+            {% if flow_locked %}disabled={_isLocked}{% endif %}
+            className="h-4 w-4 text-{{ primary }} border-border rounded disabled:opacity-50"
           />
           {% elif flow_field and field.name == flow_field %}
           {# Champ sous machine à états : on ne propose QUE l'état courant (rester) et les
@@ -90,7 +107,8 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ?? ''}
-            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            {% if flow_locked %}disabled={_isLocked}{% endif %}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }} disabled:bg-muted disabled:text-muted-foreground"
           >
             <option value="">Sélectionner…</option>
             {% for val in field.enum_values %}
@@ -103,7 +121,8 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ? (item.{{ field.name }} as string).slice(0, 10) : ''}
-            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            {% if flow_locked %}disabled={_isLocked}{% endif %}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }} disabled:bg-muted disabled:text-muted-foreground"
           />
           {% elif field.input_type == 'datetime-local' %}
           <input
@@ -111,7 +130,8 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} ? new Date(item.{{ field.name }} as string).toISOString().slice(0, 16) : ''}
-            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            {% if flow_locked %}disabled={_isLocked}{% endif %}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }} disabled:bg-muted disabled:text-muted-foreground"
           />
           {% else %}
           <input
@@ -119,8 +139,9 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ field.name }}"
             name="{{ field.name }}"
             defaultValue={item.{{ field.name }} != null ? String(item.{{ field.name }}) : ''}
-            {% if field.input_type == 'number' %}step="any"{% endif %}
-            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            {% if field.input_type == 'number' %}step="any" {% endif %}
+            {% if flow_locked %}disabled={_isLocked} {% endif %}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }} disabled:bg-muted disabled:text-muted-foreground"
           />
           {% endif %}
         </div>
@@ -135,7 +156,8 @@ export default function {{ client_name }}({ item{% for fk in fk_fields %}, {{ fk
             id="{{ fk.field_name }}"
             name="{{ fk.field_name }}"
             defaultValue={item.{{ fk.field_name }} ?? ''}
-            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }}"
+            {% if flow_locked %}disabled={_isLocked}{% endif %}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-{{ primary_ring }} disabled:bg-muted disabled:text-muted-foreground"
           >
             <option value="">Sélectionner…</option>
             {{ '{' }}{{ fk.related_camel }}Options.map(opt => (

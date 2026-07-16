@@ -494,8 +494,18 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
                 for _s, _nxt in _raw_trans.items() if _s in _enum_vals
             }
             if any(_clean.values()):
+                # Verrou d'édition : on ne retient que des états connus de l'enum, et JAMAIS
+                # l'état initial — verrouiller le brouillon rendrait toute entité non
+                # modifiable dès sa création, donc l'app inutilisable. Le LLM peut se
+                # tromper là-dessus ; le compilateur, non.
+                _locked = [
+                    _s for _s in (getattr(_decl, "locked_states", None) or [])
+                    if _s in _enum_vals and _s != _initial
+                ]
                 from agents.semantic_spec import StatusFlowDeclaration as _SFD
-                status_flow = _SFD(field=_sf_real, initial=_initial, transitions=_clean)
+                status_flow = _SFD(
+                    field=_sf_real, initial=_initial, transitions=_clean, locked_states=_locked,
+                )
                 create_excluded_fields.append(_sf_real)
             else:
                 logger.warning(
