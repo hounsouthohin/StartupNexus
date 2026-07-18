@@ -161,6 +161,13 @@ def build_service_spec(
             f"(userId: string, ...) → {_ret}  (query métier)",
         ))
 
+    # ── transitionTo — machine à états (type I) ───────────────────────────────
+    if getattr(ctx, "status_flow", None) is not None:
+        methods.append(MethodSpec(
+            "transitionTo",
+            f"({owner}: string, id: string, newStatus: string, data?) → Promise<{s}>  (change l'état + capte les champs de la transition)",
+        ))
+
     # ── create / update / delete ──────────────────────────────────────────────
     methods.append(MethodSpec("create", f"({owner}: string, data: Create{name}Input) → Promise<{s}>"))
     methods.append(MethodSpec("update", f"({owner}: string, id: string, data: Update{name}Input) → Promise<{s}>"))

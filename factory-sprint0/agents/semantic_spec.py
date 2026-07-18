@@ -143,9 +143,21 @@ class StatusFlowDeclaration(BaseModel):
     # historique inchangé. Un oubli laisse l'app utilisable (échec permissif) ; une liste
     # blanche mal remplie figerait des apps entières (échec bloquant).
 
+    state_fields: dict[str, list[str]] = Field(default_factory=dict)
+    # Champs MÉTIER captés au moment où l'on ENTRE dans un état — {état: [champs]}.
+    # Ex: {"refused": ["rejectionReason"]} — « refusée AVEC UN MOTIF » : le motif se saisit
+    # au moment du refus, jamais avant.
+    # Conséquence compilée : ces champs sortent du formulaire de CRÉATION — constaté
+    # notes-frais, où l'on pouvait créer une note portant déjà un « Motif de refus ».
+    # Défaut {} = aucun champ lié à un état = comportement historique inchangé.
+
     def is_locked(self, state: str) -> bool:
         """True si les champs métier sont figés dans cet état."""
         return state in self.locked_states
+
+    def all_state_fields(self) -> list[str]:
+        """Tous les champs captés par une transition, tous états confondus."""
+        return sorted({_f for _fs in self.state_fields.values() for _f in _fs})
 
     def is_allowed(self, current: str, target: str) -> bool:
         """True si le passage current → target est autorisé par le graphe."""

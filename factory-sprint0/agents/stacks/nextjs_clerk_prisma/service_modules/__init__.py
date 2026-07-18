@@ -14,6 +14,7 @@ from .public import PublicModule
 from .relations import RelationsModule
 from .public_relations import PublicRelationsModule
 from .slug import SlugModule
+from .transition import TransitionModule
 
 # getPublished (ex-StatusModule) DÉPRÉCIÉ : sa requête était identique à celle de
 # getPublicAll pour les modèles à statut (public.py, branche has_status) → 100% redondant.
@@ -26,6 +27,7 @@ SERVICE_MODULES = [
     RelationsModule(),
     PublicRelationsModule(),
     SlugModule(),
+    TransitionModule(),
 ]
 
 # ── Registre des méthodes par condition d'activation ────────────────────────
@@ -41,6 +43,7 @@ SERVICE_METHOD_REGISTRY = {
     "if_slug":              frozenset({"getBySlug", "getBySlugOwned", "getBySlugWithRelations"}),
     "if_relations":         frozenset({"getAllWithRelations", "getByIdWithRelations"}),
     "if_public_relations":  frozenset({"getPublicByIdWithRelations"}),
+    "if_status_flow":       frozenset({"transitionTo"}),
     # ChildModule : getBy{ParentName}Id — dynamique, détecté par pattern regex
 }
 
@@ -53,6 +56,7 @@ def valid_methods_for_flags(
     has_relations: bool = False,
     has_fk_fields: bool = False,
     fk_parent_names: list[str] | None = None,
+    has_status_flow: bool = False,
 ) -> frozenset:
     """
     Calcule l'ensemble des méthodes valides pour un modèle donné ses flags.
@@ -67,6 +71,8 @@ def valid_methods_for_flags(
         methods |= SERVICE_METHOD_REGISTRY["if_relations"]
     if has_public and has_relations:
         methods |= SERVICE_METHOD_REGISTRY["if_public_relations"]
+    if has_status_flow:
+        methods |= SERVICE_METHOD_REGISTRY["if_status_flow"]
     for parent in (fk_parent_names or []):
         if parent:
             methods.add(f"getBy{parent[0].upper()}{parent[1:]}Id")
@@ -105,6 +111,7 @@ def build_factory_capabilities_string() -> str:
         "  getAllWithRelations(userId) / getByIdWithRelations(userId, id) — si @relation Prisma",
         "  getPublicByIdWithRelations(id)                   — si public ET @relation",
         "  getBy{ParentName}Id(userId, parentId)            — si FK vers un parent (ex: getByProjectId)",
+        "  transitionTo(userId, id, newStatus, data?)       — si machine à états (change le statut + capte les champs de la transition)",
         "",
         "⚠ JAMAIS inventer une méthode absente de CONTRACTS.md → TS2339 fatal au build.",
         "⚠ Pages publiques : getPublicAll() UNIQUEMENT — getPublished() N'EXISTE PAS.",

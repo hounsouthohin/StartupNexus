@@ -188,6 +188,7 @@ avoir leur propre workflow.
 - "initial"       : l'état de départ de toute nouvelle entité (ex: "draft")
 - "transitions"   : le graphe des passages AUTORISÉS — {état: [états directement atteignables]}
 - "locked_states" : états où les CHAMPS MÉTIER ne sont plus modifiables. [] si le brief n'en parle pas.
+- "state_fields"  : champs saisis AU MOMENT d'entrer dans un état — {état: [champs]}. {} si aucun.
 
 RÈGLES :
 - LISTE BLANCHE : ne déclare que les passages que le brief autorise. Tout passage non listé est INTERDIT.
@@ -198,6 +199,15 @@ RÈGLES :
 - Si le statut est une simple ÉTIQUETTE sans cycle de vie (catégorie, type, priorité, niveau) →
   NE PAS déclarer de status_flow. Une étiquette n'est pas une machine à états.
 - Laisse {} si aucun modèle n'a de cycle de vie.
+
+state_fields — quand un champ n'a de sens qu'à une étape précise du cycle :
+  « elle peut être refusée AVEC UN MOTIF » → {"refused": ["rejectionReason"]} : le motif se
+  saisit au moment où l'on refuse, il n'a aucun sens à la création.
+  Autres exemples de forme : un commentaire d'approbation, une date d'expédition, un numéro
+  de suivi — chacun rattaché à l'état qui le produit.
+  ⚠ Le champ doit exister dans le modèle. N'y mets QUE des champs liés à une étape :
+  un champ saisi dès le départ (intitulé, montant) n'est PAS un state_field.
+  Laisse {} si aucun champ n'est rattaché à une étape.
 
 locked_states — quand le brief dit qu'une entité n'est plus modifiable à partir d'une étape :
   « on ne peut plus modifier une demande une fois soumise » → tous les états à partir de
@@ -243,7 +253,8 @@ Exemple pour un gestionnaire de tâches avec statut workflow :
       "field": "status",
       "initial": "todo",
       "transitions": {"todo": ["in_progress"], "in_progress": ["done", "todo"], "done": []},
-      "locked_states": []
+      "locked_states": [],
+      "state_fields": {}
     }
   },
   "ux_hints": {
@@ -288,7 +299,8 @@ Exemple pour un blog avec vrai statut enum (modèle a `status PostStatus @defaul
       "field": "status",
       "initial": "draft",
       "transitions": {"draft": ["published"], "published": ["draft"]},
-      "locked_states": []
+      "locked_states": [],
+      "state_fields": {}
     }
   },
   "ux_hints": {

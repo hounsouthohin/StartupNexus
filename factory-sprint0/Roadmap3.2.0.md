@@ -1,5 +1,16 @@
 # ROADMAP — SOFTWARE AGENT FACTORY
-## Version 3.9 — Mise à jour 6 Juillet 2026
+## Version 4.0 — Mise à jour 16 Juillet 2026
+> **v4.0 = RELECTURE TERRAIN.** Les sessions de juillet ont invalidé plusieurs hypothèses
+> fondatrices de la v3.9. **Lire la section RELECTURE TERRAIN en premier — elle a priorité
+> sur tout le reste du document.** Ce qui suit elle est un plan écrit *avant d'avoir vu* ;
+> ce qu'elle contient est vérifié dans le code réel et dans des runs.
+>
+> **En trois lignes :** la capacité de la factory = **l'ensemble de ses cases** (loi du
+> contenant) · le modèle compilateur est assumé jusqu'au bout (architect = parseur, AST =
+> unicité, générateurs = émetteur, executor LLM = assembleur inline) · **trois types et zéro
+> livraison** → la Scène (4.9C) est promue avant toute nouvelle expansion.
+>
+## ~~Version 3.9~~ — 6 Juillet 2026
 ## Historique : v2.0 (23 Fév) · v2.1 (03 Mars) · v2.2 (04 Mars) · v2.3 (28 Mars) · v3.0 (09 Mai) · v3.1 (15 Mai) · v3.2 (24 Mai) · v3.3 (05 Juin) · v3.4 (05 Juin — Consolidation) · v3.5 (05 Juin — Reséquençage Sprint 4.9) · v3.6 (06 Juin — FrontendActivity 3 couches) · v3.7 (06 Juin — FrontendAgent ReAct planifié) · v3.8 (18 Juin — FrontendAgent ANNULÉ ; design intégré dans pipeline déterministe ; Plan6 committé ; Sprint 4.9 reséquencé) · **v3.9 (06 Juil — Priorité EXPANSION : sprints 5-10 reséquencés selon typeApps.md v2.0 (D→I→K→H→G→E→B), règle des 4 lots, D25-D28 réglées, 3/3 BUILD_SUCCESS writer-pad/freelance-tracker/sprint-board, 4.9C reste disponible en parallèle à la demande)**
 
 ---
@@ -25,12 +36,271 @@ La valeur différenciante : les **garanties déterministes** sur la couche donn�
 (services, types, schémas, actions, formulaires, navigation) rendent la factory
 structurellement plus fiable que tout outil de génération LLM pur.
 
-Chaque run améliore la factory : les erreurs détectées alimentent les standards Qdrant
-via le Learner. L'usine apprend de chaque app qu'elle produit.
+~~Chaque run améliore la factory : les erreurs détectées alimentent les standards Qdrant
+via le Learner. L'usine apprend de chaque app qu'elle produit.~~
+→ **INVALIDÉ 16 Juil 2026** — voir RELECTURE TERRAIN ci-dessous. Le LLM dev n'écrit plus de
+code sur les types couverts : des standards « comment bien coder » n'enseignent à personne.
+
+---
+
+## RELECTURE TERRAIN — 16 Juillet 2026 (v4.0)
+
+> **Cette section a priorité sur tout ce qui la suit.** Elle est vérifiée dans le code réel
+> et dans des runs, pas planifiée. Les sessions de juillet ont invalidé plusieurs hypothèses
+> fondatrices de la v3.9. Une roadmap est un plan écrit avant d'avoir vu — le terrain gagne.
+
+### 1. LA LOI DU CONTENANT — découverte majeure
+
+> **Toute intention client sans structure pour la porter s'évapore — quelle que soit
+> l'intelligence du LLM.**
+
+**Preuve** (run `notes-frais`, 16 Juil). Le brief disait noir sur blanc : *« on ne doit pas
+pouvoir rembourser une note qui n'a pas été approuvée »*. L'architect a **parfaitement compris**
+(5 états extraits dans le bon ordre depuis une prose qui ne les listait pas, `@default(draft)`,
+`rejectionReason` déduit de « refusée avec un motif »). Mais **aucune structure ne pouvait
+porter l'ordre ni les sauts interdits** → le savoir est tombé par terre. La phrase du client
+est devenue… des couleurs de badge.
+
+Résultat : `BUILD ✅` · `spec_coverage 1.0` · `requirements 6/6` · `quality_violations 0` ·
+`review COHERENT 100/100` — sur une app qui laissait **créer une note de frais déjà
+« Remboursée »**, jamais soumise ni approuvée.
+
+**Correction** : créer la case (`StatusFlowDeclaration`) → l'architect l'a remplie
+**parfaitement, du premier coup, sans un seul réglage de prompt**. Répété **3 fois** le même
+jour (`transitions`, `locked_states`, `state_fields`). Il savait depuis le début.
+
+**Conséquence — redéfinition de ce qu'est une expansion :**
+```
+Expansion d'un type  ≠  enseigner au LLM / ajouter des standards
+Expansion d'un type  =  créer les CASES manquantes + les compilateurs qui les lisent
+```
+> **La capacité de la factory = exactement l'ensemble de ses cases.**
+> Pas l'intelligence du LLM (il comprend déjà). Pas le nombre de générateurs (faciles une fois
+> la déclaration là). Les types (A/D/I/K/H…) ne sont pas des catégories d'apps — ce sont des
+> **paquets de cases**.
+
+### 2. LE MODÈLE COMPILATEUR — assumé jusqu'au bout
+
+La VISION nomme le « modèle compilateur » puis **planifie contre lui**. Assumé :
+
+| Étage | Nature | Rôle réel |
+|---|---|---|
+| **Architect** | LLM | **le parseur** : français ambigu → déclarations. Seul endroit où l'intelligence est irremplaçable |
+| **ProjectSpec / EnrichedSpec** | structure | **l'AST** — c'est lui qui porte l'unicité de chaque app |
+| **Générateurs** | déterministe | **l'émetteur de code** : traduction fidèle, zéro créativité |
+| **Dev executor LLM** | LLM | **l'assembleur inline** : la queue, la nouveauté, les webhooks, la correction |
+
+**Ce que le modèle explique — et que la v3.9 ne voyait pas :**
+- *La prose s'évapore* → l'AST n'a pas de nœud pour elle. Ce n'est pas un problème de prompt.
+- *Le reviewer ment* → il inspecte la **sortie d'un compilateur**, correcte par construction.
+  Il n'a rien de réel à trouver, alors il fabrique du réconfort (COHERENT 100/100).
+- *Le dev executor a écrit **0 fichier*** sur notes-frais (`[executor] plan vide — tout
+  pré-généré par templates`). **C'est sain** : un compilateur n'a pas besoin qu'on écrive à la
+  main ce qu'il sait émettre. Il doit rester **petit** mais **jamais disparaître** — c'est lui
+  qui fait que la factory *répond* à n'importe quel brief au lieu d'échouer.
+- *Apps standardisées ?* **Non.** Un compilateur C émet des programmes infiniment différents
+  avec le même back-end. **L'unicité vient de l'AST, jamais de l'émetteur.**
+
+**Coût assumé :** chaque compilateur est du code que NOUS maintenons ; le LLM couvre la queue
+gratuitement. Frontière = règle des 3 zones : **compiler le récurrent, laisser la queue au LLM.**
+
+### 3. CE QUI MEURT (le terrain a retiré leur sujet)
+
+| Élément | Pourquoi il meurt |
+|---|---|
+| **PRINCIPE 3** — boucle `RAG → Dev → Reviewer → Learner → RAG` | Le LLM dev n'écrit plus de code → des standards de codage n'enseignent à **personne**. La boucle n'a plus de maillon « Dev ». |
+| **PRINCIPE 5** — le reviewer s'auto-rend inutile via les standards | Cassé aux deux bouts : il ne détecte rien de réel (100/100 sur une app absurde), et ses standards n'iraient nulle part. |
+| **4.8C** — mission « le Learner enrichit Qdrant » | 683 événements, **0 standard approuvé**. Sans sujet. → **Reconverti**, voir §5. |
+| **4.8D** — App Usefulness Scorer `build+flows+quality+spec` | flows = validator **crashé** · spec = **liste de fichiers** · quality = capteur **aveugle**. **Un composite de 4 menteurs est un menteur.** |
+| **4.8B** — smoke tests Jest sur l'app livrée | Ils testeraient du code **déterministe** = notre bug, pas celui du LLM. On teste **le compilateur**, pas chaque programme. |
+| **~8 standards Qdrant par type** (Lot 2) | Déjà bloqués par la roadmap elle-même (A/B RAG non fait) — et sans objet pour les types compilés. |
+
+### 4. CE QUI EST CONFIRMÉ ET RENFORCÉ
+
+- **PRINCIPE 4** (déterministe pour la forme / agentique pour le sens) → **c'est le moteur**.
+  Le LLM décide la machine à états, le compilateur l'écrit.
+- **PRINCIPE 7** (extension avant limitation) → type I ouvert **en une journée**.
+- **PRINCIPE 8** (la Scène avant le déploiement) → **promu**, voir §6.
+- **PRINCIPE 6** (complétion avant complexité) → **VIOLÉ** : *« le Level A doit être prouvé
+  utilisable par un vrai utilisateur avant de passer au type suivant »*. **On n'a jamais fait
+  tourner une seule app. Jamais cliqué un bouton. Zéro app livrée.** La décision du 6 Juil
+  (« priorité EXPANSION avant la Scène ») contredit frontalement ce principe.
+
+### 5. LA CARTE DES INSTRUMENTS — refaite
+
+**Erreur de catégorie de la v3.9 :** on n'inspecte pas la sortie d'un compilateur.
+**On teste le compilateur, une fois — pas chaque programme.**
+
+| Ce qui peut réellement casser | Où le voir | État |
+|---|---|---|
+| Bug de compilateur | test **du compilateur**, une fois (pas par app) | ⚠️ `scripts/test_generators.py` existe mais **RIEN NE LE LANCE** (aucune CI ; dernière modif 20 juin vs `crud.py` 9 juil ; ignore `enriched_spec`). Prérequis = **avoir quelque chose qui lance les tests**, pas écrire des tests. |
+| **L'architect déclare faux** | comparer la **déclaration** au brief (sémantique) | ❌ inexistant |
+| **Une case manque** | 🔴 **rien ne le voit** — fait à la main le 16 Juil | ❌ → **nouvelle mission du Learner** |
+| Le LLM executor code mal | le reviewer — son **seul** territoire légitime | ✅ existe (surdimensionné) |
+| **Est-ce que ça marche pour un humain ?** | **la Scène (4.9C)** — seule vérité de bout en bout | ⏳ **PROMU** |
+
+**Nouvelle mission du Learner :** ne plus corriger du code — **détecter les cases manquantes**.
+Un learner capable de dire *« l'architect exprime X en prose et ça n'atterrit nulle part »*
+ferait **s'étendre la factory toute seule**. C'est l'agentivité qui reste à conquérir. Aujourd'hui
+ce détecteur, c'est l'humain — c'est *lui* qu'il faut faire entrer dans la boucle, pas la
+correction de TS2339.
+
+### 6. LE TROU STRATÉGIQUE : on fabrique des cases à l'aveugle
+
+**Tous nos briefs sont écrits par nous. Aucun vrai brief client n'a jamais traversé la factory.**
+Donc l'ordre `K → H → G → E` est une **supposition**, pas une observation.
+
+C'est le vrai argument pour livrer : pas « tester la chaîne » — **apprendre quelles cases le
+réel réclame.** La Scène (4.9C) n'est pas un confort : c'est **le seul instrument qui ne peut
+pas mentir** (un robot qui clique « Approuver » et regarde ce qui se passe = vérité terrain),
+et elle **remplace** 4.8B + 4.8D au lieu de les compléter.
+
+### 7. VOIE RETRACÉE (remplace le séquencement v3.9)
+
+```
+1. FINIR le type I        — transitionTo + boutons détail + passe de cohérence + brief congés
+2. LA SCÈNE (4.9C)        — PROMUE de « à la demande » à PROCHAINE (PRINCIPE 6 l'exige)
+3. TRANCHER ENSUITE       — déployer (4.9E) ou reprendre l'expansion (K), informés par la Scène
+```
+Les types A + D + I couvrent déjà l'essentiel des apps métier réelles (CRUD, contenu public,
+workflows d'approbation). Les victoires bon marché sont prises ; le type K est un vrai chantier.
+**Trois types et zéro livraison** : la prochaine valeur est dans la sortie du tuyau, pas dans sa largeur.
+
+### 8. MÉTHODE ACQUISE — run de référence avant toute expansion
+
+Avant d'ouvrir un type : **1 seul run sur un brief non biaisé jamais vu** → lire **le code réel**
+(jamais les métriques) → **le gap observé (pas supposé) définit le contrat**. Les instruments qui
+affichent « 100/100 » sur du cassé disent du même coup **ce que le capteur doit apprendre**.
+Validé sur notes-frais : mes 5 prédictions étaient justes, mais le run a révélé **ce que je
+n'avais pas prédit** (la cause n'était pas « la prose se transmet mal » mais « aucune case
+n'existe »). Sans ce run, on renforçait les prompts — un fix inutile sur un diagnostic faux.
+
+### 9. MODÈLE OPÉRATIONNEL — intelligence aux bords, déterminisme au cœur (17 Juil 2026)
+
+> **L'intelligence vit à EXACTEMENT deux endroits : l'ENTRÉE et la CROISSANCE.
+> Le milieu est bête et rapide, exprès.**
+
+```
+ENTRÉE (intelligent)     : comprendre + déclarer + AVOUER ses limites      ← architect (LLM)
+    │
+MILIEU (bête et fiable)  : compiler · ~2 min · 0 erreur                    ← générateurs
+    │
+CROISSANCE (intelligent) : DRAFTER la case suivante depuis unsupported[]   ← proposé, humain-validé
+```
+Ce qui « apprend » n'apprend **jamais seul** : il **propose**, et l'humain + le build + la Scène
+**valident**. Version forte ET sûre de l'« usine vivante ».
+
+### 10. LA SCÈNE — décomposée (le robot n'est PAS la première marche)
+
+Le besoin = « le client voit son app marcher ». Le robot Playwright est la partie **chère et
+incertaine** (auth Clerk ~70 %). Or l'erreur naît **en haut** (brief→déclaration), pas en bas.
+Donc on attaque à la source, en 3 temps par ordre de valeur/coût :
+
+| # | Pièce | Ce que ça fait | Coût |
+|---|---|---|---|
+| **A** | **Miroir français** — la déclaration re-rendue en clair, montrée AVANT de construire (« votre app fera X, Y ; PAS Z [unsupported] ») | Tue la marche lossy à la source. Le client valide l'INTENTION en 30 s, avant qu'une ligne existe | 1 appel LLM · **le meilleur rapport valeur/effort de tout v4** |
+| **B** | **Aperçu peuplé** — seed 2-3 données réalistes + `npm run dev` + l'HUMAIN clique (partage d'écran client) | « le client voit marcher » sans robot | seed + run |
+| **C** | **Robot Playwright** — navigation automatisée, vidéo | **Régression** automatisée | Clerk (~70 %) → **plus tard**, après un spike ½ journée |
+
+**A + B = ~80 % de la valeur à ~20 % du coût.** Le robot (C) est une optimisation de régression,
+pas la première marche. `4.9C` du plan v3.9 = uniquement la marche C ; A et B sont nouveaux et prioritaires.
+
+### 11. LA FRONTIÈRE DE L'EXECUTOR — économique, pas technique
+
+Deux « imprévisibles » :
+- **Imprévisible qui SE RÉPÈTE** → deviendra une case (« workflow » l'était avant `StatusFlowDeclaration`).
+- **Unique IRRÉDUCTIBLE** → jamais une case (un compilateur pour une population de **un** = gâchis).
+
+> Compile ce qui revient · laisse au LLM ce qui est unique. **L'executor ne se vide jamais**
+> (queue unique permanente) **et ne grossit jamais** (chaque motif récurrent est absorbé).
+> `unsupported[]` compté = le signal qui dit de quel côté est chaque chose.
+
+### 12. `unsupported[]` — 3 niveaux d'exploitation (Niveau 1 = cible, PLUS TARD)
+
+- **N0 (aujourd'hui)** : humain lit, humain écrit la case. Sûr, lent.
+- **N1 (cible)** : le LLM **drafte** la case (schéma + générateur + test, calqué sur le patron
+  existant) → **humain relit/merge**. Il fait les 80 % fastidieux, l'humain juge les 20 % qui
+  comptent (bonne abstraction ? compose ?). L'usine s'étend elle-même, **à qualité brouillon,
+  rien ne ship sans review + build + Scène.**
+- **N2 (INTERDIT)** : LLM écrit ET livre des compilateurs sans review. **Rayon de destruction :
+  un bug de compilateur touche les 50 clients.** Jamais.
+
+⚠ N1 est **plus tardif** : le construire avec 0 `unsupported[]` réel en stock = outil sans
+matière. D'abord accumuler les vrais `unsupported[]`, le patron émergera.
+
+### 13. RETOUCHE CLIENT & MAINTENANCE — la règle non négociable
+
+> **On ne modifie JAMAIS le code livré à la main. On modifie la DÉCLARATION et on recompile.**
+
+Le code livré est une **sortie jetable** ; la déclaration (« le négatif ») est ce qu'on garde
+et versionne **par client**. Trois cas de retouche :
+
+| Demande client | Action | Coût |
+|---|---|---|
+| Changement dans une case existante (« ajoute un champ », « le manager peut annuler ») | éditer la déclaration → recompiler → redéployer | ~2 min |
+| Changement exigeant une case absente (« des SMS ») | nouvel `unsupported[]` (fréquent→case, unique→LLM) | selon N0/N1 |
+| Visuel / libellé | design brief ou libellé dans la déclaration → recompiler | ~2 min |
+
+Éditer le TS livré **casse le négatif** (la recompilation l'écrase). ⚠ Contrainte de design à
+tenir : **la régénération ne doit pas écraser le travail custom légitime de l'executor** (les
+bords) — préservation des pages LLM à travers les recompilations.
+
+**Propriété tueuse business** : corrige le compilateur **une fois** → **réémets tout le parc**.
+Ex. `formatCurrency` (17 Juil) : avec les déclarations stockées, les 50 apps reçoivent le fix.
+Aucune agence (qui vend du code figé) ne peut faire ça.
+
+### 14. DÉFINITION FINALE (remplace « startup agentique »)
+
+> **Une usine de compilation pilotée par le langage : une seule tête intelligente à l'entrée
+> qui comprend le brief ET connaît ses propres limites, un cœur déterministe qui compile sans
+> erreur, un LLM résiduel pour la queue unique, et deux yeux honnêtes — le miroir français en
+> amont, l'aperçu peuplé en aval. Elle grandit case par case, sous contrôle humain.**
+
+« Agentique » était un **moyen** (pari 2024-25), pas le but ; le terrain a montré qu'un agent
+qui écrit du code dérive, un compilateur non. On ne rejette pas les agents — on les remonte à
+l'étage où ils sont irremplaçables (comprendre un humain, avouer une limite), pas là où il faut
+zéro erreur. Ni « vivante » (rien n'apprend seul, c'est voulu) : **auto-analytique** (connaît ses
+limites) et **évolutive** (par cases validées).
+
+**Ce qui nous a permis d'y arriver — 4 faits, pas des idées :** executor = 0 fichier · 100/100
+sur une app absurde · `getPublished` dans 6 endroits · l'architect juste 4×/4 du premier coup.
+
+### 15. LE DESIGN — axe transversal, même modèle (ajouté 17 Juil — était omis de la carte)
+
+Le design n'est **pas un type** (pas dans la séquence D→I→K→H) : c'est un **axe transversal** —
+toutes les apps en ont, comme toutes ont de l'auth.
+
+**Il suit EXACTEMENT le modèle compilateur :**
+```
+brief → DESIGN BRIEF (preset, couleurs, layout, badges)  ← déclaration / AST
+           ↓  DESIGN COMPILER (vocabulaire FERMÉ → classes Tailwind statiques)
+        l'apparence
+```
+Existant et déterministe : `design_resolver` (7 presets) · `dev_design_system_generator`
+(CSS vars, shadcn) · **`dev_design_compiler`** (badges/icônes/highlights/formatCurrency,
+construit 16 Juil). **Preuve de la loi du contenant** : le *LLM Page Enricher* (design en roue
+libre) **dérivait** (badges cassés, colonnes fantômes) → **tué et remplacé** par le compilateur.
+
+- **`unsupported` du design** : le vocabulaire est fermé → « timeline animée », « plan de salle »
+  = hors vocabulaire. Même concept que `unsupported[]`, autre axe.
+- **Lien Scène** : « le client voit son app » = il voit le **design**. Jugé pour de vrai en Scène-B.
+
+**Limite ASSUMÉE (D23)** : couleurs/fonts/density varient par domaine, mais la **structure**
+(sidebar fixe, tables) est **identique** d'une app à l'autre. Le **FrontendAgent** (variété
+structurelle riche : shadcn, graphiques, animations) a été **annulé** (coût LLM + dérive).
+
+**Décision v4.1 — ne PAS deviner** : « la structure identique coûte-t-elle des ventes ? » n'a
+qu'un juge honnête = **la Scène**. Aucun investissement design lourd (FrontendAgent ressuscité,
+etc.) **avant** qu'un vrai client ait vu une app. Le signal décide, pas nous. Design actuel =
+**correct et cohérent**, limite connue, réévaluée après Scène-B.
 
 ---
 
 ## PRINCIPES ARCHITECTURAUX (7)
+> ⚠️ Lire d'abord RELECTURE TERRAIN §3-§4 : **PRINCIPE 3 et PRINCIPE 5 sont morts** (16 Juil 2026).
+> **PRINCIPE 6 est violé.** Les PRINCIPES 4, 7, 8 sont confirmés et renforcés.
+> **Nouveau — PRINCIPE 9 (loi du contenant)** : toute intention sans structure pour la porter
+> s'évapore. Une expansion crée des **cases**, elle n'enseigne pas au LLM.
 
 **PRINCIPE 1 — Le code exécute, la configuration décide**
 Toute règle stack-spécifique vit dans `config/stacks/*.json`.
@@ -574,8 +844,26 @@ Playwright Python (host) · Tailwind theme tokens · VisualSpec architect · Neo
 
 ---
 
-## SPRINT 5 — Type D-complet : Blog/CMS *(80% déjà fait — writer-pad)*
-## Deadline : Juillet 2026 | STATUT : PROCHAIN — priorité expansion (v3.9)
+## SPRINT 5 — Type D-complet : Blog/CMS
+## Deadline : Juillet 2026 | STATUT : ✅ **COMPLÉTÉ (16 Juil 2026)**
+
+**Validé sur 3 briefs non biaisés** : `abo` (privé), `atelier` (public + card-grid + M2M),
+`club-running` (statut + FK + enfants) — BUILD_SUCCESS + 0 violation qualité, **vérifiés par
+lecture du code généré**, pas par métriques.
+
+**Livré au-delà du plan (16 Juil) :**
+- **Design Compiler déterministe** (`dev_design_compiler.py`) — remplace le *LLM Page Enricher*,
+  supprimé : il réécrivait les fichiers entiers et **dérivait** (badges cassés, colonnes
+  fantômes). Runs ~2× plus rapides (~113s vs ~230s).
+- **Capteur qualité réparé** — `quality_check.mjs` était **aveugle à tous les .tsx** (option
+  `filePath` manquante → JSX parsé comme .ts → erreur avalée par un `catch{continue}`).
+  **Il n'avait donc JAMAIS analysé une seule page.** + checks C1/C2 + `C0-unparseable`.
+- **`getPublished` déprécié dans 6 sources écrites à la main** (service_modules, status.py,
+  page_planner, dev_system_prompt, dev_service_spec/CONTRACTS.md, **prompt annotateur**) —
+  méthode fantôme que l'architect croyait exister → TS2339. Voir D34 : le mécanisme qui l'a
+  laissée dériver est **toujours là**.
+- **`formatCurrency` ajouté aux 5 templates de liste** — le détail affichait « 42,50 € », la
+  liste « 42.5 ». Corrige **toutes** les apps avec de l'argent.
 
 **Règle des 4 lots (typeApps.md v2.0 §3.5)** : chaque expansion livre Squelette + Connaissance + Design + Garde-fous, puis une passe de cohérence (rules_dev / CONTEXT_QUERIES / capabilities string / standards).
 
@@ -599,17 +887,38 @@ Playwright Python (host) · Tailwind theme tokens · VisualSpec architect · Neo
 
 ---
 
-## SPRINT 6 — Type I : Workflow / Approbation *(quasi débloqué)*
-## Deadline : Août 2026 | STATUT : Planifié
+## SPRINT 6 — Type I : Workflow / Approbation
+## Deadline : ~~Août~~ → **EN COURS (16 Juil — en avance)** | STATUT : ~90 % — cœur acquis et vérifié
 
-**Pourquoi avant G et K (v3.9)** : L8 (enums) et L6 (filtrage statut) déjà résolus dans le code ; le semantic_annotator extrait déjà les status-enum « dans l'ordre logique du workflow ». Seul le cœur FSM manque.
+**Brief de référence utilisé** : `notes-frais` (non biaisé — voir §8). Le brief congés du plan
+reste à passer en validation finale.
 
-### Lot 1 — Squelette
+### ✅ ACQUIS — vérifié par lecture du code généré (build + tsc OK)
+| Pièce | Détail |
+|---|---|
+| **La case** — `StatusFlowDeclaration` (`semantic_spec.py`) | `field` · `initial` · `transitions` · `locked_states` · `state_fields`. Clé par **MODÈLE** (pas par champ : `field_annotations` est indexé globalement → 2 modèles à `status` auraient collisionné). Composabilité assurée dès le design |
+| **`EnrichedSpec.status_flows`** + prompt annotateur | L'architect remplit **parfaitement, du premier coup**, sans réglage |
+| **Validation déterministe** (`dev_model_context.py`) | Rejette une déclaration invalide (champ fantôme, état hors enum) → dégrade en CRUD simple plutôt que compiler du faux. **Jamais l'état initial dans `locked_states`** (figerait toute entité dès sa création) |
+| **État initial forcé** | `status` hors de `CreateSchema` **et** du formulaire **et** écrasé serveur (`data: {...data, userId, status: 'draft'}`) — triple verrou |
+| **Garde serveur de transition** (`crud.py update`) | Liste blanche `allowedTransitions` → `throw` sinon. **Ferme la porte dérobée** que `transitionTo` seul laissait ouverte |
+| **Verrou d'édition** (`locked_states`) | Champs métier figés, **le statut continue d'avancer** (`_k !== 'status'`) — sinon le workflow se figerait à la 1ʳᵉ étape |
+| **UI** | Select restreint aux transitions permises + option vide supprimée + état terminal figé « gratuitement » (liste vide = verrou) + champs désactivés + bandeau |
+
+### ⏳ RESTE À FAIRE
 | Livrable | Contenu |
 |-----------|---------|
-| `service_modules/transition.py` | `transitionTo(userId, id, newStatus)` — refuse les transitions illégales |
-| `project_spec.py` | Champ `status_transitions: dict` (ex: `{"draft": ["submitted"], "submitted": ["approved", "rejected"]}`) |
-| Template détail | Boutons de transition (état courant → actions légales uniquement) |
+| `transitionTo(userId, id, newStatus, data?)` + `if_transitions` au REGISTRY | **L'intention** : porte les boutons ET les `state_fields` (« refusée AVEC UN MOTIF » = charge utile d'une transition, pas un champ parmi d'autres). Entrée REGISTRY → auto-propagation architect. **La garde dans `update` RESTE** (défense en profondeur) |
+| Template détail | **Boutons de transition** ; `status` retiré du formulaire d'édition — *modifier ≠ faire avancer*, deux intentions, deux interfaces |
+| **Passe de cohérence** *(obligatoire — règle des 4 lots)* | Vérifier qu'aucune instruction ancienne ne contredit les transitions (piège type ligne 872 : « rules_dev règle 12 vs AggregationModule ») |
+| Brief congés | Validation finale (le brief du plan) |
+
+### ❌ ABANDONNÉS (voir RELECTURE TERRAIN §3)
+- ~~`project_spec.status_transitions`~~ → la déclaration vit dans `EnrichedSpec` : c'est
+  l'annotateur qui la produit (le Lot 2 du plan le disait déjà lui-même).
+- ~~Check reviewer L1 « update direct du status hors transitionTo »~~ → **rendu inutile** :
+  la garde est *dans* `update`, il n'y a plus de contournement à surveiller. Fermer la porte
+  plutôt que poster un gardien (`feedback_fix_at_source`).
+- ~~~8 standards Qdrant~~ → sans sujet (§3).
 
 ### Lot 2 — Connaissance
 - semantic_annotator : annoter les transitions légales (extension status-enum existant)
@@ -778,8 +1087,12 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | ~~Juillet 2026~~ | **D25-D28 (immédiat)** | Fixes templates : H1 statique, __esModule, checkbox, post-auth | 4 fixes indépendants | ✅ 06 Juil 2026 |
 | Juillet 2026 | **D23-D24** | Private list cards + layout_hint LLM | variation structurelle par domaine | ⏳ |
 | À la demande | **4.9C–E** | QA visuel (la scène) + correction QA + Deploy — **en parallèle de l'expansion, non bloquant** | `qa_score ≥ 0.8`, URL Vercel | ⏳ |
-| Juillet 2026 | **5** | Type D-complet (SEO + M2M + rich textarea) | `is_useful_app: true` blog+tags | ⏳ PROCHAIN |
-| Août 2026 | **6** | Type I Workflow (TransitionModule FSM) | transition illégale refusée + `is_useful_app: true` | ⏳ |
+| Juillet 2026 | **5** | Type D-complet (SEO + M2M + rich textarea) | validé sur abo/atelier/club — **lecture du code**, pas métriques | ✅ **16 Juil** |
+| ~~Août~~ **Juil 2026** | **6** | Type I Workflow | garde de transition + verrou d'édition **lus dans le code** (build+tsc OK) | 🔵 **~90 % — en avance** |
+| **Juil 2026** | **Scène-A** | **Miroir français** : déclaration re-rendue en clair + unsupported[], montrée AVANT de construire | client valide l'intention en 30 s | ⏳ **PROCHAIN — meilleur ratio** |
+| **Juil–Août 2026** | **Scène-B** | **Aperçu peuplé** : seed + `npm run dev` + humain clique | « le client voit marcher » sans robot | ⏳ |
+| **Août+ 2026** | **Scène-C** (ex-4.9C) | **Robot Playwright** (régression) — après spike ½ j sur l'auth Clerk | vidéo navigable, régression auto | ⏳ après A+B |
+| ~~Septembre~~ | **7** | Type K RBAC | — | ⏸️ **après la Scène** (voir §7 : on fabrique des cases **à l'aveugle**, aucun brief client réel) |
 | Septembre 2026 | **7** | Type K RBAC (guards rôle + nav conditionnelle) | reviewer 0 finding rôle | ⏳ |
 | Octobre 2026 | **8** | Type H Dashboard (AggregationModule + recharts) | agrégations en DB + charts rendus | ⏳ |
 | Novembre 2026 | **9** | Type G Booking + Type E fondations (Decimal, $transaction) | `is_useful_app: true` booking brief | ⏳ |
@@ -800,8 +1113,15 @@ App générée → github_activity → factory-generated-apps (branche par proje
 | D6 | GitHub agent désactivé | Réactivation conditionnelle 6 | ⏳ |
 | D7 | `test_sprint1_validation.py` legacy | Archiver 5 | ⏳ |
 | D8 | `learner_agent_contract.json` zombie | Supprimer 5 | ⏳ |
-| D9 | `reviewer_activity` score 100 sur apps défectueuses | 4.8A | ✅ résolu |
-| D10 | `journey_validator` sous-compte les flows couverts | 4.7A (D1) | ⏳ |
+| D9 | `reviewer_activity` score 100 sur apps défectueuses | 4.8A | 🔴 **NON RÉSOLU — réfuté 16 Juil** : COHERENT 100/100 + 0 finding sur `notes-frais`, app qui laissait créer une note déjà « Remboursée » et violait les 2 règles explicites du brief. Le marquage ✅ était faux. Cause structurelle : le reviewer inspecte la sortie d'un compilateur (correcte par construction) → il n'a rien de réel à trouver. Voir RELECTURE TERRAIN §5 |
+| D10 | `journey_validator` sous-compte les flows couverts | 4.7A (D1) | 🔴 **PIRE : il CRASHE** — `[dev_graph] journey_validator échoué : name '_path_of' is not defined` (16 Juil). L'erreur est avalée en WARNING **et la métrique affiche quand même `user_flows_coverage: 1.0` (3/3)**. Un instrument mort qui applaudit |
+| **D29** | `requirements` = **liste de fichiers** (`"Page: /x"`, `"Modèle Prisma: X"`), aucune règle métier → « 6/6 met » ne prouve que l'existence de 6 fichiers. `spec_coverage 1.0` idem | Voir §5 | 🔴 16 Juil |
+| **D30** | `rejectionReason` saisissable à la **création** — champ appartenant à une **transition** (« refusée AVEC UN MOTIF »), pas à la création. Case `state_fields` créée, **branchement à finir sur `transitionTo`** | Type I | ⏳ 16 Juil |
+| **D31** | KPI déclarables **seulement sur pages custom** (`pages_detail`) → « le total en attente de remboursement » demandé par le client **s'évapore** sur une page `list` déterministe. Même maladie « pas de contenant » | Type H | 🔴 16 Juil |
+| **D32** | `amount Float` pour de l'argent (architect) → bugs d'arrondi classiques. Devrait être `Decimal` (L10/D17 connexes) | 9B | ⏳ 16 Juil |
+| **D33** | `SERVICE_METHOD_REGISTRY` sur-liste `getBySlugWithRelations` sous `if_slug` seul, alors que `slug.py:64` ne l'écrit que si **slug ET relations** → mensonge latent (TS2339 possible sur modèle slug-sans-relations) | — | ⏳ 16 Juil (latent, non déclenché) |
+| **D34** | `dev_service_spec.py` est un **miroir hand-maintained** du générateur (son propre docstring l'avoue : « si une méthode est ajoutée dans le générateur, l'ajouter ici **aussi** ») → alimente CONTRACTS.md. C'est ce mécanisme qui a produit le fantôme `getPublished` dans **6 endroits écrits à la main**. Remède : faire **dériver** le spec du registre + garde d'égalité | — | ⏳ 16 Juil |
+| **D35** | `scripts/test_generators.py` : **rien ne le lance** (aucune CI, aucun appel dans le dépôt). Dernière modif **20 juin** vs `crud.py` **9 juil** → déjà dérivé. Ignore `enriched_spec` → tout ce que la couche sémantique pilote (`status_flows`, `currency`, `textarea`) n'est testé par **personne**. **Prérequis : avoir quelque chose qui lance les tests — pas en écrire davantage** | Voir §5 | 🔴 16 Juil |
 | D11 | Progressive Validation absente du graphe | 4.9B (F1) | ⏳ |
 | D12 | `quality_validator.py` : appel bloquant async + zombie file | 4.7D (F3/F4) | ⏳ |
 | D13 | `getAllByUser` absent de `service_map_str` | 4.7E (G) | ⏳ |

@@ -359,27 +359,26 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
     list_dir = list_path.lstrip("/")
     _model_labels = ctx.ui_labels
     fk_fields = [_fk_to_ctx(fk, _related_display(fk, model_contexts)) for fk in ctx.fk_fields]
-    editable_fields = [_field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels) for f in ctx.editable_fields]
+
+    # Machine à états (type I) : le statut ET les champs de transition (motif de refus…)
+    # SORTENT du formulaire d'édition — ils évoluent via les boutons de transition du détail,
+    # jamais via « Modifier ». Les laisser ici ressusciterait le chemin bogué (edit-select →
+    # update → verrou → motif bloqué) qu'on vient de corriger. `flow_field` reste passé au
+    # template pour le VERROU d'édition (désactive les champs métier selon l'état courant).
+    _flow = getattr(ctx, "status_flow", None)
+    _flow_field = getattr(_flow, "field", "") if _flow else ""
+    _flow_excluded: set = ({_flow_field} | set(_flow.all_state_fields())) if _flow_field else set()
+
+    editable_fields = [
+        _field_to_ctx(f, ctx.spec_enums, ctx.enum_value_labels)
+        for f in ctx.editable_fields if f.name not in _flow_excluded
+    ]
     m2m_fields = _m2m_to_ctx(ctx, fk_fields, model_contexts)
     _field_labels = {f["name"]: _model_labels.get(f["name"], f["name"]) for f in editable_fields}
     for _fk in fk_fields:
         _field_labels[_fk["field_name"]] = _model_labels.get(_fk["field_name"], _fk["related_model"])
 
-    # Machine à états (type I) : le select du champ d'état ne propose que les transitions
-    # permises DEPUIS L'ÉTAT COURANT — donc calculé au runtime côté client (l'état dépend de
-    # `item`). Sans ça, l'utilisateur choisit une option d'apparence légitime (« Remboursée »
-    # sur un brouillon) et se prend le throw de la garde serveur — constaté notes-frais.
-    # La garde serveur reste la seule autorité : ceci n'est qu'un confort d'usage.
-    _flow = getattr(ctx, "status_flow", None)
-    _flow_field = getattr(_flow, "field", "") if _flow else ""
-    _flow_labels: dict = {}
-    if _flow_field:
-        _fd = next((f for f in editable_fields if f.get("name") == _flow_field), None)
-        _flow_labels = (_fd or {}).get("enum_labels", {}) or {}
-    # Verrou d'édition : champs métier désactivés dans les états figés. Le select de statut
-    # reste TOUJOURS actif — une fiche verrouillée doit pouvoir continuer d'avancer.
-    # Un champ désactivé n'est pas soumis dans le FormData → absent de `data` après le parse
-    # Zod → la garde serveur ne le voit pas comme une modification. Les deux se complètent.
+    # Verrou d'édition : champs métier désactivés dans les états figés.
     _flow_locked = sorted(getattr(_flow, "locked_states", None) or []) if _flow else []
 
     return _render(
@@ -395,10 +394,6 @@ def _gen_edit_client(ctx: ModelGenerationContext, model_contexts: dict, spec=Non
         editable_fields=editable_fields,
         field_labels=_field_labels,
         flow_field=_flow_field,
-        flow_transitions_json=json.dumps(
-            dict(_flow.transitions) if _flow else {}, ensure_ascii=False, sort_keys=True,
-        ),
-        flow_labels_json=json.dumps(_flow_labels, ensure_ascii=False, sort_keys=True),
         flow_locked=bool(_flow_locked),
         flow_locked_json=json.dumps(_flow_locked, ensure_ascii=False),
         **(design_tokens or {}),
@@ -461,9 +456,35 @@ def _gen_detail_client(page, ctx: ModelGenerationContext, spec=None, design_toke
         }
         for mf in (getattr(ctx, "m2m_fields", []) or [])
     ]
+
+    # Machine à états (type I) : boutons de transition sur le détail — le chemin béni
+    # « faire avancer l'état » (distinct de « modifier »). Le motif de refus est capté ICI,
+    # au moment du refus, ce qui le rend enfin ATTEIGNABLE (bug notes-frais). Pages privées
+    # uniquement — flow_field vide = aucun bloc transition rendu.
+    _flow = getattr(ctx, "status_flow", None)
+    _flow_field = (getattr(_flow, "field", "") if _flow else "") if auth_required else ""
+    _flow_labels: dict = {}
+    _flow_field_labels: dict = {}
+    if _flow_field:
+        _sf = next((f for f in ctx.editable_fields if f.name == _flow_field), None)
+        if _sf is not None:
+            _flow_labels = (_enum_value_labels.get(_sf.base_type, {}) or {})
+        for _fs in _flow.state_fields.values():
+            for _fname in _fs:
+                _flow_field_labels[_fname] = _model_labels.get(_fname, _fname)
+
     return _render(
         "detail_client.tsx.j2",
         m2m_display=m2m_display,
+        flow_field=_flow_field,
+        flow_transitions_json=json.dumps(
+            dict(_flow.transitions) if _flow_field else {}, ensure_ascii=False, sort_keys=True,
+        ),
+        flow_labels_json=json.dumps(_flow_labels, ensure_ascii=False, sort_keys=True),
+        flow_state_fields_json=json.dumps(
+            dict(_flow.state_fields) if _flow_field else {}, ensure_ascii=False, sort_keys=True,
+        ),
+        flow_field_labels_json=json.dumps(_flow_field_labels, ensure_ascii=False, sort_keys=True),
         name=ctx.name,
         title_singular=ctx.title_singular or ctx.name,
         serialized_type=ctx.serialized_type,

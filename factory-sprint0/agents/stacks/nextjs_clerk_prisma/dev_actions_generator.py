@@ -160,6 +160,28 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
             "}",
         ]
 
+    # transition{Name} (type I) — le chemin béni de changement d'état : appelle
+    # transitionTo() du service, qui contourne le verrou d'édition de façon légitime
+    # (seuls les state_fields de l'état cible sont écrits). C'est ce qui rend le motif
+    # de refus ATTEIGNABLE — bug constaté notes-frais (verrou submitted vs update).
+    transition_lines: list[str] = []
+    if ctx is not None and getattr(ctx, "status_flow", None) is not None:
+        transition_lines = [
+            "",
+            f"export async function transition{name}(id: string, newStatus: string, formData: FormData) {{",
+            "  const { userId } = await auth()",
+            "  if (!userId) redirect('/sign-in')",
+            "  try {",
+            f"    const data = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+            f"    await {camel}Service.transitionTo(userId, id, newStatus, data)",
+            "  } catch (e) {",
+            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
+            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
+            "  }",
+            *update_lines,
+            "}",
+        ]
+
     lines = [
         "// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER",
         "'use server'",
@@ -188,6 +210,7 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         "  }",
         *update_lines,
         "}",
+        *transition_lines,
         "",
         f"export async function delete{name}{delete_sig} {{",
         "  const { userId } = await auth()",
@@ -346,6 +369,25 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
         delete_revalidate = f"'{list_page}'"
         delete_redirect   = f"'{list_page}'"
 
+    # transition{Name} (type I) — miroir du chemin principal pour la fusion (collision).
+    transition_lines: list[str] = []
+    if ctx is not None and getattr(ctx, "status_flow", None) is not None:
+        transition_lines = [
+            "",
+            f"export async function transition{name}(id: string, newStatus: string, formData: FormData) {{",
+            "  const { userId } = await auth()",
+            "  if (!userId) redirect('/sign-in')",
+            "  try {",
+            f"    const data = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
+            f"    await {camel}Service.transitionTo(userId, id, newStatus, data)",
+            "  } catch (e) {",
+            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
+            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
+            "  }",
+            *update_lines,
+            "}",
+        ]
+
     lines = [
         f"export async function create{name}(formData: FormData) {{",
         "  const { userId } = await auth()",
@@ -373,6 +415,7 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
         "  }",
         *update_lines,
         "}",
+        *transition_lines,
         "",
         f"export async function delete{name}{delete_sig} {{",
         "  const { userId } = await auth()",

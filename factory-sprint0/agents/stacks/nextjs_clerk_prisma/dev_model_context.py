@@ -502,11 +502,30 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
                     _s for _s in (getattr(_decl, "locked_states", None) or [])
                     if _s in _enum_vals and _s != _initial
                 ]
+                # Champs captés par une transition (« refusée AVEC UN MOTIF ») : on ne retient
+                # que des champs RÉELS du modèle, et jamais le champ d'état lui-même. Un champ
+                # halluciné produirait un formulaire amputé d'un champ inexistant.
+                _state_fields: dict[str, list[str]] = {}
+                for _st, _fs in (getattr(_decl, "state_fields", None) or {}).items():
+                    if _st not in _enum_vals:
+                        continue
+                    _keep = [
+                        _fields_by_lower[_f.lower()] for _f in (_fs or [])
+                        if _f.lower() in _fields_by_lower
+                        and _fields_by_lower[_f.lower()] != _sf_real
+                    ]
+                    if _keep:
+                        _state_fields[_st] = _keep
+
                 from agents.semantic_spec import StatusFlowDeclaration as _SFD
                 status_flow = _SFD(
-                    field=_sf_real, initial=_initial, transitions=_clean, locked_states=_locked,
+                    field=_sf_real, initial=_initial, transitions=_clean,
+                    locked_states=_locked, state_fields=_state_fields,
                 )
+                # Le champ d'état ET les champs liés à une étape sortent de la création :
+                # tous sont produits par le cycle de vie, aucun n'est saisi au départ.
                 create_excluded_fields.append(_sf_real)
+                create_excluded_fields.extend(status_flow.all_state_fields())
             else:
                 logger.warning(
                     "[model_context] %s : status_flow ignoré — aucune transition exploitable", name,
