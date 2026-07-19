@@ -1,6 +1,6 @@
 """getBySlug + getBySlugOwned (+ getBySlugWithRelations si relations) — actif si le modèle a un champ slug."""
 from __future__ import annotations
-from .base import ServiceMethodModule, build_rel_select, dt_map_with_relations
+from .base import ServiceMethodModule, MethodDecl, build_rel_select, dt_map_with_relations
 
 _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
 
@@ -8,6 +8,22 @@ _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", 
 class SlugModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return bool(ctx.has_slug)
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        o, s = ctx.owner, ctx.serialized_type
+        out = [
+            MethodDecl("getBySlug",      f"(slug: string) → Promise<{s}>  (public)"),
+            MethodDecl("getBySlugOwned", f"({o}: string, slug: string) → Promise<{s}>"),
+        ]
+        # CONDITION IMBRIQUÉE — miroir exact de generate() : getBySlugWithRelations n'est
+        # émis que si le modèle a AUSSI des relations. C'est précisément ce que le registre
+        # statique sur-listait sous `if_slug` seul (D33) : ici, l'erreur est impossible.
+        if ctx.relation_fields:
+            out.append(MethodDecl(
+                "getBySlugWithRelations",
+                f"(slug: string) → Promise<{s}>  (avec relations, public)",
+            ))
+        return out
 
     def generate(self, ctx, **kwargs) -> list[str]:
         all_contexts: dict = kwargs.get("all_contexts") or {}

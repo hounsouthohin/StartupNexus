@@ -988,6 +988,116 @@ async def planner_node(state: AgentState) -> dict:
     }
 
 
+_MIRROR_SYSTEM_PROMPT = """Tu relis une spécification technique produite à partir du brief d'un client.
+
+Tu produis DEUX choses, et rien d'autre :
+
+## 1. "summary_fr" — le miroir
+Ce que l'application VA FAIRE, en français simple, pour que le client valide l'INTENTION
+avant qu'on construise. 4 à 8 phrases courtes. Parle métier, jamais technique :
+dis « un employé soumet sa note, un responsable l'approuve ou la refuse avec un motif »,
+jamais « ExpenseReport a un enum status avec 5 valeurs ».
+
+## 2. "unsupported" — ce qui n'a PAS été capté
+Liste les demandes EXPLICITES du brief qui ne sont représentées NULLE PART dans la spec.
+C'est le point le plus important : mieux vaut avouer une limite que livrer une app
+confiante et fausse.
+
+Pour chaque élément : cite la demande du client, puis ce qui manque. Sois concret.
+Exemple : "Le brief dit « les notes de frais de mon équipe » et « elle est examinée » :
+cela suppose deux acteurs (un employé, un responsable). La spec ne décrit qu'un seul
+utilisateur qui verrait et approuverait ses propres notes."
+
+RÈGLES :
+- Ne signale QUE ce qui est absent de la spec fournie. Si c'est présent, ne le liste pas.
+- Ne signale pas de détails cosmétiques (couleurs, ton, style) — ils sont gérés ailleurs.
+- Une demande vague et non essentielle n'est pas un manque : ne remplis pas la liste pour
+  la remplir. Liste vide [] si tout est couvert — c'est un résultat normal et fréquent.
+
+FORMAT — JSON uniquement :
+{"summary_fr": "...", "unsupported": ["...", "..."]}
+"""
+
+
+async def mirror_node(state: AgentState) -> dict:
+    """
+    SCÈNE-A — miroir français + aveu de limites (17 Juil 2026).
+
+    Dernier nœud de l'architect : le seul qui voit la spec COMPLÈTE. Un seul appel LLM
+    produit les deux livrables :
+
+      • summary_fr    — l'intention re-rendue en clair, validable par le client AVANT
+                        la construction. C'est la seule marche du pipeline où de
+                        l'information se perd (brief → déclaration) : on la contrôle là.
+      • unsupported[] — ce que le brief demande et qui n'a atterri nulle part.
+                        Constaté notes-frais : « les notes de frais de mon équipe » a
+                        produit une app mono-utilisateur (chacun s'approuve lui-même)
+                        avec review COHERENT 100/100. Personne ne l'a vu.
+
+    Fail-safe : toute erreur retourne {} — le pipeline continue sans miroir.
+    """
+    brief = state.get("brief", {}) or {}
+    spec_dict = state.get("project_spec") or state.get("plan") or {}
+    description = (brief.get("description") or "").strip()
+    if not description or not spec_dict:
+        return {}
+
+    _enriched = spec_dict.get("enriched_spec") or {}
+    _resume = {
+        "modeles": [
+            (m.get("name") if isinstance(m, dict) else str(m))
+            for m in (spec_dict.get("models") or [])
+        ],
+        "champs_par_modele": {
+            m.get("name"): [f.get("name") for f in (m.get("fields") or [])]
+            for m in (spec_dict.get("models") or []) if isinstance(m, dict)
+        },
+        "pages": [
+            {"chemin": p.get("path"), "type": p.get("page_type"), "connexion_requise": p.get("auth_required")}
+            for p in (spec_dict.get("pages") or []) if isinstance(p, dict)
+        ],
+        "workflows": _enriched.get("status_flows") or {},
+        "chiffres_et_listes_par_page": {
+            _path: {"kpis": _d.get("kpis") or [], "listes_filtrees": _d.get("filtered_lists") or []}
+            for _path, _d in (spec_dict.get("pages_detail") or {}).items()
+            if isinstance(_d, dict) and (_d.get("kpis") or _d.get("filtered_lists"))
+        },
+        "parcours_utilisateur": spec_dict.get("user_flows") or [],
+    }
+
+    from agents.llm_provider import get_chat_llm
+    from langchain_core.messages import SystemMessage, HumanMessage as _HM
+    from agents.stack_config import get_llm_models as _get_llm_models
+
+    _model = _get_llm_models().get("architect_base", "gpt-4o-mini")
+    try:
+        llm = get_chat_llm(
+            model=_model, temperature=0.0,
+            api_key=os.getenv("ARCHITECT_API_KEY", os.getenv("OPENAI_API_KEY")),
+        ).bind(response_format={"type": "json_object"})
+        response = await llm.ainvoke([
+            SystemMessage(content=_MIRROR_SYSTEM_PROMPT),
+            _HM(content=json.dumps(
+                {"brief_du_client": description, "specification_produite": _resume},
+                ensure_ascii=False,
+            )),
+        ])
+        data = json.loads(response.content)
+    except Exception as e:
+        logger.warning("[mirror] échec (non bloquant) — %s", e)
+        return {}
+
+    summary = (data.get("summary_fr") or "").strip()
+    unsupported = [str(u).strip() for u in (data.get("unsupported") or []) if str(u).strip()]
+
+    logger.info("[mirror] ✓ résumé %d car. | %d limite(s) déclarée(s)", len(summary), len(unsupported))
+    for _u in unsupported:
+        logger.warning("[mirror] ⚠ NON COUVERT : %s", _u)
+
+    _spec = {**spec_dict, "summary_fr": summary, "unsupported": unsupported}
+    return {"plan": _spec, "project_spec": _spec}
+
+
 # ── Graph factory ─────────────────────────────────────────────────────────────
 
 def create_architect_agent():
@@ -1027,6 +1137,7 @@ def create_architect_agent():
     workflow.add_node("pages_detail", pages_detail_node)
     workflow.add_node("spec_enricher", spec_enricher_node)
     workflow.add_node("planner", planner_node)
+    workflow.add_node("mirror", mirror_node)
 
     workflow.add_conditional_edges(
         START,
@@ -1042,5 +1153,8 @@ def create_architect_agent():
     workflow.add_edge("semantic_annotator", "pages_detail")
     workflow.add_edge("pages_detail", "spec_enricher")
     workflow.add_edge("spec_enricher", "planner")
-    workflow.add_edge("planner", END)
+    # SCÈNE-A : le miroir clôt le graphe — il lui faut la spec COMPLÈTE pour dire
+    # ce qui a été compris et ce qui n'a pas été capté.
+    workflow.add_edge("planner", "mirror")
+    workflow.add_edge("mirror", END)
     return workflow.compile()

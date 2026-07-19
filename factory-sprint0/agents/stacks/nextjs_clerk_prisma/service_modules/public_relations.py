@@ -1,6 +1,6 @@
 """getPublicByIdWithRelations — actif si le modèle a des pages publiques ET des relations."""
 from __future__ import annotations
-from .base import ServiceMethodModule, build_rel_select, dt_map_with_relations
+from .base import ServiceMethodModule, MethodDecl, build_rel_select, dt_map_with_relations
 
 _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
 
@@ -8,6 +8,12 @@ _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", 
 class PublicRelationsModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return bool(ctx.has_public_pages and ctx.relation_fields)
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        return [MethodDecl(
+            "getPublicByIdWithRelations",
+            f"(id: string) → Promise<{ctx.serialized_type}>  (sans owner, avec relations)",
+        )]
 
     def generate(self, ctx, **kwargs) -> list[str]:
         all_contexts: dict = kwargs.get("all_contexts") or {}

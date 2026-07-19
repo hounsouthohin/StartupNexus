@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-07-19T01:12:06.114718+00:00",
+  "temporal_address": "temporal:7233",
+  "task_queue": "factory-task-queue",
+  "batch_size": 1,
+  "result_timeout_seconds": null,
+  "sanity_mode": false,
+  "workflow_success_count": 0,
+  "workflow_failure_count": 1,
+  "build_success_count": 0,
+  "build_partial_count": 0,
+  "build_failure_count": 0,
+  "build_unknown_count": 1,
+  "strict_success_count": 0,
+  "usable_success_count": 0,
+  "success_count": 0,
+  "failure_count": 1,
+  "total_duration_seconds": 294.91,
+  "total_learner_events_delta": 1,
+  "quality_dashboard": {
+    "spec_validation_status_counts": {
+      "degraded_spec_gate_blocked": 0,
+      "semantic_violation_at_dev": 0,
+      "ok_or_partial": 1
+    },
+    "requirements_mappable_met_ratio": 0.0,
+    "build_not_run_count": 0,
+    "strict_success_rate": 0.0,
+    "usable_success_rate": 0.0
+  },
+  "phase1_scoreboard": {
+    "build_success_rate": 0.0,
+    "unknown_root_cause_rate_on_failed": 1.0,
+    "prisma_validate_ok_rate_on_runs_with_schema": 0.0,
+    "root_cause_distribution_failed": {
+      "unknown": 1
+    },
+    "ts_error_code_distribution": {},
+    "top_ts_failing_files": {},
+    "ts_signal_anomaly_count": 0
+  },
+  "runs": [
+    {
+      "workflow_id": "todo-pilot-notes-frais-bdd74570",
+      "run_id": "019f77e9-aefb-78bd-a631-7861f3de7b70",
+      "project_name": "notes-frais",
+      "brief_description": "Je veux une app pour g\u00e9rer les notes de frais de mon \u00e9quipe. Un employ\u00e9 cr\u00e9e une note de frais avec un intitul\u00e9, un montant en euros (ex: 42.50), une date de d\u00e9pense, une cat\u00e9gorie (transport, repas, h\u00e9bergement, mat\u00e9riel) et une description. Il la garde en brouillon tant qu'il travaille dessus, puis il la soumet. Une fois soumise, elle est examin\u00e9e : elle peut \u00eatre approuv\u00e9e ou refus\u00e9e avec un motif. Une note approuv\u00e9e est rembours\u00e9e quand le virement est fait. Une note refus\u00e9e est d\u00e9finitive. On ne doit \u00e9videmment pas pouvoir rembourser une note qui n'a pas \u00e9t\u00e9 approuv\u00e9e, ni modifier une note d\u00e9j\u00e0 soumise. Je veux voir la liste de mes notes avec leur \u00e9tat, et le total en attente de remboursement. L'ambiance doit \u00eatre sobre et professionnelle.",
+      "started_at": "2026-07-19T01:07:11.200373+00:00",
+      "duration_seconds": 294.91,
+      "workflow_success": false,
+      "build_success": null,
+      "strict_success": false,
+      "usable_success": false,
+      "workflow_status": null,
+      "build_status": null,
+      "error": "Workflow execution failed",
+      "workflow_error_message": null,
+      "learner_events_before": 739,
+      "learner_events_after": 740,
+      "learner_events_delta": 1,
+      "result_excerpt": "",
+      "activity_results": {},
+      "run_metric": {}
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 """getPublicById + getPublicAll — actif si le modèle a des pages publiques."""
 from __future__ import annotations
-from .base import ServiceMethodModule, scalar_select_block, dt_inline_map
+from .base import ServiceMethodModule, MethodDecl, scalar_select_block, dt_inline_map
 
 _VISIBILITY_NAMES = {"published", "ispublic", "is_public", "public", "visible", "isvisible"}
 _PUBLISHED_LIKE = {"published", "active", "enabled", "approved", "public", "visible"}
@@ -10,6 +10,21 @@ _FUTURE_DATE_NAMES = {"date", "startdate", "startsat", "eventdate", "scheduledat
 class PublicModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return bool(ctx.has_public_pages)
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        s = ctx.serialized_type
+        # Le filtre appliqué par getPublicAll dépend du modèle — la note reflète le code
+        # réellement émis ci-dessous (has_status → statut publié ; sinon Boolean visibilité).
+        if ctx.has_status:
+            _note = "  (sans owner, filtrée par statut publié)"
+        elif getattr(ctx, "has_published_bool", False):
+            _note = "  (sans owner, filtrée published=true)"
+        else:
+            _note = "  (sans owner)"
+        return [
+            MethodDecl("getPublicById", f"(id: string) → Promise<{s}>  (sans owner)"),
+            MethodDecl("getPublicAll",  f"(page?: number, pageSize?: number) → Promise<{s}[]>{_note}"),
+        ]
 
     def generate(self, ctx, **kwargs) -> list[str]:
         camel = ctx.camel

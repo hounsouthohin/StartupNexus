@@ -1,11 +1,23 @@
 """getBy{Parent}Id — actif si le modèle a des FK vers un parent connu."""
 from __future__ import annotations
-from .base import ServiceMethodModule, scalar_select_block, dt_inline_map
+from .base import ServiceMethodModule, MethodDecl, scalar_select_block, dt_inline_map
 
 
 class ChildModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return bool(ctx.fk_fields)
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        # Une méthode par FK déclarée — noms concrets (getByProjectId…), donc impossibles
+        # à énumérer dans un registre statique : c'est ici, et nulle part ailleurs.
+        s = ctx.serialized_type
+        return [
+            MethodDecl(
+                f"getBy{fk.related_model}Id",
+                f"(userId: string, {fk.field_name}: string, page?: number, pageSize?: number) → Promise<{s}[]>",
+            )
+            for fk in ctx.fk_fields
+        ]
 
     def generate(self, ctx, **kwargs) -> list[str]:
         owner = ctx.owner

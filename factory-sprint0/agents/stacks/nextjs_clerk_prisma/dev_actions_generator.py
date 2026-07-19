@@ -93,96 +93,19 @@ def _m2m_parse_lines(schema: str, ctx, indent: str = "    ") -> list[str]:
 
 def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> str:
     """
-    Génère le contenu complet du fichier actions.ts pour un modèle.
+    Fichier actions.ts complet d'un modèle = EN-TÊTE + le bloc de fonctions.
 
-    Pour les modèles standalone : redirige vers list_page (statique).
-    Pour les modèles enfants     : redirige vers la page détail du parent (dynamique).
+    Fusionné le 17 Juil 2026 : ce fichier portait DEUX copies de la même logique
+    (ici + `_actions_block` pour la fusion en cas de collision de list_page). Elles
+    avaient déjà divergé — la copie collision n'avait pas le correctif `is_child`
+    (revalidatePath après le catch → `validated` hors scope → TS2304).
+    Une seule logique désormais : `_actions_block`.
     """
     name = model.name
     camel = pascal_to_camel(name)
     kebab = pascal_to_kebab(name)
 
-    is_child = _is_child_model(ctx)
-
-    if is_child:
-        parent_list, fk_field = _parent_paths(ctx, spec)
-        # create : validated.{fk_field} est toujours présent (required dans le schema)
-        create_revalidate = f"`{parent_list}/${{validated.{fk_field}}}`"
-        create_redirect   = create_revalidate
-        # update : lit _redirectTo depuis formData (champ caché injecté par le form)
-        update_lines = [
-            f"  const redirectTo = (formData.get('_redirectTo') as string) || '{parent_list}'",
-            "  revalidatePath(redirectTo)",
-            "  redirect(redirectTo)",
-        ]
-        # delete : paramètre explicite — l'appelant passe le chemin parent
-        delete_sig        = f"(id: string, redirectTo: string = '{parent_list}')"
-        delete_revalidate = "redirectTo"
-        delete_redirect   = "redirectTo"
-    else:
-        create_revalidate = f"'{list_page}'"
-        create_redirect   = f"'{list_page}'"
-        update_lines = [
-            f"  revalidatePath('{list_page}')",
-            f"  redirect('{list_page}')",
-        ]
-        delete_sig        = "(id: string)"
-        delete_revalidate = f"'{list_page}'"
-        delete_redirect   = f"'{list_page}'"
-
-    # Pour les modèles enfants, validated.{fk_field} est utilisé dans revalidatePath/redirect.
-    # validated est const-scoped dans le try block → TS2304 si placé après le catch.
-    # Solution : pour is_child, mettre revalidatePath/redirect DANS le try (avant catch).
-    if is_child:
-        create_body_lines = [
-            "  try {",
-            *_m2m_parse_lines(f"Create{name}Schema", ctx),
-            f"    await {camel}Service.create(userId, validated)",
-            f"    revalidatePath({create_revalidate})",
-            f"    redirect({create_redirect})",
-            "  } catch (e) {",
-            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
-            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
-            "  }",
-            "}",
-        ]
-    else:
-        create_body_lines = [
-            "  try {",
-            *_m2m_parse_lines(f"Create{name}Schema", ctx),
-            f"    await {camel}Service.create(userId, validated)",
-            "  } catch (e) {",
-            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
-            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
-            "  }",
-            f"  revalidatePath({create_revalidate})",
-            f"  redirect({create_redirect})",
-            "}",
-        ]
-
-    # transition{Name} (type I) — le chemin béni de changement d'état : appelle
-    # transitionTo() du service, qui contourne le verrou d'édition de façon légitime
-    # (seuls les state_fields de l'état cible sont écrits). C'est ce qui rend le motif
-    # de refus ATTEIGNABLE — bug constaté notes-frais (verrou submitted vs update).
-    transition_lines: list[str] = []
-    if ctx is not None and getattr(ctx, "status_flow", None) is not None:
-        transition_lines = [
-            "",
-            f"export async function transition{name}(id: string, newStatus: string, formData: FormData) {{",
-            "  const { userId } = await auth()",
-            "  if (!userId) redirect('/sign-in')",
-            "  try {",
-            f"    const data = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
-            f"    await {camel}Service.transitionTo(userId, id, newStatus, data)",
-            "  } catch (e) {",
-            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
-            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
-            "  }",
-            *update_lines,
-            "}",
-        ]
-
-    lines = [
+    header = [
         "// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER",
         "'use server'",
         "",
@@ -193,40 +116,8 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'",
         f"import {{ Create{name}Schema, Update{name}Schema }} from '@/lib/schemas'",
         "",
-        f"export async function create{name}(formData: FormData) {{",
-        "  const { userId } = await auth()",
-        "  if (!userId) redirect('/sign-in')",
-        *create_body_lines,
-        "",
-        f"export async function update{name}(id: string, formData: FormData) {{",
-        "  const { userId } = await auth()",
-        "  if (!userId) redirect('/sign-in')",
-        "  try {",
-        *_m2m_parse_lines(f"Update{name}Schema", ctx),
-        f"    await {camel}Service.update(userId, id, validated)",
-        "  } catch (e) {",
-        "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
-        "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
-        "  }",
-        *update_lines,
-        "}",
-        *transition_lines,
-        "",
-        f"export async function delete{name}{delete_sig} {{",
-        "  const { userId } = await auth()",
-        "  if (!userId) redirect('/sign-in')",
-        "  try {",
-        f"    await {camel}Service.delete(userId, id)",
-        "  } catch {",
-        "    return { error: 'Impossible de supprimer cet élément.' }",
-        "  }",
-        f"  revalidatePath({delete_revalidate})",
-        f"  redirect({delete_redirect})",
-        "}",
-        "",
     ]
-
-    return "\n".join(lines)
+    return "\n".join(header) + "\n" + _actions_block(model, list_page, ctx=ctx, spec=spec)
 
 
 def generate_action_files(
@@ -369,7 +260,7 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
         delete_revalidate = f"'{list_page}'"
         delete_redirect   = f"'{list_page}'"
 
-    # transition{Name} (type I) — miroir du chemin principal pour la fusion (collision).
+    # transition{Name} (type I) — chemin béni de changement d'état (appelle transitionTo).
     transition_lines: list[str] = []
     if ctx is not None and getattr(ctx, "status_flow", None) is not None:
         transition_lines = [
@@ -388,20 +279,42 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
             "}",
         ]
 
+    # Modèles ENFANTS : revalidatePath/redirect utilisent `validated.{fk}`, or `validated` est
+    # const-scoped dans le try → le placer après le catch donne TS2304. D'où le corps distinct.
+    # (Ce correctif n'existait QUE dans le chemin principal avant la fusion du 17 Juil —
+    # le chemin collision produisait donc du TS2304 sur les modèles enfants.)
+    if is_child:
+        create_body_lines = [
+            "  try {",
+            *_m2m_parse_lines(f"Create{name}Schema", ctx),
+            f"    await {camel}Service.create(userId, validated)",
+            f"    revalidatePath({create_revalidate})",
+            f"    redirect({create_redirect})",
+            "  } catch (e) {",
+            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
+            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
+            "  }",
+            "}",
+        ]
+    else:
+        create_body_lines = [
+            "  try {",
+            *_m2m_parse_lines(f"Create{name}Schema", ctx),
+            f"    await {camel}Service.create(userId, validated)",
+            "  } catch (e) {",
+            "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
+            "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
+            "  }",
+            f"  revalidatePath({create_revalidate})",
+            f"  redirect({create_redirect})",
+            "}",
+        ]
+
     lines = [
         f"export async function create{name}(formData: FormData) {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
-        "  try {",
-        *_m2m_parse_lines(f"Create{name}Schema", ctx),
-        f"    await {camel}Service.create(userId, validated)",
-        "  } catch (e) {",
-        "    if (e instanceof ZodError) throw new Error(e.errors.map(err => err.message).join(', '))",
-        "    throw new Error('Une erreur est survenue. Veuillez réessayer.')",
-        "  }",
-        f"  revalidatePath({create_revalidate})",
-        f"  redirect({create_redirect})",
-        "}",
+        *create_body_lines,
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",
         "  const { userId } = await auth()",

@@ -9,10 +9,23 @@ duplication. Chaque module importe depuis ici ce dont il a besoin.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..dev_model_context import ModelGenerationContext, RelationFieldInfo
+
+
+@dataclass(frozen=True)
+class MethodDecl:
+    """Une méthode réellement émise par un module, telle qu'exposée aux consommateurs.
+
+    Vit dans le MÊME fichier que le code qui l'émet — c'est tout l'enjeu :
+    un miroir recopié ailleurs finit toujours par diverger (cas `getPublished`,
+    présent dans 4 représentations dont 3 mirrors manuels — voir docs/remodularisation_plan.md).
+    """
+    name: str   # ex: "getBySlugWithRelations"
+    sig: str    # ex: "(slug: string) → Promise<SerializedPost>  (avec relations, public)"
 
 
 class ServiceMethodModule(ABC):
@@ -31,6 +44,17 @@ class ServiceMethodModule(ABC):
           all_contexts : dict[str, ModelGenerationContext]
           required_queries : list (QueryDeclaration) — custom queries
         Retourne une liste de strings (lignes), sans ouvrir/fermer le service object.
+        """
+
+    @abstractmethod
+    def methods_for(self, ctx: "ModelGenerationContext") -> list[MethodDecl]:
+        """
+        SOURCE UNIQUE : les méthodes que ce module émet RÉELLEMENT pour ce ctx.
+
+        Doit refléter exactement les conditions internes de generate() — y compris les
+        conditions imbriquées (ex: slug.py n'émet getBySlugWithRelations que si le modèle
+        a AUSSI des relations). CONTRACTS.md, le registre et les capabilities dérivent
+        d'ici : aucune autre liste de méthodes ne doit être maintenue à la main.
         """
 
 

@@ -235,10 +235,26 @@ def write_factory_run_report(
                 patterns_lines.append(f"  {icon} {title}")
                 patterns_lines.append(f"  → Suggestion standard — DÉCISION REQUISE")
 
+        # ── SCÈNE-A : miroir + limites déclarées ──────────────────────────────
+        # Placé EN TÊTE : « ce que l'app fait » et surtout « ce que le client a demandé
+        # sans que ça atterrisse » comptent plus que n'importe quelle métrique verte.
+        mirror_lines: List[str] = []
+        _summary = (run_context.get("summary_fr") or "").strip()
+        _unsupported = run_context.get("unsupported") or []
+        if _summary:
+            mirror_lines += ["", "CE QUE L'APP FAIT :", *[f"  {l}" for l in _summary.splitlines() if l.strip()]]
+        if _unsupported:
+            mirror_lines += ["", f"⚠ NON COUVERT PAR LA FACTORY ({len(_unsupported)}) :"]
+            mirror_lines += [f"  ✗ {u}" for u in _unsupported[:10]]
+        elif _summary:
+            mirror_lines += ["", "✓ Aucune demande du brief laissée de côté."]
+
         sep = "═" * 50
         content_lines = [
             f"# FactoryRunReport — {project_name} — {date_str}",
             sep,
+            *mirror_lines,
+            *([sep] if mirror_lines else []),
             f"BUILD        : {build_line}",
             f"REVIEW       : {review_line}",
             f"CORRECTIONS  : {corr_line}",

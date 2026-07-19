@@ -6,6 +6,7 @@ M2 : Phase de supervision parallèle (conformity || security || architecture || 
      après dev_test_activity, visible dans Temporal UI.
 """
 
+import os
 from dataclasses import dataclass
 from datetime import timedelta
 from temporalio import workflow
@@ -14,6 +15,14 @@ from typing import Dict, Any
 from config.factory_config import (
     SPEC_COVERAGE_SUCCESS_THRESHOLD,
     SPEC_COVERAGE_PARTIAL_THRESHOLD,
+)
+
+# github_activity EN PAUSE (17 Juil 2026) — credentials invalides : 401 Bad credentials ×3
+# tentatives à chaque run, ~30 s perdues et du bruit rouge dans les logs qui masquait les
+# vrais signaux. Lu à l'IMPORT (pas dans le workflow) pour rester déterministe côté Temporal.
+# Réactivation : GITHUB_ACTIVITY_ENABLED=1 dans l'environnement du worker.
+_GITHUB_ENABLED = os.getenv("GITHUB_ACTIVITY_ENABLED", "0").strip().lower() not in (
+    "", "0", "false", "no",
 )
 
 
@@ -465,27 +474,35 @@ class TodoPilotWorkflow:
             }
 
             github_result: Dict[str, Any] = {"pr_url": "N/A", "repo_url": "N/A"}
-            try:
-                github_result = await workflow.execute_activity(
-                    github_activity,
-                    args=[github_input, run_id],
-                    start_to_close_timeout=timedelta(minutes=10),
-                    retry_policy=common_retry_policy,
-                )
-                workflow.logger.info("GitHub terminé")
+            if not _GITHUB_ENABLED:
+                workflow.logger.info("GitHub désactivé (GITHUB_ACTIVITY_ENABLED=0) — étape sautée")
                 activity_results["github"] = {
-                    "status": "COMPLETED",
-                    "repo_url": github_result.get("repo_url", "N/A"),
-                    "pr_url": github_result.get("pr_url", "N/A"),
-                }
-            except Exception as github_err:
-                workflow.logger.warning(f"GitHub skipped: {github_err}")
-                activity_results["github"] = {
-                    "status": "FAILED",
-                    "error": str(github_err),
+                    "status": "SKIPPED_DISABLED",
                     "repo_url": "N/A",
                     "pr_url": "N/A",
                 }
+            else:
+                try:
+                    github_result = await workflow.execute_activity(
+                        github_activity,
+                        args=[github_input, run_id],
+                        start_to_close_timeout=timedelta(minutes=10),
+                        retry_policy=common_retry_policy,
+                    )
+                    workflow.logger.info("GitHub terminé")
+                    activity_results["github"] = {
+                        "status": "COMPLETED",
+                        "repo_url": github_result.get("repo_url", "N/A"),
+                        "pr_url": github_result.get("pr_url", "N/A"),
+                    }
+                except Exception as github_err:
+                    workflow.logger.warning(f"GitHub skipped: {github_err}")
+                    activity_results["github"] = {
+                        "status": "FAILED",
+                        "error": str(github_err),
+                        "repo_url": "N/A",
+                        "pr_url": "N/A",
+                    }
 
             # ── 6. Learner — best-effort ───────────────────────────────────
             pre_learner_duration = (workflow.now() - start_time).total_seconds()
@@ -495,6 +512,10 @@ class TodoPilotWorkflow:
                 "stack_id": stack_id,
                 "activity_results": dict(activity_results),
                 "duration_seconds": pre_learner_duration,
+                # SCÈNE-A : le miroir produit par l'architect (ce que l'app fait, en clair)
+                # et surtout ce que le brief demandait sans que ça atterrisse quelque part.
+                "summary_fr": project_spec_part.get("summary_fr", ""),
+                "unsupported": project_spec_part.get("unsupported", []),
             }
             try:
                 learner_result: Dict[str, Any] = await workflow.execute_activity(

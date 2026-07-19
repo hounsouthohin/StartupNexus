@@ -1,11 +1,21 @@
 """getAll + getById + create + update + delete — toujours actif."""
 from __future__ import annotations
-from .base import ServiceMethodModule, scalar_select_block, dt_inline_map
+from .base import ServiceMethodModule, MethodDecl, scalar_select_block, dt_inline_map
 
 
 class CrudModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return True
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        o, s, n = ctx.owner, ctx.serialized_type, ctx.name
+        return [
+            MethodDecl("getAll",  f"({o}: string, page?: number, pageSize?: number) → Promise<{s}[]>"),
+            MethodDecl("getById", f"({o}: string, id: string) → Promise<{s}>"),
+            MethodDecl("create",  f"({o}: string, data: Create{n}Input) → Promise<{s}>"),
+            MethodDecl("update",  f"({o}: string, id: string, data: Update{n}Input) → Promise<{s}>"),
+            MethodDecl("delete",  f"({o}: string, id: string) → Promise<void>"),
+        ]
 
     def generate(self, ctx, **kwargs) -> list[str]:
         all_contexts: dict = kwargs.get("all_contexts") or {}

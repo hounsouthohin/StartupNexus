@@ -1,11 +1,18 @@
 """getAllWithRelations + getByIdWithRelations — actif si le modèle a des relations."""
 from __future__ import annotations
-from .base import ServiceMethodModule, build_rel_select, dt_map_with_relations
+from .base import ServiceMethodModule, MethodDecl, build_rel_select, dt_map_with_relations
 
 
 class RelationsModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return bool(ctx.relation_fields)
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        o, s = ctx.owner, ctx.serialized_type
+        return [
+            MethodDecl("getAllWithRelations",  f"({o}: string, page?: number, pageSize?: number) → Promise<{s}[]>  (avec relations)"),
+            MethodDecl("getByIdWithRelations", f"({o}: string, id: string) → Promise<{s}>  (avec relations)"),
+        ]
 
     def generate(self, ctx, **kwargs) -> list[str]:
         all_contexts: dict = kwargs.get("all_contexts") or {}

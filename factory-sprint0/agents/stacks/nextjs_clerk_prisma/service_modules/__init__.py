@@ -7,6 +7,7 @@ L'ordre détermine l'ordre des méthodes dans le fichier .service.ts généré.
 Ajouter un module = l'instancier ici et l'insérer dans SERVICE_MODULES.
 """
 import re as _re
+from dataclasses import dataclass as _dataclass, field as _field
 
 from .crud import CrudModule
 from .child import ChildModule
@@ -30,24 +31,67 @@ SERVICE_MODULES = [
     TransitionModule(),
 ]
 
-# ── Registre des méthodes par condition d'activation ────────────────────────
-# Source de vérité pour spec_enricher (validation per-modèle) et
-# pages_detail_node (capabilities string dynamique injectée dans le LLM architect).
-#
-# Note sur ChildModule : génère getBy{ParentName}Id() dynamiquement.
-# Les noms concrets (getByProjectId, getByTaskId...) ne peuvent pas être énumérés ici.
-# Le pattern est géré séparément via _re.match(r"getBy[A-Z]\w+Id$", method).
-SERVICE_METHOD_REGISTRY = {
-    "always":               frozenset({"getAll", "getById", "create", "update", "delete"}),
-    "if_public_pages":      frozenset({"getPublicAll", "getPublicById"}),
-    "if_slug":              frozenset({"getBySlug", "getBySlugOwned", "getBySlugWithRelations"}),
-    "if_relations":         frozenset({"getAllWithRelations", "getByIdWithRelations"}),
-    "if_public_relations":  frozenset({"getPublicByIdWithRelations"}),
-    "if_status_flow":       frozenset({"transitionTo"}),
-    # ChildModule : getBy{ParentName}Id — dynamique, détecté par pattern regex
-}
+# ── SERVICE_METHOD_REGISTRY : SUPPRIMÉ (17 Juil 2026) ───────────────────────
+# C'était le 2e des 3 miroirs recopiés à la main de « quelles méthodes existent ».
+# Il a sur-listé getBySlugWithRelations sous `if_slug` seul (D33) alors que slug.py ne
+# l'émet que si le modèle a AUSSI des relations — un mensonge latent (TS2339).
+# Remplacé par une DÉRIVATION depuis les modules eux-mêmes (voir plus bas).
 
 _CHILD_METHOD_RE = _re.compile(r"^getBy[A-Z]\w+Id$")
+
+
+# ── SOURCE UNIQUE (17 Juil 2026) ──────────────────────────────────────────────
+# Les méthodes réellement émises pour un modèle, dérivées des MODULES eux-mêmes.
+# Chaque module déclare ce qu'il émet à côté du code qui l'émet (methods_for) —
+# donc CONTRACTS.md, le registre et les capabilities cessent d'être des miroirs
+# recopiés à la main. C'est le remède au cas `getPublished` (4 représentations,
+# 3 miroirs manuels) et à D33. Voir docs/remodularisation_plan.md.
+
+def methods_for_ctx(ctx) -> list:
+    """[MethodDecl] — toutes les méthodes émises pour ce modèle, modules actifs uniquement."""
+    out: list = []
+    for _mod in SERVICE_MODULES:
+        try:
+            if _mod.should_activate(ctx):
+                out.extend(_mod.methods_for(ctx))
+        except Exception:  # un module défaillant ne doit pas casser l'inventaire
+            continue
+    return out
+
+
+def method_names_for_ctx(ctx) -> frozenset:
+    """Noms des méthodes réellement émises — pour toute validation per-modèle."""
+    return frozenset(_d.name for _d in methods_for_ctx(ctx))
+
+
+@_dataclass
+class _FkStub:
+    related_model: str
+    field_name: str
+
+
+@_dataclass
+class _CtxStub:
+    """Contexte MINIMAL reconstruit depuis des drapeaux.
+
+    Les consommateurs amont (spec_enricher, architect) tournent AVANT que les vrais
+    ModelGenerationContext existent : ils ne disposent que de drapeaux extraits des
+    chaînes de modèles. Or les NOMS de méthodes ne dépendent que de ces drapeaux
+    structurels (les signatures, elles, exigent un vrai contexte).
+    Ce stub permet donc à la validation amont de dériver de la MÊME source que la
+    génération — au lieu d'un registre recopié à la main qui finit par mentir (D33).
+    """
+    name: str = "Model"
+    owner: str = "userId"
+    serialized_type: str = "SerializedModel"
+    fk_fields: list = _field(default_factory=list)
+    relation_fields: list = _field(default_factory=list)
+    m2m_fields: list = _field(default_factory=list)
+    has_slug: bool = False
+    has_public_pages: bool = False
+    has_status: bool = False
+    has_published_bool: bool = False
+    status_flow: object = None
 
 
 def valid_methods_for_flags(
@@ -59,24 +103,23 @@ def valid_methods_for_flags(
     has_status_flow: bool = False,
 ) -> frozenset:
     """
-    Calcule l'ensemble des méthodes valides pour un modèle donné ses flags.
-    Les méthodes ChildModule (getBy{Parent}Id) sont ajoutées depuis fk_parent_names.
+    Méthodes valides pour un modèle décrit par ses drapeaux — DÉRIVÉ des modules.
+
+    N'énumère plus rien à la main : interroge les vrais ServiceMethodModule via un
+    contexte minimal. Conséquence : une méthode ajoutée/retirée dans un module se
+    propage ici automatiquement, y compris ses conditions imbriquées.
     """
-    methods: set[str] = set(SERVICE_METHOD_REGISTRY["always"])
-    if has_public:
-        methods |= SERVICE_METHOD_REGISTRY["if_public_pages"]
-    if has_slug:
-        methods |= SERVICE_METHOD_REGISTRY["if_slug"]
-    if has_relations:
-        methods |= SERVICE_METHOD_REGISTRY["if_relations"]
-    if has_public and has_relations:
-        methods |= SERVICE_METHOD_REGISTRY["if_public_relations"]
-    if has_status_flow:
-        methods |= SERVICE_METHOD_REGISTRY["if_status_flow"]
-    for parent in (fk_parent_names or []):
-        if parent:
-            methods.add(f"getBy{parent[0].upper()}{parent[1:]}Id")
-    return frozenset(methods)
+    _parents = [_p for _p in (fk_parent_names or []) if _p]
+    stub = _CtxStub(
+        fk_fields=[
+            _FkStub(_p[0].upper() + _p[1:], f"{_p[0].lower() + _p[1:]}Id") for _p in _parents
+        ],
+        relation_fields=[True] if has_relations else [],
+        has_slug=has_slug,
+        has_public_pages=has_public,
+        status_flow=True if has_status_flow else None,
+    )
+    return method_names_for_ctx(stub)
 
 
 def is_valid_method_for_model(method: str, valid_methods: frozenset, has_fk_fields: bool) -> bool:
@@ -96,22 +139,43 @@ def build_factory_capabilities_string() -> str:
     Génère la chaîne _FACTORY_CAPABILITIES injectée dans pages_detail_node.
     Appelée au runtime — toujours synchronisée avec les service_modules réels.
     """
-    always_sorted = sorted(SERVICE_METHOD_REGISTRY["always"])
+    # Tout est DÉRIVÉ des modules : chaque ligne conditionnelle est calculée par
+    # différence (méthodes apparues quand on active un drapeau). Plus aucun nom de
+    # méthode n'est écrit à la main ici — ajouter un module suffit à l'annoncer
+    # à l'architect. C'était le 3e miroir manuel.
+    _always = valid_methods_for_flags()
+
+    def _delta(**flags) -> str:
+        """Méthodes qui APPARAISSENT quand on active ces drapeaux."""
+        return " / ".join(sorted(valid_methods_for_flags(**flags) - _always)) or "—"
+
+    def _combo(a: dict, b: dict) -> str:
+        """Méthodes qui n'existent QUE dans le croisement de deux drapeaux."""
+        _both = valid_methods_for_flags(**{**a, **b})
+        return " / ".join(sorted(
+            _both - valid_methods_for_flags(**a) - valid_methods_for_flags(**b)
+        )) or "—"
+
+    _cond_lines = [
+        (_delta(has_public=True),      "si published/isPublic/status ou page publique"),
+        (_delta(has_slug=True),        "si champ `slug @unique`"),
+        (_delta(has_relations=True),   "si @relation Prisma"),
+        (_combo({"has_public": True}, {"has_relations": True}), "si public ET @relation"),
+        (_combo({"has_slug": True}, {"has_relations": True}),   "si slug ET @relation"),
+        ("getBy{ParentName}Id(userId, parentId)", "si FK vers un parent (ex: getByProjectId)"),
+        (_delta(has_status_flow=True), "si machine à états (change le statut + capte les champs de la transition)"),
+    ]
+
     return "\n".join([
         "## CONTRAINTES TECHNIQUES",
         "",
         "### Méthodes de service disponibles (source : service_modules/)",
         "",
         "Toujours disponibles pour tout modèle :",
-        *[f"  {m}(userId, ...)" for m in always_sorted],
+        *[f"  {m}(userId, ...)" for m in sorted(_always)],
         "",
         "Disponibles selon les champs Prisma du modèle :",
-        "  getPublicAll() / getPublicById(id)               — si published/isPublic/status ou page publique",
-        "  getBySlug(slug) / getBySlugOwned(userId, slug)   — si champ `slug @unique`",
-        "  getAllWithRelations(userId) / getByIdWithRelations(userId, id) — si @relation Prisma",
-        "  getPublicByIdWithRelations(id)                   — si public ET @relation",
-        "  getBy{ParentName}Id(userId, parentId)            — si FK vers un parent (ex: getByProjectId)",
-        "  transitionTo(userId, id, newStatus, data?)       — si machine à états (change le statut + capte les champs de la transition)",
+        *[f"  {_m:<48} — {_why}" for _m, _why in _cond_lines if _m != "—"],
         "",
         "⚠ JAMAIS inventer une méthode absente de CONTRACTS.md → TS2339 fatal au build.",
         "⚠ Pages publiques : getPublicAll() UNIQUEMENT — getPublished() N'EXISTE PAS.",
@@ -132,5 +196,6 @@ def build_factory_capabilities_string() -> str:
     ])
 
 
-__all__ = ["SERVICE_MODULES", "SERVICE_METHOD_REGISTRY", "valid_methods_for_flags",
-           "is_valid_method_for_model", "build_factory_capabilities_string"]
+__all__ = ["SERVICE_MODULES", "valid_methods_for_flags",
+           "is_valid_method_for_model", "build_factory_capabilities_string",
+           "methods_for_ctx", "method_names_for_ctx"]

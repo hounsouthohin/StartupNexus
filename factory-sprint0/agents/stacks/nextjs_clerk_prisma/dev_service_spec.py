@@ -70,89 +70,25 @@ def build_service_spec(
     required_queries: list | None = None,
 ) -> ServiceSpec:
     """
-    Calcule l'inventaire exact des méthodes depuis ModelGenerationContext.
+    Inventaire exact des méthodes — DÉRIVÉ des service_modules (17 Juil 2026).
 
-    Miroir AUTORITAIRE de _generate_service_for_model() :
-    si une méthode est ajoutée dans le générateur, l'ajouter ici aussi.
-    C'est ici que vit la décision — pas dans le générateur ni dans le manifest.
+    Avant : cette fonction ré-énumérait les méthodes à la main (« miroir autoritaire :
+    l'ajouter ici AUSSI »). Ce « aussi » a produit le fantôme `getPublished` dans
+    CONTRACTS.md → le LLM l'appelait → TS2339.
+    Maintenant : chaque module déclare ce qu'il émet (`methods_for`), à côté du code qui
+    l'émet. Diverger est devenu structurellement impossible.
+    Voir docs/remodularisation_plan.md.
     """
-    owner = ctx.owner
+    from .service_modules import methods_for_ctx
+
     s = ctx.serialized_type
     name = ctx.name
-    methods: list[MethodSpec] = []
-
-    # ── getAll ────────────────────────────────────────────────────────────────
-    methods.append(MethodSpec(
-        "getAll",
-        f"({owner}: string, page?: number) → Promise<{s}[]>",
-    ))
-
-    # ── getBy{Parent}Id — une par FK déclarée (CROSS_ENTITY) ─────────────────
-    for fk in (ctx.fk_fields or []):
-        methods.append(MethodSpec(
-            f"getBy{fk.related_model}Id",
-            f"(userId: string, {fk.field_name}: string, page?: number) → Promise<{s}[]>",
-        ))
-
-    # getPublished DÉPRÉCIÉ (voir service_modules/__init__.py) : redondant avec getPublicAll,
-    # qui filtre déjà par statut publié. Ne plus le lister dans CONTRACTS.md.
-
-    # ── getById ───────────────────────────────────────────────────────────────
-    methods.append(MethodSpec(
-        "getById",
-        f"({owner}: string, id: string) → Promise<{s}>",
-    ))
-
-    # ── getPublicById + getPublicAll — pages publiques ────────────────────────
-    if ctx.has_public_pages:
-        methods.append(MethodSpec(
-            "getPublicById",
-            f"(id: string) → Promise<{s}>  (sans owner)",
-        ))
-        if ctx.has_status:
-            _note = "  (filtrée par statut publié)"
-        elif getattr(ctx, "has_published_bool", False):
-            _note = "  (filtrée published=true)"
-        else:
-            _note = ""
-        methods.append(MethodSpec(
-            "getPublicAll",
-            f"() → Promise<{s}[]>  (sans owner{_note})",
-        ))
-
-    # ── getBySlug / getBySlugOwned ────────────────────────────────────────────
-    if ctx.has_slug:
-        methods.append(MethodSpec(
-            "getBySlug",
-            f"(slug: string) → Promise<{s}>  (public)",
-        ))
-        methods.append(MethodSpec(
-            "getBySlugOwned",
-            f"({owner}: string, slug: string) → Promise<{s}>",
-        ))
-
-    # ── getAllWithRelations / getByIdWithRelations ─────────────────────────────
-    if ctx.relation_fields:
-        methods.append(MethodSpec(
-            "getAllWithRelations",
-            f"({owner}: string, page?: number) → Promise<{s}[]>  (avec relations)",
-        ))
-        methods.append(MethodSpec(
-            "getByIdWithRelations",
-            f"({owner}: string, id: string) → Promise<{s}>  (avec relations)",
-        ))
-        if ctx.has_public_pages:
-            methods.append(MethodSpec(
-                "getPublicByIdWithRelations",
-                f"(id: string) → Promise<{s}>  (sans owner, avec relations)",
-            ))
-        if ctx.has_slug:
-            methods.append(MethodSpec(
-                "getBySlugWithRelations",
-                f"(slug: string) → Promise<{s}>  (avec relations, public)",
-            ))
+    methods: list[MethodSpec] = [
+        MethodSpec(_d.name, _d.sig) for _d in methods_for_ctx(ctx)
+    ]
 
     # ── Queries métier custom ─────────────────────────────────────────────────
+    # Seule catégorie qui ne vient PAS des modules : déclarée par l'architect au cas par cas.
     for q in (required_queries or []):
         _method_name = getattr(q, "name", None) or f"getBy{getattr(q, 'field', 'Unknown')}"
         _ret = f"Promise<{s}[]>" if getattr(q, "return_many", True) else f"Promise<{s}>"
@@ -161,23 +97,11 @@ def build_service_spec(
             f"(userId: string, ...) → {_ret}  (query métier)",
         ))
 
-    # ── transitionTo — machine à états (type I) ───────────────────────────────
-    if getattr(ctx, "status_flow", None) is not None:
-        methods.append(MethodSpec(
-            "transitionTo",
-            f"({owner}: string, id: string, newStatus: string, data?) → Promise<{s}>  (change l'état + capte les champs de la transition)",
-        ))
-
-    # ── create / update / delete ──────────────────────────────────────────────
-    methods.append(MethodSpec("create", f"({owner}: string, data: Create{name}Input) → Promise<{s}>"))
-    methods.append(MethodSpec("update", f"({owner}: string, id: string, data: Update{name}Input) → Promise<{s}>"))
-    methods.append(MethodSpec("delete", f"({owner}: string, id: string) → Promise<void>"))
-
     return ServiceSpec(
         model_name=name,
         camel=ctx.camel,
         kebab=ctx.kebab,
-        owner=owner,
+        owner=ctx.owner,
         serialized=s,
         methods=tuple(methods),
     )

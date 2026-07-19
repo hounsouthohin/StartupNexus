@@ -12,12 +12,19 @@ contourne le verrou sans jamais l'ouvrir aux autres champs.
 """
 from __future__ import annotations
 
-from .base import ServiceMethodModule
+from .base import ServiceMethodModule, MethodDecl
 
 
 class TransitionModule(ServiceMethodModule):
     def should_activate(self, ctx) -> bool:
         return getattr(ctx, "status_flow", None) is not None
+
+    def methods_for(self, ctx) -> list[MethodDecl]:
+        return [MethodDecl(
+            "transitionTo",
+            f"({ctx.owner}: string, id: string, newStatus: string, data?) → Promise<{ctx.serialized_type}>"
+            "  (change l'état + capte les champs de la transition)",
+        )]
 
     def generate(self, ctx, **kwargs) -> list[str]:
         flow = ctx.status_flow

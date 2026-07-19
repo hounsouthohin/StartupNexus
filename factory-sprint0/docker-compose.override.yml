@@ -19,5 +19,8 @@ services:
       - ./semgrep:/app/semgrep
       - ./quality_checker:/app/quality_checker
       - ./assets:/app/assets
+      # utils/ manquait (constaté 19 Juil) : run_report.py y vit, donc toute modification
+      # du FactoryRunReport restait invisible — le conteneur gardait la version de l'image.
+      - ./utils:/app/utils
       - ./init_qdrant.py:/app/init_qdrant.py
       - ../sorties.md:/sorties.md
