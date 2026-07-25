@@ -11,3 +11,5 @@ venv/
 # Projets générés par le pipeline (Docker volume en prod, répertoire local en dev)
 /generated-projects/
 /snapshots/
+
+scripts/.preview.clerk.env

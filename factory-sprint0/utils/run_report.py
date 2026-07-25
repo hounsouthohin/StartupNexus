@@ -239,6 +239,9 @@ def write_factory_run_report(
         # Placé EN TÊTE : « ce que l'app fait » et surtout « ce que le client a demandé
         # sans que ça atterrisse » comptent plus que n'importe quelle métrique verte.
         mirror_lines: List[str] = []
+        _preview_url = (run_context.get("preview_url") or "").strip()
+        if _preview_url:
+            mirror_lines += ["", f"🔗 APP LIVE : {_preview_url}"]
         _summary = (run_context.get("summary_fr") or "").strip()
         _unsupported = run_context.get("unsupported") or []
         if _summary:

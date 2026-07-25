@@ -49,6 +49,41 @@ code sur les types couverts : des standards « comment bien coder » n'enseignen
 > et dans des runs, pas planifiée. Les sessions de juillet ont invalidé plusieurs hypothèses
 > fondatrices de la v3.9. Une roadmap est un plan écrit avant d'avoir vu — le terrain gagne.
 
+### 0. ÉTAT CONSOLIDÉ — 23 Juillet 2026 (point de référence stable)
+
+> Snapshot validé ensemble. Ni idée neuve, ni ambition : juste où on est.
+
+**Ce qui a été RETIRÉ :**
+- *Principes* : PRINCIPE 3 (boucle RAG→Dev→Learner) mort · PRINCIPE 5 (reviewer auto-obsolète) mort ·
+  PRINCIPE 6 (prouver utilisable avant type suivant) VIOLÉ.
+- *Instruments* : Scorer 4.8D (composite de menteurs) · tests Jest 4.8B (testeraient nos compilateurs) ·
+  mission Qdrant du Learner 4.8C (683 événements → 0 standard) · journey_validator (crashe).
+- *Code* : LLM Page Enricher · `SERVICE_METHOD_REGISTRY` (dict) · les 3 miroirs de méthodes ·
+  1 des 2 générateurs d'actions · `getPublished` (×6) · StatusModule.
+- *Gelé* : RAG · *En pause* : github_activity · *Annulé avant nous* : FrontendAgent.
+
+**Ce qui a été AJOUTÉ :** Type I (StatusFlowDeclaration/transitionTo/verrou) · Design Compiler ·
+capteur quality_check réparé (C0/C1/C2) · source unique (MethodDecl/methods_for) · miroir Scène-A (unsupported[]).
+
+**Ce que la startup EST maintenant :**
+```
+ARCHITECT (LLM) ─► DÉCLARATION (JSON=AST) ─► COMPILATEURS ─► EXECUTOR LLM ─► BUILD ─► REVIEW/QA
+  comprend+avoue      l'unicité                traduisent      les bords      arbitre technique
+```
+- Intelligence aux bords, déterminisme au cœur · une seule source de vérité (méthodes) ·
+  3 types qui composent (A+D+I) · avoue ses limites (unsupported[]).
+- **Moitié GAUCHE (générer) marche (~95 s). Moitié DROITE (preview + deploy) N'EXISTE PAS.**
+
+**Idéaux partagés (7) :** (1) loi du contenant · (2) la déclaration est le produit (corrige 1×→recompile
+tout le parc) · (3) une seule marche perd de l'info (brief→déclaration) · (4) machine juge le technique,
+humain juge le sens · (5) jamais éditer le code livré, remonter à la déclaration · (6) compile le récurrent,
+LLM pour l'unique · (7) la Scène est le seul instrument qui ne peut pas mentir.
+
+**Ouvert (décidé, pas fait) :** preview local (`preview_activity`) · édition de la déclaration (future,
+prérequis : stocker le JSON par client) · Type K · Deploy · dettes infra (Temporal, Clerk, D31, amount Float).
+
+---
+
 ### 1. LA LOI DU CONTENANT — découverte majeure
 
 > **Toute intention client sans structure pour la porter s'évapore — quelle que soit

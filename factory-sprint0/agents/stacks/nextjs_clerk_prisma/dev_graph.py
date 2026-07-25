@@ -385,6 +385,18 @@ async def run_dev_agent(
             _generator_errors.append(f"SERVICE_GENERATOR_FAILED: {_svc_err}")
             logger.error("[dev_graph] service generator a échoué (bloquant) : %s", _svc_err)
 
+    # ── Génération déterministe : prisma/seed.ts (Preview local, dev-only) ──
+    # Données de démonstration. Exclu du build (tsconfig) → un bug de seed ne casse
+    # jamais l'app. Non bloquant : une erreur ici n'empêche pas la génération.
+    if spec_obj is not None and _model_contexts:
+        try:
+            from .dev_seed_generator import generate_seed_file
+            _seed_written = generate_seed_file(spec_obj, project_workdir, contexts=_model_contexts)
+            template_written.update(_seed_written)
+            logger.info("[dev_graph] prisma/seed.ts généré (%d modèle(s))", len(_model_contexts))
+        except Exception as _seed_err:
+            logger.warning("[dev_graph] seed generator échoué (non bloquant) : %s", _seed_err)
+
     # ── Génération déterministe : app/**/actions.ts ───────────────────
     if spec_obj is not None:
         try:

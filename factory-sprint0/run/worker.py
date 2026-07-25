@@ -22,6 +22,7 @@ from workflows.activities.qa_activity import qa_activity
 from workflows.activities.github_activity import github_activity
 from workflows.activities.learner_activity import learner_activity
 from workflows.activities.export_zip_activity import export_zip_activity
+from workflows.activities.preview_activity import preview_activity
 
 from temporalio.client import Client
 from temporalio.worker import Worker
@@ -54,6 +55,7 @@ async def main():
             github_activity,
             learner_activity,
             export_zip_activity,
+            preview_activity,
         ],
     )
 

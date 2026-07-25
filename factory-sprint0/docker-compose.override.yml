@@ -7,6 +7,18 @@
 
 services:
   factory-worker:
+    # Port PREVIEW (Scène-B, 25 Juil) : l'app générée tourne DANS le worker (app +
+    # node_modules déjà présents) ; ce port l'expose à l'hôte pour que l'opérateur
+    # ouvre http://localhost:3100. Nécessite `docker compose up -d factory-worker` une fois.
+    ports:
+      - "3100:3100"
+    environment:
+      # Scène-B : à chaque build réussi, l'app est stationnée et l'URL renvoyée dans le rapport.
+      - PREVIEW_ENABLED=1
+      # Id Clerk dont les données seront visibles (mets TON id ; user_demo = juste pour tester).
+      - SEED_USER_ID=${SEED_USER_ID:-user_demo}
+      # Clés Clerk de DEV (à placer dans .env, jamais commité) — sans elles, le serveur
+      # démarre mais l'auth renvoie 500. NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY / CLERK_SECRET_KEY.
     volumes:
       - ./agents:/app/agents
       - ./workflows:/app/workflows

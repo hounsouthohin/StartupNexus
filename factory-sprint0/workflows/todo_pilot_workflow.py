@@ -56,6 +56,7 @@ with workflow.unsafe.imports_passed_through():
     from workflows.activities.correction_pass_activity import correction_pass_activity
     from workflows.activities.github_activity import github_activity
     from workflows.activities.qa_activity import qa_activity
+    from workflows.activities.preview_activity import preview_activity
     from workflows.activities.learner_activity import learner_activity
     from workflows.activities.export_zip_activity import export_zip_activity
     from utils.run_report import write_run_report_minimal as _write_run_report_minimal
@@ -461,6 +462,22 @@ class TodoPilotWorkflow:
                     "tests_passed": False,
                 }
 
+            # ── 4bis. PREVIEW (Scène-B) — app live, URL renvoyée. Best-effort ──
+            # Gardé par PREVIEW_ENABLED côté worker. Ne bloque JAMAIS un run.
+            preview_result: Dict[str, Any] = {"status": "SKIPPED", "url": ""}
+            try:
+                preview_result = await workflow.execute_activity(
+                    preview_activity,
+                    args=[{"project_name": project_name, "build_status": build_status}],
+                    start_to_close_timeout=timedelta(minutes=6),
+                    retry_policy=RetryPolicy(maximum_attempts=1),
+                )
+                if preview_result.get("status") == "READY":
+                    workflow.logger.info(f"[preview] app live → {preview_result.get('url')}")
+            except Exception as _pv:
+                workflow.logger.warning(f"[preview] non bloquant : {_pv}")
+            activity_results["preview"] = preview_result
+
             # ── 5. GitHub ─────────────────────────────────────────────────
             github_input = {
                 "files": {**combined_files, **e2e_tests},
@@ -516,6 +533,8 @@ class TodoPilotWorkflow:
                 # et surtout ce que le brief demandait sans que ça atterrisse quelque part.
                 "summary_fr": project_spec_part.get("summary_fr", ""),
                 "unsupported": project_spec_part.get("unsupported", []),
+                # SCÈNE-B : l'URL de l'app live (si le preview a tourné).
+                "preview_url": preview_result.get("url", "") if preview_result.get("status") == "READY" else "",
             }
             try:
                 learner_result: Dict[str, Any] = await workflow.execute_activity(
