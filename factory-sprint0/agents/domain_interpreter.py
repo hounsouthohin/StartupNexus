@@ -33,10 +33,20 @@ _DOMAIN_STACK_INVARIANTS = """\
 ### Auth
 - Auth = Clerk V6 uniquement. JAMAIS : bcrypt, jwt, password, next-auth.
 - **JAMAIS de modèle `User` dans le schema Prisma.** Clerk gère les utilisateurs. `userId` est une String externe.
-- **TOUS les modèles sans exception** (y compris les lookups : Category, Tag, Type, Label...) DOIVENT avoir `userId String`.
-  La factory est single-tenant : chaque utilisateur possède SES propres catégories, tags, etc.
-  Exception autorisée : `authorId String` à la place de `userId String` pour le modèle principal d'un CMS/blog.
+- **Défaut : tout modèle possède un owner** → `userId String` (y compris les lookups : Category, Tag,
+  Type, Label...). La factory est single-tenant : chaque utilisateur possède SES propres données.
+  Exception `authorId String` à la place de `userId` pour le modèle principal d'un CMS/blog.
 - Les sous-modèles enfants (ex: Comment d'une Task) utilisent le FK du parent ET ont aussi `userId String` en propre.
+- **EXCEPTION — catalogue GLOBAL (sans owner)** : si le brief décrit une entité **partagée entre tous
+  les utilisateurs**, existant indépendamment de qui la crée (ex: les *espaces* réservables d'un
+  coworking, les *salles* d'un planning, un *catalogue de produits* commun), alors ce modèle
+  N'A PAS de `userId`. Signaux : « les X que tout le monde peut réserver/consulter », « le catalogue »,
+  « les ressources partagées ». Dans le doute, garde `userId` (défaut). N'applique JAMAIS cette
+  exception à des données personnelles (mes tâches, mes demandes, mes notes).
+- **RÔLES ≠ modèle**. Si le brief distingue plusieurs ACTEURS (employé vs admin, membre vs gestionnaire),
+  ne crée PAS de modèle `Role`/`Admin` et n'ajoute PAS de champ `role` : Clerk porte le rôle
+  (publicMetadata). Le multi-acteur est déclaré ailleurs (Semantic Annotator), pas dans les modèles.
+  N'aplatis pas non plus les deux acteurs en un seul : garde le brief tel quel, les rôles sont traités en aval.
 
 ### Champs obligatoires dans tout modèle
 - `id String @id @default(uuid())`

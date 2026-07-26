@@ -199,6 +199,70 @@ class UXHints(BaseModel):
     # Ex: {"/": "Commencer → /sign-in"}
 
 
+class RoleDeclaration(BaseModel):
+    """Contrat structuré du MULTI-ACTEUR / des RÔLES (type K — Juil 2026).
+
+    Remplace la prose ('un admin voit TOUTES les demandes ; seul un admin change le statut')
+    qui n'atterrissait NULLE PART — constaté it-requests : l'architect APLATISSAIT en silence
+    « employé vs admin » en mono-acteur (getAll(userId) = les siennes ; transition appliquée
+    par n'importe qui à ses propres demandes). Build + review 100/100 sur une app qui ne
+    distingue AUCUN rôle → app faussement parfaite, la pire des sorties.
+
+    Principe fondateur (PAS du multi-tenant) : un rôle = un ACCÈS PRIVILÉGIÉ dans le MÊME
+    espace de données. `userId` reste l'owner (le créateur). Le rôle privilégié CONTOURNE le
+    filtre owner pour lire/écrire les données de tous ; les autres restent owner-scoped.
+    L'invariant single-tenant n'est donc pas violé : l'admin est un super-lecteur/écrivain,
+    pas un second propriétaire.
+
+    Le compilateur traduit ce contrat en : lecture du rôle depuis Clerk (jamais du client),
+    getAllAsAdmin() sans filtre owner sur les vues admin, garde de rôle serveur sur les actions
+    gardées, garde de page /admin, et pas de filtre userId sur les entités globales.
+
+    Vide (roles == []) = mono-acteur = comportement historique inchangé (défaut permissif)."""
+
+    roles: list[str] = Field(default_factory=list)
+    # Rôles distincts que le brief décrit. Ex: ["employee", "admin"].
+    # Un SEUL rôle (ou aucun) = pas de multi-acteur → laisser vide.
+
+    privileged_role: str = ""
+    # Le rôle qui voit/gère les données de TOUS (le « lecteur privilégié »). Ex: "admin".
+    # Lu depuis Clerk publicMetadata.role côté serveur, jamais depuis le client.
+
+    admin_scoped_views: list[str] = Field(default_factory=list)
+    # Noms de MODÈLES dont le rôle privilégié voit TOUTES les lignes (vs owner-scoped pour
+    # les autres). Ex: ["Request"] — l'admin voit les demandes de tous les employés.
+    # Compilé en getAllAsAdmin() (findMany sans where userId) réservé au privileged_role.
+
+    role_gated_actions: dict[str, list[str]] = Field(default_factory=dict)
+    # Actions réservées au rôle privilégié, par MODÈLE — {modèle: [verbes]}.
+    # Verbes normalisés : "status_transition", "update", "delete", "create".
+    # Ex: {"Request": ["status_transition"]} — seul un admin fait évoluer le statut.
+    # Compilé en garde serveur (403 si rôle insuffisant) sur l'action ET masquage du bouton.
+
+    global_entities: list[str] = Field(default_factory=list)
+    # Noms de MODÈLES SANS owner : catalogue partagé visible par tous, non filtré par userId
+    # (ex: "Space" d'un coworking — les espaces existent indépendamment de qui les crée).
+    # Le domain_interpreter n'y force PAS userId ; le service n'y applique PAS de filtre owner.
+    # Vide [] = toutes les entités sont owned (cas standard single-tenant).
+
+    def is_admin_view(self, model_name: str) -> bool:
+        """True si le rôle privilégié voit toutes les lignes de ce modèle."""
+        return model_name in self.admin_scoped_views
+
+    def gated_verbs(self, model_name: str) -> list[str]:
+        """Verbes réservés au rôle privilégié pour ce modèle (vide si aucun)."""
+        return self.role_gated_actions.get(model_name, [])
+
+    def is_global(self, model_name: str) -> bool:
+        """True si ce modèle est un catalogue global sans owner."""
+        return model_name in self.global_entities
+
+    @property
+    def is_multi_actor(self) -> bool:
+        """True dès qu'au moins deux rôles distincts sont déclarés."""
+        return len(self.roles) >= 2
+
+
 class EnrichedSpec(BaseModel):
     """
     Spec sémantique enrichie produite par le Semantic Annotator.
@@ -221,6 +285,10 @@ class EnrichedSpec(BaseModel):
 
     ux_hints: UXHints = Field(default_factory=UXHints)
     # Contrats UX : messages d'états vides, ordre de création, actions primaires.
+
+    roles: RoleDeclaration = Field(default_factory=RoleDeclaration)
+    # Contrat multi-acteur (type K). Vide = mono-acteur (comportement historique).
+    # Porte : rôles, rôle privilégié, vues admin (voir-tout), actions gardées, entités globales.
 
     def get_semantic_type(self, field_name: str) -> str:
         """semantic_type d'un champ, ou '' si non annoté (→ heuristique)."""

@@ -222,6 +222,26 @@ class ModelGenerationContext:
     #   l'exclure aussi de l'édition figerait toute entité en brouillon pour l'éternité.
     create_excluded_fields: list[str] = field(default_factory=list)
 
+    # ── Type K — Rôles / ownership (Juil 2026) ────────────────────────────────
+    # is_global : catalogue PARTAGÉ sans owner (ex: Space d'un coworking). Le service
+    #   n'applique AUCUN filtre userId : findMany({}), findFirst({ where: { id } }),
+    #   create sans injection d'owner. Dérivé par COHÉRENCE (déclaré global_entities ET
+    #   schéma sans champ owner) — un désaccord retombe sur le comportement owner-scoped
+    #   (défaut sûr : jamais de fuite de données silencieuse).
+    is_global: bool = False
+
+    # is_admin_scoped : le rôle privilégié voit TOUTES les lignes de ce modèle (les autres
+    #   restent owner-scoped). Active getAllAsAdmin() dans le service (findMany sans owner),
+    #   réservé au privileged_role — l'admin est un lecteur privilégié, pas un 2e propriétaire.
+    is_admin_scoped: bool = False
+
+    # gated_verbs : verbes réservés au rôle privilégié pour CE modèle. Sous-ensemble de
+    #   {"status_transition", "update", "delete", "create"}. Compilé en garde de rôle serveur.
+    gated_verbs: list[str] = field(default_factory=list)
+
+    # privileged_role : nom du rôle privilégié (ex: "admin"), lu depuis Clerk. "" = mono-acteur.
+    privileged_role: str = ""
+
 
 # ── Helpers de calcul ─────────────────────────────────────────────────────────
 
@@ -536,6 +556,24 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
                 name, _sf_declared, _initial, _enum_vals or "(aucun)",
             )
 
+    # ── roles (type K) — validation déterministe de la décision LLM ──────────────
+    # L'architect DÉCLARE les rôles ; ICI on ne retient que ce qui est cohérent avec le
+    # schéma réel. is_global exige un ACCORD : déclaré global_entities ET aucun champ owner
+    # dans le modèle — sinon on reste owner-scoped (défaut sûr, jamais de fuite silencieuse).
+    _roles = getattr(enriched_spec, "roles", None) if enriched_spec else None
+    _field_names_all = {f.name for f in model.fields}
+    _declared_global = bool(_roles) and name in getattr(_roles, "global_entities", [])
+    _has_owner_field = owner in _field_names_all
+    is_global = _declared_global and not _has_owner_field
+    if _declared_global and _has_owner_field:
+        logger.warning(
+            "[model_context] %s : déclaré global_entities mais possède un champ owner '%s' — "
+            "reste owner-scoped (le service filtrera par owner).", name, owner,
+        )
+    is_admin_scoped = bool(_roles) and getattr(_roles, "is_admin_view", lambda _n: False)(name) and not is_global
+    _gated_verbs = list(getattr(_roles, "gated_verbs", lambda _n: [])(name)) if _roles else []
+    _privileged_role = getattr(_roles, "privileged_role", "") if _roles else ""
+
     editable: list[FieldInfo] = []
     datetime_fields: list[DatetimeFieldInfo] = []
     decimal_fields: list[DecimalFieldInfo] = []
@@ -649,6 +687,10 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         slug_source=slug_source,
         status_flow=status_flow,
         create_excluded_fields=create_excluded_fields,
+        is_global=is_global,
+        is_admin_scoped=is_admin_scoped,
+        gated_verbs=_gated_verbs,
+        privileged_role=_privileged_role,
         has_slug=has_slug,
         has_status=has_status,
         has_published_bool=has_published_bool,

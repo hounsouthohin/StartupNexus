@@ -217,6 +217,34 @@ locked_states — quand le brief dit qu'une entité n'est plus modifiable à par
   ⚠ locked_states ne bloque QUE les champs métier — le statut continue d'avancer.
   Laisse [] si le brief ne mentionne aucun verrouillage : ne l'invente pas.
 
+### roles  (MULTI-ACTEUR — ne jamais l'aplatir)
+Si le brief distingue PLUSIEURS ACTEURS aux droits différents (employé vs administrateur,
+membre vs gestionnaire, client vs staff), déclare-le ici. C'est le point le plus souvent
+MANQUÉ : un brief qui dit « un admin voit TOUTES les demandes, seul un admin change le statut »
+décrit deux rôles — ne le réduis JAMAIS à un seul acteur.
+
+Principe (PAS du multi-tenant) : un rôle privilégié = un LECTEUR/ÉCRIVAIN qui voit les données
+de TOUS dans le MÊME espace. Les données gardent leur owner (userId) ; le privilégié contourne
+juste le filtre owner. Ne crée AUCUN modèle Role ni champ role — Clerk porte le rôle.
+
+- "roles"              : les rôles distincts nommés par le brief. Ex: ["employee", "admin"].
+                         UN SEUL acteur (tout le monde a les mêmes droits) → laisse [] (mono-acteur).
+- "privileged_role"    : celui qui voit/gère les données de tous. Ex: "admin". "" si mono-acteur.
+- "admin_scoped_views" : modèles dont le rôle privilégié voit TOUTES les lignes (les autres ne
+                         voient que les leurs). Ex: ["Request"].
+- "role_gated_actions" : actions réservées au rôle privilégié, par modèle — {modèle: [verbes]}.
+                         Verbes : "status_transition", "update", "delete", "create".
+                         Ex: {"Request": ["status_transition"]} — seul un admin fait avancer le statut.
+- "global_entities"    : modèles SANS owner (catalogue partagé que tout le monde consulte/réserve,
+                         ex: les espaces d'un coworking). [] si toutes les entités sont personnelles.
+
+RÈGLES :
+- Deux acteurs aux droits différents = DEUX rôles. Ne fusionne jamais « celui qui crée » et
+  « celui qui supervise » en un seul acteur.
+- N'invente pas de rôle que le brief ne nomme pas. Un brief mono-acteur → tout à [] et "".
+- privileged_role DOIT figurer dans roles.
+- Les modèles de admin_scoped_views et les clés de role_gated_actions doivent exister dans les modèles reçus.
+
 ### ux_hints
 Produis des indications UX pour améliorer l'expérience utilisateur final.
 
@@ -313,7 +341,41 @@ Exemple pour un blog avec vrai statut enum (modèle a `status PostStatus @defaul
   }
 }
 
-Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "status_flows": {}, "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
+Exemple MULTI-ACTEUR (brief : « un employé soumet des demandes et ne voit que les siennes ;
+un admin voit TOUTES les demandes et est le seul à pouvoir changer leur statut ») —
+modèle unique `Request { title, description, priority, status RequestStatus, userId }` :
+{
+  "field_annotations": {
+    "description": {"semantic_type": "textarea"},
+    "priority": {"semantic_type": "priority-enum", "values": ["low", "normal", "high"]},
+    "status": {"semantic_type": "status-enum", "values": ["new", "in_progress", "resolved"]}
+  },
+  "required_queries": [],
+  "features": ["status_flow"],
+  "status_flows": {
+    "Request": {
+      "field": "status",
+      "initial": "new",
+      "transitions": {"new": ["in_progress"], "in_progress": ["resolved"], "resolved": []},
+      "locked_states": [],
+      "state_fields": {}
+    }
+  },
+  "roles": {
+    "roles": ["employee", "admin"],
+    "privileged_role": "admin",
+    "admin_scoped_views": ["Request"],
+    "role_gated_actions": {"Request": ["status_transition"]},
+    "global_entities": []
+  },
+  "ux_hints": {
+    "empty_states": {"/requests": "Aucune demande. Créez votre première demande."},
+    "dependency_order": [],
+    "primary_action": {}
+  }
+}
+
+Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "status_flows": {}, "roles": {"roles": [], "privileged_role": "", "admin_scoped_views": [], "role_gated_actions": {}, "global_entities": []}, "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
 """
 
 
@@ -384,11 +446,19 @@ async def semantic_annotator_node(state: AgentState) -> dict:
     query_count = len(enriched.get("required_queries", []))
     features = enriched.get("features", [])
     _flows = enriched.get("status_flows", {}) or {}
+    _roles = enriched.get("roles", {}) or {}
     logger.info(
         "[semantic_annotator] ✓ %d champ(s) annoté(s), %d query(ies), features=%s, status_flows=%s",
         field_count, query_count, features,
         {m: f"{f.get('initial')}→{f.get('transitions')}" for m, f in _flows.items()} or "{}",
     )
+    if _roles.get("roles"):
+        logger.info(
+            "[semantic_annotator] 🎭 rôles=%s privilégié=%s vues_admin=%s actions_gardées=%s globales=%s",
+            _roles.get("roles"), _roles.get("privileged_role"),
+            _roles.get("admin_scoped_views"), _roles.get("role_gated_actions"),
+            _roles.get("global_entities"),
+        )
 
     updated_brief = {**brief, "enriched_spec": enriched}
     return {"brief": updated_brief, "enriched_spec": enriched}

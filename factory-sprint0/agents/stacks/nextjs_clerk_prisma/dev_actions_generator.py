@@ -37,6 +37,49 @@ from .dev_naming import pascal_to_camel, pascal_to_kebab
 logger = logging.getLogger(__name__)
 
 
+# ── K1 — lecture du rôle depuis Clerk (garde serveur) ─────────────────────────
+# publicMetadata.role est lu VIA clerkClient (pas sessionClaims) : aucun réglage de
+# JWT template côté dashboard Clerk n'est requis — le fichier est autonome. L'user
+# pose le rôle sur son compte Clerk ; le rôle n'est JAMAIS reçu du client.
+_AUTH_ROLE_HELPER = """\
+// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER
+import { auth, clerkClient } from '@clerk/nextjs/server'
+
+/** Rôle applicatif de l'utilisateur courant, lu depuis Clerk publicMetadata.role. */
+export async function getCurrentRole(): Promise<string | null> {
+  const { userId } = await auth()
+  if (!userId) return null
+  const client = await clerkClient()
+  const user = await client.users.getUser(userId)
+  const role = (user.publicMetadata as { role?: string } | null)?.role
+  return typeof role === 'string' ? role : null
+}
+
+/** True si l'utilisateur courant détient le rôle attendu. */
+export async function hasRole(role: string): Promise<boolean> {
+  return (await getCurrentRole()) === role
+}
+
+/** Lève une erreur si l'utilisateur n'a pas le rôle requis — garde d'action serveur. */
+export async function requireRole(role: string): Promise<void> {
+  if (!(await hasRole(role))) {
+    throw new Error("Action réservée : vous n'avez pas les droits nécessaires.")
+  }
+}
+"""
+
+
+def _model_is_gated(ctx) -> bool:
+    """True si le modèle a au moins une action réservée à un rôle (K4)."""
+    return bool(ctx is not None and getattr(ctx, "gated_verbs", None) and getattr(ctx, "privileged_role", ""))
+
+
+def _model_needs_role_helper(ctx) -> bool:
+    """True si le modèle a besoin de lib/auth-role.ts : action gardée (K4) OU vue admin (K2).
+    Une vue admin lit getCurrentRole() dans sa page même sans action gardée."""
+    return _model_is_gated(ctx) or bool(ctx is not None and getattr(ctx, "is_admin_scoped", False))
+
+
 # ── Helpers pour la détection enfant ────────────────────────────────────────
 
 def _is_child_model(ctx) -> bool:
@@ -115,8 +158,10 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         "import { ZodError } from 'zod'",
         f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'",
         f"import {{ Create{name}Schema, Update{name}Schema }} from '@/lib/schemas'",
-        "",
     ]
+    if _model_is_gated(ctx):
+        header.append("import { requireRole } from '@/lib/auth-role'")
+    header.append("")
     return "\n".join(header) + "\n" + _actions_block(model, list_page, ctx=ctx, spec=spec)
 
 
@@ -176,6 +221,19 @@ def generate_action_files(
 
     written: dict[str, str] = {}
 
+    # K1 — helper de rôle (lib/auth-role.ts) émis UNE fois si au moins une action est
+    # gardée par rôle. Les actions gardées l'importent ; les pages admin aussi (K5).
+    if any(_model_is_gated(ctx_by_model.get(m.name)) for m in spec.models):
+        abs_lib = os.path.join(project_workdir, "lib")
+        os.makedirs(abs_lib, exist_ok=True)
+        try:
+            with open(os.path.join(abs_lib, "auth-role.ts"), "w", encoding="utf-8") as f:
+                f.write(_AUTH_ROLE_HELPER)
+            written["lib/auth-role.ts"] = _AUTH_ROLE_HELPER
+            logger.info("[action_generator] ✓ lib/auth-role.ts généré (garde de rôle K1)")
+        except Exception as e:
+            logger.error("[action_generator] ✗ Erreur écriture lib/auth-role.ts : %s", e)
+
     for file_key, models in page_to_models.items():
         route_dir = file_key.lstrip("/")
         rel_path = f"app/{route_dir}/actions.ts"
@@ -203,6 +261,8 @@ def generate_action_files(
                     f"import {{ Create{m.name}Schema, Update{m.name}Schema }} from '@/lib/schemas'"
                 )
             parts.append("import { ZodError } from 'zod'")
+            if any(_model_is_gated(ctx_by_model.get(m.name)) for m in models):
+                parts.append("import { requireRole } from '@/lib/auth-role'")
             parts.append("")
             for m in models:
                 ctx = ctx_by_model.get(m.name)
@@ -237,6 +297,16 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
 
     is_child = _is_child_model(ctx)
 
+    # ── K4 — gardes de rôle serveur : une action réservée exige le rôle privilégié
+    # AVANT toute écriture. La garde est ici (au bord serveur), pas seulement dans l'UI :
+    # masquer un bouton ne protège rien (constaté it-requests : n'importe qui pouvait
+    # faire avancer le statut). Le rôle est lu depuis Clerk via requireRole().
+    _gated = list(getattr(ctx, "gated_verbs", None) or []) if ctx is not None else []
+    _priv = getattr(ctx, "privileged_role", "") if ctx is not None else ""
+
+    def _role_guard(verb: str) -> list[str]:
+        return [f"  await requireRole('{_priv}')"] if (verb in _gated and _priv) else []
+
     if is_child:
         parent_list, fk_field = _parent_paths(ctx, spec)
         create_revalidate = f"`{parent_list}/${{validated.{fk_field}}}`"
@@ -268,6 +338,7 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
             f"export async function transition{name}(id: string, newStatus: string, formData: FormData) {{",
             "  const { userId } = await auth()",
             "  if (!userId) redirect('/sign-in')",
+            *_role_guard("status_transition"),
             "  try {",
             f"    const data = Update{name}Schema.parse(Object.fromEntries(formData) as Record<string, unknown>)",
             f"    await {camel}Service.transitionTo(userId, id, newStatus, data)",

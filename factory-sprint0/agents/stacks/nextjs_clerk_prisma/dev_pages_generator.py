@@ -336,6 +336,11 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     is_slug_detail = page.page_type == "detail-slug"
     has_relations = ctx.has_relations if ctx is not None else _model_has_relations(model_obj)
     _has_slug_ctx = ctx.has_slug if ctx is not None else any(f.name.lower() == "slug" for f in model_obj.fields)
+    # K2 — vue « admin voit tout » sur une page liste privée : l'admin lit getAllAsAdmin()
+    # (toutes les lignes), les autres restent owner-scoped. Le rôle est lu côté serveur.
+    _is_admin_scoped = bool(getattr(ctx, "is_admin_scoped", False)) and page.auth_required \
+        and page.page_type == "list"
+    _priv_role = getattr(ctx, "privileged_role", "") if ctx is not None else ""
 
     # Champs FK pour pages create
     fk_list: list[tuple[str, str, str]] = []
@@ -373,6 +378,8 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
     elif not is_create:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
+        if _is_admin_scoped:
+            lines.append("import { getCurrentRole } from '@/lib/auth-role'")
 
     # Imports services FK pour formulaires create
     for _fk_field, related_model, related_camel in fk_list:
@@ -449,7 +456,7 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
         lines.append(f"  return <{client} item={{item}} />")
     elif not is_create:
         if page.auth_required:
-            service_call = (
+            _member_call = (
                 f"{camel}Service.getAllWithRelations(userId)"
                 if has_relations else
                 f"{camel}Service.getAll(userId)"
@@ -457,11 +464,19 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
         else:
             # getPublicAll() est la méthode canonique pour les pages publiques.
             # getPublished() n'existe pas dans le service généré — toujours getPublicAll().
-            service_call = f"{camel}Service.getPublicAll()"
-        lines += [
-            f"  const items = await {service_call}",
-            f"  return <{client} items={{items}} />",
-        ]
+            _member_call = f"{camel}Service.getPublicAll()"
+        if _is_admin_scoped:
+            # K2 — l'admin voit TOUTES les lignes (getAllAsAdmin, sans filtre owner) ;
+            # les autres restent owner-scoped. Le rôle est lu côté serveur (Clerk).
+            lines += [
+                f"  const _role = await getCurrentRole()",
+                f"  const items = _role === '{_priv_role}'",
+                f"    ? await {camel}Service.getAllAsAdmin()",
+                f"    : await {_member_call}",
+            ]
+        else:
+            lines.append(f"  const items = await {_member_call}")
+        lines.append(f"  return <{client} items={{items}} />")
     else:
         # Fetch des options M2M (multi-select) — dédupliqué vs FK (même service possible)
         _m2m_to_fetch = [mf for mf in m2m_list if mf.related_camel not in _fk_camels]

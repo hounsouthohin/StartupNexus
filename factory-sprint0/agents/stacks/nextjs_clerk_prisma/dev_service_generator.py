@@ -45,6 +45,13 @@ def _build_serialize_fn(ctx: ModelGenerationContext) -> list[str]:
     dt_fields = ctx.datetime_fields
     dec_fields = getattr(ctx, "decimal_fields", []) or []
 
+    # K6 — entité globale : aucun owner à retirer (le champ n'existe pas dans le modèle).
+    _destr = (
+        "  const rest = item"
+        if getattr(ctx, "is_global", False)
+        else f"  const {{ {owner}: _owner, ...rest }} = item"
+    )
+
     if dt_fields or dec_fields:
         conv_lines = []
         for df in dt_fields:
@@ -59,7 +66,7 @@ def _build_serialize_fn(ctx: ModelGenerationContext) -> list[str]:
                 conv_lines.append(f"  {dcf.name}: Number(rest.{dcf.name}),")
         return [
             f"const _serialize = (item: {name}): {serialized} => {{",
-            f"  const {{ {owner}: _owner, ...rest }} = item",
+            _destr,
             "  return ({",
             "    ...rest,",
             *conv_lines,
@@ -69,7 +76,7 @@ def _build_serialize_fn(ctx: ModelGenerationContext) -> list[str]:
         ]
     return [
         f"const _serialize = (item: {name}): {serialized} => {{",
-        f"  const {{ {owner}: _owner, ...rest }} = item",
+        _destr,
         f"  return rest as {serialized}",
         "}",
         "",

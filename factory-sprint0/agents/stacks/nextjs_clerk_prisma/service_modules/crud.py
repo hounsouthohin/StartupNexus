@@ -9,13 +9,19 @@ class CrudModule(ServiceMethodModule):
 
     def methods_for(self, ctx) -> list[MethodDecl]:
         o, s, n = ctx.owner, ctx.serialized_type, ctx.name
-        return [
+        methods = [
             MethodDecl("getAll",  f"({o}: string, page?: number, pageSize?: number) → Promise<{s}[]>"),
             MethodDecl("getById", f"({o}: string, id: string) → Promise<{s}>"),
             MethodDecl("create",  f"({o}: string, data: Create{n}Input) → Promise<{s}>"),
             MethodDecl("update",  f"({o}: string, id: string, data: Update{n}Input) → Promise<{s}>"),
             MethodDecl("delete",  f"({o}: string, id: string) → Promise<void>"),
         ]
+        if getattr(ctx, "is_admin_scoped", False):
+            # K2 — vue « admin voit tout » : pas de param owner (findMany sans filtre).
+            methods.insert(1, MethodDecl(
+                "getAllAsAdmin", f"(page?: number, pageSize?: number) → Promise<{s}[]>  (rôle privilégié)",
+            ))
+        return methods
 
     def generate(self, ctx, **kwargs) -> list[str]:
         all_contexts: dict = kwargs.get("all_contexts") or {}
@@ -26,11 +32,28 @@ class CrudModule(ServiceMethodModule):
         _sel = scalar_select_block(ctx)
         _map = dt_inline_map(ctx)
 
+        # ── Type K — entité GLOBALE (catalogue partagé, sans owner) ──────────────
+        # Le param `owner` reste dans les signatures (les appelants passent toujours
+        # userId) mais N'ENTRE dans AUCUN where/data : la donnée est partagée par tous.
+        _is_global = getattr(ctx, "is_global", False)
+        _where_owner = "" if _is_global else owner          # contenu de where:{...} pour getAll
+        _where_id_owner = "id" if _is_global else f"id, {owner}"  # where des accès par id
+        _owner_create = "" if _is_global else f", {owner}"  # part owner dans data:{...} (create)
+
         # Owner du modèle LIÉ (single-tenant : même valeur userId, mais le nom du
         # champ peut différer — Post.authorId lié à Tag.userId). Fallback owner courant.
         def _rel_owner(model_name: str) -> str:
             _rc = all_contexts.get(model_name)
             return _rc.owner if _rc is not None else owner
+
+        # Clause owner d'une garde vers un modèle LIÉ. Vide si le lié est GLOBAL (K6) :
+        # un catalogue partagé (ex: Space) est référençable par tous — le filtrer par
+        # userId viserait une colonne inexistante (TS2353 SpaceWhereInput).
+        def _rel_owner_clause(model_name: str) -> str:
+            _rc = all_contexts.get(model_name)
+            if _rc is not None and getattr(_rc, "is_global", False):
+                return ""
+            return f", {_rel_owner(model_name)}: {owner}"
 
         # ── Garde d'ownership FK (S6) : une FK reçue du client doit pointer vers
         # un enregistrement du MÊME propriétaire — sinon relation croisée entre comptes.
@@ -38,10 +61,10 @@ class CrudModule(ServiceMethodModule):
         def _fk_guard(indent: str) -> list[str]:
             out: list[str] = []
             for fk in _fks:
-                _ro = _rel_owner(fk.related_model)
+                _clause = _rel_owner_clause(fk.related_model)
                 out.append(f"{indent}if (data.{fk.field_name}) {{")
                 out.append(
-                    f"{indent}  const _owned_{fk.field_name} = await prisma.{fk.related_camel}.findFirst({{ where: {{ id: data.{fk.field_name}, {_ro}: {owner} }}, select: {{ id: true }} }})"
+                    f"{indent}  const _owned_{fk.field_name} = await prisma.{fk.related_camel}.findFirst({{ where: {{ id: data.{fk.field_name}{_clause} }}, select: {{ id: true }} }})"
                 )
                 out.append(f"{indent}  if (!_owned_{fk.field_name}) throw new Error('Référence liée introuvable.')")
                 out.append(f"{indent}}}")
@@ -94,7 +117,7 @@ class CrudModule(ServiceMethodModule):
             # garde la lecture conditionnelle : pas de requête pour un simple changement
             # de montant.
             _read_cur = [
-                f"{indent}const _cur = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {_flow_field}: true }} }})",
+                f"{indent}const _cur = await prisma.{camel}.findFirst({{ where: {{ {_where_id_owner} }}, select: {{ {_flow_field}: true }} }})",
                 f"{indent}if (!_cur) notFound()",
             ]
             _check_transition = [
@@ -133,10 +156,10 @@ class CrudModule(ServiceMethodModule):
         def _m2m_prefetch(indent: str) -> list[str]:
             out: list[str] = []
             for mf in _m2m:
-                _ro = _rel_owner(mf.related_model)
+                _clause = _rel_owner_clause(mf.related_model)
                 out.append(f"{indent}const _valid_{mf.input_name} = {mf.input_name} && {mf.input_name}.length")
                 out.append(
-                    f"{indent}  ? (await prisma.{mf.related_camel}.findMany({{ where: {{ id: {{ in: {mf.input_name} }}, {_ro}: {owner} }}, select: {{ id: true }} }})).map(_r => _r.id)"
+                    f"{indent}  ? (await prisma.{mf.related_camel}.findMany({{ where: {{ id: {{ in: {mf.input_name} }}{_clause} }}, select: {{ id: true }} }})).map(_r => _r.id)"
                 )
                 out.append(f"{indent}  : []")
             return out
@@ -158,7 +181,7 @@ class CrudModule(ServiceMethodModule):
                 f"    const {{ {_destructure}, ...rest }} = data",
                 *_m2m_prefetch("    "),
                 f"    const result = await prisma.{camel}.create({{",
-                f"      data: {{ ...rest, {owner}{_slug_field}{_initial_field}, {_connect_parts} }}",
+                f"      data: {{ ...rest{_owner_create}{_slug_field}{_initial_field}, {_connect_parts} }}",
                 "    })",
                 "    return _serialize(result)",
                 "  },",
@@ -170,7 +193,7 @@ class CrudModule(ServiceMethodModule):
                 f"    const {{ {_destructure}, ...rest }} = data",
                 *_m2m_prefetch("    "),
                 f"    const result = await prisma.{camel}.update({{",
-                f"      where: {{ id, {owner} }},",
+                f"      where: {{ {_where_id_owner} }},",
                 f"      data: {{ ...rest, {_set_parts} }}",
                 "    })",
                 "    return _serialize(result)",
@@ -182,7 +205,7 @@ class CrudModule(ServiceMethodModule):
                 *_fk_guard("    "),
                 *_slug_lines("    "),
                 f"    const result = await prisma.{camel}.create({{",
-                f"      data: {{ ...data, {owner}{_slug_field}{_initial_field} }}",
+                f"      data: {{ ...data{_owner_create}{_slug_field}{_initial_field} }}",
                 "    })",
                 "    return _serialize(result)",
                 "  },",
@@ -192,21 +215,36 @@ class CrudModule(ServiceMethodModule):
                 *_fk_guard("    "),
                 *_transition_guard("    "),
                 f"    const result = await prisma.{camel}.update({{",
-                f"      where: {{ id, {owner} }},",
+                f"      where: {{ {_where_id_owner} }},",
                 "      data: { ...data }",
                 "    })",
                 "    return _serialize(result)",
                 "  },",
             ]
 
+        # ── K2 — vue admin « voir tout » : findMany SANS filtre owner, réservée au
+        # rôle privilégié (la garde de rôle est posée par l'appelant/action, pas ici :
+        # le service expose la capacité, la page décide qui l'appelle). N'existe QUE si
+        # le modèle est admin-scoped ET owner-scoped (une entité globale n'en a pas besoin).
+        _admin_lines: list[str] = []
+        if getattr(ctx, "is_admin_scoped", False):
+            _admin_lines = [
+                "",
+                f"  getAllAsAdmin: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
+                f"    const items = await prisma.{camel}.findMany({{ select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
+                f"    return items.map({_map}) as {serialized}[]",
+                "  },",
+            ]
+
         return [
             f"  getAll: async ({owner}: string, page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
-            f"    const items = await prisma.{camel}.findMany({{ where: {{ {owner} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
+            f"    const items = await prisma.{camel}.findMany({{ where: {{ {_where_owner} }}, select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
             f"    return items.map({_map}) as {serialized}[]",
             "  },",
+            *_admin_lines,
             "",
             f"  getById: async ({owner}: string, id: string): Promise<{serialized}> => {{",
-            f"    const item = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }} }})",
+            f"    const item = await prisma.{camel}.findFirst({{ where: {{ {_where_id_owner} }} }})",
             "    if (!item) notFound()",
             "    return _serialize(item)",
             "  },",
@@ -216,6 +254,6 @@ class CrudModule(ServiceMethodModule):
             *update_lines,
             "",
             f"  delete: async ({owner}: string, id: string): Promise<void> => {{",
-            f"    await prisma.{camel}.delete({{ where: {{ id, {owner} }} }})",
+            f"    await prisma.{camel}.delete({{ where: {{ {_where_id_owner} }} }})",
             "  },",
         ]
