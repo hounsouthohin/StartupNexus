@@ -189,6 +189,7 @@ async def generate_design_brief(
             _f.name: _f.type.rstrip("?").rstrip("[]")
             for _f in getattr(_m, "fields", [])
         }
+    _spec_enums: dict = getattr(spec_obj, "enums", None) or {}
     for _ent_name, _ent in brief.get("entities", {}).items():
         _ftypes = _model_field_types.get(_ent_name, {})
         # Filtre badge_fields : Boolean et champs inexistants → TS2367 / TS2339 dans Page Enricher
@@ -196,6 +197,21 @@ async def generate_design_brief(
             for _fname in [f for f in list(_ent["badge_fields"]) if _ftypes.get(f, "MISSING") in ("Boolean", "MISSING")]:
                 del _ent["badge_fields"][_fname]
                 logger.debug("[design_brief] badge_field '%s.%s' retiré (Boolean/inexistant)", _ent_name, _fname)
+            # Filtre des VALEURS : le LLM invente des états génériques (pending/rejected) au lieu
+            # des vraies valeurs de l'enum → `status === 'pending'` sur ReservationStatus = TS2367.
+            # On ne garde que les valeurs réellement présentes dans l'enum Prisma du champ.
+            for _fname, _vmap in list(_ent["badge_fields"].items()):
+                _enum_name = _ftypes.get(_fname, "")
+                _real_vals = set(_spec_enums.get(_enum_name, []) or [])
+                if _real_vals and isinstance(_vmap, dict):
+                    _cleaned = {v: c for v, c in _vmap.items() if v in _real_vals}
+                    if _cleaned != _vmap:
+                        logger.debug("[design_brief] badge_field '%s.%s' : valeurs hors-enum retirées %s",
+                                     _ent_name, _fname, set(_vmap) - _real_vals)
+                    if _cleaned:
+                        _ent["badge_fields"][_fname] = _cleaned
+                    else:
+                        del _ent["badge_fields"][_fname]
         # Filtre highlight_fields : champs inexistants → Page Enricher génère item.field → TS2339
         if isinstance(_ent.get("highlight_fields"), list):
             _before = _ent["highlight_fields"]

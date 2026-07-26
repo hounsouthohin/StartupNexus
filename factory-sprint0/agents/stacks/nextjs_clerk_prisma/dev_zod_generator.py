@@ -133,7 +133,11 @@ def _prisma_type_to_zod(prisma_type: str, attributes: str = "", enums: "dict | N
         if enums and base in enums:
             zod = f"{zod}.nullable().optional()"
         else:
-            zod = f"{zod}.optional()"
+            # Champ OPTIONNEL : un formulaire HTML envoie "" (chaîne vide), PAS undefined,
+            # pour un champ texte laissé vide. z.string().min(1) rejetterait "" → la création
+            # de l'objet est bloquée alors que le champ est facultatif (bug constaté 26 Juil).
+            # On retire donc .min(1) : un optionnel accepte le vide. (No-op sur number/date.)
+            zod = zod.replace(".min(1)", "") + ".optional()"
     return zod
 
 

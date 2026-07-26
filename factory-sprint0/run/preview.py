@@ -111,10 +111,20 @@ def prepare_preview(project: str, seed_user_id: str = "user_demo",
     # 4. serveur détaché (survit à l'activité)
     if launch:
         _kill_previous_server(port)
-        _clerk = {k: v for k, v in os.environ.items() if "CLERK" in k}
-        server_env = {**env, **_clerk}
-        logger.info("[preview] lancement next dev détaché sur :%d (clerk=%s)",
-                    port, bool(_clerk))
+        server_env = {**env, **{k: v for k, v in os.environ.items() if "CLERK" in k}}
+        # Mappage des clés stockées sous les noms CLERK_TEST_* vers les noms que l'app
+        # générée lit réellement — seulement si le nom officiel n'est pas déjà défini.
+        # Évite à l'opérateur de dupliquer ses clés sous d'autres noms.
+        _alias = {
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "CLERK_TEST_PUBLISHABLE_KEY",
+            "CLERK_SECRET_KEY": "CLERK_TEST_SECRET_KEY",
+        }
+        for _want, _have in _alias.items():
+            if not server_env.get(_want) and os.environ.get(_have):
+                server_env[_want] = os.environ[_have]
+        _has_pk = bool(server_env.get("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"))
+        logger.info("[preview] lancement next dev détaché sur :%d (clé publishable=%s)",
+                    port, _has_pk)
         # Popen non attendu → le serveur reste allumé après le retour de la fonction.
         subprocess.Popen(
             ["npx", "next", "dev", "-H", "0.0.0.0", "-p", str(port)],

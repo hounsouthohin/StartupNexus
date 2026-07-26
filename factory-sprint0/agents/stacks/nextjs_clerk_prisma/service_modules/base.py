@@ -62,18 +62,32 @@ class ServiceMethodModule(ABC):
 # Helpers partagés (anciennement dans dev_service_generator.py)
 # ─────────────────────────────────────────────────────────────────────────────
 
+_PRISMA_SCALARS = frozenset({
+    "String", "Int", "Float", "Boolean", "DateTime", "Decimal", "Json", "BigInt", "Bytes",
+})
+
+
+def _is_scalar_selectable(f, ctx: "ModelGenerationContext") -> bool:
+    """
+    True si le champ va dans un `select` scalaire — PAS une relation ni l'owner.
+
+    Un champ dont le TYPE est un modèle est une relation, MÊME SANS @relation : c'est
+    le cas du côté inverse d'un 1-1 (ex: `invoice Invoice?`). L'inclure comme scalaire
+    ET comme relation produit une clé dupliquée → TS1117 (constaté coworking 26 Juil).
+    """
+    if f.name == ctx.owner:
+        return False
+    if "@relation" in (f.attributes or ""):
+        return False
+    if f.type.endswith("[]"):
+        return False
+    _base = f.type.rstrip("?").rstrip("[]")
+    return _base in _PRISMA_SCALARS or _base in (ctx.spec_enums or {})
+
+
 def scalar_select_block(ctx: "ModelGenerationContext") -> str:
     """Prisma select block pour les champs scalaires uniquement (exclut owner, relations, tableaux)."""
-    parts = []
-    for f in ctx.model.fields:
-        if f.name == ctx.owner:
-            continue
-        if "@relation" in (f.attributes or ""):
-            continue
-        if f.type.endswith("[]"):
-            continue
-        parts.append(f"{f.name}: true")
-    return ", ".join(parts)
+    return ", ".join(f"{f.name}: true" for f in ctx.model.fields if _is_scalar_selectable(f, ctx))
 
 
 def dt_inline_map(ctx: "ModelGenerationContext") -> str:
@@ -187,11 +201,8 @@ def relation_nested_select(r: "RelationFieldInfo", ctx: "ModelGenerationContext"
 
 def build_rel_select(ctx: "ModelGenerationContext", all_contexts: dict) -> str:
     """Construit le select scalaire + nested relations pour getAllWithRelations."""
-    scalar_parts = [
-        f"{f.name}: true" for f in ctx.model.fields
-        if f.name != ctx.owner
-        and "@relation" not in (f.attributes or "")
-        and not f.type.endswith("[]")
-    ]
+    # _is_scalar_selectable exclut les relations singulières sans @relation (invoice Invoice?)
+    # → plus de doublon avec le bloc relations (TS1117).
+    scalar_parts = [f"{f.name}: true" for f in ctx.model.fields if _is_scalar_selectable(f, ctx)]
     rel_parts = [relation_nested_select(r, ctx, all_contexts) for r in ctx.relation_fields]
     return ", ".join(scalar_parts + rel_parts)

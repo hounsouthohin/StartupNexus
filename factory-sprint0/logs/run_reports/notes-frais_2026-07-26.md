@@ -1,18 +1,19 @@
-# FactoryRunReport — notes-frais — 2026-07-25
+# FactoryRunReport — notes-frais — 2026-07-26
 ══════════════════════════════════════════════════
 
 🔗 APP LIVE : http://localhost:3100
 
 CE QUE L'APP FAIT :
-  L'application permet à un employé de créer une note de frais avec un intitulé, un montant, une date, une catégorie et une description. L'employé peut garder la note en brouillon ou la soumettre pour examen. Une fois soumise, la note peut être approuvée ou refusée avec un motif. Les notes approuvées sont remboursées après le virement. L'employé peut voir la liste de ses notes avec leur état et le total en attente de remboursement.
+  L'application permet à un employé de créer une note de frais avec un titre, un montant, une date, une catégorie et une description. L'employé peut garder la note en brouillon ou la soumettre pour examen. Une fois soumise, la note peut être approuvée ou refusée avec un motif. Les notes approuvées sont remboursées après le virement. L'employé peut voir la liste de ses notes avec leur état et le total en attente de remboursement.
 
-⚠ NON COUVERT PAR LA FACTORY (1) :
-  ✗ Le brief mentionne que « Une note refusée est définitive », mais la spécification ne précise pas explicitement que les notes refusées ne peuvent pas être modifiées ou soumises à nouveau.
+⚠ NON COUVERT PAR LA FACTORY (2) :
+  ✗ Le brief mentionne que « Une note refusée est définitive », mais la spec ne précise pas que l'état 'refused' empêche toute modification ou action ultérieure.
+  ✗ Le brief indique « Je veux voir la liste de mes notes avec leur état, et le total en attente de remboursement », mais la spec ne mentionne pas le calcul et l'affichage du total en attente de remboursement.
 ══════════════════════════════════════════════════
 BUILD        : ✅ SUCCESS
 REVIEW       : COHERENT | sec=100 | coh=100 | 0 finding(s)
 CORRECTIONS  : SKIPPED (aucun finding actionnable)
-TESTS        : ✗ 2 test(s) — PASS tests/schemas.test.ts | PASS tests/middleware.test.ts |
+TESTS        : ✗ 2 test(s) — PASS tests/middleware.test.ts | FAIL tests/services/expense-
 SEMGREP      : ⚠ 1 finding(s)
 
 PATTERNS DÉTECTÉS :
@@ -41,5 +42,5 @@ PATTERNS DÉTECTÉS :
   🔴 Erreur de build récurrente (2×): generation_error: <FILE>x importe '<ID>' mais <FILE>x absent
   → Suggestion standard — DÉCISION REQUISE
 
-RUN_ID       : c150c398-18fe-43c3-b706-e54011f99687
-DURÉE        : 3min 8s
+RUN_ID       : 28c461b9-6d90-4c34-b01d-37838027a8cf
+DURÉE        : 3min 23s

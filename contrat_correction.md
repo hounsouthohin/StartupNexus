@@ -106,3 +106,56 @@ Ne peut PAS être garantie par un générateur (spécifique au brief) → deux l
 **Une fois ces 6 lignes ✅, "Type A terminé" et "Type D terminé" deviennent des affirmations vraies.**
 Les types suivants (I, K, H…) héritent de A+D et ajoutent leur propre colonne d'invariants,
 écrite AVANT d'implémenter le type (pas après le premier run raté).
+
+---
+
+## TYPE K — RÔLES / MULTI-ACTEUR (hérite de A+D, écrit AVANT implémentation — 26 Juil 2026)
+
+### Le principe fondateur (décision de conception)
+> **Un rôle = un ACCÈS PRIVILÉGIÉ dans le MÊME espace de données. PAS du multi-tenant.**
+> `userId` reste l'owner (le créateur). Un admin **contourne** le filtre owner pour lire/écrire
+> les données de tous. Les membres restent owner-scoped. L'invariant single-tenant n'est donc
+> PAS violé : l'admin est un super-lecteur/écrivain, pas un second propriétaire.
+
+### Ce que les 2 sondes ont révélé (le trou, en réel)
+- **it-requests (simple)** : l'architect a APLATI « employé vs admin » en mono-acteur, en silence.
+  « admin voit toutes les demandes » → `getAll(userId)` (les siennes). « seul un admin change le
+  statut » → workflow que n'importe qui applique aux siennes. Build SUCCESS, review 100/100 →
+  **app faussement parfaite**. Le miroir a raté le trou ET ajouté 2 non-problèmes (bruit).
+- **coworking (complexe)** : rôles → fausses pages `/admin` sans garde + catalogue global (Space)
+  sans owner → 8 erreurs tsc (`Space.userId`).
+
+### La déclaration que l'ARCHITECT doit produire (nouveau : RoleDeclaration)
+- `roles` : liste des rôles (ex: `["employee", "admin"]`)
+- `privileged_role` : le rôle qui voit/gère tout (ex: `"admin"`)
+- `admin_scoped_views` : entités/pages où l'admin voit TOUT (vs owner-scoped)
+- `role_gated_actions` : actions exigeant le rôle privilégié (ex: transition de statut sur Request)
+- `global_entities` : entités SANS owner (catalogue partagé, ex: Space)
+
+### Les invariants (chacun : garantie déterministe OU check reviewer)
+| # | Invariant | Garantie / Check | Statut |
+|---|---|---|---|
+| K1 | Le rôle est lu depuis **Clerk** (`sessionClaims.metadata.role`), jamais du client | helper déterministe | ❌ |
+| K2 | Vue « admin voit tout » : `getAllAsAdmin()` **sans** filtre owner | service_modules (nouveau `admin`) | ❌ |
+| K3 | Vue owner : reste filtrée par `userId` | crud.py (acquis A) | ✅ (hérité) |
+| K4 | Action gardée par rôle : vérif **CÔTÉ SERVEUR** (pas juste l'UI cachée) | garde service/action + reviewer | ❌ |
+| K5 | Page `/admin/*` : vérifie le rôle, redirige un non-admin | page generator + reviewer L1 | ❌ |
+| K6 | Entité GLOBALE (sans owner) : **pas** de filtre `userId`, pas de `@@index([userId])` | service + model_context `ownerless` | ❌ (bug Space) |
+| K7 | L'admin écrit/modifie des données d'AUTRUI (ex: statut d'une demande d'un autre) sans être bloqué par l'owner-guard | service admin-write | ❌ |
+| K8 | Le SEED peuple des données de PLUSIEURS acteurs (sinon « admin voit tout » montre 1 seul) | dev_seed_generator | ❌ |
+
+### Nettoyage LLM OBLIGATOIRE (prérequis — cause racine du bug)
+> On ne peut PAS compiler les rôles si l'architect croit encore « tout a un userId, un seul acteur ».
+> Le compilateur traduirait fidèlement une déclaration fausse.
+- `domain_interpreter` `_DOMAIN_STACK_INVARIANTS` : « TOUS les modèles DOIVENT avoir userId » →
+  **nuancer** : une entité peut être owned OU globale ; les rôles existent (ne plus aplatir).
+- `brief_guide.md` règle 4 : « un seul acteur par app » → **réécrire** : un propriétaire de données,
+  plusieurs niveaux d'accès (owner / privilégié).
+- `rules_dev.md` : vérifier qu'aucune règle n'impose « toujours filtrer par userId » de façon absolue.
+
+### FRANCHISE (transversal, mais critique ici)
+- K9 | Le miroir (`unsupported[]`) doit **attraper le trou de rôle** quand la case n'existe pas encore,
+  et **cesser de fabriquer** de fausses pages `/admin` vides. Mieux un trou déclaré qu'un décor à 100/100.
+
+**« Type K terminé » = K1→K9 ✅ sur it-requests (rôle pur) ET coworking (rôle × catalogue global).**
+Étalon double : it-requests doit distinguer admin/employé ; coworking doit builder ET tourner.

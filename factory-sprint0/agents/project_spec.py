@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
@@ -459,13 +460,25 @@ class ProjectSpec(BaseModel):
         # On détecte et injecte les champs inverses manquants au moment de la génération.
         _all_model_names: set[str] = {m.name for m in self.models}
         _existing_array_types: dict[str, set[str]] = {}
+        # _existing_singular_rel : modèles référencés par un champ SINGULIER typé-modèle
+        # (côté FK d'un 1-N, OU côté inverse d'un 1-1 comme `invoice Invoice?`).
+        # Sans ça, un back-ref singulier de 1-1 n'était pas reconnu → doublon `xxxs Xxx[]`
+        # injecté → relation ambiguë (bug coworking : invoice + invoices, 26 Juil).
+        _existing_singular_rel: dict[str, set[str]] = {}
         for _m in self.models:
             _existing_array_types[_m.name] = {
                 _f.type.replace("[]", "").strip()
                 for _f in _m.fields if "[]" in _f.type
             }
+            _existing_singular_rel[_m.name] = {
+                _f.type.rstrip("?") for _f in _m.fields
+                if "[]" not in _f.type and _f.type.rstrip("?") in _all_model_names
+            }
+
         _inverse_to_inject: dict[str, list[str]] = {}
         _injected: set[tuple[str, str]] = set()
+        # FK scalaires d'une relation 1-1 → doivent porter @unique (exigence Prisma).
+        _one_to_one_fk: set[tuple[str, str]] = set()
         for _m in self.models:
             for _f in _m.fields:
                 if "@relation" not in (_f.attributes or ""):
@@ -473,7 +486,18 @@ class ProjectSpec(BaseModel):
                 _parent = _f.type.rstrip("?").rstrip("[]")
                 if _parent not in _all_model_names:
                     continue
-                if _m.name not in _existing_array_types.get(_parent, set()):
+                # Le parent a-t-il DÉJÀ un côté inverse (tableau OU singulier) vers cet enfant ?
+                _has_back = (
+                    _m.name in _existing_array_types.get(_parent, set())
+                    or _m.name in _existing_singular_rel.get(_parent, set())
+                )
+                # Inverse singulier présent (ex: Reservation.invoice Invoice?) → relation 1-1
+                # → la FK scalaire de CE côté doit être @unique, sinon Prisma exige un tableau.
+                if _m.name in _existing_singular_rel.get(_parent, set()):
+                    _mm = re.search(r"fields:\s*\[\s*([A-Za-z0-9_]+)", _f.attributes or "")
+                    if _mm:
+                        _one_to_one_fk.add((_m.name, _mm.group(1)))
+                if not _has_back:
                     _key = (_parent, _m.name)
                     if _key not in _injected:
                         _injected.add(_key)
@@ -518,7 +542,12 @@ class ProjectSpec(BaseModel):
             _field_names = {f.name.lower() for f in model.fields}
             _field_names_exact = {f.name for f in model.fields}
             for field in model.fields:
-                lines.append(field.to_prisma_line())
+                _line = field.to_prisma_line()
+                # 1-1 : la FK scalaire porte @unique (sinon Prisma la traite comme 1-N
+                # et refuse le back-ref singulier `xxx Xxx?`).
+                if (model.name, field.name) in _one_to_one_fk and "@unique" not in _line:
+                    _line = _line.rstrip() + " @unique"
+                lines.append(_line)
             for _inv in _inverse_to_inject.get(model.name, []):
                 lines.append(_inv)
             # Inject updatedAt if missing — all entity models need it for cache invalidation

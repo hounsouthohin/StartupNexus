@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "it-requests",
+    "brief": {
+      "description": "Je veux un outil interne pour gérer les demandes informatiques de mon entreprise. Un employé, après connexion, soumet une demande avec un titre, une description détaillée et une priorité (basse, normale, haute). Un employé ne voit que ses propres demandes et peut les consulter. Un administrateur, lui, voit TOUTES les demandes de tous les employés, et peut faire évoluer leur statut : une demande commence en nouvelle, puis passe en cours, puis résolue. Seul un administrateur peut changer le statut d'une demande ; un employé ne fait que créer ses demandes et suivre leur avancement. L'interface doit être sobre et professionnelle."
+    }
+  }
+]
