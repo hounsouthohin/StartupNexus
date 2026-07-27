@@ -34,6 +34,14 @@ class TransitionModule(ServiceMethodModule):
         serialized = ctx.serialized_type
         field = flow.field
 
+        # ── K7 — transition RÉSERVÉE à un rôle (ex: seul l'admin change le statut) ──
+        # L'action appelante pose déjà requireRole() ; quand elle arrive ici, c'est un
+        # privilégié qui agit sur la donnée d'AUTRUI. Le filtre owner viserait « la fiche
+        # DONT je suis propriétaire » → l'admin ne pourrait faire évoluer que les siennes.
+        # On le retire donc pour une transition gardée (l'admin agit sur toutes les lignes).
+        _gated_transition = "status_transition" in (getattr(ctx, "gated_verbs", None) or [])
+        _where = "id" if _gated_transition else f"id, {owner}"
+
         _allowed = "{ " + ", ".join(
             f"{_s}: [{', '.join(repr(_t) for _t in _nxt)}]"
             for _s, _nxt in sorted(flow.transitions.items())
@@ -48,7 +56,7 @@ class TransitionModule(ServiceMethodModule):
         return [
             "",
             f"  transitionTo: async ({owner}: string, id: string, newStatus: string, data: Partial<Update{name}Input> = {{}}): Promise<{serialized}> => {{",
-            f"    const _cur = await prisma.{camel}.findFirst({{ where: {{ id, {owner} }}, select: {{ {field}: true }} }})",
+            f"    const _cur = await prisma.{camel}.findFirst({{ where: {{ {_where} }}, select: {{ {field}: true }} }})",
             "    if (!_cur) notFound()",
             f"    const _allowed: Record<string, string[]> = {_allowed}",
             f"    if (!(_allowed[_cur.{field}] ?? []).includes(newStatus)) {{",
@@ -64,7 +72,7 @@ class TransitionModule(ServiceMethodModule):
             "        (_payload as Record<string, unknown>)[_k] = (data as Record<string, unknown>)[_k]",
             "      }",
             "    }",
-            f"    const result = await prisma.{camel}.update({{ where: {{ id, {owner} }}, data: {{ ..._payload, {field}: newStatus as {name}['{field}'] }} }})",
+            f"    const result = await prisma.{camel}.update({{ where: {{ {_where} }}, data: {{ ..._payload, {field}: newStatus as {name}['{field}'] }} }})",
             "    return _serialize(result)",
             "  },",
         ]

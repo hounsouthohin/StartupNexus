@@ -17,6 +17,9 @@ services:
       - PREVIEW_ENABLED=1
       # Id Clerk dont les données seront visibles (mets TON id ; user_demo = juste pour tester).
       - SEED_USER_ID=${SEED_USER_ID:-user_demo}
+      # Bootstrap admin (type K) : l'email de ce compte obtient le rôle privilégié dès la
+      # connexion (sans réglage Clerk), pour que la démo montre la vue « chef ».
+      - PREVIEW_ADMIN_EMAIL=${PREVIEW_ADMIN_EMAIL:-bambarathohin@gmail.com}
       # Clés Clerk de DEV (à placer dans .env, jamais commité) — sans elles, le serveur
       # démarre mais l'auth renvoie 500. NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY / CLERK_SECRET_KEY.
     volumes:

@@ -1,0 +1,14 @@
+[
+  {
+    "project_name": "it-requests",
+    "brief": {
+      "description": "Je veux un outil interne pour gérer les demandes informatiques de mon entreprise. Un employé, après connexion, soumet une demande avec un titre, une description détaillée et une priorité (basse, normale, haute). Un employé ne voit que ses propres demandes et peut les consulter. Un administrateur, lui, voit TOUTES les demandes de tous les employés, et peut faire évoluer leur statut : une demande commence en nouvelle, puis passe en cours, puis résolue. Seul un administrateur peut changer le statut d'une demande ; un employé ne fait que créer ses demandes et suivre leur avancement. L'interface doit être sobre et professionnelle."
+    }
+  },
+  {
+    "project_name": "coworking-hub",
+    "brief": {
+      "description": "Je veux une plateforme complète pour gérer mon espace de coworking. Les visiteurs, sans se connecter, doivent pouvoir parcourir le catalogue public des espaces disponibles : chaque espace a un nom, une description détaillée (texte long), un type (bureau privé, salle de réunion, poste flexible), une capacité (nombre de personnes), un tarif horaire en euros, et une adresse. Un visiteur peut ouvrir la page d'un espace pour voir tous ses détails. Après connexion, un membre gère son profil (nom, email, entreprise, téléphone) et réserve un espace : une réservation concerne un espace, a une date, une heure de début et une heure de fin, et un état. Une réservation commence en demandée, puis elle est soit confirmée, soit refusée avec un motif ; une réservation confirmée peut ensuite être marquée comme terminée, ou annulée. On ne doit pas pouvoir marquer terminée une réservation qui n'a pas été confirmée. Chaque réservation confirmée génère une facture rattachée à cette réservation, avec un montant en euros, une date d'émission, et un statut (en attente de paiement, payée, en retard). Le membre voit la liste de ses réservations avec leur état, et la liste de ses factures. Je veux aussi un tableau de bord qui montre le chiffre d'affaires du mois en cours, le nombre de réservations en attente de confirmation, et le total des factures impayées. Enfin, seul un administrateur doit pouvoir confirmer ou refuser les réservations et marquer les factures comme payées ; un membre normal ne fait que réserver et consulter. L'ambiance doit être moderne, épurée et professionnelle."
+    }
+  }
+]

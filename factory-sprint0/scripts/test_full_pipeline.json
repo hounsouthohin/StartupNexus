@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "mediatheque",
+    "brief": {
+      "description": "Je gère une médiathèque associative et je veux une application pour la faire tourner. Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication. Un visiteur peut ouvrir la fiche d'un ouvrage pour en voir tous les détails. Après connexion, un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état. Un emprunt commence en demandé, puis il est soit accepté, soit refusé ; un emprunt accepté passe ensuite à rendu quand l'adhérent ramène l'ouvrage. Un adhérent ne voit que ses propres emprunts. Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre. L'interface doit être claire, chaleureuse et accessible."
+    }
+  }
+]

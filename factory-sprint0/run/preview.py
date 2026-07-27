@@ -122,14 +122,25 @@ def prepare_preview(project: str, seed_user_id: str = "user_demo",
         for _want, _have in _alias.items():
             if not server_env.get(_want) and os.environ.get(_have):
                 server_env[_want] = os.environ[_have]
+        # Bootstrap admin (type K) : l'email listé ici obtient le rôle privilégié dès la
+        # connexion, sans réglage dans Clerk — pour que la démo montre la vue « chef ».
+        _admin_emails = os.getenv("PREVIEW_ADMIN_EMAIL", os.getenv("ADMIN_EMAILS", ""))
+        if _admin_emails:
+            server_env["ADMIN_EMAILS"] = _admin_emails
         _has_pk = bool(server_env.get("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"))
-        logger.info("[preview] lancement next dev détaché sur :%d (clé publishable=%s)",
-                    port, _has_pk)
+        logger.info("[preview] lancement next dev détaché sur :%d (clé publishable=%s, admin_emails=%s)",
+                    port, _has_pk, bool(_admin_emails))
+        # Logs du serveur → fichier (avant : DEVNULL, donc AUCUNE erreur runtime visible —
+        # impossible de diagnostiquer une page qui plante côté connecté). On garde le
+        # détachement (le serveur survit à l'activité).
+        _log_path = os.path.join(app_dir, "preview-server.log")
+        _log_fh = open(_log_path, "w")  # noqa: SIM115 — reste ouvert pour le process détaché
+        result["server_log"] = _log_path
         # Popen non attendu → le serveur reste allumé après le retour de la fonction.
         subprocess.Popen(
             ["npx", "next", "dev", "-H", "0.0.0.0", "-p", str(port)],
             cwd=app_dir, env=server_env,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdout=_log_fh, stderr=subprocess.STDOUT,
             start_new_session=True,
         )
         result["launched"] = True

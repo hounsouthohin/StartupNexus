@@ -397,14 +397,26 @@ def _model_has_fk_to(candidate_model, target_name: str, model_names: set[str]) -
     return False
 
 
-def _resolve_m2m_fields(model, spec, model_names: set[str], spec_enums: dict) -> list[M2MFieldInfo]:
+def _resolve_m2m_fields(
+    model, spec, model_names: set[str], spec_enums: dict,
+    flow_models: "set[str] | None" = None,
+) -> list[M2MFieldInfo]:
     """
     Détecte les relations many-to-many implicites Prisma.
 
     Critère : champ tableau (`Tag[]`) dont le type est un modèle connu ET dont le
     modèle cible n'a PAS de FK vers ce modèle. Si le cible a une FK (Comment.postId),
     le champ tableau est le côté inverse d'un 1-N — pas un M2M.
+
+    FRANCHISE (26 Juil) : une cible qui a un CYCLE DE VIE (status_flow) est une entité
+    TRANSACTIONNELLE et possédée (Invoice pending→paid, Reservation demandée→confirmée),
+    jamais une étiquette PARTAGÉE que l'on rattache à plusieurs porteurs (Tag, Category).
+    L'architect confond parfois « le membre voit SES factures » (1-N par ownership) avec
+    une M2M et déclare `Member.invoices Invoice[]` + `Invoice.members Member[]` sans FK —
+    fausse M2M qui produit un multi-select « choisir des factures » absurde (constaté
+    coworking). On l'exclut : la donnée reste accessible via l'ownership (userId).
     """
+    flow_models = flow_models or set()
     result: list[M2MFieldInfo] = []
     all_models = {m.name: m for m in spec.models}
     for f in model.fields:
@@ -418,6 +430,14 @@ def _resolve_m2m_fields(model, spec, model_names: set[str], spec_enums: dict) ->
             continue
         if _model_has_fk_to(related, model.name, model_names):
             continue  # côté inverse d'un 1-N — géré par relation_fields/ChildModule
+        if base in flow_models:
+            logger.warning(
+                "[model_context] %s.%s : M2M écartée — la cible '%s' a un cycle de vie "
+                "(entité transactionnelle, pas une étiquette partagée). Probable fausse M2M "
+                "de l'architect ; la donnée reste accessible par ownership.",
+                model.name, f.name, base,
+            )
+            continue
         related_camel = _pascal_to_camel(base)
         result.append(M2MFieldInfo(
             name=f.name,
@@ -473,7 +493,10 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
 
     fk_fields = _resolve_fk_fields(model, model_names, owner)
     fk_field_names = {fk.field_name for fk in fk_fields}
-    m2m_fields = _resolve_m2m_fields(model, spec, model_names, spec_enums)
+    # Modèles auxquels l'architecte a donné un cycle de vie (status_flow) : entités
+    # transactionnelles, jamais cibles d'une M2M partagée → sert à écarter les fausses M2M.
+    _flow_model_names = set((getattr(enriched_spec, "status_flows", None) or {}).keys()) if enriched_spec else set()
+    m2m_fields = _resolve_m2m_fields(model, spec, model_names, spec_enums, flow_models=_flow_model_names)
 
     # slug_source (V7) : si le modèle a un champ `slug` ET un champ titre, le slug est
     # AUTO-GÉNÉRÉ côté service (slugify + suffixe anti-collision) — jamais saisi par l'user.
@@ -557,14 +580,24 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
             )
 
     # ── roles (type K) — validation déterministe de la décision LLM ──────────────
-    # L'architect DÉCLARE les rôles ; ICI on ne retient que ce qui est cohérent avec le
-    # schéma réel. is_global exige un ACCORD : déclaré global_entities ET aucun champ owner
-    # dans le modèle — sinon on reste owner-scoped (défaut sûr, jamais de fuite silencieuse).
+    # is_global = VÉRITÉ SCHÉMA : le modèle n'a PAS de champ owner. C'est le domain_interpreter
+    # (l'architecte des modèles) qui décide d'omettre userId pour un catalogue public partagé
+    # (Book, Space). Un service ne PEUT PAS filtrer par une colonne owner absente — l'exiger
+    # casse le build (constaté médiathèque : Book sans userId → `where: { userId }` → TS2353).
+    # global_entities de l'annotateur n'est plus qu'un SIGNAL secondaire : les deux appels LLM
+    # peuvent diverger (domain retire userId mais annotateur oublie de lister le modèle) — le
+    # schéma tranche. Un modèle enfant garde son owner (parentId existe) → jamais faux global.
     _roles = getattr(enriched_spec, "roles", None) if enriched_spec else None
     _field_names_all = {f.name for f in model.fields}
     _declared_global = bool(_roles) and name in getattr(_roles, "global_entities", [])
     _has_owner_field = owner in _field_names_all
-    is_global = _declared_global and not _has_owner_field
+    is_global = not _has_owner_field
+    if is_global and not _declared_global:
+        logger.warning(
+            "[model_context] %s : aucun champ owner → traité comme GLOBAL (catalogue partagé). "
+            "L'annotateur ne l'a pas listé dans global_entities — divergence architecte tolérée, "
+            "le schéma fait foi.", name,
+        )
     if _declared_global and _has_owner_field:
         logger.warning(
             "[model_context] %s : déclaré global_entities mais possède un champ owner '%s' — "

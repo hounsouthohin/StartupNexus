@@ -1074,12 +1074,19 @@ C'est le point le plus important : mieux vaut avouer une limite que livrer une a
 confiante et fausse.
 
 Pour chaque élément : cite la demande du client, puis ce qui manque. Sois concret.
-Exemple : "Le brief dit « les notes de frais de mon équipe » et « elle est examinée » :
-cela suppose deux acteurs (un employé, un responsable). La spec ne décrit qu'un seul
-utilisateur qui verrait et approuverait ses propres notes."
+Exemple : "Le brief demande un export PDF des factures ; aucune page ni action de la
+spec ne le produit."
 
 RÈGLES :
 - Ne signale QUE ce qui est absent de la spec fournie. Si c'est présent, ne le liste pas.
+- **Multi-acteur / rôles** : regarde `roles_et_acces`. S'il déclare des rôles, un rôle
+  privilégié, des vues « admin voit tout » et des actions gardées, alors la distinction
+  employé/admin (ou membre/gestionnaire) EST couverte — NE la signale PAS comme un manque.
+  Ne signale un trou de rôle que si le brief décrit clairement plusieurs acteurs ET que
+  `roles_et_acces` est vide.
+- Ne confonds pas un MÉCANISME technique avec un manque métier : « comment l'authentification
+  est gérée », « comment la restriction est mise en place » ne sont PAS des manques (c'est du
+  ressort de l'usine, pas du client). Ne liste que des CAPACITÉS métier absentes.
 - Ne signale pas de détails cosmétiques (couleurs, ton, style) — ils sont gérés ailleurs.
 - Une demande vague et non essentielle n'est pas un manque : ne remplis pas la liste pour
   la remplir. Liste vide [] si tout est couvert — c'est un résultat normal et fréquent.
@@ -1127,6 +1134,10 @@ async def mirror_node(state: AgentState) -> dict:
             for p in (spec_dict.get("pages") or []) if isinstance(p, dict)
         ],
         "workflows": _enriched.get("status_flows") or {},
+        # Rôles/accès : sans ça le miroir croit le multi-acteur non-couvert et le signale
+        # à tort (bruit). Depuis le type K, roles = rôles, rôle privilégié, vues admin,
+        # actions gardées, entités globales — tout ce que l'usine sait maintenant compiler.
+        "roles_et_acces": _enriched.get("roles") or {},
         "chiffres_et_listes_par_page": {
             _path: {"kpis": _d.get("kpis") or [], "listes_filtrees": _d.get("filtered_lists") or []}
             for _path, _d in (spec_dict.get("pages_detail") or {}).items()

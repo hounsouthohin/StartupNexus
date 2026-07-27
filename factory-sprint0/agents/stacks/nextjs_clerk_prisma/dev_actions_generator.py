@@ -38,35 +38,49 @@ logger = logging.getLogger(__name__)
 
 
 # ── K1 — lecture du rôle depuis Clerk (garde serveur) ─────────────────────────
-# publicMetadata.role est lu VIA clerkClient (pas sessionClaims) : aucun réglage de
-# JWT template côté dashboard Clerk n'est requis — le fichier est autonome. L'user
-# pose le rôle sur son compte Clerk ; le rôle n'est JAMAIS reçu du client.
-_AUTH_ROLE_HELPER = """\
-// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER
-import { auth, clerkClient } from '@clerk/nextjs/server'
-
-/** Rôle applicatif de l'utilisateur courant, lu depuis Clerk publicMetadata.role. */
-export async function getCurrentRole(): Promise<string | null> {
-  const { userId } = await auth()
-  if (!userId) return null
-  const client = await clerkClient()
-  const user = await client.users.getUser(userId)
-  const role = (user.publicMetadata as { role?: string } | null)?.role
-  return typeof role === 'string' ? role : null
-}
-
-/** True si l'utilisateur courant détient le rôle attendu. */
-export async function hasRole(role: string): Promise<boolean> {
-  return (await getCurrentRole()) === role
-}
-
-/** Lève une erreur si l'utilisateur n'a pas le rôle requis — garde d'action serveur. */
-export async function requireRole(role: string): Promise<void> {
-  if (!(await hasRole(role))) {
-    throw new Error("Action réservée : vous n'avez pas les droits nécessaires.")
-  }
-}
-"""
+# DEUX portes pour obtenir le rôle privilégié (l'app regarde les deux) :
+#   1. Bootstrap opérateur — un email listé dans ADMIN_EMAILS (variable d'env) obtient
+#      le rôle privilégié SANS toucher au dashboard Clerk. Idéal démo/preview et premier
+#      admin. Le rôle privilégié est EMBARQUÉ à la génération (constante PRIVILEGED_ROLE).
+#   2. Attribution propre — `publicMetadata.role` sur la fiche Clerk (via clerkClient, sans
+#      réglage de JWT template). Voie de production : on promeut/rétrograde depuis Clerk.
+# Le rôle n'est JAMAIS reçu du client. clerkClient est appelé côté serveur uniquement.
+def _build_auth_role_helper(privileged_role: str) -> str:
+    return (
+        "// AUTO-GÉNÉRÉ PAR dev_actions_generator.py — NE PAS MODIFIER\n"
+        "import { auth, clerkClient } from '@clerk/nextjs/server'\n"
+        "\n"
+        f"const PRIVILEGED_ROLE = '{privileged_role}'\n"
+        "// Emails désignés admin par l'opérateur (bootstrap), séparés par des virgules.\n"
+        "const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')\n"
+        "  .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)\n"
+        "\n"
+        "/** Rôle applicatif de l'utilisateur courant. Porte 1 : email bootstrap. Porte 2 : fiche Clerk. */\n"
+        "export async function getCurrentRole(): Promise<string | null> {\n"
+        "  const { userId } = await auth()\n"
+        "  if (!userId) return null\n"
+        "  const client = await clerkClient()\n"
+        "  const user = await client.users.getUser(userId)\n"
+        "  if (ADMIN_EMAILS.length > 0) {\n"
+        "    const emails = user.emailAddresses.map((e) => e.emailAddress.toLowerCase())\n"
+        "    if (emails.some((e) => ADMIN_EMAILS.includes(e))) return PRIVILEGED_ROLE\n"
+        "  }\n"
+        "  const role = (user.publicMetadata as { role?: string } | null)?.role\n"
+        "  return typeof role === 'string' ? role : null\n"
+        "}\n"
+        "\n"
+        "/** True si l'utilisateur courant détient le rôle attendu. */\n"
+        "export async function hasRole(role: string): Promise<boolean> {\n"
+        "  return (await getCurrentRole()) === role\n"
+        "}\n"
+        "\n"
+        "/** Lève une erreur si l'utilisateur n'a pas le rôle requis — garde d'action serveur. */\n"
+        "export async function requireRole(role: string): Promise<void> {\n"
+        "  if (!(await hasRole(role))) {\n"
+        "    throw new Error(\"Action réservée : vous n'avez pas les droits nécessaires.\")\n"
+        "  }\n"
+        "}\n"
+    )
 
 
 def _model_is_gated(ctx) -> bool:
@@ -223,14 +237,21 @@ def generate_action_files(
 
     # K1 — helper de rôle (lib/auth-role.ts) émis UNE fois si au moins une action est
     # gardée par rôle. Les actions gardées l'importent ; les pages admin aussi (K5).
-    if any(_model_is_gated(ctx_by_model.get(m.name)) for m in spec.models):
+    if any(_model_needs_role_helper(ctx_by_model.get(m.name)) for m in spec.models):
+        # Rôle privilégié embarqué dans le helper (pour le bootstrap par email).
+        _priv = next(
+            (getattr(c, "privileged_role", "") for c in ctx_by_model.values()
+             if getattr(c, "privileged_role", "")),
+            "admin",
+        )
+        _helper = _build_auth_role_helper(_priv)
         abs_lib = os.path.join(project_workdir, "lib")
         os.makedirs(abs_lib, exist_ok=True)
         try:
             with open(os.path.join(abs_lib, "auth-role.ts"), "w", encoding="utf-8") as f:
-                f.write(_AUTH_ROLE_HELPER)
-            written["lib/auth-role.ts"] = _AUTH_ROLE_HELPER
-            logger.info("[action_generator] ✓ lib/auth-role.ts généré (garde de rôle K1)")
+                f.write(_helper)
+            written["lib/auth-role.ts"] = _helper
+            logger.info("[action_generator] ✓ lib/auth-role.ts généré (rôle privilégié=%s, K1)", _priv)
         except Exception as e:
             logger.error("[action_generator] ✗ Erreur écriture lib/auth-role.ts : %s", e)
 

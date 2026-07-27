@@ -135,14 +135,18 @@ Les types suivants (I, K, H…) héritent de A+D et ajoutent leur propre colonne
 ### Les invariants (chacun : garantie déterministe OU check reviewer)
 | # | Invariant | Garantie / Check | Statut |
 |---|---|---|---|
-| K1 | Le rôle est lu depuis **Clerk** (`sessionClaims.metadata.role`), jamais du client | helper déterministe | ❌ |
-| K2 | Vue « admin voit tout » : `getAllAsAdmin()` **sans** filtre owner | service_modules (nouveau `admin`) | ❌ |
+| K1 | Le rôle est lu depuis **Clerk** (`publicMetadata.role` via clerkClient), jamais du client | `lib/auth-role.ts` (dev_actions_generator) | ✅ (26 Juil) |
+| K2 | Vue « admin voit tout » : `getAllAsAdmin()` **sans** filtre owner | crud.py + page liste branche par rôle | ✅ (26 Juil) |
 | K3 | Vue owner : reste filtrée par `userId` | crud.py (acquis A) | ✅ (hérité) |
-| K4 | Action gardée par rôle : vérif **CÔTÉ SERVEUR** (pas juste l'UI cachée) | garde service/action + reviewer | ❌ |
-| K5 | Page `/admin/*` : vérifie le rôle, redirige un non-admin | page generator + reviewer L1 | ❌ |
-| K6 | Entité GLOBALE (sans owner) : **pas** de filtre `userId`, pas de `@@index([userId])` | service + model_context `ownerless` | ❌ (bug Space) |
-| K7 | L'admin écrit/modifie des données d'AUTRUI (ex: statut d'une demande d'un autre) sans être bloqué par l'owner-guard | service admin-write | ❌ |
-| K8 | Le SEED peuple des données de PLUSIEURS acteurs (sinon « admin voit tout » montre 1 seul) | dev_seed_generator | ❌ |
+| K4 | Action gardée par rôle : `requireRole()` **CÔTÉ SERVEUR** (pas juste l'UI cachée) | dev_actions_generator | ✅ (26 Juil) |
+| K5 | Page `/admin/*` : vérifie le rôle, redirige un non-admin | non déclenché (plus de fausses pages /admin) | — |
+| K6 | Entité GLOBALE (sans owner) : **pas** de filtre `userId` | domain_interpreter + crud/serialize/FK-guard `is_global` | ✅ (26 Juil) |
+| K7 | L'admin écrit/modifie des données d'AUTRUI (transition gardée) sans owner-guard | transition.py (owner levé si status_transition gardé) | ✅ (26 Juil) |
+| K8 | Le SEED peuple des données de PLUSIEURS acteurs (sinon « admin voit tout » montre 1 seul) | dev_seed_generator (2 owners alternés + global sans owner) | ✅ (26 Juil, runtime) |
+
+**Validé (26 Juil)** : it-requests ET coworking → BUILD SUCCESS 0 erreur tsc, premier essai ; gating
+vérifié dans le code réel (transitionTo `where:{id}`, requireRole('admin'), space.getAll `where:{}`).
+Reste K8 (seed multi-acteur) pour la démo Scène-B live.
 
 ### Nettoyage LLM OBLIGATOIRE (prérequis — cause racine du bug)
 > On ne peut PAS compiler les rôles si l'architect croit encore « tout a un userId, un seul acteur ».

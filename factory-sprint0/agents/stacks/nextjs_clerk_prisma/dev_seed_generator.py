@@ -94,7 +94,7 @@ def _topo_order(contexts: dict[str, ModelGenerationContext]) -> list[str]:
     return ordered
 
 
-def _model_block(ctx: ModelGenerationContext, contexts: dict) -> list[str]:
+def _model_block(ctx: ModelGenerationContext, contexts: dict, multi_actor: bool = False) -> list[str]:
     """Lignes TS créant les _SEED_ROWS lignes d'un modèle."""
     lines: list[str] = []
     fk_by_field = {fk.field_name: fk for fk in (ctx.fk_fields or [])}
@@ -104,9 +104,20 @@ def _model_block(ctx: ModelGenerationContext, contexts: dict) -> list[str]:
     # serait incohérente — on les laisse vides, comme le fait le formulaire de création.
     _flow = getattr(ctx, "status_flow", None)
     _state_fields = set(_flow.all_state_fields()) if _flow is not None else set()
+    _is_global = getattr(ctx, "is_global", False)
 
     for i in range(_SEED_ROWS):
-        assigns: list[str] = [f"{ctx.owner}: OWNER"]
+        # K6 — entité globale : aucun owner (le champ n'existe pas dans le modèle).
+        # K8 — app multi-acteur : on répartit les lignes possédées entre DEUX owners
+        # (OWNER / OWNER2) pour que « admin voit tout » montre bien les données de
+        # plusieurs personnes, pas une seule. L'alternance est par indice de ligne :
+        # parent[i] et enfant[i] partagent donc le même owner (FK-owner cohérente).
+        if _is_global:
+            assigns: list[str] = []
+        elif multi_actor:
+            assigns = [f"{ctx.owner}: {'OWNER' if i % 2 == 0 else 'OWNER2'}"]
+        else:
+            assigns = [f"{ctx.owner}: OWNER"]
         for f in ctx.model.fields:
             name = f.name
             if name == ctx.owner or name == "id":
@@ -115,6 +126,11 @@ def _model_block(ctx: ModelGenerationContext, contexts: dict) -> list[str]:
                 continue
             if "@relation" in (getattr(f, "attributes", "") or "") or f.type.endswith("[]"):
                 continue  # objet relation / M2M — géré via la FK scalaire, ou ignoré
+            # Champ-relation SANS @relation : le côté inverse d'un 1-1 (`invoice Invoice?`)
+            # a pour type un MODÈLE, pas un scalaire. Le semer comme String produirait
+            # `invoice: 'Invoice exemple 1'` → crash Prisma au runtime (constaté coworking 26 Juil).
+            if f.type.rstrip("?").rstrip("[]") in contexts:
+                continue
             if name in m2m_names or name in _state_fields:
                 continue
             if name in fk_by_field:
@@ -135,6 +151,10 @@ def generate_seed_file(spec, project_workdir: str, contexts: dict | None = None)
     if not contexts:
         return {}
 
+    # K8 — l'app est multi-acteur si au moins un modèle a un rôle privilégié déclaré.
+    # Alors on sème deux owners pour que « admin voit tout » soit démontrable en preview.
+    multi_actor = any(getattr(c, "privileged_role", "") for c in contexts.values())
+
     order = _topo_order(contexts)
     header = [
         "// AUTO-GÉNÉRÉ PAR dev_seed_generator.py — données de démonstration (Preview local).",
@@ -149,14 +169,18 @@ def generate_seed_file(spec, project_workdir: str, contexts: dict | None = None)
         "const adapter = new PrismaPg(pool)",
         "const prisma = new PrismaClient({ adapter })",
         "const OWNER = process.env.SEED_USER_ID ?? 'user_demo'",
-        "",
-        "async function main() {",
     ]
+    if multi_actor:
+        # Deuxième acteur : ses données appartiennent à un AUTRE membre. L'admin (OWNER,
+        # rôle=admin dans Clerk) les verra via getAllAsAdmin ; un membre ne verrait que les siennes.
+        header.append("const OWNER2 = process.env.SEED_USER_ID_2 ?? 'user_demo_2'")
+    header += ["", "async function main() {"]
+
     body: list[str] = []
     for name in order:
         ctx = contexts[name]
         body.append(f"  const {ctx.camel}Rows = []")  # JS pur : pas d'annotation de type
-        body += _model_block(ctx, contexts)
+        body += _model_block(ctx, contexts, multi_actor=multi_actor)
         body.append("")
     footer = [
         "  console.log('Seed termine pour l utilisateur', OWNER)",
