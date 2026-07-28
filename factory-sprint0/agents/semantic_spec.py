@@ -245,6 +245,30 @@ class RoleDeclaration(BaseModel):
     # Le domain_interpreter n'y force PAS userId ; le service n'y applique PAS de filtre owner.
     # Vide [] = toutes les entités sont owned (cas standard single-tenant).
 
+    # ── SÉMANTIQUE OPÉRATIONNELLE — « l'âme » (route 2, Juil 2026) ────────────────
+    # Cette déclaration ne dit plus seulement QUI VOIT/DÉCIDE (type K), mais QUI FAIT QUOI
+    # dans le processus : qui INITIE, quelle SURFACE appartient à qui, quel DASHBOARD il voit.
+    # Remplace la prose des `user_flows` (« un adhérent demande un emprunt ») — intelligence qui
+    # s'évaporait — par une déclaration TYPÉE que les compilateurs S1→S5 peuvent enacter.
+
+    initiator: dict[str, str] = Field(default_factory=dict)
+    # Qui CRÉE chaque entité — {modèle: acteur}. Ex: {"Borrowing": "member"}.
+    # S1 : le bouton/la page « créer » n'existe QUE pour cet acteur ; retiré des autres
+    # (un bibliothécaire DÉCIDE d'un emprunt, il ne le DEMANDE pas). Absent = tout acteur
+    # authentifié peut créer (comportement historique, mono-acteur).
+
+    surface: dict[str, list[str]] = Field(default_factory=dict)
+    # Quelles ENTITÉS composent l'app de chaque acteur — {acteur: [modèles]}.
+    # Ex: {"member": ["Book", "Borrowing", "Member"], "librarian": ["Borrowing", "Book"]}.
+    # S2 : la nav + les routes sont générées PAR acteur ; rien qui ne lui appartient.
+    # Vide = tous les acteurs voient toutes les entités (comportement historique).
+
+    dashboard: dict[str, list[str]] = Field(default_factory=dict)
+    # Indicateurs que chaque acteur voit sur SON tableau de bord — {acteur: [descriptions]}.
+    # Ex: {"librarian": ["nombre d'emprunts en attente"], "member": ["mes emprunts en cours"]}.
+    # S4 : compilé en agrégations calculées (op + champ + filtre + fenêtre) par acteur.
+    # Vide = dashboard générique (comportement historique).
+
     def is_admin_view(self, model_name: str) -> bool:
         """True si le rôle privilégié voit toutes les lignes de ce modèle."""
         return model_name in self.admin_scoped_views
@@ -256,6 +280,18 @@ class RoleDeclaration(BaseModel):
     def is_global(self, model_name: str) -> bool:
         """True si ce modèle est un catalogue global sans owner."""
         return model_name in self.global_entities
+
+    def creator_of(self, model_name: str) -> str:
+        """Acteur qui INITIE (crée) ce modèle, ou '' si non déclaré (= tout acteur)."""
+        return self.initiator.get(model_name, "")
+
+    def surface_of(self, actor: str) -> list[str]:
+        """Modèles composant l'app de cet acteur (vide = pas de restriction déclarée)."""
+        return self.surface.get(actor, [])
+
+    def dashboard_of(self, actor: str) -> list[str]:
+        """Indicateurs du tableau de bord de cet acteur (vide = dashboard générique)."""
+        return self.dashboard.get(actor, [])
 
     @property
     def is_multi_actor(self) -> bool:

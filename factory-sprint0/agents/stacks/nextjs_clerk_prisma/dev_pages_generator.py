@@ -341,6 +341,10 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     _is_admin_scoped = bool(getattr(ctx, "is_admin_scoped", False)) and page.auth_required \
         and page.page_type == "list"
     _priv_role = getattr(ctx, "privileged_role", "") if ctx is not None else ""
+    # S1 — page de création réservée à l'initiateur : un non-initiateur (ex: le bibliothécaire
+    # sur /borrowings/new) est redirigé. Garde serveur, en écho de la garde d'action.
+    _init_actor = getattr(ctx, "initiator", "") if ctx is not None else ""
+    _create_gated = bool(is_create and _init_actor and _priv_role and page.auth_required)
 
     # Champs FK pour pages create
     fk_list: list[tuple[str, str, str]] = []
@@ -380,6 +384,8 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
         if _is_admin_scoped:
             lines.append("import { getCurrentRole } from '@/lib/auth-role'")
+    if _create_gated:
+        lines.append("import { getCurrentRole } from '@/lib/auth-role'")
 
     # Imports services FK pour formulaires create
     for _fk_field, related_model, related_camel in fk_list:
@@ -427,6 +433,15 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
             "  const { userId } = await auth()",
             "  if (!userId) redirect('/sign-in')",
         ]
+
+    if _create_gated:
+        # S1 — seul l'initiateur atteint le formulaire de création ; les autres sont renvoyés
+        # vers la liste. Écho serveur de la garde d'action (double verrou UI + serveur).
+        _back = (getattr(ctx, "list_page_path", "") or "/") if ctx is not None else "/"
+        if _init_actor == _priv_role:
+            lines.append(f"  if ((await getCurrentRole()) !== '{_priv_role}') redirect('{_back}')")
+        else:
+            lines.append(f"  if ((await getCurrentRole()) === '{_priv_role}') redirect('{_back}')")
 
     if is_detail:
         if is_slug_detail:

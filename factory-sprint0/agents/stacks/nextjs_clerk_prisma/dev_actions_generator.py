@@ -88,10 +88,24 @@ def _model_is_gated(ctx) -> bool:
     return bool(ctx is not None and getattr(ctx, "gated_verbs", None) and getattr(ctx, "privileged_role", ""))
 
 
+def _model_has_initiator_guard(ctx) -> bool:
+    """True si la création de ce modèle est réservée à un acteur (S1) — l'initiateur diffère
+    éventuellement du rôle privilégié, mais dans les deux cas une garde de rôle est émise."""
+    return bool(
+        ctx is not None
+        and getattr(ctx, "initiator", "")
+        and getattr(ctx, "privileged_role", "")
+    )
+
+
 def _model_needs_role_helper(ctx) -> bool:
-    """True si le modèle a besoin de lib/auth-role.ts : action gardée (K4) OU vue admin (K2).
-    Une vue admin lit getCurrentRole() dans sa page même sans action gardée."""
-    return _model_is_gated(ctx) or bool(ctx is not None and getattr(ctx, "is_admin_scoped", False))
+    """True si le modèle a besoin de lib/auth-role.ts : action gardée (K4), vue admin (K2)
+    OU création réservée à un acteur (S1). Toutes lisent getCurrentRole()/hasRole/requireRole."""
+    return (
+        _model_is_gated(ctx)
+        or bool(ctx is not None and getattr(ctx, "is_admin_scoped", False))
+        or _model_has_initiator_guard(ctx)
+    )
 
 
 # ── Helpers pour la détection enfant ────────────────────────────────────────
@@ -173,8 +187,8 @@ def _generate_actions_for_model(model, list_page: str, ctx=None, spec=None) -> s
         f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'",
         f"import {{ Create{name}Schema, Update{name}Schema }} from '@/lib/schemas'",
     ]
-    if _model_is_gated(ctx):
-        header.append("import { requireRole } from '@/lib/auth-role'")
+    if _model_is_gated(ctx) or _model_has_initiator_guard(ctx):
+        header.append("import { requireRole, hasRole } from '@/lib/auth-role'")
     header.append("")
     return "\n".join(header) + "\n" + _actions_block(model, list_page, ctx=ctx, spec=spec)
 
@@ -282,8 +296,8 @@ def generate_action_files(
                     f"import {{ Create{m.name}Schema, Update{m.name}Schema }} from '@/lib/schemas'"
                 )
             parts.append("import { ZodError } from 'zod'")
-            if any(_model_is_gated(ctx_by_model.get(m.name)) for m in models):
-                parts.append("import { requireRole } from '@/lib/auth-role'")
+            if any(_model_is_gated(ctx_by_model.get(m.name)) or _model_has_initiator_guard(ctx_by_model.get(m.name)) for m in models):
+                parts.append("import { requireRole, hasRole } from '@/lib/auth-role'")
             parts.append("")
             for m in models:
                 ctx = ctx_by_model.get(m.name)
@@ -327,6 +341,22 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
 
     def _role_guard(verb: str) -> list[str]:
         return [f"  await requireRole('{_priv}')"] if (verb in _gated and _priv) else []
+
+    # ── S1 — garde d'INITIATEUR sur la création : un acteur qui n'initie pas cette entité
+    # ne peut pas la créer (un bibliothécaire DÉCIDE d'un emprunt, il ne le DEMANDE pas).
+    # 2 acteurs : soit l'initiateur EST le privilégié (→ requireRole), soit c'est l'acteur de
+    # base (→ le privilégié est bloqué). Masquer le bouton ne suffit pas : garde SERVEUR.
+    _init = getattr(ctx, "initiator", "") if ctx is not None else ""
+
+    def _initiator_guard() -> list[str]:
+        if not _init or not _priv:
+            return []
+        if _init == _priv:
+            return [f"  await requireRole('{_priv}')"]
+        return [
+            f"  if (await hasRole('{_priv}')) throw new Error("
+            f"'Création réservée aux {_init}s — le rôle {_priv} ne crée pas cette entité.')"
+        ]
 
     if is_child:
         parent_list, fk_field = _parent_paths(ctx, spec)
@@ -406,6 +436,7 @@ def _actions_block(model, list_page: str, ctx=None, spec=None) -> str:
         f"export async function create{name}(formData: FormData) {{",
         "  const { userId } = await auth()",
         "  if (!userId) redirect('/sign-in')",
+        *_initiator_guard(),
         *create_body_lines,
         "",
         f"export async function update{name}(id: string, formData: FormData) {{",

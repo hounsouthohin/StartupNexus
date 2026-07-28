@@ -242,6 +242,13 @@ class ModelGenerationContext:
     # privileged_role : nom du rôle privilégié (ex: "admin"), lu depuis Clerk. "" = mono-acteur.
     privileged_role: str = ""
 
+    # ── Sémantique opérationnelle S1 (l'âme, Juil 2026) ───────────────────────
+    # initiator : acteur qui CRÉE cette entité (ex: "member" crée un Borrowing). "" = tout
+    #   acteur authentifié peut créer (mono-acteur / non déclaré). Compilé en garde S1 :
+    #   la page/action « créer » est réservée à l'initiateur ; un autre acteur (ex: le
+    #   bibliothécaire) ne peut ni voir le bouton ni soumettre (un décideur n'est pas un demandeur).
+    initiator: str = ""
+
 
 # ── Helpers de calcul ─────────────────────────────────────────────────────────
 
@@ -606,6 +613,14 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
     is_admin_scoped = bool(_roles) and getattr(_roles, "is_admin_view", lambda _n: False)(name) and not is_global
     _gated_verbs = list(getattr(_roles, "gated_verbs", lambda _n: [])(name)) if _roles else []
     _privileged_role = getattr(_roles, "privileged_role", "") if _roles else ""
+    # S1 — initiateur : uniquement s'il diffère du décideur (sinon aucune asymétrie à compiler)
+    # et si l'acteur cité est bien un rôle connu. On ne garde que du cohérent.
+    _initiator = ""
+    if _roles:
+        _cand = getattr(_roles, "creator_of", lambda _n: "")(name)
+        _known = set(getattr(_roles, "roles", []) or [])
+        if _cand and _cand in _known:
+            _initiator = _cand
 
     editable: list[FieldInfo] = []
     datetime_fields: list[DatetimeFieldInfo] = []
@@ -724,6 +739,7 @@ def build_model_context(model, spec, enriched_spec=None) -> ModelGenerationConte
         is_admin_scoped=is_admin_scoped,
         gated_verbs=_gated_verbs,
         privileged_role=_privileged_role,
+        initiator=_initiator,
         has_slug=has_slug,
         has_status=has_status,
         has_published_bool=has_published_bool,

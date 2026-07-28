@@ -238,12 +238,27 @@ juste le filtre owner. Ne crée AUCUN modèle Role ni champ role — Clerk porte
 - "global_entities"    : modèles SANS owner (catalogue partagé que tout le monde consulte/réserve,
                          ex: les espaces d'un coworking). [] si toutes les entités sont personnelles.
 
+SÉMANTIQUE OPÉRATIONNELLE — QUI FAIT QUOI (ne raconte pas le flux, DÉCLARE-le) :
+Un brief ne décrit pas que des droits de lecture : il décrit un PROCESSUS. « L'adhérent DEMANDE,
+le bibliothécaire DÉCIDE » = deux acteurs qui ne font PAS la même chose. Déclare-le :
+- "initiator"  : qui CRÉE chaque entité — {modèle: acteur}. Ex: {"Borrowing": "member"}.
+                 Celui qui DÉCIDE d'une entité ne la CRÉE pas (le bibliothécaire ne demande pas
+                 d'emprunt). Absent = tout acteur authentifié peut créer.
+- "surface"    : quelles entités composent l'app de chaque acteur — {acteur: [modèles]}.
+                 Ex: {"member": ["Book","Borrowing"], "librarian": ["Borrowing","Book"]}.
+                 Un acteur ne voit dans sa nav QUE ce qui le concerne.
+- "dashboard"  : ce que chaque acteur voit sur son tableau de bord — {acteur: [descriptions courtes]}.
+                 Ex: {"librarian": ["emprunts en attente de décision"], "member": ["mes emprunts en cours"]}.
+
 RÈGLES :
 - Deux acteurs aux droits différents = DEUX rôles. Ne fusionne jamais « celui qui crée » et
   « celui qui supervise » en un seul acteur.
 - N'invente pas de rôle que le brief ne nomme pas. Un brief mono-acteur → tout à [] et "".
 - privileged_role DOIT figurer dans roles.
-- Les modèles de admin_scoped_views et les clés de role_gated_actions doivent exister dans les modèles reçus.
+- Les modèles de admin_scoped_views, role_gated_actions, initiator, surface doivent exister dans les modèles reçus.
+- initiator/surface/dashboard : les acteurs cités DOIVENT figurer dans "roles". Mono-acteur → laisse-les {}.
+- Cohérence : celui qui a "status_transition" dans role_gated_actions (le décideur) n'est en général PAS
+  l'initiator de la même entité.
 
 ### ux_hints
 Produis des indications UX pour améliorer l'expérience utilisateur final.
@@ -366,7 +381,10 @@ modèle unique `Request { title, description, priority, status RequestStatus, us
     "privileged_role": "admin",
     "admin_scoped_views": ["Request"],
     "role_gated_actions": {"Request": ["status_transition"]},
-    "global_entities": []
+    "global_entities": [],
+    "initiator": {"Request": "employee"},
+    "surface": {"employee": ["Request"], "admin": ["Request"]},
+    "dashboard": {"admin": ["demandes en attente de traitement"], "employee": ["mes demandes en cours"]}
   },
   "ux_hints": {
     "empty_states": {"/requests": "Aucune demande. Créez votre première demande."},
@@ -375,7 +393,7 @@ modèle unique `Request { title, description, priority, status RequestStatus, us
   }
 }
 
-Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "status_flows": {}, "roles": {"roles": [], "privileged_role": "", "admin_scoped_views": [], "role_gated_actions": {}, "global_entities": []}, "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
+Retourne UNIQUEMENT le JSON. Si aucune annotation n'est pertinente, retourne {"field_annotations": {}, "required_queries": [], "features": [], "status_flows": {}, "roles": {"roles": [], "privileged_role": "", "admin_scoped_views": [], "role_gated_actions": {}, "global_entities": [], "initiator": {}, "surface": {}, "dashboard": {}}, "ux_hints": {"empty_states": {}, "dependency_order": [], "primary_action": {}}}.\
 """
 
 
@@ -458,6 +476,10 @@ async def semantic_annotator_node(state: AgentState) -> dict:
             _roles.get("roles"), _roles.get("privileged_role"),
             _roles.get("admin_scoped_views"), _roles.get("role_gated_actions"),
             _roles.get("global_entities"),
+        )
+        logger.info(
+            "[semantic_annotator] 🎬 initiateur=%s surface=%s dashboard=%s",
+            _roles.get("initiator"), _roles.get("surface"), _roles.get("dashboard"),
         )
 
     updated_brief = {**brief, "enriched_spec": enriched}
