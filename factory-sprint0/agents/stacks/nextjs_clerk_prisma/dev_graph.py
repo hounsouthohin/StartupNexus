@@ -428,7 +428,7 @@ async def run_dev_agent(
     if spec_obj is not None:
         try:
             from .dev_layout_generator import generate_layout
-            _layout_files = generate_layout(project_workdir, project_name, spec, spec_obj=spec_obj)
+            _layout_files = generate_layout(project_workdir, project_name, spec, spec_obj=spec_obj, enriched_spec=_enriched_spec)
             template_written.update(_layout_files)
             logger.info("[dev_graph] layout shell généré (layout_type=%s, sidebar_bg=%s)",
                         _design_system.get("layout_type", "sidebar"),

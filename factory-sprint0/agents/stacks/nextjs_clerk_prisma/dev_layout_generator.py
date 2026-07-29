@@ -28,18 +28,25 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserButton } from "@clerk/nextjs"
 
-interface NavItem { href: string; label: string; exact?: boolean }
+interface NavItem { href: string; label: string; exact?: boolean; priv?: boolean; base?: boolean }
+
+// Rôle privilégié (vide = mono-acteur). Nav filtrée par la SURFACE de l'acteur (S2).
+// Annoté `string` : sinon TS réduit au littéral et `!== ""` = comparaison sans overlap (TS2367).
+const PRIVILEGED_ROLE: string = "__PRIVILEGED_ROLE__"
 
 const NAV: NavItem[] = [
 __NAV_LINES__
 ]
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export function DashboardShell({ children, role }: { children: React.ReactNode; role?: string | null }) {
   const pathname = usePathname()
   const PUBLIC_PATHS: string[] = [__PUBLIC_PATHS__]
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + "/"))
 
   if (isAuthPage) return <>{children}</>
+
+  const isPrivileged = PRIVILEGED_ROLE !== "" && role === PRIVILEGED_ROLE
+  const navItems = NAV.filter((i) => (isPrivileged ? i.priv !== false : i.base !== false))
 
   return (
     <div className="flex h-screen overflow-hidden bg-__PAGE_BG__">
@@ -48,7 +55,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <span className="text-base font-semibold text-__BRAND_TEXT__ truncate">__APP_NAME__</span>
         </div>
         <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const active = item.exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(item.href + "/")
@@ -129,7 +136,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { UserButton, useUser } from "@clerk/nextjs"
 
-interface NavItem { href: string; label: string; exact?: boolean }
+interface NavItem { href: string; label: string; exact?: boolean; priv?: boolean; base?: boolean }
+
+// Rôle privilégié (vide = mono-acteur). Les liens sont filtrés par la SURFACE de l'acteur (S2) :
+// chacun ne voit dans sa nav que ce qui compose SON app. Annoté `string` (sinon TS réduit au
+// type littéral et `!== ""` devient une comparaison « sans overlap » → TS2367).
+const PRIVILEGED_ROLE: string = "__PRIVILEGED_ROLE__"
 
 const AUTH_NAV: NavItem[] = [
 __AUTH_NAV_LINES__
@@ -139,14 +151,16 @@ const PUBLIC_NAV: NavItem[] = [
 __PUBLIC_NAV_LINES__
 ]
 
-export function TopNavShell({ children }: { children: React.ReactNode }) {
+export function TopNavShell({ children, role }: { children: React.ReactNode; role?: string | null }) {
   const pathname = usePathname()
   const { isSignedIn } = useUser()
   const isAuthPage = pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")
 
   if (isAuthPage) return <>{children}</>
 
-  const nav = isSignedIn ? AUTH_NAV : PUBLIC_NAV
+  const isPrivileged = PRIVILEGED_ROLE !== "" && role === PRIVILEGED_ROLE
+  const authNav = AUTH_NAV.filter((i) => (isPrivileged ? i.priv !== false : i.base !== false))
+  const nav = isSignedIn ? authNav : PUBLIC_NAV
 
   return (
     <div className="min-h-screen bg-background">
@@ -397,23 +411,32 @@ def _generate_sidebar_layout(
     pages: List[Any],
     tokens: Dict[str, str],
     extra_labels: Dict[str, str] | None = None,
+    multi_actor: bool = False,
+    priv_role: str = "",
+    vis=None,
 ) -> Dict[str, str]:
     """Génère DashboardShell.tsx + layout.tsx (sidebar)."""
     nav = _nav_items(pages, extra_labels)
+    vis = vis or (lambda _p: (True, True))
     public_paths = [
         _path_of(p) for p in pages
         if not _auth_of(p) and _path_of(p) and not _path_of(p).startswith("/sign-")
     ]
 
-    nav_lines = "\n".join(
-        f'  {{ href: "{item["href"]}", label: "{item["label"]}", exact: {str(item["exact"]).lower()} }},'
-        for item in nav
-    )
+    def _nav_line(item: Dict[str, Any]) -> str:
+        _priv, _base = vis(item["href"])
+        return (
+            f'  {{ href: "{item["href"]}", label: "{item["label"]}", '
+            f'exact: {str(item["exact"]).lower()}, priv: {str(_priv).lower()}, base: {str(_base).lower()} }},'
+        )
+
+    nav_lines = "\n".join(_nav_line(item) for item in nav)
     pub_paths_ts = ", ".join(f'"{p}"' for p in public_paths)
 
     shell_content = (
         _SIDEBAR_SHELL_TEMPLATE
         .replace("__APP_NAME__",     tokens["brand_name"])
+        .replace("__PRIVILEGED_ROLE__", priv_role)
         .replace("__NAV_LINES__",    nav_lines)
         .replace("__SIDEBAR_BG__",   tokens["sidebar_bg"])
         .replace("__PAGE_BG__",      tokens["page_bg"])
@@ -425,7 +448,7 @@ def _generate_sidebar_layout(
         .replace("__NAV_PADDING__",  tokens["nav_padding"])
         .replace("__TRANSITION__",   tokens["transition"])
     )
-    layout_content = _SIDEBAR_LAYOUT_TEMPLATE.replace("__APP_NAME__", tokens["brand_name"])
+    layout_content = _layout_content("DashboardShell", tokens["brand_name"], multi_actor)
 
     return _write_files(project_workdir, [
         ("app/components/layout/DashboardShell.tsx", shell_content),
@@ -439,16 +462,21 @@ def _generate_topnav_layout(
     pages: List[Any],
     tokens: Dict[str, str],
     extra_labels: Dict[str, str] | None = None,
+    multi_actor: bool = False,
+    priv_role: str = "",
+    vis=None,
 ) -> Dict[str, str]:
     """Génère TopNavShell.tsx + layout.tsx (topnav)."""
     auth_nav    = _nav_items(pages, extra_labels)
     public_nav  = _public_nav_items(pages, extra_labels)
     transition  = tokens["transition"]
+    vis = vis or (lambda _p: (True, True))
 
     def _nav_line(item: Dict[str, Any]) -> str:
+        _priv, _base = vis(item["href"])
         return (
             f'  {{ href: "{item["href"]}", label: "{item["label"]}", '
-            f'exact: {str(item["exact"]).lower()} }},'
+            f'exact: {str(item["exact"]).lower()}, priv: {str(_priv).lower()}, base: {str(_base).lower()} }},'
         )
 
     auth_nav_lines   = "\n".join(_nav_line(i) for i in auth_nav)
@@ -457,16 +485,64 @@ def _generate_topnav_layout(
     shell_content = (
         _TOPNAV_SHELL_TEMPLATE
         .replace("__APP_NAME__",        app_name)
+        .replace("__PRIVILEGED_ROLE__", priv_role)
         .replace("__AUTH_NAV_LINES__",  auth_nav_lines)
         .replace("__PUBLIC_NAV_LINES__", public_nav_lines)
         .replace("__TRANSITION__",      transition)
     )
-    layout_content = _TOPNAV_LAYOUT_TEMPLATE.replace("__APP_NAME__", app_name)
+    layout_content = _layout_content("TopNavShell", app_name, multi_actor)
 
     return _write_files(project_workdir, [
         ("app/components/layout/TopNavShell.tsx", shell_content),
         ("app/layout.tsx", layout_content),
     ])
+
+
+def _layout_content(shell_component: str, app_name: str, multi_actor: bool) -> str:
+    """Construit app/layout.tsx. En MULTI-ACTEUR : layout serveur async qui lit le rôle
+    (getCurrentRole) et le passe au shell → nav filtrée par acteur (S2). Sinon : layout
+    classique (aucune dépendance à lib/auth-role, comportement historique mono-acteur)."""
+    role_import = 'import { getCurrentRole } from "@/lib/auth-role"\n' if multi_actor else ""
+    async_kw    = "async " if multi_actor else ""
+    role_fetch  = "  const role = await getCurrentRole()\n" if multi_actor else ""
+    role_prop   = " role={role}" if multi_actor else ""
+    return (
+        'import { ClerkProvider } from "@clerk/nextjs"\n'
+        f'import {{ {shell_component} }} from "@/app/components/layout/{shell_component}"\n'
+        f'{role_import}'
+        'import "./globals.css"\n'
+        'import type { ReactNode } from "react"\n'
+        '\n'
+        f'export const metadata = {{ title: "{app_name}" }}\n'
+        '\n'
+        f'export default {async_kw}function RootLayout({{ children }}: {{ children: ReactNode }}) {{\n'
+        '  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY\n'
+        '\n'
+        '  const canUseClerk =\n'
+        '    typeof publishableKey === "string" &&\n'
+        '    publishableKey.startsWith("pk_") &&\n'
+        '    !publishableKey.includes("placeholder")\n'
+        '\n'
+        '  if (!canUseClerk) {\n'
+        '    return (\n'
+        '      <html lang="fr">\n'
+        '        <body>{children}</body>\n'
+        '      </html>\n'
+        '    )\n'
+        '  }\n'
+        '\n'
+        f'{role_fetch}'
+        '  return (\n'
+        '    <ClerkProvider publishableKey={publishableKey}>\n'
+        '      <html lang="fr">\n'
+        '        <body>\n'
+        f'          <{shell_component}{role_prop}>{{children}}</{shell_component}>\n'
+        '        </body>\n'
+        '      </html>\n'
+        '    </ClerkProvider>\n'
+        '  )\n'
+        '}\n'
+    )
 
 
 def _write_files(project_workdir: str, pairs: list) -> Dict[str, str]:
@@ -489,12 +565,14 @@ def generate_layout(
     project_name: str,
     project_spec: Dict[str, Any],
     spec_obj: Any = None,
+    enriched_spec: Any = None,
 ) -> Dict[str, str]:
     """
     Écrit le shell (sidebar ou topnav) + layout.tsx sur disque.
     Retourne {rel_path: content} pour intégration dans template_written.
     Lit project_spec["design_system"]["layout_type"] pour choisir le shell.
     spec_obj : ProjectSpec objet optionnel — source de title_plurals pour labels nav localisés.
+    enriched_spec : porte la SURFACE par acteur (S2) → nav filtrée par rôle.
     """
     pages: List[Any]              = project_spec.get("pages", [])
     design_system: Dict[str, Any] = project_spec.get("design_system", {}) or {}
@@ -513,7 +591,34 @@ def generate_layout(
         if _model and _path and _model in _title_plurals:
             extra_labels[_path] = _title_plurals[_model]
 
+    # ── S2 — surface par acteur : quelle nav chaque rôle voit ────────────────────
+    _roles      = getattr(enriched_spec, "roles", None) if enriched_spec else None
+    priv_role   = getattr(_roles, "privileged_role", "") if _roles else ""
+    surface     = getattr(_roles, "surface", {}) if _roles else {}
+    all_roles   = getattr(_roles, "roles", []) if _roles else []
+    base_actor  = next((r for r in all_roles if r != priv_role), "")
+    multi_actor = bool(priv_role and surface and len(all_roles) >= 2)
+    _page_model: Dict[str, Any] = {}
+    for page in pages:
+        _m  = page.get("model") if isinstance(page, dict) else getattr(page, "model", None)
+        _pa = _path_of(page)
+        if _pa:
+            _page_model[_pa] = _m
+    _surface_models: set = set()
+    for _v in (surface or {}).values():
+        _surface_models.update(_v or [])
+
+    def _vis(path: str):
+        """(visible_privilégié, visible_base) pour une page. Défaut permissif : si pas de
+        multi-acteur, ou page sans modèle, ou modèle dans AUCUNE surface → visible partout."""
+        _m = _page_model.get(path)
+        if not multi_actor or not _m or _m not in _surface_models:
+            return (True, True)
+        return (_m in surface.get(priv_role, []), _m in surface.get(base_actor, []))
+
     if layout_type == "topnav":
-        return _generate_topnav_layout(project_workdir, app_name, pages, tokens, extra_labels)
+        return _generate_topnav_layout(project_workdir, app_name, pages, tokens, extra_labels,
+                                       multi_actor=multi_actor, priv_role=priv_role, vis=_vis)
     else:
-        return _generate_sidebar_layout(project_workdir, app_name, pages, tokens, extra_labels)
+        return _generate_sidebar_layout(project_workdir, app_name, pages, tokens, extra_labels,
+                                        multi_actor=multi_actor, priv_role=priv_role, vis=_vis)

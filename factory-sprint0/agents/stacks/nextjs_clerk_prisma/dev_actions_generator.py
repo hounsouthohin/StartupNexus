@@ -250,8 +250,11 @@ def generate_action_files(
     written: dict[str, str] = {}
 
     # K1 — helper de rôle (lib/auth-role.ts) émis UNE fois si au moins une action est
-    # gardée par rôle. Les actions gardées l'importent ; les pages admin aussi (K5).
-    if any(_model_needs_role_helper(ctx_by_model.get(m.name)) for m in spec.models):
+    # gardée par rôle. Les actions gardées l'importent ; les pages admin (K2) et le layout (S2)
+    # aussi. Multi-acteur ⇒ le layout importe getCurrentRole ⇒ le helper DOIT exister même sans
+    # action gardée (app à surfaces distinctes seulement).
+    _multi_actor = any(getattr(ctx_by_model.get(m.name), "privileged_role", "") for m in spec.models)
+    if _multi_actor or any(_model_needs_role_helper(ctx_by_model.get(m.name)) for m in spec.models):
         # Rôle privilégié embarqué dans le helper (pour le bootstrap par email).
         _priv = next(
             (getattr(c, "privileged_role", "") for c in ctx_by_model.values()

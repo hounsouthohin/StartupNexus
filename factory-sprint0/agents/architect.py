@@ -245,7 +245,10 @@ le bibliothécaire DÉCIDE » = deux acteurs qui ne font PAS la même chose. Dé
                  Celui qui DÉCIDE d'une entité ne la CRÉE pas (le bibliothécaire ne demande pas
                  d'emprunt). Absent = tout acteur authentifié peut créer.
 - "surface"    : quelles entités composent l'app de chaque acteur — {acteur: [modèles]}.
-                 Ex: {"member": ["Book","Borrowing"], "librarian": ["Borrowing","Book"]}.
+                 Inclure TOUTE entité que l'acteur voit OU gère, Y COMPRIS son PROFIL personnel.
+                 Ex: {"member": ["Book","Borrowing","Member"], "librarian": ["Borrowing","Book"]}.
+                 Ici "Member" (le profil de l'adhérent) est dans la surface du member mais PAS du
+                 librarian (le/la bibliothécaire n'a pas de fiche d'adhérent → pas de « mon profil »).
                  Un acteur ne voit dans sa nav QUE ce qui le concerne.
 - "dashboard"  : ce que chaque acteur voit sur son tableau de bord — {acteur: [descriptions courtes]}.
                  Ex: {"librarian": ["emprunts en attente de décision"], "member": ["mes emprunts en cours"]}.

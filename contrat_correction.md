@@ -163,3 +163,59 @@ Reste K8 (seed multi-acteur) pour la démo Scène-B live.
 
 **« Type K terminé » = K1→K9 ✅ sur it-requests (rôle pur) ET coworking (rôle × catalogue global).**
 Étalon double : it-requests doit distinguer admin/employé ; coworking doit builder ET tourner.
+
+---
+
+## SÉMANTIQUE OPÉRATIONNELLE — « L'APP AVEC ÂME » (route 2, écrit AVANT implémentation — 27 Juil 2026)
+
+### Le principe fondateur
+> **Une app n'est pas « des entités + des écrans ». C'est DES ACTEURS QUI DÉROULENT UN PROCESSUS
+> sur des entités à états, et qui en voient le REFLET.** L'âme = cette logique vivante (qui fait
+> quoi à qui, ce qui change, ce que l'acteur voit en retour). Elle doit être DÉCLARÉE (typée) puis
+> ENACTÉE (compilée) — jamais laissée à la prose (`user_flows`) qui s'évapore, ni improvisée par le LLM.
+
+### Ce que le test humain a révélé (médiathèque, le trou en réel)
+Build vert + review COHERENT 100/100, MAIS pour un humain l'app est « sans âme » :
+1. le bibliothécaire peut aussi *emprunter* (un décideur n'est pas un demandeur) ;
+2. la nav n'est pas façonnée par le rôle ; la page « adhérents » est vide / 404 ;
+3. pas de page d'édition (le bibliothécaire ne peut rien modifier) ;
+4. dashboards adhérent = bibliothécaire, et compteurs à 0 ;
+5. aucune mise à jour après une action (il faut rafraîchir à la main).
+Cause racine UNIQUE : la STRUCTURE est compilée, la LOGIQUE VIVANTE ne l'est pas — elle n'a pas de case.
+
+### La déclaration que l'ARCHITECT doit produire (nouveau : ActorProcessDeclaration)
+L'architect ne RACONTE plus le flux (prose), il le DÉCLARE (typé). Par entité et par acteur :
+- `actors` : les personas du domaine (ex: `["member", "librarian"]`) — hérite de RoleDeclaration.
+- `initiator` (par entité) : quel acteur CRÉE cette entité (ex: `Borrowing → member`). Les autres
+  acteurs n'ont NI bouton NI page « créer » pour elle.
+- `decider` (par transition) : quel acteur fait avancer l'état (ex: `Borrowing.status → librarian`) — = role_gated_actions, réutilisé.
+- `owner` (par entité) : à qui la donnée appartient (acquis type K).
+- `surface` (par acteur) : quelles entités/pages composent SON app (nav + routes filtrées par rôle).
+- `dashboard` (par acteur) : quelles agrégations calculées il voit (ex: librarian → count(Borrowing where status=requested)).
+
+### Les invariants (chacun : LLM déclare → compilateur enacte → check)
+| # | Invariant | LLM déclare | Compilateur enacte | Remarque réparée | Statut |
+|---|---|---|---|---|---|
+| S0 | **Contenant + architect déclare** | `initiator`/`surface`/`dashboard` typés (fini la prose user_flows) | — | (fondation) | ✅ 28 Juil — médiathèque : initiateur(member)≠décideur(librarian) |
+| S1 | **Qui initie** | `initiator` par entité | garde serveur create (action + page /new) réservée à l'initiateur | biblio ne peut plus emprunter | ✅ 28 Juil (bouton UI → S2) |
+| S2 | **Surface par acteur** | `surface` par rôle | layout async passe le rôle → nav filtrée priv/base par surface | nav non filtrée, page adhérents 404 | ✅ 29 Juil (bibliothécaire ne voit plus « Adhérents »/profil) |
+| S3 | **CRUD complet garanti** | entité gérée par un acteur | list/create/detail/**edit** tous générés — aucune route déclarée ne 404 | pages d'édition manquantes | ⏳ |
+| S4 | **Dashboard miroir** | `dashboard` par acteur | KPI compilés (agrégation : op + champ + filtre + fenêtre temps) | dashboards identiques, compteurs à 0 | ⏳ |
+| S5 | **Boucle réactive** | (implicite : toute mutation) | `revalidatePath`/`router.refresh` de 1re classe sur chaque action | pas de mise à jour après action | ⏳ |
+
+### Nettoyage LLM OBLIGATOIRE (prérequis — même cause racine que type K / type I)
+> Le `user_flows` (liste de phrases) est de l'intelligence qui s'ÉVAPORE : aucun compilateur ne lit
+> « un adhérent demande un emprunt ». On garde `user_flows` pour le miroir humain, mais la SOURCE
+> compilable devient l'`ActorProcessDeclaration` typée. L'architect DÉCLARE, il ne raconte plus.
+- Prompt architect : produire `initiator`/`surface`/`dashboard` structurés, pas seulement des phrases.
+- Vérifier qu'aucun prompt n'affirme « une page par entité pour tout le monde » (contredit S2).
+
+### Le vrai check « déclaration vs brief » (ce que la roadmap dit inexistant, ligne 172)
+Une fois la déclaration ENRICHIE de la sémantique, le reviewer peut ENFIN vérifier une clause qui
+existe : « le brief dit *seul le bibliothécaire décide* → `decider(Borrowing)=librarian` ? ». Avant,
+il auditait un contrat vide. Ce check n'a de sens qu'APRÈS S1→S5 (sinon rien à comparer).
+
+**« App avec âme terminée » = S1→S5 ✅ sur la médiathèque, jugé UTILISABLE par un humain**
+(adhérent demande / bibliothécaire décide, surfaces distinctes, dashboard qui compte, MAJ live) —
+PUIS reprise de la phase de tests sur briefs variés : la forme est trouvée quand le taux de
+découverte de nouvelles cases tombe à zéro.
