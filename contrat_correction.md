@@ -199,7 +199,10 @@ L'architect ne RACONTE plus le flux (prose), il le DÉCLARE (typé). Par entité
 | S0 | **Contenant + architect déclare** | `initiator`/`surface`/`dashboard` typés (fini la prose user_flows) | — | (fondation) | ✅ 28 Juil — médiathèque : initiateur(member)≠décideur(librarian) |
 | S1 | **Qui initie** | `initiator` par entité | garde serveur create (action + page /new) réservée à l'initiateur | biblio ne peut plus emprunter | ✅ 28 Juil (bouton UI → S2) |
 | S2 | **Surface par acteur** | `surface` par rôle | layout async passe le rôle → nav filtrée priv/base par surface | nav non filtrée, page adhérents 404 | ✅ 29 Juil (bibliothécaire ne voit plus « Adhérents »/profil) |
-| S3 | **CRUD complet garanti** | entité gérée par un acteur | list/create/detail/**edit** tous générés — aucune route déclarée ne 404 | pages d'édition manquantes | ⏳ |
+| S3 | **AFFORDANCE HONNÊTE** (ex-« CRUD complet ») | qui gère quoi + type d'entité | affordance existe ⇔ acteur a la capacité ⇔ donnée existe. 3 facettes ↓ | profil 404, « gérer » lecture-seule, edit/delete/transition inaccessibles | ⏳ |
+| S3a | **Profil = SINGLETON** | entité « profil » (1 par user) | page « Mon profil » upsert la fiche du connecté (pas list/create/detail) ; provisionnée à la connexion ; visible du seul propriétaire | « Adhérents » 404 (pas de fiche) | ⏳ |
+| S3b | **Lecture-seule ⇒ pas de gestion** | ni initiateur ni décideur = read-only | aucun bouton créer/éditer/supprimer sur un catalogue non géré | « gérer ouvrages » = promesse fantôme | ⏳ |
+| S3c | **Affordances d'action présentes** | decider/owner par entité | ✅ `getByIdAsAdmin`/`getByIdWithRelationsAsAdmin` + page détail branchée par rôle → l'admin OUVRE l'item d'autrui (plus de 404) et DÉCIDE (transition K7). ⏳ reste : masquer transition au non-décideur, honnêteté éditer/supprimer, page edit admin | impossible de décider/éditer/supprimer | 🟡 1 Août (ouvrir+décider ✅) |
 | S4 | **Dashboard miroir** | `dashboard` par acteur | KPI compilés (agrégation : op + champ + filtre + fenêtre temps) | dashboards identiques, compteurs à 0 | ⏳ |
 | S5 | **Boucle réactive** | (implicite : toute mutation) | `revalidatePath`/`router.refresh` de 1re classe sur chaque action | pas de mise à jour après action | ⏳ |
 

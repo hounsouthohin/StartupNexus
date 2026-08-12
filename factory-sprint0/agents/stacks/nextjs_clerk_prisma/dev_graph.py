@@ -408,6 +408,19 @@ async def run_dev_agent(
             _generator_errors.append(f"ACTIONS_GENERATOR_FAILED: {_act_err}")
             logger.error("[dev_graph] actions generator a échoué (bloquant) : %s", _act_err)
 
+    # ── ORACLE (le 5ᵉ lot) : chaque case émet sa preuve, dérivée de la déclaration ──
+    # Route dev-only /api/_oracle, lancée contre l'app qui tourne (ancrage AVAL, hors du miroir).
+    if spec_obj is not None:
+        try:
+            from .dev_oracle_generator import generate_oracle_file
+            _oracle_written = generate_oracle_file(spec_obj, project_workdir, contexts=_model_contexts)
+            template_written.update(_oracle_written)
+            if _oracle_written:
+                logger.info("[dev_graph] oracle généré : %s", list(_oracle_written.keys()))
+        except Exception as _or_err:
+            # Non bloquant : un oracle absent ne casse jamais un build.
+            logger.warning("[dev_graph] oracle generator non bloquant : %s", _or_err)
+
     # ══ UI INFRASTRUCTURE — design system, layout, navigation ════════════════════
     # Générés avant les pages pour que les composants UI existent sur disque
     # quand le LLM démarre. Tous lockés dans template_written.

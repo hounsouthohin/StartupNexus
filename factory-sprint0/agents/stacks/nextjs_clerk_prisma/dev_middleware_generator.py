@@ -25,8 +25,10 @@ import re as _re
 
 logger = logging.getLogger(__name__)
 
-# Routes Clerk toujours publiques — indépendantes du brief
-_CLERK_PUBLIC_ROUTES = ["/sign-in(.*)", "/sign-up(.*)"]
+# Routes Clerk toujours publiques — indépendantes du brief.
+# /api/_oracle : route d'ORACLE (dev-only, inerte sauf ORACLE_ENABLED=1) — le lanceur la
+# frappe sans session pour vérifier les invariants dérivés de la déclaration contre l'app live.
+_CLERK_PUBLIC_ROUTES = ["/sign-in(.*)", "/sign-up(.*)", "/api/oracle(.*)"]
 
 _DYNAMIC_SEG_RE = _re.compile(r"\[(\w+)\]")
 

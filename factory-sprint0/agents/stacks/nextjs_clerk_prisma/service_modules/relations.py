@@ -9,10 +9,16 @@ class RelationsModule(ServiceMethodModule):
 
     def methods_for(self, ctx) -> list[MethodDecl]:
         o, s = ctx.owner, ctx.serialized_type
-        return [
+        methods = [
             MethodDecl("getAllWithRelations",  f"({o}: string, page?: number, pageSize?: number) → Promise<{s}[]>  (avec relations)"),
             MethodDecl("getByIdWithRelations", f"({o}: string, id: string) → Promise<{s}>  (avec relations)"),
         ]
+        if getattr(ctx, "is_admin_scoped", False):
+            # S3c — l'admin ouvre le détail (avec relations) d'un item d'autrui, sans filtre owner.
+            methods.append(MethodDecl(
+                "getByIdWithRelationsAsAdmin", f"(id: string) → Promise<{s}>  (rôle privilégié, avec relations)",
+            ))
+        return methods
 
     def generate(self, ctx, **kwargs) -> list[str]:
         all_contexts: dict = kwargs.get("all_contexts") or {}
@@ -35,4 +41,12 @@ class RelationsModule(ServiceMethodModule):
             "    if (!item) notFound()",
             f"    return ({_rel_map})(item) as {serialized}",
             "  },",
+            *([
+                "",
+                f"  getByIdWithRelationsAsAdmin: async (id: string): Promise<{serialized}> => {{",
+                f"    const item = await prisma.{camel}.findFirst({{ where: {{ id }}, select: {{ {_rel_sel} }} }})",
+                "    if (!item) notFound()",
+                f"    return ({_rel_map})(item) as {serialized}",
+                "  },",
+            ] if getattr(ctx, "is_admin_scoped", False) else []),
         ]

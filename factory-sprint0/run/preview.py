@@ -127,6 +127,9 @@ def prepare_preview(project: str, seed_user_id: str = "user_demo",
         _admin_emails = os.getenv("PREVIEW_ADMIN_EMAIL", os.getenv("ADMIN_EMAILS", ""))
         if _admin_emails:
             server_env["ADMIN_EMAILS"] = _admin_emails
+        # ORACLE (dev-only) : active la route /api/_oracle dans le preview → le lanceur peut
+        # vérifier les invariants dérivés de la déclaration contre l'app live (ancrage aval).
+        server_env["ORACLE_ENABLED"] = "1"
         _has_pk = bool(server_env.get("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"))
         logger.info("[preview] lancement next dev détaché sur :%d (clé publishable=%s, admin_emails=%s)",
                     port, _has_pk, bool(_admin_emails))

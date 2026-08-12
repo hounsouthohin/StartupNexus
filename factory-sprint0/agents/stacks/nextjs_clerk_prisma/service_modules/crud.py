@@ -21,6 +21,10 @@ class CrudModule(ServiceMethodModule):
             methods.insert(1, MethodDecl(
                 "getAllAsAdmin", f"(page?: number, pageSize?: number) → Promise<{s}[]>  (rôle privilégié)",
             ))
+            # S3c — pendant DÉTAIL : ouvrir un item d'autrui (sans filtre owner).
+            methods.insert(2, MethodDecl(
+                "getByIdAsAdmin", f"(id: string) → Promise<{s}>  (rôle privilégié, sans filtre owner)",
+            ))
         return methods
 
     def generate(self, ctx, **kwargs) -> list[str]:
@@ -233,6 +237,15 @@ class CrudModule(ServiceMethodModule):
                 f"  getAllAsAdmin: async (page: number = 1, pageSize: number = 20): Promise<{serialized}[]> => {{",
                 f"    const items = await prisma.{camel}.findMany({{ select: {{ {_sel} }}, orderBy: {{ createdAt: 'desc' }}, take: pageSize, skip: (page - 1) * pageSize }})",
                 f"    return items.map({_map}) as {serialized}[]",
+                "  },",
+                "",
+                # S3c — le pendant DÉTAIL de getAllAsAdmin : l'admin voit la liste (getAllAsAdmin)
+                # mais sans ceci, ouvrir un item ferait getById owner-scoped → 404 (l'item est à
+                # un autre). L'admin doit pouvoir OUVRIR chaque item pour décider/agir.
+                f"  getByIdAsAdmin: async (id: string): Promise<{serialized}> => {{",
+                f"    const item = await prisma.{camel}.findFirst({{ where: {{ id }} }})",
+                "    if (!item) notFound()",
+                "    return _serialize(item)",
                 "  },",
             ]
 

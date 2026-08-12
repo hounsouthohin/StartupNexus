@@ -345,6 +345,10 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
     # sur /borrowings/new) est redirigé. Garde serveur, en écho de la garde d'action.
     _init_actor = getattr(ctx, "initiator", "") if ctx is not None else ""
     _create_gated = bool(is_create and _init_actor and _priv_role and page.auth_required)
+    # S3c — page DÉTAIL d'un modèle admin-scoped : le privilégié ouvre l'item d'autrui via
+    # getByIdAsAdmin (sinon getById owner-scoped → 404 alors qu'il voit l'item dans la liste).
+    _is_admin_detail = bool(getattr(ctx, "is_admin_scoped", False) and is_detail
+                            and not is_slug_detail and page.auth_required)
 
     # Champs FK pour pages create
     fk_list: list[tuple[str, str, str]] = []
@@ -380,6 +384,8 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
 
     if is_detail:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
+        if _is_admin_detail:
+            lines.append("import { getCurrentRole } from '@/lib/auth-role'")
     elif not is_create:
         lines.append(f"import {{ {camel}Service }} from '@/lib/services/{kebab}.service'")
         if _is_admin_scoped:
@@ -458,6 +464,17 @@ def _gen_page_full(page, model_obj, spec=None, ctx=None) -> str:
                 )
                 svc_method = f"getPublicByIdWithRelations(slug)" if has_relations else f"getPublicById(slug)"
             lines.append(f"  const item = await {camel}Service.{svc_method}")
+        elif page.auth_required and _is_admin_detail:
+            # S3c — le privilégié ouvre l'item d'autrui (getByIdAsAdmin, sans filtre owner) ;
+            # les autres restent owner-scoped. Sans ça, l'admin voit la liste mais 404 sur chaque item.
+            _admin_m = "getByIdWithRelationsAsAdmin(id)" if has_relations else "getByIdAsAdmin(id)"
+            _own_m   = "getByIdWithRelations(userId, id)" if has_relations else "getById(userId, id)"
+            lines += [
+                "  const _role = await getCurrentRole()",
+                f"  const item = _role === '{_priv_role}'",
+                f"    ? await {camel}Service.{_admin_m}",
+                f"    : await {camel}Service.{_own_m}",
+            ]
         elif page.auth_required:
             svc_method = f"getByIdWithRelations(userId, id)" if has_relations else f"getById(userId, id)"
             lines.append(f"  const item = await {camel}Service.{svc_method}")
