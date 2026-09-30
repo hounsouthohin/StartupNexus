@@ -76,6 +76,30 @@ def _validate_clerk_compliance(spec: str, mermaid: str, stack_id: str = "nextjs-
     return sorted(set(violations))
 
 
+def build_architect_initial_state(brief: dict, project_name: str, stack_id: str, run_id: str = "") -> dict:
+    """État initial du graphe architect. Partagé avec scripts/capture_declarations.py :
+    une seule façon de passer un brief à l'architect."""
+    from langchain_core.messages import HumanMessage
+    return {
+        "messages": [HumanMessage(content=brief.get("description", ""))],
+        "brief": brief,           # Brief structuré JSON — source de vérité (description, models, pages, routes)
+        "rag_context": "",
+        "plan": {},
+        "specification": "",
+        "mermaid_diagram": "",
+        "requirements": [],
+        "user_flows": [],
+        "ir_schema": [],
+        "ir_pages": [],
+        "ir_routes": [],
+        "spec_structured": None,
+        "project_spec": {},
+        "stack_id": stack_id,
+        "run_id": run_id,
+        "project_name": project_name,
+    }
+
+
 @activity.defn(name="architect_activity")
 async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     """
@@ -112,7 +136,6 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
     # ── 2. Imports différés (pour éviter les problèmes de circularité ou de worker startup) ──
     try:
         from agents.architect import create_architect_agent
-        from langchain_core.messages import HumanMessage
     except ImportError as import_err:
         activity.logger.error(f"Échec import modules Architect : {import_err}")
         raise ApplicationError("IMPORT_FAILURE", f"Impossible d'importer l'agent Architect: {import_err}")
@@ -124,24 +147,9 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
         activity.logger.error(f"Échec création du graph Architect : {str(e)}", exc_info=True)
         raise ApplicationError("AGENT_INIT_FAILED", f"Impossible de créer l'agent Architect: {str(e)}")
 
-    initial_state = {
-        "messages": [HumanMessage(content=brief.get("description", ""))],
-        "brief": brief,           # Brief structuré JSON — source de vérité (description, models, pages, routes)
-        "rag_context": "",
-        "plan": {},
-        "specification": "",
-        "mermaid_diagram": "",
-        "requirements": [],
-        "user_flows": [],
-        "ir_schema": [],
-        "ir_pages": [],
-        "ir_routes": [],
-        "spec_structured": None,
-        "project_spec": {},
-        "stack_id": str(input_data.get("stack_id", "nextjs-clerk-prisma")),
-        "run_id": run_id,
-        "project_name": project_name,
-    }
+    initial_state = build_architect_initial_state(
+        brief, project_name, str(input_data.get("stack_id", "nextjs-clerk-prisma")), run_id,
+    )
 
     try:
         from agents.spec_validator import validate_spec_requirements
@@ -172,25 +180,26 @@ async def architect_activity(input_data: Dict, run_id: str = "") -> Dict:
                 f"Utiliser Clerk exclusivement."
             )
 
-        # ── 6. Écriture de project_spec.json (artefact officiel) ─────────────
-        # Toujours écrit — utilisé par le dev agent (Phase 3) comme source de vérité.
+        # ── 6. Conservation de la déclaration (USINE.md principe 7) ─────────
+        # Avant le 30 sept 2026 elle était écrite à la racine de FACTORY_WORKDIR, où
+        # dev_graph l'effaçait comme « résidu ». Elle vit désormais dans logs/declarations/
+        # (monté sur l'hôte), un fichier par run : c'est ce que le harnais rejoue.
         if project_spec_dict:
-            import json as _json
-            _workdir = os.getenv("FACTORY_WORKDIR", "/tmp")
-            _spec_path = os.path.join(_workdir, f"project_spec_{project_name}.json")
+            from agents.declaration_store import build_declaration, save_declaration
             try:
-                os.makedirs(_workdir, exist_ok=True)
-                with open(_spec_path, "w", encoding="utf-8") as _f:
-                    _json.dump(project_spec_dict, _f, indent=2, ensure_ascii=False)
+                _spec_path = save_declaration(build_declaration(
+                    project_name, brief, project_spec_dict, run_id=run_id,
+                    stack_id=str(input_data.get("stack_id", "nextjs-clerk-prisma")),
+                ))
                 activity.logger.info(
-                    f"[architect] project_spec.json écrit — "
+                    f"[architect] déclaration conservée : {_spec_path} — "
                     f"fingerprint={project_spec_dict.get('spec_fingerprint', 'n/a')} "
                     f"| {len(project_spec_dict.get('models', []))} modèles "
                     f"| {len(project_spec_dict.get('pages', []))} pages "
                     f"| {len(project_spec_dict.get('routes', []))} routes"
                 )
             except Exception as _e:
-                activity.logger.warning(f"[architect] project_spec.json non écrit (non bloquant) : {_e}")
+                activity.logger.warning(f"[architect] déclaration non conservée (non bloquant) : {_e}")
         else:
             activity.logger.warning("[architect] project_spec absent du state — ancien pipeline actif ?")
 

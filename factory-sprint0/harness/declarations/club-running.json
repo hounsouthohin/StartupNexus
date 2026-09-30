@@ -1,0 +1,362 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "club-running",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T19:01:26+00:00",
+  "run_id": "capture-c23940d2",
+  "brief": {
+    "description": "Petit site pour mon club de course à pied. Les visiteurs voient la liste des prochaines sorties sans se connecter : chaque sortie a un titre, une date et heure de rendez-vous, un lieu de départ, une distance en kilomètres (nombre, ex: 12.5) et une description du parcours (texte long). Une sortie est soit ouverte, soit complète, soit annulée. En tant qu'organisateur, je crée et gère les sorties depuis mon espace privé après connexion, et je note les participants de chaque sortie — chaque participant a un nom et un email, rattachés à une sortie. La page de détail d'une sortie dans mon espace privé montre ses participants et permet d'en ajouter. L'ambiance du site doit être énergique et donner envie de courir."
+  },
+  "project_spec": {
+    "project_name": "club-running",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Petit site pour mon club de course à pied. Les visiteurs voient la liste des prochaines sorties sans se connecter : chaque sortie a un titre, une date et heure de rendez-vous, un lieu de départ, une distance en kilomètres (nombre, ex: 12.5) et une description du parcours (texte long). Une sortie est soit ouverte, soit complète, soit annulée. En tant qu'organisateur, je crée et gère les sorties depuis mon espace privé après connexion, et je note les participants de chaque sortie — chaque participant a un nom et un email, rattachés à une sortie. La page de détail d'une sortie dans mon espace privé montre ses participants et permet d'en ajouter. L'ambiance du site doit être énergique et donner envie de courir.",
+    "models": [
+      {
+        "name": "RunEvent",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "dateTime",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "location",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "distance",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "RunEventStatus",
+            "attributes": "@default(ouverte)"
+          },
+          {
+            "name": "participants",
+            "type": "Participant[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Participant",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "runEventId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "runEvent",
+            "type": "RunEvent",
+            "attributes": "@relation(fields: [runEventId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/run-events",
+        "auth_required": false,
+        "page_type": "list",
+        "model": "RunEvent"
+      },
+      {
+        "path": "/run-events/[id]",
+        "auth_required": false,
+        "page_type": "detail",
+        "model": "RunEvent"
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/run-events",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "RunEvent"
+      },
+      {
+        "path": "/dashboard/run-events/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "RunEvent"
+      },
+      {
+        "path": "/dashboard/run-events/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "RunEvent"
+      },
+      {
+        "path": "/dashboard/run-events/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "RunEvent"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Liste des prochaines sorties de course à pied avec titre, date et heure, lieu de départ, distance et description du parcours.",
+        "data_fetches": [
+          {
+            "service": "runEventService.getPublicAll()",
+            "as": "runEvents"
+          }
+        ],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": [
+          {
+            "label": "Prochaines sorties",
+            "source": "runEvents",
+            "filter_field": "dateTime",
+            "filter_op": "after",
+            "filter_value": "now"
+          }
+        ]
+      },
+      "/dashboard": {
+        "description": "Tableau de bord privé pour les organisateurs. Gestion des sorties de course à pied et des participants.",
+        "data_fetches": [
+          {
+            "service": "runEventService.getAll(userId)",
+            "as": "runEvents"
+          }
+        ],
+        "interactive": false,
+        "kpis": [
+          {
+            "label": "Total des sorties",
+            "source": "runEvents",
+            "agg": "count",
+            "field": "",
+            "filter_field": "",
+            "filter_value": ""
+          }
+        ],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /run-events : un visiteur parcourt les sorties à venir",
+      "Sur /run-events/[id] : un visiteur consulte le détail d'une sortie",
+      "Sur /dashboard : l'organisateur voit un aperçu des sorties",
+      "Sur /dashboard/run-events : l'organisateur gère ses sorties",
+      "Sur /dashboard/run-events/new : l'organisateur crée une nouvelle sortie",
+      "Sur /dashboard/run-events/[id] : l'organisateur voit les participants et peut en ajouter"
+    ],
+    "ui_labels": {
+      "RunEvent": {
+        "title": "Titre",
+        "dateTime": "Date et Heure",
+        "location": "Lieu de départ",
+        "distance": "Distance (km)",
+        "description": "Description du parcours",
+        "status": "Statut"
+      },
+      "Participant": {
+        "name": "Nom",
+        "email": "Email"
+      }
+    },
+    "title_plurals": {
+      "RunEvent": "Sorties",
+      "Participant": "Participants"
+    },
+    "title_singulars": {
+      "RunEvent": "Sortie",
+      "Participant": "Participant"
+    },
+    "enums": {
+      "RunEventStatus": [
+        "ouverte",
+        "complete",
+        "annulee"
+      ]
+    },
+    "enum_value_labels": {
+      "RunEventStatus": {
+        "ouverte": "Ouverte",
+        "complete": "Complète",
+        "annulee": "Annulée"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "b05c13faaafb8d41",
+    "design_system": {
+      "preset_name": "community",
+      "primary_color": "rose-500",
+      "font_heading": "Plus Jakarta Sans",
+      "font_body": "DM Sans",
+      "sidebar_bg": "white",
+      "density": "normal",
+      "card_style": "elevated",
+      "list_style": "card-grid",
+      "animation_level": "enhanced",
+      "hero_style": "fullwidth",
+      "layout_type": "topnav",
+      "brand_name": "Club de Course"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "dateTime": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "ouverte",
+            "complete",
+            "annulee"
+          ],
+          "display_label": ""
+        },
+        "email": {
+          "semantic_type": "email",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "public_pages",
+        "status_flow"
+      ],
+      "status_flows": {
+        "RunEvent": {
+          "field": "status",
+          "initial": "ouverte",
+          "transitions": {
+            "ouverte": [
+              "complete",
+              "annulee"
+            ],
+            "complete": [],
+            "annulee": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/run-events": "Aucune sortie prévue pour le moment. Revenez bientôt pour découvrir nos prochaines courses.",
+          "/dashboard": "Aucune sortie. Créez votre première sortie pour motiver votre club."
+        },
+        "dependency_order": [],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "organisateur"
+        ],
+        "privileged_role": "",
+        "admin_scoped_views": [],
+        "role_gated_actions": {},
+        "global_entities": [],
+        "initiator": {
+          "RunEvent": "organisateur"
+        },
+        "surface": {
+          "organisateur": [
+            "RunEvent",
+            "Participant"
+          ]
+        },
+        "dashboard": {
+          "organisateur": [
+            "prochaines sorties à organiser"
+          ]
+        }
+      }
+    },
+    "summary_fr": "Le site permet aux visiteurs de voir la liste des prochaines sorties de course à pied sans avoir besoin de se connecter. Chaque sortie affiche un titre, une date et heure de rendez-vous, un lieu de départ, une distance en kilomètres et une description du parcours. Les sorties peuvent être ouvertes, complètes ou annulées. Les organisateurs peuvent créer et gérer les sorties depuis un espace privé après connexion, et ils peuvent ajouter et voir les participants de chaque sortie. Les participants sont identifiés par leur nom et leur email.",
+    "unsupported": [
+      "Le brief demande que l'ambiance du site soit énergique et donne envie de courir ; la spécification ne mentionne rien concernant l'ambiance ou le style visuel du site."
+    ]
+  }
+}

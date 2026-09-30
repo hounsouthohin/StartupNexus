@@ -2,8 +2,8 @@
 agents/dev_context.py
 ─────────────────────────────────────────────────────────────
 Contextualisation Phase-Aware : pour chaque rôle de fichier généré,
-injecte les dépendances disque + un standard RAG ciblé sur ce type
-de fichier (P2.1 — bonne chronologie d'injection).
+injecte les dépendances disque exactes (types, services, schemas, actions…).
+(Le standard RAG Qdrant par rôle a été retiré le 30 sept 2026.)
 
 Séparé de dev_graph.py pour testabilité et ajout de rôles
 sans grossir le monolithe executor_node.
@@ -14,25 +14,9 @@ import logging
 import os
 import re as _re
 
+from .dev_naming import pascal_to_kebab as _pascal_to_kebab
+
 logger = logging.getLogger(__name__)
-
-
-# ── RAG ciblé par rôle (P2.1) ─────────────────────────────────────────────────
-# Source de vérité : clé "role_rag_queries" dans nextjs-clerk-prisma.json (T0 refactor).
-# Ce dict est le fallback statique utilisé si la stack config n'est pas accessible.
-_ROLE_RAG_QUERIES_FALLBACK: dict[str, str] = {
-    # "service" et "actions" retirés : ces fichiers sont déterministes (dev_service_generator,
-    # dev_actions_generator) — le LLM ne les génère jamais, ces requêtes RAG ne s'exécutent jamais.
-    "route": (
-        "auth guard NextResponse userId ownership API route handler"
-    ),
-    "page": (
-        "Server Component auth redirect notFound dynamic params service getAll getById"
-    ),
-    "page_client": (
-        "'use client' useState FormData handler Client Component interaction interactif"
-    ),
-}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -43,10 +27,6 @@ def _read_file_safe(path: str, limit: int) -> str:
             return f.read()[:limit]
     except Exception:
         return ""
-
-
-def _pascal_to_kebab(name: str) -> str:
-    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
 def _find_service_for_segment(segment: str, spec_obj) -> tuple[str, str]:
@@ -68,45 +48,6 @@ def _find_service_for_segment(segment: str, spec_obj) -> tuple[str, str]:
     return segment, segment + "Service"
 
 
-def _rag_for_role(role: str, cache: dict[str, str] | None = None) -> str:
-    """Déclenche une requête Qdrant ciblée sur le rôle, retourne le bloc à injecter.
-
-    cache — dict partagé par le run (clé = role). Evite N requêtes Qdrant identiques
-    pour N fichiers du même rôle. Lifetime = un run (créé dans run_dev_agent).
-    """
-    try:
-        from agents.stack_config import load_stack_config
-        from agents.context import get_stack_id
-        _queries = load_stack_config(get_stack_id()).get("role_rag_queries") or _ROLE_RAG_QUERIES_FALLBACK
-    except Exception:
-        _queries = _ROLE_RAG_QUERIES_FALLBACK
-    query = _queries.get(role, "")
-    if not query:
-        return ""
-
-    # Cache hit — même rôle déjà résolu dans ce run
-    if cache is not None and role in cache:
-        logger.debug("[role-rag] role=%-12s | cache hit", role)
-        return cache[role]
-
-    try:
-        from agents.shared_tools import rag_search as _rag_fn
-        result = _rag_fn.invoke({"query": query})
-        if result and not result.startswith("[RAG]"):
-            _n = len([s for s in result.split("---") if s.strip()])
-            logger.info("[role-rag] role=%-12s | %d standard(s) injectés (miss)", role, _n)
-            block = (
-                f"\n\nSTANDARDS PERTINENTS POUR CE RÔLE ({role}) :\n"
-                f"{result[:500]}"
-            )
-            if cache is not None:
-                cache[role] = block
-            return block
-    except Exception:
-        pass
-    return ""
-
-
 # ── Point d'entrée public ──────────────────────────────────────────────────────
 
 def build_role_context(
@@ -115,29 +56,16 @@ def build_role_context(
     spec_obj,
     workdir: str,
     service_map_str: str = "",
-    cache: dict[str, str] | None = None,
     manifest=None,
 ) -> str:
     """
-    Construit le bloc de dépendances injecté dans le HumanMessage pour un fichier.
+    Construit le bloc de dépendances injecté dans le HumanMessage pour un fichier :
+    les dépendances disque exactes (types.ts, service.ts, schemas.ts, actions.ts…).
 
-    Chaque rôle reçoit :
-      - Dépendances disque exactes (types.ts, service.ts, schemas.ts, actions.ts…)
-      - Standard RAG ciblé sur ce type de fichier (chronologie correcte)
-
-    cache    — dict partagé pour le run courant (évite N requêtes Qdrant identiques
-               pour N fichiers du même rôle). Passé depuis run_dev_agent via closure.
     manifest — LevelAManifest optionnel. Améliore la résolution service pour les
                pages custom (ex: /dashboard) où page.model n'est pas déclaré.
     """
-    dep = _build_dep(role, path, spec_obj, workdir, service_map_str, manifest=manifest)
-
-    # P2.1 — standard Qdrant injecté au bon moment (pas au démarrage du run)
-    rag_block = _rag_for_role(role, cache=cache)
-    if rag_block:
-        dep += rag_block
-
-    return dep
+    return _build_dep(role, path, spec_obj, workdir, service_map_str, manifest=manifest)
 
 
 # ── Logique par rôle ───────────────────────────────────────────────────────────
@@ -150,44 +78,13 @@ def _build_dep(
     service_map_str: str,
     manifest=None,
 ) -> str:
-    if role == "service":
-        return _dep_service(workdir)
-    elif role == "actions":
-        return _dep_actions(path, spec_obj, workdir, service_map_str)
-    elif role == "route":
+    if role == "route":
         return _dep_route(path, workdir)
     elif role == "page_client":
         return _dep_page_client(path, spec_obj, workdir)
     elif role == "page":
         return _dep_page(path, spec_obj, workdir, manifest=manifest, service_map_str=service_map_str)
     return ""
-
-
-def _dep_service(workdir: str) -> str:
-    dep = ""
-    for rel, limit in [("lib/types.ts", 800), ("lib/prisma.ts", 250)]:
-        content = _read_file_safe(os.path.join(workdir, rel), limit)
-        if content:
-            dep += f"\n{rel} :\n```typescript\n{content}\n```"
-    return dep
-
-
-def _dep_actions(path: str, spec_obj, workdir: str, service_map_str: str) -> str:
-    dep = ""
-    if service_map_str:
-        dep += f"\n{service_map_str}"
-
-    schemas_content = _read_file_safe(os.path.join(workdir, "lib", "schemas.ts"), 600)
-    if schemas_content:
-        dep += f"\nlib/schemas.ts :\n```typescript\n{schemas_content}\n```"
-
-    act_seg = path.split("/")[-2] if "/" in path else ""
-    kb, _ = _find_service_for_segment(act_seg, spec_obj)
-    svc_content = _read_file_safe(os.path.join(workdir, "lib", "services", f"{kb}.service.ts"), 500)
-    if svc_content:
-        dep += f"\nlib/services/{kb}.service.ts :\n```typescript\n{svc_content}\n```"
-
-    return dep
 
 
 def _dep_route(path: str, workdir: str) -> str:

@@ -64,13 +64,13 @@ def model_to_serialized_type(name: str) -> str:
 
 def _pluralize(word: str) -> str:
     """
-    Pluralise un mot camelCase ou kebab-case en anglais.
+    Pluralise un mot (PascalCase, camelCase ou kebab-case) en anglais.
     Règles par ordre de priorité :
-      -y après consonne → -ies  (category→categories, company→companies)
+      -y après consonne → -ies  (category→categories, Category→Categories)
       -s/-sh/-ch/-x/-z  → -es
       défaut             → -s
     """
-    if word.endswith("y") and len(word) > 1 and word[-2] not in "aeiou":
+    if word.endswith("y") and len(word) > 1 and word[-2].lower() not in "aeiou":
         return word[:-1] + "ies"
     if word.endswith(("s", "sh", "ch", "x", "z")):
         return word + "es"

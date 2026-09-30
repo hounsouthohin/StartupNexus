@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RequestPriority {
+  low
+  normal
+  high
+}
+
+enum RequestStatus {
+  new
+  in_progress
+  resolved
+}
+
+model Request {
+  id String @id @default(uuid())
+  title String
+  description String
+  priority RequestPriority
+  status RequestStatus @default(new)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

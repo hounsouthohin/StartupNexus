@@ -1,0 +1,616 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "coworking-hub",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T19:00:33+00:00",
+  "run_id": "capture-960c56b1",
+  "brief": {
+    "description": "Je veux une plateforme complète pour gérer mon espace de coworking. Les visiteurs, sans se connecter, doivent pouvoir parcourir le catalogue public des espaces disponibles : chaque espace a un nom, une description détaillée (texte long), un type (bureau privé, salle de réunion, poste flexible), une capacité (nombre de personnes), un tarif horaire en euros, et une adresse. Un visiteur peut ouvrir la page d'un espace pour voir tous ses détails. Après connexion, un membre gère son profil (nom, email, entreprise, téléphone) et réserve un espace : une réservation concerne un espace, a une date, une heure de début et une heure de fin, et un état. Une réservation commence en demandée, puis elle est soit confirmée, soit refusée avec un motif ; une réservation confirmée peut ensuite être marquée comme terminée, ou annulée. On ne doit pas pouvoir marquer terminée une réservation qui n'a pas été confirmée. Chaque réservation confirmée génère une facture rattachée à cette réservation, avec un montant en euros, une date d'émission, et un statut (en attente de paiement, payée, en retard). Le membre voit la liste de ses réservations avec leur état, et la liste de ses factures. Je veux aussi un tableau de bord qui montre le chiffre d'affaires du mois en cours, le nombre de réservations en attente de confirmation, et le total des factures impayées. Enfin, seul un administrateur doit pouvoir confirmer ou refuser les réservations et marquer les factures comme payées ; un membre normal ne fait que réserver et consulter. L'ambiance doit être moderne, épurée et professionnelle."
+  },
+  "project_spec": {
+    "project_name": "coworking-hub",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je veux une plateforme complète pour gérer mon espace de coworking. Les visiteurs, sans se connecter, doivent pouvoir parcourir le catalogue public des espaces disponibles : chaque espace a un nom, une description détaillée (texte long), un type (bureau privé, salle de réunion, poste flexible), une capacité (nombre de personnes), un tarif horaire en euros, et une adresse. Un visiteur peut ouvrir la page d'un espace pour voir tous ses détails. Après connexion, un membre gère son profil (nom, email, entreprise, téléphone) et réserve un espace : une réservation concerne un espace, a une date, une heure de début et une heure de fin, et un état. Une réservation commence en demandée, puis elle est soit confirmée, soit refusée avec un motif ; une réservation confirmée peut ensuite être marquée comme terminée, ou annulée. On ne doit pas pouvoir marquer terminée une réservation qui n'a pas été confirmée. Chaque réservation confirmée génère une facture rattachée à cette réservation, avec un montant en euros, une date d'émission, et un statut (en attente de paiement, payée, en retard). Le membre voit la liste de ses réservations avec leur état, et la liste de ses factures. Je veux aussi un tableau de bord qui montre le chiffre d'affaires du mois en cours, le nombre de réservations en attente de confirmation, et le total des factures impayées. Enfin, seul un administrateur doit pouvoir confirmer ou refuser les réservations et marquer les factures comme payées ; un membre normal ne fait que réserver et consulter. L'ambiance doit être moderne, épurée et professionnelle.",
+    "models": [
+      {
+        "name": "Space",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "type",
+            "type": "SpaceType",
+            "attributes": ""
+          },
+          {
+            "name": "capacity",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "hourlyRate",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "address",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Member",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "company",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "phone",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "reservations",
+            "type": "Reservation[]",
+            "attributes": ""
+          },
+          {
+            "name": "invoices",
+            "type": "Invoice[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Reservation",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "startTime",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "endTime",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "ReservationStatus",
+            "attributes": "@default(requested)"
+          },
+          {
+            "name": "reason",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "spaceId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "space",
+            "type": "Space",
+            "attributes": "@relation(fields: [spaceId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "memberId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "member",
+            "type": "Member",
+            "attributes": "@relation(fields: [memberId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "invoice",
+            "type": "Invoice?",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Invoice",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "amount",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "issueDate",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "InvoiceStatus",
+            "attributes": "@default(pending)"
+          },
+          {
+            "name": "reservationId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "reservation",
+            "type": "Reservation",
+            "attributes": "@relation(fields: [reservationId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/spaces",
+        "auth_required": false,
+        "page_type": "list",
+        "model": "Space"
+      },
+      {
+        "path": "/spaces/[id]",
+        "auth_required": false,
+        "page_type": "detail",
+        "model": "Space"
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/profile",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Member"
+      },
+      {
+        "path": "/dashboard/reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/reservations/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/reservations/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/invoices",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Invoice"
+      },
+      {
+        "path": "/dashboard/invoices/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Invoice"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Catalogue des espaces de coworking disponibles. Chaque espace affiche son nom, sa description, son type, sa capacité, son tarif horaire et son adresse.",
+        "data_fetches": [
+          {
+            "service": "spaceService.getPublicAll()",
+            "as": "spaces"
+          }
+        ],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord pour les membres connectés. Affiche le chiffre d'affaires du mois en cours, le nombre de réservations en attente de confirmation, et le total des factures impayées.",
+        "data_fetches": [
+          {
+            "service": "reservationService.getAllWithRelations(userId)",
+            "as": "reservations"
+          },
+          {
+            "service": "invoiceService.getAll(userId)",
+            "as": "invoices"
+          }
+        ],
+        "interactive": false,
+        "kpis": [
+          {
+            "label": "Chiffre d'affaires du mois",
+            "source": "invoices",
+            "agg": "sum",
+            "field": "amount",
+            "filter_field": "issueDate",
+            "filter_value": "current_month"
+          },
+          {
+            "label": "Réservations en attente",
+            "source": "reservations",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "requested"
+          },
+          {
+            "label": "Total des factures impayées",
+            "source": "invoices",
+            "agg": "sum",
+            "field": "amount",
+            "filter_field": "status",
+            "filter_value": "pending"
+          }
+        ],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /spaces : un visiteur parcourt les espaces disponibles",
+      "Sur /spaces/[id] : un visiteur consulte les détails d'un espace",
+      "Sur /dashboard : un membre voit le tableau de bord avec les statistiques",
+      "Sur /dashboard/profile : un membre gère son profil",
+      "Sur /dashboard/reservations : un membre voit ses réservations",
+      "Sur /dashboard/reservations/new : un membre crée une nouvelle réservation",
+      "Sur /dashboard/reservations/[id] : un membre consulte le détail d'une réservation",
+      "Sur /dashboard/invoices : un membre voit ses factures",
+      "Sur /dashboard/invoices/[id] : un membre consulte le détail d'une facture"
+    ],
+    "ui_labels": {
+      "Space": {
+        "name": "Nom",
+        "description": "Description",
+        "type": "Type",
+        "capacity": "Capacité",
+        "hourlyRate": "Tarif horaire",
+        "address": "Adresse"
+      },
+      "Member": {
+        "name": "Nom",
+        "email": "Email",
+        "company": "Entreprise",
+        "phone": "Téléphone"
+      },
+      "Reservation": {
+        "date": "Date",
+        "startTime": "Heure de début",
+        "endTime": "Heure de fin",
+        "status": "État",
+        "reason": "Motif"
+      },
+      "Invoice": {
+        "amount": "Montant",
+        "issueDate": "Date d'émission",
+        "status": "Statut"
+      }
+    },
+    "title_plurals": {
+      "Space": "Espaces",
+      "Member": "Membres",
+      "Reservation": "Réservations",
+      "Invoice": "Factures"
+    },
+    "title_singulars": {
+      "Space": "Espace",
+      "Member": "Membre",
+      "Reservation": "Réservation",
+      "Invoice": "Facture"
+    },
+    "enums": {
+      "SpaceType": [
+        "private_office",
+        "meeting_room",
+        "flex_desk"
+      ],
+      "ReservationStatus": [
+        "requested",
+        "confirmed",
+        "refused",
+        "completed",
+        "cancelled"
+      ],
+      "InvoiceStatus": [
+        "pending",
+        "paid",
+        "overdue"
+      ]
+    },
+    "enum_value_labels": {
+      "SpaceType": {
+        "private_office": "Bureau privé",
+        "meeting_room": "Salle de réunion",
+        "flex_desk": "Poste flexible"
+      },
+      "ReservationStatus": {
+        "requested": "Demandée",
+        "confirmed": "Confirmée",
+        "refused": "Refusée",
+        "completed": "Terminée",
+        "cancelled": "Annulée"
+      },
+      "InvoiceStatus": {
+        "pending": "En attente de paiement",
+        "paid": "Payée",
+        "overdue": "En retard"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "9a00c31db30ebd8f",
+    "design_system": {
+      "preset_name": "finance",
+      "primary_color": "slate-700",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "slate-900",
+      "density": "compact",
+      "card_style": "flat",
+      "list_style": "table",
+      "animation_level": "none",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "Coworking Manager"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "hourlyRate": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "pending",
+            "paid",
+            "overdue"
+          ],
+          "display_label": ""
+        },
+        "amount": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "issueDate": {
+          "semantic_type": "date",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "slug_routing",
+        "public_pages",
+        "status_flow"
+      ],
+      "status_flows": {
+        "Reservation": {
+          "field": "status",
+          "initial": "requested",
+          "transitions": {
+            "requested": [
+              "confirmed",
+              "refused"
+            ],
+            "confirmed": [
+              "completed",
+              "cancelled"
+            ],
+            "refused": [],
+            "completed": [],
+            "cancelled": []
+          },
+          "locked_states": [],
+          "state_fields": {
+            "refused": [
+              "reason"
+            ]
+          }
+        },
+        "Invoice": {
+          "field": "status",
+          "initial": "pending",
+          "transitions": {
+            "pending": [
+              "paid",
+              "overdue"
+            ],
+            "paid": [],
+            "overdue": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/spaces": "Aucun espace disponible pour le moment.",
+          "/reservations": "Aucune réservation. Réservez votre premier espace.",
+          "/invoices": "Aucune facture disponible."
+        },
+        "dependency_order": [
+          "Créez d'abord un Espace avant de créer une Réservation.",
+          "Créez d'abord une Réservation avant de créer une Facture."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "member",
+          "admin"
+        ],
+        "privileged_role": "admin",
+        "admin_scoped_views": [
+          "Reservation",
+          "Invoice"
+        ],
+        "role_gated_actions": {
+          "Reservation": [
+            "status_transition"
+          ],
+          "Invoice": [
+            "status_transition"
+          ]
+        },
+        "global_entities": [
+          "Space"
+        ],
+        "initiator": {
+          "Reservation": "member"
+        },
+        "surface": {
+          "member": [
+            "Space",
+            "Reservation",
+            "Invoice",
+            "Member"
+          ],
+          "admin": [
+            "Space",
+            "Reservation",
+            "Invoice",
+            "Member"
+          ]
+        },
+        "dashboard": {
+          "admin": [
+            "chiffre d'affaires du mois en cours",
+            "nombre de réservations en attente de confirmation",
+            "total des factures impayées"
+          ],
+          "member": [
+            "mes réservations",
+            "mes factures"
+          ]
+        }
+      }
+    },
+    "summary_fr": "Les visiteurs peuvent parcourir le catalogue des espaces de coworking sans se connecter, en voyant les détails comme le nom, la description, le type, la capacité, le tarif horaire et l'adresse. Les membres, après connexion, peuvent gérer leur profil et effectuer des réservations pour des espaces, avec des états de réservation qui évoluent de demandée à confirmée ou refusée. Les réservations confirmées peuvent être terminées ou annulées, et génèrent des factures avec des statuts de paiement. Un tableau de bord est disponible pour les membres et les administrateurs, affichant des statistiques financières et de réservation. Seuls les administrateurs peuvent confirmer ou refuser les réservations et gérer le statut des factures.",
+    "unsupported": []
+  }
+}

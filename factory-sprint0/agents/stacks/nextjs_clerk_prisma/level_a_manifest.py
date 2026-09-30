@@ -19,6 +19,8 @@ import re as _re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from .dev_naming import pascal_to_camel as _pascal_to_camel, pascal_to_kebab as _pascal_to_kebab
+
 if TYPE_CHECKING:
     from .dev_model_context import ModelGenerationContext
 
@@ -63,14 +65,6 @@ def _methods_from_context(ctx: "ModelGenerationContext") -> list[ServiceMethod]:
     from .dev_service_spec import build_service_spec
     spec = build_service_spec(ctx)
     return [ServiceMethod(name=m.name, signature=m.sig) for m in spec.methods]
-
-
-def _pascal_to_kebab(name: str) -> str:
-    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
-def _pascal_to_camel(name: str) -> str:
-    return name[0].lower() + name[1:] if name else name
 
 
 # ── Factory ──────────────────────────────────────────────────────────────────

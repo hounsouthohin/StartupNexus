@@ -1186,18 +1186,6 @@ class TestT007Fallback:
                 os.environ["LLM_FALLBACK_ENABLED"] = original
 
 
-class TestTemplatePathNormalization:
-    """Évite le contournement de la protection template via chemins mal normalisés."""
-
-    def test_normalize_guard_path(self):
-        pytest.importorskip("pydantic")
-        from agents.shared_tools import _normalize_guard_path
-
-        assert _normalize_guard_path("./lib//prisma.ts") == "lib/prisma.ts"
-        assert _normalize_guard_path("lib\\prisma.ts") == "lib/prisma.ts"
-        assert _normalize_guard_path("/lib/prisma.ts") == "lib/prisma.ts"
-
-
 class TestBuildOutcomeCoherence:
     """Empêche l'incohérence BUILD_SUCCESS + build_success=false dans run_metric."""
 

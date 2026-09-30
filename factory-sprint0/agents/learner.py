@@ -58,53 +58,24 @@ def run_learner_activity(run_id: str = "", run_context: dict | None = None) -> d
         all_events = _load_all_events()
         events = _load_dev_test_events(all_events)
 
-        # ── SPRINT5 GATE : mise à jour rolling au plus tôt (avant check MIN_RUNS) ──
-        # Le gate doit être alimenté dès le run #1, même si le learner skippe l'analyse.
-        try:
-            from scripts.sprint5_gate import update_gate as _update_gate
-            if events:
-                latest = events[-1]
-                _gate_result = _update_gate(
-                    build_success=bool(latest.get("build_success", False)),
-                    spec_validation_status=str(latest.get("spec_validation_status", "UNKNOWN")),
-                )
-                if _gate_result.get("enforce"):
-                    logger.warning(
-                        "[learner] Architect Gate en mode ENFORCE — "
-                        "spec DEGRADED persistante détectée sur la fenêtre glissante."
-                    )
-        except Exception as _gate_err:
-            logger.warning(f"[learner] sprint5_gate non bloquant : {_gate_err}")
-
-        supervisor_events_count = sum(
-            1 for e in all_events if e.get("event_type") == "supervisor_file_reviewed"
-        )
-        batch_events_count = sum(
-            1 for e in all_events if e.get("event_type") in
-            {"batch_generated", "supervisor_batch_reviewed", "corrections_applied"}
-        )
-        if (len(events) < MIN_RUNS_FOR_ANALYSIS
-                and supervisor_events_count < MIN_RUNS_FOR_ANALYSIS
-                and batch_events_count < MIN_RUNS_FOR_ANALYSIS):
+        # Les analyses « superviseurs » (P008) et « batchs » (BP001-BP003) et le
+        # sprint5_gate ont été retirés le 30 sept 2026 : ils lisaient des événements
+        # d'architectures supprimées. Le learner cible (agrégation des « non couverts »
+        # du miroir) est prévu en phase 6 (USINE.md).
+        if len(events) < MIN_RUNS_FOR_ANALYSIS:
             logger.info(
-                f"[learner] Seulement {len(events)} run(s) dev_test et "
-                f"{supervisor_events_count} event(s) supervisor_file_reviewed et "
-                f"{batch_events_count} event(s) batch — "
+                f"[learner] Seulement {len(events)} run(s) dev_test — "
                 f"minimum {MIN_RUNS_FOR_ANALYSIS} requis pour l'analyse"
             )
             return {
                 "suggestions_generated": 0,
                 "suggestions": [],
                 "skipped_reason": (
-                    f"Insufficient data (dev_test={len(events)}, "
-                    f"supervisor={supervisor_events_count}, "
-                    f"batch={batch_events_count}, min={MIN_RUNS_FOR_ANALYSIS})"
+                    f"Insufficient data (dev_test={len(events)}, min={MIN_RUNS_FOR_ANALYSIS})"
                 ),
             }
 
         suggestions = _analyze_patterns(events)
-        suggestions.extend(_analyze_supervisor_patterns(all_events))
-        suggestions.extend(_analyze_batch_patterns(all_events))
         _save_suggestions(suggestions, run_id)
 
         suggestions_dicts = [asdict(s) for s in suggestions]
@@ -157,12 +128,6 @@ def _load_dev_test_events(all_events: list[dict]) -> list[dict]:
     return [e for e in all_events if e.get("event_type") == "dev_test_run"]
 
 
-def _load_batch_events(all_events: list[dict]) -> list[dict]:
-    """Filtre les events batch M4 depuis la liste globale."""
-    batch_types = {"batch_generated", "supervisor_batch_reviewed", "corrections_applied"}
-    return [e for e in all_events if e.get("event_type") in batch_types]
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -177,37 +142,6 @@ def _normalize_build_error(error: str) -> str:
     e = re.sub(r':\d+:\d+', '', e)
     e = re.sub(r"'[^']{1,60}'", "'<ID>'", e)
     return e[:120].strip()
-
-
-def _file_type_from_path(file_path: str) -> str:
-    norm = (file_path or "").replace("\\", "/")
-    if norm.startswith("app/api/") and norm.endswith(".ts"):
-        return "app/api/*.ts"
-    if norm.startswith("app/") and norm.endswith(".tsx"):
-        return "app/**/*.tsx"
-    if norm.startswith("app/") and norm.endswith(".ts"):
-        return "app/**/*.ts"
-    if norm.endswith("schema.prisma"):
-        return "prisma/schema.prisma"
-    if "." in norm:
-        return f"*.{norm.rsplit('.', 1)[-1]}"
-    return "unknown"
-
-
-def _zone_for_supervisor(supervisor_type: str) -> str:
-    mapping = {
-        "conformity": "ZONE_15",
-        "security": "ZONE_16",
-        "architecture": "ZONE_17",
-    }
-    return mapping.get(supervisor_type, "ZONE_15")
-
-
-def _as_float(value: Any) -> float:
-    try:
-        return float(value)
-    except Exception:
-        return 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -409,259 +343,6 @@ def _analyze_patterns(events: list[dict]) -> list[StandardSuggestion]:
                 },
                 sprint="sprint4",
             ))
-
-    return suggestions
-
-
-def _analyze_supervisor_patterns(all_events: list[dict]) -> list[StandardSuggestion]:
-    """
-    Analyse les événements `supervisor_file_reviewed`.
-    Pattern récurrent = même superviseur corrige le même type de fichier
-    sur 3+ runs consécutifs.
-    """
-    supervisor_events = [
-        e for e in all_events
-        if e.get("event_type") == "supervisor_file_reviewed"
-    ]
-    if not supervisor_events:
-        return []
-
-    run_order: list[str] = []
-    seen_runs: set[str] = set()
-    reviewed_counts: Counter = Counter()
-    corrected_by_run: dict[tuple[str, str], set[str]] = {}
-    confidence_samples: dict[tuple[str, str], list[float]] = {}
-
-    for event in supervisor_events:
-        run_id = str(event.get("run_id", "") or "")
-        if not run_id:
-            continue
-        if run_id not in seen_runs:
-            run_order.append(run_id)
-            seen_runs.add(run_id)
-
-        payload = event.get("payload", {}) or {}
-        file_path = str(payload.get("file_path", "") or "")
-        file_type = _file_type_from_path(file_path)
-        results = payload.get("results", {}) or {}
-        if not isinstance(results, dict):
-            continue
-
-        for supervisor, result in results.items():
-            sup = str(supervisor or "").strip().lower()
-            if not sup:
-                continue
-            key = (sup, file_type)
-            reviewed_counts[key] += 1
-            result = result if isinstance(result, dict) else {}
-            conf = _as_float(result.get("confidence", 0.0))
-            confidence_samples.setdefault(key, []).append(conf)
-            fixed = bool(result.get("fix_applied", False))
-            status = str(result.get("status", "") or "").lower()
-            if fixed or status == "needs_fix":
-                corrected_by_run.setdefault(key, set()).add(run_id)
-
-    suggestions: list[StandardSuggestion] = []
-    for key, corrected_runs in corrected_by_run.items():
-        supervisor_type, file_type = key
-        if len(corrected_runs) < 3:
-            continue
-
-        longest_streak = 0
-        current_streak = 0
-        current_runs: list[str] = []
-        best_runs: list[str] = []
-        for rid in run_order:
-            if rid in corrected_runs:
-                current_streak += 1
-                current_runs.append(rid)
-                if current_streak > longest_streak:
-                    longest_streak = current_streak
-                    best_runs = list(current_runs)
-            else:
-                current_streak = 0
-                current_runs = []
-
-        if longest_streak < 3:
-            continue
-
-        reviewed_total = int(reviewed_counts.get(key, 0) or 0)
-        corrected_total = len(corrected_runs)
-        confidence_ratio = (corrected_total / reviewed_total) if reviewed_total > 0 else 0.0
-        confidence_value = max(0.0, min(1.0, round(confidence_ratio, 3)))
-
-        avg_conf = 0.0
-        samples = confidence_samples.get(key, [])
-        if samples:
-            avg_conf = round(sum(samples) / len(samples), 3)
-
-        pattern = (
-            f"Le superviseur '{supervisor_type}' corrige fréquemment le type de fichier "
-            f"'{file_type}' sur des runs consécutifs."
-        )
-        suggestions.append(
-            StandardSuggestion(
-                suggestion_id=f"P008-{uuid.uuid4().hex[:6]}",
-                category="standard",
-                severity="medium",
-                title=f"Pattern récurrent {supervisor_type} sur {file_type}",
-                description=(
-                    f"Corrections récurrentes détectées sur {longest_streak} runs consécutifs. "
-                    "Candidat pour standard prescriptif en amont."
-                ),
-                evidence={
-                    "run_ids": best_runs,
-                    "corrected_runs_total": corrected_total,
-                    "reviewed_files_total": reviewed_total,
-                    "avg_supervisor_confidence": avg_conf,
-                },
-                supervisor_type=supervisor_type,
-                file_type=file_type,
-                pattern=pattern,
-                zone_target=_zone_for_supervisor(supervisor_type),
-                confidence=confidence_value,
-                sprint="sprint46_v2",
-            )
-        )
-    return suggestions
-
-
-def _analyze_batch_patterns(all_events: list[dict]) -> list[StandardSuggestion]:
-    """
-    Analyse les événements batch M4.
-    Patterns:
-      BP001 — must_fix_count > 0 sur 3+ batchs consécutifs pour le même superviseur
-      BP002 — batch_generated files_count == 0 sur 2+ runs
-      BP003 — corrections_applied applied_count == 0 sur 3+ batchs alors que must_fix_count > 0
-    """
-    batch_events = _load_batch_events(all_events)
-    if not batch_events:
-        return []
-
-    suggestions: list[StandardSuggestion] = []
-
-    # ── BP001 : superviseur avec must_fix récurrent sur batchs consécutifs ──
-    sup_events = [e for e in batch_events if e.get("event_type") == "supervisor_batch_reviewed"]
-    per_sup: dict[str, list[tuple[int, str, int]]] = {}
-    for event in sup_events:
-        payload = event.get("payload", {}) or {}
-        must_fix_count = int(payload.get("must_fix_count", 0) or 0)
-        batch_id = str(payload.get("batch_id", event.get("batch_id", "")) or "")
-        m = re.search(r"(\d+)", batch_id)
-        batch_idx = int(m.group(1)) if m else -1
-        run_id = str(event.get("run_id", "") or "")
-        # "supervisors" est une liste (émis par aggregate_corrections_activity)
-        # "supervisor" singulier : fallback pour compatibilité avec d'autres sources
-        sup_list: list[str] = []
-        raw_sups = payload.get("supervisors")
-        if isinstance(raw_sups, list):
-            sup_list = [str(s).strip().lower() for s in raw_sups if s]
-        if not sup_list:
-            s = str(payload.get("supervisor", "")).strip().lower()
-            if s:
-                sup_list = [s]
-        if not sup_list:
-            continue
-        for supervisor in sup_list:
-            per_sup.setdefault(supervisor, []).append((batch_idx, run_id, must_fix_count))
-
-    for supervisor, rows in per_sup.items():
-        rows_sorted = sorted(rows, key=lambda x: x[0])
-        longest = 0
-        current = 0
-        best_runs: list[str] = []
-        current_runs: list[str] = []
-        prev_idx = None
-        for idx, rid, must_count in rows_sorted:
-            hit = must_count > 0
-            consecutive = prev_idx is None or (idx >= 0 and prev_idx >= 0 and idx == prev_idx + 1)
-            if hit and (consecutive or current == 0):
-                current += 1
-                current_runs.append(rid)
-            elif hit:
-                current = 1
-                current_runs = [rid]
-            else:
-                current = 0
-                current_runs = []
-            prev_idx = idx
-            if current > longest:
-                longest = current
-                best_runs = list(current_runs)
-        if longest >= 3:
-            suggestions.append(StandardSuggestion(
-                suggestion_id=f"BP001-{uuid.uuid4().hex[:6]}",
-                category="standard",
-                severity="medium",
-                title=f"must_fix récurrent — superviseur {supervisor}",
-                description=(
-                    f"Le superviseur '{supervisor}' remonte des must_fix sur "
-                    f"{longest} batchs consécutifs. Ajouter/renforcer un standard amont."
-                ),
-                evidence={"run_ids": best_runs, "streak": longest, "supervisor": supervisor},
-                supervisor_type=supervisor,
-                zone_target=_zone_for_supervisor(supervisor),
-                sprint="sprint46_v2",
-            ))
-
-    # ── BP002 : plans/batchs vides sur plusieurs runs ────────────────────────
-    batch_gen_events = [e for e in batch_events if e.get("event_type") == "batch_generated"]
-    zero_runs: Counter = Counter()
-    for event in batch_gen_events:
-        payload = event.get("payload", {}) or {}
-        files_count = int(payload.get("files_count", 0) or 0)
-        run_id = str(event.get("run_id", "") or "")
-        if run_id and files_count == 0:
-            zero_runs[run_id] += 1
-    if len(zero_runs) >= 2:
-        suggestions.append(StandardSuggestion(
-            suggestion_id=f"BP002-{uuid.uuid4().hex[:6]}",
-            category="config",
-            severity="high",
-            title="Plan architect vide détecté",
-            description=(
-                f"Des batchs avec files_count=0 sont observés sur {len(zero_runs)} runs. "
-                "Le plan est potentiellement vide ou mal parsé."
-            ),
-            evidence={"run_ids": sorted(zero_runs.keys()), "zero_batch_runs": len(zero_runs)},
-            sprint="sprint46_v2",
-        ))
-
-    # ── BP003 : must_fix non appliqués de manière récurrente ─────────────────
-    must_fix_by_key: dict[tuple[str, str], int] = {}
-    for event in sup_events:
-        payload = event.get("payload", {}) or {}
-        run_id = str(event.get("run_id", "") or "")
-        batch_id = str(payload.get("batch_id", event.get("batch_id", "")) or "")
-        must_fix_by_key[(run_id, batch_id)] = max(
-            must_fix_by_key.get((run_id, batch_id), 0),
-            int(payload.get("must_fix_count", 0) or 0),
-        )
-
-    unapplied_keys: list[tuple[str, str]] = []
-    corr_events = [e for e in batch_events if e.get("event_type") == "corrections_applied"]
-    for event in corr_events:
-        payload = event.get("payload", {}) or {}
-        run_id = str(event.get("run_id", "") or "")
-        batch_id = str(payload.get("batch_id", event.get("batch_id", "")) or "")
-        applied_count = int(payload.get("applied_count", 0) or 0)
-        must_count = int(must_fix_by_key.get((run_id, batch_id), 0) or 0)
-        if must_count > 0 and applied_count == 0:
-            unapplied_keys.append((run_id, batch_id))
-
-    if len(unapplied_keys) >= 3:
-        suggestions.append(StandardSuggestion(
-            suggestion_id=f"BP003-{uuid.uuid4().hex[:6]}",
-            category="guard",
-            severity="high",
-            title="Corrections must_fix non appliquées",
-            description=(
-                f"{len(unapplied_keys)} batchs montrent applied_count=0 malgré des must_fix > 0. "
-                "Le chaînage aggregate/apply est défaillant."
-            ),
-            evidence={"batch_keys": [f"{r}:{b}" for r, b in unapplied_keys[:10]], "count": len(unapplied_keys)},
-            sprint="sprint46_v2",
-        ))
 
     return suggestions
 

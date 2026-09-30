@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "garage-atlas",
+    "brief": {
+      "description": "Je gère un petit garage automobile. Mes clients m'appellent ou passent pour demander une réparation. Je note le nom du client, son téléphone, et le véhicule concerné (marque, modèle, plaque). Quand un client demande une réparation, il décrit le problème, et sa demande part en attente. Moi je regarde les demandes en attente et je les accepte ou je les refuse en expliquant pourquoi si je refuse. Une fois acceptée, la réparation est en cours, puis je la marque comme terminée quand la voiture est prête à récupérer, avec le montant facturé. Je veux un tableau de bord où je vois combien de réparations sont en attente, combien sont en cours actuellement, et le total facturé ce mois-ci. Chaque client a son propre espace où il peut suivre l'état de ses demandes et l'historique de ses véhicules, et gérer ses coordonnées. Il faudrait aussi qu'un jour on puisse envoyer un SMS automatique au client quand sa voiture est prête, mais c'est pas urgent, pas indispensable pour commencer. Les mécaniciens n'ont pas besoin de compte, seulement moi (le patron du garage) et mes clients."
+    }
+  }
+]

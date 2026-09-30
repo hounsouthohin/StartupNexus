@@ -1,0 +1,8 @@
+[
+  {
+    "project_name": "atelier-partage",
+    "brief": {
+      "description": "Je propose des ateliers créatifs (poterie, dessin, cuisine) dans mon local. Le catalogue des ateliers est visible par tout le monde, même sans compte : chaque atelier a un titre, une description, une durée, un prix, et un ou plusieurs domaines (dessin, poterie, cuisine, couture). Une personne intéressée crée un compte, complète son profil (nom, téléphone), puis réserve un atelier en choisissant un créneau parmi ceux que je propose. Sa réservation part en attente. Je regarde les réservations en attente et je les confirme ou je les annule en précisant la raison si j'annule. Une fois confirmée, la personne vient à l'atelier, et je marque la réservation comme terminée après. Sur mon tableau de bord, je veux voir le nombre de réservations en attente de confirmation, le nombre de réservations confirmées à venir, et le total encaissé ce mois-ci. Chaque personne a son propre espace pour voir ses réservations passées et à venir, et gérer ses coordonnées. Ce sont uniquement moi (l'animateur) et les personnes inscrites qui utilisent l'application. Plus tard il faudrait pouvoir payer directement en ligne au moment de la réservation, mais ce n'est pas la priorité maintenant."
+    }
+  }
+]

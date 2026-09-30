@@ -15,10 +15,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from scripts.validate_contracts import validate_input, validate_output
 from utils.run_report import write_run_report as _write_run_report
 
-# 0 retry TSC : le retry complet relançait run_dev_agent en intégralité (coûteux, efface workdir).
-# Les erreurs TS résiduelles sont traitées en correction_pass_activity (chirurgicale).
-MAX_ACTIVITY_TSC_FEEDBACK_RETRIES = 1
-
 
 def _classify_root_cause(
     last_build_error: str,
@@ -191,7 +187,6 @@ def _validate_run_metric_consistency(run_metric: dict) -> list:
         flags.append("WARNING: build_success=False avec root_cause_category=unknown (diagnostic incomplet)")
 
     return flags
-
 
 
 def _persist_snapshot(project_name: str, run_id: str, files: dict) -> None:
@@ -516,37 +511,6 @@ async def _run_tsc_by_activity(project_workdir: str) -> Dict[str, Any]:
         return details
 
 
-def _build_tsc_feedback_prompt(errors: list) -> str:
-    """
-    Construit un feedback court et actionnable a reinjecter dans le prochain passage Dev.
-    """
-    if not isinstance(errors, list) or not errors:
-        return ""
-    lines: List[str] = []
-    for item in errors[:5]:
-        if not isinstance(item, dict):
-            continue
-        file_path = str(item.get("file", "") or "")
-        line = int(item.get("line", 0) or 0)
-        col = int(item.get("col", 0) or 0)
-        code = str(item.get("code", "") or "")
-        message = str(item.get("message", "") or "")
-        loc = file_path if file_path else "<unknown>"
-        if line > 0:
-            loc += f":{line}:{col if col > 0 else 1}"
-        marker = f" [{code}]" if code else ""
-        lines.append(f"- {loc}{marker} {message}".strip())
-    if not lines:
-        return ""
-    return (
-        "[POST_BUILD_TSC_FEEDBACK]\n"
-        "Le check tsc post-mortem a detecte des erreurs TypeScript bloquantes.\n"
-        "Corrige d'abord ces erreurs ciblees, puis relance tsc avant le build.\n"
-        "Erreurs prioritaires:\n"
-        + "\n".join(lines)
-    )
-
-
 @activity.defn(name="dev_test_activity")
 async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dict[str, Any]:
     """
@@ -658,77 +622,13 @@ async def dev_test_activity(input_data: Dict[str, Any], run_id: str = "") -> Dic
         else:
             activity.logger.info("[TSC_ACTIVITY] skipped=true (tsconfig/tsc indisponible)")
 
-        # ── Phase 1 X2: retry unique avec feedback tsc post-mortem ────────────
+        # Retry « régénération complète avec feedback tsc » retiré le 30 sept 2026 :
+        # 27 déclenchements dans l'historique, 1 seul build sauvé, et chaque retry
+        # doublait la durée du run (régénération identique du cœur déterministe).
+        # L'executor a déjà sa propre boucle de 3 builds avec retour d'erreur.
+        # Champs conservés dans le rapport pour la compatibilité des métriques.
         tsc_feedback_retry_triggered = False
         tsc_feedback_prompt_preview = ""
-        if (
-            not success
-            and MAX_ACTIVITY_TSC_FEEDBACK_RETRIES > 0
-            and bool(tsc_activity_details.get("ran"))
-            and not bool(tsc_activity_details.get("ok"))
-            and int(tsc_activity_details.get("errors_count", 0) or 0) > 0
-        ):
-            tsc_feedback_prompt = _build_tsc_feedback_prompt(tsc_activity_details.get("errors", []))
-            if tsc_feedback_prompt:
-                tsc_feedback_retry_triggered = True
-
-                # Injecter le contenu des fichiers fautifs pour que le LLM corrige
-                # avec le code complet sous les yeux (pas juste le numéro de ligne).
-                _errored_files: set[str] = set()
-                for _e in tsc_activity_details.get("errors", []):
-                    if isinstance(_e, dict) and _e.get("file"):
-                        _errored_files.add(str(_e["file"]))
-                _file_blocks: list[str] = []
-                for _rel in list(_errored_files)[:3]:  # max 3 fichiers
-                    _abs = os.path.join(project_workdir, _rel.replace("/", os.sep))
-                    if os.path.exists(_abs):
-                        try:
-                            with open(_abs, "r", encoding="utf-8") as _fh:
-                                _file_blocks.append(
-                                    f"\n--- {_rel} (fichier complet) ---\n"
-                                    f"```typescript\n{_fh.read()}\n```"
-                                )
-                        except Exception:
-                            pass
-                if _file_blocks:
-                    tsc_feedback_prompt += "\n\nFichiers à corriger :" + "".join(_file_blocks)
-
-                tsc_feedback_prompt_preview = tsc_feedback_prompt[:400]
-                activity.logger.info(
-                    "[TSC_FEEDBACK] retry unique active (errors=%s, fichiers=%s)",
-                    tsc_activity_details.get("errors_count", 0),
-                    len(_file_blocks),
-                )
-                retry_result = await _adapter.run_dev_agent(
-                    spec=spec_dict,
-                    project_name=project_name,
-                    run_id=run_id,
-                    extra_feedback=tsc_feedback_prompt,
-                )
-
-                first_pass_attempts = build_attempts
-                dev_result = retry_result
-                success = bool(dev_result.get("success", False))
-                build_attempts = first_pass_attempts + int(dev_result.get("build_attempts", 0) or 0)
-                last_build_error = dev_result.get("last_build_error", "") or ""
-                build_command_executed = build_command_executed or bool(dev_result.get("build_command_executed", False))
-                if dev_result.get("build_exit_code", -1) >= 0:
-                    build_exit_code = int(dev_result.get("build_exit_code", -1))
-                final_message = "BUILD_SUCCESS" if success else "BUILD_FAILED"
-
-                # Rescan + tsc après le retry pour refléter l'état final réel.
-                combined_files = _scan_workdir_files(project_workdir)
-                activity.logger.info(
-                    f"[dev_graph] retry tsc_feedback -> {len(combined_files)} fichiers lus depuis {project_workdir}"
-                )
-                tsc_activity_details = await _run_tsc_by_activity(project_workdir)
-                if tsc_activity_details.get("ran"):
-                    activity.logger.info(
-                        "[TSC_ACTIVITY][after_retry] ran=%s ok=%s errors=%s",
-                        tsc_activity_details.get("ran"),
-                        tsc_activity_details.get("ok"),
-                        tsc_activity_details.get("errors_count"),
-                    )
 
         # ── Métriques réelles via spec_coverage ─────────────────────────────
         requirements = input_data.get("requirements", []) or []

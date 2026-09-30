@@ -1,0 +1,331 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "atelier-recettes",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T19:00:53+00:00",
+  "run_id": "capture-f0e0fc80",
+  "brief": {
+    "description": "Mon carnet de recettes de cuisine en ligne. Les visiteurs peuvent consulter les recettes publiées sans créer de compte, et chaque recette a sa propre adresse lisible dérivée de son titre. Une recette a un titre, des instructions détaillées (texte long), un temps de préparation en minutes, une difficulté (facile, moyenne ou difficile) et peut avoir plusieurs tags — par exemple végétarien, rapide, dessert — que je gère dans une liste dédiée depuis mon espace privé. Je publie une recette quand elle est prête, sinon elle reste en brouillon visible seulement par moi. Depuis mon tableau de bord privé accessible après connexion, je gère mes recettes et mes tags, et je peux rechercher une recette par son titre. La page d'accueil publique montre les dernières recettes publiées."
+  },
+  "project_spec": {
+    "project_name": "atelier-recettes",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Mon carnet de recettes de cuisine en ligne. Les visiteurs peuvent consulter les recettes publiées sans créer de compte, et chaque recette a sa propre adresse lisible dérivée de son titre. Une recette a un titre, des instructions détaillées (texte long), un temps de préparation en minutes, une difficulté (facile, moyenne ou difficile) et peut avoir plusieurs tags — par exemple végétarien, rapide, dessert — que je gère dans une liste dédiée depuis mon espace privé. Je publie une recette quand elle est prête, sinon elle reste en brouillon visible seulement par moi. Depuis mon tableau de bord privé accessible après connexion, je gère mes recettes et mes tags, et je peux rechercher une recette par son titre. La page d'accueil publique montre les dernières recettes publiées.",
+    "models": [
+      {
+        "name": "Recipe",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "instructions",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "preparationTime",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "difficulty",
+            "type": "Difficulty",
+            "attributes": ""
+          },
+          {
+            "name": "published",
+            "type": "Boolean",
+            "attributes": "@default(false)"
+          },
+          {
+            "name": "slug",
+            "type": "String",
+            "attributes": "@unique"
+          },
+          {
+            "name": "tags",
+            "type": "Tag[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Tag",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "recipes",
+            "type": "Recipe[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/recipes",
+        "auth_required": false,
+        "page_type": "list",
+        "model": "Recipe"
+      },
+      {
+        "path": "/recipes/[slug]",
+        "auth_required": false,
+        "page_type": "detail-slug",
+        "model": "Recipe"
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/recipes",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Recipe"
+      },
+      {
+        "path": "/dashboard/recipes/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Recipe"
+      },
+      {
+        "path": "/dashboard/recipes/[slug]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Recipe"
+      },
+      {
+        "path": "/dashboard/tags",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Tag"
+      },
+      {
+        "path": "/dashboard/tags/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Tag"
+      },
+      {
+        "path": "/dashboard/tags/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Tag"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Affiche les dernières recettes publiées avec leur titre, temps de préparation et difficulté.",
+        "data_fetches": [
+          {
+            "service": "recipeService.getPublicAll()",
+            "as": "recipes"
+          }
+        ],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord privé pour gérer les recettes et les tags. Permet de rechercher une recette par titre.",
+        "data_fetches": [
+          {
+            "service": "recipeService.getAll(userId)",
+            "as": "recipes"
+          },
+          {
+            "service": "tagService.getAll(userId)",
+            "as": "tags"
+          }
+        ],
+        "interactive": true,
+        "kpis": [
+          {
+            "label": "Total des recettes",
+            "source": "recipes",
+            "agg": "count",
+            "field": "",
+            "filter_field": "",
+            "filter_value": ""
+          },
+          {
+            "label": "Total des tags",
+            "source": "tags",
+            "agg": "count",
+            "field": "",
+            "filter_field": "",
+            "filter_value": ""
+          }
+        ],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur / : un visiteur voit les dernières recettes publiées",
+      "Sur /recipes : un visiteur parcourt les recettes publiées",
+      "Sur /recipes/[slug] : un visiteur lit une recette",
+      "Sur /dashboard : l'utilisateur voit un aperçu de ses recettes et tags",
+      "Sur /dashboard/recipes : l'utilisateur gère ses recettes",
+      "Sur /dashboard/recipes/new : l'utilisateur crée une nouvelle recette",
+      "Sur /dashboard/tags : l'utilisateur gère ses tags"
+    ],
+    "ui_labels": {
+      "Recipe": {
+        "title": "Titre",
+        "instructions": "Instructions",
+        "preparationTime": "Temps de préparation",
+        "difficulty": "Difficulté",
+        "published": "Publié",
+        "tags": "Tags"
+      },
+      "Tag": {
+        "name": "Nom"
+      }
+    },
+    "title_plurals": {
+      "Recipe": "Recettes",
+      "Tag": "Tags"
+    },
+    "title_singulars": {
+      "Recipe": "Recette",
+      "Tag": "Tag"
+    },
+    "enums": {
+      "Difficulty": [
+        "facile",
+        "moyenne",
+        "difficile"
+      ]
+    },
+    "enum_value_labels": {
+      "Difficulty": {
+        "facile": "Facile",
+        "moyenne": "Moyenne",
+        "difficile": "Difficile"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "9efada177ec3b6b0",
+    "design_system": {
+      "preset_name": "wellness",
+      "primary_color": "teal-500",
+      "font_heading": "DM Sans",
+      "font_body": "DM Sans",
+      "sidebar_bg": "white",
+      "density": "spacious",
+      "card_style": "elevated",
+      "list_style": "card-grid",
+      "animation_level": "enhanced",
+      "hero_style": "centered-cta",
+      "layout_type": "topnav",
+      "brand_name": "Mon Carnet de Recettes"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "instructions": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [
+        {
+          "model": "",
+          "name": "searchByTitle",
+          "pattern": "search_text",
+          "field": "title",
+          "param_name": "",
+          "return_many": true
+        }
+      ],
+      "features": [
+        "slug_routing",
+        "public_pages",
+        "search"
+      ],
+      "status_flows": {},
+      "ux_hints": {
+        "empty_states": {
+          "/recipes": "Aucune recette publiée pour le moment.",
+          "/dashboard": "Aucune recette. Créez votre première recette."
+        },
+        "dependency_order": [],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [],
+        "privileged_role": "",
+        "admin_scoped_views": [],
+        "role_gated_actions": {},
+        "global_entities": [],
+        "initiator": {},
+        "surface": {},
+        "dashboard": {}
+      }
+    },
+    "summary_fr": "Les visiteurs peuvent consulter les recettes publiées sans avoir besoin de créer un compte. Chaque recette a une adresse unique dérivée de son titre. Les recettes incluent un titre, des instructions détaillées, un temps de préparation, une difficulté et des tags. Les utilisateurs connectés peuvent gérer leurs recettes et tags depuis un tableau de bord privé. Ils peuvent publier des recettes ou les garder en brouillon, et rechercher des recettes par titre. La page d'accueil affiche les dernières recettes publiées.",
+    "unsupported": [
+      "Le brief demande une recherche de recette par titre ; aucune page ni action de la spec ne mentionne cette fonctionnalité."
+    ]
+  }
+}

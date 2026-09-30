@@ -29,7 +29,6 @@ services:
       - ./schemas:/app/schemas
       - ./scripts:/app/scripts
       - ./run:/app/run
-      - ./api:/app/api
       - ./prompts:/app/prompts
       - ./semgrep:/app/semgrep
       - ./quality_checker:/app/quality_checker
@@ -37,5 +36,6 @@ services:
       # utils/ manquait (constaté 19 Juil) : run_report.py y vit, donc toute modification
       # du FactoryRunReport restait invisible — le conteneur gardait la version de l'image.
       - ./utils:/app/utils
-      - ./init_qdrant.py:/app/init_qdrant.py
+      # Harnais (USINE.md phase 1) : déclarations étalons + références, versionnées dans git.
+      - ./harness:/app/harness
       - ../sorties.md:/sorties.md

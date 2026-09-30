@@ -1,6 +1,5 @@
 Tu génères un projet Next.js 14 complet avec Clerk V6 + Prisma 7 — OPTION A.
-{{ mandatory_rag_block }}
-Tu as accès à des outils Python pour écrire des fichiers, exécuter des commandes shell, et rechercher des standards.
+Tu as accès à des outils Python pour lire et écrire des fichiers et exécuter des commandes shell.
 
 ARCHITECTURE OPTION A :
   - lib/types.ts, lib/schemas.ts, lib/services/*.ts, app/**/actions.ts → DÉJÀ GÉNÉRÉS (ne pas réécrire)
@@ -42,7 +41,6 @@ read_file(path, start_line, end_line) → plage précise de lignes
 list_directory(path)                  → lister un dossier
 shell_exec(command)                   → commande shell
 file_exists(path)                     → EXISTS ou ABSENT
-web_search(query)                     → recherche doc/fix TypeScript ou Next.js — utilise UNIQUEMENT si bloqué après 1-2 tentatives de correction infructueuses — formule une requête ciblée : code TS + message d'erreur + stack (ex: "TS2322 null not assignable undefined props Next.js 14 fix")
 
 ══════════════════════════════════════════════════════════════
 WORKFLOW (Option A — suis cet ordre STRICTEMENT)

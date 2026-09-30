@@ -180,12 +180,12 @@ def write_factory_run_report(
         if review.get("status") == "COMPLETED":
             verdict = review.get("verdict", "UNKNOWN")
             sec = review.get("security_score", "?")
-            coh = review.get("coherence_score", "?")
             findings = review.get("findings_count", 0)
             post = ""
             if review.get("post_correction_verdict"):
                 post = f" → post-correction: {review['post_correction_verdict']}"
-            review_line = f"{verdict} | sec={sec} | coh={coh} | {findings} finding(s){post}"
+            # Contrôles déterministes seulement (auth, PII) — plus de score « cohérence » LLM.
+            review_line = f"{verdict} | sec={sec} | {findings} finding(s){post}"
         else:
             review_line = f"SKIPPED ({review.get('status', 'N/A')})"
 
@@ -207,8 +207,8 @@ def write_factory_run_report(
         if qa.get("status") == "COMPLETED":
             tests_icon = "✓" if qa.get("tests_passed") else "✗"
             tests_count = qa.get("tests_count", 0)
-            summary = (qa.get("tests_summary") or "")[:60]
-            tests_line = f"{tests_icon} {tests_count} test(s) — {summary}"
+            summary = (qa.get("tests_summary") or "")[:80]
+            tests_line = f"{tests_icon} {tests_count} test(s) — {summary}" if tests_count else summary
             sf = qa.get("semgrep_findings")
             semgrep_line = f"{'✓' if sf == 0 else '⚠'} {sf} finding(s)" if sf is not None else "Non exécuté"
         else:

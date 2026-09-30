@@ -1,35 +1,22 @@
 """
 agents/reviewer.py
 ──────────────────
-Reviewer post-build — architecture deux couches (Sprint 4.8A).
+Reviewer post-build — contrôles déterministes (Layer 1) uniquement.
 
-Layer 1 — Python déterministe (pas de LLM) :
-  Lit les vrais fichiers générés, détecte IDOR, CROSS_USER_EXPOSURE,
-  MISSING_AUTH, WRONG_AUTH. Zéro hallucination possible.
+Lit les vrais fichiers générés : pages privées sans auth(), pages publiques avec auth()
+bloquant, données personnelles rendues sur des pages publiques. Zéro hallucination possible.
 
-Layer 2 — LLM sémantique :
-  Reçoit brief + user_flows + pages custom uniquement (PAS les services).
-  Vérifie : conformité brief, ghost success, page stubs, couverture user_flows.
-  Les services sont exclus du contexte LLM — ils sont corrects par construction
-  et leur présence induisait des hallucinations IDOR systématiques.
+La couche LLM (Layer 2, gpt-4o : « conformité brief ») a été retirée le 30 sept 2026 :
+elle notait COHERENT 100/100 des apps absurdes. Le jugement du comportement viendra des
+oracles dérivés de la déclaration (USINE.md §5).
 """
 from __future__ import annotations
 
-import json
 import logging
 import re
 from typing import Any
 
 logger = logging.getLogger(__name__)
-
-# ── Champs owner reconnus par la factory ────────────────────────────────────
-_OWNER_FIELDS = {"userId", "authorId", "ownerId"}
-
-# ── Méthodes publiques intentionnellement sans filtre owner ──────────────────
-_PUBLIC_METHOD_SIGNATURES = (
-    "getPublicAll", "getPublished", "getBySlug",
-    "getPublicById", "getPublicByIdWithRelations", "getBySlugWithRelations",
-)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -168,235 +155,48 @@ def _run_deterministic_checks(generated_files: dict, spec: dict) -> list[dict]:
     )
     return all_findings
 
-def _get_reviewer_model() -> str:
-    try:
-        from agents.stack_config import get_llm_models
-        return get_llm_models().get("reviewer", "gpt-4o-mini")
-    except Exception:
-        return "gpt-4o-mini"
 
-_REVIEWER_MODEL = _get_reviewer_model()
-_MAX_FILE_CHARS = 3000
-_MAX_STANDARDS_CHARS = 4000
+# ═══════════════════════════════════════════════════════════════════════════
+# Point d'entrée
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Types de findings que correction_pass sait corriger de façon déterministe.
+_L1_FIXABLE = {"WRONG_AUTH", "MISSING_AUTH"}
 
 
-def _load_reviewer_prompt(stack_id: str) -> str:
-    from utils.prompt_loader import load_stack_prompt
-    try:
-        return load_stack_prompt("reviewer", stack_id)
-    except FileNotFoundError:
-        from utils.prompt_loader import load_prompt
-        logger.warning("[reviewer] Prompt stack introuvable — fallback base reviewer.md")
-        return load_prompt("reviewer")
-
-
-def _build_human_message(
-    brief: str,
-    spec: dict,
-    user_flows: list,
-    selected_files: dict[str, str],
-    rag_standards: str,
-    page_auth_contract: str = "",
-) -> str:
-    parts: list[str] = []
-
-    parts.append("## BRIEF ORIGINAL\n" + (brief or "(absent)"))
-
-    if page_auth_contract:
-        parts.append(page_auth_contract)
-
-    entities = spec.get("entities") or spec.get("models") or []
-    routes = spec.get("routes") or []
-    parts.append(
-        "## PROJECT SPEC\n"
-        f"Entités: {', '.join(e if isinstance(e, str) else e.get('name', str(e)) for e in entities)}\n"
-        f"Routes: {', '.join(r if isinstance(r, str) else r.get('path', str(r)) for r in routes)}"
-    )
-
-    if user_flows:
-        flows_txt = "\n".join(
-            f"- {f}" if isinstance(f, str) else f"- {f.get('description', str(f))}"
-            for f in user_flows
-        )
-        parts.append("## USER FLOWS\n" + flows_txt)
-
-    if selected_files:
-        files_section = ["## FICHIERS À ANALYSER"]
-        for filepath, content in selected_files.items():
-            truncated = content[:_MAX_FILE_CHARS]
-            if len(content) > _MAX_FILE_CHARS:
-                truncated += f"\n... [tronqué à {_MAX_FILE_CHARS} chars]"
-            files_section.append(f"### {filepath}\n```typescript\n{truncated}\n```")
-        parts.append("\n\n".join(files_section))
-
-    if rag_standards:
-        standards_txt = rag_standards[:_MAX_STANDARDS_CHARS]
-        parts.append("## STANDARDS DE RÉFÉRENCE (ZONE_15 + ZONE_16)\n" + standards_txt)
-
-    parts.append(
-        "## INSTRUCTION\n"
-        "Analyse le code ci-dessus selon les règles IDOR, cross-user, conformité brief, "
-        "et page stub. Produis uniquement le ReviewReport JSON demandé dans tes instructions système."
-    )
-
-    return "\n\n---\n\n".join(parts)
-
-
-def _parse_review_report(raw: str) -> dict[str, Any]:
-    try:
-        match = re.search(r"\{[\s\S]*\}", raw)
-        if match:
-            return json.loads(match.group(0))
-    except json.JSONDecodeError as e:
-        logger.warning("[reviewer] JSON parse error: %s", e)
-    return {
-        "verdict": "DEGRADED",
-        "security_score": 50,
-        "coherence_score": 50,
-        "summary": "Parsing du rapport impossible — revue dégradée par défaut.",
-        "findings": [],
-        "targeted_fixes": [],
-        "_parse_error": raw[:300],
-    }
-
-
-async def run_reviewer(
-    brief: str,
-    spec: dict,
-    user_flows: list,
-    selected_files: dict[str, str],
-    rag_standards: str,
-    run_id: str,
-    stack_id: str = "nextjs-clerk-prisma",
-    page_auth_contract: str = "",
-    generated_files: dict[str, str] | None = None,
-) -> dict[str, Any]:
+def run_reviewer(spec: dict, generated_files: dict[str, str] | None, run_id: str = "") -> dict[str, Any]:
     """
-    Lance la revue sémantique post-build.
-
-    selected_files : dict {filepath_relatif: contenu} — sélection effectuée par review_activity.
-    rag_standards  : texte RAG pré-fetché (ZONE_15 + ZONE_16, agent_context=reviewer).
+    Revue post-build — contrôles déterministes uniquement.
 
     Retourne un ReviewReport dict :
-        verdict          : "COHERENT" | "DEGRADED" | "INCOHERENT"
-        security_score   : int 0–100
-        coherence_score  : int 0–100
+        verdict          : "DEGRADED" si un finding CRITICAL, sinon "COHERENT"
+        security_score   : int 0–100 (dérivé des findings auth / PII)
         summary          : str
         findings         : list[Finding]
-        targeted_fixes   : list[TargetedFix]
+        targeted_fixes   : list[TargetedFix] (findings corrigeables par correction_pass)
     """
-    import os
-    from langchain_core.messages import HumanMessage, SystemMessage
-    from langchain_openai import ChatOpenAI
+    findings = _run_deterministic_checks(generated_files or {}, spec)
 
-    # ── Layer 1 : checks déterministes Python ────────────────────────────────
-    deterministic_findings: list[dict] = []
-    if generated_files:
-        deterministic_findings = _run_deterministic_checks(generated_files, spec)
-
-    # ── Layer 2 : LLM sémantique — services EXCLUS du contexte ───────────────
-    # Les services sont corrects par construction (service_generator déterministe).
-    # Leur présence dans le contexte LLM induisait des hallucinations IDOR
-    # systématiques (gpt-4o-mini ignore le code réel et génère des findings
-    # basés sur ses priors). Le LLM se concentre sur la conformité brief.
-    semantic_files = {
-        path: content
-        for path, content in selected_files.items()
-        if "lib/services/" not in path
+    n_missing_auth = sum(1 for f in findings if f["type"] == "MISSING_AUTH")
+    n_pii = sum(1 for f in findings if f["type"] == "PII_PUBLIC_EXPOSURE")
+    verdict = "DEGRADED" if any(f.get("severity") == "CRITICAL" for f in findings) else "COHERENT"
+    report = {
+        "verdict": verdict,
+        "security_score": max(0, 100 - n_missing_auth * 30 - n_pii * 15),
+        "summary": (
+            f"{len(findings)} problème(s) détecté(s) par les contrôles déterministes "
+            "(authentification des pages, données personnelles sur les pages publiques)."
+        ),
+        "findings": findings,
+        "targeted_fixes": [
+            {"file": f["file"], "type": f["type"], "severity": f["severity"], "fix": f.get("fix", "")}
+            for f in findings
+            if f["type"] in _L1_FIXABLE
+        ],
     }
-
-    system_prompt = _load_reviewer_prompt(stack_id)
-    human_content = _build_human_message(brief, spec, user_flows, semantic_files, rag_standards, page_auth_contract)
-
-    llm = ChatOpenAI(
-        model=_REVIEWER_MODEL,
-        temperature=0.0,
-        api_key=os.getenv("REVIEWER_API_KEY", os.getenv("OPENAI_API_KEY")),
-        max_retries=2,
-    )
-
     logger.info(
-        "[reviewer] run_id=%s model=%s — revue de %d fichier(s)",
-        run_id, _REVIEWER_MODEL, len(selected_files),
-    )
-    try:
-        response = await llm.ainvoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ])
-        raw = response.content or ""
-    except Exception as e:
-        logger.error("[reviewer] LLM error: %s", e)
-        return {
-            "verdict": "COHERENT",
-            "security_score": 50,
-            "coherence_score": 50,
-            "summary": f"Revue LLM échouée: {e}",
-            "findings": [],
-            "targeted_fixes": [],
-        }
-
-    report = _parse_review_report(raw)
-
-    # ── Fusion des deux couches ───────────────────────────────────────────────
-    # Les findings déterministes (Layer 1) sont factuels — ils remplacent
-    # les findings sécurité du LLM (Layer 2) qui pourraient halluciner.
-    llm_findings = report.get("findings", [])
-    llm_security_types = {"IDOR", "CROSS_USER_EXPOSURE", "MISSING_AUTH", "WRONG_AUTH"}
-
-    # Garder uniquement les findings LLM non-sécurité (semantic : ghost success, stub, conformité)
-    semantic_findings = [f for f in llm_findings if f.get("type") not in llm_security_types]
-
-    # Merger : déterministes d'abord, puis sémantiques LLM
-    all_findings = deterministic_findings + semantic_findings
-    report["findings"] = all_findings
-
-    # Recalculer security_score depuis les findings déterministes (pages LLM) uniquement.
-    # L'ownership des services est garanti à la source (déterministe) → non re-scoré ici.
-    n_missing_auth = sum(1 for f in deterministic_findings if f["type"] == "MISSING_AUTH")
-    n_pii = sum(1 for f in deterministic_findings if f["type"] == "PII_PUBLIC_EXPOSURE")
-    security_score = max(0, 100 - n_missing_auth * 30 - n_pii * 15)
-    report["security_score"] = security_score
-
-    # Recalculer verdict global
-    has_critical = any(f.get("severity") == "CRITICAL" for f in all_findings)
-    llm_verdict = report.get("verdict", "COHERENT")
-    if has_critical:
-        report["verdict"] = "DEGRADED"
-    elif llm_verdict == "INCOHERENT":
-        report["verdict"] = "INCOHERENT"
-    else:
-        report["verdict"] = llm_verdict if llm_verdict != "DEGRADED" else "COHERENT"
-
-    # ── targeted_fixes : Layer 1 déterministe + LLM sémantique (sans doublons sécurité) ──
-    # Les fixes WRONG_AUTH/MISSING_AUTH sont générés ici depuis les findings Layer 1.
-    # Le LLM ne peut pas les produire fiablement → on l'exclut pour ces types.
-    _L1_FIXABLE = {"WRONG_AUTH", "MISSING_AUTH"}
-    l1_targeted_fixes = [
-        {
-            "file": f["file"],
-            "type": f["type"],
-            "severity": f["severity"],
-            "fix": f.get("fix", ""),
-        }
-        for f in deterministic_findings
-        if f["type"] in _L1_FIXABLE
-    ]
-    llm_targeted_fixes = report.get("targeted_fixes", []) or []
-    report["targeted_fixes"] = l1_targeted_fixes + [
-        tf for tf in llm_targeted_fixes
-        if tf.get("type") not in _L1_FIXABLE
-    ]
-
-    verdict = report["verdict"]
-    logger.info(
-        "[reviewer] verdict=%s sec=%s coh=%s | det=%d llm_sem=%d total=%d targeted_fixes=%d",
-        verdict,
-        report.get("security_score"),
-        report.get("coherence_score"),
-        len(deterministic_findings),
-        len(semantic_findings),
-        len(all_findings),
-        len(report["targeted_fixes"]),
+        "[reviewer] run_id=%s verdict=%s sec=%s findings=%d",
+        run_id, verdict, report["security_score"], len(findings),
     )
     return report
+

@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExpenseCategory {
+  transport
+  repas
+  hébergement
+  matériel
+}
+
+enum ExpenseStatus {
+  draft
+  submitted
+  approved
+  refused
+  reimbursed
+}
+
+model ExpenseReport {
+  id String @id @default(uuid())
+  title String
+  amount Float
+  expenseDate DateTime
+  category ExpenseCategory
+  description String?
+  status ExpenseStatus @default(draft)
+  rejectionReason String?
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

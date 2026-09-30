@@ -1,5 +1,4 @@
 temporalio==1.21.1
-flask
 jsonschema
 langgraph
 langchain
@@ -7,17 +6,14 @@ langchain-openai
 langchain-core
 langchain-community
 python-dotenv
-qdrant-client
 openai
 langchain_openai
-langchain_qdrant
 pygithub
 git-filter-repo
 pytest-asyncio
 instructor
 tree-sitter
 tree-sitter-typescript
-ddgs
 httpx
 jinja2
 playwright

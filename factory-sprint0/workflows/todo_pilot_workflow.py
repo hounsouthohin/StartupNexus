@@ -411,9 +411,7 @@ class TodoPilotWorkflow:
             # Skippé si BUILD_FAILED ou REVIEW_INCOHERENT : app trop dégradée pour générer des tests utiles.
             e2e_tests: Dict[str, str] = {}
             if build_status not in ("BUILD_FAILED", "SEMANTIC_VIOLATION", "REVIEW_INCOHERENT"):
-                workflow.logger.info(
-                    f"[QA] Démarrage — user_flows={len(user_flows_part)} (Jest smoke tests)"
-                )
+                workflow.logger.info("[QA] Démarrage — Semgrep")
                 qa_input = {
                     "specification": spec_part,
                     "project_name": project_name,
@@ -432,9 +430,6 @@ class TodoPilotWorkflow:
                     qa_tests_passed = bool(qa_result_raw.get("tests_passed", False))
                     qa_tests_summary = str(qa_result_raw.get("tests_summary", ""))
                     qa_semgrep = qa_result_raw.get("semgrep", {})
-                    workflow.logger.info(
-                        f"[QA] Jest={'PASS' if qa_tests_passed else 'FAIL'} | {qa_tests_summary[:80]}"
-                    )
                     if qa_semgrep.get("ran"):
                         workflow.logger.info(
                             f"[QA] Semgrep → {qa_semgrep.get('findings_count', 0)} finding(s)"

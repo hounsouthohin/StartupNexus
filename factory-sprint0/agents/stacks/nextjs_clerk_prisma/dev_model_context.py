@@ -28,6 +28,8 @@ import logging
 import re as _re
 from dataclasses import dataclass, field
 
+from .dev_naming import pascal_to_camel as _pascal_to_camel, pascal_to_kebab as _pascal_to_kebab
+
 logger = logging.getLogger(__name__)
 
 # Types scalaires Prisma reconnus — tout ce qui n'est pas ici ET commence par une
@@ -353,15 +355,6 @@ def _detect_input_type_and_values(
     if field_name.lower() in _TEXTAREA_NAMES:
         return "textarea", ()
     return "text", ()
-
-
-
-def _pascal_to_camel(name: str) -> str:
-    return name[0].lower() + name[1:] if name else name
-
-
-def _pascal_to_kebab(name: str) -> str:
-    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
 def _resolve_fk_fields(model, model_names: set[str], owner: str) -> list[FKFieldInfo]:

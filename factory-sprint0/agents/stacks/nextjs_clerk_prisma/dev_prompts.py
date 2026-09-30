@@ -135,120 +135,6 @@ def _expected_files_from_spec(spec: "ProjectSpec") -> list[str]:
     return result
 
 
-def _build_mandatory_rag_block(spec: "ProjectSpec") -> str:
-    """
-    Requêtes Qdrant déclenchées en Python AVANT la génération, basées sur le contenu
-    du brief. Standards sélectionnés automatiquement → injectés dans le prompt.
-
-    Interrupteur A/B (mesure de l'apport RAG — roadmap Sprint 5) : si la variable
-    d'environnement DISABLE_RAG vaut "1"/"true", aucune injection. Permet de comparer
-    deux batchs (avec/sans RAG) sur les mêmes briefs sans supprimer de code.
-    """
-    try:
-        from agents.rag_client import rag_disabled
-        from agents.shared_tools import rag_search as _rag_fn
-        from agents.stack_config import load_stack_config
-    except Exception:
-        return ""
-
-    if rag_disabled():
-        logger.info("[mandatory-rag] DISABLE_RAG actif → aucun standard injecté (mesure A/B)")
-        return ""
-
-    contexts: list[str] = ["always"]
-
-    # Territoire LLM : layout.tsx, page.tsx custom (auth + appel service), page-client.tsx [INTERACTIVE].
-    # Les services, actions, types, schemas, pages CRUD sont Level A (pré-générés) → pas de standards Level A ici.
-
-    if spec.pages:
-        contexts.append("interactive-pages")
-
-    has_dynamic_pages = any("[" in p.path for p in spec.pages)
-    if has_dynamic_pages:
-        contexts.append("dynamic-pages")
-
-    # Pages publiques — déclenché si au moins une page sans auth (blog, recettes, articles).
-    has_public_pages = any(not p.auth_required for p in spec.pages)
-    if has_public_pages:
-        contexts.append("public-pages")
-
-    # UI Level B — déclenché si la spec a des pages custom [INTERACTIVE].
-    # Les page-client.tsx CRUD standard sont Level A — cette query cible uniquement
-    # les pages custom (dashboard, hub, landing) générées par le LLM depuis pages_detail.
-    _pages_detail = getattr(spec, "pages_detail", {}) or {}
-    has_custom_interactive = any(
-        (isinstance(v, dict) and v.get("interactive", False))
-        or (isinstance(v, str) and "[INTERACTIVE]" in v)
-        for v in _pages_detail.values()
-    )
-    if has_custom_interactive:
-        contexts.append("page_client_ui")
-
-    # Requêtes ciblées sur le territoire réel du LLM (post-Level-A).
-    # NE PAS inclure : N+1 (services), transactions Prisma (services), Zod (actions) — Level A.
-    CONTEXT_QUERIES: dict[str, str] = {
-        "always": (
-            "auth() userId guard page.tsx Server Component redirect sign-in "
-            "Clerk protection route authentifiée await auth"
-        ),
-        "interactive-pages": (
-            "useActionState formulaire form Server Action 'use client' "
-            "page-client isPending error formAction submit"
-        ),
-        "dynamic-pages": (
-            "notFound [id] params page dynamique Server Component "
-            "getById service null absent redirect 404 next/navigation "
-            "import Link from next/link Link href navigation cliquable lien"
-        ),
-        "public-pages": (
-            "page publique sans auth no auth_required getPublicAll "
-            "visiteur liste publique without userId public route "
-            "published draft content article tags many-to-many sitemap metadata SEO"
-        ),
-        "page_client_ui": (
-            "dashboard SerializedXxx props Client Component "
-            "empty state liste vide Link navigation href next/link "
-            "Button asChild ButtonProps import next/link next/image"
-        ),
-    }
-
-    snippets: list[str] = []
-    seen_texts: set[str] = set()
-
-    stack_id = getattr(spec, "stack_id", "nextjs-clerk-prisma")
-
-    for ctx in contexts:
-        query = CONTEXT_QUERIES.get(ctx, "")
-        if not query:
-            continue
-        try:
-            logger.info("[mandatory-rag] ctx=%-18s | q=%r", ctx, query[:70])
-            result = _rag_fn.invoke({"query": query})
-            if result and not result.startswith("[RAG]") and result not in seen_texts:
-                seen_texts.add(result)
-                snippets.append(f"[contexte: {ctx}]\n{result[:600]}")
-                _n_stds = len([s for s in result.split("---") if s.strip()])
-                logger.info("[mandatory-rag] ctx=%-18s | %d standard(s) injectés", ctx, _n_stds)
-            elif result and result.startswith("[RAG]"):
-                logger.warning("[mandatory-rag] ctx=%-18s | RAG indisponible ou vide", ctx)
-        except Exception:
-            pass
-
-    if not snippets:
-        return ""
-
-    joined = "\n\n---\n\n".join(snippets)
-    return f"""
-══════════════════════════════════════════════════════════════
-STANDARDS TECHNIQUES APPLICABLES À CE BRIEF (Qdrant)
-══════════════════════════════════════════════════════════════
-Ces standards ont été sélectionnés automatiquement selon le contenu du brief.
-Applique-les lors de la génération — ne les ignore pas.
-
-{joined}
-"""
-
-
 def _page_detail_interactive_suffix(page_path: str) -> str:
     """Bloc SPLIT obligatoire injecté quand interactive=True."""
     page_slug = page_path.strip("/").replace("/", "-") or "home"
@@ -527,8 +413,6 @@ Méthodes :
         "fingerprint": spec.spec_fingerprint,
     }, ensure_ascii=False)
 
-    mandatory_rag_block = _build_mandatory_rag_block(spec)
-
     # Design system — bloc injecté dans le system prompt pour guider le LLM
     # Les couleurs sont des CSS variables dans globals.css. Le LLM utilise des classes sémantiques.
     design_block = ""
@@ -622,7 +506,6 @@ Méthodes :
 
     env = Environment(undefined=StrictUndefined)
     rendered = env.from_string(_tpl_source).render(
-        mandatory_rag_block=mandatory_rag_block,
         service_map_block=service_map_block,
         dmmf_block=dmmf_block,
         pre_written_block=pre_written_block,

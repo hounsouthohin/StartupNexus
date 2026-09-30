@@ -82,7 +82,9 @@ def _topo_order(contexts: dict[str, ModelGenerationContext]) -> list[str]:
     ordered: list[str] = []
     while remaining:
         progressed = False
-        for name in list(remaining):
+        # Ordre de la déclaration, pas celui du set : l'ordre d'itération d'un set de chaînes
+        # change à chaque processus Python → seed.mjs différent à chaque génération (harnais).
+        for name in [n for n in contexts if n in remaining]:
             parents = {fk.related_model for fk in (contexts[name].fk_fields or [])} & known
             if parents <= set(ordered):  # tous les parents connus sont déjà placés
                 ordered.append(name)

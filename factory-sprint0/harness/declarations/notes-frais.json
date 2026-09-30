@@ -1,0 +1,275 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "notes-frais",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T18:58:42+00:00",
+  "run_id": "capture-e6a31bc7",
+  "brief": {
+    "description": "Je veux une app pour gérer les notes de frais de mon équipe. Un employé crée une note de frais avec un intitulé, un montant en euros (ex: 42.50), une date de dépense, une catégorie (transport, repas, hébergement, matériel) et une description. Il la garde en brouillon tant qu'il travaille dessus, puis il la soumet. Une fois soumise, elle est examinée : elle peut être approuvée ou refusée avec un motif. Une note approuvée est remboursée quand le virement est fait. Une note refusée est définitive. On ne doit évidemment pas pouvoir rembourser une note qui n'a pas été approuvée, ni modifier une note déjà soumise. Je veux voir la liste de mes notes avec leur état, et le total en attente de remboursement. L'ambiance doit être sobre et professionnelle."
+  },
+  "project_spec": {
+    "project_name": "notes-frais",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je veux une app pour gérer les notes de frais de mon équipe. Un employé crée une note de frais avec un intitulé, un montant en euros (ex: 42.50), une date de dépense, une catégorie (transport, repas, hébergement, matériel) et une description. Il la garde en brouillon tant qu'il travaille dessus, puis il la soumet. Une fois soumise, elle est examinée : elle peut être approuvée ou refusée avec un motif. Une note approuvée est remboursée quand le virement est fait. Une note refusée est définitive. On ne doit évidemment pas pouvoir rembourser une note qui n'a pas été approuvée, ni modifier une note déjà soumise. Je veux voir la liste de mes notes avec leur état, et le total en attente de remboursement. L'ambiance doit être sobre et professionnelle.",
+    "models": [
+      {
+        "name": "ExpenseReport",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "amount",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "expenseDate",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "category",
+            "type": "ExpenseCategory",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "ExpenseStatus",
+            "attributes": "@default(draft)"
+          },
+          {
+            "name": "rejectionReason",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/expense-reports",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "ExpenseReport"
+      },
+      {
+        "path": "/expense-reports/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "ExpenseReport"
+      },
+      {
+        "path": "/expense-reports/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "ExpenseReport"
+      },
+      {
+        "path": "/expense-reports/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "ExpenseReport"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation de l'application de gestion des notes de frais. Explication des fonctionnalités principales : création, soumission, et suivi des notes de frais. Aperçu des catégories disponibles : transport, repas, hébergement, matériel.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /expense-reports : l'utilisateur consulte la liste de ses notes de frais avec leur état",
+      "Sur /expense-reports/new : l'utilisateur crée une nouvelle note de frais",
+      "Sur /expense-reports/[id] : l'utilisateur consulte le détail d'une note de frais"
+    ],
+    "ui_labels": {
+      "ExpenseReport": {
+        "title": "Intitulé",
+        "amount": "Montant",
+        "expenseDate": "Date de dépense",
+        "category": "Catégorie",
+        "description": "Description",
+        "status": "État",
+        "rejectionReason": "Motif de refus"
+      }
+    },
+    "title_plurals": {
+      "ExpenseReport": "Notes de frais"
+    },
+    "title_singulars": {
+      "ExpenseReport": "Note de frais"
+    },
+    "enums": {
+      "ExpenseCategory": [
+        "transport",
+        "repas",
+        "hébergement",
+        "matériel"
+      ],
+      "ExpenseStatus": [
+        "draft",
+        "submitted",
+        "approved",
+        "refused",
+        "reimbursed"
+      ]
+    },
+    "enum_value_labels": {
+      "ExpenseCategory": {
+        "transport": "Transport",
+        "repas": "Repas",
+        "hébergement": "Hébergement",
+        "matériel": "Matériel"
+      },
+      "ExpenseStatus": {
+        "draft": "Brouillon",
+        "submitted": "Soumise",
+        "approved": "Approuvée",
+        "refused": "Refusée",
+        "reimbursed": "Remboursée"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "1c02642e202f64e5",
+    "design_system": {
+      "preset_name": "finance",
+      "primary_color": "slate-700",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "slate-900",
+      "density": "compact",
+      "card_style": "flat",
+      "list_style": "table",
+      "animation_level": "none",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "Expense Manager"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "amount": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "expenseDate": {
+          "semantic_type": "date",
+          "values": [],
+          "display_label": ""
+        },
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "draft",
+            "submitted",
+            "approved",
+            "refused",
+            "reimbursed"
+          ],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "status_flow"
+      ],
+      "status_flows": {
+        "ExpenseReport": {
+          "field": "status",
+          "initial": "draft",
+          "transitions": {
+            "draft": [
+              "submitted"
+            ],
+            "submitted": [
+              "approved",
+              "refused"
+            ],
+            "approved": [
+              "reimbursed"
+            ],
+            "refused": [],
+            "reimbursed": []
+          },
+          "locked_states": [
+            "submitted",
+            "approved",
+            "refused",
+            "reimbursed"
+          ],
+          "state_fields": {
+            "refused": [
+              "rejectionReason"
+            ]
+          }
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/expense-reports": "Aucune note de frais. Créez votre première note de frais."
+        },
+        "dependency_order": [],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [],
+        "privileged_role": "",
+        "admin_scoped_views": [],
+        "role_gated_actions": {},
+        "global_entities": [],
+        "initiator": {},
+        "surface": {},
+        "dashboard": {}
+      }
+    },
+    "summary_fr": "Les employés peuvent créer des notes de frais en indiquant un intitulé, un montant, une date, une catégorie et une description. Ils peuvent garder la note en brouillon ou la soumettre pour examen. Une fois soumise, la note peut être approuvée ou refusée avec un motif. Les notes approuvées sont remboursées après le virement. Les employés peuvent voir la liste de leurs notes avec leur état et le total en attente de remboursement.",
+    "unsupported": [
+      "Le brief demande de ne pas pouvoir modifier une note déjà soumise ; la spec ne mentionne pas cette restriction.",
+      "Le brief mentionne un total en attente de remboursement ; la spec ne décrit pas cette fonctionnalité."
+    ]
+  }
+}

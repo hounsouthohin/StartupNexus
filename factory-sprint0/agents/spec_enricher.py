@@ -25,6 +25,11 @@ from __future__ import annotations
 import logging
 import re
 
+from agents.stacks.nextjs_clerk_prisma.dev_naming import (
+    pascal_to_camel as _camel,
+    pascal_to_kebab as _kebab,
+)
+
 logger = logging.getLogger(__name__)
 
 _VISIBILITY_FIELD_NAMES = frozenset({"published", "ispublic", "is_public", "public", "visible", "isvisible"})
@@ -79,16 +84,6 @@ def _build_model_methods_index(brief_models: list[str], pages: list[dict]) -> di
         flags = _model_flags_from_str(model_str, model_name, pages)
         index[model_name] = valid_methods_for_flags(**flags)
     return index
-
-
-def _camel(name: str) -> str:
-    """PascalCase → camelCase."""
-    return name[0].lower() + name[1:] if name else name
-
-
-def _kebab(name: str) -> str:
-    """PascalCase → kebab-case."""
-    return re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
 def _has_relations(model_str: str) -> bool:

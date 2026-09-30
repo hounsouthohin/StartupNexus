@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SpaceType {
+  private_office
+  meeting_room
+  flex_desk
+}
+
+enum ReservationStatus {
+  requested
+  confirmed
+  refused
+  completed
+  cancelled
+}
+
+enum InvoiceStatus {
+  pending
+  paid
+  overdue
+}
+
+model Space {
+  id String @id @default(uuid())
+  name String
+  description String
+  type SpaceType
+  capacity Int
+  hourlyRate Float
+  address String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reservations Reservation[]
+}
+
+model Member {
+  id String @id @default(uuid())
+  name String
+  email String
+  company String?
+  phone String?
+  userId String
+  reservations Reservation[]
+  invoices Invoice[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Reservation {
+  id String @id @default(uuid())
+  date DateTime
+  startTime DateTime
+  endTime DateTime
+  status ReservationStatus @default(requested)
+  reason String?
+  spaceId String
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  memberId String
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  invoice Invoice?
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Invoice {
+  id String @id @default(uuid())
+  amount Float
+  issueDate DateTime
+  status InvoiceStatus @default(pending)
+  reservationId String @unique
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members Member[]
+  @@index([userId])
+}

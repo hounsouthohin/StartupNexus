@@ -27,38 +27,17 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
 
+from agents.stacks.nextjs_clerk_prisma.dev_naming import (
+    pascal_to_camel as _pascal_to_camel,
+    pascal_to_kebab as _pascal_to_kebab,
+)
+
 if TYPE_CHECKING:
     from agents.project_spec import ProjectSpec
 
 
-def _pascal_to_kebab(name: str) -> str:
-    """Convertit PascalCase en kebab-case. Ex: LeaveRequest → leave-request, Task → task."""
-    return _re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
-
-
-def _pascal_to_camel(name: str) -> str:
-    return name[0].lower() + name[1:] if name else name
-
-
-def _route_model_segment(path: str) -> str:
-    """
-    Extrait le segment de modèle depuis un chemin d'API.
-    '/api/projects/[id]' → 'projects'
-    '/api/leave-requests' → 'leave-requests'
-    """
-    clean = path.lstrip("/")
-    if clean.startswith("api/"):
-        clean = clean[4:]
-    parts = clean.split("/")
-    return parts[0] if parts else "unknown"
-
-
 def _is_webhook_route(path: str) -> bool:
     return "webhook" in path.lower() or "svix" in path.lower() or "stripe" in path.lower()
-
-
-def _is_mutation_method(method: str) -> bool:
-    return method.upper() in ("POST", "PUT", "PATCH", "DELETE")
 
 
 class FilePlanEntry(BaseModel):
@@ -388,68 +367,14 @@ def make_deterministic_plan(
     Les fichiers déjà écrits par les templates sont exclus.
 
     Ordre :
-      0. lib/services/*.ts   (DAL — générés par le LLM avec contrat d'interface)
-      1. app/**/actions.ts   (Server Actions — mutations via service)
-      2. app/api/**/route.ts (webhooks uniquement)
-      3. app/**/page.tsx     (Server Components — lecture via service)
+      1. app/api/**/route.ts (webhooks uniquement)
+      2. app/**/page.tsx     (pages sans générateur déterministe)
+
+    Services et actions ne sont jamais planifiés : ils sont toujours produits par les
+    générateurs (dev_core) ; un générateur qui échoue arrête le run avant l'executor.
     """
     template_set = set(template_files)
     entries: list[FilePlanEntry] = []
-
-    # ── 0. Services lib/services/{model}.service.ts ────────────────────────────
-    # Pré-générés par dev_service_generator AVANT le LLM (dans template_written).
-    # Skippés ici via `if file_path in template_set`. Listés pour validate_plan uniquement.
-    for model in spec.models:
-        kebab = _pascal_to_kebab(model.name)
-        camel = _pascal_to_camel(model.name)
-        file_path = f"lib/services/{kebab}.service.ts"
-        if file_path in template_set:
-            continue
-
-        owner = model.resolved_owner()
-
-        # Champs DateTime non auto (nécessitent new Date() côté service)
-        _datetime_fields = [
-            f.name for f in model.fields
-            if f.type.rstrip("?").rstrip("[]") == "DateTime"
-            and "@default(now())" not in (f.attributes or "").lower()
-            and "@updatedat" not in (f.attributes or "").lower().replace(" ", "")
-            and f.name.lower() not in {"id", "createdat", "updatedat", "deletedat"}
-            and f.name.lower() != owner.lower()
-        ]
-
-        # Relations disponibles pour include
-        _relation_names = [
-            f.name for f in model.fields
-            if "@relation" in (f.attributes or "")
-        ]
-
-        _dt_hint = (
-            f" Champs DateTime : {', '.join(_datetime_fields)} — déjà Date (z.coerce.date()) — passer directement à Prisma."
-            if _datetime_fields else ""
-        )
-        _rel_hint = (
-            f" Relations disponibles pour include : {', '.join(_relation_names)}."
-            if _relation_names else ""
-        )
-
-        entries.append(FilePlanEntry(
-            path=file_path,
-            role="service",
-            context_hint=(
-                f"Service DAL pour {model.name}. owner_field='{owner}'. "
-                f"INTERFACE OBLIGATOIRE : "
-                f"export const {camel}Service = {{ "
-                f"getAll({owner}), getById({owner}, id), "
-                f"create({owner}, data: Create{model.name}Input), "
-                f"update(id, data: Update{model.name}Input), "
-                f"delete({owner}, id) }}. "
-                f"Imports : import prisma from '@/lib/prisma' — "
-                f"import type {{ {model.name} }} from '@prisma/client' — "
-                f"import type {{ Create{model.name}Input, Update{model.name}Input }} from '@/lib/types'."
-                f"{_dt_hint}{_rel_hint}"
-            ),
-        ))
 
     # F-04: index stable segment→modèle (évite rstrip("s") fragile sur "address", "news"...)
     # Couvre : "project" → Project, "projects" → Project, "leave-requests" → LeaveRequest
@@ -459,75 +384,7 @@ def make_deterministic_plan(
         _model_by_seg[_bk] = _bm
         _model_by_seg[_bk + "s"] = _bm
 
-    # ── 1. Server Actions — une par modèle (chemin via spec.get_list_page_for_model, source de vérité unique)
-    # Même logique que dev_actions_generator → alignement garanti avec template_written.
-    # Si le fichier est dans template_set (pré-généré), il est sauté → LLM ne le réécrit pas.
-    _actions_by_page: dict[str, list] = {}
-    for _bm in spec.models:
-        _lp = spec.get_list_page_for_model(_bm.name)
-        if not _lp:
-            continue
-        _route_dir = _lp.lstrip("/")
-        _actions_by_page.setdefault(_route_dir, []).append(_bm)
-
-    for seg, _seg_models in _actions_by_page.items():
-        file_path = f"app/{seg}/actions.ts"
-        if file_path in template_set:
-            continue  # pré-généré par dev_actions_generator — ne pas replanifier
-        mutations = [
-            f"{r.method.upper()} {r.path}"
-            for r in spec.routes
-            if not _is_webhook_route(r.path) and _is_mutation_method(r.method)
-            and _route_model_segment(r.path) == seg
-        ]
-        mutations_str = ", ".join(mutations) if mutations else "create / update / delete"
-
-        # Modèles impliqués : ceux du groupe (déjà déterminés par _find_list_page)
-        # + modèles imbriqués détectés dans les routes (ex: /api/tasks/[id]/comments → Comment)
-        _relevant_models = list(_seg_models)
-        for route_str in mutations:
-            route_path = route_str.split(" ", 1)[1] if " " in route_str else route_str
-            nested_parts = route_path.lstrip("/").split("/")
-            for ns in nested_parts[2:]:
-                if not ns.startswith("[") and ns:
-                    _secondary = _model_by_seg.get(ns)
-                    if _secondary and _secondary not in _relevant_models:
-                        _relevant_models.append(_secondary)
-
-        service_hint = ""
-        if _relevant_models:
-            svc_parts = []
-            for _rm in _relevant_models:
-                _rc = _pascal_to_camel(_rm.name)
-                _rk = _pascal_to_kebab(_rm.name)
-                _ro = _rm.resolved_owner()
-                svc_parts.append(
-                    f"import {{ {_rc}Service }} from '@/lib/services/{_rk}.service' (owner: {_ro})"
-                )
-            service_hint = "Services : " + " | ".join(svc_parts) + "."
-            # Schemas de TOUS les modèles impliqués (primary + nested)
-            _schema_imports = ", ".join(
-                f"Create{_rm.name}Schema, Update{_rm.name}Schema"
-                for _rm in _relevant_models
-            )
-            service_hint += (
-                f" Schema : import {{ {_schema_imports} }}"
-                f" from '@/lib/schemas'."
-            )
-
-        entries.append(FilePlanEntry(
-            path=file_path,
-            role="actions",
-            context_hint=(
-                f"'use server' — Server Actions pour : {mutations_str}. "
-                "CHAQUE action DOIT : (1) const { userId } = await auth() — if (!userId) throw new Error('Unauthorized'); "
-                "(2) valider avec le schéma Zod .safeParse(data); "
-                "(3) appeler le service (jamais prisma directement dans les actions). "
-                + service_hint
-            ),
-        ))
-
-    # ── 2. Webhooks routes ─────────────────────────────────────────────────────
+    # ── 1. Webhooks routes ─────────────────────────────────────────────────────
     _webhook_files: set[str] = set()
     for route in spec.routes:
         if not _is_webhook_route(route.path):
@@ -549,7 +406,7 @@ def make_deterministic_plan(
             ),
         ))
 
-    # ── 3. Pages ───────────────────────────────────────────────────────────────
+    # ── 2. Pages ───────────────────────────────────────────────────────────────
     # Contract Generator : contrats techniques par page custom [INTERACTIVE].
     # Si manifest disponible : lire page_contracts déjà calculés (évite double calcul).
     # Sinon : calculer depuis contexts (rétrocompatibilité).
@@ -714,7 +571,7 @@ def validate_plan(
     plan_paths = {e.path for e in plan} | template_set
     missing: list[str] = []
 
-    # Services (générés par le LLM → dans le plan, pas dans template_set)
+    # Services (générés par dev_core → dans template_set)
     for model in spec.models:
         svc = f"lib/services/{_pascal_to_kebab(model.name)}.service.ts"
         if svc not in plan_paths:

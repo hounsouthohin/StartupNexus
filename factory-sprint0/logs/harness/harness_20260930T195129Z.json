@@ -1,0 +1,219 @@
+{
+  "created_at": "20260930T195129Z",
+  "args": {
+    "only": [],
+    "no_tsc": false,
+    "update": false,
+    "diff": false,
+    "keep": false
+  },
+  "reports": [
+    {
+      "project": "abo-tracker",
+      "declaration": "abo-tracker.json",
+      "generation_seconds": 0.67,
+      "errors": [],
+      "alerts": [],
+      "files": 73,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "atelier-partage",
+      "declaration": "atelier-partage.json",
+      "generation_seconds": 0.2,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Workshop : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable).",
+        "agents.project_spec: [PrismaModel] Domain : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 76,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": false,
+        "skipped": null,
+        "errors_count": 10,
+        "errors": [
+          "app/dashboard/page.tsx(16,104) TS18048: 'x.slot' is possibly 'undefined'.",
+          "app/dashboard/page.tsx(16,111) TS2339: Property 'workshop' does not exist on type '{ id: string; startTime: string; endTime: string; createdAt: string; updatedAt: string; }'.",
+          "lib/services/domain.service.ts(56,59) TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'DomainWhereInput'.",
+          "lib/services/domain.service.ts(61,63) TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'DomainWhereInput'.",
+          "lib/services/workshop.service.ts(67,61) TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'WorkshopWhereInput'.",
+          "lib/services/workshop.service.ts(68,137) TS2339: Property 'slots' does not exist on type '{ id: string; title: string; description: string; duration: number; price: number; createdAt: Date; updatedAt: Date; }'.",
+          "lib/services/workshop.service.ts(68,154) TS7006: Parameter 'c' implicitly has an 'any' type.",
+          "lib/services/workshop.service.ts(72,65) TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'WorkshopWhereInput'.",
+          "lib/services/workshop.service.ts(74,128) TS2339: Property 'slots' does not exist on type '{ id: string; title: string; description: string; duration: number; price: number; createdAt: Date; updatedAt: Date; }'.",
+          "lib/services/workshop.service.ts(74,145) TS7006: Parameter 'c' implicitly has an 'any' type."
+        ]
+      },
+      "ok": false
+    },
+    {
+      "project": "atelier-recettes",
+      "declaration": "atelier-recettes.json",
+      "generation_seconds": 0.32,
+      "errors": [],
+      "alerts": [],
+      "files": 69,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "club-running",
+      "declaration": "club-running.json",
+      "generation_seconds": 0.29,
+      "errors": [],
+      "alerts": [],
+      "files": 65,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "coworking-hub",
+      "declaration": "coworking-hub.json",
+      "generation_seconds": 0.4,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Space : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 77,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "garage-atlas",
+      "declaration": "garage-atlas.json",
+      "generation_seconds": 0.33,
+      "errors": [],
+      "alerts": [],
+      "files": 88,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "it-requests",
+      "declaration": "it-requests.json",
+      "generation_seconds": 0.47,
+      "errors": [],
+      "alerts": [],
+      "files": 59,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "mediatheque",
+      "declaration": "mediatheque.json",
+      "generation_seconds": 0.22,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Book : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 63,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    },
+    {
+      "project": "notes-frais",
+      "declaration": "notes-frais.json",
+      "generation_seconds": 0.26,
+      "errors": [],
+      "alerts": [],
+      "files": 58,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "tsc": {
+        "ok": true,
+        "skipped": null,
+        "errors_count": 0,
+        "errors": []
+      },
+      "ok": true
+    }
+  ]
+}

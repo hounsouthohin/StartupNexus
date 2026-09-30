@@ -30,15 +30,6 @@ from .dev_naming import (
 logger = logging.getLogger(__name__)
 
 
-def _pluralize(name: str) -> str:
-    """Pluriel anglais simple pour les noms de modèles PascalCase."""
-    if name.endswith("y") and len(name) > 1 and name[-2].lower() not in "aeiou":
-        return name[:-1] + "ies"   # Category → Categories
-    if name.endswith(("s", "sh", "ch", "x", "z")):
-        return name + "es"
-    return name + "s"
-
-
 def _model_has_relations(model_obj, spec_enums: "dict | None" = None) -> bool:
     """Fallback robuste — utilise la logique canonique (_is_relation) de dev_model_context.
     Détecte les relations même sans @relation explicite (ex: Category category sans @relation).
@@ -93,8 +84,6 @@ def generate_loading_files(spec: "ProjectSpec", project_workdir: str) -> None:  
         logger.info("[pages_gen] ✓ loading : %s", loading_rel)
 
     logger.info("[pages_gen] %d loading.tsx écrits", count)
-
-
 
 
 def _gen_error_tsx() -> str:
@@ -282,7 +271,6 @@ def generate_error_files(spec: "ProjectSpec", project_workdir: str) -> None:  # 
         with open(abs_path, "w", encoding="utf-8") as f:
             f.write(content_fn())
         logger.info("[pages_gen] ✓ %s", f"app/{filename}")
-
 
 
 def _fk_fields(model_obj, spec) -> list[tuple[str, str, str]]:

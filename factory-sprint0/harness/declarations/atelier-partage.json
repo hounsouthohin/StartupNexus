@@ -1,0 +1,518 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "atelier-partage",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T19:02:16+00:00",
+  "run_id": "capture-58646554",
+  "brief": {
+    "description": "Je propose des ateliers créatifs (poterie, dessin, cuisine) dans mon local. Le catalogue des ateliers est visible par tout le monde, même sans compte : chaque atelier a un titre, une description, une durée, un prix, et un ou plusieurs domaines (dessin, poterie, cuisine, couture). Une personne intéressée crée un compte, complète son profil (nom, téléphone), puis réserve un atelier en choisissant un créneau parmi ceux que je propose. Sa réservation part en attente. Je regarde les réservations en attente et je les confirme ou je les annule en précisant la raison si j'annule. Une fois confirmée, la personne vient à l'atelier, et je marque la réservation comme terminée après. Sur mon tableau de bord, je veux voir le nombre de réservations en attente de confirmation, le nombre de réservations confirmées à venir, et le total encaissé ce mois-ci. Chaque personne a son propre espace pour voir ses réservations passées et à venir, et gérer ses coordonnées. Ce sont uniquement moi (l'animateur) et les personnes inscrites qui utilisent l'application. Plus tard il faudrait pouvoir payer directement en ligne au moment de la réservation, mais ce n'est pas la priorité maintenant."
+  },
+  "project_spec": {
+    "project_name": "atelier-partage",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je propose des ateliers créatifs (poterie, dessin, cuisine) dans mon local. Le catalogue des ateliers est visible par tout le monde, même sans compte : chaque atelier a un titre, une description, une durée, un prix, et un ou plusieurs domaines (dessin, poterie, cuisine, couture). Une personne intéressée crée un compte, complète son profil (nom, téléphone), puis réserve un atelier en choisissant un créneau parmi ceux que je propose. Sa réservation part en attente. Je regarde les réservations en attente et je les confirme ou je les annule en précisant la raison si j'annule. Une fois confirmée, la personne vient à l'atelier, et je marque la réservation comme terminée après. Sur mon tableau de bord, je veux voir le nombre de réservations en attente de confirmation, le nombre de réservations confirmées à venir, et le total encaissé ce mois-ci. Chaque personne a son propre espace pour voir ses réservations passées et à venir, et gérer ses coordonnées. Ce sont uniquement moi (l'animateur) et les personnes inscrites qui utilisent l'application. Plus tard il faudrait pouvoir payer directement en ligne au moment de la réservation, mais ce n'est pas la priorité maintenant.",
+    "models": [
+      {
+        "name": "Workshop",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "duration",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "price",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "domains",
+            "type": "Domain[]",
+            "attributes": ""
+          },
+          {
+            "name": "slots",
+            "type": "Slot[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Domain",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "workshops",
+            "type": "Workshop[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Slot",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "startTime",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "endTime",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "workshopId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "workshop",
+            "type": "Workshop",
+            "attributes": "@relation(fields: [workshopId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "reservations",
+            "type": "Reservation[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "workshopId"
+      },
+      {
+        "name": "Reservation",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "status",
+            "type": "ReservationStatus",
+            "attributes": "@default(pending)"
+          },
+          {
+            "name": "reason",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "slotId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "slot",
+            "type": "Slot",
+            "attributes": "@relation(fields: [slotId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/workshops",
+        "auth_required": false,
+        "page_type": "list",
+        "model": "Workshop"
+      },
+      {
+        "path": "/workshops/[id]",
+        "auth_required": false,
+        "page_type": "detail",
+        "model": "Workshop"
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/workshops",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Workshop"
+      },
+      {
+        "path": "/dashboard/workshops/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Workshop"
+      },
+      {
+        "path": "/dashboard/workshops/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Workshop"
+      },
+      {
+        "path": "/dashboard/reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/reservations/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Reservation"
+      },
+      {
+        "path": "/my-reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Reservation"
+      },
+      {
+        "path": "/my-profile",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Catalogue des ateliers créatifs avec titre, description, durée, prix et domaines.",
+        "data_fetches": [
+          {
+            "service": "workshopService.getPublicAll()",
+            "as": "workshops"
+          }
+        ],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord de l'animateur. Affiche les réservations en attente, confirmées à venir, et le total encaissé ce mois-ci.",
+        "data_fetches": [
+          {
+            "service": "reservationService.getAllWithRelations(userId)",
+            "as": "reservations"
+          }
+        ],
+        "interactive": false,
+        "kpis": [
+          {
+            "label": "Réservations en attente",
+            "source": "reservations",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "pending"
+          },
+          {
+            "label": "Réservations confirmées à venir",
+            "source": "reservations",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "confirmed"
+          },
+          {
+            "label": "Total encaissé ce mois-ci",
+            "source": "reservations",
+            "agg": "sum",
+            "field": "slot.workshop.price",
+            "filter_field": "status",
+            "filter_value": "completed"
+          }
+        ],
+        "filtered_lists": []
+      },
+      "/my-profile": {
+        "description": "Espace personnel pour gérer ses réservations passées et à venir, et ses coordonnées.",
+        "data_fetches": [
+          {
+            "service": "reservationService.getAllWithRelations(userId)",
+            "as": "userReservations"
+          }
+        ],
+        "interactive": true,
+        "kpis": [],
+        "filtered_lists": [
+          {
+            "label": "Réservations à venir",
+            "source": "userReservations",
+            "filter_field": "slot.startTime",
+            "filter_op": "after",
+            "filter_value": "now"
+          },
+          {
+            "label": "Réservations passées",
+            "source": "userReservations",
+            "filter_field": "slot.startTime",
+            "filter_op": "before",
+            "filter_value": "now"
+          }
+        ]
+      }
+    },
+    "user_flows": [
+      "Sur /workshops : un visiteur parcourt les ateliers disponibles",
+      "Sur /workshops/[id] : un visiteur consulte le détail d'un atelier",
+      "Sur /dashboard : l'animateur voit les statistiques des réservations",
+      "Sur /dashboard/workshops : l'animateur gère les ateliers",
+      "Sur /dashboard/reservations : l'animateur gère les réservations",
+      "Sur /my-reservations : un utilisateur voit ses réservations passées et à venir",
+      "Sur /my-profile : un utilisateur gère ses coordonnées"
+    ],
+    "ui_labels": {
+      "Workshop": {
+        "title": "Titre",
+        "description": "Description",
+        "duration": "Durée",
+        "price": "Prix",
+        "domains": "Domaines"
+      },
+      "Domain": {
+        "name": "Nom"
+      },
+      "Slot": {
+        "startTime": "Heure de début",
+        "endTime": "Heure de fin"
+      },
+      "Reservation": {
+        "status": "Statut",
+        "reason": "Raison"
+      }
+    },
+    "title_plurals": {
+      "Workshop": "Ateliers",
+      "Domain": "Domaines",
+      "Slot": "Créneaux",
+      "Reservation": "Réservations"
+    },
+    "title_singulars": {
+      "Workshop": "Atelier",
+      "Domain": "Domaine",
+      "Slot": "Créneau",
+      "Reservation": "Réservation"
+    },
+    "enums": {
+      "ReservationStatus": [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed"
+      ]
+    },
+    "enum_value_labels": {
+      "ReservationStatus": {
+        "pending": "En attente",
+        "confirmed": "Confirmée",
+        "cancelled": "Annulée",
+        "completed": "Terminée"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "ce8627408e82df9b",
+    "design_system": {
+      "preset_name": "marketplace",
+      "primary_color": "violet-600",
+      "font_heading": "Plus Jakarta Sans",
+      "font_body": "DM Sans",
+      "sidebar_bg": "white",
+      "density": "normal",
+      "card_style": "bordered",
+      "list_style": "card-grid",
+      "animation_level": "enhanced",
+      "hero_style": "fullwidth",
+      "layout_type": "topnav",
+      "brand_name": "Atelier Créatif"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "price": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "pending",
+            "confirmed",
+            "cancelled",
+            "completed"
+          ],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "public_pages",
+        "status_flow"
+      ],
+      "status_flows": {
+        "Reservation": {
+          "field": "status",
+          "initial": "pending",
+          "transitions": {
+            "pending": [
+              "confirmed",
+              "cancelled"
+            ],
+            "confirmed": [
+              "completed"
+            ],
+            "cancelled": [],
+            "completed": []
+          },
+          "locked_states": [],
+          "state_fields": {
+            "cancelled": [
+              "reason"
+            ]
+          }
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/workshops": "Aucun atelier disponible pour le moment.",
+          "/reservations": "Aucune réservation. Réservez votre premier atelier."
+        },
+        "dependency_order": [],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "participant",
+          "animator"
+        ],
+        "privileged_role": "animator",
+        "admin_scoped_views": [
+          "Reservation"
+        ],
+        "role_gated_actions": {
+          "Reservation": [
+            "status_transition"
+          ]
+        },
+        "global_entities": [
+          "Workshop",
+          "Domain",
+          "Slot"
+        ],
+        "initiator": {
+          "Reservation": "participant"
+        },
+        "surface": {
+          "participant": [
+            "Reservation",
+            "Workshop"
+          ],
+          "animator": [
+            "Reservation",
+            "Workshop",
+            "Domain",
+            "Slot"
+          ]
+        },
+        "dashboard": {
+          "animator": [
+            "réservations en attente de confirmation",
+            "réservations confirmées à venir",
+            "total encaissé ce mois-ci"
+          ],
+          "participant": [
+            "mes réservations passées et à venir"
+          ]
+        }
+      }
+    },
+    "summary_fr": "L'application permet à tout le monde de consulter le catalogue des ateliers créatifs sans avoir besoin de créer un compte. Les personnes intéressées peuvent créer un compte, compléter leur profil et réserver un atelier en choisissant un créneau. Les réservations sont d'abord en attente et doivent être confirmées ou annulées par l'animateur, qui peut préciser une raison en cas d'annulation. Les utilisateurs peuvent voir leurs réservations passées et à venir, et gérer leurs coordonnées. L'animateur dispose d'un tableau de bord pour suivre les réservations en attente, les réservations confirmées à venir, et le total encaissé ce mois-ci.",
+    "unsupported": []
+  }
+}

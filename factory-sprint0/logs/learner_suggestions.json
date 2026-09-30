@@ -14151,5 +14151,803 @@
     "confidence": 0.0,
     "generated_at": "2026-08-12T03:05:48.425149+00:00",
     "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-7ef375",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 198 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 198
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T02:25:26.567962+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-85a378",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T02:25:26.569378+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-7529d8",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T02:25:26.569399+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-054a88",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T02:25:26.569410+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-ec4bd3",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T02:25:26.569420+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-17d92a",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T02:25:26.569430+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-ada427",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 199 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 199
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:47:40.889150+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-b3ee0b",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:47:40.890528+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-615657",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:47:40.890553+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-bc91a4",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:47:40.890564+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-81bc50",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:47:40.890573+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-20e86f",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:47:40.890583+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-44cb0e",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 200 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 200
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:50:38.366737+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-211507",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:50:38.368293+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-676d20",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:50:38.368331+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-d64aaa",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:50:38.368349+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-04f585",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:50:38.368367+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-48c0e9",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 49 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 49
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-08-24T13:50:38.368391+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-5474ca",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 201 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 201
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:01:08.562018+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-1253cf",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 50 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 50
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:01:08.565105+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-fd2d41",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 50 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 50
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:01:08.565159+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-eb479c",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 50 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 50
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:01:08.565181+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-9184ee",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 50 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 50
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:01:08.565202+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-f526bf",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 50 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 50
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:01:08.565223+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-468feb",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 202 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 202
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:19:19.810319+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-5f8966",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:19:19.810980+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-1f7da5",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:19:19.810991+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-088567",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:19:19.810997+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-9b3a0e",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:19:19.811003+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-5b02fb",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-28T01:19:19.811008+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-668a00",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 203 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 203
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:08:34.771255+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-7a0834",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:08:34.772105+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-a577a4",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:08:34.772117+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-60cd3b",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:08:34.772124+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-e4190c",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:08:34.772130+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-07a08c",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:08:34.772136+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P002-69ab85",
+    "category": "guard",
+    "severity": "medium",
+    "title": "Violation sémantique récurrente: PRISMA_VALIDATE_FAILED: schema invalide selon prisma validat",
+    "description": "'PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate' observée 4× sur 204 runs. Envisager un guard explicite dans spec_validation ou une reformulation dans les standards Qdrant.",
+    "evidence": {
+      "violation": "PRISMA_VALIDATE_FAILED: schema invalide selon prisma validate",
+      "count": 4,
+      "total_runs": 204
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:51:34.964880+00:00",
+    "sprint": "sprint3"
+  },
+  {
+    "suggestion_id": "P006-ebf2d2",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (10×): failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 10× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> writer-pad@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 10,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:51:34.966399+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-4b8875",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): pre_run_failed (npx prisma generate): loaded prisma config f",
+    "description": "La signature d'erreur 'pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma ' est apparue 3× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "pre_run_failed (npx prisma generate): loaded prisma config from <FILE>.\n\nprisma schema loaded from <FILE>.\nerror: prisma",
+      "count": 3,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:51:34.966424+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-9bcc9e",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (3×): failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found' est apparue 3× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> coworking-hub@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for fas",
+      "count": 3,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:51:34.966436+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-7a331a",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no",
+    "description": "La signature d'erreur 'failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. ' est apparue 2× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> event-board@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faste",
+      "count": 2,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:51:34.966446+00:00",
+    "sprint": "sprint4"
+  },
+  {
+    "suggestion_id": "P006-1875ca",
+    "category": "anti_pattern",
+    "severity": "high",
+    "title": "Erreur de build récurrente (2×): failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no ",
+    "description": "La signature d'erreur 'failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. p' est apparue 2× sur 51 builds échoués. Ce pattern est candidat à un standard Qdrant ZONE_14 (anti-pattern) pour prévenir cette erreur en amont.",
+    "evidence": {
+      "error_signature": "failed (exit 1)\n> app-simple@0.1.0 build\n> next build\n\n⚠ no build cache found. please configure build caching for faster",
+      "count": 2,
+      "failed_runs": 51
+    },
+    "supervisor_type": "",
+    "file_type": "",
+    "pattern": "",
+    "zone_target": "",
+    "confidence": 0.0,
+    "generated_at": "2026-09-30T19:51:34.966457+00:00",
+    "sprint": "sprint4"
   }
 ]

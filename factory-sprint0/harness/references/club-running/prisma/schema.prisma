@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RunEventStatus {
+  ouverte
+  complete
+  annulee
+}
+
+model RunEvent {
+  id String @id @default(uuid())
+  title String
+  dateTime DateTime
+  location String
+  distance Float
+  description String
+  status RunEventStatus @default(ouverte)
+  participants Participant[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Participant {
+  id String @id @default(uuid())
+  name String
+  email String
+  runEventId String
+  runEvent RunEvent @relation(fields: [runEventId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

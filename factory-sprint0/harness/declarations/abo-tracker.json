@@ -1,0 +1,380 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "abo-tracker",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T19:01:10+00:00",
+  "run_id": "capture-f79decde",
+  "brief": {
+    "description": "Suivi personnel de mes abonnements et dépenses récurrentes, entièrement privé après connexion. Chaque abonnement a un nom, un prix mensuel en euros (nombre décimal, ex: 12.99), une date de prochain prélèvement, et appartient à une de mes catégories personnalisées — chaque catégorie a un nom et une description optionnelle, gérées dans une liste dédiée. Un abonnement est soit actif, soit en pause, soit résilié. Le tableau de bord principal affiche le total mensuel en euros de mes abonnements actifs uniquement, le nombre d'abonnements par statut, et la liste de ceux dont le prélèvement arrive dans les 7 prochains jours. Aucune page n'est publique."
+  },
+  "project_spec": {
+    "project_name": "abo-tracker",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Suivi personnel de mes abonnements et dépenses récurrentes, entièrement privé après connexion. Chaque abonnement a un nom, un prix mensuel en euros (nombre décimal, ex: 12.99), une date de prochain prélèvement, et appartient à une de mes catégories personnalisées — chaque catégorie a un nom et une description optionnelle, gérées dans une liste dédiée. Un abonnement est soit actif, soit en pause, soit résilié. Le tableau de bord principal affiche le total mensuel en euros de mes abonnements actifs uniquement, le nombre d'abonnements par statut, et la liste de ceux dont le prélèvement arrive dans les 7 prochains jours. Aucune page n'est publique.",
+    "models": [
+      {
+        "name": "Subscription",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "monthlyPrice",
+            "type": "Decimal",
+            "attributes": ""
+          },
+          {
+            "name": "nextBillingDate",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "SubscriptionStatus",
+            "attributes": "@default(active)"
+          },
+          {
+            "name": "categoryId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "category",
+            "type": "Category",
+            "attributes": "@relation(fields: [categoryId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Category",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "subscriptions",
+            "type": "Subscription[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/subscriptions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Subscription"
+      },
+      {
+        "path": "/dashboard/subscriptions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Subscription"
+      },
+      {
+        "path": "/dashboard/subscriptions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Subscription"
+      },
+      {
+        "path": "/dashboard/subscriptions/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Subscription"
+      },
+      {
+        "path": "/dashboard/categories",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Category"
+      },
+      {
+        "path": "/dashboard/categories/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Category"
+      },
+      {
+        "path": "/dashboard/categories/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Category"
+      },
+      {
+        "path": "/dashboard/categories/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Category"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation de l'application de suivi des abonnements et dépenses récurrentes.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord privé pour suivre les abonnements et dépenses récurrentes. Affiche le total mensuel des abonnements actifs, le nombre d'abonnements par statut, et la liste des abonnements avec prélèvement dans les 7 prochains jours.",
+        "data_fetches": [
+          {
+            "service": "subscriptionService.getAll(userId)",
+            "as": "subscriptions"
+          }
+        ],
+        "interactive": false,
+        "kpis": [
+          {
+            "label": "Total mensuel des abonnements actifs",
+            "source": "subscriptions",
+            "agg": "sum",
+            "field": "monthlyPrice",
+            "filter_field": "status",
+            "filter_value": "active"
+          },
+          {
+            "label": "Nombre d'abonnements actifs",
+            "source": "subscriptions",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "active"
+          },
+          {
+            "label": "Nombre d'abonnements en pause",
+            "source": "subscriptions",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "paused"
+          },
+          {
+            "label": "Nombre d'abonnements résiliés",
+            "source": "subscriptions",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "cancelled"
+          }
+        ],
+        "filtered_lists": [
+          {
+            "label": "Abonnements avec prélèvement dans les 7 prochains jours",
+            "source": "subscriptions",
+            "filter_field": "nextBillingDate",
+            "filter_op": "within_days",
+            "filter_value": "7"
+          }
+        ]
+      }
+    },
+    "user_flows": [
+      "Sur /dashboard : l'utilisateur voit le total mensuel des abonnements actifs et les prélèvements à venir",
+      "Sur /dashboard/subscriptions : l'utilisateur consulte et filtre ses abonnements",
+      "Sur /dashboard/subscriptions/new : l'utilisateur crée un nouvel abonnement",
+      "Sur /dashboard/subscriptions/[id] : l'utilisateur voit le détail d'un abonnement",
+      "Sur /dashboard/categories : l'utilisateur gère ses catégories d'abonnements"
+    ],
+    "ui_labels": {
+      "Subscription": {
+        "name": "Nom",
+        "monthlyPrice": "Prix mensuel",
+        "nextBillingDate": "Prochain prélèvement",
+        "status": "Statut",
+        "categoryId": "Catégorie"
+      },
+      "Category": {
+        "name": "Nom",
+        "description": "Description"
+      }
+    },
+    "title_plurals": {
+      "Subscription": "Abonnements",
+      "Category": "Catégories"
+    },
+    "title_singulars": {
+      "Subscription": "Abonnement",
+      "Category": "Catégorie"
+    },
+    "enums": {
+      "SubscriptionStatus": [
+        "active",
+        "paused",
+        "cancelled"
+      ]
+    },
+    "enum_value_labels": {
+      "SubscriptionStatus": {
+        "active": "Actif",
+        "paused": "En pause",
+        "cancelled": "Résilié"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "ce1d725c5ce2fcaf",
+    "design_system": {
+      "preset_name": "default",
+      "primary_color": "blue-600",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "white",
+      "density": "normal",
+      "card_style": "elevated",
+      "list_style": "table",
+      "animation_level": "standard",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "Mon Suivi d'Abonnements"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "monthlyPrice": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "nextBillingDate": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        },
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "active",
+            "paused",
+            "cancelled"
+          ],
+          "display_label": ""
+        }
+      },
+      "required_queries": [
+        {
+          "model": "",
+          "name": "getByStatus",
+          "pattern": "filter_by_field",
+          "field": "status",
+          "param_name": "",
+          "return_many": true
+        }
+      ],
+      "features": [
+        "status_flow"
+      ],
+      "status_flows": {
+        "Subscription": {
+          "field": "status",
+          "initial": "active",
+          "transitions": {
+            "active": [
+              "paused",
+              "cancelled"
+            ],
+            "paused": [
+              "active",
+              "cancelled"
+            ],
+            "cancelled": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/subscriptions": "Aucun abonnement pour le moment. Ajoutez votre premier abonnement pour commencer à suivre vos dépenses récurrentes."
+        },
+        "dependency_order": [
+          "Créez d'abord une Catégorie avant de créer un Abonnement."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [],
+        "privileged_role": "",
+        "admin_scoped_views": [],
+        "role_gated_actions": {},
+        "global_entities": [],
+        "initiator": {},
+        "surface": {},
+        "dashboard": {}
+      }
+    },
+    "summary_fr": "L'application permet à un utilisateur de suivre ses abonnements et dépenses récurrentes de manière privée après connexion. Chaque abonnement a un nom, un prix mensuel, une date de prochain prélèvement, et appartient à une catégorie personnalisée. Les abonnements peuvent être actifs, en pause ou résiliés. Le tableau de bord affiche le total mensuel des abonnements actifs, le nombre d'abonnements par statut, et ceux dont le prélèvement est prévu dans les 7 prochains jours. L'utilisateur peut gérer ses catégories et créer ou modifier des abonnements.",
+    "unsupported": [
+      "Le brief demande que chaque catégorie ait une description optionnelle ; la spécification ne mentionne pas la gestion de cette description dans les interfaces utilisateur."
+    ]
+  }
+}

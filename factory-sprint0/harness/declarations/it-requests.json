@@ -1,0 +1,256 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "it-requests",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T18:58:58+00:00",
+  "run_id": "capture-e620db24",
+  "brief": {
+    "description": "Je veux un outil interne pour gérer les demandes informatiques de mon entreprise. Un employé, après connexion, soumet une demande avec un titre, une description détaillée et une priorité (basse, normale, haute). Un employé ne voit que ses propres demandes et peut les consulter. Un administrateur, lui, voit TOUTES les demandes de tous les employés, et peut faire évoluer leur statut : une demande commence en nouvelle, puis passe en cours, puis résolue. Seul un administrateur peut changer le statut d'une demande ; un employé ne fait que créer ses demandes et suivre leur avancement. L'interface doit être sobre et professionnelle."
+  },
+  "project_spec": {
+    "project_name": "it-requests",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je veux un outil interne pour gérer les demandes informatiques de mon entreprise. Un employé, après connexion, soumet une demande avec un titre, une description détaillée et une priorité (basse, normale, haute). Un employé ne voit que ses propres demandes et peut les consulter. Un administrateur, lui, voit TOUTES les demandes de tous les employés, et peut faire évoluer leur statut : une demande commence en nouvelle, puis passe en cours, puis résolue. Seul un administrateur peut changer le statut d'une demande ; un employé ne fait que créer ses demandes et suivre leur avancement. L'interface doit être sobre et professionnelle.",
+    "models": [
+      {
+        "name": "Request",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "priority",
+            "type": "RequestPriority",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "RequestStatus",
+            "attributes": "@default(new)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/requests",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Request"
+      },
+      {
+        "path": "/requests/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Request"
+      },
+      {
+        "path": "/requests/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Request"
+      },
+      {
+        "path": "/requests/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Request"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation de l'outil interne de gestion des demandes informatiques de l'entreprise. Les employés peuvent soumettre des demandes après connexion. Les administrateurs ont une vue d'ensemble sur toutes les demandes et peuvent gérer leur statut.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /requests : l'utilisateur consulte ses demandes",
+      "Sur /requests/new : l'utilisateur soumet une nouvelle demande",
+      "Sur /requests/[id] : l'utilisateur consulte le détail de sa demande"
+    ],
+    "ui_labels": {
+      "Request": {
+        "title": "Titre",
+        "description": "Description",
+        "priority": "Priorité",
+        "status": "Statut"
+      }
+    },
+    "title_plurals": {
+      "Request": "Demandes"
+    },
+    "title_singulars": {
+      "Request": "Demande"
+    },
+    "enums": {
+      "RequestPriority": [
+        "low",
+        "normal",
+        "high"
+      ],
+      "RequestStatus": [
+        "new",
+        "in_progress",
+        "resolved"
+      ]
+    },
+    "enum_value_labels": {
+      "RequestPriority": {
+        "low": "Basse",
+        "normal": "Normale",
+        "high": "Haute"
+      },
+      "RequestStatus": {
+        "new": "Nouvelle",
+        "in_progress": "En cours",
+        "resolved": "Résolue"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "215fe40c6f8e1a03",
+    "design_system": {
+      "preset_name": "education",
+      "primary_color": "indigo-600",
+      "font_heading": "Plus Jakarta Sans",
+      "font_body": "DM Sans",
+      "sidebar_bg": "indigo-900",
+      "density": "normal",
+      "card_style": "bordered",
+      "list_style": "card-grid",
+      "animation_level": "standard",
+      "hero_style": "centered-cta",
+      "layout_type": "sidebar",
+      "brand_name": "IT Request Manager"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "priority": {
+          "semantic_type": "priority-enum",
+          "values": [
+            "low",
+            "normal",
+            "high"
+          ],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "new",
+            "in_progress",
+            "resolved"
+          ],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "status_flow"
+      ],
+      "status_flows": {
+        "Request": {
+          "field": "status",
+          "initial": "new",
+          "transitions": {
+            "new": [
+              "in_progress"
+            ],
+            "in_progress": [
+              "resolved"
+            ],
+            "resolved": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/requests": "Aucune demande. Créez votre première demande."
+        },
+        "dependency_order": [],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "employee",
+          "admin"
+        ],
+        "privileged_role": "admin",
+        "admin_scoped_views": [
+          "Request"
+        ],
+        "role_gated_actions": {
+          "Request": [
+            "status_transition"
+          ]
+        },
+        "global_entities": [],
+        "initiator": {
+          "Request": "employee"
+        },
+        "surface": {
+          "employee": [
+            "Request"
+          ],
+          "admin": [
+            "Request"
+          ]
+        },
+        "dashboard": {
+          "admin": [
+            "demandes en attente de traitement"
+          ],
+          "employee": [
+            "mes demandes en cours"
+          ]
+        }
+      }
+    },
+    "summary_fr": "L'application permet aux employés de soumettre des demandes informatiques avec un titre, une description et une priorité. Chaque employé peut voir et suivre uniquement ses propres demandes. Les administrateurs ont accès à toutes les demandes de l'entreprise et peuvent changer leur statut de 'nouvelle' à 'en cours', puis à 'résolue'. Les employés ne peuvent que créer et suivre leurs demandes, tandis que les administrateurs gèrent l'évolution des statuts. L'interface est conçue pour être sobre et professionnelle.",
+    "unsupported": []
+  }
+}

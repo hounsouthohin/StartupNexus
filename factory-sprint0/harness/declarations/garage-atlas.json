@@ -1,0 +1,484 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "garage-atlas",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T19:01:52+00:00",
+  "run_id": "capture-e350eb5c",
+  "brief": {
+    "description": "Je gère un petit garage automobile. Mes clients m'appellent ou passent pour demander une réparation. Je note le nom du client, son téléphone, et le véhicule concerné (marque, modèle, plaque). Quand un client demande une réparation, il décrit le problème, et sa demande part en attente. Moi je regarde les demandes en attente et je les accepte ou je les refuse en expliquant pourquoi si je refuse. Une fois acceptée, la réparation est en cours, puis je la marque comme terminée quand la voiture est prête à récupérer, avec le montant facturé. Je veux un tableau de bord où je vois combien de réparations sont en attente, combien sont en cours actuellement, et le total facturé ce mois-ci. Chaque client a son propre espace où il peut suivre l'état de ses demandes et l'historique de ses véhicules, et gérer ses coordonnées. Il faudrait aussi qu'un jour on puisse envoyer un SMS automatique au client quand sa voiture est prête, mais c'est pas urgent, pas indispensable pour commencer. Les mécaniciens n'ont pas besoin de compte, seulement moi (le patron du garage) et mes clients."
+  },
+  "project_spec": {
+    "project_name": "garage-atlas",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je gère un petit garage automobile. Mes clients m'appellent ou passent pour demander une réparation. Je note le nom du client, son téléphone, et le véhicule concerné (marque, modèle, plaque). Quand un client demande une réparation, il décrit le problème, et sa demande part en attente. Moi je regarde les demandes en attente et je les accepte ou je les refuse en expliquant pourquoi si je refuse. Une fois acceptée, la réparation est en cours, puis je la marque comme terminée quand la voiture est prête à récupérer, avec le montant facturé. Je veux un tableau de bord où je vois combien de réparations sont en attente, combien sont en cours actuellement, et le total facturé ce mois-ci. Chaque client a son propre espace où il peut suivre l'état de ses demandes et l'historique de ses véhicules, et gérer ses coordonnées. Il faudrait aussi qu'un jour on puisse envoyer un SMS automatique au client quand sa voiture est prête, mais c'est pas urgent, pas indispensable pour commencer. Les mécaniciens n'ont pas besoin de compte, seulement moi (le patron du garage) et mes clients.",
+    "models": [
+      {
+        "name": "Client",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "phone",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "vehicles",
+            "type": "Vehicle[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Vehicle",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "brand",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "model",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "licensePlate",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "clientId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "client",
+            "type": "Client",
+            "attributes": "@relation(fields: [clientId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "repairs",
+            "type": "Repair[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Repair",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "RepairStatus",
+            "attributes": "@default(pending)"
+          },
+          {
+            "name": "reasonForRejection",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "amountCharged",
+            "type": "Float?",
+            "attributes": ""
+          },
+          {
+            "name": "vehicleId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "vehicle",
+            "type": "Vehicle",
+            "attributes": "@relation(fields: [vehicleId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/clients",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/clients/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/clients/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/clients/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/vehicles",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Vehicle"
+      },
+      {
+        "path": "/dashboard/vehicles/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Vehicle"
+      },
+      {
+        "path": "/dashboard/vehicles/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Vehicle"
+      },
+      {
+        "path": "/dashboard/vehicles/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Vehicle"
+      },
+      {
+        "path": "/dashboard/repairs",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Repair"
+      },
+      {
+        "path": "/dashboard/repairs/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Repair"
+      },
+      {
+        "path": "/dashboard/repairs/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Repair"
+      },
+      {
+        "path": "/dashboard/repairs/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Repair"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation du garage automobile, services offerts et contact.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord pour le patron du garage. Affiche les réparations en attente, en cours, et le total facturé ce mois-ci.",
+        "data_fetches": [
+          {
+            "service": "repairService.getAll(userId)",
+            "as": "repairs"
+          }
+        ],
+        "interactive": false,
+        "kpis": [
+          {
+            "label": "Réparations en attente",
+            "source": "repairs",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "pending"
+          },
+          {
+            "label": "Réparations en cours",
+            "source": "repairs",
+            "agg": "count",
+            "field": "",
+            "filter_field": "status",
+            "filter_value": "in_progress"
+          },
+          {
+            "label": "Total facturé ce mois-ci",
+            "source": "repairs",
+            "agg": "sum",
+            "field": "amountCharged",
+            "filter_field": "createdAt",
+            "filter_value": "current_month"
+          }
+        ],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /dashboard : le patron voit le nombre de réparations en attente, en cours, et le total facturé ce mois-ci",
+      "Sur /dashboard/clients : le patron gère les clients",
+      "Sur /dashboard/vehicles : le patron gère les véhicules des clients",
+      "Sur /dashboard/repairs : le patron gère les réparations et leur statut"
+    ],
+    "ui_labels": {
+      "Client": {
+        "name": "Nom",
+        "phone": "Téléphone"
+      },
+      "Vehicle": {
+        "brand": "Marque",
+        "model": "Modèle",
+        "licensePlate": "Plaque d'immatriculation"
+      },
+      "Repair": {
+        "description": "Description",
+        "status": "Statut",
+        "reasonForRejection": "Raison du refus",
+        "amountCharged": "Montant facturé"
+      }
+    },
+    "title_plurals": {
+      "Client": "Clients",
+      "Vehicle": "Véhicules",
+      "Repair": "Réparations"
+    },
+    "title_singulars": {
+      "Client": "Client",
+      "Vehicle": "Véhicule",
+      "Repair": "Réparation"
+    },
+    "enums": {
+      "RepairStatus": [
+        "pending",
+        "accepted",
+        "rejected",
+        "in_progress",
+        "completed"
+      ]
+    },
+    "enum_value_labels": {
+      "RepairStatus": {
+        "pending": "En attente",
+        "accepted": "Acceptée",
+        "rejected": "Rejetée",
+        "in_progress": "En cours",
+        "completed": "Terminée"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "f5853249b7e11704",
+    "design_system": {
+      "preset_name": "saas_crm",
+      "primary_color": "violet-600",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "slate-900",
+      "density": "compact",
+      "card_style": "elevated",
+      "list_style": "table",
+      "animation_level": "standard",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "Garage Manager"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "pending",
+            "accepted",
+            "rejected",
+            "in_progress",
+            "completed"
+          ],
+          "display_label": ""
+        },
+        "amountCharged": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "status_flow"
+      ],
+      "status_flows": {
+        "Repair": {
+          "field": "status",
+          "initial": "pending",
+          "transitions": {
+            "pending": [
+              "accepted",
+              "rejected"
+            ],
+            "accepted": [
+              "in_progress"
+            ],
+            "in_progress": [
+              "completed"
+            ],
+            "completed": [],
+            "rejected": []
+          },
+          "locked_states": [],
+          "state_fields": {
+            "rejected": [
+              "reasonForRejection"
+            ],
+            "completed": [
+              "amountCharged"
+            ]
+          }
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/repairs": "Aucune réparation en cours. Créez une nouvelle demande de réparation.",
+          "/vehicles": "Aucun véhicule enregistré. Ajoutez votre premier véhicule pour commencer."
+        },
+        "dependency_order": [
+          "Créez d'abord un Client avant d'ajouter un Véhicule."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "client",
+          "owner"
+        ],
+        "privileged_role": "owner",
+        "admin_scoped_views": [
+          "Repair"
+        ],
+        "role_gated_actions": {
+          "Repair": [
+            "status_transition"
+          ]
+        },
+        "global_entities": [],
+        "initiator": {
+          "Repair": "client"
+        },
+        "surface": {
+          "client": [
+            "Repair",
+            "Vehicle",
+            "Client"
+          ],
+          "owner": [
+            "Repair",
+            "Vehicle",
+            "Client"
+          ]
+        },
+        "dashboard": {
+          "owner": [
+            "réparations en attente",
+            "réparations en cours",
+            "total facturé ce mois-ci"
+          ],
+          "client": [
+            "mes réparations en cours",
+            "historique de mes véhicules"
+          ]
+        }
+      }
+    },
+    "summary_fr": "Les clients peuvent demander des réparations pour leurs véhicules en fournissant leur nom, téléphone, et les détails du véhicule. Le propriétaire du garage peut voir les demandes de réparation en attente et les accepter ou les refuser avec un motif. Une fois acceptée, la réparation passe par différents états jusqu'à être marquée comme terminée avec le montant facturé. Le propriétaire dispose d'un tableau de bord pour suivre les réparations en attente, en cours, et le total facturé ce mois-ci. Les clients ont un espace personnel pour suivre l'état de leurs demandes et l'historique de leurs véhicules.",
+    "unsupported": [
+      "Le brief mentionne l'envoi automatique de SMS aux clients lorsque leur voiture est prête ; cette fonctionnalité n'est pas couverte dans la spécification."
+    ]
+  }
+}

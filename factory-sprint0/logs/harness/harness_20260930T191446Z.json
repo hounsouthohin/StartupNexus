@@ -1,0 +1,109 @@
+{
+  "created_at": "20260930T191446Z",
+  "args": {
+    "only": [],
+    "no_tsc": true,
+    "update": true,
+    "diff": false,
+    "keep": false
+  },
+  "reports": [
+    {
+      "project": "abo-tracker",
+      "declaration": "abo-tracker.json",
+      "generation_seconds": 0.56,
+      "errors": [],
+      "alerts": [],
+      "files": 73,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "atelier-partage",
+      "declaration": "atelier-partage.json",
+      "generation_seconds": 0.18,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Workshop : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable).",
+        "agents.project_spec: [PrismaModel] Domain : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 76,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "atelier-recettes",
+      "declaration": "atelier-recettes.json",
+      "generation_seconds": 0.16,
+      "errors": [],
+      "alerts": [],
+      "files": 69,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "club-running",
+      "declaration": "club-running.json",
+      "generation_seconds": 0.28,
+      "errors": [],
+      "alerts": [],
+      "files": 65,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "coworking-hub",
+      "declaration": "coworking-hub.json",
+      "generation_seconds": 0.29,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Space : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 77,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "garage-atlas",
+      "declaration": "garage-atlas.json",
+      "generation_seconds": 0.51,
+      "errors": [],
+      "alerts": [],
+      "files": 88,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "it-requests",
+      "declaration": "it-requests.json",
+      "generation_seconds": 0.22,
+      "errors": [],
+      "alerts": [],
+      "files": 59,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "mediatheque",
+      "declaration": "mediatheque.json",
+      "generation_seconds": 0.23,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Book : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 63,
+      "reference": "mise à jour",
+      "ok": true
+    },
+    {
+      "project": "notes-frais",
+      "declaration": "notes-frais.json",
+      "generation_seconds": 0.36,
+      "errors": [],
+      "alerts": [],
+      "files": 58,
+      "reference": "mise à jour",
+      "ok": true
+    }
+  ]
+}

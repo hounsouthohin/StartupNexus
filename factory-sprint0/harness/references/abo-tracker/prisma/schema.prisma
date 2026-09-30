@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SubscriptionStatus {
+  active
+  paused
+  cancelled
+}
+
+model Subscription {
+  id String @id @default(uuid())
+  name String
+  monthlyPrice Decimal
+  nextBillingDate DateTime
+  status SubscriptionStatus @default(active)
+  categoryId String
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Category {
+  id String @id @default(uuid())
+  name String
+  description String?
+  subscriptions Subscription[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

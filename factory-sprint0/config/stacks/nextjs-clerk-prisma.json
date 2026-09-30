@@ -11,78 +11,6 @@
     "dev": "gpt-4o-mini"
   },
   "description": "Next.js 15 App Router + React 19 + Clerk V6 + Prisma 7 — stack Sprint 0-3",
-  "root_file": "package.json",
-  "primary_manifest": "package.json",
-  "cleanup_artifacts": [
-    ".next",
-    "node_modules"
-  ],
-  "workdir_keep_extra": [
-    ".npm",
-    "exports"
-  ],
-  "token_budgets": {
-    "phase1_tokens": 6000,
-    "phase2_tokens": 14000
-  },
-  "iteration_policy": {
-    "base_max_iterations": 14,
-    "max_cap_iterations": 24,
-    "tiers": [
-      {"min_requirements": 11, "max_iterations": 17},
-      {"min_requirements": 16, "max_iterations": 20},
-      {"min_requirements": 22, "max_iterations": 24}
-    ]
-  },
-  "generation_order": {
-    "priority_paths": [
-      "app/page.tsx",
-      "actions.ts"
-    ]
-  },
-  "packages": {
-    "next": "15.3.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "@clerk/nextjs": "^6.0.0",
-    "prisma": "^7.0.0",
-    "@prisma/client": "^7.0.0",
-    "@prisma/adapter-pg": "^7.0.0",
-    "pg": "^8.13.0",
-    "typescript": "^5.3.3",
-    "zod": "^3.23.8",
-    "svix": "^1.21.0",
-    "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0"
-  },
-  "dev_packages": {
-    "ts-jest": "29.1.2",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/jest": "^29.0.0",
-    "@types/node": "^20.0.0",
-    "jest": "^29.0.0",
-    "jest-environment-jsdom": "^29.0.0",
-    "@testing-library/jest-dom": "^6.0.0",
-    "@testing-library/react": "^14.0.0",
-    "@babel/runtime": "^7.0.0",
-    "node-mocks-http": "^1.14.0",
-    "eslint": "^8.0.0",
-    "eslint-config-next": "14.2.25",
-    "eslint-plugin-import": "^2.29.1"
-  },
-  "peer_dependency_minimums": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "version_pins": {
-    "next": "15.3.0",
-    "typescript": "^5.3.3"
-  },
-  "forbidden_paths": [
-    "pages/",
-    "src/pages/"
-  ],
   "forbidden_imports": [
     "bcrypt",
     "jsonwebtoken",
@@ -114,70 +42,6 @@
     "express-session",
     "cookie-session"
   ],
-  "prompt_rules": {
-    "extraction_rules": [
-      "Chaque modele Prisma mentionne dans le brief doit apparaitre dans data_models.",
-      "Chaque champ et contrainte explicite d'un modele Prisma du brief doit etre conserve a l'identique.",
-      "Chaque page demandee dans le brief doit apparaitre dans pages avec son chemin exact.",
-      "Les mutations (create/update/delete) sont implementees comme Server Actions dans app/**/actions.ts, pas comme routes API. Seuls les webhooks (Clerk, Stripe) utilisent app/api/**/route.ts.",
-      "requirements[] doit contenir un item explicite pour chaque modele, page, route et feature demandes.",
-      "La spec doit rester metier et specifique au brief; les specs auth-only generiques sont interdites."
-    ],
-    "package_scripts": {
-      "build": "next build",
-      "dev": "next dev",
-      "start": "next start",
-      "lint": "next lint",
-      "test": "jest"
-    },
-    "auth_rules": [
-      "Auth stack: Clerk uniquement; interdits: bcrypt, NextAuth, JWT custom, Passport, authMiddleware.",
-      "app/layout.tsx doit envelopper <html> avec <ClerkProvider>.",
-      "middleware.ts (racine) doit importer clerkMiddleware depuis @clerk/nextjs/server.",
-      "Dans server components et route handlers, auth() doit toujours etre await.",
-      "Dans les Server Actions (app/**/actions.ts), const { userId } = await auth(); if (!userId) throw new Error('Unauthorized'); — AVANT toute operation Prisma.",
-      "Dans client components ('use client'), interdiction d'importer @clerk/nextjs/server.",
-      "useAuth() ne doit jamais etre utilise pour lire l'objet user; utiliser useUser()."
-    ],
-    "ui_rules": [
-      "UI: Tailwind CSS uniquement.",
-      "Librairies UI externes interdites: shadcn/ui, @radix-ui, @headlessui.",
-      "Imports depuis @/components/ui/* interdits.",
-      "Import depuis '@/types' interdit; utiliser types locaux ou fichier adjacent.",
-      "Callbacks map/filter/reduce doivent avoir des types explicites si inference absente.",
-      "En TypeScript strict, useState([]) sans type générique est interdit; typer explicitement les tableaux (ex: useState<PostSummary[]>([])).",
-      "Dans app/** (App Router), getServerSideProps/getStaticProps/getStaticPaths sont interdits.",
-      "Tout fichier app/*.tsx utilisant un hook React doit commencer par \"use client\"; sinon convertir en Server Component sans hooks."
-    ],
-    "orm_rules": [
-      "Le schema Prisma autorise est prisma/schema.prisma; prisma.config.ts reste template de stack.",
-      "schema.prisma DOIT contenir datasource db avec uniquement provider = \"postgresql\" — url et directUrl sont INTERDITS dans schema.prisma (Prisma 7 : ils vont dans prisma.config.ts via defineConfig.datasource.url).",
-      "datasource db dans schema.prisma est généré déterministiquement par la factory — NE PAS le modifier, ce fichier est protégé.",
-      "generator client doit utiliser provider = \"prisma-client-js\".",
-      "lib/prisma.ts doit instancier PrismaClient avec PrismaPg adapter.",
-      "Dans les Server Actions et Server Components, l'acces Prisma passe par import prisma from '@/lib/prisma'. JAMAIS prisma direct dans les Server Actions — toujours via le service DAL (lib/services/).",
-      "Tous les champs et contraintes Prisma demandes par le requirement sont obligatoires a l'identique."
-    ],
-    "security_rules": [
-      "Toutes les entrees utilisateur doivent etre validees avec Zod.",
-      ".env.local doit contenir NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY et DATABASE_URL.",
-      "NEXT_PUBLIC_CLERK_SECRET_KEY est interdit.",
-      "Pattern canonique Server Action : const { userId } = await auth(); if (!userId) throw new Error('Unauthorized'); — avant toute operation service/Prisma. Pattern canonique webhook handler uniquement : if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });"
-    ],
-    "test_rules": [
-      "jest.config.js doit etre base sur next/jest (createJestConfig).",
-      "jest.config.js doit declarer setupFilesAfterEnv avec <rootDir>/jest.setup.js.",
-      "jest.setup.js ne contient que import '@testing-library/jest-dom'.",
-      "Tests React: mocks Clerk client via @clerk/nextjs.",
-      "Tests API routes: mocks Clerk server via @clerk/nextjs/server.",
-      "Tests de route handlers: utiliser node-mocks-http."
-    ],
-    "qa_rules": [
-      "Tester la navigation vers /sign-in (Clerk)",
-      "Valider la redirection post-auth vers /dashboard",
-      "URL de base: process.env.BASE_URL || 'http://localhost:3000'"
-    ]
-  },
   "spec_validation": {
     "required_keywords": [
       "next.js",
@@ -211,51 +75,7 @@
       "## composants tailwind"
     ]
   },
-  "technology_categories": {
-    "auth": [
-      "clerk",
-      "clerkprovider",
-      "clerkmiddleware"
-    ],
-    "database": [
-      "prisma",
-      "schema.prisma",
-      "prisma_migrate"
-    ],
-    "testing": [
-      "jest",
-      "test",
-      "testing-library",
-      "node-mocks-http"
-    ],
-    "framework": [
-      "next",
-      "middleware",
-      "app router",
-      "layout.tsx"
-    ],
-    "ui": [
-      "tailwind",
-      "shadcn",
-      "radix"
-    ]
-  },
   "code_role_hints": {
-    "actions": [
-      "'use server' EN PREMIERE LIGNE — obligatoire.",
-      "Chaque exported async function est une Server Action.",
-      "PATTERN OBLIGATOIRE dans chaque action :",
-      "  import { auth } from '@clerk/nextjs/server';",
-      "  import { revalidatePath } from 'next/cache';",
-      "  const { userId } = await auth();",
-      "  if (!userId) throw new Error('Unauthorized');",
-      "  const parsed = CreateXxxSchema.safeParse(data);",
-      "  if (!parsed.success) throw new Error(parsed.error.message);",
-      "  await xxxService.create(userId, parsed.data);",
-      "  revalidatePath('/xxx');",
-      "JAMAIS prisma directement dans une action — toujours via le service.",
-      "JAMAIS NextResponse dans les actions — ce sont des fonctions, pas des handlers HTTP."
-    ],
     "route": [
       "GUARD AUTH OBLIGATOIRE en debut de chaque handler :",
       "  import { auth } from '@clerk/nextjs/server';",
@@ -282,14 +102,6 @@
       "Bouton Supprimer → deleteX(item.id) string direct. JAMAIS new FormData() pour delete (TS2345 fatal).",
       "FK select : si le modèle a categoryId/parentId, afficher un <select> avec les entités parentes reçues en props — JAMAIS un input texte libre.",
       "Structure Tailwind minimale obligatoire : container max-w-4xl mx-auto p-6, items dans ul space-y-4, chaque item dans li bg-white rounded-lg shadow p-4, boutons avec couleurs (bg-blue-500, bg-red-500)."
-    ],
-    "service": [
-      "Service DAL — couche entre Prisma et le reste de l'app.",
-      "Base CRUD pre-generee par Python — NE PAS réécrire getAll/getById/create/update/delete.",
-      "Tu PEUX ajouter des methodes enrichies (ex: getByIdWithTasks avec include: { tasks: true }) si les pages en ont besoin.",
-      "Imports OBLIGATOIRES : import prisma from '@/lib/prisma' — import type { CreateXxxInput, UpdateXxxInput } from '@/lib/types'.",
-      "Les champs DateTime sont deja Date (z.coerce.date() dans les schemas) — passer directement a Prisma, pas de new Date().",
-      "JAMAIS de logique metier au-dela du CRUD dans le service."
     ]
   },
   "conditional_templates": {
@@ -320,12 +132,6 @@
     "app/sign-in/[[...sign-in]]/page.tsx": "templates/app_signin_page.tsx",
     "app/sign-up/[[...sign-up]]/page.tsx": "templates/app_signup_page.tsx",
     ".env.example": "templates/env.example.template"
-  },
-  "scaffold_extends": {
-    "prisma/schema.prisma": {
-      "template": "templates/prisma_schema.prisma",
-      "locked_until_keyword": "model "
-    }
   },
   "blueprint": {
     "required_files": [
@@ -364,93 +170,10 @@
       "app/components/*.tsx"
     ]
   },
-  "_UNUSED_commands": {
-    "_NOTE": "Jamais lue par le pipeline — supersédée par pre_run_commands. Conservée pour référence.",
-    "install": "npm install",
-    "install_legacy": "npm install --legacy-peer-deps",
-    "build": "npm run build",
-    "test": "npx jest --coverage",
-    "prisma_migrate": "npx prisma migrate dev"
-  },
   "testing": {
     "min_required_tests": 1,
     "allow_zero_tests_debug": false,
     "cleanup_stale_tests": "always"
-  },
-  "mandatory_rag_queries": [],
-  "_NOTE_mandatory_rag_queries": "migré vers rules_dev.md — section Concepts Stack Obligatoires",
-  "mandatory_rag_k": 3,
-  "mandatory_rag_snippet_chars": 900,
-  "qdrant_filter": {
-    "_comment": "Lu par rag_client.py::_build_rag_filter() via stack_config.get_qdrant_filter_cfg(). Filtre actif : standards actifs + agent_context dev uniquement. Exclut les standards inactifs (Level A déactivés) et les standards architect (agent_context=architect).",
-    "collection": "factory_standards",
-    "filter": {
-      "must": [
-        {
-          "should": [
-            {"key": "metadata.stack", "match": {"value": "nextjs-clerk-prisma"}},
-            {"key": "metadata.stack", "match": {"value": "global"}}
-          ]
-        },
-        {"key": "metadata.status", "match": {"value": "active"}},
-        {"key": "metadata.agent_context", "match": {"value": "dev"}}
-      ]
-    }
-  },
-  "architect_qdrant_filter": {
-    "_comment": "SUPPRIMÉ (19 Mars 2026, Pré-Sprint 4.6) — Zone 0 (agent_context=architect) a été supprimée. L'architect utilise désormais le qdrant_filter standard (agent_context=dev, Zone 1-14). Le Brief Normalizer remplace le rôle de Zone 0.",
-    "collection": "factory_standards",
-    "filter": {
-      "must": []
-    }
-  },
-  "env_validation": {
-    "required_vars": [
-      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-      "CLERK_SECRET_KEY",
-      "DATABASE_URL"
-    ],
-    "regex": {
-      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "^pk_(test|live)_",
-      "CLERK_SECRET_KEY": "^sk_(test|live)_",
-      "DATABASE_URL": "^postgresql://"
-    }
-  },
-  "_UNUSED_compatibility_matrix": {
-    "_NOTE": "Jamais lue par le pipeline. Documentation de référence uniquement — les versions sont enforced via package.json.",
-    "ts-jest": {
-      "required_major": 29,
-      "reason": "ts-jest 29.x est la seule branche supportée avec Jest 29 + TypeScript 5.x; versions 27/28 ciblent TS 4.x",
-      "incompatible_with": {"jest": ">=30"}
-    },
-    "next": {
-      "min_major": 14, "max_major": 14,
-      "reason": "Pinné à Next 14 pour validation Sprint 0-3 (POLICY factory)"
-    },
-    "jest": {
-      "required_major": 29,
-      "reason": "jest@30 incompatible avec ts-jest@29"
-    }
-  },
-  "toolchain": {
-    "_comment": "Ordre des stages exécutés par prebuild_pipeline.py avant npm run build. Phase C — Prebuild Truth Engine.",
-    "schema_check": "prisma validate",
-    "schema_generate": "prisma generate",
-    "type_check": "tsc --noEmit",
-    "lint": "eslint --config .eslintrc.stack.json --resolve-plugins-relative-to .",
-    "ast_guards": ["use_client", "client_server_boundary"],
-    "build": "next build",
-    "stages_phase_b": ["prisma_validate", "prisma_generate", "tsc", "eslint"],
-    "stages_phase_c": ["prisma_validate", "prisma_generate", "tsc", "eslint", "ast_use_client"],
-    "critical_stages": ["prisma_validate", "tsc", "eslint", "ast_use_client"]
-  },
-  "test_import_rules": {
-    "app_router_api": "import { handler } from '../../app/api/{name}/route'",
-    "middleware": "import middleware from '../../middleware'"
-  },
-  "supervision": {
-    "batch_size": 3,
-    "supervisor_timeout_ms": 30000
   },
   "pre_run_commands": [
     {
@@ -474,14 +197,7 @@
     "prisma/schema.prisma",
     ".eslintrc.stack.json"
   ],
-  "core_modules": ["types", "schemas", "services", "actions", "pages", "navigation", "middleware"],
   "feature_modules": [
     "feature_modules.module_detail_with_children"
-  ],
-
-  "role_rag_queries": {
-    "route":       "auth guard NextResponse userId ownership API route handler webhook",
-    "page":        "Server Component auth redirect notFound dynamic params service getAll getById dashboard custom page",
-    "page_client": "useActionState formulaire form 'use client' isPending error submit état vide empty state SerializedXxx useState typed array Tailwind"
-  }
+  ]
 }

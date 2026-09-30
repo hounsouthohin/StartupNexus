@@ -47,13 +47,6 @@ class StackAdapter(ABC):
         from agents.stack_config import load_stack_config
         return set(load_stack_config(self.stack_id).get("protected_files", []))
 
-    @property
-    def role_rag_queries(self) -> dict[str, str]:
-        """Mapping rôle → requête Qdrant par type de fichier.
-        Par défaut lu depuis la stack config JSON."""
-        from agents.stack_config import load_stack_config
-        return load_stack_config(self.stack_id).get("role_rag_queries", {})
-
     def inject_relations(self, models: list) -> list:
         """Hook optionnel — injecte les relations manquantes dans les modèles Prisma.
         Par défaut : no-op (retourne les modèles inchangés)."""

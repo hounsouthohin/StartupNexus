@@ -4,7 +4,7 @@ sans erreur et contient les sections critiques.
 Ce test doit passer AVANT tout run de la factory.
 """
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 def _make_minimal_spec() -> MagicMock:
@@ -26,11 +26,7 @@ def test_build_system_prompt_renders_without_error():
     from agents.stacks.nextjs_clerk_prisma.dev_prompts import build_system_prompt
 
     spec = _make_minimal_spec()
-    with patch(
-        "agents.stacks.nextjs_clerk_prisma.dev_prompts._build_mandatory_rag_block",
-        return_value="",
-    ):
-        result = build_system_prompt(spec)
+    result = build_system_prompt(spec)
 
     assert isinstance(result, str)
     assert len(result) > 200
@@ -41,11 +37,7 @@ def test_build_system_prompt_contains_critical_sections():
     from agents.stacks.nextjs_clerk_prisma.dev_prompts import build_system_prompt
 
     spec = _make_minimal_spec()
-    with patch(
-        "agents.stacks.nextjs_clerk_prisma.dev_prompts._build_mandatory_rag_block",
-        return_value="",
-    ):
-        result = build_system_prompt(spec)
+    result = build_system_prompt(spec)
 
     assert "OPTION A" in result
     assert "write_file" in result

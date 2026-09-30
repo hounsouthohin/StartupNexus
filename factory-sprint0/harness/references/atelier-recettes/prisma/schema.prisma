@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Difficulty {
+  facile
+  moyenne
+  difficile
+}
+
+model Recipe {
+  id String @id @default(uuid())
+  title String
+  instructions String
+  preparationTime Int
+  difficulty Difficulty
+  published Boolean @default(false)
+  slug String @unique
+  tags Tag[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Tag {
+  id String @id @default(uuid())
+  name String
+  recipes Recipe[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

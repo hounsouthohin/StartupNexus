@@ -1,0 +1,412 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "mediatheque",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-09-30T18:58:09+00:00",
+  "run_id": "capture-4fd83e76",
+  "brief": {
+    "description": "Je gère une médiathèque associative et je veux une application pour la faire tourner. Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication. Un visiteur peut ouvrir la fiche d'un ouvrage pour en voir tous les détails. Après connexion, un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état. Un emprunt commence en demandé, puis il est soit accepté, soit refusé ; un emprunt accepté passe ensuite à rendu quand l'adhérent ramène l'ouvrage. Un adhérent ne voit que ses propres emprunts. Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre. L'interface doit être claire, chaleureuse et accessible."
+  },
+  "project_spec": {
+    "project_name": "mediatheque",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je gère une médiathèque associative et je veux une application pour la faire tourner. Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication. Un visiteur peut ouvrir la fiche d'un ouvrage pour en voir tous les détails. Après connexion, un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état. Un emprunt commence en demandé, puis il est soit accepté, soit refusé ; un emprunt accepté passe ensuite à rendu quand l'adhérent ramène l'ouvrage. Un adhérent ne voit que ses propres emprunts. Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre. L'interface doit être claire, chaleureuse et accessible.",
+    "models": [
+      {
+        "name": "Book",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "author",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "summary",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "genre",
+            "type": "BookGenre",
+            "attributes": ""
+          },
+          {
+            "name": "publicationYear",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Member",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "phone",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          },
+          {
+            "name": "borrowings",
+            "type": "Borrowing[]",
+            "attributes": ""
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Borrowing",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "requestDate",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "status",
+            "type": "BorrowingStatus",
+            "attributes": "@default(requested)"
+          },
+          {
+            "name": "bookId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "book",
+            "type": "Book",
+            "attributes": "@relation(fields: [bookId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/books",
+        "auth_required": false,
+        "page_type": "list",
+        "model": "Book"
+      },
+      {
+        "path": "/books/[id]",
+        "auth_required": false,
+        "page_type": "detail",
+        "model": "Book"
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/profile",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Member"
+      },
+      {
+        "path": "/dashboard/borrowings",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Borrowing"
+      },
+      {
+        "path": "/dashboard/borrowings/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Borrowing"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Les visiteurs peuvent parcourir le catalogue public des ouvrages avec titre, auteur, résumé, genre et année de publication.",
+        "data_fetches": [
+          {
+            "service": "bookService.getPublicAll()",
+            "as": "books"
+          }
+        ],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord pour les adhérents connectés. Affiche les emprunts de l'adhérent et permet de gérer les demandes d'emprunt. [CROSS_ENTITY: Borrowing]",
+        "data_fetches": [
+          {
+            "service": "borrowingService.getAllWithRelations(userId)",
+            "as": "borrowings"
+          }
+        ],
+        "interactive": true,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /books : un visiteur parcourt le catalogue des ouvrages",
+      "Sur /books/[id] : un visiteur consulte les détails d'un ouvrage",
+      "Sur /dashboard : un adhérent voit son tableau de bord",
+      "Sur /dashboard/profile : un adhérent gère son profil",
+      "Sur /dashboard/borrowings : un adhérent consulte ses emprunts",
+      "Sur /dashboard/borrowings/[id] : un adhérent suit le statut d'un emprunt"
+    ],
+    "ui_labels": {
+      "Book": {
+        "title": "Titre",
+        "author": "Auteur",
+        "summary": "Résumé",
+        "genre": "Genre",
+        "publicationYear": "Année de publication"
+      },
+      "Member": {
+        "name": "Nom",
+        "email": "Email",
+        "phone": "Téléphone"
+      },
+      "Borrowing": {
+        "requestDate": "Date de demande",
+        "status": "État",
+        "bookId": "Ouvrage"
+      },
+      "BookGenre": {
+        "roman": "Roman",
+        "essai": "Essai",
+        "bande_dessinee": "Bande dessinée",
+        "jeunesse": "Jeunesse"
+      },
+      "BorrowingStatus": {
+        "requested": "Demandé",
+        "accepted": "Accepté",
+        "refused": "Refusé",
+        "returned": "Rendu"
+      }
+    },
+    "title_plurals": {
+      "Book": "Ouvrages",
+      "Member": "Adhérents",
+      "Borrowing": "Emprunts"
+    },
+    "title_singulars": {
+      "Book": "Ouvrage",
+      "Member": "Adhérent",
+      "Borrowing": "Emprunt"
+    },
+    "enums": {
+      "BookGenre": [
+        "roman",
+        "essai",
+        "bande_dessinee",
+        "jeunesse"
+      ],
+      "BorrowingStatus": [
+        "requested",
+        "accepted",
+        "refused",
+        "returned"
+      ]
+    },
+    "enum_value_labels": {
+      "BookGenre": {
+        "roman": "Roman",
+        "essai": "Essai",
+        "bande_dessinee": "Bande dessinée",
+        "jeunesse": "Jeunesse"
+      },
+      "BorrowingStatus": {
+        "requested": "Demandé",
+        "accepted": "Accepté",
+        "refused": "Refusé",
+        "returned": "Rendu"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "9765611ceeae490b",
+    "design_system": {
+      "preset_name": "editorial",
+      "primary_color": "amber-600",
+      "font_heading": "Playfair Display",
+      "font_body": "DM Sans",
+      "sidebar_bg": "white",
+      "density": "spacious",
+      "card_style": "flat",
+      "list_style": "card-grid",
+      "animation_level": "enhanced",
+      "hero_style": "centered-cta",
+      "layout_type": "topnav",
+      "brand_name": "Médiathèque Associative"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "summary": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "requested",
+            "accepted",
+            "refused",
+            "returned"
+          ],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "public_pages",
+        "status_flow"
+      ],
+      "status_flows": {
+        "Borrowing": {
+          "field": "status",
+          "initial": "requested",
+          "transitions": {
+            "requested": [
+              "accepted",
+              "refused"
+            ],
+            "accepted": [
+              "returned"
+            ],
+            "refused": [],
+            "returned": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/books": "Aucun ouvrage disponible pour le moment.",
+          "/borrowings": "Aucun emprunt. Demandez votre premier emprunt."
+        },
+        "dependency_order": [
+          "Créez d'abord un Ouvrage avant de créer un Emprunt."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "member",
+          "librarian"
+        ],
+        "privileged_role": "librarian",
+        "admin_scoped_views": [
+          "Borrowing"
+        ],
+        "role_gated_actions": {
+          "Borrowing": [
+            "status_transition"
+          ]
+        },
+        "global_entities": [],
+        "initiator": {
+          "Borrowing": "member"
+        },
+        "surface": {
+          "member": [
+            "Book",
+            "Borrowing",
+            "Member"
+          ],
+          "librarian": [
+            "Borrowing",
+            "Book"
+          ]
+        },
+        "dashboard": {
+          "librarian": [
+            "emprunts en attente de décision"
+          ],
+          "member": [
+            "mes emprunts en cours"
+          ]
+        }
+      }
+    },
+    "summary_fr": "L'application permet aux visiteurs de parcourir le catalogue public des ouvrages sans se connecter. Chaque ouvrage affiche son titre, auteur, résumé, genre et année de publication. Les adhérents peuvent se connecter pour gérer leur profil et demander à emprunter des ouvrages. Les emprunts passent par plusieurs états : demandé, accepté, refusé, et rendu. Les adhérents ne voient que leurs propres emprunts, tandis que le bibliothécaire peut voir et gérer tous les emprunts, y compris accepter, refuser ou marquer un emprunt comme rendu.",
+    "unsupported": []
+  }
+}

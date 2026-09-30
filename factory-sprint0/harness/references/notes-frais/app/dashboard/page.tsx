@@ -1,0 +1,30 @@
+import Link from 'next/link'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
+import { expenseReportService } from '@/lib/services/expense-report.service'
+
+export const dynamic = 'force-dynamic'
+
+export default async function DashboardPage() {
+  const { userId } = await auth()
+  if (!userId) redirect('/sign-in')
+
+  const [expenseReportItems] = await Promise.all([
+    expenseReportService.getAll(userId, 1, 100000),
+  ])
+
+  const expenseReportCount = expenseReportItems.length
+
+  return (
+    <main className="container mx-auto p-8">
+      <h1 className="text-2xl font-bold text-foreground mb-6">Tableau de bord</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-card border border-border rounded-lg p-6">
+          <p className="text-sm text-muted-foreground mb-1">Notes de frais</p>
+          <p className="text-3xl font-bold text-foreground mb-4">{expenseReportCount}</p>
+          <Link href="/expense-reports" className="text-sm text-primary hover:underline">Gérer →</Link>
+        </div>
+      </div>
+    </main>
+  )
+}

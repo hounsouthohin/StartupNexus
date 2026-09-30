@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BookGenre {
+  roman
+  essai
+  bande_dessinee
+  jeunesse
+}
+
+enum BorrowingStatus {
+  requested
+  accepted
+  refused
+  returned
+}
+
+model Book {
+  id String @id @default(uuid())
+  title String
+  author String
+  summary String
+  genre BookGenre
+  publicationYear Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  borrowings Borrowing[]
+}
+
+model Member {
+  id String @id @default(uuid())
+  name String
+  email String
+  phone String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  borrowings Borrowing[]
+  @@index([userId])
+}
+
+model Borrowing {
+  id String @id @default(uuid())
+  requestDate DateTime @default(now())
+  status BorrowingStatus @default(requested)
+  bookId String
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  members Member[]
+  @@index([userId])
+}
