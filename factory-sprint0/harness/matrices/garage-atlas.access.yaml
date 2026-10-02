@@ -1,0 +1,51 @@
+# Garage-atlas — le patron saisit pour ses clients ; les clients suivent.
+# Lecture stricte du brief : « Mes clients m'appellent ou passent », « Je note … le véhicule ».
+actors:
+  - id: client
+    label: client
+    becomes: invited            # le brief ne dit pas comment ; le patron « note » ses clients
+    invited_by: owner
+    citation: "Chaque client a son propre espace"
+  - id: owner
+    label: patron
+    becomes: bootstrap
+    citation: "seulement moi (le patron du garage) et mes clients"
+
+entities:
+  - name: ClientProfile
+    label: profil
+    label_plural: clients
+    nature: profile
+    owner: client
+    citation: "gérer ses coordonnées"
+
+  - name: Vehicle
+    label: véhicule
+    label_plural: véhicules
+    nature: collection
+    owner: client
+    entered_by: owner           # créé par le patron POUR le client
+    references: [ClientProfile]
+    citation: "Je note le nom du client, son téléphone, et le véhicule concerné"
+
+  - name: Repair
+    label: réparation
+    label_plural: réparations
+    feminine: true
+    nature: collection
+    owner: client
+    references: [Vehicle, ClientProfile]
+    citation: "il peut suivre l'état de ses demandes"
+    process:
+      initial: pending
+      transitions:
+        pending: [in_progress, refused]
+        in_progress: [done]
+        refused: []
+        done: []
+      initiator: owner          # « Mes clients m'appellent ou passent pour demander une réparation »
+      decider: owner
+      labels: {pending: en attente, in_progress: en cours, refused: refusée, done: terminée}
+      citation: "je les accepte ou je les refuse"
+
+exceptions: []

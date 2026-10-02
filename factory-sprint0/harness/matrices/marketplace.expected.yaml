@@ -1,0 +1,12 @@
+# Marketplace — attendu, écrit avant le calcul.
+cells:
+  visitor:
+    Product: {see: all}                       # « / : catalogue public »
+  seller:
+    Product: {see: own, create: "yes", edit: true}   # POST + PUT /api/products ; pas de DELETE
+  buyer:
+    Product: {see: all}
+    Order: {see: own, create: "yes"}          # POST + GET /api/orders ; ni PUT ni DELETE
+limites_d1:
+  - "Le vendeur doit voir les commandes de SES produits (visibilité par relation : D2)"
+  - "Deux acteurs s'inscrivent seuls (vendeur / acheteur) : il faut un choix à l'inscription"

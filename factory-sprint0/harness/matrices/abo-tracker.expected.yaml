@@ -1,0 +1,5 @@
+# Abo-tracker — attendu, écrit avant le calcul. « Aucune page n'est publique. »
+cells:
+  user:
+    Category: {see: own, create: "yes", edit: true, delete: true}      # « gérées dans une liste dédiée »
+    Subscription: {see: own, create: "yes", edit: true, delete: true}

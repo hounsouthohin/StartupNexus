@@ -1,0 +1,15 @@
+# Cabinet médical — attendu, écrit avant le calcul.
+cells:
+  patient:
+    PatientProfile: {see: own, create: "auto", edit: true}   # « gère ses coordonnées »
+    Appointment: {see: own, create: "yes"}                   # « prennent rendez-vous » ; « voit ses rendez-vous »
+  secretary:
+    PatientProfile: {see_via: [Appointment]}                 # voit le patient sur le rendez-vous
+    Appointment:
+      see: all                                              # « l'agenda de tous les rendez-vous »
+      transitions: {requested: [confirmed, cancelled]}
+    # Report : RIEN — « la secrétaire non plus »
+  doctor:
+    PatientProfile: {see_via: [Appointment]}                 # voit le patient sur le rendez-vous
+    Appointment: {see: all}                                  # nécessaire pour rédiger après la consultation
+    Report: {see: own, create: "yes", edit: true}  # « seul moi peux lire et modifier » ; supprimer : non dit

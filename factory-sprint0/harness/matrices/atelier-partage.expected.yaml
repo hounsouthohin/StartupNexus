@@ -1,0 +1,24 @@
+# Atelier-partage — attendu, écrit avant le calcul.
+# Révisé le 1er oct (doctrine, pas ajustement au code) : « je propose » n'implique pas supprimer ;
+# les domaines s'affichent sur les ateliers publics, sans page publique à eux (relecture du brief,
+# confirmée par la classification de l'IA, plus fidèle que la première version).
+cells:
+  visitor:
+    Workshop: {see: all}            # « visible par tout le monde, même sans compte »
+    Domain: {see_via: [Workshop]}   # affichés sur les ateliers publics
+    # Slot : rien — le brief ne rend public que le catalogue des ateliers (dans le doute : désir)
+  participant:
+    Workshop: {see: all}
+    Domain: {see: all}
+    Slot: {see: all}                # « choisissant un créneau parmi ceux que je propose »
+    ParticipantProfile: {see: own, create: "auto", edit: true}   # « gérer ses coordonnées »
+    Reservation: {see: own, create: "yes"}     # réserve, voit ses réservations ; ne les modifie pas
+  animateur:
+    Workshop: {see: all, create: "yes", edit: true}   # « Je propose des ateliers » ; supprimer : non dit
+    Domain: {see: all}              # liste fixe : personne ne la gère
+    Slot: {see: all, create: "yes", edit: true}       # « ceux que je propose »
+    ParticipantProfile: {see_via: [Reservation]}   # voit qui a réservé (nom, téléphone) sur la réservation
+    Reservation:
+      see: all
+      transitions: {pending: [confirmed, cancelled], confirmed: [done]}
+auto_links: 1

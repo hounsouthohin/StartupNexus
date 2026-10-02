@@ -1,0 +1,62 @@
+# Coworking-hub — membres qui réservent, administrateur qui décide.
+actors:
+  - id: member
+    label: membre
+    becomes: signup
+    citation: "Après connexion, un membre gère son profil"
+  - id: admin
+    label: administrateur
+    becomes: bootstrap
+    citation: "seul un administrateur doit pouvoir confirmer ou refuser les réservations"
+
+entities:
+  - name: Space
+    label: espace
+    label_plural: espaces
+    nature: catalog
+    public: true
+    manager: null               # le brief ne dit pas qui gère les espaces
+    citation: "parcourir le catalogue public des espaces disponibles"
+
+  - name: MemberProfile
+    label: profil
+    label_plural: profils de membres
+    nature: profile
+    owner: member
+    citation: "un membre gère son profil (nom, email, entreprise, téléphone)"
+
+  - name: Booking
+    label: réservation
+    label_plural: réservations
+    feminine: true
+    nature: collection
+    owner: member
+    references: [Space, MemberProfile]
+    citation: "Le membre voit la liste de ses réservations avec leur état"
+    process:
+      initial: requested
+      transitions:
+        requested: [confirmed, refused]
+        confirmed: [done, cancelled]
+        refused: []
+        done: []
+        cancelled: []
+      initiator: member
+      decider: admin
+      labels: {requested: demandée, confirmed: confirmée, refused: refusée, done: terminée, cancelled: annulée}
+      citation: "seul un administrateur doit pouvoir confirmer ou refuser les réservations"
+
+  - name: Invoice
+    label: facture
+    label_plural: factures
+    feminine: true
+    nature: child
+    parent: Booking
+    citation: "Chaque réservation confirmée génère une facture rattachée à cette réservation"
+
+exceptions:
+  - actor: admin
+    entity: Invoice
+    action: transition
+    transitions: {pending: [paid]}
+    citation: "marquer les factures comme payées"

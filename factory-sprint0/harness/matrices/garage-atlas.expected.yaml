@@ -1,0 +1,14 @@
+# Garage-atlas — attendu, écrit avant le calcul. LECTURE À FAIRE VALIDER PAR L'HUMAIN : le brief
+# est ambigu (le client « demande » une réparation, mais en appelant ou en passant au garage).
+cells:
+  client:
+    ClientProfile: {see: own, create: "auto", edit: true}   # « gérer ses coordonnées »
+    Vehicle: {see: own}             # « l'historique de ses véhicules » — c'est le patron qui note
+    Repair: {see: own}              # « suivre l'état de ses demandes »
+  owner:
+    ClientProfile: {see: all}       # « Je note le nom du client, son téléphone »
+    Vehicle: {see: all, create: "yes", edit: true}          # « Je note … le véhicule concerné »
+    Repair:
+      see: all
+      create: "yes"                 # il saisit les demandes reçues par téléphone ou au comptoir
+      transitions: {pending: [in_progress, refused], in_progress: [done]}

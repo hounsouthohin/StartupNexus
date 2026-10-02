@@ -1,0 +1,34 @@
+# Abo-tracker — un seul acteur, tout privé.
+actors:
+  - id: user
+    label: utilisateur
+    becomes: signup
+    citation: "entièrement privé après connexion"
+
+entities:
+  - name: Category
+    label: catégorie
+    label_plural: catégories
+    feminine: true
+    nature: collection
+    owner: user
+    citation: "une de mes catégories personnalisées"
+
+  - name: Subscription
+    label: abonnement
+    label_plural: abonnements
+    nature: collection          # actif / en pause / résilié : un champ que l'utilisateur change librement
+    owner: user
+    references: [Category]
+    citation: "Suivi personnel de mes abonnements"
+
+exceptions:
+  # Supprimer n'est jamais accordé par défaut : il faut une phrase du brief.
+  - actor: user
+    entity: Category
+    action: delete
+    citation: "gérées dans une liste dédiée"
+  - actor: user              # justification faible (« suivi personnel ») → le miroir devra demander
+    entity: Subscription
+    action: delete
+    citation: "Suivi personnel de mes abonnements"

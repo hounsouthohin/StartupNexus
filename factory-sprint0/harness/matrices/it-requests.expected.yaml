@@ -1,0 +1,8 @@
+# It-requests — attendu, écrit avant le calcul.
+cells:
+  employee:
+    Request: {see: own, create: "yes"}   # « ne fait que créer ses demandes et suivre leur avancement »
+  admin:
+    Request:
+      see: all
+      transitions: {new: [in_progress], in_progress: [resolved]}

@@ -1,0 +1,19 @@
+# Association — attendu, écrit avant le calcul.
+cells:
+  visitor:
+    Event: {see: all}                                  # « tout le monde peut les consulter sans compte »
+  member:
+    Event: {see: all}
+    MemberProfile: {see: own, create: "auto", edit: true}
+    Membership: {see: own}                             # « l'état de sa cotisation » — c'est le trésorier qui enregistre
+    Registration: {see: own, create: "yes"}            # « s'inscrire aux événements » ; se désinscrire : non dit
+  treasurer:
+    Event: {see: all, create: "yes", edit: true}   # « Le bureau (président, trésorier) publie » ; supprimer : non dit (révisé 1er oct)
+    MemberProfile: {see: all}                          # « voit la liste de tous les adhérents »
+    Membership: {see: all, create: "yes", edit: true}  # « enregistre les cotisations reçues »
+  president:
+    Event: {see: all, create: "yes", edit: true}
+    MemberProfile: {see_via: [Registration]}           # voit qui est inscrit
+    Registration: {see: all}                           # « voit tous les inscrits à chaque événement »
+limites_d1:
+  - "S'inscrire à un événement seulement si la cotisation est à jour (condition sur une autre entité : D2)"

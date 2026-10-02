@@ -1,0 +1,63 @@
+# Atelier-partage — l'animateur propose, les inscrits réservent.
+actors:
+  - id: participant
+    label: participant
+    becomes: signup
+    citation: "Une personne intéressée crée un compte"
+  - id: animateur
+    label: animateur
+    becomes: bootstrap
+    citation: "uniquement moi (l'animateur) et les personnes inscrites"
+
+entities:
+  - name: Workshop
+    label: atelier
+    label_plural: ateliers
+    nature: catalog
+    public: true
+    manager: animateur
+    references: [Domain]
+    citation: "Le catalogue des ateliers est visible par tout le monde, même sans compte"
+
+  - name: Domain
+    label: domaine
+    label_plural: domaines
+    nature: catalog             # liste fixe (dessin, poterie, cuisine, couture) ; personne n'est déclaré pour la gérer
+    public: false               # affichés sur les ateliers publics, sans page publique à eux
+    citation: "un ou plusieurs domaines (dessin, poterie, cuisine, couture)"
+
+  - name: Slot
+    label: créneau
+    label_plural: créneaux
+    nature: child
+    parent: Workshop
+    citation: "en choisissant un créneau parmi ceux que je propose"
+
+  - name: ParticipantProfile
+    label: profil
+    label_plural: profils de participants
+    nature: profile
+    owner: participant
+    citation: "complète son profil (nom, téléphone)"
+
+  - name: Reservation
+    label: réservation
+    label_plural: réservations
+    feminine: true
+    nature: collection
+    owner: participant
+    references: [Slot, ParticipantProfile]
+    citation: "Chaque personne a son propre espace pour voir ses réservations"
+    process:
+      initial: pending
+      transitions:
+        pending: [confirmed, cancelled]
+        confirmed: [done]
+        cancelled: []
+        done: []
+      initiator: participant
+      decider: animateur
+      labels: {pending: en attente, confirmed: confirmée, cancelled: annulée, done: terminée}
+      citation: "je les confirme ou je les annule"
+
+exceptions: []

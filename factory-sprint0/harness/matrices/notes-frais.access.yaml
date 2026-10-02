@@ -1,0 +1,39 @@
+# Notes-frais — l'employé rédige et soumet, le responsable examine et rembourse.
+actors:
+  - id: employee
+    label: employé
+    becomes: signup
+    citation: "Un employé crée une note de frais"
+  - id: manager
+    label: responsable
+    becomes: bootstrap          # « les notes de frais de mon équipe » : l'auteur du brief examine
+    citation: "gérer les notes de frais de mon équipe"
+
+entities:
+  - name: ExpenseReport
+    label: note de frais
+    label_plural: notes de frais
+    feminine: true
+    nature: collection
+    owner: employee
+    citation: "Un employé crée une note de frais"
+    process:
+      initial: draft
+      transitions:
+        draft: [submitted]
+        submitted: [approved, refused]
+        approved: [reimbursed]
+        refused: []
+        reimbursed: []
+      initiator: employee
+      decider: manager
+      steps_by: {draft: employee}   # l'employé soumet lui-même ; le responsable fait le reste
+      labels: {draft: brouillon, submitted: soumise, approved: approuvée, refused: refusée, reimbursed: remboursée}
+      citation: "elle peut être approuvée ou refusée avec un motif"
+
+exceptions:
+  - actor: employee
+    entity: ExpenseReport
+    action: edit
+    while_states: [draft]
+    citation: "Il la garde en brouillon tant qu'il travaille dessus"

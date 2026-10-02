@@ -169,11 +169,15 @@ exceptions:   # seulement ce que le brief dit explicitement et qui s'écarte des
 
 | Nature | Propriétaire / acteur concerné | Autres acteurs | Visiteur |
 |---|---|---|---|
-| **profil** (un par personne) | voit et modifie SA fiche ; créée automatiquement ; pas de liste | ne voient rien (sauf exception déclarée) | rien |
-| **catalogue** (référentiel partagé) | — | voient tout ; créer / modifier / supprimer : seulement le gestionnaire déclaré, sinon personne | voit tout si `public` |
-| **collection** (sans workflow) | voit les siennes, crée, modifie, supprime les siennes | le privilégié voit tout | rien (sauf `public`) |
-| **collection + workflow** | voit les siennes, crée (initiateur) ; **ne modifie ni ne supprime** sauf exception citée (ex. « tant que en attente ») | le décideur voit tout et fait avancer l'état ; ne crée pas | rien |
-| **enfant** (lié à un parent) | hérite de la visibilité du parent ; créé depuis la fiche du parent | idem | idem |
+| **profil** (un par personne) | voit et modifie SA fiche ; créée automatiquement ; pas de liste | ne voient rien ; la voient dans la fiche de ce qu'ils traitent (« voir au travers de ») | rien |
+| **catalogue** (référentiel partagé) | — | voient tout (seulement le publié si `publication`) ; le ou les gestionnaires déclarés créent et modifient ; sinon lecture seule | voit tout (ou le publié) si `public` |
+| **collection** (sans workflow) | voit les siennes, crée, modifie | rien, sauf exception citée ; si `public` : tous voient tout | rien (sauf `public`) |
+| **collection saisie pour autrui** (`entered_by`) | suit les siennes, ne crée pas | celui qui saisit voit tout, crée, modifie, et voit la liste des propriétaires pour choisir | rien |
+| **collection + workflow** | voit les siennes, crée (initiateur) ; **ne modifie pas** sauf exception citée (ex. « tant qu'en brouillon ») ; un « acte » (commande, inscription) = workflow à un état | le décideur voit tout et fait avancer l'état ; ne crée pas ; des étapes peuvent être confiées à un autre acteur (`steps_by`) | rien |
+| **enfant** (lié à un parent) | même visibilité que le parent ; géré par qui peut **modifier** le parent | idem | **rien** sauf si l'enfant est déclaré public |
+
+**Supprimer n'est accordé par défaut à personne**, quelle que soit la nature : il faut « gérer » ou
+« supprimer » dans le brief (exception citée). *(Règles validées sur le banc de 12 briefs, 1er oct.)*
 
 **Sortie** : une cellule par (acteur, entité) :
 `voir ∈ {rien, les siennes, tout, publiés}` · `créer ∈ {non, oui, auto}` ·
@@ -181,7 +185,9 @@ exceptions:   # seulement ce que le brief dit explicitement et qui s'écarte des
 
 Règles de clôture calculées (jamais demandées à l'IA) : profil créé automatiquement ; clé
 étrangère vers le profil de l'acteur remplie automatiquement (jamais un choix « soi-même ») ;
-écran de décision atteignable par le décideur ; le décideur n'est pas l'initiateur.
+écran de décision atteignable par le décideur. *(Corrigé le 1er oct : la règle « le décideur
+n'est pas l'initiateur » était fausse en général — dans un tableau de tâches, le propriétaire fait
+avancer ses propres tâches. Le décideur peut donc être le propriétaire lui-même.)*
 
 **Parades aux deux risques de la matrice** *(proposé le 30 sept)* :
 
@@ -386,9 +392,9 @@ Ce document + [`lecture_usine/`](lecture_usine/).
 2. **Générateur non déterministe** : `dev_seed_generator._topo_order` parcourait un `set` →
    ordre de `seed.mjs` différent à chaque processus. Corrigé (ordre de la déclaration) : sans ça,
    le harnais signalait des différences fantômes.
-3. **Alerte incohérente** : `project_spec` journalise une ERREUR « owner_field absent » pour
-   chaque catalogue global (Book, Space, Workshop, Domain), alors que `dev_model_context` les
-   traite correctement comme globaux → deux sources qui se contredisent (phase 2).
+3. **Alerte « owner_field absent »** sur chaque catalogue global (Book, Space, Workshop, Domain).
+   Corrigé en phase 2 : elle n'est pas fausse — vraie pour `relations.py`, fausse pour `crud.py`
+   → symptôme de la notion de propriétaire calculée à deux endroits (phase 5).
 4. **Seed faux** (atelier-partage) : `slot.create({ workshopId: OWNER })` — la clé étrangère vers
    un catalogue global reçoit l'identifiant de l'utilisateur. Le seed est hors build, donc
    invisible au build, mais les données de l'aperçu échoueraient (phase 5, seed lu depuis la matrice).
@@ -497,9 +503,74 @@ Ces retraits ne changent pas la sortie déterministe → vérifiables par le har
 - **Terminé quand** : le harnais montre des fichiers générés identiques à la référence pour toutes
   les déclarations, et le nombre de lignes a baissé.
 
-### Phase 3 — La matrice (calcul seul, sans toucher aux générateurs)
-- Nouveau module à côté de `dev_model_context.py` : modèle de données (§4.3), préréglages des
-  natures, règles de clôture, dérivations (pages, navigation, dashboards).
+### En continu — dès le 1er oct 2026 (ajouté après remise en question du plan)
+Le plan disait « construire selon la demande réelle » mais ne mesurait qu'en phase 6, et ne
+parlait jamais de vrais utilisateurs. Deux corrections, en parallèle des phases :
+1. **Compter les manques à chaque run** : `scripts/non_couverts.py` rassemble les « non couverts »
+   du miroir (déclarations conservées + anciens rapports) en une liste unique,
+   `logs/non_couverts.md`. Le classement par axe viendra avec le nouveau miroir (phase 4).
+2. **Vrais briefs, tout de suite** (action humaine) : demander à 3-5 personnes réelles (artisans,
+   associations, petites entreprises) de décrire en quelques lignes l'outil dont elles auraient
+   besoin. Ces briefs deviennent des étalons — plus honnêtes que ceux que nous écrivons nous-mêmes.
+   Message type :
+   > « Je construis un outil qui crée des applications de gestion sur mesure. Si vous aviez une
+   > appli pour votre activité, que devrait-elle faire ? Qui l'utiliserait (vous, vos clients, vos
+   > employés…) et qui aurait le droit de faire quoi ? Quelques lignes suffisent, avec vos mots. »
+
+### Phase 3 — La matrice (calcul seul, sans toucher aux générateurs) — en cours (1er oct 2026)
+
+**Réalisé :**
+- `agents/capability_matrix.py` (~500 lignes, 0 IA) : contrat d'entrée strict (un champ inconnu est
+  refusé), préréglages, exceptions citées, clôture, dérivés (pages, menus, tableaux de bord par
+  acteur), phrases du miroir produites par du code, questions ciblées. Chaque droit garde sa raison
+  et ses citations.
+- Banc `scripts/matrix_bench.py` : 12 briefs (9 étalons + 3 piégeux : marketplace de juillet,
+  cabinet médical, association), entrée et matrice attendue écrites à la main dans
+  `harness/matrices/`, l'attendu AVANT le calcul. **Résultat : 12/12 identiques ; 0,8 exception par
+  brief ; 3 besoins hors D1 identifiés** (visibilité par relation ×2, choix du rôle à l'inscription).
+  Médiathèque = matrice d'accès d'`anatomie_app.md`, menus et tableaux de bord compris.
+- `scripts/non_couverts.py` et `scripts/matrix_ai_probe.py` (test de l'IA), `scripts/clerk_invite_spike.py`.
+
+**Défauts de MA conception trouvés par le banc, puis corrigés** (aucun fichier attendu modifié pour
+faire passer le code, sauf 4 révisions de doctrine signalées dans les fichiers) :
+1. L'enfant d'une entité publique devenait public → participants (nom, e-mail) exposés aux
+   visiteurs. Désormais un enfant n'est public que s'il est déclaré public.
+2. L'enfant héritait des droits du *créateur* du parent → le membre aurait créé ses factures.
+   Désormais seul qui peut *modifier* le parent gère ses enfants.
+3. Pas de « publiés seulement » → brouillons visibles. Ajouté (`publication`).
+4. Pas de « saisi pour le compte d'un autre » (le patron note le véhicule du client). Ajouté
+   (`entered_by`, ou initiateur ≠ propriétaire).
+5. Un seul acteur par processus → ajouté `steps_by` (l'employé soumet, le responsable décide).
+6. La clôture « qui voit tout voit ce que ça référence » créait des pages non demandées (liste des
+   adhérents) → remplacée par « voir au travers de » (affiché dans la fiche, sans page).
+7. Supprimer était accordé par défaut → **supprimer n'est plus jamais accordé par défaut** (il faut
+   « gérer » ou « supprimer » dans le brief) : un compte rendu médical ne se supprime pas d'office.
+8. Un seul gestionnaire de catalogue → plusieurs possibles. Ajouts : collection publique (annonces,
+   produits de vendeurs), alerte si deux acteurs s'inscrivent seuls.
+
+**Test de l'IA (classification des entités, briefs du banc, exemples du prompt pris dans d'autres
+domaines)** : matrices justes avec la classification de l'IA — **gpt-4o-mini 6/12, gpt-4o 8/12**.
+- Sur les 4 échecs de gpt-4o, **3 portent sur des points réellement ambigus du brief** (qui crée les
+  véhicules, qui peut annuler une réservation confirmée, qui gère les domaines) ; **1 vraie
+  erreur** : brouillons de recettes rendus visibles → question systématique ajoutée au miroir sur
+  ce que voient les visiteurs.
+- La classification est **très sensible à la formulation** : un exemple mal choisi a fait tomber
+  gpt-4o-mini à 2/12 (identifiants recopiés, valeurs d'exemple recopiées).
+- Un bug de MON script (« false » en texte converti en vrai) aurait rendu publics des comptes rendus
+  médicaux sans alerte : corrigé par une lecture stricte des booléens — la règle 3 vérifiée en vrai.
+
+**Conséquences proposées pour la phase 4** : gpt-4o (pas mini) pour l'étape de classification
+(quelques centimes par brief) ; les questions ciblées du miroir deviennent obligatoires et couvrent
+les ambiguïtés (visiteurs, qui crée, qui fait chaque étape) ; essayer découpage en petites
+questions et vote sur plusieurs tirages si le score ne monte pas.
+
+**Reste pour fermer la phase 3** (humain) : l'essai réel de l'invitation Clerk (une adresse
+e-mail et un clic) ; ta relecture de 2-3 matrices attendues (médiathèque, garage — lecture
+ambiguë —, cabinet médical).
+
+- Nouveau module `agents/capability_matrix.py` (indépendant de la stack : il ne dépend que de la
+  déclaration) : modèle de données (§4.3), préréglages des natures, règles de clôture,
+  dérivations (pages, navigation, dashboards), phrases du miroir.
 - **Terminé quand** : la matrice calculée pour la médiathèque est exactement la matrice d'accès de
   l'étalon (anatomie, §9), et celles du garage et de l'atelier sont validées à la main.
 - **Constat (30 sept)** : l'ancienne version du préréglage « collection + workflow » (l'initiateur
@@ -517,6 +588,10 @@ Ces retraits ne changent pas la sortie déterministe → vérifiables par le har
   association). Mesurer : exceptions par brief, préréglages faux, accès trop larges. Si les
   préréglages ne tiennent pas, on les revoit ici, avant la partie coûteuse (phase 5).
   Faire aussi l'essai réel de l'invitation Clerk avec rôle.
+- **Test de l'IA en fin de phase** *(ajouté le 1er oct)* : avant de figer le format d'entrée,
+  demander à gpt-4o-mini de classer les entités (profil / catalogue / collection) et de désigner
+  initiateur et décideur sur les briefs du banc ; comparer aux entrées écrites à la main. Quelques
+  centimes. Si l'IA n'y arrive pas, on ajuste le format MAINTENANT plutôt qu'en phase 4.
 
 ### Phase 4 — L'architect dans le bon ordre
 - Acteurs, entités + natures, workflows et exceptions déclarés **avant** tout le reste ; les pages
@@ -531,9 +606,15 @@ navigation → dashboard → seed → oracles (+ appel de l'oracle après l'aper
 - **Terminé quand** : toutes les formes de matrice passent `tsc` et leurs oracles ; les 6 défauts
   documentés de la médiathèque ont disparu ; garage-atlas et atelier-partage buildent.
 
+### Phase 5 bis — Premiers vrais utilisateurs *(ajouté le 1er oct)*
+- Faire tourner l'usine sur les vrais briefs récoltés ; montrer le miroir puis l'app à leurs
+  auteurs ; noter ce qui manque, ce qui est faux, ce qu'ils paieraient.
+- **Terminé quand** : au moins 3 personnes réelles ont vu leur app et donné leur avis ; ce que
+  nous apprenons modifie (ou confirme) l'ordre des dimensions D2-D5 et le positionnement (§7).
+
 ### Phase 6 — Learner utile
-- Agréger les `unsupported[]` du miroir par axe sur tous les runs → la liste priorisée des
-  prochaines cases. Ajouter le coût réel ($) au rapport.
+- Le comptage simple des « non couverts » existe déjà (voir « En continu »). La phase 6 ajoute le
+  classement par axe, le coût réel ($) par run, et le branche dans le rapport de run.
 - **Terminé quand** : le FactoryRunReport affiche score d'oracles, coût, et la liste des « non
   couverts » agrégée.
 
@@ -582,6 +663,8 @@ harnais. Ordre décidé par la fréquence réelle des « non couverts » (phase 
 | 30 sept 2026 | Originalité visuelle hors périmètre actuel | le cœur (comportement, âme) passe d'abord |
 | 30 sept 2026 | Phase 1 terminée : déclaration conservée, séquence des générateurs extraite (`dev_core`), harnais sur 9 étalons | filet de sécurité avant de toucher au cœur |
 | 30 sept 2026 | Phase 2 : RAG, revue L2, QA Jest, recherche web, retry tsc et code vestigial retirés ; config 47 → 18 clés | signal nul ou négatif pour un coût réel ; run 41 % plus rapide, sortie des générateurs identique |
+| 1er oct 2026 | Compter les « non couverts » dès maintenant ; test de l'IA en fin de phase 3 ; vrais briefs tout de suite + phase 5 bis « premiers vrais utilisateurs » | le plan mesurait trop tard, figeait un format sans savoir si l'IA peut le remplir, et ne parlait jamais de vrais utilisateurs |
+| 1er oct 2026 | Supprimer n'est accordé par défaut à personne ; un enfant n'est public que déclaré public ; seul qui modifie le parent gère ses enfants | le banc a montré des fuites et des droits trop larges avec les règles précédentes |
 
 ---
 

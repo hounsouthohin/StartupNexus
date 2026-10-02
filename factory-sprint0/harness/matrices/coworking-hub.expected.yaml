@@ -1,0 +1,21 @@
+# Coworking-hub — attendu, écrit avant le calcul.
+# Hors D1 (à signaler au miroir) : facture créée automatiquement à la confirmation (effet, D4) ;
+# statut « en retard » qui arrive avec le temps (D5) ; gestion des espaces (non déclarée → désir).
+cells:
+  visitor:
+    Space: {see: all}
+  member:
+    Space: {see: all}
+    MemberProfile: {see: own, create: "auto", edit: true}
+    Booking: {see: own, create: "yes"}         # « un membre normal ne fait que réserver et consulter »
+    Invoice: {see: own}                        # « la liste de ses factures » ; ne les crée pas
+  admin:
+    Space: {see: all}
+    MemberProfile: {see_via: [Booking]}
+    Booking:
+      see: all
+      transitions: {requested: [confirmed, refused], confirmed: [done, cancelled]}
+    Invoice:
+      see: all
+      transitions: {pending: [paid]}           # « marquer les factures comme payées »
+auto_links: 1

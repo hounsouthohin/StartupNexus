@@ -1,0 +1,56 @@
+# Cabinet médical — brief piégeux : données médicales que la secrétaire ne doit PAS voir.
+actors:
+  - id: patient
+    label: patient
+    becomes: signup
+    citation: "Les patients prennent rendez-vous en ligne après avoir créé un compte"
+  - id: secretary
+    label: secrétaire
+    becomes: invited
+    invited_by: doctor
+    citation: "je partage mon cabinet avec ma secrétaire"
+  - id: doctor
+    label: médecin
+    becomes: bootstrap
+    citation: "Je suis médecin généraliste"
+
+entities:
+  - name: PatientProfile
+    label: profil
+    label_plural: profils de patients
+    nature: profile
+    owner: patient
+    citation: "Chaque patient gère ses coordonnées (nom, téléphone, date de naissance)"
+
+  - name: Appointment
+    label: rendez-vous
+    label_plural: rendez-vous
+    nature: collection
+    owner: patient
+    references: [PatientProfile]
+    citation: "voit ses rendez-vous passés et à venir"
+    process:
+      initial: requested
+      transitions:
+        requested: [confirmed, cancelled]
+        confirmed: []
+        cancelled: []
+      initiator: patient
+      decider: secretary
+      labels: {requested: demandé, confirmed: confirmé, cancelled: annulé}
+      citation: "Ma secrétaire confirme ou annule les rendez-vous"
+
+  - name: Report
+    label: compte rendu
+    label_plural: comptes rendus
+    nature: collection
+    owner: doctor
+    references: [Appointment]
+    citation: "je rédige un compte rendu (diagnostic, traitement) que seul moi peux lire et modifier"
+
+exceptions:
+  - actor: doctor
+    entity: Appointment
+    action: see
+    scope: all
+    citation: "Après chaque consultation, je rédige un compte rendu"

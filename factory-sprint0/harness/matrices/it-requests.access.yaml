@@ -1,0 +1,31 @@
+# It-requests — employés qui soumettent, administrateur qui traite.
+actors:
+  - id: employee
+    label: employé
+    becomes: signup             # le brief ne dit pas comment on devient employé
+    citation: "Un employé, après connexion, soumet une demande"
+  - id: admin
+    label: administrateur
+    becomes: bootstrap
+    citation: "Un administrateur, lui, voit TOUTES les demandes de tous les employés"
+
+entities:
+  - name: Request
+    label: demande
+    label_plural: demandes
+    feminine: true
+    nature: collection
+    owner: employee
+    citation: "Un employé ne voit que ses propres demandes"
+    process:
+      initial: new
+      transitions:
+        new: [in_progress]
+        in_progress: [resolved]
+        resolved: []
+      initiator: employee
+      decider: admin
+      labels: {new: nouvelle, in_progress: en cours, resolved: résolue}
+      citation: "Seul un administrateur peut changer le statut d'une demande"
+
+exceptions: []

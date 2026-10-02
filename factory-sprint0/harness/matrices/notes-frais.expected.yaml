@@ -1,0 +1,15 @@
+# Notes-frais — attendu, écrit avant le calcul.
+# Hors D1 : le responsable ne devrait PAS voir les brouillons (« tant qu'il travaille dessus ») →
+# visibilité selon l'état = D2. En D1 il voit toutes les notes, brouillons compris.
+cells:
+  employee:
+    ExpenseReport:
+      see: own
+      create: "yes"
+      edit: true
+      edit_while: [draft]           # « ni modifier une note déjà soumise »
+      transitions: {draft: [submitted]}   # « puis il la soumet »
+  manager:
+    ExpenseReport:
+      see: all
+      transitions: {submitted: [approved, refused], approved: [reimbursed]}

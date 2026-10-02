@@ -1,0 +1,64 @@
+# Association — brief piégeux : deux responsables aux pouvoirs différents, une condition d'accès.
+actors:
+  - id: member
+    label: adhérent
+    becomes: signup
+    citation: "Les habitants s'inscrivent sur le site"
+  - id: treasurer
+    label: trésorier
+    becomes: invited
+    invited_by: president
+    citation: "Le trésorier enregistre les cotisations reçues"
+  - id: president
+    label: président
+    becomes: bootstrap
+    citation: "Le président voit tous les inscrits à chaque événement"
+
+entities:
+  - name: Event
+    label: événement
+    label_plural: événements
+    nature: catalog
+    public: true
+    manager: [president, treasurer]   # « Le bureau (président, trésorier) publie »
+    citation: "Le bureau (président, trésorier) publie les événements sur le site"
+
+  - name: MemberProfile
+    label: profil
+    label_plural: adhérents
+    nature: profile
+    owner: member
+    citation: "voit la liste de tous les adhérents"
+
+  - name: Membership
+    label: cotisation
+    label_plural: cotisations
+    feminine: true
+    nature: collection
+    owner: member
+    entered_by: treasurer
+    references: [MemberProfile]
+    citation: "Le trésorier enregistre les cotisations reçues"
+
+  - name: Registration
+    label: inscription
+    label_plural: inscriptions
+    feminine: true
+    nature: collection
+    owner: member
+    references: [Event, MemberProfile]
+    citation: "Chaque adhérent voit ses inscriptions"
+    process:                    # un acte : on s'inscrit, l'inscription ne se modifie pas
+      initial: registered
+      transitions: {registered: []}
+      initiator: member
+      decider: member
+      labels: {registered: inscrit}
+      citation: "peuvent alors s'inscrire aux événements"
+
+exceptions:
+  - actor: president
+    entity: Registration
+    action: see
+    scope: all
+    citation: "Le président voit tous les inscrits à chaque événement"

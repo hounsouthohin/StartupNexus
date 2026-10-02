@@ -1,0 +1,35 @@
+# Atelier-recettes — un auteur, des visiteurs qui lisent les recettes publiées.
+actors:
+  - id: author
+    label: auteur
+    becomes: bootstrap          # « Mon carnet de recettes » : un seul propriétaire
+    citation: "Mon carnet de recettes de cuisine en ligne"
+
+entities:
+  - name: Recipe
+    label: recette
+    label_plural: recettes
+    feminine: true
+    nature: catalog
+    public: true
+    publication: true           # brouillon / publiée
+    manager: author
+    references: [Tag]
+    citation: "Les visiteurs peuvent consulter les recettes publiées sans créer de compte"
+
+  - name: Tag
+    label: tag
+    label_plural: tags
+    nature: catalog
+    manager: author
+    citation: "que je gère dans une liste dédiée depuis mon espace privé"
+
+exceptions:
+  - actor: author
+    entity: Recipe
+    action: delete
+    citation: "je gère mes recettes et mes tags"
+  - actor: author
+    entity: Tag
+    action: delete
+    citation: "je gère mes recettes et mes tags"

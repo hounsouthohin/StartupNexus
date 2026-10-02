@@ -1,0 +1,8 @@
+# Atelier-recettes — attendu, écrit avant le calcul.
+cells:
+  visitor:
+    Recipe: {see: published}        # « consulter les recettes publiées » ; brouillon « visible seulement par moi »
+    Tag: {see_via: [Recipe]}        # les tags s'affichent sur les recettes ; pas de page des tags publique
+  author:
+    Recipe: {see: all, create: "yes", edit: true, delete: true}   # « je gère mes recettes »
+    Tag: {see: all, create: "yes", edit: true, delete: true}      # « je gère … mes tags »

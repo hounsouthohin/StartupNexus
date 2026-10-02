@@ -1,0 +1,29 @@
+# Club-running — l'organisateur publie les sorties et note les participants.
+actors:
+  - id: organizer
+    label: organisateur
+    becomes: bootstrap
+    citation: "En tant qu'organisateur, je crée et gère les sorties"
+
+entities:
+  - name: Run
+    label: sortie
+    label_plural: sorties
+    feminine: true
+    nature: catalog             # ouverte / complète / annulée : un champ que l'organisateur change
+    public: true
+    manager: organizer
+    citation: "Les visiteurs voient la liste des prochaines sorties sans se connecter"
+
+  - name: Participant
+    label: participant
+    label_plural: participants
+    nature: child
+    parent: Run
+    citation: "chaque participant a un nom et un email, rattachés à une sortie"
+
+exceptions:
+  - actor: organizer
+    entity: Run
+    action: delete
+    citation: "je crée et gère les sorties"

@@ -1,0 +1,37 @@
+# Marketplace (brief kpi-10, écrit en juillet pour un autre usage — non biaisé par la matrice).
+actors:
+  - id: seller
+    label: vendeur
+    becomes: signup
+    citation: "vendeurs et acheteurs"
+  - id: buyer
+    label: acheteur
+    becomes: signup             # deux acteurs qui s'inscrivent seuls : comment savoir lequel on est ?
+    citation: "vendeurs et acheteurs"
+
+entities:
+  - name: Product
+    label: produit
+    label_plural: produits
+    nature: collection          # chaque vendeur gère SES produits…
+    owner: seller
+    public: true                # … et tout le monde les voit (collection publique)
+    citation: "/ : catalogue public"
+
+  - name: Order
+    label: commande
+    label_plural: commandes
+    feminine: true
+    nature: collection
+    owner: buyer
+    references: [Product]
+    citation: "/orders : historique commandes protégé"
+    process:                    # un acte : passée, elle ne se modifie plus (statut « pending », suite non décrite)
+      initial: pending
+      transitions: {pending: []}
+      initiator: buyer
+      decider: buyer
+      labels: {pending: en attente}
+      citation: "POST /api/orders"
+
+exceptions: []

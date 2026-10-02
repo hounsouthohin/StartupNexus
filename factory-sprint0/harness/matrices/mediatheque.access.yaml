@@ -1,0 +1,48 @@
+# Médiathèque — entrée de la matrice, écrite à la main à partir du brief (phase 3).
+# Sert aussi de vérité de référence pour l'architect (phase 4).
+actors:
+  - id: adherent
+    label: adhérent
+    becomes: signup
+    citation: "Après connexion, un adhérent gère son profil"
+  - id: bibliothecaire
+    label: bibliothécaire
+    becomes: bootstrap          # le brief ne dit pas comment on le devient : préréglage du privilégié
+    citation: "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents"
+
+entities:
+  - name: Book
+    label: ouvrage
+    label_plural: ouvrages
+    nature: catalog
+    public: true
+    manager: null               # personne n'est déclaré pour le gérer → lecture seule
+    citation: "peuvent parcourir le catalogue public des ouvrages"
+
+  - name: Member
+    label: profil
+    label_plural: profils d'adhérents
+    nature: profile
+    owner: adherent
+    citation: "un adhérent gère son profil (nom, email, téléphone)"
+
+  - name: Borrowing
+    label: emprunt
+    label_plural: emprunts
+    nature: collection
+    owner: adherent
+    references: [Book, Member]
+    citation: "Un adhérent ne voit que ses propres emprunts"
+    process:
+      initial: requested
+      transitions:
+        requested: [accepted, refused]
+        accepted: [returned]
+        refused: []
+        returned: []
+      initiator: adherent
+      decider: bibliothecaire
+      labels: {requested: demandé, accepted: accepté, refused: refusé, returned: rendu}
+      citation: "est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu"
+
+exceptions: []   # « un adhérent ne fait que demander et suivre » = déjà le préréglage

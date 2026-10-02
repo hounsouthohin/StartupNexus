@@ -1,0 +1,35 @@
+Marketplace de produits artisanaux avec Clerk (vendeurs et acheteurs).
+
+Modèle Prisma : Product {
+  id String @id @default(cuid()),
+  name String,
+  description String,
+  price Float,
+  stock Int @default(0),
+  imageUrl String?,
+  authorId String,
+  createdAt DateTime @default(now())
+}
+
+Modèle Prisma : Order {
+  id String @id @default(cuid()),
+  productId String,
+  quantity Int,
+  totalPrice Float,
+  status String @default("pending"),
+  buyerId String,
+  createdAt DateTime @default(now())
+}
+
+Pages :
+  - / : catalogue public
+  - /products/[id] : détail produit
+  - /dashboard : dashboard vendeur protégé
+  - /orders : historique commandes protégé
+
+API Routes :
+  - GET  /api/products
+  - POST /api/products
+  - PUT  /api/products/[id]
+  - POST /api/orders
+  - GET  /api/orders

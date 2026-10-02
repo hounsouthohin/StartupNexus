@@ -1,0 +1,19 @@
+# Médiathèque — matrice ATTENDUE, écrite AVANT le calcul, d'après anatomie_app.md
+# (« Matrice d'accès » + « Désirs surfacés par le miroir »). Cases absentes = aucun droit.
+cells:
+  visitor:
+    Book: {see: all}                              # parcourir le catalogue : visiteur ✅
+  adherent:
+    Book: {see: all}
+    Member: {see: own, create: "auto", edit: true}  # gérer SON profil, provisionné à l'inscription
+    Borrowing: {see: own, create: "yes"}          # demander ✅, voir les siens ; éditer/supprimer ❌
+  bibliothecaire:
+    Book: {see: all}                              # gérer le catalogue ❌ (désir → miroir)
+    Member: {see_via: [Borrowing]}                # pas de profil ni de liste des adhérents (désir) ;
+                                                  # voit l'adhérent sur la fiche de l'emprunt (clôture)
+    Borrowing:
+      see: all                                    # voir les emprunts : tous
+      transitions:                                # décider (accepter / refuser / rendu) ✅ ; demander ❌
+        requested: [accepted, refused]
+        accepted: [returned]
+auto_links: 1      # Emprunt → profil de l'adhérent, rempli automatiquement (« memberId auto »)
