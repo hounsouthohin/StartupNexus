@@ -1,0 +1,459 @@
+{
+  "projet": "appr-autocars",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur demandé est un logiciel de gestion pour une petite structure, avec planning, suivi de facture et fiches clients : \"Logiciel de gestion pour société tourisme luxe autocars + chauffeurs\" ... \"Création de fiches clients\".",
+    "hors_stock": [
+      {
+        "besoin": "Planning des chauffeurs avec amplitudes",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "besoin": "Affichage/calcul des temps de pauses obligatoires selon la loi",
+        "categorie": "calcul_statistiques",
+        "citation": "affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Codes couleurs par chauffeurs et véhicules",
+        "categorie": "autre",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "besoin": "Suivi de facturation automatique",
+        "categorie": "automatisation",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Envoi des programmes aux chauffeurs depuis le logiciel",
+        "categorie": "notification",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission de données vers EBP",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP"
+      },
+      {
+        "besoin": "Établissement de factures proforma via EBP",
+        "categorie": "integration",
+        "citation": "logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "besoin": "Calcul ou affichage du reste dû ou d'un avoir en cours dans la fiche client",
+        "categorie": "calcul_statistiques",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Chauffeur",
+        "citation": "envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "libelle": "Client",
+        "citation": "Création de fiches clients pour les réguliers"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.0.portee : Input should be 'own' or 'all'",
+        "droits.1.portee : Input should be 'own' or 'all'"
+      ]
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 2,
+      "erreurs": [
+        "droits.0.portee : Field required",
+        "droits.1.portee : Field required"
+      ]
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 3,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Planning",
+        "libelle": "planning",
+        "libelle_pluriel": "plannings",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "nom": "Chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "par véhicules"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "suivis de facture ... Suivi de facturation automatique"
+      },
+      {
+        "nom": "Programme",
+        "libelle": "programme",
+        "libelle_pluriel": "programmes",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chauffeur"
+        ],
+        "citation": "programmes aux chauffeurs"
+      },
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      },
+      {
+        "nom": "Course",
+        "libelle": "course",
+        "libelle_pluriel": "courses",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "courses précédentes"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Planning",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Établissement de planning"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Client",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de fiches clients"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Planning",
+        "label": "planning",
+        "label_plural": "plannings",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "name": "Chauffeur",
+        "label": "chauffeur",
+        "label_plural": "chauffeurs",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs"
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "par véhicules"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "name": "Programme",
+        "label": "programme",
+        "label_plural": "programmes",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chauffeur"
+        ],
+        "citation": "programmes aux chauffeurs"
+      },
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      },
+      {
+        "name": "Course",
+        "label": "course",
+        "label_plural": "courses",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "courses précédentes"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Planning",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Établissement de planning"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Client",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de fiches clients"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit tous les plannings, en crée, les modifie",
+      "voit tous les chauffeurs, en crée, les modifie",
+      "voit tous les véhicules, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie",
+      "voit tous les programmes, en crée, les modifie",
+      "voit tous les clients, en crée, les modifie",
+      "voit toutes les courses, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 56.7
+}

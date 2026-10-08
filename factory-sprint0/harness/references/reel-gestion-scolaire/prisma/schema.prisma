@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model TuitionFee {
+  id String @id @default(uuid())
+  amount Float
+  dueDate DateTime
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model StudentRecord {
+  id String @id @default(uuid())
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courses Course[]
+  internships Internship[]
+  foreignExchanges ForeignExchange[]
+  projects Project[]
+  continuousAssessments ContinuousAssessment[]
+  exams Exam[]
+  defenses Defense[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Course {
+  id String @id @default(uuid())
+  name String
+  description String?
+  credits Int
+  coefficient Float
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  continuousAssessments ContinuousAssessment[]
+  grades Grade[]
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model Internship {
+  id String @id @default(uuid())
+  companyName String
+  duration Int
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model ForeignExchange {
+  id String @id @default(uuid())
+  country String
+  duration Int
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model Project {
+  id String @id @default(uuid())
+  title String
+  description String?
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model ContinuousAssessment {
+  id String @id @default(uuid())
+  score Float
+  courseId String
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model Exam {
+  id String @id @default(uuid())
+  subject String
+  date DateTime
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model Defense {
+  id String @id @default(uuid())
+  topic String
+  date DateTime
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentRecords StudentRecord[]
+  @@index([userId])
+}
+
+model AnnualPlanning {
+  id String @id @default(uuid())
+  year Int
+  events String[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model RoomReservation {
+  id String @id @default(uuid())
+  roomId String
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  date DateTime
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Message {
+  id String @id @default(uuid())
+  content String
+  senderId String
+  receiverId String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model ForumPost {
+  id String @id @default(uuid())
+  title String
+  content String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Circular {
+  id String @id @default(uuid())
+  title String
+  content String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Absence {
+  id String @id @default(uuid())
+  date DateTime
+  reason String?
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Delay {
+  id String @id @default(uuid())
+  date DateTime
+  reason String?
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Exemption {
+  id String @id @default(uuid())
+  reason String
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Grade {
+  id String @id @default(uuid())
+  value Float
+  courseId String
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Timetable {
+  id String @id @default(uuid())
+  schedule String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model ResourceReservation {
+  id String @id @default(uuid())
+  resourceId String
+  resource Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  date DateTime
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model News {
+  id String @id @default(uuid())
+  title String
+  content String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Discipline {
+  id String @id @default(uuid())
+  name String
+  description String?
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Sanction {
+  id String @id @default(uuid())
+  type String
+  description String?
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model DigitalResource {
+  id String @id @default(uuid())
+  title String
+  url String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Textbook {
+  id String @id @default(uuid())
+  title String
+  content String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model CompetencyRecord {
+  id String @id @default(uuid())
+  competencies String[]
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model ProgressReport {
+  id String @id @default(uuid())
+  content String
+  studentId String
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model SharedAgenda {
+  id String @id @default(uuid())
+  events String[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model DSTPlanning {
+  id String @id @default(uuid())
+  schedule String
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

@@ -1,0 +1,266 @@
+{
+  "projet": "appr-reseau-social",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est un réseau social.",
+    "hors_stock": [
+      {
+        "besoin": "Création d'un réseau social.",
+        "categorie": "autre",
+        "citation": "Création d'un réseau social."
+      },
+      {
+        "besoin": "Messagerie privée",
+        "categorie": "messagerie",
+        "citation": "Messagerie privée"
+      },
+      {
+        "besoin": "Publication de photos, vidéos et GIF",
+        "categorie": "fichiers_photos",
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "besoin": "Système de récompenses avec achat de cadeaux",
+        "categorie": "paiement",
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "besoin": "Système de notifications",
+        "categorie": "notification",
+        "citation": "Système de notifications"
+      },
+      {
+        "besoin": "Espace blog où des articles seront postés et partagés",
+        "categorie": "autre",
+        "citation": "Le site devra également trouver un espace blog où des articles seront postés et partagés à la communauté."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un developper de site internet freelance afin de créer un réseau social."
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche SousCommunauté : nom en PascalCase sans accent"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Publication",
+        "libelle": "publication",
+        "libelle_pluriel": "publications",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "gerant",
+        "gestionnaires": [],
+        "publique": true,
+        "publication": true,
+        "saisie_par": "gerant",
+        "parent": null,
+        "references": [],
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "nom": "SousCommunaute",
+        "libelle": "sous-communauté",
+        "libelle_pluriel": "sous-communautés",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "nom": "Utilisateur",
+        "libelle": "utilisateur",
+        "libelle_pluriel": "utilisateurs",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "nom": "BlogArticle",
+        "libelle": "article de blog",
+        "libelle_pluriel": "articles de blog",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "gerant",
+        "gestionnaires": [],
+        "publique": true,
+        "publication": true,
+        "saisie_par": "gerant",
+        "parent": null,
+        "references": [],
+        "citation": "espace blog où des articles seront postés et partagés à la communauté"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un developper de site internet freelance afin de créer un réseau social"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Publication",
+        "label": "publication",
+        "label_plural": "publications",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "gerant",
+        "manager": null,
+        "public": true,
+        "publication": true,
+        "entered_by": "gerant",
+        "parent": null,
+        "references": [],
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "name": "SousCommunaute",
+        "label": "sous-communauté",
+        "label_plural": "sous-communautés",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": true,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "name": "Utilisateur",
+        "label": "utilisateur",
+        "label_plural": "utilisateurs",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": true,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "name": "BlogArticle",
+        "label": "article de blog",
+        "label_plural": "articles de blog",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "gerant",
+        "manager": null,
+        "public": true,
+        "publication": true,
+        "entered_by": "gerant",
+        "parent": null,
+        "references": [],
+        "citation": "espace blog où des articles seront postés et partagés à la communauté"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "voit tous les publications",
+      "voit toutes les sous-communautés",
+      "voit tous les utilisateurs",
+      "voit toutes les articles de blog"
+    ],
+    "Le gérant": [
+      "voit ses publications, en crée, les modifie",
+      "voit toutes les sous-communautés, en crée, les modifie",
+      "voit tous les utilisateurs, en crée, les modifie",
+      "voit ses articles de blog, en crée, les modifie"
+    ]
+  },
+  "questions": [
+    "Les visiteurs sans compte pourront consulter tous les publications — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter toutes les sous-communautés — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter tous les utilisateurs — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter toutes les articles de blog — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)"
+  ],
+  "secondes": 16.2
+}

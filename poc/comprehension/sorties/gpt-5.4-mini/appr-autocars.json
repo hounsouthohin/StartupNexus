@@ -1,0 +1,325 @@
+{
+  "projet": "appr-autocars",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "C'est un logiciel de gestion pour une petite structure avec des fiches, des acteurs, du planning et du suivi de facturation.",
+    "hors_stock": [
+      {
+        "besoin": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Codes couleurs par chauffeurs et par véhicules",
+        "categorie": "autre",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "besoin": "Suivi de facturation automatique",
+        "categorie": "calcul_statistiques",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs",
+        "categorie": "notification",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "besoin": "reste dû ou avoir en cours",
+        "categorie": "calcul_statistiques",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "chauffeur",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "libelle": "véhicule",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "libelle": "client",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Course (collection) : « proprietaire » doit être un id d'acteur parmi ['gerant']"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "nom": "Course",
+        "libelle": "course",
+        "libelle_pluriel": "courses",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "gerant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "coordonnées, courses précédentes, reste dû ou avoir en cours"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Course",
+        "etat_initial": "ouverte",
+        "transitions": {
+          "ouverte": [
+            "cloturee"
+          ],
+          "cloturee": []
+        },
+        "libelles": {
+          "ouverte": "ouverte",
+          "cloturee": "clôturée"
+        },
+        "initiateur": "gerant",
+        "decideur": "gerant",
+        "etapes_par": {},
+        "citation": "Suivi de facturation automatique ... Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "fiche": "Client",
+        "etat_initial": "actif",
+        "transitions": {
+          "actif": [
+            "inactif"
+          ],
+          "inactif": [
+            "actif"
+          ]
+        },
+        "libelles": {
+          "actif": "actif",
+          "inactif": "inactif"
+        },
+        "initiateur": "gerant",
+        "decideur": "gerant",
+        "etapes_par": {},
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de fiches clients"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Course",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [
+    "Client"
+  ],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "name": "Course",
+        "label": "course",
+        "label_plural": "courses",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "gerant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "coordonnées, courses précédentes, reste dû ou avoir en cours",
+        "process": {
+          "initial": "ouverte",
+          "transitions": {
+            "ouverte": [
+              "cloturee"
+            ],
+            "cloturee": []
+          },
+          "initiator": "gerant",
+          "decider": "gerant",
+          "steps_by": {},
+          "labels": {
+            "ouverte": "ouverte",
+            "cloturee": "clôturée"
+          },
+          "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+        }
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de fiches clients"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Course",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gérant": [
+      "voit tous les clients, en crée, les modifie",
+      "voit toutes les courses, en crée, les fait passer de « ouverte » à « clôturée »"
+    ]
+  },
+  "questions": [],
+  "secondes": 9.1
+}

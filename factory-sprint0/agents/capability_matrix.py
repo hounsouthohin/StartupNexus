@@ -14,6 +14,13 @@ Préréglages au MOINDRE PRIVILÈGE : un acteur ne reçoit que ce que son rôle 
 tout le reste exige une exception citant le brief. Une exception oubliée donne un manque
 visible, jamais une fuite invisible. Supprimer n'est accordé par défaut à PERSONNE (il faut
 « gérer » ou « supprimer » dans le brief).
+
+Natures : profil (une fiche par acteur), catalogue (référentiel visible de tous les connectés),
+REGISTRE (fiches tenues par l'équipe — dossiers, adhérents, chantiers — visibles de ceux qui le
+tiennent seulement ; ajouté le 7 oct 2026 après l'E5 : sans lui, les dossiers d'un cabinet
+médical classés « catalogue » étaient visibles de tous), collection (éléments appartenant chacun à
+un acteur), enfant (lignes d'un parent). Un circuit d'états est permis sur une collection ou un
+registre.
 """
 from __future__ import annotations
 
@@ -38,6 +45,7 @@ class Actor(_Strict):
     id: str
     label: str
     label_plural: str = ""                  # « secrétaires » (défaut : label + « s »)
+    feminine: bool = False                  # « la secrétaire »
     # Comment on devient cet acteur (règle de clôture : un chemin, et un seul).
     becomes: Literal["signup", "bootstrap", "invited"]
     invited_by: str | None = None          # obligatoire si becomes == "invited"
@@ -63,9 +71,10 @@ class Entity(_Strict):
     label: str                              # « emprunt »
     label_plural: str                       # « emprunts »
     feminine: bool = False                  # « toutes les réparations » / « mes réparations »
-    nature: Literal["profile", "catalog", "collection", "child"]
+    nature: Literal["profile", "catalog", "registry", "collection", "child"]
     owner: str | None = None                # profil : l'acteur ; collection : le propriétaire
     # Catalogue : qui le gère (un acteur ou une liste) ; None = lecture seule.
+    # Registre : qui le tient (au moins un acteur) — seuls eux le voient, sauf exception citée.
     manager: str | list[str] | None = None
     public: bool = False                    # le visiteur le voit (catalogue, ou enfant explicitement public)
     publication: bool = False               # brouillon / publié : les non-gestionnaires ne voient que le publié
@@ -198,10 +207,14 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
                 err(f"entité {e.name} : « saisi par » n'a de sens que pour une collection")
             if e.entered_by not in actors:
                 err(f"entité {e.name} : « saisi par » « {e.entered_by} » inconnu")
+        if e.nature == "registry" and not e.managers:
+            err(f"entité {e.name} (registre) : il faut au moins un acteur qui le tient (« manager »)")
         if e.process is not None:
             p = e.process
-            if e.nature != "collection":
-                err(f"entité {e.name} : un processus n'est géré que sur une collection (D1)")
+            if e.nature not in ("collection", "registry"):
+                err(f"entité {e.name} : un processus n'est géré que sur une collection ou un registre")
+            if e.nature == "registry" and p.initiator not in e.managers:
+                err(f"entité {e.name} (registre) : l'initiateur ({p.initiator}) doit être parmi ceux qui le tiennent")
             for role, who in (("décideur", p.decider), ("initiateur", p.initiator), *(
                 (f"étape « {s} »", a) for s, a in p.steps_by.items())):
                 if who not in actors:
@@ -270,6 +283,43 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
                 grant(c, "gestionnaire du catalogue (supprimer : seulement si le brief le dit)", e.citation)
             if not e.managers:
                 info(f"{e.label_plural} : catalogue en lecture seule — son contenu viendra des données de départ")
+        elif e.nature == "registry":
+            # Registre : fiches tenues par l'équipe. Moindre privilège : visibles de ceux qui le
+            # tiennent seulement ; tout autre accès exige « public » ou une exception citée.
+            for mgr in e.managers:
+                c = grid[(mgr, e.name)]
+                c.see, c.create, c.edit = "all", "yes", True
+                grant(c, "tient le registre (supprimer : seulement si le brief le dit)", e.citation)
+            # Doctrine du 7 oct 2026 (validée par l'utilisateur) : dans une petite structure, le
+            # responsable de l'app répond de tout — il VOIT tous les registres de l'équipe, en
+            # lecture. Le miroir l'affiche ; le client peut le refuser.
+            for a in decl.actors:
+                if a.becomes == "bootstrap" and a.id not in e.managers:
+                    c = grid[(a.id, e.name)]
+                    if c.see == "none":
+                        c.see = "all"
+                        grant(c, "responsable de l'app : voit les registres de l'équipe (lecture)", e.citation)
+            if e.public:
+                reader_see = "published" if e.publication else "all"
+                for a in [VISITOR, *actors]:
+                    c = grid[(a, e.name)]
+                    if c.see == "none":
+                        c.see = reader_see
+                        grant(c, "registre public : visible de tous"
+                              + (" (publiés seulement)" if e.publication else ""), e.citation)
+            if e.process is not None:
+                p = e.process
+                d = grid[(p.decider, e.name)]
+                d.transitions = {s: list(t) for s, t in p.transitions.items() if t and s not in p.steps_by}
+                if d.see == "none":
+                    d.see = "all"
+                grant(d, "fait évoluer l'état des fiches du registre", p.citation)
+                for s, who in p.steps_by.items():
+                    w = grid[(who, e.name)]
+                    w.transitions[s] = list(p.transitions[s])
+                    if w.see == "none":
+                        w.see = "all"
+                    grant(w, f"fait l'étape depuis « {s} »", p.citation)
         elif e.nature == "collection" and e.process is None:
             # Supprimer n'est JAMAIS accordé par défaut (compte rendu médical, commande…) :
             # il faut une exception citant le brief (« gérer », « supprimer »).
@@ -436,6 +486,11 @@ def derive_pages(m: Matrix, decl: AccessDeclaration) -> list[Page]:
             owners = [c.actor for c in cells if c.see == "own"]
             if owners:
                 pages.append(Page(entity=name, kind="profile", actors=owners))
+            # Un autre acteur qui voit toutes les fiches (le patron et ses clients) : liste + fiche.
+            browsers = [c.actor for c in cells if c.see == "all"]
+            if browsers:
+                pages.append(Page(entity=name, kind="list", actors=browsers))
+                pages.append(Page(entity=name, kind="detail", actors=browsers))
             continue
         viewers = [c.actor for c in cells if c.see != "none"]
         if not viewers:
@@ -465,8 +520,10 @@ def derive_nav(m: Matrix, decl: AccessDeclaration) -> dict[str, list[str]]:
             c, e = m.cell(a, name), entities[name]
             if c.see == "none" or e.nature == "child":
                 continue
-            if e.nature == "profile":
+            if e.nature == "profile" and c.see == "own":
                 profile.append(f"{'Ma' if e.feminine else 'Mon'} {e.label}")
+            elif e.nature == "profile":
+                shared.append(e.label_plural.capitalize())      # le patron voit « Clients »
             elif c.transitions and c.see == "all":
                 decide.append(f"{e.label_plural.capitalize()} à traiter")
             elif c.see == "own":
@@ -505,9 +562,11 @@ def derive_dashboards(m: Matrix, decl: AccessDeclaration) -> dict[str, list[str]
 # Miroir : phrases déterministes et questions ciblées
 # ══════════════════════════════════════════════════════════════════════════
 
-def the(label: str) -> str:
-    """« le bibliothécaire », « l'adhérent » (élision devant voyelle ou h)."""
-    return f"l'{label}" if label[:1].lower() in "aeiouyhéèêàâîôû" else f"le {label}"
+def the(label: str, feminine: bool = False) -> str:
+    """« le bibliothécaire », « la secrétaire », « l'adhérent » (élision devant voyelle ou h)."""
+    if label[:1].lower() in "aeiouyhéèêàâîôû":
+        return f"l'{label}"
+    return f"la {label}" if feminine else f"le {label}"
 
 
 def _state(e: Entity, s: str) -> str:
@@ -519,10 +578,12 @@ def explain(m: Matrix, decl: AccessDeclaration) -> dict[str, list[str]]:
     sur la matrice."""
     labels = {a.id: a.label for a in decl.actors}
     labels[VISITOR] = "visiteur"
+    fem = {a.id: a.feminine for a in decl.actors}
     entities = {e.name: e for e in decl.entities}
     out: dict[str, list[str]] = {}
     for a in m.actors:
         lines = []
+        pr = "elle" if fem.get(a) else "il"
         for name in m.entities:
             c, e = m.cell(a, name), entities[name]
             pron = "elles" if e.feminine else "ils"
@@ -530,11 +591,11 @@ def explain(m: Matrix, decl: AccessDeclaration) -> dict[str, list[str]]:
                 if c.see_via:
                     via = " et les ".join(entities[v].label_plural for v in c.see_via)
                     lines.append(f"voit les {e.label_plural} affiché{'e' if e.feminine else ''}s "
-                                 f"dans les {via} qu'il consulte (sans page dédiée)")
+                                 f"dans les {via} qu'{pr} consulte (sans page dédiée)")
                 continue
-            if e.nature == "profile":
+            if e.nature == "profile" and c.see == "own":
                 lines.append(f"a {'sa' if e.feminine else 'son'} {e.label}, "
-                             f"créé{'e' if e.feminine else ''} automatiquement, qu'il peut modifier")
+                             f"créé{'e' if e.feminine else ''} automatiquement, qu'{pr} peut modifier")
                 continue
             everyone = "toutes les" if e.feminine else "tous les"
             seen = {
@@ -552,7 +613,7 @@ def explain(m: Matrix, decl: AccessDeclaration) -> dict[str, list[str]]:
             for s, t in c.transitions.items():
                 parts.append(f"les fait passer de {_state(e, s)} à " + " ou ".join(_state(e, v) for v in t))
             lines.append(", ".join(parts))
-        out[the(labels[a]).capitalize()] = lines or ["ne voit rien"]
+        out[the(labels[a], fem.get(a, False)).capitalize()] = lines or ["ne voit rien"]
     return out
 
 
@@ -561,25 +622,38 @@ def questions(m: Matrix, decl: AccessDeclaration) -> list[str]:
     tranche pas : un acteur qui voit les données d'un autre sans citation qui le justifie, ou un
     droit déduit par une règle de clôture."""
     labels = {a.id: a.label for a in decl.actors}
+    fem = {a.id: a.feminine for a in decl.actors}
     entities = {e.name: e for e in decl.entities}
+    bootstrap = {a.id for a in decl.actors if a.becomes == "bootstrap"}
     qs = []
     for c in m.cells:
         e = entities[c.entity]
+        # Registre vu en entier par un autre que le responsable de l'app (E5, 7 oct : les
+        # professionnels d'un cabinet nommés « responsables » des dossiers les voyaient tous) :
+        # c'est au client de dire si c'est voulu.
+        if e.nature == "registry" and c.see == "all" and c.actor != VISITOR and c.actor not in bootstrap:
+            every = "toutes les" if e.feminine else "tous les"
+            who = the(labels[c.actor], fem[c.actor]).capitalize()
+            these = "celles" if e.feminine else "ceux"
+            him = "la" if fem[c.actor] else "le"
+            qs.append(f"{who} verra {every} {e.label_plural}, pas seulement {these} qui {him} concernent — "
+                      "d'accord ? (oui / non)")
         if c.actor == VISITOR:
             # Ce que voit un visiteur sans compte : la question vaut toujours d'être posée
             # (test de l'IA du 1er oct : l'erreur réelle était des brouillons rendus publics).
             if c.see == "all":
-                every, those, ready, pub = (("toutes les", "celles", "prêtes", "publiées") if e.feminine
-                                            else ("tous les", "ceux", "prêts", "publiés"))
-                qs.append(f"Les visiteurs sans compte verront {every} {e.label_plural}, y compris "
-                          f"{those} qui ne sont pas {ready} ou pas {pub} — d'accord ? (oui / non)")
+                every = "toutes les" if e.feminine else "tous les"
+                qs.append(f"Les visiteurs sans compte pourront consulter {every} {e.label_plural} — "
+                          "d'accord ? (si certains ne doivent pas être visibles, par exemple des "
+                          "brouillons, répondez non)")
             continue
         owner = e.owner if e.nature != "child" else entities[e.parent].owner if e.parent else None
-        who = the(labels[c.actor]).capitalize()
+        who = the(labels[c.actor], fem[c.actor]).capitalize()
+        pr = "elle" if fem[c.actor] else "il"
         if c.see == "all" and e.nature in ("collection", "child") and owner and owner != c.actor and not c.sources:
-            qs.append(f"{who} doit-il voir les {e.label_plural} de tout le monde ? (oui / non)")
+            qs.append(f"{who} doit-{pr} voir les {e.label_plural} de tout le monde ? (oui / non)")
         if c.see_via and owner != c.actor:
             via = " et les ".join(entities[v].label_plural for v in c.see_via)
             qs.append(f"{who} verra les {e.label_plural} (ex. nom, coordonnées) affichés "
-                      f"dans les {via} qu'il traite — est-ce acceptable ? (oui / non)")
+                      f"dans les {via} qu'{pr} traite — est-ce acceptable ? (oui / non)")
     return list(dict.fromkeys(qs))

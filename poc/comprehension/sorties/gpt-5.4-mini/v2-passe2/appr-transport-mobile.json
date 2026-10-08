@@ -1,0 +1,151 @@
+{
+  "projet": "appr-transport-mobile",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est une application mobile pour la gestion de livraisons avec diffusion d’informations aux chauffeurs, mise à jour en temps réel et notifications automatiques, ce qui sort du stock et le positionne hors périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "je souhaite proposer en interne le développement d'une application mobile"
+      },
+      {
+        "besoin": "mise à jour en temps réel des statuts de livraison",
+        "categorie": "autre",
+        "citation": "permettant ainsi une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules",
+        "categorie": "planning",
+        "citation": "la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules"
+      },
+      {
+        "besoin": "confirmation des missions en un clic",
+        "categorie": "autre",
+        "citation": "avec une confirmation des missions en un clic pour plus de transparence"
+      },
+      {
+        "besoin": "notifications automatiques",
+        "categorie": "notification",
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "besoin": "suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "vérifier systématiquement les documents nécessaires",
+        "categorie": "document",
+        "citation": "et vérifierait systématiquement les documents nécessaires"
+      },
+      {
+        "besoin": "documents nécessaires, notamment pour les marchandises dangereuses",
+        "categorie": "document",
+        "citation": "notamment pour les marchandises dangereuses"
+      },
+      {
+        "besoin": "faciliter de nouvelles collaborations avec d'autres prestataires",
+        "categorie": "integration",
+        "citation": "de faciliter de nouvelles collaborations avec d'autres prestataires"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "stagiaire",
+        "libelle": "stagiaire",
+        "libelle_pluriel": "stagiaires",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je me permets de vous contacter en tant que stagiaire au sein de la société Procase"
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "stagiaire",
+        "citation": "diffuserait directement aux chauffeurs...aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      },
+      {
+        "id": "sous_traitant",
+        "libelle": "sous-traitant",
+        "libelle_pluriel": "sous-traitants",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "stagiaire",
+        "citation": "coordonner nos sous-traitants"
+      },
+      {
+        "id": "entreprise",
+        "libelle": "entreprise",
+        "libelle_pluriel": "entreprises",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "stagiaire",
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [
+        "hors stock « suivi en temps réel des livraisons » : citation introuvable mot pour mot dans le brief — « l'application assurerait également un suivi en temps réel des livraisons » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 867,
+      "jetons_sortie": 375
+    },
+    {
+      "agent": "SortiePerimetre",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1330,
+      "jetons_sortie": 370
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 753,
+      "jetons_sortie": 246
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Mission : citation introuvable mot pour mot dans le brief — « les chauffeurs la possibilité de choisir leurs trajets et horaires ... avec une confirmation des missions en un clic » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1132,
+      "jetons_sortie": 586
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Mission : citation introuvable mot pour mot dans le brief — « les chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules ... avec une confirmation des missions en un clic » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1803,
+      "jetons_sortie": 599
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche Livraison : citation introuvable mot pour mot dans le brief — « centraliserait les informations de livraison ... suivre en temps réel des livraisons » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)",
+        "fiche Mission : citation introuvable mot pour mot dans le brief — « les chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules ... avec une confirmation des missions en un clic » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 2500,
+      "jetons_sortie": 601
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

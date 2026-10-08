@@ -1,0 +1,150 @@
+{
+  "projet": "appr-marketplace",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet concerne la création d'une marketplace avec paiement en ligne.",
+    "hors_stock": [
+      {
+        "besoin": "paiement en ligne sécurisé",
+        "categorie": "paiement",
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "besoin": "Gestion automatique des commissions",
+        "categorie": "autre",
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "besoin": "Messagerie interne",
+        "categorie": "messagerie",
+        "citation": "Messagerie interne"
+      },
+      {
+        "besoin": "Tableau de bord utilisateur",
+        "categorie": "autre",
+        "citation": "Tableau de bord utilisateur"
+      },
+      {
+        "besoin": "Interface d'administration complète",
+        "categorie": "autre",
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "besoin": "Site multilingue",
+        "categorie": "autre",
+        "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+      },
+      {
+        "besoin": "déclinée en application mobile Android et iOS",
+        "categorie": "mobile_hors_ligne",
+        "citation": "être déclinée en application mobile Android et iOS"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je recherche un développeur freelance ou une équipe expérimentée pour la création d'une marketplace avec paiement en ligne."
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "utilisateur",
+        "libelle_pluriel": "utilisateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "- Gestion des comptes utilisateurs"
+      },
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "- Interface d'administration complète"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Utilisateur : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Utilisateur : « parent » seulement pour un child",
+        "fiche Annonce : « gestionnaires » seulement pour un catalog",
+        "fiche Annonce : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Annonce : « parent » seulement pour un child",
+        "fiche Commission (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Commission : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Commission : « parent » seulement pour un child",
+        "fiche Avis : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Avis : « parent » seulement pour un child",
+        "fiche TableauDeBord (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche TableauDeBord : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche TableauDeBord : « parent » seulement pour un child",
+        "fiche Administrateur : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Administrateur : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Utilisateur : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Utilisateur : « parent » seulement pour un child",
+        "fiche Annonce : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Annonce : « parent » seulement pour un child",
+        "fiche Commission (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Commission : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Commission : « parent » seulement pour un child",
+        "fiche Avis : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Avis : « parent » seulement pour un child",
+        "fiche TableauDeBord (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche TableauDeBord : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche TableauDeBord : « parent » seulement pour un child",
+        "fiche Administrateur : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Administrateur : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche Utilisateur : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Utilisateur : « parent » seulement pour un child",
+        "fiche Annonce : « parent » seulement pour un child",
+        "fiche Commission (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Commission : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Commission : « parent » seulement pour un child",
+        "fiche Avis : « parent » seulement pour un child",
+        "fiche TableauDeBord (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche TableauDeBord : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche TableauDeBord : « parent » seulement pour un child",
+        "fiche Administrateur : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Administrateur : « parent » seulement pour un child"
+      ]
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

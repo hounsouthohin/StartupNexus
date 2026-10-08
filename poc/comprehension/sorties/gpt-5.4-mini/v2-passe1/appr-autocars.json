@@ -1,0 +1,562 @@
+{
+  "projet": "appr-autocars",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Il s’agit d’un logiciel de gestion pour une petite structure, avec des fiches clients, du planning et un suivi de facturation.",
+    "hors_stock": [
+      {
+        "besoin": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Codes couleurs par chauffeurs et par véhicules",
+        "categorie": "planning",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "besoin": "Suivi de facturation automatique",
+        "categorie": "calcul_statistiques",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs",
+        "categorie": "messagerie",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "besoin": "reste dû ou avoir en cours",
+        "categorie": "calcul_statistiques",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "responsable de la société",
+        "libelle_pluriel": "responsables de la société",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Logiciel de gestion pour société tourisme luxe autocars + chauffeurs"
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "responsable",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "clients réguliers",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 787,
+      "jetons_sortie": 277
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 673,
+      "jetons_sortie": 172
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Planning : référence « Chauffeur » inconnue — les références sont des NOMS DE FICHES parmi ['ClientRegulier', 'Planning', 'Facture', 'Programme', 'Vehicule'] (pas des acteurs)",
+        "fiche Programme : référence « Chauffeur » inconnue — les références sont des NOMS DE FICHES parmi ['ClientRegulier', 'Planning', 'Facture', 'Programme', 'Vehicule'] (pas des acteurs)",
+        "correspondance « chauffeurs » → « null » : cette fiche n'existe pas dans ta liste"
+      ],
+      "jetons_entree": 1024,
+      "jetons_sortie": 530
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1682,
+      "jetons_sortie": 516
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 839,
+      "jetons_sortie": 183
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 851,
+      "jetons_sortie": 316
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "ClientRegulier",
+        "libelle": "client régulier",
+        "libelle_pluriel": "clients réguliers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "nom": "Planning",
+        "libelle": "planning",
+        "libelle_pluriel": "planning",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "logiciel de gestion de planning ... Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ClientRegulier"
+        ],
+        "citation": "Suivi de facturation automatique ... Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "nom": "Programme",
+        "libelle": "programme",
+        "libelle_pluriel": "programmes",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "clients réguliers",
+        "fiche": "ClientRegulier",
+        "raison": "fiche client à tenir avec historique et reste dû / avoir"
+      },
+      {
+        "non_utilisateur": "chauffeurs",
+        "fiche": null,
+        "raison": "ce sont des acteurs déjà fournis, pas une chose à enregistrer"
+      },
+      {
+        "non_utilisateur": "véhicules",
+        "fiche": "Vehicule",
+        "raison": "référentiel des véhicules utilisés"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Facture",
+        "etat_initial": "ouverte",
+        "transitions": {
+          "ouverte": [
+            "cloturee"
+          ],
+          "cloturee": []
+        },
+        "libelles": {
+          "ouverte": "ouverte",
+          "cloturee": "clôturée"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "Suivi de facturation automatique ... Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "fiche": "Programme",
+        "etat_initial": "cree",
+        "transitions": {
+          "cree": [
+            "envoye"
+          ],
+          "envoye": []
+        },
+        "libelles": {
+          "cree": "créé",
+          "envoye": "envoyé"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "responsable",
+        "fiche": "Planning",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Établissement de planning"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "Facture",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "Programme",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "Programme",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "ClientRegulier",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "ClientRegulier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "responsable de la société",
+        "label_plural": "responsables de la société",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Logiciel de gestion pour société tourisme luxe autocars + chauffeurs"
+      },
+      {
+        "id": "chauffeur",
+        "label": "chauffeur",
+        "label_plural": "chauffeurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "responsable",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "ClientRegulier",
+        "label": "client régulier",
+        "label_plural": "clients réguliers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "name": "Planning",
+        "label": "planning",
+        "label_plural": "planning",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "ClientRegulier"
+        ],
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma",
+        "process": {
+          "initial": "ouverte",
+          "transitions": {
+            "ouverte": [
+              "cloturee"
+            ],
+            "cloturee": []
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "ouverte": "ouverte",
+            "cloturee": "clôturée"
+          },
+          "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+        }
+      },
+      {
+        "name": "Programme",
+        "label": "programme",
+        "label_plural": "programmes",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs",
+        "process": {
+          "initial": "cree",
+          "transitions": {
+            "cree": [
+              "envoye"
+            ],
+            "envoye": []
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "cree": "créé",
+            "envoye": "envoyé"
+          },
+          "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+        }
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "responsable",
+        "entity": "Planning",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Établissement de planning"
+      },
+      {
+        "actor": "responsable",
+        "entity": "Facture",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "actor": "responsable",
+        "entity": "Programme",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "actor": "responsable",
+        "entity": "Programme",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "actor": "responsable",
+        "entity": "ClientRegulier",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "actor": "responsable",
+        "entity": "ClientRegulier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour responsable de la société : inviter des chauffeurs"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le responsable de la société": [
+      "voit tous les clients réguliers, en crée, les modifie",
+      "voit tous les planning, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie, les fait passer de « ouverte » à « clôturée »",
+      "voit tous les programmes, en crée, les modifie, les fait passer de « créé » à « envoyé »",
+      "voit tous les véhicules, en crée, les modifie"
+    ],
+    "Le chauffeur": [
+      "voit tous les véhicules"
+    ]
+  },
+  "questions": [],
+  "secondes": 12.5,
+  "jetons": {
+    "entree": 5856,
+    "sortie": 1994,
+    "appels": 6
+  }
+}

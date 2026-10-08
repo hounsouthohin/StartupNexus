@@ -1,0 +1,101 @@
+// SAV dépannage (VRAI brief) — traduction de harness/matrices/reel-sav-depannage.expected.yaml
+// Cas testés : enfants sur 3 niveaux (client → machine → intervention → action) ; enfants AVEC
+// circuit d'états (ce que la matrice D1 refuse) ; un seul acteur ; tables de choix à valeurs
+// numériques (478 / 754 / 775, panne de l'ancienne usine) ; lien facultatif.
+
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+type Auth {
+    id   String @id
+    role String
+    @@auth
+}
+
+// catalogue privé · géré par : staff · supprimer : exception citée
+model Customer {
+    id       String    @id @default(cuid())
+    name     String
+    phone    String?
+    machines Machine[]
+
+    @@allow('all', auth().role == 'staff')
+}
+
+// table de choix : des DONNÉES, pas un enum (« 478 » est une valeur, pas un nom de code)
+model SocketType {
+    id       String    @id @default(cuid())
+    label    String
+    machines Machine[]
+
+    @@allow('all', auth().role == 'staff')
+}
+
+// enfant de Customer · lien facultatif vers une table de choix
+model Machine {
+    id            String         @id @default(cuid())
+    customerId    String
+    customer      Customer       @relation(fields: [customerId], references: [id])
+    model         String
+    socketTypeId  String?
+    socketType    SocketType?    @relation(fields: [socketTypeId], references: [id])
+    interventions Intervention[]
+
+    @@allow('read', check(customer))
+    @@allow('create,update,delete', check(customer, 'update'))
+}
+
+enum InterventionStatus {
+    open
+    in_progress
+    closed
+    paid
+}
+
+// enfant de Machine AVEC circuit d'états
+model Intervention {
+    id        String             @id @default(cuid())
+    machineId String
+    machine   Machine            @relation(fields: [machineId], references: [id])
+    summary   String
+    status    InterventionStatus @default(open)
+    actions   Action[]
+
+    @@allow('read', check(machine))
+    @@allow('create', check(machine, 'update') && status == open)
+    @@allow('update,delete', check(machine, 'update'))
+    // modifier sans changer d'état (tous les états)
+    @@allow('post-update', auth().role == 'staff' && ((before().status == open && status == open) || (before().status == in_progress && status == in_progress) || (before().status == closed && status == closed) || (before().status == paid && status == paid)))
+    // une règle par flèche
+    @@allow('post-update', auth().role == 'staff' && before().status == open && status == in_progress && summary == before().summary)
+    @@allow('post-update', auth().role == 'staff' && before().status == in_progress && status == closed && summary == before().summary)
+    @@allow('post-update', auth().role == 'staff' && before().status == closed && status == paid && summary == before().summary)
+    @@deny('post-update', machineId != before().machineId)
+}
+
+enum ActionStatus {
+    todo
+    done
+}
+
+// enfant d'Intervention AVEC circuit d'états
+model Action {
+    id             String       @id @default(cuid())
+    interventionId String
+    intervention   Intervention @relation(fields: [interventionId], references: [id])
+    label          String
+    status         ActionStatus @default(todo)
+
+    @@allow('read', check(intervention))
+    @@allow('create', check(intervention, 'update') && status == todo)
+    @@allow('update,delete', check(intervention, 'update'))
+    @@allow('post-update', auth().role == 'staff')
+    @@allow('post-update', auth().role == 'staff' && before().status == todo && status == done && label == before().label)
+    @@deny('post-update', interventionId != before().interventionId)
+}

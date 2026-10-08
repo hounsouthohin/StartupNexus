@@ -1,0 +1,26 @@
+# Vrai brief sav-depannage (Codeur.com, 2007) — attendu, écrit AVANT le calcul (essai 2, 7 oct).
+# Un seul acteur : l'atelier. Les clients ne se connectent pas (BtoC : ce sont des fiches).
+cells:
+  staff:
+    Customer: {see: all, create: "yes", edit: true, delete: true}   # « créer / modifier / supprimer »
+    Machine: {see: all, create: "yes", edit: true, delete: true}
+    Intervention:
+      see: all
+      create: "yes"
+      edit: true
+      delete: true
+      transitions: {open: [in_progress], in_progress: [closed], closed: [paid]}   # « ouverte, en cours, cloturée, payée »
+    Action:
+      see: all
+      create: "yes"
+      edit: true
+      delete: true
+      transitions: {todo: [done]}                        # « actions faites ou a faire »
+    SocketType: {see: all, create: "yes", edit: true, delete: true}   # tables de choix
+auto_links: 0
+limites_d1:
+  - "Intervention et Action sont des ENFANTS avec un circuit d'états : non exprimable en D1 (contourné en collection)"
+  - "enfants sur 3 niveaux (client → machine → intervention → action)"
+  - "plusieurs comptes d'atelier : une collection donne « les siens », alors qu'une équipe partage tout"
+  - "valeurs de choix numériques (478 / 754 / 775) : nom d'enum invalide pour Prisma (panne du 4 oct)"
+  - "impressions ; planning des interventions en cours (présentation)"

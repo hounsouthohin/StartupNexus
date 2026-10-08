@@ -1,0 +1,572 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "reel-salle-de-sport",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-10-04T15:13:12+00:00",
+  "run_id": "capture-2bc1fc99",
+  "brief": {
+    "description": "Le présent cahier des charges vise à définir les exigences et les fonctionnalités requises pour le développement d'un site web destiné à une salle de sport, comprenant un système d'abonnement mensuel. Le site offrira une plateforme interactive permettant l'inscription, la réservation de cours et la gestion des abonnements. Objectifs : créer une interface conviviale et intuitive pour les utilisateurs finaux ; offrir une plateforme sécurisée pour le paiement des abonnements mensuels ; permettre aux membres de réserver des cours en ligne ; fournir un espace administratif pour gérer les membres, les abonnements, les cours et les paiements. Fonctionnalités : page d'accueil, formulaire d'inscription, interface de connexion, calendrier des cours avec réservation, profil utilisateur, page de contact. Back-office : gestion des membres, des abonnements mensuels, administration des cours, suivi des paiements. Système d'abonnement : paiement sécurisé, renouvellement automatique, rappels automatiques."
+  },
+  "project_spec": {
+    "project_name": "reel-salle-de-sport",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Le présent cahier des charges vise à définir les exigences et les fonctionnalités requises pour le développement d'un site web destiné à une salle de sport, comprenant un système d'abonnement mensuel. Le site offrira une plateforme interactive permettant l'inscription, la réservation de cours et la gestion des abonnements. Objectifs : créer une interface conviviale et intuitive pour les utilisateurs finaux ; offrir une plateforme sécurisée pour le paiement des abonnements mensuels ; permettre aux membres de réserver des cours en ligne ; fournir un espace administratif pour gérer les membres, les abonnements, les cours et les paiements. Fonctionnalités : page d'accueil, formulaire d'inscription, interface de connexion, calendrier des cours avec réservation, profil utilisateur, page de contact. Back-office : gestion des membres, des abonnements mensuels, administration des cours, suivi des paiements. Système d'abonnement : paiement sécurisé, renouvellement automatique, rappels automatiques.",
+    "models": [
+      {
+        "name": "Member",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "subscriptionId",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Subscription",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "status",
+            "type": "SubscriptionStatus",
+            "attributes": "@default(active)"
+          },
+          {
+            "name": "renewalDate",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "memberId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "member",
+            "type": "Member",
+            "attributes": "@relation(fields: [memberId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "memberId"
+      },
+      {
+        "name": "Course",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "schedule",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          },
+          {
+            "name": "reservations",
+            "type": "Reservation[]",
+            "attributes": ""
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Reservation",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "courseId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "course",
+            "type": "Course",
+            "attributes": "@relation(fields: [courseId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "memberId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "member",
+            "type": "Member",
+            "attributes": "@relation(fields: [memberId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "courseId"
+      },
+      {
+        "name": "Payment",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "amount",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "subscriptionId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "subscription",
+            "type": "Subscription",
+            "attributes": "@relation(fields: [subscriptionId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "subscriptionId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/members",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Member"
+      },
+      {
+        "path": "/members/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Member"
+      },
+      {
+        "path": "/members/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Member"
+      },
+      {
+        "path": "/subscriptions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Subscription"
+      },
+      {
+        "path": "/subscriptions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Subscription"
+      },
+      {
+        "path": "/subscriptions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Subscription"
+      },
+      {
+        "path": "/courses",
+        "auth_required": false,
+        "page_type": "list",
+        "model": "Course"
+      },
+      {
+        "path": "/courses/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Course"
+      },
+      {
+        "path": "/courses/[id]",
+        "auth_required": false,
+        "page_type": "detail",
+        "model": "Course"
+      },
+      {
+        "path": "/reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Reservation"
+      },
+      {
+        "path": "/reservations/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Reservation"
+      },
+      {
+        "path": "/reservations/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Reservation"
+      },
+      {
+        "path": "/payments",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Payment"
+      },
+      {
+        "path": "/payments/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Payment"
+      },
+      {
+        "path": "/payments/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Payment"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page d'accueil du site de la salle de sport. Présentation des services offerts, des cours disponibles et des avantages de l'abonnement. Page publique — aucun appel Clerk.",
+        "data_fetches": [
+          {
+            "service": "courseService.getPublicAll()",
+            "as": "courses"
+          }
+        ],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur / : l'utilisateur voit la page d'accueil",
+      "Sur /members : l'administrateur gère les membres",
+      "Sur /members/new : l'administrateur ajoute un nouveau membre",
+      "Sur /members/[id] : l'administrateur consulte le profil d'un membre",
+      "Sur /subscriptions : l'administrateur gère les abonnements",
+      "Sur /subscriptions/new : l'administrateur crée un nouvel abonnement",
+      "Sur /subscriptions/[id] : l'administrateur consulte le détail d'un abonnement",
+      "Sur /courses : l'utilisateur parcourt les cours disponibles",
+      "Sur /courses/new : l'administrateur ajoute un nouveau cours",
+      "Sur /courses/[id] : l'utilisateur consulte le détail d'un cours",
+      "Sur /reservations : l'utilisateur gère ses réservations",
+      "Sur /reservations/new : l'utilisateur réserve un cours",
+      "Sur /reservations/[id] : l'utilisateur consulte le détail d'une réservation",
+      "Sur /payments : l'administrateur suit les paiements",
+      "Sur /payments/new : l'administrateur enregistre un nouveau paiement",
+      "Sur /payments/[id] : l'administrateur consulte le détail d'un paiement"
+    ],
+    "ui_labels": {
+      "Member": {
+        "userId": "Identifiant utilisateur",
+        "subscriptionId": "Identifiant abonnement",
+        "createdAt": "Créé le",
+        "updatedAt": "Mis à jour le"
+      },
+      "Subscription": {
+        "status": "Statut",
+        "renewalDate": "Date de renouvellement",
+        "memberId": "Identifiant membre",
+        "createdAt": "Créé le",
+        "updatedAt": "Mis à jour le"
+      },
+      "Course": {
+        "title": "Titre",
+        "description": "Description",
+        "schedule": "Horaire",
+        "createdAt": "Créé le",
+        "updatedAt": "Mis à jour le"
+      },
+      "Reservation": {
+        "courseId": "Identifiant cours",
+        "memberId": "Identifiant membre",
+        "createdAt": "Créé le",
+        "updatedAt": "Mis à jour le"
+      },
+      "Payment": {
+        "amount": "Montant",
+        "date": "Date",
+        "subscriptionId": "Identifiant abonnement",
+        "createdAt": "Créé le",
+        "updatedAt": "Mis à jour le"
+      }
+    },
+    "title_plurals": {
+      "Member": "Membres",
+      "Subscription": "Abonnements",
+      "Course": "Cours",
+      "Reservation": "Réservations",
+      "Payment": "Paiements"
+    },
+    "title_singulars": {
+      "Member": "Membre",
+      "Subscription": "Abonnement",
+      "Course": "Cours",
+      "Reservation": "Réservation",
+      "Payment": "Paiement"
+    },
+    "enums": {
+      "SubscriptionStatus": [
+        "active",
+        "inactive",
+        "cancelled"
+      ]
+    },
+    "enum_value_labels": {
+      "SubscriptionStatus": {
+        "active": "Actif",
+        "inactive": "Inactif",
+        "cancelled": "Annulé"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "6a564250322f395e",
+    "design_system": {
+      "preset_name": "wellness",
+      "primary_color": "teal-500",
+      "font_heading": "DM Sans",
+      "font_body": "DM Sans",
+      "sidebar_bg": "white",
+      "density": "spacious",
+      "card_style": "elevated",
+      "list_style": "card-grid",
+      "animation_level": "enhanced",
+      "hero_style": "centered-cta",
+      "layout_type": "topnav",
+      "brand_name": "GymMaster"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "active",
+            "inactive",
+            "cancelled"
+          ],
+          "display_label": ""
+        },
+        "amount": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "renewalDate": {
+          "semantic_type": "date",
+          "values": [],
+          "display_label": ""
+        },
+        "schedule": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [
+        {
+          "model": "",
+          "name": "getByStatus",
+          "pattern": "filter_by_field",
+          "field": "status",
+          "param_name": "",
+          "return_many": true
+        },
+        {
+          "model": "",
+          "name": "getByMember",
+          "pattern": "filter_by_relation",
+          "field": "member",
+          "param_name": "",
+          "return_many": true
+        }
+      ],
+      "features": [
+        "status_flow",
+        "calendar_view",
+        "file_upload"
+      ],
+      "status_flows": {
+        "Subscription": {
+          "field": "status",
+          "initial": "active",
+          "transitions": {
+            "active": [
+              "inactive",
+              "cancelled"
+            ],
+            "inactive": [
+              "active"
+            ],
+            "cancelled": []
+          },
+          "locked_states": [
+            "cancelled"
+          ],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/courses": "Aucun cours disponible pour le moment. Revenez plus tard pour voir les nouveaux cours.",
+          "/reservations": "Aucune réservation de cours. Réservez votre premier cours dès maintenant.",
+          "/members": "Aucun membre inscrit pour le moment.",
+          "/subscriptions": "Aucun abonnement actif. Créez un nouvel abonnement pour commencer."
+        },
+        "dependency_order": [
+          "Créez d'abord un Membre avant de créer un Abonnement.",
+          "Créez d'abord un Cours avant de créer une Réservation."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "member",
+          "admin"
+        ],
+        "privileged_role": "admin",
+        "admin_scoped_views": [
+          "Member",
+          "Subscription",
+          "Course",
+          "Reservation",
+          "Payment"
+        ],
+        "role_gated_actions": {
+          "Subscription": [
+            "status_transition"
+          ],
+          "Course": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "Member": [
+            "update",
+            "delete"
+          ]
+        },
+        "global_entities": [],
+        "initiator": {
+          "Reservation": "member"
+        },
+        "surface": {
+          "member": [
+            "Course",
+            "Reservation",
+            "Member"
+          ],
+          "admin": [
+            "Member",
+            "Subscription",
+            "Course",
+            "Reservation",
+            "Payment"
+          ]
+        },
+        "dashboard": {
+          "admin": [
+            "gestion des membres",
+            "suivi des paiements"
+          ],
+          "member": [
+            "mes réservations de cours",
+            "mon abonnement"
+          ]
+        }
+      }
+    },
+    "summary_fr": "Le site web permettra aux utilisateurs de s'inscrire et de gérer leurs abonnements mensuels à la salle de sport. Les membres pourront réserver des cours en ligne via un calendrier interactif. Une interface sécurisée sera mise en place pour le paiement des abonnements, avec des options de renouvellement automatique et des rappels. Les administrateurs auront accès à un espace de gestion pour superviser les membres, les abonnements, les cours et les paiements. Le site inclura une page d'accueil, un formulaire d'inscription, une interface de connexion, et une page de contact.",
+    "unsupported": [
+      "Le brief demande un espace administratif pour gérer les cours, mais la spécification ne mentionne pas explicitement la gestion des cours par les administrateurs.",
+      "Le brief mentionne des rappels automatiques pour les abonnements, mais la spécification ne détaille pas cette fonctionnalité."
+    ]
+  }
+}

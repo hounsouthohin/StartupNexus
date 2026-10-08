@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum InterventionStatus {
+  planned
+  confirmed
+  completed
+  cancelled
+}
+
+model Intervention {
+  id String @id @default(uuid())
+  date DateTime
+  status InterventionStatus @default(planned)
+  clientId String
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  technicianId String?
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Client {
+  id String @id @default(uuid())
+  name String
+  email String
+  phone String?
+  address String?
+  interventions Intervention[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoices Invoice[]
+  @@index([userId])
+}
+
+model Technician {
+  id String @id @default(uuid())
+  name String
+  email String
+  phone String?
+  region String?
+  interventions Intervention[]
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoices Invoice[]
+  @@index([userId])
+}
+
+model Invoice {
+  id String @id @default(uuid())
+  number String
+  date DateTime
+  pdfUrl String
+  clientId String
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  technicianId String?
+  technician Technician @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

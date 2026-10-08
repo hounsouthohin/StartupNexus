@@ -1,0 +1,157 @@
+{
+  "projet": "appr-transport-mobile",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est une application mobile pour organiser et suivre des livraisons, avec communication aux chauffeurs et sous-traitants, ce qui sort du périmètre des logiciels de gestion de petites structures.",
+    "hors_stock": [
+      {
+        "besoin": "application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "développement d'une application mobile"
+      },
+      {
+        "besoin": "diffuseraient directement aux chauffeurs",
+        "categorie": "messagerie",
+        "citation": "les diffuserait directement aux chauffeurs"
+      },
+      {
+        "besoin": "mise à jour en temps réel des statuts de livraison",
+        "categorie": "autre",
+        "citation": "mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "choisir leurs trajets et horaires en fonction de leurs disponibilités",
+        "categorie": "planning",
+        "citation": "choisir leurs trajets et horaires en fonction de leurs disponibilités"
+      },
+      {
+        "besoin": "capacité de leurs véhicules",
+        "categorie": "autre",
+        "citation": "la capacité de leurs véhicules"
+      },
+      {
+        "besoin": "confirmation des missions en un clic",
+        "categorie": "autre",
+        "citation": "une confirmation des missions en un clic"
+      },
+      {
+        "besoin": "communication",
+        "categorie": "messagerie",
+        "citation": "Elle améliorerait la communication"
+      },
+      {
+        "besoin": "notifications automatiques",
+        "categorie": "notification",
+        "citation": "des notifications automatiques"
+      },
+      {
+        "besoin": "demande de transport à faire",
+        "categorie": "notification",
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "besoin": "suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "vérifier systématiquement les documents nécessaires",
+        "categorie": "document",
+        "citation": "vérifierait systématiquement les documents nécessaires"
+      },
+      {
+        "besoin": "marchandises dangereuses",
+        "categorie": "autre",
+        "citation": "notamment pour les marchandises dangereuses"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "en tant que stagiaire au sein de la société Procase ... en interne le développement d'une application mobile"
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "diffuserait directement aux chauffeurs ... offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      },
+      {
+        "id": "sous_traitant",
+        "libelle": "sous-traitant",
+        "libelle_pluriel": "sous-traitants",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "coordonner nos sous-traitants ... faciliter de nouvelles collaborations avec d'autres prestataires"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "entreprise",
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [
+        "hors stock « suivi en temps réel des livraisons » : citation introuvable mot pour mot dans le brief — « L'application assurerait également un suivi en temps réel des livraisons » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    },
+    {
+      "agent": "SortiePerimetre",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [
+        "acteur chauffeur : citation introuvable mot pour mot dans le brief — « les diffuserait directement aux chauffeurs ... l'application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche DemandeDeTransport (collection) : « proprietaire » doit être un id d'acteur parmi ['administrateur', 'chauffeur', 'sous_traitant']",
+        "fiche Mission : citation introuvable mot pour mot dans le brief — « les chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules, avec une confirmation des missions en un clic » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Mission : citation introuvable mot pour mot dans le brief — « l'application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules, avec une confirmation des missions en un clic pour plus de transparence » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche Mission : citation introuvable mot pour mot dans le brief — « les chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

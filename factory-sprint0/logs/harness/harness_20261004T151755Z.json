@@ -1,0 +1,29 @@
+{
+  "created_at": "20261004T151755Z",
+  "args": {
+    "only": [
+      "reel-sav-depannage"
+    ],
+    "no_tsc": true,
+    "update": false,
+    "diff": false,
+    "keep": true
+  },
+  "reports": [
+    {
+      "project": "reel-sav-depannage",
+      "declaration": "reel-sav-depannage.json",
+      "generation_seconds": 1.39,
+      "errors": [],
+      "alerts": [],
+      "files": 100,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "ok": true
+    }
+  ]
+}

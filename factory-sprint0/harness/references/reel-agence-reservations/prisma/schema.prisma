@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ReservationStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+model Reservation {
+  id String @id @default(uuid())
+  date DateTime
+  status ReservationStatus @default(pending)
+  clientId String
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  providerId String
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  managerId String?
+  manager Manager @relation(fields: [managerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  alerts Alert[]
+  @@index([clientId])
+}
+
+model Client {
+  id String @id @default(uuid())
+  name String
+  email String
+  providerId String
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reservations Reservation[]
+  @@index([providerId])
+}
+
+model Provider {
+  id String @id @default(uuid())
+  name String
+  email String
+  managers Manager[]
+  clients Client[]
+  reservations Reservation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Manager {
+  id String @id @default(uuid())
+  name String
+  email String
+  providers Provider[]
+  reservations Reservation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Alert {
+  id String @id @default(uuid())
+  message String
+  reservationId String
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

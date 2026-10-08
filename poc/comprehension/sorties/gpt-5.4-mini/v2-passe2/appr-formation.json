@@ -1,0 +1,435 @@
+{
+  "projet": "appr-formation",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Création d'un logiciel de gestion pour organisme de formation. ... nous répartissons sur des sessions de formation. ... il y a un rétroplanning d'organisation de la session ... puis la facturation et l'établissement d'un bilan pour l'entité de base. on a besoin d'une gestion comptable associée",
+    "hors_stock": [
+      {
+        "besoin": "rétroplanning d'organisation de la session",
+        "categorie": "planning",
+        "citation": "il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+      },
+      {
+        "besoin": "convocation téléphonique",
+        "categorie": "messagerie",
+        "citation": "convocation téléphonique"
+      },
+      {
+        "besoin": "envoi contrat",
+        "categorie": "document",
+        "citation": "envoi contrat"
+      },
+      {
+        "besoin": "planifier la date avec le formateur et la salle",
+        "categorie": "planning",
+        "citation": "planifier la date avec le formateur et la salle"
+      },
+      {
+        "besoin": "facturation",
+        "categorie": "autre",
+        "citation": "puis la facturation"
+      },
+      {
+        "besoin": "établissement d'un bilan",
+        "categorie": "calcul_statistiques",
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "besoin": "gestion comptable associée",
+        "categorie": "autre",
+        "citation": "on a besoin d'une gestion comptable associée"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "responsable",
+        "libelle_pluriel": "responsables",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      },
+      {
+        "id": "personnel_interne",
+        "libelle": "personnel interne",
+        "libelle_pluriel": "personnels internes",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "responsable",
+        "citation": "convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "entité",
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "libelle": "stagiaires",
+        "citation": "une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "libelle": "formateur",
+        "citation": "planifier la date avec le formateur et la salle"
+      },
+      {
+        "libelle": "salle",
+        "citation": "planifier la date avec le formateur et la salle"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 672,
+      "jetons_sortie": 280
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 558,
+      "jetons_sortie": 221
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 921,
+      "jetons_sortie": 493
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 716,
+      "jetons_sortie": 190
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 728,
+      "jetons_sortie": 11
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Entite",
+        "libelle": "entité",
+        "libelle_pluriel": "entités",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "une entité nous envoie des stagiaires ... l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "nom": "Stagiaire",
+        "libelle": "stagiaire",
+        "libelle_pluriel": "stagiaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Entite"
+        ],
+        "citation": "une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "nom": "Formateur",
+        "libelle": "formateur",
+        "libelle_pluriel": "formateurs",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur"
+      },
+      {
+        "nom": "Salle",
+        "libelle": "salle",
+        "libelle_pluriel": "salles",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur et la salle"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "entité",
+        "fiche": "Entite",
+        "raison": "l'entité est une fiche à suivre pour organiser les sessions, les stagiaires et le bilan"
+      },
+      {
+        "non_utilisateur": "stagiaires",
+        "fiche": "Stagiaire",
+        "raison": "les stagiaires sont enregistrés et répartis sur des sessions de formation"
+      },
+      {
+        "non_utilisateur": "formateur",
+        "fiche": "Formateur",
+        "raison": "le formateur est une ressource de référence utilisée pour planifier les sessions"
+      },
+      {
+        "non_utilisateur": "salle",
+        "fiche": "Salle",
+        "raison": "la salle est une ressource de référence utilisée pour planifier les sessions"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Entite",
+        "etat_initial": "actif",
+        "transitions": {
+          "actif": [
+            "inactif"
+          ],
+          "inactif": [
+            "actif"
+          ]
+        },
+        "libelles": {
+          "actif": "actif",
+          "inactif": "inactif"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "fiche": "Stagiaire",
+        "etat_initial": "actif",
+        "transitions": {
+          "actif": [
+            "inactif"
+          ],
+          "inactif": [
+            "actif"
+          ]
+        },
+        "libelles": {
+          "actif": "actif",
+          "inactif": "inactif"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité : une entité nous envoie des stagiaires"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "responsable",
+        "label_plural": "responsables",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      },
+      {
+        "id": "personnel_interne",
+        "label": "personnel interne",
+        "label_plural": "personnels internes",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "responsable",
+        "citation": "convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Entite",
+        "label": "entité",
+        "label_plural": "entités",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'établissement d'un bilan pour l'entité de base",
+        "process": {
+          "initial": "actif",
+          "transitions": {
+            "actif": [
+              "inactif"
+            ],
+            "inactif": [
+              "actif"
+            ]
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "actif": "actif",
+            "inactif": "inactif"
+          },
+          "citation": "une entité nous envoie des stagiaires"
+        }
+      },
+      {
+        "name": "Stagiaire",
+        "label": "stagiaire",
+        "label_plural": "stagiaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Entite"
+        ],
+        "citation": "une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation",
+        "process": {
+          "initial": "actif",
+          "transitions": {
+            "actif": [
+              "inactif"
+            ],
+            "inactif": [
+              "actif"
+            ]
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "actif": "actif",
+            "inactif": "inactif"
+          },
+          "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité : une entité nous envoie des stagiaires"
+        }
+      },
+      {
+        "name": "Formateur",
+        "label": "formateur",
+        "label_plural": "formateurs",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur"
+      },
+      {
+        "name": "Salle",
+        "label": "salle",
+        "label_plural": "salles",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable",
+          "personnel_interne"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur et la salle"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour responsable : inviter des personnels internes"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le responsable": [
+      "voit toutes les entités, en crée, les modifie, les fait passer de « actif » à « inactif », les fait passer de « inactif » à « actif »",
+      "voit tous les stagiaires, en crée, les modifie, les fait passer de « actif » à « inactif », les fait passer de « inactif » à « actif »",
+      "voit tous les formateurs, en crée, les modifie",
+      "voit toutes les salles, en crée, les modifie"
+    ],
+    "Le personnel interne": [
+      "voit toutes les entités, en crée, les modifie",
+      "voit tous les stagiaires, en crée, les modifie",
+      "voit tous les formateurs, en crée, les modifie",
+      "voit toutes les salles, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 7.8,
+  "jetons": {
+    "entree": 3595,
+    "sortie": 1195,
+    "appels": 5
+  }
+}

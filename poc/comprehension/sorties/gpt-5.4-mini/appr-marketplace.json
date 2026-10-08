@@ -1,0 +1,817 @@
+{
+  "projet": "appr-marketplace",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est une marketplace avec paiements et commissions, donc hors périmètre de notre stock de logiciels de gestion de petites structures.",
+    "hors_stock": [
+      {
+        "besoin": "marketplace avec paiement en ligne",
+        "categorie": "autre",
+        "citation": "Marketplace avec annonces, paiements, géolocalisation et avis ... création d'une marketplace avec paiement en ligne"
+      },
+      {
+        "besoin": "Moteur de recherche et géolocalisation",
+        "categorie": "autre",
+        "citation": "Moteur de recherche et géolocalisation"
+      },
+      {
+        "besoin": "Paiement en ligne sécurisé",
+        "categorie": "paiement",
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "besoin": "Gestion automatique des commissions",
+        "categorie": "paiement",
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "besoin": "Messagerie interne",
+        "categorie": "messagerie",
+        "citation": "Messagerie interne"
+      },
+      {
+        "besoin": "Système d'avis et de notation",
+        "categorie": "autre",
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "besoin": "Tableau de bord utilisateur",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableau de bord utilisateur"
+      },
+      {
+        "besoin": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)",
+        "categorie": "autre",
+        "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+      },
+      {
+        "besoin": "déclinée en application mobile Android et iOS",
+        "categorie": "mobile_hors_ligne",
+        "citation": "être déclinée en application mobile Android et iOS"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "utilisateur",
+        "libelle_pluriel": "utilisateurs",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "Gestion des comptes utilisateurs ... Tableau de bord utilisateur"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "développeur freelance ou une équipe expérimentée",
+        "citation": "Je recherche un développeur freelance ou une équipe expérimentée"
+      },
+      {
+        "libelle": "personne ou une équipe",
+        "citation": "Je recherche avant tout une personne ou une équipe ayant déjà réalisé des projets similaires"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [
+        "hors stock « marketplace avec paiement en ligne » : citation introuvable mot pour mot dans le brief — « Marketplace avec annonces, paiements, géolocalisation et avis.... création d'une marketplace avec paiement en ligne » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    },
+    {
+      "agent": "SortiePerimetre",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Utilisateur",
+        "libelle": "utilisateur",
+        "libelle_pluriel": "utilisateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des comptes utilisateurs"
+      },
+      {
+        "nom": "Annonce",
+        "libelle": "annonce",
+        "libelle_pluriel": "annonces",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": true,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "nom": "Avis",
+        "libelle": "avis",
+        "libelle_pluriel": "avis",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "nom": "Paiement",
+        "libelle": "paiement",
+        "libelle_pluriel": "paiements",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "nom": "Commission",
+        "libelle": "commission",
+        "libelle_pluriel": "commissions",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "nom": "Message",
+        "libelle": "message",
+        "libelle_pluriel": "messages",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Messagerie interne"
+      },
+      {
+        "nom": "Administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Interface d'administration complète"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Annonce",
+        "etat_initial": "publiee",
+        "transitions": {
+          "publiee": []
+        },
+        "libelles": {
+          "publiee": "publiée"
+        },
+        "initiateur": "utilisateur",
+        "decideur": "utilisateur",
+        "etapes_par": {},
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "fiche": "Paiement",
+        "etat_initial": "en_ligne",
+        "transitions": {
+          "en_ligne": []
+        },
+        "libelles": {
+          "en_ligne": "en ligne"
+        },
+        "initiateur": "utilisateur",
+        "decideur": "utilisateur",
+        "etapes_par": {},
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "fiche": "Avis",
+        "etat_initial": "publie",
+        "transitions": {
+          "publie": []
+        },
+        "libelles": {
+          "publie": "publié"
+        },
+        "initiateur": "utilisateur",
+        "decideur": "utilisateur",
+        "etapes_par": {},
+        "citation": "Système d'avis et de notation"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "utilisateur",
+        "fiche": "Utilisateur",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Gestion des comptes utilisateurs"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Utilisateur",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Annonce",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Annonce",
+        "action": "edit",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Annonce",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Annonce",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Paiement",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Paiement",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Commission",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Commission",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Message",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Messagerie interne"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Message",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Messagerie interne"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Message",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Avis",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Avis",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Avis",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Utilisateur",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Tableau de bord utilisateur"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "id": "utilisateur",
+        "label": "utilisateur",
+        "label_plural": "utilisateurs",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "Gestion des comptes utilisateurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Utilisateur",
+        "label": "utilisateur",
+        "label_plural": "utilisateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des comptes utilisateurs"
+      },
+      {
+        "name": "Annonce",
+        "label": "annonce",
+        "label_plural": "annonces",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": true,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Publication et gestion d'annonces",
+        "process": {
+          "initial": "publiee",
+          "transitions": {
+            "publiee": []
+          },
+          "initiator": "utilisateur",
+          "decider": "utilisateur",
+          "steps_by": {},
+          "labels": {
+            "publiee": "publiée"
+          },
+          "citation": "Publication et gestion d'annonces"
+        }
+      },
+      {
+        "name": "Avis",
+        "label": "avis",
+        "label_plural": "avis",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système d'avis et de notation",
+        "process": {
+          "initial": "publie",
+          "transitions": {
+            "publie": []
+          },
+          "initiator": "utilisateur",
+          "decider": "utilisateur",
+          "steps_by": {},
+          "labels": {
+            "publie": "publié"
+          },
+          "citation": "Système d'avis et de notation"
+        }
+      },
+      {
+        "name": "Paiement",
+        "label": "paiement",
+        "label_plural": "paiements",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Paiement en ligne sécurisé",
+        "process": {
+          "initial": "en_ligne",
+          "transitions": {
+            "en_ligne": []
+          },
+          "initiator": "utilisateur",
+          "decider": "utilisateur",
+          "steps_by": {},
+          "labels": {
+            "en_ligne": "en ligne"
+          },
+          "citation": "Paiement en ligne sécurisé"
+        }
+      },
+      {
+        "name": "Commission",
+        "label": "commission",
+        "label_plural": "commissions",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "name": "Message",
+        "label": "message",
+        "label_plural": "messages",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Messagerie interne"
+      },
+      {
+        "name": "Administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Interface d'administration complète"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "utilisateur",
+        "entity": "Utilisateur",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gestion des comptes utilisateurs"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Utilisateur",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Annonce",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Annonce",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Annonce",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Annonce",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Paiement",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Paiement",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Commission",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Commission",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Message",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Messagerie interne"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Message",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Messagerie interne"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Message",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Avis",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Avis",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Avis",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Utilisateur",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Tableau de bord utilisateur"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit tous les utilisateurs",
+      "voit toutes les annonces, les modifie",
+      "voit tous les avis",
+      "voit tous les paiements",
+      "voit toutes les commissions, les modifie",
+      "voit tous les messages",
+      "a son administrateur, créé automatiquement, qu'il peut modifier"
+    ],
+    "L'utilisateur": [
+      "a son utilisateur, créé automatiquement, qu'il peut modifier",
+      "voit ses annonces, en crée, les modifie",
+      "voit tous les avis, en crée",
+      "voit ses paiements, en crée",
+      "voit ses commissions, en crée, les modifie",
+      "voit ses messages, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 13.3
+}

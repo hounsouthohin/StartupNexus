@@ -1,0 +1,90 @@
+﻿// Atelier partagé — traduction de harness/matrices/atelier-partage.expected.yaml
+// Cas testés : fiches enfants (créneaux d'un atelier) ; catalogue géré ; catalogue privé
+// affiché au travers d'un catalogue public (domaines) ; profil vu au travers des réservations.
+
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+type Auth {
+    id   String @id
+    role String
+    @@auth
+}
+
+// catalogue public · géré par : animateur
+model Workshop {
+    id      String   @id @default(cuid())
+    title   String
+    domains Domain[]
+    slots   Slot[]
+
+    @@allow('read', true)
+    @@allow('create,update', auth().role == 'animateur')
+}
+
+// catalogue privé · géré par personne (liste fixe) · le visiteur le voit au travers des ateliers
+model Domain {
+    id        String     @id @default(cuid())
+    name      String
+    workshops Workshop[]
+
+    @@allow('read', auth() != null)
+    @@allow('read', workshops?[true])                  // see_via Workshop (visiteur)
+}
+
+// enfant de Workshop · non public : connectés seulement · géré par qui modifie le parent
+model Slot {
+    id           String        @id @default(cuid())
+    workshopId   String
+    workshop     Workshop      @relation(fields: [workshopId], references: [id])
+    label        String
+    reservations Reservation[]
+
+    @@allow('read', auth() != null && check(workshop))
+    @@allow('create,update', check(workshop, 'update'))
+}
+
+// profil · propriétaire : participant · l'animateur le voit au travers des réservations
+model ParticipantProfile {
+    id           String        @id @default(cuid())
+    userId       String        @unique @default(auth().id)
+    name         String
+    phone        String?
+    reservations Reservation[]
+
+    @@allow('create', auth().role == 'participant' && userId == auth().id)
+    @@allow('read,update', auth().role == 'participant' && userId == auth().id)
+    @@allow('read', auth().role == 'animateur' && reservations?[true])
+    @@deny('post-update', userId != before().userId)
+}
+
+enum ReservationStatus {
+    pending
+    confirmed
+    cancelled
+    done
+}
+
+// collection · propriétaire : participant · circuit : initiateur participant, décideur animateur
+model Reservation {
+    id          String             @id @default(cuid())
+    ownerId     String             @default(auth().id)
+    participant ParticipantProfile @relation(fields: [ownerId], references: [userId])
+    slotId      String
+    slot        Slot               @relation(fields: [slotId], references: [id])
+    comment     String             @default("")
+    status      ReservationStatus  @default(pending)
+
+    @@allow('read', auth().role == 'animateur')
+    @@allow('create', auth().role == 'participant' && ownerId == auth().id && status == pending)
+    @@allow('update', auth().role == 'animateur')
+    @@allow('post-update', auth().role == 'animateur' && before().status == pending && (status == confirmed || status == cancelled) && slotId == before().slotId && comment == before().comment)
+    @@allow('post-update', auth().role == 'animateur' && before().status == confirmed && status == done && slotId == before().slotId && comment == before().comment)
+    @@deny('post-update', ownerId != before().ownerId)
+}

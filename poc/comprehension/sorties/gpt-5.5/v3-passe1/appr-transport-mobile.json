@@ -1,0 +1,605 @@
+{
+  "projet": "appr-transport-mobile",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le brief demande d'abord une application mobile, ce qui est hors périmètre : « Création d'application mobile pour transporteur. ». Même si elle sert à gérer des livraisons, le cœur annoncé est une application mobile pour chauffeurs.",
+    "hors_stock": [
+      {
+        "besoin": "Application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Création d'application mobile pour transporteur."
+      },
+      {
+        "besoin": "Diffusion directe d'informations aux chauffeurs",
+        "categorie": "notification",
+        "citation": "les diffuserait directement aux chauffeurs"
+      },
+      {
+        "besoin": "Mise à jour en temps réel des statuts de livraison",
+        "categorie": "autre",
+        "citation": "une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "Choix de trajets et horaires selon les disponibilités",
+        "categorie": "planning",
+        "citation": "choisir leurs trajets et horaires en fonction de leurs disponibilités"
+      },
+      {
+        "besoin": "Prise en compte de la capacité des véhicules",
+        "categorie": "calcul_statistiques",
+        "citation": "la capacité de leurs véhicules"
+      },
+      {
+        "besoin": "Notifications automatiques déclenchées par une demande de transport",
+        "categorie": "notification",
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "besoin": "Suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "un suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "Vérification des documents nécessaires",
+        "categorie": "document",
+        "citation": "vérifierait systématiquement les documents nécessaires"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable_procase",
+        "libelle": "Responsable Procase",
+        "libelle_pluriel": "Responsables Procase",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "au sein de la société Procase"
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "Chauffeur",
+        "libelle_pluriel": "Chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "responsable_procase",
+        "citation": "diffuserait directement aux chauffeurs...aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Sous-traitant",
+        "citation": "coordonner nos sous-traitants"
+      },
+      {
+        "libelle": "Entreprise",
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "libelle": "Prestataire",
+        "citation": "d'autres prestataires"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 867,
+      "jetons_sortie": 1182
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 753,
+      "jetons_sortie": 705
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche DocumentLivraison : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 1199,
+      "jetons_sortie": 5474
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 2047,
+      "jetons_sortie": 871
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1023,
+      "jetons_sortie": 1133
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1130,
+      "jetons_sortie": 622
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "SousTraitant",
+        "libelle": "sous-traitant",
+        "libelle_pluriel": "sous-traitants",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_procase"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "coordonner nos sous-traitants"
+      },
+      {
+        "nom": "Entreprise",
+        "libelle": "entreprise",
+        "libelle_pluriel": "entreprises",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_procase"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "nom": "Prestataire",
+        "libelle": "prestataire",
+        "libelle_pluriel": "prestataires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_procase"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "d'autres prestataires"
+      },
+      {
+        "nom": "DemandeTransport",
+        "libelle": "demande de transport",
+        "libelle_pluriel": "demandes de transport",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_procase"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Entreprise"
+        ],
+        "citation": "une demande de transport à faire"
+      },
+      {
+        "nom": "Livraison",
+        "libelle": "livraison",
+        "libelle_pluriel": "livraisons",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_procase"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DemandeTransport"
+        ],
+        "citation": "informations de livraison ... statuts de livraison"
+      },
+      {
+        "nom": "Mission",
+        "libelle": "mission",
+        "libelle_pluriel": "missions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_procase"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Livraison"
+        ],
+        "citation": "confirmation des missions en un clic"
+      },
+      {
+        "nom": "DocumentLivraison",
+        "libelle": "document de livraison",
+        "libelle_pluriel": "documents de livraison",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Livraison",
+        "references": [],
+        "citation": "documents nécessaires, notamment pour les marchandises dangereuses"
+      },
+      {
+        "nom": "Disponibilite",
+        "libelle": "disponibilité",
+        "libelle_pluriel": "disponibilités",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "leurs disponibilités"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "capacité de leurs véhicules"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Sous-traitant",
+        "fiche": "SousTraitant",
+        "raison": "Le brief parle de coordonner les sous-traitants."
+      },
+      {
+        "non_utilisateur": "Entreprise",
+        "fiche": "Entreprise",
+        "raison": "Le brief mentionne l'entreprise qui a une demande de transport à faire."
+      },
+      {
+        "non_utilisateur": "Prestataire",
+        "fiche": "Prestataire",
+        "raison": "Le brief mentionne de nouvelles collaborations avec d'autres prestataires."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Mission",
+        "etat_initial": "non_confirmee",
+        "transitions": {
+          "non_confirmee": [
+            "confirmee"
+          ],
+          "confirmee": []
+        },
+        "libelles": {
+          "non_confirmee": "non confirmée",
+          "confirmee": "confirmée"
+        },
+        "initiateur": "responsable_procase",
+        "decideur": "chauffeur",
+        "etapes_par": {},
+        "citation": "avec une confirmation des missions en un clic"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "chauffeur",
+        "fiche": "Livraison",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "les diffuserait directement aux chauffeurs"
+      },
+      {
+        "acteur": "chauffeur",
+        "fiche": "Mission",
+        "action": "transition",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "avec une confirmation des missions en un clic"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "responsable_procase",
+        "label": "Responsable Procase",
+        "label_plural": "Responsables Procase",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "au sein de la société Procase"
+      },
+      {
+        "id": "chauffeur",
+        "label": "Chauffeur",
+        "label_plural": "Chauffeurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "responsable_procase",
+        "citation": "aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      }
+    ],
+    "entities": [
+      {
+        "name": "SousTraitant",
+        "label": "sous-traitant",
+        "label_plural": "sous-traitants",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_procase"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "coordonner nos sous-traitants"
+      },
+      {
+        "name": "Entreprise",
+        "label": "entreprise",
+        "label_plural": "entreprises",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_procase"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "name": "Prestataire",
+        "label": "prestataire",
+        "label_plural": "prestataires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_procase"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "d'autres prestataires"
+      },
+      {
+        "name": "DemandeTransport",
+        "label": "demande de transport",
+        "label_plural": "demandes de transport",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_procase"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Entreprise"
+        ],
+        "citation": "une demande de transport à faire"
+      },
+      {
+        "name": "Livraison",
+        "label": "livraison",
+        "label_plural": "livraisons",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_procase"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "DemandeTransport"
+        ],
+        "citation": "informations de livraison"
+      },
+      {
+        "name": "Mission",
+        "label": "mission",
+        "label_plural": "missions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_procase"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Livraison"
+        ],
+        "citation": "confirmation des missions en un clic",
+        "process": {
+          "initial": "non_confirmee",
+          "transitions": {
+            "non_confirmee": [
+              "confirmee"
+            ],
+            "confirmee": []
+          },
+          "initiator": "responsable_procase",
+          "decider": "chauffeur",
+          "steps_by": {},
+          "labels": {
+            "non_confirmee": "non confirmée",
+            "confirmee": "confirmée"
+          },
+          "citation": "avec une confirmation des missions en un clic"
+        }
+      },
+      {
+        "name": "DocumentLivraison",
+        "label": "document de livraison",
+        "label_plural": "documents de livraison",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Livraison",
+        "references": [],
+        "citation": "documents nécessaires, notamment pour les marchandises dangereuses"
+      },
+      {
+        "name": "Disponibilite",
+        "label": "disponibilité",
+        "label_plural": "disponibilités",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "chauffeur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "leurs disponibilités"
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "chauffeur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "capacité de leurs véhicules"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "chauffeur",
+        "entity": "Livraison",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "les diffuserait directement aux chauffeurs"
+      },
+      {
+        "actor": "chauffeur",
+        "entity": "Mission",
+        "action": "transition",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "avec une confirmation des missions en un clic"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour Responsable Procase : inviter des Chauffeurs"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le responsable procase": [
+      "voit tous les sous-traitants, en crée, les modifie",
+      "voit toutes les entreprises, en crée, les modifie",
+      "voit tous les prestataires, en crée, les modifie",
+      "voit toutes les demandes de transport, en crée, les modifie",
+      "voit toutes les livraisons, en crée, les modifie",
+      "voit toutes les missions, en crée, les modifie",
+      "voit tous les documents de livraison, en crée, les modifie"
+    ],
+    "Le chauffeur": [
+      "voit les demandes de transport affichées dans les livraisons qu'il consulte (sans page dédiée)",
+      "voit toutes les livraisons",
+      "voit toutes les missions, les fait passer de « non confirmée » à « confirmée »",
+      "voit ses disponibilités, en crée, les modifie",
+      "voit ses véhicules, en crée, les modifie"
+    ]
+  },
+  "questions": [
+    "Le chauffeur verra les demandes de transport (ex. nom, coordonnées) affichés dans les livraisons qu'il traite — est-ce acceptable ? (oui / non)",
+    "Le chauffeur verra toutes les livraisons, pas seulement celles qui le concernent — d'accord ? (oui / non)",
+    "Le chauffeur verra toutes les missions, pas seulement celles qui le concernent — d'accord ? (oui / non)"
+  ],
+  "secondes": 166.4,
+  "jetons": {
+    "entree": 7019,
+    "sortie": 9987,
+    "appels": 6
+  }
+}

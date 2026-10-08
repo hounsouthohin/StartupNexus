@@ -1,0 +1,250 @@
+{
+  "projet": "appr-transport-mobile",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est une \"application mobile\" pour organiser des livraisons et coordonner des sous-traitants/chauffeurs, ce qui sort de notre périmètre de logiciel de gestion de petites structures.",
+    "hors_stock": [
+      {
+        "besoin": "application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "le développement d'une application mobile"
+      },
+      {
+        "besoin": "mise à jour en temps réel des statuts de livraison",
+        "categorie": "autre",
+        "citation": "une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "choisir leurs trajets et horaires",
+        "categorie": "planning",
+        "citation": "choisir leurs trajets et horaires"
+      },
+      {
+        "besoin": "confirmation des missions en un clic",
+        "categorie": "automatisation",
+        "citation": "confirmation des missions en un clic"
+      },
+      {
+        "besoin": "notifications automatiques",
+        "categorie": "notification",
+        "citation": "des notifications automatiques"
+      },
+      {
+        "besoin": "suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "un suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "vérifier systématiquement les documents nécessaires",
+        "categorie": "document",
+        "citation": "vérifierait systématiquement les documents nécessaires"
+      },
+      {
+        "besoin": "marchandises dangereuses",
+        "categorie": "autre",
+        "citation": "les marchandises dangereuses"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "stagiaire",
+        "libelle": "stagiaire",
+        "libelle_pluriel": "stagiaires",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je me permets de vous contacter en tant que stagiaire au sein de la société Procase."
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "stagiaire",
+        "citation": "diffuserait directement aux chauffeurs ... aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      },
+      {
+        "id": "sous_traitant",
+        "libelle": "sous-traitant",
+        "libelle_pluriel": "sous-traitants",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "stagiaire",
+        "citation": "difficulté à coordonner nos sous-traitants"
+      },
+      {
+        "id": "entreprise",
+        "libelle": "entreprise",
+        "libelle_pluriel": "entreprises",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "stagiaire",
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Procase",
+        "citation": "au sein de la société Procase"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [
+        "hors stock « suivi en temps réel des livraisons » : citation introuvable mot pour mot dans le brief — « l'application assurerait également un suivi en temps réel des livraisons » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 867,
+      "jetons_sortie": 289
+    },
+    {
+      "agent": "SortiePerimetre",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1244,
+      "jetons_sortie": 269
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 753,
+      "jetons_sortie": 267
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1220,
+      "jetons_sortie": 354
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Livraison : fiche inconnue (parmi ['ProfilStagiaire', 'ProfilChauffeur', 'ProfilSousTraitant', 'ProfilEntreprise'])",
+        "circuit Demande de transport : fiche inconnue (parmi ['ProfilStagiaire', 'ProfilChauffeur', 'ProfilSousTraitant', 'ProfilEntreprise'])"
+      ],
+      "jetons_entree": 939,
+      "jetons_sortie": 181
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1205,
+      "jetons_sortie": 11
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.1.transitions.to : Input should be a valid array",
+        "droits.6.transitions.to : Input should be a valid array"
+      ],
+      "jetons_entree": 1046,
+      "jetons_sortie": 399
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 2,
+      "erreurs": [
+        "droit chauffeur/ProfilChauffeur/see : citation introuvable mot pour mot dans le brief — « diffuseraient directement aux chauffeurs » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1491,
+      "jetons_sortie": 399
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 3,
+      "erreurs": [
+        "droit chauffeur/ProfilChauffeur/see : citation introuvable mot pour mot dans le brief — « je souhaite proposer en interne le développement d'une application mobile qui centraliserait les informations de livraison et les diffuseraient directement aux chauffeurs » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)",
+        "droit chauffeur/ProfilChauffeur/see : citation introuvable mot pour mot dans le brief — « L'application assurerait également un suivi en temps réel des livraisons » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1967,
+      "jetons_sortie": 358
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "ProfilStagiaire",
+        "libelle": "stagiaire",
+        "libelle_pluriel": "stagiaires",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "stagiaire",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "je me permets de vous contacter en tant que stagiaire"
+      },
+      {
+        "nom": "ProfilChauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "aux chauffeurs"
+      },
+      {
+        "nom": "ProfilSousTraitant",
+        "libelle": "sous-traitant",
+        "libelle_pluriel": "sous-traitants",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "sous_traitant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "nos sous-traitants"
+      },
+      {
+        "nom": "ProfilEntreprise",
+        "libelle": "entreprise",
+        "libelle_pluriel": "entreprises",
+        "feminin": true,
+        "nature": "profile",
+        "proprietaire": "entreprise",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "qu'une entreprise aura une demande de transport à faire"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Procase",
+        "fiche": null,
+        "raison": "non_utilisateur; la société n'est pas décrite comme une fiche à enregistrer"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": null,
+  "echec": "circuits ou droits refusés après 3 essais"
+}

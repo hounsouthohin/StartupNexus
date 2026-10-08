@@ -1,0 +1,340 @@
+{
+  "projet": "appr-autocars",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Logiciel de gestion pour société tourisme luxe autocars + chauffeurs ; le cœur est un logiciel de gestion avec fiches, planning, suivi de facturation et rôles implicites d'utilisation.",
+    "hors_stock": [
+      {
+        "besoin": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Codes couleurs par chauffeurs et par véhicules",
+        "categorie": "autre",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "besoin": "Suivi de facturation automatique",
+        "categorie": "calcul_statistiques",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs",
+        "categorie": "messagerie",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "besoin": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)",
+        "categorie": "calcul_statistiques",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "responsable de la société",
+        "libelle_pluriel": "responsables de la société",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion"
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "responsable",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "client",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "libelle": "véhicule",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 787,
+      "jetons_sortie": 339
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 673,
+      "jetons_sortie": 188
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1027,
+      "jetons_sortie": 240
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Client : un circuit a au moins deux états et une flèche (sinon, ne le liste pas)",
+        "circuit Vehicule : un circuit a au moins deux états et une flèche (sinon, ne le liste pas)"
+      ],
+      "jetons_entree": 779,
+      "jetons_sortie": 141
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 987,
+      "jetons_sortie": 11
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 791,
+      "jetons_sortie": 223
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers ... comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "client",
+        "fiche": "Client",
+        "raison": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "non_utilisateur": "véhicule",
+        "fiche": "Vehicule",
+        "raison": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "responsable",
+        "fiche": "Client",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "Client",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "Client",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "acteur": "responsable",
+        "fiche": "Vehicule",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "responsable de la société",
+        "label_plural": "responsables de la société",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion"
+      },
+      {
+        "id": "chauffeur",
+        "label": "chauffeur",
+        "label_plural": "chauffeurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "responsable",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "responsable",
+        "entity": "Client",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de fiches clients pour les réguliers"
+      },
+      {
+        "actor": "responsable",
+        "entity": "Client",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "actor": "responsable",
+        "entity": "Client",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      },
+      {
+        "actor": "responsable",
+        "entity": "Vehicule",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour responsable de la société : inviter des chauffeurs"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le responsable de la société": [
+      "voit tous les clients, en crée, les modifie",
+      "voit tous les véhicules, en crée, les modifie"
+    ],
+    "Le chauffeur": [
+      "voit tous les véhicules"
+    ]
+  },
+  "questions": [],
+  "secondes": 8.8,
+  "jetons": {
+    "entree": 5044,
+    "sortie": 1142,
+    "appels": 6
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "projet": "appr-union-sportive",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet inclut des fonctionnalités de paiement et d'export qui ne sont pas dans notre périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "Vérification du paiement avant activation",
+        "categorie": "paiement",
+        "citation": "Vérification du paiement avant activation"
+      },
+      {
+        "besoin": "Saisie manuelle ou intégration d'un module de paiement en ligne",
+        "categorie": "paiement",
+        "citation": "Saisie manuelle ou intégration d'un module de paiement en ligne"
+      },
+      {
+        "besoin": "Validation d'activité ou d'adhésion uniquement après paiement confirmé",
+        "categorie": "paiement",
+        "citation": "Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+      },
+      {
+        "besoin": "Export par période",
+        "categorie": "fichiers_photos",
+        "citation": "Export par période"
+      },
+      {
+        "besoin": "Export CSV/Excel (adhérents, adhésions, activités, homologations)",
+        "categorie": "fichiers_photos",
+        "citation": "Export CSV/Excel (adhérents, adhésions, activités, homologations)"
+      },
+      {
+        "besoin": "Tableaux de bord de suivi",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableaux de bord de suivi"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "L'association recherche un développeur pour concevoir une application web responsive (consultable sur téléphone, tablette et ordinateur) destinée à centraliser toutes nos opérations internes."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "adhérent",
+        "citation": "Gestion des adhérents :\n- Création, modification, suppression de fiches membres\n- Statut actif/inactif\n- Historique des adhésions et cotisations"
+      },
+      {
+        "libelle": "participant",
+        "citation": "Gestion des participants :\n- Suivi des inscrits aux activités\n- Lien entre participant, activité et statut d'homologation"
+      },
+      {
+        "libelle": "activité",
+        "citation": "Calendrier d'activités :\n- Affichage public consultable sur tous supports\n- Gestion interne : création, modification, annulation"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Adherent : « gestionnaires » seulement pour un catalog",
+        "fiche Adherent : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Adherent : « parent » seulement pour un child",
+        "fiche Adherent : référence « null » inconnue — les références sont des NOMS DE FICHES parmi ['Adherent', 'Adhesion', 'Participant', 'Activite', 'Homologation'] (pas des acteurs)",
+        "fiche Adhesion : « gestionnaires » seulement pour un catalog",
+        "fiche Adhesion : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Adhesion : « parent » seulement pour un child",
+        "fiche Participant : « gestionnaires » seulement pour un catalog",
+        "fiche Participant : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Participant : « parent » seulement pour un child",
+        "fiche Activite (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Activite : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Activite : « parent » seulement pour un child",
+        "fiche Homologation : « gestionnaires » seulement pour un catalog",
+        "fiche Homologation : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Homologation : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Adherent : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Adherent : « parent » seulement pour un child",
+        "fiche Adherent : référence « null » inconnue — les références sont des NOMS DE FICHES parmi ['Adherent', 'Adhesion', 'Participant', 'Activite', 'Homologation'] (pas des acteurs)",
+        "fiche Adhesion : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Adhesion : « parent » seulement pour un child",
+        "fiche Participant : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Participant : « parent » seulement pour un child",
+        "fiche Activite (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Activite : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Activite : « parent » seulement pour un child",
+        "fiche Homologation : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Homologation : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche Adherent : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Adherent : « parent » seulement pour un child",
+        "fiche Adhesion : « parent » seulement pour un child",
+        "fiche Participant : « parent » seulement pour un child",
+        "fiche Activite (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Activite : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Activite : « parent » seulement pour un child",
+        "fiche Homologation : « parent » seulement pour un child"
+      ]
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

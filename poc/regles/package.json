@@ -1,0 +1,23 @@
+{
+  "name": "poc-regles",
+  "private": true,
+  "type": "module",
+  "description": "Essai 2 : la traduction matrice → règles ZenStack reste-t-elle mécanique sur les cas durs ?",
+  "scripts": {
+    "run-case": "tsx run.ts"
+  },
+  "dependencies": {
+    "@zenstackhq/orm": "^3.9.7",
+    "@zenstackhq/plugin-policy": "^3.9.7",
+    "@zenstackhq/schema": "^3.9.7",
+    "pg": "^8.23.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "@zenstackhq/cli": "^3.9.7",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,254 @@
+{
+  "projet": "appr-formation",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet concerne la gestion d'une activité de formation avec des éléments de facturation et de gestion comptable.",
+    "hors_stock": [
+      {
+        "besoin": "envoi contrat",
+        "categorie": "notification",
+        "citation": "envoi contrat"
+      },
+      {
+        "besoin": "facturation",
+        "categorie": "paiement",
+        "citation": "puis la facturation"
+      },
+      {
+        "besoin": "établissement d'un bilan",
+        "categorie": "autre",
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "besoin": "gestion comptable associée",
+        "categorie": "autre",
+        "citation": "on a besoin d'une gestion comptable associée"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "stagiaire",
+        "citation": "une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "libelle": "entité de base",
+        "citation": "puis la facturation et l'établissement d'un bilan pour l'entité de base"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "gerant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création d'un logiciel de gestion pour organisme de formation."
+      },
+      {
+        "nom": "SessionFormation",
+        "libelle": "Session de Formation",
+        "libelle_pluriel": "Sessions de Formation",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité : une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation."
+      },
+      {
+        "nom": "Facturation",
+        "libelle": "Facturation",
+        "libelle_pluriel": "Facturations",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "gerant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "SessionFormation"
+        ],
+        "citation": "puis la facturation et l'établissement d'un bilan pour l'entité de base."
+      },
+      {
+        "nom": "Bilan",
+        "libelle": "Bilan",
+        "libelle_pluriel": "Bilans",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "gerant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "SessionFormation"
+        ],
+        "citation": "puis la facturation et l'établissement d'un bilan pour l'entité de base."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "gerant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création d'un logiciel de gestion pour organisme de formation"
+      },
+      {
+        "name": "SessionFormation",
+        "label": "Session de Formation",
+        "label_plural": "Sessions de Formation",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité : une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "name": "Facturation",
+        "label": "Facturation",
+        "label_plural": "Facturations",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "gerant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "SessionFormation"
+        ],
+        "citation": "puis la facturation et l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "name": "Bilan",
+        "label": "Bilan",
+        "label_plural": "Bilans",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "gerant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "SessionFormation"
+        ],
+        "citation": "puis la facturation et l'établissement d'un bilan pour l'entité de base"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gérant": [
+      "a son Gérant, créé automatiquement, qu'il peut modifier",
+      "voit toutes les Sessions de Formation, en crée, les modifie",
+      "voit ses Facturations, en crée, les modifie",
+      "voit ses Bilans, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 11.5
+}

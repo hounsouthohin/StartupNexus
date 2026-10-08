@@ -18,6 +18,11 @@ factory-sprint0/personal-blog/
 # Logs de runs
 sorties.md
 
+# Usine d'assemblage : fabrications (une app complète par run) et dépendances du squelette
+runs/
+usine/modele-app/node_modules/
+usine/modele-app/.next/
+
 # Notes locales non versionnées
 remarques.md
 reponses.md

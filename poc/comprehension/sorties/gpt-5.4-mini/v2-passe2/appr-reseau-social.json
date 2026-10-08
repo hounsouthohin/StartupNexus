@@ -1,0 +1,1181 @@
+{
+  "projet": "appr-reseau-social",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est « un réseau social », ce qui est hors de notre périmètre. Le brief demande aussi plusieurs besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Interface générale avec l'ensemble des publications",
+        "categorie": "autre",
+        "citation": "Interface générale avec l'ensemble des publications"
+      },
+      {
+        "besoin": "Filtre sur l'interface générale",
+        "categorie": "autre",
+        "citation": "Filtre sur l'interface générale"
+      },
+      {
+        "besoin": "Création de sous-communautés",
+        "categorie": "autre",
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "besoin": "Messagerie privée",
+        "categorie": "messagerie",
+        "citation": "Messagerie privée"
+      },
+      {
+        "besoin": "Système de sondages",
+        "categorie": "autre",
+        "citation": "Système de sondages"
+      },
+      {
+        "besoin": "Publication de photos, vidéos et GIF",
+        "categorie": "fichiers_photos",
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "besoin": "Classement pour référencer les utilisateurs",
+        "categorie": "calcul_statistiques",
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "besoin": "Système de récompenses avec achat de cadeaux",
+        "categorie": "paiement",
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "besoin": "Possibilité de booster les publications",
+        "categorie": "autre",
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "besoin": "Option de suivre un utilisateur",
+        "categorie": "autre",
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "besoin": "Système de notifications",
+        "categorie": "notification",
+        "citation": "Système de notifications"
+      },
+      {
+        "besoin": "espace blog où des articles seront postés et partagés à la communauté",
+        "categorie": "autre",
+        "citation": "Le site devra également trouver un espace blog où des articles seront postés et partagés à la communauté."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un developper de site internet freelance afin de créer un réseau social."
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "utilisateur",
+        "libelle_pluriel": "utilisateurs",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "Classement pour référencer les utilisateurs ... Option de suivre un utilisateur"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "développer de site internet freelance",
+        "citation": "Nous recherchons un developper de site internet freelance afin de créer un réseau social."
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 710,
+      "jetons_sortie": 366
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 596,
+      "jetons_sortie": 157
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche SuiviUtilisateur : référence « Utilisateur » inconnue — les références sont des NOMS DE FICHES parmi ['Publication', 'SousCommunaute', 'MessagePrive', 'Sondage', 'Media', 'ClassementUtilisateur', 'Recompense', 'Cadeau', 'BoostPublication', 'SuiviUtilisateur', 'Notification', 'BlogArticle'] (pas des acteurs)"
+      ],
+      "jetons_entree": 948,
+      "jetons_sortie": 966
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 2015,
+      "jetons_sortie": 964
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit BlogArticle : sur un registre, l'initiateur est l'un de ceux qui le tiennent : ['administrateur']"
+      ],
+      "jetons_entree": 928,
+      "jetons_sortie": 109
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1083,
+      "jetons_sortie": 109
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 940,
+      "jetons_sortie": 1234
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Publication",
+        "libelle": "publication",
+        "libelle_pluriel": "publications",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'ensemble des publications ... Publication de photos, vidéos et GIF"
+      },
+      {
+        "nom": "SousCommunaute",
+        "libelle": "sous-communauté",
+        "libelle_pluriel": "sous-communautés",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "nom": "MessagePrive",
+        "libelle": "message privé",
+        "libelle_pluriel": "messageries privées",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Messagerie privée"
+      },
+      {
+        "nom": "Sondage",
+        "libelle": "sondage",
+        "libelle_pluriel": "sondages",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de sondages"
+      },
+      {
+        "nom": "Media",
+        "libelle": "média",
+        "libelle_pluriel": "médias",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Publication",
+        "references": [],
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "nom": "ClassementUtilisateur",
+        "libelle": "classement pour référencer les utilisateurs",
+        "libelle_pluriel": "classements pour référencer les utilisateurs",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "nom": "Recompense",
+        "libelle": "récompense",
+        "libelle_pluriel": "récompenses",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "nom": "Cadeau",
+        "libelle": "cadeau",
+        "libelle_pluriel": "cadeaux",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "nom": "BoostPublication",
+        "libelle": "boost de publication",
+        "libelle_pluriel": "boosts de publication",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Publication"
+        ],
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "nom": "SuiviUtilisateur",
+        "libelle": "suivi d'utilisateur",
+        "libelle_pluriel": "suivis d'utilisateurs",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "nom": "Notification",
+        "libelle": "notification",
+        "libelle_pluriel": "notifications",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de notifications"
+      },
+      {
+        "nom": "BlogArticle",
+        "libelle": "article de blog",
+        "libelle_pluriel": "articles de blog",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "développer de site internet freelance",
+        "fiche": null,
+        "raison": "Ce n'est pas une chose à enregistrer."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "BlogArticle",
+        "etat_initial": "brouillon",
+        "transitions": {
+          "brouillon": [
+            "publie"
+          ],
+          "publie": [
+            "archive"
+          ]
+        },
+        "libelles": {
+          "brouillon": "brouillon",
+          "publie": "publié",
+          "archive": "archivé"
+        },
+        "initiateur": "administrateur",
+        "decideur": "administrateur",
+        "etapes_par": {},
+        "citation": "Le site devra également trouver un espace blog où des articles seront postés et partagés à la communauté."
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Publication",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface générale avec l'ensemble des publications"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Publication",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface générale avec l'ensemble des publications"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "SousCommunaute",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "SousCommunaute",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "MessagePrive",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Messagerie privée"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "MessagePrive",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Messagerie privée"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Sondage",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de sondages"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Sondage",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de sondages"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Media",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Media",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "ClassementUtilisateur",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "ClassementUtilisateur",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Recompense",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Recompense",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Cadeau",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Cadeau",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "BoostPublication",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "BoostPublication",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "SuiviUtilisateur",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "SuiviUtilisateur",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Notification",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de notifications"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Notification",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Système de notifications"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "BlogArticle",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "BlogArticle",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "BlogArticle",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "BlogArticle",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un developper de site internet freelance afin de créer un réseau social"
+      },
+      {
+        "id": "utilisateur",
+        "label": "utilisateur",
+        "label_plural": "utilisateurs",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "Classement pour référencer les utilisateurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Publication",
+        "label": "publication",
+        "label_plural": "publications",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "name": "SousCommunaute",
+        "label": "sous-communauté",
+        "label_plural": "sous-communautés",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "name": "MessagePrive",
+        "label": "message privé",
+        "label_plural": "messageries privées",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Messagerie privée"
+      },
+      {
+        "name": "Sondage",
+        "label": "sondage",
+        "label_plural": "sondages",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de sondages"
+      },
+      {
+        "name": "Media",
+        "label": "média",
+        "label_plural": "médias",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Publication",
+        "references": [],
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "name": "ClassementUtilisateur",
+        "label": "classement pour référencer les utilisateurs",
+        "label_plural": "classements pour référencer les utilisateurs",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "name": "Recompense",
+        "label": "récompense",
+        "label_plural": "récompenses",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "name": "Cadeau",
+        "label": "cadeau",
+        "label_plural": "cadeaux",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "name": "BoostPublication",
+        "label": "boost de publication",
+        "label_plural": "boosts de publication",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Publication"
+        ],
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "name": "SuiviUtilisateur",
+        "label": "suivi d'utilisateur",
+        "label_plural": "suivis d'utilisateurs",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "name": "Notification",
+        "label": "notification",
+        "label_plural": "notifications",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Système de notifications"
+      },
+      {
+        "name": "BlogArticle",
+        "label": "article de blog",
+        "label_plural": "articles de blog",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté",
+        "process": {
+          "initial": "brouillon",
+          "transitions": {
+            "brouillon": [
+              "publie"
+            ],
+            "publie": [
+              "archive"
+            ]
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "brouillon": "brouillon",
+            "publie": "publié",
+            "archive": "archivé"
+          },
+          "citation": "Le site devra également trouver un espace blog où des articles seront postés et partagés à la communauté"
+        }
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Publication",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface générale avec l'ensemble des publications"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Publication",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface générale avec l'ensemble des publications"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "SousCommunaute",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "SousCommunaute",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de sous-communautés"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "MessagePrive",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Messagerie privée"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "MessagePrive",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Messagerie privée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Sondage",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de sondages"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Sondage",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de sondages"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Media",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Media",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Publication de photos, vidéos et GIF"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "ClassementUtilisateur",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "ClassementUtilisateur",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Classement pour référencer les utilisateurs"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Recompense",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Recompense",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Cadeau",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Cadeau",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de récompenses avec achat de cadeaux"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "BoostPublication",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "BoostPublication",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Possibilité de booster les publications"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "SuiviUtilisateur",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "SuiviUtilisateur",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Option de suivre un utilisateur"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Notification",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de notifications"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Notification",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Système de notifications"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "BlogArticle",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "BlogArticle",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "BlogArticle",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "BlogArticle",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un espace blog où des articles seront postés et partagés à la communauté"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit toutes les publications",
+      "voit toutes les sous-communautés, en crée, les modifie",
+      "voit tous les messageries privées",
+      "voit tous les classements pour référencer les utilisateurs, en crée, les modifie",
+      "voit toutes les récompenses, en crée, les modifie",
+      "voit tous les cadeaux, en crée, les modifie",
+      "voit toutes les notifications",
+      "voit tous les articles de blog, en crée, les modifie, les fait passer de « brouillon » à « publié », les fait passer de « publié » à « archivé »"
+    ],
+    "L'utilisateur": [
+      "voit toutes les publications, en crée, les modifie",
+      "voit tous les messageries privées, en crée, les modifie",
+      "voit ses sondages, en crée, les modifie",
+      "voit ses médias, en crée, les modifie",
+      "voit tous les classements pour référencer les utilisateurs",
+      "voit toutes les récompenses, en crée",
+      "voit tous les cadeaux, en crée",
+      "voit ses boosts de publication, en crée, les modifie",
+      "voit ses suivis d'utilisateurs, en crée, les modifie",
+      "voit toutes les notifications, en crée, les modifie",
+      "voit tous les articles de blog, en crée"
+    ]
+  },
+  "questions": [],
+  "secondes": 22.3,
+  "jetons": {
+    "entree": 7220,
+    "sortie": 3905,
+    "appels": 7
+  }
+}

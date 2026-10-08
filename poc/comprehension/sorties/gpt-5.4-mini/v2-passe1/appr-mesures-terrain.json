@@ -1,0 +1,277 @@
+{
+  "projet": "appr-mesures-terrain",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Création d'un logiciel de gestion de commande. ... qui faciliterait la gestion des commandes",
+    "hors_stock": [
+      {
+        "besoin": "planning logistique",
+        "categorie": "planning",
+        "citation": "un planning logistique"
+      },
+      {
+        "besoin": "automatisation de la gestion des livrables",
+        "categorie": "automatisation",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "responsable de l'application",
+        "libelle_pluriel": "responsables de l'application",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Création d'un logiciel de gestion de commande."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "mesure scientifiques sur terrain",
+        "citation": "mesure scientifiques sur terrain"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 617,
+      "jetons_sortie": 88
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 503,
+      "jetons_sortie": 90
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 842,
+      "jetons_sortie": 267
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Livrable : un circuit a au moins deux états et une flèche (sinon, ne le liste pas)",
+        "circuit Livrable : état « automatisée » en minuscules sans accent"
+      ],
+      "jetons_entree": 618,
+      "jetons_sortie": 151
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 830,
+      "jetons_sortie": 84
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 630,
+      "jetons_sortie": 11
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Commande",
+        "libelle": "commande",
+        "libelle_pluriel": "commandes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des commandes"
+      },
+      {
+        "nom": "PlanningLogistique",
+        "libelle": "planning logistique",
+        "libelle_pluriel": "plannings logistiques",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "planning logistique"
+      },
+      {
+        "nom": "Livrable",
+        "libelle": "livrable",
+        "libelle_pluriel": "livrables",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "automatisation de la gestion des livrables"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "mesure scientifiques sur terrain",
+        "fiche": null,
+        "raison": "ce n'est pas une chose à enregistrer"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Commande",
+        "etat_initial": "ouverte",
+        "transitions": {
+          "ouverte": [
+            "cloturee"
+          ],
+          "cloturee": []
+        },
+        "libelles": {
+          "ouverte": "ouverte",
+          "cloturee": "clôturée"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "gestion des commandes ... planning logistique"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "responsable de l'application",
+        "label_plural": "responsables de l'application",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Création d'un logiciel de gestion de commande"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des commandes",
+        "process": {
+          "initial": "ouverte",
+          "transitions": {
+            "ouverte": [
+              "cloturee"
+            ],
+            "cloturee": []
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "ouverte": "ouverte",
+            "cloturee": "clôturée"
+          },
+          "citation": "gestion des commandes"
+        }
+      },
+      {
+        "name": "PlanningLogistique",
+        "label": "planning logistique",
+        "label_plural": "plannings logistiques",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "planning logistique"
+      },
+      {
+        "name": "Livrable",
+        "label": "livrable",
+        "label_plural": "livrables",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "automatisation de la gestion des livrables"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le responsable de l'application": [
+      "voit toutes les commandes, en crée, les modifie, les fait passer de « ouverte » à « clôturée »",
+      "voit tous les plannings logistiques, en crée, les modifie",
+      "voit tous les livrables, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 7.9,
+  "jetons": {
+    "entree": 4040,
+    "sortie": 691,
+    "appels": 6
+  }
+}

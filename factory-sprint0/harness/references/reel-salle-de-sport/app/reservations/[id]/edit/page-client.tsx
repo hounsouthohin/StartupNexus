@@ -1,0 +1,71 @@
+'use client'
+
+import { useActionState } from 'react'
+import Link from 'next/link'
+import type { SerializedReservation } from '@/lib/types'
+import type { SerializedMember } from '@/lib/types'
+import { updateReservation } from '@/app/reservations/actions'
+
+
+interface ReservationEditClientProps {
+  item: SerializedReservation
+  memberOptions: SerializedMember[]
+}
+
+export default function ReservationEditClient({ item, memberOptions }: ReservationEditClientProps) {
+  const [error, formAction, isPending] = useActionState(
+    async (_prev: unknown, formData: FormData) => {
+      try { await updateReservation.bind(null, item.id)(formData); return null }
+      catch (e) { return (e as Error).message }
+    },
+    null,
+  )
+
+  return (
+    <main className="container mx-auto p-8 max-w-xl">
+      <div className="flex items-center gap-3 mb-6">
+        <Link href="/reservations" className="text-muted-foreground hover:text-foreground">←</Link>
+        <h1 className="text-2xl font-bold text-foreground">Modifier Réservation</h1>
+      </div>
+
+      {error && <p className="mb-4 text-sm text-red-600 bg-red-50 px-4 py-2 rounded">{error}</p>}
+
+      <form action={formAction} className="space-y-4 bg-card rounded-lg shadow-sm border border-border p-8">
+
+        <div>
+          <label htmlFor="memberId" className="block text-sm font-medium text-foreground mb-1">
+            Identifiant membre
+          </label>
+          <select
+            id="memberId"
+            name="memberId"
+            defaultValue={item.memberId ?? ''}
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-muted disabled:text-muted-foreground"
+          >
+            <option value="">Sélectionner…</option>
+            {memberOptions.map(opt => (
+              <option key={opt.id} value={opt.id}>{String(opt.id ?? opt.id)}</option>
+            ))}
+          </select>
+        </div>
+
+
+        <div className="flex gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={isPending}
+            className="flex-1 px-6 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-primary/85 disabled:opacity-50"
+          >
+            {isPending ? 'En cours…' : 'Enregistrer'}
+          </button>
+          <Link
+            href="/reservations"
+            className="px-6 py-2 border border-border rounded-md text-sm font-medium text-foreground hover:bg-muted/50"
+          >
+            Annuler
+          </Link>
+        </div>
+      </form>
+    </main>
+  )
+}

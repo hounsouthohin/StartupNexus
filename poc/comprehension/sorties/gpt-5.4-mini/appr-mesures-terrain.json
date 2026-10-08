@@ -1,0 +1,217 @@
+{
+  "projet": "appr-mesures-terrain",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet inclut un planning logistique et une automatisation de la gestion des livrables, qui sont hors de notre stock.",
+    "hors_stock": [
+      {
+        "besoin": "planning logistique",
+        "categorie": "planning",
+        "citation": "un planning logistique"
+      },
+      {
+        "besoin": "automatisation de la gestion des livrables",
+        "categorie": "automatisation",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "responsable",
+        "libelle_pluriel": "responsables",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Création d'un logiciel de gestion de commande."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "mesure scientifiques sur terrain",
+        "citation": "(mesure scientifiques sur terrain)"
+      },
+      {
+        "libelle": "livrables",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Commande (collection) : « proprietaire » doit être un id d'acteur parmi ['responsable']",
+        "fiche Commande : « gestionnaires » seulement pour un catalog"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Commande",
+        "libelle": "commande",
+        "libelle_pluriel": "commandes",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "responsable",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des commandes"
+      },
+      {
+        "nom": "PlanningLogistique",
+        "libelle": "planning logistique",
+        "libelle_pluriel": "plannings logistiques",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "un planning logistique"
+      },
+      {
+        "nom": "Livrable",
+        "libelle": "livrable",
+        "libelle_pluriel": "livrables",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "responsable",
+        "label_plural": "responsables",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Création d'un logiciel de gestion de commande"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "responsable",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des commandes"
+      },
+      {
+        "name": "PlanningLogistique",
+        "label": "planning logistique",
+        "label_plural": "plannings logistiques",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "un planning logistique"
+      },
+      {
+        "name": "Livrable",
+        "label": "livrable",
+        "label_plural": "livrables",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le responsable": [
+      "voit ses commandes, en crée, les modifie",
+      "voit tous les plannings logistiques, en crée, les modifie",
+      "voit tous les livrables, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 6.4
+}

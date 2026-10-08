@@ -1,0 +1,53 @@
+// Notes de frais — traduction de harness/matrices/notes-frais.expected.yaml
+// Cas testé : plusieurs acteurs dans un même circuit (l'employé soumet, le responsable décide),
+// modification permise seulement en brouillon.
+
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+type Auth {
+    id   String @id
+    role String
+    @@auth
+}
+
+enum ExpenseReportStatus {
+    draft
+    submitted
+    approved
+    refused
+    reimbursed
+}
+
+// collection · propriétaire : employee · circuit : initiateur employee, décideur manager, étape « draft » par employee
+model ExpenseReport {
+    id      String              @id @default(cuid())
+    ownerId String              @default(auth().id)
+    label   String
+    amount  Int
+    status  ExpenseReportStatus @default(draft)
+
+    // voir : l'employé les siennes, le responsable toutes
+    @@allow('read', auth().role == 'employee' && ownerId == auth().id)
+    @@allow('read', auth().role == 'manager')
+    // créer : l'initiateur, pour lui-même, dans l'état initial
+    @@allow('create', auth().role == 'employee' && ownerId == auth().id && status == draft)
+    // toucher : qui peut modifier ou faire une étape
+    @@allow('update', auth() != null && ownerId == auth().id)
+    @@allow('update', auth().role == 'manager')
+    // résultat permis — modifier sans changer d'état, seulement en brouillon (edit_while)
+    // (pas « status == before().status » : bug ZenStack 3.9.7, enum comparé à du texte → erreur SQL)
+    @@allow('post-update', auth().role == 'employee' && before().status == draft && status == draft)
+    // résultat permis — une règle par flèche, les autres champs inchangés
+    @@allow('post-update', auth().role == 'employee' && before().status == draft && status == submitted && label == before().label && amount == before().amount)
+    @@allow('post-update', auth().role == 'manager' && before().status == submitted && (status == approved || status == refused) && label == before().label && amount == before().amount)
+    @@allow('post-update', auth().role == 'manager' && before().status == approved && status == reimbursed && label == before().label && amount == before().amount)
+    // le propriétaire ne change jamais
+    @@deny('post-update', ownerId != before().ownerId)
+}

@@ -32,7 +32,9 @@ def _call(method: str, path: str, body: dict | None = None):
     req = urllib.request.Request(
         f"{API}{path}", method=method,
         data=json.dumps(body).encode() if body is not None else None,
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        # Cloudflare (devant l'API Clerk) bloque l'User-Agent par défaut de urllib (erreur 1010).
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                 "User-Agent": "startupnexus-factory-spike/1.0"},
     )
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
@@ -65,7 +67,9 @@ def check(email: str) -> None:
     u = users[0]
     role = (u.get("public_metadata") or {}).get("role")
     print(f"compte {u.get('id')} — publicMetadata : {u.get('public_metadata')}")
-    print("✓ le rôle est bien porté par le compte" if role else "✗ le compte n'a PAS de rôle : contournement nécessaire (webhook user.created)")
+    print(f"✓ rôle porté par le compte : {role}" if role else
+          "• aucun rôle sur ce compte (normal s'il n'a pas été créé par une invitation avec rôle ; "
+          "si oui → contournement par le webhook user.created)")
 
 
 if __name__ == "__main__":

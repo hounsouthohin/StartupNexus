@@ -1,0 +1,72 @@
+// Garage — traduction de harness/matrices/garage-atlas.expected.yaml
+// Cas testé : le patron saisit POUR le client (créateur ≠ propriétaire) ; acteur invité.
+
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+type Auth {
+    id   String @id
+    role String
+    @@auth
+}
+
+// profil · propriétaire : client (invité par le patron, profil créé à sa première connexion)
+model ClientProfile {
+    id       String    @id @default(cuid())
+    userId   String    @unique @default(auth().id)
+    name     String
+    phone    String?
+    vehicles Vehicle[]
+    repairs  Repair[]
+
+    @@allow('create', auth().role == 'client')
+    @@allow('read,update', auth().role == 'client' && userId == auth().id)
+    @@allow('read', auth().role == 'owner')                  // « Je note le nom du client, son téléphone »
+    @@deny('post-update', userId != before().userId)
+}
+
+// collection · propriétaire : client · saisie par : owner (le patron)
+model Vehicle {
+    id      String        @id @default(cuid())
+    ownerId String                                           // le client, choisi par le patron
+    client  ClientProfile @relation(fields: [ownerId], references: [userId])
+    plate   String
+    repairs Repair[]
+
+    @@allow('read', auth().role == 'client' && ownerId == auth().id)
+    @@allow('read,create,update', auth().role == 'owner')
+    @@deny('post-update', ownerId != before().ownerId)
+}
+
+enum RepairStatus {
+    pending
+    in_progress
+    refused
+    done
+}
+
+// collection · propriétaire : client · circuit : initiateur owner, décideur owner
+model Repair {
+    id          String        @id @default(cuid())
+    ownerId     String
+    client      ClientProfile @relation(fields: [ownerId], references: [userId])
+    vehicleId   String
+    vehicle     Vehicle       @relation(fields: [vehicleId], references: [id])
+    description String
+    status      RepairStatus  @default(pending)
+
+    @@allow('read', auth().role == 'client' && ownerId == auth().id)
+    @@allow('read', auth().role == 'owner')
+    // cohérence (absente de la matrice, trouvée par le test) : le véhicule est celui du même client
+    @@allow('create', auth().role == 'owner' && status == pending && vehicle.ownerId == ownerId)
+    @@allow('update', auth().role == 'owner')
+    @@allow('post-update', auth().role == 'owner' && before().status == pending && (status == in_progress || status == refused) && description == before().description && vehicleId == before().vehicleId)
+    @@allow('post-update', auth().role == 'owner' && before().status == in_progress && status == done && description == before().description && vehicleId == before().vehicleId)
+    @@deny('post-update', ownerId != before().ownerId)
+}

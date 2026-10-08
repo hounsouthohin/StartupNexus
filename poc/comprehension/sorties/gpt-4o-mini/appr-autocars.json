@@ -1,0 +1,121 @@
+{
+  "projet": "appr-autocars",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet concerne la gestion de planning et de facturation, ce qui dépasse notre périmètre de gestion de petites structures.",
+    "hors_stock": [
+      {
+        "besoin": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Suivi de facturation automatique",
+        "categorie": "autre",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs",
+        "categorie": "notification",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "besoin": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)",
+        "categorie": "autre",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture."
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "client régulier",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)."
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche ClientRegulier (profile) : « proprietaire » doit être un id d'acteur parmi ['gerant', 'chauffeur']",
+        "fiche ClientRegulier : « gestionnaires » seulement pour un catalog",
+        "fiche ClientRegulier : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche ClientRegulier : « parent » seulement pour un child",
+        "fiche Planning (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Planning : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Planning : « parent » seulement pour un child",
+        "fiche Facturation (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Facturation : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Facturation : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche ClientRegulier : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche ClientRegulier : « parent » seulement pour un child",
+        "fiche Planning (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Planning : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Planning : « parent » seulement pour un child",
+        "fiche Facturation (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Facturation : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Facturation : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche ClientRegulier : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche ClientRegulier : « parent » seulement pour un child",
+        "fiche Planning (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Planning : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Planning : « parent » seulement pour un child",
+        "fiche Facturation (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Facturation : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Facturation : « parent » seulement pour un child"
+      ]
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

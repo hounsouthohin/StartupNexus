@@ -1,0 +1,523 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "reel-sav-depannage",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-10-04T15:13:26+00:00",
+  "run_id": "capture-5f647172",
+  "brief": {
+    "description": "Gérer le suivi du dépannage de matériel informatique (BtoC). En gros la base contiendra : une table client (coordonnées) une table Machine (n machines par client) décrivant techniquement celle-ci une table Intervention (une machine est déposé à une date x pour un dépannage, donc n interventions possible par machine. gestion de l'état des interventions : ouverte, en cours, cloturée, payée) une table action (n actions par interventions permettant le suivie de celle-ci), cette table contient les actions faites ou a faire (changement d'état de ces actions). La base contiendra en plus un certains nombre de table de choix pour des valeurs prédéfinies de certains champs (exemple socket machine : valeur 478 / 754 / 775 / AM2 ...). L'appli doit permettre de créer / modifier / supprimer les enregistrements de cette base. Elle doit permettre différentes imrpession et proposer l'affichage d'un planning des interventions en cours. J'attends avant tout une application propre et fiable permettant une saisie rapide."
+  },
+  "project_spec": {
+    "project_name": "reel-sav-depannage",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Gérer le suivi du dépannage de matériel informatique (BtoC). En gros la base contiendra : une table client (coordonnées) une table Machine (n machines par client) décrivant techniquement celle-ci une table Intervention (une machine est déposé à une date x pour un dépannage, donc n interventions possible par machine. gestion de l'état des interventions : ouverte, en cours, cloturée, payée) une table action (n actions par interventions permettant le suivie de celle-ci), cette table contient les actions faites ou a faire (changement d'état de ces actions). La base contiendra en plus un certains nombre de table de choix pour des valeurs prédéfinies de certains champs (exemple socket machine : valeur 478 / 754 / 775 / AM2 ...). L'appli doit permettre de créer / modifier / supprimer les enregistrements de cette base. Elle doit permettre différentes imrpession et proposer l'affichage d'un planning des interventions en cours. J'attends avant tout une application propre et fiable permettant une saisie rapide.",
+    "models": [
+      {
+        "name": "Client",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "address",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "machines",
+            "type": "Machine[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Machine",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "model",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "serialNumber",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "socket",
+            "type": "MachineSocket",
+            "attributes": ""
+          },
+          {
+            "name": "clientId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "client",
+            "type": "Client",
+            "attributes": "@relation(fields: [clientId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "interventions",
+            "type": "Intervention[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Intervention",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "InterventionStatus",
+            "attributes": "@default(ouverte)"
+          },
+          {
+            "name": "machineId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "machine",
+            "type": "Machine",
+            "attributes": "@relation(fields: [machineId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "actions",
+            "type": "Action[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Action",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "description",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "ActionStatus",
+            "attributes": "@default(a_faire)"
+          },
+          {
+            "name": "interventionId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "intervention",
+            "type": "Intervention",
+            "attributes": "@relation(fields: [interventionId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/clients",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Client"
+      },
+      {
+        "path": "/clients/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Client"
+      },
+      {
+        "path": "/clients/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Client"
+      },
+      {
+        "path": "/clients/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Client"
+      },
+      {
+        "path": "/machines",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Machine"
+      },
+      {
+        "path": "/machines/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Machine"
+      },
+      {
+        "path": "/machines/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Machine"
+      },
+      {
+        "path": "/machines/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Machine"
+      },
+      {
+        "path": "/interventions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Intervention"
+      },
+      {
+        "path": "/interventions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Intervention"
+      },
+      {
+        "path": "/interventions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Intervention"
+      },
+      {
+        "path": "/interventions/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Intervention"
+      },
+      {
+        "path": "/actions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Action"
+      },
+      {
+        "path": "/actions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Action"
+      },
+      {
+        "path": "/actions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Action"
+      },
+      {
+        "path": "/actions/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Action"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation de l'application de gestion de dépannage de matériel informatique. Permet de visualiser les fonctionnalités principales telles que la gestion des clients, des machines, des interventions et des actions associées. Affiche également un aperçu du planning des interventions en cours.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /clients : l'utilisateur consulte et gère les clients",
+      "Sur /clients/new : l'utilisateur crée un nouveau client",
+      "Sur /clients/[id] : l'utilisateur consulte le détail d'un client",
+      "Sur /machines : l'utilisateur consulte et gère les machines",
+      "Sur /machines/new : l'utilisateur crée une nouvelle machine",
+      "Sur /machines/[id] : l'utilisateur consulte le détail d'une machine",
+      "Sur /interventions : l'utilisateur consulte et gère les interventions",
+      "Sur /interventions/new : l'utilisateur crée une nouvelle intervention",
+      "Sur /interventions/[id] : l'utilisateur consulte le détail d'une intervention",
+      "Sur /actions : l'utilisateur consulte et gère les actions",
+      "Sur /actions/new : l'utilisateur crée une nouvelle action",
+      "Sur /actions/[id] : l'utilisateur consulte le détail d'une action"
+    ],
+    "ui_labels": {
+      "Client": {
+        "name": "Nom",
+        "email": "Email",
+        "address": "Adresse"
+      },
+      "Machine": {
+        "model": "Modèle",
+        "serialNumber": "Numéro de série",
+        "socket": "Socket"
+      },
+      "Intervention": {
+        "date": "Date",
+        "status": "Statut"
+      },
+      "Action": {
+        "description": "Description",
+        "status": "Statut"
+      }
+    },
+    "title_plurals": {
+      "Client": "Clients",
+      "Machine": "Machines",
+      "Intervention": "Interventions",
+      "Action": "Actions"
+    },
+    "title_singulars": {
+      "Client": "Client",
+      "Machine": "Machine",
+      "Intervention": "Intervention",
+      "Action": "Action"
+    },
+    "enums": {
+      "MachineSocket": [
+        "478",
+        "754",
+        "775",
+        "am2"
+      ],
+      "InterventionStatus": [
+        "ouverte",
+        "en_cours",
+        "cloturee",
+        "payee"
+      ],
+      "ActionStatus": [
+        "a_faire",
+        "faite"
+      ]
+    },
+    "enum_value_labels": {
+      "MachineSocket": {
+        "478": "478",
+        "754": "754",
+        "775": "775",
+        "am2": "AM2"
+      },
+      "InterventionStatus": {
+        "ouverte": "Ouverte",
+        "en_cours": "En cours",
+        "cloturee": "Clôturée",
+        "payee": "Payée"
+      },
+      "ActionStatus": {
+        "a_faire": "À faire",
+        "faite": "Faite"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "5a034b7f12a17578",
+    "design_system": {
+      "preset_name": "saas_dashboard",
+      "primary_color": "blue-700",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "slate-900",
+      "density": "compact",
+      "card_style": "elevated",
+      "list_style": "table",
+      "animation_level": "standard",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "Dépannage Manager"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "email": {
+          "semantic_type": "email",
+          "values": [],
+          "display_label": ""
+        },
+        "date": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        },
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "ouverte",
+            "en_cours",
+            "cloturee",
+            "payee"
+          ],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "status_flow",
+        "calendar_view"
+      ],
+      "status_flows": {
+        "Intervention": {
+          "field": "status",
+          "initial": "ouverte",
+          "transitions": {
+            "ouverte": [
+              "en_cours"
+            ],
+            "en_cours": [
+              "cloturee"
+            ],
+            "cloturee": [
+              "payee"
+            ],
+            "payee": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        },
+        "Action": {
+          "field": "status",
+          "initial": "a_faire",
+          "transitions": {
+            "a_faire": [
+              "faite"
+            ],
+            "faite": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/clients": "Aucun client pour le moment. Ajoutez votre premier client.",
+          "/machines": "Aucune machine enregistrée. Ajoutez une machine pour un client.",
+          "/interventions": "Aucune intervention en cours. Planifiez une nouvelle intervention.",
+          "/actions": "Aucune action à suivre. Ajoutez des actions pour une intervention."
+        },
+        "dependency_order": [
+          "Créez d'abord un Client avant de créer une Machine.",
+          "Créez d'abord une Machine avant de créer une Intervention.",
+          "Créez d'abord une Intervention avant de créer une Action."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [],
+        "privileged_role": "",
+        "admin_scoped_views": [],
+        "role_gated_actions": {},
+        "global_entities": [],
+        "initiator": {},
+        "surface": {},
+        "dashboard": {}
+      }
+    },
+    "summary_fr": "L'application permet de gérer le suivi des dépannages de matériel informatique pour les clients. Les utilisateurs peuvent créer, modifier et supprimer des enregistrements pour les clients, les machines, les interventions et les actions associées. Chaque intervention peut être suivie à travers différents états : ouverte, en cours, clôturée, et payée. Les actions liées aux interventions peuvent également être suivies et mises à jour. L'application offre une interface pour consulter et gérer les clients, les machines, les interventions et les actions.",
+    "unsupported": [
+      "Le brief demande l'affichage d'un planning des interventions en cours ; aucune page ni fonctionnalité de la spec ne le propose.",
+      "Le brief mentionne la nécessité de différentes impressions ; aucune page ni action de la spec ne couvre cette fonctionnalité."
+    ]
+  }
+}

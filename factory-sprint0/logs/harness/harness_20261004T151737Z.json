@@ -1,0 +1,98 @@
+{
+  "created_at": "20261004T151737Z",
+  "args": {
+    "only": [
+      "reel-agence-reservations",
+      "reel-maintenance-interventions",
+      "reel-salle-de-sport",
+      "reel-sav-depannage",
+      "reel-gestion-scolaire"
+    ],
+    "no_tsc": false,
+    "update": true,
+    "diff": false,
+    "keep": false
+  },
+  "reports": [
+    {
+      "project": "reel-agence-reservations",
+      "declaration": "reel-agence-reservations.json",
+      "generation_seconds": 3.29,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Provider : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable).",
+        "agents.project_spec: [PrismaModel] Manager : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 110,
+      "reference": "mise à jour",
+      "tsc": {
+        "ok": false,
+        "error": "PRE_RUN_FAILED (npx prisma generate): Loaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma/schema.prisma.\nError: Prisma schema validation - (get-dmmf wasm)\nError code: P1012\n\u001b[1;91merror\u001b[0m: \u001b[1mError validating: The relation field `manager` uses the scalar fields managerId. At least one of those fields is opti"
+      },
+      "ok": false
+    },
+    {
+      "project": "reel-gestion-scolaire",
+      "declaration": "reel-gestion-scolaire.json",
+      "generation_seconds": 1.25,
+      "errors": [],
+      "alerts": [],
+      "files": 421,
+      "reference": "mise à jour",
+      "tsc": {
+        "ok": false,
+        "error": "PRE_RUN_FAILED (npx prisma generate): Loaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma/schema.prisma.\nError: Prisma schema validation - (get-dmmf wasm)\nError code: P1012\n\u001b[1;91merror\u001b[0m: \u001b[1mType \"Student\" is neither a built-in type, nor refers to another model, composite type, or enum.\u001b[0m\n  \u001b[1;94m-->\u001b[0m"
+      },
+      "ok": false
+    },
+    {
+      "project": "reel-maintenance-interventions",
+      "declaration": "reel-maintenance-interventions.json",
+      "generation_seconds": 0.45,
+      "errors": [],
+      "alerts": [],
+      "files": 101,
+      "reference": "mise à jour",
+      "tsc": {
+        "ok": false,
+        "error": "PRE_RUN_FAILED (npx prisma generate): Loaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma/schema.prisma.\nError: Prisma schema validation - (get-dmmf wasm)\nError code: P1012\n\u001b[1;91merror\u001b[0m: \u001b[1mError validating: The relation field `technician` uses the scalar fields technicianId. At least one of those fields i"
+      },
+      "ok": false
+    },
+    {
+      "project": "reel-salle-de-sport",
+      "declaration": "reel-salle-de-sport.json",
+      "generation_seconds": 0.7,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Course : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 105,
+      "reference": "mise à jour",
+      "tsc": {
+        "ok": false,
+        "skipped": null,
+        "errors_count": 2,
+        "errors": [
+          "lib/services/course.service.ts(60,59) TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'CourseWhereInput'.",
+          "lib/services/course.service.ts(65,63) TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'CourseWhereInput'."
+        ]
+      },
+      "ok": false
+    },
+    {
+      "project": "reel-sav-depannage",
+      "declaration": "reel-sav-depannage.json",
+      "generation_seconds": 0.51,
+      "errors": [],
+      "alerts": [],
+      "files": 100,
+      "reference": "mise à jour",
+      "tsc": {
+        "ok": false,
+        "error": "PRE_RUN_FAILED (npx prisma generate): Loaded Prisma config from prisma.config.ts.\n\nPrisma schema loaded from prisma/schema.prisma.\nError: Prisma schema validation - (get-dmmf wasm)\nError code: P1012\n\u001b[1;91merror\u001b[0m: \u001b[1mError validating: The name of a Enum Value must not start with a number.\u001b[0m\n  \u001b[1;94m-->\u001b[0m  \u001b[4mprisma/schema.pris"
+      },
+      "ok": false
+    }
+  ]
+}

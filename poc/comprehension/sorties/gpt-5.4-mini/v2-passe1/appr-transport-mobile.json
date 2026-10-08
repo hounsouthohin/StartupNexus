@@ -1,0 +1,98 @@
+{
+  "projet": "appr-transport-mobile",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le coeur du projet est une \"application mobile\" de transport avec diffusion d'informations et suivi des livraisons, ce qui sort de notre périmètre de logiciel de gestion de petites structures ; le brief mentionne aussi des fonctionnalités hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "le développement d'une application mobile"
+      },
+      {
+        "besoin": "mise à jour en temps réel des statuts de livraison",
+        "categorie": "autre",
+        "citation": "permettant ainsi une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "choisir leurs trajets et horaires",
+        "categorie": "planning",
+        "citation": "la possibilité de choisir leurs trajets et horaires"
+      },
+      {
+        "besoin": "confirmation des missions en un clic",
+        "categorie": "autre",
+        "citation": "avec une confirmation des missions en un clic"
+      },
+      {
+        "besoin": "notifications automatiques",
+        "categorie": "notification",
+        "citation": "des notifications automatiques"
+      },
+      {
+        "besoin": "suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "un suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "vérifier systématiquement les documents nécessaires",
+        "categorie": "document",
+        "citation": "vérifierait systématiquement les documents nécessaires"
+      },
+      {
+        "besoin": "collaborations avec d'autres prestataires",
+        "categorie": "integration",
+        "citation": "de faciliter de nouvelles collaborations avec d'autres prestataires"
+      }
+    ]
+  },
+  "acteurs": null,
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [
+        "hors stock « suivi en temps réel des livraisons » : citation introuvable mot pour mot dans le brief — « l'application assurerait également un suivi en temps réel des livraisons » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 867,
+      "jetons_sortie": 293
+    },
+    {
+      "agent": "SortiePerimetre",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1248,
+      "jetons_sortie": 289
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [
+        "acteur chauffeur : citation introuvable mot pour mot dans le brief — « qui centraliserait les informations de livraison et les diffuserait directement aux chauffeurs ... l'application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)",
+        "non-utilisateur sous-traitants : citation introuvable mot pour mot dans le brief — « de coordonner nos sous-traitants » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 753,
+      "jetons_sortie": 214
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 2,
+      "erreurs": [
+        "acteur chauffeur : citation introuvable mot pour mot dans le brief — « diffuserait directement aux chauffeurs ... l'application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1124,
+      "jetons_sortie": 213
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 3,
+      "erreurs": [
+        "acteur chauffeur : citation introuvable mot pour mot dans le brief — « diffuse... aux chauffeurs... l'application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1438,
+      "jetons_sortie": 212
+    }
+  ],
+  "echec": "acteurs refusés après 3 essais"
+}

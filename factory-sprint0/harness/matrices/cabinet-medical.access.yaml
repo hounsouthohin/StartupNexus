@@ -6,6 +6,7 @@ actors:
     citation: "Les patients prennent rendez-vous en ligne après avoir créé un compte"
   - id: secretary
     label: secrétaire
+    feminine: true              # « ma secrétaire »
     becomes: invited
     invited_by: doctor
     citation: "je partage mon cabinet avec ma secrétaire"

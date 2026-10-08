@@ -1,0 +1,321 @@
+{
+  "projet": "appr-cabinet-pluri",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet inclut des fonctionnalités de facturation et de gestion de rendez-vous, qui ne sont pas dans notre périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "gestion de rdv",
+        "categorie": "autre",
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv, facturation et devis."
+      },
+      {
+        "besoin": "facturation",
+        "categorie": "autre",
+        "citation": "avec agenda, facturation et devis."
+      },
+      {
+        "besoin": "partage des dossiers",
+        "categorie": "cloisonnement",
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "Utilisateur",
+        "libelle_pluriel": "Utilisateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Dossier (collection) : « proprietaire » doit être un id d'acteur parmi ['administrateur', 'utilisateur']",
+        "fiche Dossier : « gestionnaires » seulement pour un catalog",
+        "fiche Dossier : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Dossier : référence « Utilisateur » inconnue — les références sont des NOMS DE FICHES parmi ['RendezVous', 'Facture', 'Devis', 'Dossier'] (pas des acteurs)"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "RendezVous",
+        "libelle": "Rendez-vous",
+        "libelle_pluriel": "Rendez-vous",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "utilisateur",
+        "parent": null,
+        "references": [],
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv, facturation et devis."
+      },
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "utilisateur",
+        "parent": null,
+        "references": [],
+        "citation": "facturation"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "Devis",
+        "libelle_pluriel": "Devis",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "utilisateur",
+        "parent": null,
+        "references": [],
+        "citation": "devis"
+      },
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier",
+        "libelle_pluriel": "Dossiers",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "utilisateur",
+        "parent": null,
+        "references": [
+          "RendezVous",
+          "Facture",
+          "Devis"
+        ],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Dossier",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      },
+      {
+        "acteur": "utilisateur",
+        "fiche": "Dossier",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+      },
+      {
+        "id": "utilisateur",
+        "label": "Utilisateur",
+        "label_plural": "Utilisateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ],
+    "entities": [
+      {
+        "name": "RendezVous",
+        "label": "Rendez-vous",
+        "label_plural": "Rendez-vous",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "utilisateur",
+        "parent": null,
+        "references": [],
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv, facturation et devis"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "utilisateur",
+        "parent": null,
+        "references": [],
+        "citation": "facturation"
+      },
+      {
+        "name": "Devis",
+        "label": "Devis",
+        "label_plural": "Devis",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "utilisateur",
+        "parent": null,
+        "references": [],
+        "citation": "devis"
+      },
+      {
+        "name": "Dossier",
+        "label": "Dossier",
+        "label_plural": "Dossiers",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "utilisateur",
+        "parent": null,
+        "references": [
+          "RendezVous",
+          "Facture",
+          "Devis"
+        ],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Dossier",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      },
+      {
+        "actor": "utilisateur",
+        "entity": "Dossier",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "Administrateur crée des Dossiers qui référencent des Rendez-vous, mais n'en voit aucun : impossible de choisir (D2 ?)",
+    "Administrateur crée des Dossiers qui référencent des Factures, mais n'en voit aucun : impossible de choisir (D2 ?)",
+    "Administrateur crée des Dossiers qui référencent des Devis, mais n'en voit aucun : impossible de choisir (D2 ?)",
+    "page « Équipe » pour Administrateur : inviter des Utilisateurs"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit les Rendez-vous affichés dans les Dossiers qu'il consulte (sans page dédiée)",
+      "voit les Factures affichés dans les Dossiers qu'il consulte (sans page dédiée)",
+      "voit les Devis affichés dans les Dossiers qu'il consulte (sans page dédiée)",
+      "voit ses Dossiers, en crée"
+    ],
+    "L'utilisateur": [
+      "voit ses Rendez-vous, en crée, les modifie",
+      "voit ses Factures, en crée, les modifie",
+      "voit ses Devis, en crée, les modifie",
+      "voit ses Dossiers, en crée, les modifie"
+    ]
+  },
+  "questions": [
+    "L'administrateur verra les Rendez-vous (ex. nom, coordonnées) affichés dans les Dossiers qu'il traite — est-ce acceptable ? (oui / non)",
+    "L'administrateur verra les Factures (ex. nom, coordonnées) affichés dans les Dossiers qu'il traite — est-ce acceptable ? (oui / non)",
+    "L'administrateur verra les Devis (ex. nom, coordonnées) affichés dans les Dossiers qu'il traite — est-ce acceptable ? (oui / non)"
+  ],
+  "secondes": 17.9
+}

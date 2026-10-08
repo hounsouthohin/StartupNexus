@@ -1,0 +1,6 @@
+'use client';
+import { ListeDeFiches } from '@/components/a/pieces';
+
+export default function Page() {
+    return <ListeDeFiches fiche="Book" />;
+}

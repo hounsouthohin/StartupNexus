@@ -1,0 +1,551 @@
+{
+  "projet": "appr-renovation",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Il s’agit d’un logiciel de gestion d’une entreprise de rénovation, avec centralisation des données, suivi de chantier, rôles et accès différenciés. Le cœur n’est pas une place de marché, un réseau social ou un site vitrine.",
+    "hors_stock": [
+      {
+        "besoin": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "Le suivi de l'avancement des chantiers et des marges réalisées",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "besoin": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)"
+      },
+      {
+        "besoin": "L'amélioration de la communication interne et externe",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe"
+      },
+      {
+        "besoin": "visibilité sur les marges et la rentabilité par chantier, ville et globale",
+        "categorie": "calcul_statistiques",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Une meilleure communication entre les acteurs internes et externes",
+        "categorie": "messagerie",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      },
+      {
+        "besoin": "utilisable hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "utilisable hors ligne"
+      },
+      {
+        "besoin": "Accès sécurisé et différencié par agence et rôle",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "chef de projet",
+        "libelle_pluriel": "chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "id": "acteur_interne",
+        "libelle": "acteur interne",
+        "libelle_pluriel": "acteurs internes",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "acteurs externes",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 842,
+      "jetons_sortie": 373
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 728,
+      "jetons_sortie": 194
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1097,
+      "jetons_sortie": 736
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit BonDeCommande : citation introuvable mot pour mot dans le brief — « devis, bons de commande, facturation ... Une automatisation des tâches répétitives » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)",
+        "circuit Facture : citation introuvable mot pour mot dans le brief — « devis, bons de commande, facturation ... Une automatisation des tâches répétitives » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 955,
+      "jetons_sortie": 253
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1353,
+      "jetons_sortie": 257
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 967,
+      "jetons_sortie": 11
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos) ... Le but principal est de faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos) ... L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Suivi",
+        "libelle": "suivis",
+        "libelle_pluriel": "suivis",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos) ... le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "Document",
+        "libelle": "document",
+        "libelle_pluriel": "documents",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "photo",
+        "libelle_pluriel": "photos",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facturation",
+        "libelle_pluriel": "facturations",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "acteurs externes",
+        "fiche": null,
+        "raison": "Ce sont des personnes qui participent à l'échange, mais le brief ne dit pas qu'il faut enregistrer une fiche dédiée pour eux."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "BonDeCommande",
+        "etat_initial": "cree",
+        "transitions": {
+          "cree": [
+            "envoye",
+            "annule"
+          ],
+          "envoye": [
+            "accepte",
+            "annule"
+          ],
+          "accepte": [],
+          "annule": []
+        },
+        "libelles": {
+          "cree": "créé",
+          "envoye": "envoyé",
+          "accepte": "accepté",
+          "annule": "annulé"
+        },
+        "initiateur": "chef_de_projet",
+        "decideur": "chef_de_projet",
+        "etapes_par": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "fiche": "Facture",
+        "etat_initial": "cree",
+        "transitions": {
+          "cree": [
+            "envoyee",
+            "reglee",
+            "annulee"
+          ],
+          "envoyee": [
+            "reglee",
+            "annulee"
+          ],
+          "reglee": [],
+          "annulee": []
+        },
+        "libelles": {
+          "cree": "créé",
+          "envoyee": "envoyée",
+          "reglee": "réglée",
+          "annulee": "annulée"
+        },
+        "initiateur": "chef_de_projet",
+        "decideur": "chef_de_projet",
+        "etapes_par": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "chef de projet",
+        "label_plural": "chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "id": "acteur_interne",
+        "label": "acteur interne",
+        "label_plural": "acteurs internes",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Suivi",
+        "label": "suivis",
+        "label_plural": "suivis",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Document",
+        "label": "document",
+        "label_plural": "documents",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Photo",
+        "label": "photo",
+        "label_plural": "photos",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "BonDeCommande",
+        "label": "bon de commande",
+        "label_plural": "bons de commande",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "process": {
+          "initial": "cree",
+          "transitions": {
+            "cree": [
+              "envoye",
+              "annule"
+            ],
+            "envoye": [
+              "accepte",
+              "annule"
+            ],
+            "accepte": [],
+            "annule": []
+          },
+          "initiator": "chef_de_projet",
+          "decider": "chef_de_projet",
+          "steps_by": {},
+          "labels": {
+            "cree": "créé",
+            "envoye": "envoyé",
+            "accepte": "accepté",
+            "annule": "annulé"
+          },
+          "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+        }
+      },
+      {
+        "name": "Facture",
+        "label": "facturation",
+        "label_plural": "facturations",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "process": {
+          "initial": "cree",
+          "transitions": {
+            "cree": [
+              "envoyee",
+              "reglee",
+              "annulee"
+            ],
+            "envoyee": [
+              "reglee",
+              "annulee"
+            ],
+            "reglee": [],
+            "annulee": []
+          },
+          "initiator": "chef_de_projet",
+          "decider": "chef_de_projet",
+          "steps_by": {},
+          "labels": {
+            "cree": "créé",
+            "envoyee": "envoyée",
+            "reglee": "réglée",
+            "annulee": "annulée"
+          },
+          "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+        }
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour gérant : inviter des chefs de projet",
+    "l'acteur acteur interne ne voit rien : rôle inutile ou déclaration incomplète",
+    "page « Équipe » pour gérant : inviter des acteurs internes"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gérant": [
+      "voit tous les bons de commande, en crée, les modifie",
+      "voit toutes les facturations, en crée, les modifie"
+    ],
+    "Le chef de projet": [
+      "voit tous les chantiers, en crée, les modifie",
+      "voit tous les devis, en crée, les modifie",
+      "voit tous les suivis, en crée, les modifie",
+      "voit tous les documents, en crée, les modifie",
+      "voit toutes les photos, en crée, les modifie",
+      "voit tous les bons de commande, en crée, les modifie, les fait passer de « créé » à « envoyé » ou « annulé », les fait passer de « envoyé » à « accepté » ou « annulé »",
+      "voit toutes les facturations, en crée, les modifie, les fait passer de « créé » à « envoyée » ou « réglée » ou « annulée », les fait passer de « envoyée » à « réglée » ou « annulée »"
+    ],
+    "L'acteur interne": [
+      "ne voit rien"
+    ]
+  },
+  "questions": [],
+  "secondes": 13.1,
+  "jetons": {
+    "entree": 5942,
+    "sortie": 1824,
+    "appels": 6
+  }
+}

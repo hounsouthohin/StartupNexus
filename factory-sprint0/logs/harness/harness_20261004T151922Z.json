@@ -1,0 +1,29 @@
+{
+  "created_at": "20261004T151922Z",
+  "args": {
+    "only": [
+      "reel-maintenance-interventions"
+    ],
+    "no_tsc": true,
+    "update": false,
+    "diff": false,
+    "keep": true
+  },
+  "reports": [
+    {
+      "project": "reel-maintenance-interventions",
+      "declaration": "reel-maintenance-interventions.json",
+      "generation_seconds": 4.49,
+      "errors": [],
+      "alerts": [],
+      "files": 101,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "ok": true
+    }
+  ]
+}

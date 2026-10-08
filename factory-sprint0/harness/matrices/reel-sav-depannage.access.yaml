@@ -1,0 +1,68 @@
+# Vrai brief sav-depannage — entrée de la matrice écrite à la main (essai 2, 7 oct).
+# Révisé le 7 oct (E5 bis, nature « registre » ajoutée au calculateur) : Intervention et Action
+# sont des REGISTRES tenus par l'atelier (avec circuit d'états), qui référencent leur parent.
+# Avant : collections — l'atelier ne voyait que « les siennes » et ne pouvait pas les modifier
+# (4 écarts avec l'attendu). Reste hors vocabulaire : un ENFANT avec circuit d'états.
+actors:
+  - id: staff
+    label: atelier
+    becomes: bootstrap
+    citation: "Gérer le suivi du dépannage de matériel informatique"
+
+entities:
+  - name: Customer
+    label: client
+    label_plural: clients
+    nature: catalog
+    manager: staff
+    citation: "une table client (coordonnées)"
+  - name: Machine
+    label: machine
+    label_plural: machines
+    feminine: true
+    nature: child
+    parent: Customer
+    citation: "une table Machine (n machines par client)"
+  - name: Intervention
+    label: intervention
+    label_plural: interventions
+    feminine: true
+    nature: registry
+    manager: staff
+    references: [Machine]
+    citation: "n interventions possible par machine"
+    process:
+      initial: open
+      transitions: {open: [in_progress], in_progress: [closed], closed: [paid], paid: []}
+      initiator: staff
+      decider: staff
+      labels: {open: ouverte, in_progress: en cours, closed: clôturée, paid: payée}
+      citation: "gestion de l'état des interventions : ouverte, en cours, cloturée, payée"
+  - name: Action
+    label: action
+    label_plural: actions
+    feminine: true
+    nature: registry
+    manager: staff
+    references: [Intervention]
+    citation: "n actions par interventions"
+    process:
+      initial: todo
+      transitions: {todo: [done], done: []}
+      initiator: staff
+      decider: staff
+      labels: {todo: à faire, done: faite}
+      citation: "les actions faites ou a faire"
+  - name: SocketType
+    label: type de socket
+    label_plural: types de socket
+    nature: catalog
+    manager: staff
+    citation: "un certains nombre de table de choix pour des valeurs prédéfinies"
+
+exceptions:
+  - {actor: staff, entity: Customer, action: delete, citation: "créer / modifier / supprimer les enregistrements de cette base"}
+  - {actor: staff, entity: Machine, action: delete, citation: "créer / modifier / supprimer les enregistrements de cette base"}
+  - {actor: staff, entity: Intervention, action: delete, citation: "créer / modifier / supprimer les enregistrements de cette base"}
+  - {actor: staff, entity: Action, action: delete, citation: "créer / modifier / supprimer les enregistrements de cette base"}
+  - {actor: staff, entity: SocketType, action: delete, citation: "créer / modifier / supprimer les enregistrements de cette base"}

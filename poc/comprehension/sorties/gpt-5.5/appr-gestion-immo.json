@@ -1,0 +1,259 @@
+{
+  "projet": "appr-gestion-immo",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le brief demande un « Logiciel de gestion immobilière » pour un « gestionnaire de biens immobilier », donc un logiciel de gestion d'une structure, même s'il contient plusieurs besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Automatisation de tâches",
+        "categorie": "automatisation",
+        "citation": "automatiser des taches"
+      },
+      {
+        "besoin": "Rapprochement bancaire automatisé",
+        "categorie": "automatisation",
+        "citation": "automatiser le rapprochement bancaire"
+      },
+      {
+        "besoin": "Encaissement des loyers",
+        "categorie": "paiement",
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "besoin": "Reversement des loyers",
+        "categorie": "paiement",
+        "citation": "le reversement des loyers"
+      },
+      {
+        "besoin": "Envoi automatique de documents",
+        "categorie": "notification",
+        "citation": "d'envoyer automatiquement des quittances, relevé de compte etc.."
+      },
+      {
+        "besoin": "Quittances et relevés de compte",
+        "categorie": "document",
+        "citation": "quittances, relevé de compte"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "gestionnaire de biens immobilier",
+        "libelle_pluriel": "gestionnaires de biens immobilier",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "BienImmobilier",
+        "libelle": "bien immobilier",
+        "libelle_pluriel": "biens immobilier",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestionnaire de biens immobilier"
+      },
+      {
+        "nom": "Loyer",
+        "libelle": "loyer",
+        "libelle_pluriel": "loyers",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "nom": "Quittance",
+        "libelle": "quittance",
+        "libelle_pluriel": "quittances",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "d'envoyer automatiquement des quittances"
+      },
+      {
+        "nom": "ReleveDeCompte",
+        "libelle": "relevé de compte",
+        "libelle_pluriel": "relevés de compte",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "gestionnaire de biens immobilier",
+        "label_plural": "gestionnaires de biens immobilier",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "entities": [
+      {
+        "name": "BienImmobilier",
+        "label": "bien immobilier",
+        "label_plural": "biens immobilier",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestionnaire de biens immobilier"
+      },
+      {
+        "name": "Loyer",
+        "label": "loyer",
+        "label_plural": "loyers",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "name": "Quittance",
+        "label": "quittance",
+        "label_plural": "quittances",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "d'envoyer automatiquement des quittances"
+      },
+      {
+        "name": "ReleveDeCompte",
+        "label": "relevé de compte",
+        "label_plural": "relevés de compte",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gestionnaire de biens immobilier": [
+      "voit tous les biens immobilier, en crée, les modifie",
+      "voit tous les loyers, en crée, les modifie",
+      "voit toutes les quittances, en crée, les modifie",
+      "voit tous les relevés de compte, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 34.0
+}

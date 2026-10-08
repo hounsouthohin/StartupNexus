@@ -1,0 +1,313 @@
+{
+  "projet": "appr-transport-mobile",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet concerne le développement d'une application mobile, ce qui est hors de notre périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "Création d'application mobile pour transporteur.",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Création d'application mobile pour transporteur."
+      },
+      {
+        "besoin": "notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire.",
+        "categorie": "notification",
+        "citation": "notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire."
+      },
+      {
+        "besoin": "suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "L'application assurerait un suivi en temps réel des livraisons"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je me permets de vous contacter en tant que stagiaire au sein de la société Procase."
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Cette application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules."
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Livraison : « gestionnaires » seulement pour un catalog",
+        "fiche Trajet : « gestionnaires » seulement pour un catalog",
+        "fiche Livraison : citation introuvable mot pour mot dans le brief — « l'application centraliserait les informations de livraison et les diffuserait directement aux chauffeurs, permettant ainsi une mise à jour en temps réel des statuts de livraison. » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)",
+        "fiche Trajet : citation introuvable mot pour mot dans le brief — « l'application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules. » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Livraison",
+        "libelle": "livraison",
+        "libelle_pluriel": "livraisons",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'application assurerait un suivi en temps réel des livraisons et vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses."
+      },
+      {
+        "nom": "Trajet",
+        "libelle": "trajet",
+        "libelle_pluriel": "trajets",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "permettant ainsi une mise à jour en temps réel des statuts de livraison... Elle améliorerait la communication en réduisant les malentendus grâce à des informations précises et des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire."
+      },
+      {
+        "nom": "Notification",
+        "libelle": "notification",
+        "libelle_pluriel": "notifications",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Livraison",
+        "references": [],
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "chauffeur",
+        "fiche": "Trajet",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "…permettant ainsi une mise à jour en temps réel des statuts de livraison..."
+      },
+      {
+        "acteur": "chauffeur",
+        "fiche": "Trajet",
+        "action": "edit",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "…permettant ainsi une mise à jour en temps réel des statuts de livraison..."
+      },
+      {
+        "acteur": "chauffeur",
+        "fiche": "Trajet",
+        "action": "delete",
+        "autorise": false,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "…permettant ainsi une mise à jour en temps réel des statuts de livraison..."
+      },
+      {
+        "acteur": "chauffeur",
+        "fiche": "Notification",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "…des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire."
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Je me permets de vous contacter en tant que stagiaire au sein de la société Procase"
+      },
+      {
+        "id": "chauffeur",
+        "label": "chauffeur",
+        "label_plural": "chauffeurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "Cette application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Livraison",
+        "label": "livraison",
+        "label_plural": "livraisons",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "chauffeur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'application assurerait un suivi en temps réel des livraisons et vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses"
+      },
+      {
+        "name": "Trajet",
+        "label": "trajet",
+        "label_plural": "trajets",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "chauffeur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Elle améliorerait la communication en réduisant les malentendus grâce à des informations précises et des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "name": "Notification",
+        "label": "notification",
+        "label_plural": "notifications",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Livraison",
+        "references": [],
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "chauffeur",
+        "entity": "Trajet",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettant ainsi une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "actor": "chauffeur",
+        "entity": "Trajet",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettant ainsi une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "actor": "chauffeur",
+        "entity": "Trajet",
+        "action": "delete",
+        "allow": false,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettant ainsi une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "actor": "chauffeur",
+        "entity": "Notification",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "l'acteur gérant ne voit rien : rôle inutile ou déclaration incomplète",
+    "page « Équipe » pour gérant : inviter des chauffeurs"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gérant": [
+      "ne voit rien"
+    ],
+    "Le chauffeur": [
+      "voit ses livraisons, en crée, les modifie",
+      "voit ses trajets, en crée, les modifie",
+      "voit toutes les notifications, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 18.5
+}

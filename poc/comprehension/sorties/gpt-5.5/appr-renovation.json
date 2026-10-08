@@ -1,0 +1,438 @@
+{
+  "projet": "appr-renovation",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Projet de gestion pour une entreprise de rénovation : ERP léger centralisé, suivi de chantiers, données chantiers, accès par rôles. Le cœur correspond à un logiciel de gestion de petite structure, même si plusieurs besoins sont hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion de documents et photos liés aux chantiers",
+        "categorie": "fichiers_photos",
+        "citation": "devis, suivis, documents, photos"
+      },
+      {
+        "besoin": "Automatisation des tâches et processus",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation) ... Une centralisation et automatisation des processus et des données"
+      },
+      {
+        "besoin": "Calcul et visibilité sur les marges, la rentabilité et des vues par chantier, ville et globales",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées ... Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Utilisation sur mobile et hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "accessible depuis le terrain (mobile) ... Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Communication interne et externe entre acteurs",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe ... Une meilleure communication entre les acteurs internes et externes"
+      },
+      {
+        "besoin": "Accès différencié et cloisonné par agence",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "Chef de projet",
+        "libelle_pluriel": "Chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": []
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis, bons de commande, facturation"
+      },
+      {
+        "nom": "SuiviChantier",
+        "libelle": "suivi de chantier",
+        "libelle_pluriel": "suivis de chantier",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "DocumentChantier",
+        "libelle": "document de chantier",
+        "libelle_pluriel": "documents de chantier",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis, suivis, documents, photos"
+      },
+      {
+        "nom": "PhotoChantier",
+        "libelle": "photo de chantier",
+        "libelle_pluriel": "photos de chantier",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis, suivis, documents, photos"
+      },
+      {
+        "nom": "BonCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "bons de commande"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "facturation"
+      },
+      {
+        "nom": "Agence",
+        "libelle": "agence",
+        "libelle_pluriel": "agences",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "Chef de projet",
+        "label_plural": "Chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis, bons de commande, facturation"
+      },
+      {
+        "name": "SuiviChantier",
+        "label": "suivi de chantier",
+        "label_plural": "suivis de chantier",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "name": "DocumentChantier",
+        "label": "document de chantier",
+        "label_plural": "documents de chantier",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis, suivis, documents, photos"
+      },
+      {
+        "name": "PhotoChantier",
+        "label": "photo de chantier",
+        "label_plural": "photos de chantier",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis, suivis, documents, photos"
+      },
+      {
+        "name": "BonCommande",
+        "label": "bon de commande",
+        "label_plural": "bons de commande",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "bons de commande"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "facturation"
+      },
+      {
+        "name": "Agence",
+        "label": "agence",
+        "label_plural": "agences",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "devis : catalogue en lecture seule — son contenu viendra des données de départ",
+    "documents de chantier : catalogue en lecture seule — son contenu viendra des données de départ",
+    "photos de chantier : catalogue en lecture seule — son contenu viendra des données de départ",
+    "bons de commande : catalogue en lecture seule — son contenu viendra des données de départ",
+    "factures : catalogue en lecture seule — son contenu viendra des données de départ",
+    "page « Équipe » pour Administrateur : inviter des Chefs de projet"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit tous les chantiers",
+      "voit tous les devis",
+      "voit tous les suivis de chantier",
+      "voit tous les documents de chantier",
+      "voit toutes les photos de chantier",
+      "voit tous les bons de commande",
+      "voit toutes les factures",
+      "voit toutes les agences, en crée, les modifie"
+    ],
+    "Le chef de projet": [
+      "voit tous les chantiers, en crée, les modifie",
+      "voit tous les devis",
+      "voit tous les suivis de chantier, en crée, les modifie",
+      "voit tous les documents de chantier",
+      "voit toutes les photos de chantier",
+      "voit tous les bons de commande",
+      "voit toutes les factures",
+      "voit toutes les agences"
+    ]
+  },
+  "questions": [],
+  "secondes": 55.5
+}

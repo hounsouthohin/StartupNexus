@@ -1,0 +1,95 @@
+{
+  "projet": "appr-mesures-terrain",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est la gestion des commandes avec des fonctionnalités de planning et d'automatisation.",
+    "hors_stock": [
+      {
+        "besoin": "planning logistique",
+        "categorie": "planning",
+        "citation": "un planning logistique"
+      },
+      {
+        "besoin": "automatisation de la gestion des livrables",
+        "categorie": "automatisation",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Création d'un logiciel de gestion de commande."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "commandes",
+        "citation": "qui faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Commande : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Commande : « parent » seulement pour un child",
+        "fiche PlanningLogistique (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche PlanningLogistique : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche PlanningLogistique : « parent » seulement pour un child",
+        "fiche Livrable (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Livrable : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Livrable : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Commande : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Commande : « parent » seulement pour un child",
+        "fiche PlanningLogistique (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche PlanningLogistique : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche PlanningLogistique : « parent » seulement pour un child",
+        "fiche Livrable (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Livrable : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Livrable : « parent » seulement pour un child"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche Commande : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Commande : « parent » seulement pour un child",
+        "fiche PlanningLogistique (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche PlanningLogistique : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche PlanningLogistique : « parent » seulement pour un child",
+        "fiche Livrable (catalog) : pas de « proprietaire » (mettre null)",
+        "fiche Livrable : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Livrable : « parent » seulement pour un child"
+      ]
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

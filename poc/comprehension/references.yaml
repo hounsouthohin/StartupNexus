@@ -1,0 +1,107 @@
+# E5 — Grille de référence, écrite AVANT de lancer la moindre IA (7 oct 2026).
+# Pour chaque brief : les faits EXPLICITES (citation + critère de vérification), les points
+# ouverts (non jugés : questions pour le miroir), le périmètre attendu, les besoins hors stock
+# qui doivent être signalés. Verdict d'un brief : « juste » = aucun fait explicite manqué ou
+# contredit, aucune règle de prudence violée, périmètre correct. Les points ouverts ne comptent pas.
+#
+# Stock du niveau 1 (ce que l'usine sait faire) : des fiches ; des acteurs qui se connectent ;
+# voir (rien / les siennes / toutes / publiées / au travers d'une autre fiche), créer, modifier,
+# supprimer ; un propriétaire ou des gestionnaires par fiche ; des fiches enfants ; des circuits
+# d'états avec qui fait chaque étape ; un catalogue public. Tout le reste est HORS STOCK.
+
+regles_de_prudence:
+  P1: Aucun rôle interne (personnel, administration) ne « s'inscrit seul » ; l'inscription libre est réservée à un public qui crée son propre compte.
+  P2: Une personne que le brief ne fait pas se connecter n'est pas un acteur (c'est une fiche) — quand le brief la traite clairement comme une fiche (« fiches membres », stagiaires envoyés et répartis).
+  P3: Supprimer n'est accordé que si le brief le dit.
+  P4: Toute citation est recopiée mot pour mot du brief (vérifié par programme).
+
+briefs:
+  appr-cabinet-pluri:
+    perimetre: dans
+    faits:
+      - {id: F1, fait: "un acteur administrateur", citation: "l'administrateur pourra partager les dossiers", verif: "un acteur administrateur existe"}
+      - {id: F2, fait: "des professionnels qui se connectent, distincts de l'administrateur", citation: "les professionnels concernés", verif: "un acteur professionnel existe, différent de l'administrateur"}
+      - {id: F3, fait: "fiches : dossiers, agenda (rendez-vous), factures, devis", citation: "avec agenda, facturation et devis", verif: "les 4 apparaissent comme fiches (ou, pour factures/devis, signalés hors stock)"}
+      - {id: F4, fait: "confidentialité : un professionnel n'a pas accès à tous les dossiers", citation: "que tous les utilisateurs n'aient pas un accès total au logiciel", verif: "dans la matrice, le professionnel ne voit PAS tous les dossiers"}
+      - {id: F5, fait: "le partage dossier par dossier n'est pas dans le stock", citation: "partager les dossiers avec les professionnels concernés", verif: "signalé hors stock"}
+    points_ouverts: ["qui crée les rendez-vous, factures, devis", "les patients se connectent-ils ?", "comment devient-on professionnel"]
+    hors_stock_attendu: [partage dossier par dossier]
+
+  appr-renovation:
+    perimetre: dans
+    faits:
+      - {id: F1, fait: "des chefs de projet qui se connectent", citation: "faciliter le suivi de chantier pour les chefs de projet", verif: "un acteur chef de projet existe"}
+      - {id: F2, fait: "plusieurs rôles (accès différencié)", citation: "Accès sécurisé et différencié par agence et rôle", verif: "au moins 2 acteurs"}
+      - {id: F3, fait: "le chantier est la fiche centrale ; devis, documents/photos s'y rattachent", citation: "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)", verif: "une fiche chantier existe ; devis rattaché au chantier (référence ou enfant)"}
+      - {id: F4, fait: "le cloisonnement par agence n'est pas dans le stock", citation: "différencié par agence", verif: "signalé hors stock"}
+      - {id: F5, fait: "mobile hors ligne : hors stock", citation: "utilisable hors ligne", verif: "signalé hors stock"}
+    points_ouverts: ["autres rôles (direction, ouvriers, externes)", "étapes d'avancement du chantier", "qui crée devis et factures"]
+    hors_stock_attendu: [cloisonnement par agence, hors ligne, automatisation devis/bons de commande/facturation, marges et rentabilité, photos/documents]
+
+  appr-autocars:
+    perimetre: dans
+    faits:
+      - {id: F1, fait: "l'exploitant (« nous ») fait le planning", citation: "créer un logiciel de gestion de planning et suivis de facture", verif: "un acteur exploitant/gestionnaire existe, qui crée les courses"}
+      - {id: F2, fait: "fiches chauffeur et véhicule", citation: "Codes couleurs par chauffeurs et par véhicules", verif: "les deux existent (fiche ou acteur pour le chauffeur)"}
+      - {id: F3, fait: "fiche course (mission, trajet) reliée au client", citation: "courses précédentes", verif: "une fiche course existe et référence le client"}
+      - {id: F4, fait: "fiches clients pour les réguliers", citation: "Création de fiches clients pour les réguliers", verif: "une fiche client existe"}
+      - {id: F5, fait: "règles légales d'amplitude et de pause : hors stock", citation: "affichant les temps de pauses obligatoires demandés par la loi", verif: "signalé hors stock"}
+      - {id: F6, fait: "export vers EBP : hors stock", citation: "Transmission depuis le logiciel des données pour facturation au logiciel EBP", verif: "signalé hors stock"}
+    points_ouverts: ["les chauffeurs se connectent-ils ?", "états d'une course", "facture : fiche ou document"]
+    hors_stock_attendu: [amplitudes et pauses légales, export EBP, envoi des programmes aux chauffeurs, facturation automatique, vue planning / codes couleur]
+
+  appr-formation:
+    perimetre: dans
+    faits:
+      - {id: F1, fait: "l'organisme (« nous ») gère tout", citation: "Nous souhaitons créer", verif: "un acteur organisme/gestionnaire existe"}
+      - {id: F2, fait: "les stagiaires sont des fiches, pas des utilisateurs", citation: "une entité nous envoie des stagiaires", verif: "pas d'acteur stagiaire ; une fiche stagiaire"}
+      - {id: F3, fait: "sessions auxquelles les stagiaires sont répartis", citation: "que nous répartissons sur des sessions de formation", verif: "fiche session ; lien stagiaire → session (référence, enfant ou fiche d'inscription)"}
+      - {id: F4, fait: "la session suit des étapes d'organisation", citation: "il y a un rétroplanning d'organisation de la session", verif: "circuit d'états sur la session (ou étapes signalées)"}
+      - {id: F5, fait: "formateur et salle reliés à la session", citation: "planifier la date avec le formateur et la salle", verif: "formateur et salle existent (fiche ou acteur pour le formateur)"}
+      - {id: F6, fait: "l'entité prescriptrice existe", citation: "une entité nous envoie des stagiaires", verif: "fiche entité (ou acteur)"}
+      - {id: F7, fait: "gestion comptable : hors stock", citation: "on a besoin d'une gestion comptable associée", verif: "signalé hors stock"}
+    points_ouverts: ["l'entité ou les formateurs se connectent-ils ?", "facturation : fiche ou document"]
+    hors_stock_attendu: [gestion comptable, facturation, envoi du contrat, convocation téléphonique, bilan]
+
+  appr-gestion-immo:
+    perimetre: dans          # accepté aussi : « hors » si la raison est « le cœur est l'automatisation financière »
+    faits:
+      - {id: F1, fait: "le gestionnaire de biens (« nous »)", citation: "Nous sommes gestionnaire de biens immobilier", verif: "un acteur gestionnaire existe"}
+      - {id: F2, fait: "rapprochement bancaire, encaissement et reversement : hors stock", citation: "automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers", verif: "les trois signalés hors stock"}
+      - {id: F3, fait: "envoi automatique de quittances et relevés : hors stock", citation: "envoyer automatiquement des quittances, relevé de compte", verif: "signalé hors stock"}
+    points_ouverts: ["biens, lots, propriétaires, locataires : quelles fiches", "propriétaires ou locataires se connectent-ils ?"]
+    hors_stock_attendu: [rapprochement bancaire, encaissement, reversement, quittances et relevés automatiques]
+
+  appr-union-sportive:
+    perimetre: dans
+    faits:
+      - {id: F1, fait: "un administrateur de l'association", citation: "Interface d'administration avec authentification sécurisée", verif: "un acteur administrateur existe"}
+      - {id: F2, fait: "les adhérents sont des fiches gérées par l'administration", citation: "Création, modification, suppression de fiches membres", verif: "fiche adhérent créée/modifiée par l'administrateur ; pas d'acteur adhérent qui s'inscrit seul"}
+      - {id: F3, fait: "l'administrateur peut supprimer une fiche membre", citation: "Création, modification, suppression de fiches membres", verif: "suppression accordée sur la fiche adhérent"}
+      - {id: F4, fait: "statut actif/inactif de l'adhérent", citation: "Statut actif/inactif", verif: "circuit d'états ou champ d'état sur l'adhérent"}
+      - {id: F5, fait: "adhésions (année, cotisation, validité) rattachées à l'adhérent", citation: "Enregistrement des adhésions (année, cotisation, dates de validité)", verif: "fiche adhésion rattachée à l'adhérent"}
+      - {id: F6, fait: "calendrier des activités public", citation: "Affichage public consultable sur tous supports", verif: "les activités sont visibles du visiteur"}
+      - {id: F7, fait: "une activité peut être annulée", citation: "Gestion interne : création, modification, annulation", verif: "état « annulée » sur l'activité (ou annulation signalée)"}
+      - {id: F8, fait: "participation : participant + activité + statut d'homologation", citation: "Lien entre participant, activité et statut d'homologation", verif: "fiche de participation/inscription reliée à l'activité, avec un état"}
+      - {id: F9, fait: "paiement en ligne : hors stock", citation: "intégration d'un module de paiement en ligne", verif: "signalé hors stock"}
+    points_ouverts: ["les adhérents ont-ils un espace ?", "homologation : qui valide", "« validation après paiement » : saisie manuelle du paiement possible au niveau 1 ?"]
+    hors_stock_attendu: [paiement en ligne, renouvellement automatique, exports CSV/Excel, tableaux de bord]
+
+  appr-mesures-terrain:
+    perimetre: dans
+    faits:
+      - {id: F1, fait: "fiche commande (de mesures)", citation: "faciliterait la gestion des commandes", verif: "une fiche commande existe"}
+      - {id: F2, fait: "livrables liés aux commandes", citation: "une automatisation de la gestion des livrables", verif: "fiche livrable rattachée à la commande, ou automatisation signalée hors stock"}
+      - {id: F3, fait: "planning logistique : hors stock", citation: "qui inclurait un planning logistique", verif: "signalé hors stock (vue planning)"}
+    points_ouverts: ["qui sont les utilisateurs", "clients, techniciens", "états d'une commande"]
+    hors_stock_attendu: [planning logistique, automatisation des livrables]
+
+  appr-marketplace:
+    perimetre: hors
+    raison: "paiement en ligne et commissions au cœur ; mise en relation, avis, géolocalisation, multilingue"
+  appr-reseau-social:
+    perimetre: hors
+    raison: "fil de publications, messagerie privée, abonnements, récompenses : pas un logiciel de gestion"
+  appr-transport-mobile:
+    perimetre: hors          # accepté aussi : « dans » SI application mobile native + temps réel + notifications sont tous signalés hors stock
+    raison: "application mobile native pour chauffeurs, temps réel, notifications"

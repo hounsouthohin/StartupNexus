@@ -1,0 +1,2242 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "reel-gestion-scolaire",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-10-04T15:14:18+00:00",
+  "run_id": "capture-5147b332",
+  "brief": {
+    "description": "Je suis à la recherche d'une personne ou un groupe de personnes capables de mettre sur pied une application web sécurisée de gestion scolaire. Pour améliorer la collaboration et la communication au sein des écoles, cette application doit se composer de plusieurs modules différents qui peuvent être répartis en 4 groupes : Administration (Gestion des frais de scolarité, Dossiers scolaires étudiants, cours, stages, séjours à l'étranger, projets, contrôle continu, examen, soutenance, coefficients, crédits ECTS, grade, barème, planification annuelle, réservation des locaux) ; Communication (messagerie, forum, circulaires administratives) ; Vie scolaire (absences, retards, dispenses, notes, emploi du temps, réservation de ressources, actualités, disciplines, sanctions) ; Éducation (création de cours, accès aux ressources numériques, cahier de textes, livret de compétences, Carnet de suivi, agenda partagé, Planification D.S.T). Conçu pour les primaires et où les secondaires, cette plate-forme doit être fonctionnel que pour les acteurs de l'établissement scolaire. C'est donc indispensable qu'il inclue quatre niveaux d'autorisation par défaut : Direction, Professeur, Elèves, Parent. Chaque niveau permet de déterminer qui peut accéder au site et les opérations que ces membres peuvent y effectuer."
+  },
+  "project_spec": {
+    "project_name": "reel-gestion-scolaire",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Je suis à la recherche d'une personne ou un groupe de personnes capables de mettre sur pied une application web sécurisée de gestion scolaire. Pour améliorer la collaboration et la communication au sein des écoles, cette application doit se composer de plusieurs modules différents qui peuvent être répartis en 4 groupes : Administration (Gestion des frais de scolarité, Dossiers scolaires étudiants, cours, stages, séjours à l'étranger, projets, contrôle continu, examen, soutenance, coefficients, crédits ECTS, grade, barème, planification annuelle, réservation des locaux) ; Communication (messagerie, forum, circulaires administratives) ; Vie scolaire (absences, retards, dispenses, notes, emploi du temps, réservation de ressources, actualités, disciplines, sanctions) ; Éducation (création de cours, accès aux ressources numériques, cahier de textes, livret de compétences, Carnet de suivi, agenda partagé, Planification D.S.T). Conçu pour les primaires et où les secondaires, cette plate-forme doit être fonctionnel que pour les acteurs de l'établissement scolaire. C'est donc indispensable qu'il inclue quatre niveaux d'autorisation par défaut : Direction, Professeur, Elèves, Parent. Chaque niveau permet de déterminer qui peut accéder au site et les opérations que ces membres peuvent y effectuer.",
+    "models": [
+      {
+        "name": "TuitionFee",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "amount",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "dueDate",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "StudentRecord",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "courses",
+            "type": "Course[]",
+            "attributes": ""
+          },
+          {
+            "name": "internships",
+            "type": "Internship[]",
+            "attributes": ""
+          },
+          {
+            "name": "foreignExchanges",
+            "type": "ForeignExchange[]",
+            "attributes": ""
+          },
+          {
+            "name": "projects",
+            "type": "Project[]",
+            "attributes": ""
+          },
+          {
+            "name": "continuousAssessments",
+            "type": "ContinuousAssessment[]",
+            "attributes": ""
+          },
+          {
+            "name": "exams",
+            "type": "Exam[]",
+            "attributes": ""
+          },
+          {
+            "name": "defenses",
+            "type": "Defense[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Course",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "credits",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "coefficient",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Internship",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "companyName",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "duration",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "ForeignExchange",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "country",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "duration",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Project",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "ContinuousAssessment",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "score",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "courseId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "course",
+            "type": "Course",
+            "attributes": "@relation(fields: [courseId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Exam",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "subject",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Defense",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "topic",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "AnnualPlanning",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "year",
+            "type": "Int",
+            "attributes": ""
+          },
+          {
+            "name": "events",
+            "type": "String[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "RoomReservation",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "roomId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "room",
+            "type": "Room",
+            "attributes": "@relation(fields: [roomId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Message",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "content",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "senderId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "receiverId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "ForumPost",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "content",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Circular",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "content",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Absence",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "reason",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Delay",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "reason",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Exemption",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "reason",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Grade",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "value",
+            "type": "Float",
+            "attributes": ""
+          },
+          {
+            "name": "courseId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "course",
+            "type": "Course",
+            "attributes": "@relation(fields: [courseId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Timetable",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "schedule",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "ResourceReservation",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "resourceId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "resource",
+            "type": "Resource",
+            "attributes": "@relation(fields: [resourceId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "News",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "content",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Discipline",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Sanction",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "type",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "description",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "DigitalResource",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "url",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Textbook",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "title",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "content",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "CompetencyRecord",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "competencies",
+            "type": "String[]",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "ProgressReport",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "content",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "studentId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "student",
+            "type": "Student",
+            "attributes": "@relation(fields: [studentId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "SharedAgenda",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "events",
+            "type": "String[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "DSTPlanning",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "schedule",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/tuition-fees",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "TuitionFee"
+      },
+      {
+        "path": "/tuition-fees/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "TuitionFee"
+      },
+      {
+        "path": "/tuition-fees/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "TuitionFee"
+      },
+      {
+        "path": "/student-records",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "StudentRecord"
+      },
+      {
+        "path": "/student-records/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "StudentRecord"
+      },
+      {
+        "path": "/student-records/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "StudentRecord"
+      },
+      {
+        "path": "/courses",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Course"
+      },
+      {
+        "path": "/courses/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Course"
+      },
+      {
+        "path": "/courses/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Course"
+      },
+      {
+        "path": "/internships",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Internship"
+      },
+      {
+        "path": "/internships/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Internship"
+      },
+      {
+        "path": "/internships/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Internship"
+      },
+      {
+        "path": "/foreign-exchanges",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "ForeignExchange"
+      },
+      {
+        "path": "/foreign-exchanges/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "ForeignExchange"
+      },
+      {
+        "path": "/foreign-exchanges/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "ForeignExchange"
+      },
+      {
+        "path": "/projects",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Project"
+      },
+      {
+        "path": "/projects/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Project"
+      },
+      {
+        "path": "/projects/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Project"
+      },
+      {
+        "path": "/continuous-assessments",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "ContinuousAssessment"
+      },
+      {
+        "path": "/continuous-assessments/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "ContinuousAssessment"
+      },
+      {
+        "path": "/continuous-assessments/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "ContinuousAssessment"
+      },
+      {
+        "path": "/exams",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Exam"
+      },
+      {
+        "path": "/exams/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Exam"
+      },
+      {
+        "path": "/exams/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Exam"
+      },
+      {
+        "path": "/defenses",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Defense"
+      },
+      {
+        "path": "/defenses/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Defense"
+      },
+      {
+        "path": "/defenses/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Defense"
+      },
+      {
+        "path": "/annual-plannings",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "AnnualPlanning"
+      },
+      {
+        "path": "/annual-plannings/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "AnnualPlanning"
+      },
+      {
+        "path": "/annual-plannings/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "AnnualPlanning"
+      },
+      {
+        "path": "/room-reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "RoomReservation"
+      },
+      {
+        "path": "/room-reservations/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "RoomReservation"
+      },
+      {
+        "path": "/room-reservations/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "RoomReservation"
+      },
+      {
+        "path": "/messages",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Message"
+      },
+      {
+        "path": "/messages/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Message"
+      },
+      {
+        "path": "/messages/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Message"
+      },
+      {
+        "path": "/forum-posts",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "ForumPost"
+      },
+      {
+        "path": "/forum-posts/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "ForumPost"
+      },
+      {
+        "path": "/forum-posts/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "ForumPost"
+      },
+      {
+        "path": "/circulars",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Circular"
+      },
+      {
+        "path": "/circulars/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Circular"
+      },
+      {
+        "path": "/circulars/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Circular"
+      },
+      {
+        "path": "/absences",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Absence"
+      },
+      {
+        "path": "/absences/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Absence"
+      },
+      {
+        "path": "/absences/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Absence"
+      },
+      {
+        "path": "/delays",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Delay"
+      },
+      {
+        "path": "/delays/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Delay"
+      },
+      {
+        "path": "/delays/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Delay"
+      },
+      {
+        "path": "/exemptions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Exemption"
+      },
+      {
+        "path": "/exemptions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Exemption"
+      },
+      {
+        "path": "/exemptions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Exemption"
+      },
+      {
+        "path": "/grades",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Grade"
+      },
+      {
+        "path": "/grades/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Grade"
+      },
+      {
+        "path": "/grades/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Grade"
+      },
+      {
+        "path": "/timetables",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Timetable"
+      },
+      {
+        "path": "/timetables/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Timetable"
+      },
+      {
+        "path": "/timetables/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Timetable"
+      },
+      {
+        "path": "/resource-reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "ResourceReservation"
+      },
+      {
+        "path": "/resource-reservations/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "ResourceReservation"
+      },
+      {
+        "path": "/resource-reservations/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "ResourceReservation"
+      },
+      {
+        "path": "/news",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "News"
+      },
+      {
+        "path": "/news/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "News"
+      },
+      {
+        "path": "/news/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "News"
+      },
+      {
+        "path": "/disciplines",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Discipline"
+      },
+      {
+        "path": "/disciplines/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Discipline"
+      },
+      {
+        "path": "/disciplines/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Discipline"
+      },
+      {
+        "path": "/sanctions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Sanction"
+      },
+      {
+        "path": "/sanctions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Sanction"
+      },
+      {
+        "path": "/sanctions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Sanction"
+      },
+      {
+        "path": "/digital-resources",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "DigitalResource"
+      },
+      {
+        "path": "/digital-resources/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "DigitalResource"
+      },
+      {
+        "path": "/digital-resources/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "DigitalResource"
+      },
+      {
+        "path": "/textbooks",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Textbook"
+      },
+      {
+        "path": "/textbooks/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Textbook"
+      },
+      {
+        "path": "/textbooks/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Textbook"
+      },
+      {
+        "path": "/competency-records",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "CompetencyRecord"
+      },
+      {
+        "path": "/competency-records/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "CompetencyRecord"
+      },
+      {
+        "path": "/competency-records/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "CompetencyRecord"
+      },
+      {
+        "path": "/progress-reports",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "ProgressReport"
+      },
+      {
+        "path": "/progress-reports/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "ProgressReport"
+      },
+      {
+        "path": "/progress-reports/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "ProgressReport"
+      },
+      {
+        "path": "/shared-agendas",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "SharedAgenda"
+      },
+      {
+        "path": "/shared-agendas/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "SharedAgenda"
+      },
+      {
+        "path": "/shared-agendas/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "SharedAgenda"
+      },
+      {
+        "path": "/dst-plannings",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "DSTPlanning"
+      },
+      {
+        "path": "/dst-plannings/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "DSTPlanning"
+      },
+      {
+        "path": "/dst-plannings/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "DSTPlanning"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page d'accueil publique de l'application de gestion scolaire. Présente les fonctionnalités principales de l'application pour améliorer la collaboration et la communication au sein des écoles. Page publique — aucun appel Clerk.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /tuition-fees : l'utilisateur consulte et gère les frais de scolarité",
+      "Sur /student-records : l'utilisateur consulte et gère les dossiers scolaires des étudiants",
+      "Sur /courses : l'utilisateur consulte et gère les cours",
+      "Sur /internships : l'utilisateur consulte et gère les stages",
+      "Sur /foreign-exchanges : l'utilisateur consulte et gère les séjours à l'étranger",
+      "Sur /projects : l'utilisateur consulte et gère les projets",
+      "Sur /continuous-assessments : l'utilisateur consulte et gère les contrôles continus",
+      "Sur /exams : l'utilisateur consulte et gère les examens",
+      "Sur /defenses : l'utilisateur consulte et gère les soutenances",
+      "Sur /annual-plannings : l'utilisateur consulte et gère la planification annuelle",
+      "Sur /room-reservations : l'utilisateur consulte et gère les réservations de locaux",
+      "Sur /messages : l'utilisateur consulte et envoie des messages",
+      "Sur /forum-posts : l'utilisateur consulte et participe aux discussions du forum",
+      "Sur /circulars : l'utilisateur consulte et gère les circulaires administratives",
+      "Sur /absences : l'utilisateur consulte et gère les absences",
+      "Sur /delays : l'utilisateur consulte et gère les retards",
+      "Sur /exemptions : l'utilisateur consulte et gère les dispenses",
+      "Sur /grades : l'utilisateur consulte et gère les notes",
+      "Sur /timetables : l'utilisateur consulte et gère les emplois du temps",
+      "Sur /resource-reservations : l'utilisateur consulte et gère les réservations de ressources",
+      "Sur /news : l'utilisateur consulte et gère les actualités",
+      "Sur /disciplines : l'utilisateur consulte et gère les disciplines",
+      "Sur /sanctions : l'utilisateur consulte et gère les sanctions",
+      "Sur /digital-resources : l'utilisateur consulte et gère les ressources numériques",
+      "Sur /textbooks : l'utilisateur consulte et gère les cahiers de textes",
+      "Sur /competency-records : l'utilisateur consulte et gère les livrets de compétences",
+      "Sur /progress-reports : l'utilisateur consulte et gère les carnets de suivi",
+      "Sur /shared-agendas : l'utilisateur consulte et gère les agendas partagés",
+      "Sur /dst-plannings : l'utilisateur consulte et gère la planification des D.S.T"
+    ],
+    "ui_labels": {
+      "TuitionFee": {
+        "amount": "Montant",
+        "dueDate": "Date d'échéance"
+      },
+      "StudentRecord": {
+        "studentId": "ID Étudiant"
+      },
+      "Course": {
+        "name": "Nom",
+        "description": "Description",
+        "credits": "Crédits",
+        "coefficient": "Coefficient"
+      },
+      "Internship": {
+        "companyName": "Nom de l'entreprise",
+        "duration": "Durée"
+      },
+      "ForeignExchange": {
+        "country": "Pays",
+        "duration": "Durée"
+      },
+      "Project": {
+        "title": "Titre",
+        "description": "Description"
+      },
+      "ContinuousAssessment": {
+        "score": "Score"
+      },
+      "Exam": {
+        "subject": "Sujet",
+        "date": "Date"
+      },
+      "Defense": {
+        "topic": "Sujet",
+        "date": "Date"
+      },
+      "AnnualPlanning": {
+        "year": "Année",
+        "events": "Événements"
+      },
+      "RoomReservation": {
+        "roomId": "ID Salle",
+        "date": "Date"
+      },
+      "Message": {
+        "content": "Contenu"
+      },
+      "ForumPost": {
+        "title": "Titre",
+        "content": "Contenu"
+      },
+      "Circular": {
+        "title": "Titre",
+        "content": "Contenu"
+      },
+      "Absence": {
+        "date": "Date",
+        "reason": "Raison"
+      },
+      "Delay": {
+        "date": "Date",
+        "reason": "Raison"
+      },
+      "Exemption": {
+        "reason": "Raison"
+      },
+      "Grade": {
+        "value": "Valeur"
+      },
+      "Timetable": {
+        "schedule": "Emploi du temps"
+      },
+      "ResourceReservation": {
+        "resourceId": "ID Ressource",
+        "date": "Date"
+      },
+      "News": {
+        "title": "Titre",
+        "content": "Contenu"
+      },
+      "Discipline": {
+        "name": "Nom",
+        "description": "Description"
+      },
+      "Sanction": {
+        "type": "Type",
+        "description": "Description"
+      },
+      "DigitalResource": {
+        "title": "Titre",
+        "url": "URL"
+      },
+      "Textbook": {
+        "title": "Titre",
+        "content": "Contenu"
+      },
+      "CompetencyRecord": {
+        "competencies": "Compétences"
+      },
+      "ProgressReport": {
+        "content": "Contenu"
+      },
+      "SharedAgenda": {
+        "events": "Événements"
+      },
+      "DSTPlanning": {
+        "schedule": "Emploi du temps"
+      }
+    },
+    "title_plurals": {
+      "TuitionFee": "Frais de scolarité",
+      "StudentRecord": "Dossiers scolaires",
+      "Course": "Cours",
+      "Internship": "Stages",
+      "ForeignExchange": "Séjours à l'étranger",
+      "Project": "Projets",
+      "ContinuousAssessment": "Contrôles continus",
+      "Exam": "Examens",
+      "Defense": "Soutenances",
+      "AnnualPlanning": "Planifications annuelles",
+      "RoomReservation": "Réservations de locaux",
+      "Message": "Messages",
+      "ForumPost": "Messages du forum",
+      "Circular": "Circulaires",
+      "Absence": "Absences",
+      "Delay": "Retards",
+      "Exemption": "Dispenses",
+      "Grade": "Notes",
+      "Timetable": "Emplois du temps",
+      "ResourceReservation": "Réservations de ressources",
+      "News": "Actualités",
+      "Discipline": "Disciplines",
+      "Sanction": "Sanctions",
+      "DigitalResource": "Ressources numériques",
+      "Textbook": "Cahiers de textes",
+      "CompetencyRecord": "Livrets de compétences",
+      "ProgressReport": "Carnets de suivi",
+      "SharedAgenda": "Agendas partagés",
+      "DSTPlanning": "Planifications D.S.T"
+    },
+    "title_singulars": {
+      "TuitionFee": "Frais de scolarité",
+      "StudentRecord": "Dossier scolaire",
+      "Course": "Cours",
+      "Internship": "Stage",
+      "ForeignExchange": "Séjour à l'étranger",
+      "Project": "Projet",
+      "ContinuousAssessment": "Contrôle continu",
+      "Exam": "Examen",
+      "Defense": "Soutenance",
+      "AnnualPlanning": "Planification annuelle",
+      "RoomReservation": "Réservation de local",
+      "Message": "Message",
+      "ForumPost": "Message du forum",
+      "Circular": "Circulaire",
+      "Absence": "Absence",
+      "Delay": "Retard",
+      "Exemption": "Dispense",
+      "Grade": "Note",
+      "Timetable": "Emploi du temps",
+      "ResourceReservation": "Réservation de ressource",
+      "News": "Actualité",
+      "Discipline": "Discipline",
+      "Sanction": "Sanction",
+      "DigitalResource": "Ressource numérique",
+      "Textbook": "Cahier de textes",
+      "CompetencyRecord": "Livret de compétences",
+      "ProgressReport": "Carnet de suivi",
+      "SharedAgenda": "Agenda partagé",
+      "DSTPlanning": "Planification D.S.T"
+    },
+    "enums": {},
+    "enum_value_labels": {},
+    "page_links": {},
+    "spec_fingerprint": "ec59e09aba570768",
+    "design_system": {
+      "preset_name": "community",
+      "primary_color": "rose-500",
+      "font_heading": "Plus Jakarta Sans",
+      "font_body": "DM Sans",
+      "sidebar_bg": "white",
+      "density": "normal",
+      "card_style": "elevated",
+      "list_style": "card-grid",
+      "animation_level": "enhanced",
+      "hero_style": "fullwidth",
+      "layout_type": "topnav",
+      "brand_name": "School Manager"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "amount": {
+          "semantic_type": "currency",
+          "values": [],
+          "display_label": ""
+        },
+        "dueDate": {
+          "semantic_type": "date",
+          "values": [],
+          "display_label": ""
+        },
+        "description": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "content": {
+          "semantic_type": "textarea",
+          "values": [],
+          "display_label": ""
+        },
+        "url": {
+          "semantic_type": "url",
+          "values": [],
+          "display_label": ""
+        },
+        "date": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "calendar_view"
+      ],
+      "status_flows": {},
+      "ux_hints": {
+        "empty_states": {
+          "/tuition-fees": "Aucun frais de scolarité enregistré. Ajoutez un nouveau frais.",
+          "/student-records": "Aucun dossier étudiant disponible. Créez un nouveau dossier étudiant.",
+          "/courses": "Aucun cours disponible. Ajoutez un nouveau cours.",
+          "/internships": "Aucun stage enregistré. Ajoutez un nouveau stage.",
+          "/foreign-exchanges": "Aucun séjour à l'étranger enregistré. Ajoutez un nouveau séjour.",
+          "/projects": "Aucun projet enregistré. Ajoutez un nouveau projet.",
+          "/continuous-assessments": "Aucune évaluation continue enregistrée. Ajoutez une nouvelle évaluation.",
+          "/exams": "Aucun examen enregistré. Ajoutez un nouvel examen.",
+          "/defenses": "Aucune soutenance enregistrée. Ajoutez une nouvelle soutenance.",
+          "/annual-planning": "Aucune planification annuelle disponible. Ajoutez une nouvelle planification.",
+          "/room-reservations": "Aucune réservation de salle enregistrée. Ajoutez une nouvelle réservation.",
+          "/messages": "Aucun message. Envoyez un nouveau message.",
+          "/forum-posts": "Aucun post sur le forum. Créez un nouveau post.",
+          "/circulars": "Aucune circulaire disponible. Ajoutez une nouvelle circulaire.",
+          "/absences": "Aucune absence enregistrée. Ajoutez une nouvelle absence.",
+          "/delays": "Aucun retard enregistré. Ajoutez un nouveau retard.",
+          "/exemptions": "Aucune dispense enregistrée. Ajoutez une nouvelle dispense.",
+          "/grades": "Aucune note enregistrée. Ajoutez une nouvelle note.",
+          "/timetables": "Aucun emploi du temps disponible. Ajoutez un nouvel emploi du temps.",
+          "/resource-reservations": "Aucune réservation de ressource enregistrée. Ajoutez une nouvelle réservation.",
+          "/news": "Aucune actualité disponible. Ajoutez une nouvelle actualité.",
+          "/disciplines": "Aucune discipline enregistrée. Ajoutez une nouvelle discipline.",
+          "/sanctions": "Aucune sanction enregistrée. Ajoutez une nouvelle sanction.",
+          "/digital-resources": "Aucune ressource numérique disponible. Ajoutez une nouvelle ressource.",
+          "/textbooks": "Aucun cahier de textes disponible. Ajoutez un nouveau cahier.",
+          "/competency-records": "Aucun livret de compétences disponible. Ajoutez un nouveau livret.",
+          "/progress-reports": "Aucun carnet de suivi disponible. Ajoutez un nouveau carnet.",
+          "/shared-agendas": "Aucun agenda partagé disponible. Ajoutez un nouvel agenda.",
+          "/dst-plannings": "Aucune planification D.S.T disponible. Ajoutez une nouvelle planification."
+        },
+        "dependency_order": [
+          "Créez d'abord un étudiant avant de créer un dossier étudiant.",
+          "Créez d'abord un cours avant d'ajouter une évaluation continue ou une note."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "direction",
+          "professeur",
+          "eleve",
+          "parent"
+        ],
+        "privileged_role": "direction",
+        "admin_scoped_views": [
+          "TuitionFee",
+          "StudentRecord",
+          "Course",
+          "Internship",
+          "ForeignExchange",
+          "Project",
+          "ContinuousAssessment",
+          "Exam",
+          "Defense",
+          "AnnualPlanning",
+          "RoomReservation",
+          "Message",
+          "ForumPost",
+          "Circular",
+          "Absence",
+          "Delay",
+          "Exemption",
+          "Grade",
+          "Timetable",
+          "ResourceReservation",
+          "News",
+          "Discipline",
+          "Sanction",
+          "DigitalResource",
+          "Textbook",
+          "CompetencyRecord",
+          "ProgressReport",
+          "SharedAgenda",
+          "DSTPlanning"
+        ],
+        "role_gated_actions": {},
+        "global_entities": [],
+        "initiator": {},
+        "surface": {
+          "direction": [
+            "TuitionFee",
+            "StudentRecord",
+            "Course",
+            "Internship",
+            "ForeignExchange",
+            "Project",
+            "ContinuousAssessment",
+            "Exam",
+            "Defense",
+            "AnnualPlanning",
+            "RoomReservation",
+            "Message",
+            "ForumPost",
+            "Circular",
+            "Absence",
+            "Delay",
+            "Exemption",
+            "Grade",
+            "Timetable",
+            "ResourceReservation",
+            "News",
+            "Discipline",
+            "Sanction",
+            "DigitalResource",
+            "Textbook",
+            "CompetencyRecord",
+            "ProgressReport",
+            "SharedAgenda",
+            "DSTPlanning"
+          ],
+          "professeur": [
+            "Course",
+            "ContinuousAssessment",
+            "Exam",
+            "Defense",
+            "Message",
+            "ForumPost",
+            "Circular",
+            "Grade",
+            "Timetable",
+            "ResourceReservation",
+            "News",
+            "Discipline",
+            "Sanction",
+            "DigitalResource",
+            "Textbook",
+            "CompetencyRecord",
+            "ProgressReport",
+            "SharedAgenda",
+            "DSTPlanning"
+          ],
+          "eleve": [
+            "StudentRecord",
+            "Course",
+            "Internship",
+            "ForeignExchange",
+            "Project",
+            "ContinuousAssessment",
+            "Exam",
+            "Defense",
+            "Message",
+            "ForumPost",
+            "Circular",
+            "Absence",
+            "Delay",
+            "Exemption",
+            "Grade",
+            "Timetable",
+            "ResourceReservation",
+            "News",
+            "DigitalResource",
+            "Textbook",
+            "CompetencyRecord",
+            "ProgressReport",
+            "SharedAgenda"
+          ],
+          "parent": [
+            "StudentRecord",
+            "Message",
+            "ForumPost",
+            "Circular",
+            "Absence",
+            "Delay",
+            "Exemption",
+            "Grade",
+            "Timetable",
+            "News",
+            "ProgressReport"
+          ]
+        },
+        "dashboard": {
+          "direction": [
+            "gestion des frais de scolarité",
+            "dossiers scolaires étudiants",
+            "planification annuelle"
+          ],
+          "professeur": [
+            "cours à enseigner",
+            "notes à attribuer",
+            "messages des élèves"
+          ],
+          "eleve": [
+            "mes cours",
+            "mes notes",
+            "messages des professeurs"
+          ],
+          "parent": [
+            "dossiers scolaires de mes enfants",
+            "messages des professeurs"
+          ]
+        }
+      }
+    },
+    "summary_fr": "L'application permet de gérer les frais de scolarité, les dossiers scolaires, les cours, les stages, et les séjours à l'étranger. Elle facilite la communication via la messagerie et les forums, et gère les absences, retards, et notes des élèves. Les utilisateurs peuvent accéder à des ressources numériques et gérer des emplois du temps partagés. Quatre niveaux d'autorisation (Direction, Professeur, Élève, Parent) déterminent les accès et actions possibles pour chaque utilisateur.",
+    "unsupported": [
+      "Le brief demande un module pour la réservation des locaux ; bien que 'RoomReservation' soit mentionné, il n'y a pas de détails sur la gestion des réservations de locaux.",
+      "Le brief mentionne la planification des D.S.T (Devoirs Surveillés de Type) ; bien que 'DSTPlanning' soit mentionné, il n'y a pas de détails sur la gestion spécifique de ces planifications.",
+      "Le brief demande un agenda partagé ; bien que 'SharedAgenda' soit mentionné, il n'y a pas de détails sur la gestion ou l'accès à cet agenda.",
+      "Le brief mentionne un livret de compétences et un carnet de suivi ; bien que 'CompetencyRecord' et 'ProgressReport' soient mentionnés, il n'y a pas de détails sur leur gestion ou leur utilisation."
+    ]
+  }
+}

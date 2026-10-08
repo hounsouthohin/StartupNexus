@@ -1,0 +1,576 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "reel-maintenance-interventions",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-10-04T15:12:57+00:00",
+  "run_id": "capture-43e9a576",
+  "brief": {
+    "description": "Nous sommes une société de maintenance informatique. SERVICE ADMINISTRATION / DIRECTION : Nous souhaiterons, un outil, une application ou un logiciel qui serait synchroniser en français, où nous aurons la possibilité de gérer les interventions, remontée (rappel) des rendez-vous prévus avec nos clients à l'administration et aux techniciens sur l'ordinateur (la veille, le jour j) et avoir un suivi des interventions. Insérer le logo de l'entreprise si possible. Avoir un onglet contact pour pouvoir y ajouter tous les techniciens et les clients. Avoir un planning géré par des droits, un planning générateur des mails en 2 parties : techniciens, entreprise. Pouvoir avoir une carte de la France où il y aurait tous les techniciens pouvant intervenir dans leurs régions et savoir, avec onglet ou autre, s'ils sont disponibles à intervenir. SERVICE COMPTABILITÉ : Gérer les factures qui seront numérotées, datées et en fichier PDF, qui sera bloqué à une page (facture et livrable séparés) et qui seront donc envoyés séparément aux techniciens et aux clients. De plus avec une option pièce jointe. Nous souhaiterons aussi, avoir un accès séparé, dont les techniciens auraient la possibilité de consulter leurs plannings, leurs factures mais sans pouvoir y faire de modifications quelconques tandis que les internes auraient tous les droits sur les plannings et les factures. SERVICE TECHNIQUE : Si possible, lors de la fin de l'intervention du technicien chez le client concerné, qu'il puisse envoyer le lien concernant le livrable signé à l'administration et au service comptable directement. Ce qui serait nécessaire aussi, c'est que lorsqu'il y a une demande d'intervention chez le client, le technicien aurait le choix d'accepter ou de refuser la proposition par mail et que la confirmation soit envoyée automatiquement à l'administration. Nous souhaitons aussi, une application (Android, Iphone...) ou une version mobile. Si possible, un SMS qui serait envoyé afin d'informer et de confirmer l'intervention aux techniciens. Les données doivent être obligatoirement sauvegardées en interne."
+  },
+  "project_spec": {
+    "project_name": "reel-maintenance-interventions",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Nous sommes une société de maintenance informatique. SERVICE ADMINISTRATION / DIRECTION : Nous souhaiterons, un outil, une application ou un logiciel qui serait synchroniser en français, où nous aurons la possibilité de gérer les interventions, remontée (rappel) des rendez-vous prévus avec nos clients à l'administration et aux techniciens sur l'ordinateur (la veille, le jour j) et avoir un suivi des interventions. Insérer le logo de l'entreprise si possible. Avoir un onglet contact pour pouvoir y ajouter tous les techniciens et les clients. Avoir un planning géré par des droits, un planning générateur des mails en 2 parties : techniciens, entreprise. Pouvoir avoir une carte de la France où il y aurait tous les techniciens pouvant intervenir dans leurs régions et savoir, avec onglet ou autre, s'ils sont disponibles à intervenir. SERVICE COMPTABILITÉ : Gérer les factures qui seront numérotées, datées et en fichier PDF, qui sera bloqué à une page (facture et livrable séparés) et qui seront donc envoyés séparément aux techniciens et aux clients. De plus avec une option pièce jointe. Nous souhaiterons aussi, avoir un accès séparé, dont les techniciens auraient la possibilité de consulter leurs plannings, leurs factures mais sans pouvoir y faire de modifications quelconques tandis que les internes auraient tous les droits sur les plannings et les factures. SERVICE TECHNIQUE : Si possible, lors de la fin de l'intervention du technicien chez le client concerné, qu'il puisse envoyer le lien concernant le livrable signé à l'administration et au service comptable directement. Ce qui serait nécessaire aussi, c'est que lorsqu'il y a une demande d'intervention chez le client, le technicien aurait le choix d'accepter ou de refuser la proposition par mail et que la confirmation soit envoyée automatiquement à l'administration. Nous souhaitons aussi, une application (Android, Iphone...) ou une version mobile. Si possible, un SMS qui serait envoyé afin d'informer et de confirmer l'intervention aux techniciens. Les données doivent être obligatoirement sauvegardées en interne.",
+    "models": [
+      {
+        "name": "Intervention",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "InterventionStatus",
+            "attributes": "@default(planned)"
+          },
+          {
+            "name": "clientId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "client",
+            "type": "Client",
+            "attributes": "@relation(fields: [clientId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "technicianId",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "technician",
+            "type": "Technician",
+            "attributes": "@relation(fields: [technicianId], references: [id], onDelete: SetNull)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Client",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "phone",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "address",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "interventions",
+            "type": "Intervention[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Technician",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "phone",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "region",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "interventions",
+            "type": "Intervention[]",
+            "attributes": ""
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Invoice",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "number",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "pdfUrl",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "clientId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "client",
+            "type": "Client",
+            "attributes": "@relation(fields: [clientId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "technicianId",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "technician",
+            "type": "Technician",
+            "attributes": "@relation(fields: [technicianId], references: [id], onDelete: SetNull)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/interventions",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Intervention"
+      },
+      {
+        "path": "/interventions/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Intervention"
+      },
+      {
+        "path": "/interventions/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Intervention"
+      },
+      {
+        "path": "/interventions/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Intervention"
+      },
+      {
+        "path": "/clients",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Client"
+      },
+      {
+        "path": "/clients/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Client"
+      },
+      {
+        "path": "/clients/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Client"
+      },
+      {
+        "path": "/clients/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Client"
+      },
+      {
+        "path": "/technicians",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Technician"
+      },
+      {
+        "path": "/technicians/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Technician"
+      },
+      {
+        "path": "/technicians/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Technician"
+      },
+      {
+        "path": "/technicians/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Technician"
+      },
+      {
+        "path": "/invoices",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Invoice"
+      },
+      {
+        "path": "/invoices/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Invoice"
+      },
+      {
+        "path": "/invoices/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Invoice"
+      },
+      {
+        "path": "/invoices/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Invoice"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation de la société de maintenance informatique. Informations sur les services proposés : administration, comptabilité, technique. Carte de la France avec les techniciens par région. Contact pour techniciens et clients.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      }
+    },
+    "user_flows": [
+      "Sur /interventions : l'utilisateur consulte et gère les interventions",
+      "Sur /interventions/new : l'utilisateur crée une nouvelle intervention",
+      "Sur /interventions/[id] : l'utilisateur consulte le détail d'une intervention",
+      "Sur /clients : l'utilisateur consulte et gère les clients",
+      "Sur /clients/new : l'utilisateur ajoute un nouveau client",
+      "Sur /clients/[id] : l'utilisateur consulte le détail d'un client",
+      "Sur /technicians : l'utilisateur consulte et gère les techniciens",
+      "Sur /technicians/new : l'utilisateur ajoute un nouveau technicien",
+      "Sur /technicians/[id] : l'utilisateur consulte le détail d'un technicien",
+      "Sur /invoices : l'utilisateur consulte et gère les factures",
+      "Sur /invoices/new : l'utilisateur crée une nouvelle facture",
+      "Sur /invoices/[id] : l'utilisateur consulte le détail d'une facture"
+    ],
+    "ui_labels": {
+      "Intervention": {
+        "date": "Date",
+        "status": "Statut",
+        "clientId": "Client",
+        "technicianId": "Technicien"
+      },
+      "Client": {
+        "name": "Nom",
+        "email": "Email",
+        "phone": "Téléphone",
+        "address": "Adresse"
+      },
+      "Technician": {
+        "name": "Nom",
+        "email": "Email",
+        "phone": "Téléphone",
+        "region": "Région"
+      },
+      "Invoice": {
+        "number": "Numéro",
+        "date": "Date",
+        "pdfUrl": "URL PDF",
+        "clientId": "Client",
+        "technicianId": "Technicien"
+      }
+    },
+    "title_plurals": {
+      "Intervention": "Interventions",
+      "Client": "Clients",
+      "Technician": "Techniciens",
+      "Invoice": "Factures"
+    },
+    "title_singulars": {
+      "Intervention": "Intervention",
+      "Client": "Client",
+      "Technician": "Technicien",
+      "Invoice": "Facture"
+    },
+    "enums": {
+      "InterventionStatus": [
+        "planned",
+        "confirmed",
+        "completed",
+        "cancelled"
+      ]
+    },
+    "enum_value_labels": {
+      "InterventionStatus": {
+        "planned": "Planifiée",
+        "confirmed": "Confirmée",
+        "completed": "Terminée",
+        "cancelled": "Annulée"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "8cf55718e3b71233",
+    "design_system": {
+      "preset_name": "saas_crm",
+      "primary_color": "violet-600",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "slate-900",
+      "density": "compact",
+      "card_style": "elevated",
+      "list_style": "table",
+      "animation_level": "standard",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "Maintenance Pro"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "date": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        },
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "planned",
+            "confirmed",
+            "completed",
+            "cancelled"
+          ],
+          "display_label": ""
+        },
+        "pdfUrl": {
+          "semantic_type": "url",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [
+        {
+          "model": "",
+          "name": "getByStatus",
+          "pattern": "filter_by_field",
+          "field": "status",
+          "param_name": "",
+          "return_many": true
+        },
+        {
+          "model": "",
+          "name": "getByClient",
+          "pattern": "filter_by_relation",
+          "field": "client",
+          "param_name": "",
+          "return_many": true
+        },
+        {
+          "model": "",
+          "name": "getByTechnician",
+          "pattern": "filter_by_relation",
+          "field": "technician",
+          "param_name": "",
+          "return_many": true
+        }
+      ],
+      "features": [
+        "status_flow",
+        "calendar_view",
+        "file_upload"
+      ],
+      "status_flows": {
+        "Intervention": {
+          "field": "status",
+          "initial": "planned",
+          "transitions": {
+            "planned": [
+              "confirmed",
+              "cancelled"
+            ],
+            "confirmed": [
+              "completed",
+              "cancelled"
+            ],
+            "completed": [],
+            "cancelled": []
+          },
+          "locked_states": [
+            "completed",
+            "cancelled"
+          ],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/interventions": "Aucune intervention planifiée. Créez une nouvelle intervention pour commencer.",
+          "/invoices": "Aucune facture disponible. Créez une facture pour commencer."
+        },
+        "dependency_order": [
+          "Créez d'abord un Client avant de créer une Intervention.",
+          "Créez d'abord un Client avant de créer une Facture."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "technician",
+          "admin"
+        ],
+        "privileged_role": "admin",
+        "admin_scoped_views": [
+          "Intervention",
+          "Invoice"
+        ],
+        "role_gated_actions": {
+          "Intervention": [
+            "status_transition"
+          ],
+          "Invoice": [
+            "update",
+            "delete"
+          ]
+        },
+        "global_entities": [],
+        "initiator": {
+          "Intervention": "admin"
+        },
+        "surface": {
+          "technician": [
+            "Intervention",
+            "Invoice"
+          ],
+          "admin": [
+            "Intervention",
+            "Client",
+            "Technician",
+            "Invoice"
+          ]
+        },
+        "dashboard": {
+          "admin": [
+            "interventions à planifier",
+            "factures à traiter"
+          ],
+          "technician": [
+            "mes interventions à venir",
+            "mes factures"
+          ]
+        }
+      }
+    },
+    "summary_fr": "L'application permet de gérer les interventions de maintenance informatique, avec un suivi des rendez-vous et des interventions. Les administrateurs peuvent gérer les plannings et les factures, tandis que les techniciens peuvent consulter leurs plannings et factures sans les modifier. Les factures sont générées en PDF et envoyées séparément aux techniciens et aux clients. Les techniciens peuvent accepter ou refuser des interventions par mail, et envoyer un lien du livrable signé à l'administration et au service comptable. Une carte de France montre la disponibilité des techniciens par région.",
+    "unsupported": [
+      "Le brief demande une application mobile (Android, iPhone) ou une version mobile ; la spécification ne mentionne aucune application ou version mobile.",
+      "Le brief mentionne l'envoi de SMS pour informer et confirmer les interventions aux techniciens ; la spécification ne couvre pas cette fonctionnalité.",
+      "Le brief demande que les données soient sauvegardées en interne ; la spécification ne précise pas comment les données sont sauvegardées."
+    ]
+  }
+}

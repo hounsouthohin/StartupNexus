@@ -1,0 +1,32 @@
+{
+  "created_at": "20261004T151841Z",
+  "args": {
+    "only": [
+      "reel-agence-reservations"
+    ],
+    "no_tsc": true,
+    "update": false,
+    "diff": false,
+    "keep": true
+  },
+  "reports": [
+    {
+      "project": "reel-agence-reservations",
+      "declaration": "reel-agence-reservations.json",
+      "generation_seconds": 1.86,
+      "errors": [],
+      "alerts": [
+        "agents.project_spec: [PrismaModel] Provider : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable).",
+        "agents.project_spec: [PrismaModel] Manager : owner_field='userId' absent ET 'userId' absent — le service utilisera un champ inexistant (erreur TypeScript probable)."
+      ],
+      "files": 110,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "ok": true
+    }
+  ]
+}

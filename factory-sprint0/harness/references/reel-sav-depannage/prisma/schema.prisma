@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MachineSocket {
+  478
+  754
+  775
+  am2
+}
+
+enum InterventionStatus {
+  ouverte
+  en_cours
+  cloturee
+  payee
+}
+
+enum ActionStatus {
+  a_faire
+  faite
+}
+
+model Client {
+  id String @id @default(uuid())
+  name String
+  email String
+  address String
+  userId String
+  machines Machine[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Machine {
+  id String @id @default(uuid())
+  model String
+  serialNumber String
+  socket MachineSocket
+  clientId String
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  userId String
+  interventions Intervention[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Intervention {
+  id String @id @default(uuid())
+  date DateTime
+  status InterventionStatus @default(ouverte)
+  machineId String
+  machine Machine @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  userId String
+  actions Action[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}
+
+model Action {
+  id String @id @default(uuid())
+  description String
+  status ActionStatus @default(a_faire)
+  interventionId String
+  intervention Intervention @relation(fields: [interventionId], references: [id], onDelete: Cascade)
+  userId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+}

@@ -1,0 +1,471 @@
+{
+  "projet": "appr-cabinet-pluri",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Logiciel multi-utilisateurs de gestion de cabinet pluridisciplinaire, avec agenda, facturation et devis.",
+    "hors_stock": [
+      {
+        "besoin": "partager les dossiers avec les professionnels concernés",
+        "categorie": "partage_fin",
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "besoin": "assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel",
+        "categorie": "cloisonnement",
+        "citation": "afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "id": "professionnel",
+        "libelle": "professionnel",
+        "libelle_pluriel": "professionnels",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "partager les dossiers avec les professionnels concernés"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 638,
+      "jetons_sortie": 131
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 524,
+      "jetons_sortie": 117
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 869,
+      "jetons_sortie": 312
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit RendezVous : sur un registre, l'initiateur est l'un de ceux qui le tiennent : ['administrateur']"
+      ],
+      "jetons_entree": 665,
+      "jetons_sortie": 300
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1011,
+      "jetons_sortie": 306
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 677,
+      "jetons_sortie": 114
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Dossier",
+        "libelle": "dossier",
+        "libelle_pluriel": "dossiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "nom": "RendezVous",
+        "libelle": "rdv",
+        "libelle_pluriel": "rdv",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "facturation",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "facturation"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "et devis"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Dossier",
+        "etat_initial": "ouvert",
+        "transitions": {
+          "ouvert": [
+            "partage"
+          ],
+          "partage": []
+        },
+        "libelles": {
+          "ouvert": "ouvert",
+          "partage": "partagé"
+        },
+        "initiateur": "administrateur",
+        "decideur": "administrateur",
+        "etapes_par": {},
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "fiche": "RendezVous",
+        "etat_initial": "demande",
+        "transitions": {
+          "demande": [
+            "acceptee"
+          ],
+          "acceptee": []
+        },
+        "libelles": {
+          "demande": "demande",
+          "acceptee": "acceptée"
+        },
+        "initiateur": "administrateur",
+        "decideur": "professionnel",
+        "etapes_par": {},
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv...agenda"
+      },
+      {
+        "fiche": "Facture",
+        "etat_initial": "ouverte",
+        "transitions": {
+          "ouverte": [
+            "cloturee"
+          ],
+          "cloturee": []
+        },
+        "libelles": {
+          "ouverte": "ouverte",
+          "cloturee": "clôturée"
+        },
+        "initiateur": "administrateur",
+        "decideur": "administrateur",
+        "etapes_par": {},
+        "citation": "facturation"
+      },
+      {
+        "fiche": "Devis",
+        "etat_initial": "ouvert",
+        "transitions": {
+          "ouvert": [
+            "accepte"
+          ],
+          "accepte": []
+        },
+        "libelles": {
+          "ouvert": "ouvert",
+          "accepte": "accepté"
+        },
+        "initiateur": "administrateur",
+        "decideur": "administrateur",
+        "etapes_par": {},
+        "citation": "facturation et devis"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Dossier",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "acteur": "professionnel",
+        "fiche": "Dossier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "id": "professionnel",
+        "label": "professionnel",
+        "label_plural": "professionnels",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "partager les dossiers avec les professionnels concernés"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Dossier",
+        "label": "dossier",
+        "label_plural": "dossiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés",
+        "process": {
+          "initial": "ouvert",
+          "transitions": {
+            "ouvert": [
+              "partage"
+            ],
+            "partage": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "ouvert": "ouvert",
+            "partage": "partagé"
+          },
+          "citation": "l'administrateur pourra partager les dossiers"
+        }
+      },
+      {
+        "name": "RendezVous",
+        "label": "rdv",
+        "label_plural": "rdv",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv",
+        "process": {
+          "initial": "demande",
+          "transitions": {
+            "demande": [
+              "acceptee"
+            ],
+            "acceptee": []
+          },
+          "initiator": "administrateur",
+          "decider": "professionnel",
+          "steps_by": {},
+          "labels": {
+            "demande": "demande",
+            "acceptee": "acceptée"
+          },
+          "citation": "Logiciel multi-utilisateurs de gestion de rdv"
+        }
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "facturation",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "facturation",
+        "process": {
+          "initial": "ouverte",
+          "transitions": {
+            "ouverte": [
+              "cloturee"
+            ],
+            "cloturee": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "ouverte": "ouverte",
+            "cloturee": "clôturée"
+          },
+          "citation": "facturation"
+        }
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "et devis",
+        "process": {
+          "initial": "ouvert",
+          "transitions": {
+            "ouvert": [
+              "accepte"
+            ],
+            "accepte": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "ouvert": "ouvert",
+            "accepte": "accepté"
+          },
+          "citation": "facturation et devis"
+        }
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Dossier",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "actor": "professionnel",
+        "entity": "Dossier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour administrateur : inviter des professionnels"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit tous les dossiers, en crée, les modifie, les fait passer de « ouvert » à « partagé »",
+      "voit tous les rdv, en crée, les modifie",
+      "voit toutes les facturation, en crée, les modifie, les fait passer de « ouverte » à « clôturée »",
+      "voit tous les devis, en crée, les modifie, les fait passer de « ouvert » à « accepté »"
+    ],
+    "Le professionnel": [
+      "voit tous les dossiers",
+      "voit tous les rdv, les fait passer de « demande » à « acceptée »"
+    ]
+  },
+  "questions": [],
+  "secondes": 10.5,
+  "jetons": {
+    "entree": 4384,
+    "sortie": 1280,
+    "appels": 6
+  }
+}

@@ -1,0 +1,425 @@
+{
+  "projet": "appr-marketplace",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est une marketplace avec paiement en ligne, commissions, messagerie, avis et géolocalisation, ce qui est explicitement hors de notre périmètre de logiciels de gestion.",
+    "hors_stock": [
+      {
+        "besoin": "Paiement en ligne sécurisé",
+        "categorie": "paiement",
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "besoin": "Gestion automatique des commissions",
+        "categorie": "automatisation",
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "besoin": "Messagerie interne",
+        "categorie": "messagerie",
+        "citation": "Messagerie interne"
+      },
+      {
+        "besoin": "Géolocalisation",
+        "categorie": "autre",
+        "citation": "géolocalisation"
+      },
+      {
+        "besoin": "Moteur de recherche",
+        "categorie": "autre",
+        "citation": "Moteur de recherche et géolocalisation"
+      },
+      {
+        "besoin": "Système d'avis et de notation",
+        "categorie": "autre",
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "besoin": "Tableau de bord utilisateur",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableau de bord utilisateur"
+      },
+      {
+        "besoin": "Site multilingue",
+        "categorie": "autre",
+        "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+      },
+      {
+        "besoin": "Déclinaison future en application mobile Android et iOS",
+        "categorie": "mobile_hors_ligne",
+        "citation": "être déclinée en application mobile Android et iOS"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "utilisateur",
+        "libelle_pluriel": "utilisateurs",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "Gestion des comptes utilisateurs"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 788,
+      "jetons_sortie": 814
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 674,
+      "jetons_sortie": 474
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1019,
+      "jetons_sortie": 1577
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 871,
+      "jetons_sortie": 166
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 883,
+      "jetons_sortie": 403
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "CompteUtilisateur",
+        "libelle": "compte utilisateur",
+        "libelle_pluriel": "comptes utilisateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des comptes utilisateurs"
+      },
+      {
+        "nom": "Annonce",
+        "libelle": "annonce",
+        "libelle_pluriel": "annonces",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "nom": "Paiement",
+        "libelle": "paiement",
+        "libelle_pluriel": "paiements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "nom": "Commission",
+        "libelle": "commission",
+        "libelle_pluriel": "commissions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Paiement"
+        ],
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "nom": "Message",
+        "libelle": "message",
+        "libelle_pluriel": "messages",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Messagerie interne"
+      },
+      {
+        "nom": "Avis",
+        "libelle": "avis",
+        "libelle_pluriel": "avis",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "nom": "Langue",
+        "libelle": "langue",
+        "libelle_pluriel": "langues",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Interface d'administration complète"
+      },
+      {
+        "id": "utilisateur",
+        "label": "utilisateur",
+        "label_plural": "utilisateurs",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "Gestion des comptes utilisateurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "CompteUtilisateur",
+        "label": "compte utilisateur",
+        "label_plural": "comptes utilisateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des comptes utilisateurs"
+      },
+      {
+        "name": "Annonce",
+        "label": "annonce",
+        "label_plural": "annonces",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Publication et gestion d'annonces"
+      },
+      {
+        "name": "Paiement",
+        "label": "paiement",
+        "label_plural": "paiements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Paiement en ligne sécurisé"
+      },
+      {
+        "name": "Commission",
+        "label": "commission",
+        "label_plural": "commissions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Paiement"
+        ],
+        "citation": "Gestion automatique des commissions"
+      },
+      {
+        "name": "Message",
+        "label": "message",
+        "label_plural": "messages",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Messagerie interne"
+      },
+      {
+        "name": "Avis",
+        "label": "avis",
+        "label_plural": "avis",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "CompteUtilisateur"
+        ],
+        "citation": "Système d'avis et de notation"
+      },
+      {
+        "name": "Langue",
+        "label": "langue",
+        "label_plural": "langues",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "administrateur crée des paiements qui référencent des comptes utilisateurs, mais n'en voit aucun : impossible de choisir (D2 ?)"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit les comptes utilisateurs affichés dans les paiements qu'il consulte (sans page dédiée)",
+      "voit tous les paiements, en crée, les modifie",
+      "voit toutes les commissions, en crée, les modifie",
+      "voit toutes les langues, en crée, les modifie"
+    ],
+    "L'utilisateur": [
+      "a son compte utilisateur, créé automatiquement, qu'il peut modifier",
+      "voit ses annonces, en crée, les modifie",
+      "voit ses messages, en crée, les modifie",
+      "voit ses avis, en crée, les modifie",
+      "voit toutes les langues"
+    ]
+  },
+  "questions": [
+    "L'administrateur verra les comptes utilisateurs (ex. nom, coordonnées) affichés dans les paiements qu'il traite — est-ce acceptable ? (oui / non)"
+  ],
+  "secondes": 43.1,
+  "jetons": {
+    "entree": 4235,
+    "sortie": 3434,
+    "appels": 5
+  }
+}

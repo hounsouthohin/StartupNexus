@@ -1,0 +1,585 @@
+{
+  "projet": "appr-formation",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion pour organisme de formation, avec des entités, des stagiaires et des sessions de formation à organiser.",
+    "hors_stock": [
+      {
+        "besoin": "Rétroplanning d'organisation des sessions",
+        "categorie": "planning",
+        "citation": "rétroplanning d'organisation de la session"
+      },
+      {
+        "besoin": "Convocation téléphonique",
+        "categorie": "notification",
+        "citation": "convocation téléphonique"
+      },
+      {
+        "besoin": "Envoi de contrat",
+        "categorie": "document",
+        "citation": "envoi contrat"
+      },
+      {
+        "besoin": "Planification avec le formateur et la salle",
+        "categorie": "planning",
+        "citation": "planifier la date avec le formateur et la salle"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "la facturation"
+      },
+      {
+        "besoin": "Établissement d'un bilan pour l'entité",
+        "categorie": "calcul_statistiques",
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "besoin": "Gestion comptable associée",
+        "categorie": "autre",
+        "citation": "gestion comptable associée"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Entité",
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "libelle": "Stagiaire",
+        "citation": "nous envoie des stagiaires"
+      },
+      {
+        "libelle": "Formateur",
+        "citation": "planifier la date avec le formateur"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 672,
+      "jetons_sortie": 689
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 558,
+      "jetons_sortie": 459
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche TacheRetroplanning : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 900,
+      "jetons_sortie": 2901
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1766,
+      "jetons_sortie": 902
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 811,
+      "jetons_sortie": 704
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 823,
+      "jetons_sortie": 529
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Entite",
+        "libelle": "entité",
+        "libelle_pluriel": "entités",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "nom": "Stagiaire",
+        "libelle": "stagiaire",
+        "libelle_pluriel": "stagiaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Entite"
+        ],
+        "citation": "des stagiaires que nous répartissons"
+      },
+      {
+        "nom": "Formateur",
+        "libelle": "formateur",
+        "libelle_pluriel": "formateurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur"
+      },
+      {
+        "nom": "Salle",
+        "libelle": "salle",
+        "libelle_pluriel": "salles",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la salle"
+      },
+      {
+        "nom": "SessionFormation",
+        "libelle": "session de formation",
+        "libelle_pluriel": "sessions de formation",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Entite",
+          "Stagiaire",
+          "Formateur",
+          "Salle"
+        ],
+        "citation": "sessions de formation"
+      },
+      {
+        "nom": "TacheRetroplanning",
+        "libelle": "tâche de rétroplanning",
+        "libelle_pluriel": "tâches de rétroplanning",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "SessionFormation",
+        "references": [
+          "Formateur",
+          "Salle"
+        ],
+        "citation": "rétroplanning d'organisation de la session : convocation téléphonique"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Entite",
+          "SessionFormation"
+        ],
+        "citation": "la facturation"
+      },
+      {
+        "nom": "Bilan",
+        "libelle": "bilan",
+        "libelle_pluriel": "bilans",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Entite",
+          "SessionFormation"
+        ],
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "nom": "EcritureComptable",
+        "libelle": "écriture comptable",
+        "libelle_pluriel": "écritures comptables",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Facture"
+        ],
+        "citation": "gestion comptable associée"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Entité",
+        "fiche": "Entite",
+        "raison": "Représente l'entité qui envoie des stagiaires."
+      },
+      {
+        "non_utilisateur": "Stagiaire",
+        "fiche": "Stagiaire",
+        "raison": "Représente les stagiaires répartis sur des sessions de formation."
+      },
+      {
+        "non_utilisateur": "Formateur",
+        "fiche": "Formateur",
+        "raison": "Représente le formateur avec lequel une date est planifiée."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "SessionFormation",
+        "etat_initial": "convocation_telephonique",
+        "transitions": {
+          "convocation_telephonique": [
+            "envoi_contrat"
+          ],
+          "envoi_contrat": [
+            "planification_date"
+          ],
+          "planification_date": [
+            "facturation"
+          ],
+          "facturation": [
+            "bilan"
+          ],
+          "bilan": []
+        },
+        "libelles": {
+          "convocation_telephonique": "convocation téléphonique",
+          "envoi_contrat": "envoi contrat",
+          "planification_date": "planifier la date",
+          "facturation": "facturation",
+          "bilan": "établissement d'un bilan"
+        },
+        "initiateur": "administrateur",
+        "decideur": "administrateur",
+        "etapes_par": {},
+        "citation": "il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle... puis la facturation et l'établissement d'un bilan"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Entite",
+        "label": "entité",
+        "label_plural": "entités",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "name": "Stagiaire",
+        "label": "stagiaire",
+        "label_plural": "stagiaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Entite"
+        ],
+        "citation": "des stagiaires que nous répartissons"
+      },
+      {
+        "name": "Formateur",
+        "label": "formateur",
+        "label_plural": "formateurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur"
+      },
+      {
+        "name": "Salle",
+        "label": "salle",
+        "label_plural": "salles",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "la salle"
+      },
+      {
+        "name": "SessionFormation",
+        "label": "session de formation",
+        "label_plural": "sessions de formation",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Entite",
+          "Stagiaire",
+          "Formateur",
+          "Salle"
+        ],
+        "citation": "sessions de formation",
+        "process": {
+          "initial": "convocation_telephonique",
+          "transitions": {
+            "convocation_telephonique": [
+              "envoi_contrat"
+            ],
+            "envoi_contrat": [
+              "planification_date"
+            ],
+            "planification_date": [
+              "facturation"
+            ],
+            "facturation": [
+              "bilan"
+            ],
+            "bilan": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "convocation_telephonique": "convocation téléphonique",
+            "envoi_contrat": "envoi contrat",
+            "planification_date": "planifier la date",
+            "facturation": "facturation",
+            "bilan": "établissement d'un bilan"
+          },
+          "citation": "il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+        }
+      },
+      {
+        "name": "TacheRetroplanning",
+        "label": "tâche de rétroplanning",
+        "label_plural": "tâches de rétroplanning",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "SessionFormation",
+        "references": [
+          "Formateur",
+          "Salle"
+        ],
+        "citation": "rétroplanning d'organisation de la session : convocation téléphonique"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Entite",
+          "SessionFormation"
+        ],
+        "citation": "la facturation"
+      },
+      {
+        "name": "Bilan",
+        "label": "bilan",
+        "label_plural": "bilans",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Entite",
+          "SessionFormation"
+        ],
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "name": "EcritureComptable",
+        "label": "écriture comptable",
+        "label_plural": "écritures comptables",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Facture"
+        ],
+        "citation": "gestion comptable associée"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit toutes les entités, en crée, les modifie",
+      "voit tous les stagiaires, en crée, les modifie",
+      "voit tous les formateurs, en crée, les modifie",
+      "voit toutes les salles, en crée, les modifie",
+      "voit toutes les sessions de formation, en crée, les modifie, les fait passer de « convocation téléphonique » à « envoi contrat », les fait passer de « envoi contrat » à « planifier la date », les fait passer de « planifier la date » à « facturation », les fait passer de « facturation » à « établissement d'un bilan »",
+      "voit toutes les tâches de rétroplanning, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie",
+      "voit tous les bilans, en crée, les modifie",
+      "voit toutes les écritures comptables, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 67.4,
+  "jetons": {
+    "entree": 5530,
+    "sortie": 6184,
+    "appels": 6
+  }
+}

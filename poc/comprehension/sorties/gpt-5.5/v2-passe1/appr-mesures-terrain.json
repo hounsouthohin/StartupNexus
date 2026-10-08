@@ -1,0 +1,229 @@
+{
+  "projet": "appr-mesures-terrain",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion de commandes pour une petite structure, avec des commandes/livrables à suivre.",
+    "hors_stock": [
+      {
+        "besoin": "Planning logistique",
+        "categorie": "planning",
+        "citation": "un planning logistique"
+      },
+      {
+        "besoin": "Automatisation de la gestion des livrables",
+        "categorie": "automatisation",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Création d'un logiciel de gestion de commande."
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 617,
+      "jetons_sortie": 198
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 503,
+      "jetons_sortie": 199
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Livrable : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 833,
+      "jetons_sortie": 756
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1107,
+      "jetons_sortie": 235
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 609,
+      "jetons_sortie": 95
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 621,
+      "jetons_sortie": 123
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Commande",
+        "libelle": "commande",
+        "libelle_pluriel": "commandes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des commandes"
+      },
+      {
+        "nom": "PlanningLogistique",
+        "libelle": "planning logistique",
+        "libelle_pluriel": "plannings logistiques",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "un planning logistique"
+      },
+      {
+        "nom": "Livrable",
+        "libelle": "livrable",
+        "libelle_pluriel": "livrables",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Commande",
+        "references": [],
+        "citation": "gestion des livrables"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Création d'un logiciel de gestion de commande"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des commandes"
+      },
+      {
+        "name": "PlanningLogistique",
+        "label": "planning logistique",
+        "label_plural": "plannings logistiques",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "un planning logistique"
+      },
+      {
+        "name": "Livrable",
+        "label": "livrable",
+        "label_plural": "livrables",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Commande",
+        "references": [],
+        "citation": "gestion des livrables"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "voit toutes les commandes, en crée, les modifie",
+      "voit tous les plannings logistiques, en crée, les modifie",
+      "voit tous les livrables, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 20.1,
+  "jetons": {
+    "entree": 4290,
+    "sortie": 1606,
+    "appels": 6
+  }
+}

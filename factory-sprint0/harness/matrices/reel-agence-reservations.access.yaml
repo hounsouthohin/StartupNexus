@@ -1,0 +1,74 @@
+# Vrai brief agence-reservations — entrée de la matrice écrite à la main (essai 2, 7 oct).
+actors:
+  - id: admin
+    label: administrateur
+    becomes: bootstrap
+    citation: "Doit pouvoir gérer l'ensemble de l'application"
+  - id: gestionnaire
+    label: gestionnaire
+    becomes: invited
+    invited_by: admin
+    citation: "créé et donne des accès"
+  - id: prestataire
+    label: prestataire
+    becomes: invited
+    invited_by: gestionnaire
+    citation: "gérer les comptes de ces prestataires"
+
+entities:
+  - name: Rate
+    label: tarif
+    label_plural: tarifs
+    nature: catalog
+    manager: [admin, gestionnaire]
+    citation: "gérer les tarifs"
+  - name: Destination
+    label: destination
+    label_plural: destinations
+    feminine: true
+    nature: catalog
+    manager: [admin, gestionnaire]
+    citation: "les destinations"
+  - name: ProviderProfile
+    label: profil
+    label_plural: comptes prestataires
+    nature: profile
+    owner: prestataire
+    citation: "les comptes de ces prestataires"
+  - name: Customer
+    label: fiche client
+    label_plural: fiches clients
+    feminine: true
+    nature: collection
+    owner: prestataire
+    citation: "créer des fiches clients"
+  - name: Reservation
+    label: réservation
+    label_plural: réservations
+    feminine: true
+    nature: collection
+    owner: prestataire
+    references: [Customer, Destination, Rate]
+    citation: "doit pouvoir créer des réservations"
+    process:
+      initial: open
+      transitions: {open: [closed], closed: []}
+      initiator: prestataire
+      decider: gestionnaire
+      labels: {open: en cours, closed: fermée}
+      citation: "fermer les réservations"
+
+exceptions:
+  - {actor: prestataire, entity: Reservation, action: see, scope: all, citation: "consulter toutes les réservations en court"}
+  - {actor: prestataire, entity: Reservation, action: edit, citation: "consulter toutes les réservations en court, les modifier"}
+  - {actor: prestataire, entity: Reservation, action: delete, citation: "les modifier, les supprimer"}
+  - {actor: gestionnaire, entity: Reservation, action: create, citation: "lui même faire des réservations pour son compte"}
+  - {actor: gestionnaire, entity: Reservation, action: edit, citation: "fermer les réservations, les modifier"}
+  - {actor: gestionnaire, entity: ProviderProfile, action: see, scope: all, citation: "gérer les comptes de ces prestataires"}
+  - {actor: gestionnaire, entity: ProviderProfile, action: edit, citation: "gérer les comptes de ces prestataires"}
+  - {actor: admin, entity: ProviderProfile, action: see, scope: all, citation: "gérer l'ensemble de l'application"}
+  - {actor: admin, entity: ProviderProfile, action: edit, citation: "gérer l'ensemble de l'application"}
+  - {actor: admin, entity: Customer, action: see, scope: all, citation: "gérer l'ensemble de l'application"}
+  - {actor: admin, entity: Customer, action: edit, citation: "gérer l'ensemble de l'application"}
+  - {actor: admin, entity: Reservation, action: see, scope: all, citation: "gérer l'ensemble de l'application"}
+  - {actor: admin, entity: Reservation, action: edit, citation: "gérer l'ensemble de l'application"}

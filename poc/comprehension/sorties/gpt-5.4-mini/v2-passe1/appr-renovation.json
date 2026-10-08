@@ -1,0 +1,813 @@
+{
+  "projet": "appr-renovation",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Il s'agit d'un logiciel de gestion pour une entreprise de rénovation, avec centralisation de données, suivi de chantier, rôles et accès différenciés, donc dans le périmètre. En revanche, plusieurs besoins sont hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "documents",
+        "categorie": "document",
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "besoin": "photos",
+        "categorie": "fichiers_photos",
+        "citation": "la centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "besoin": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "facturation",
+        "categorie": "autre",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "suivi de l'avancement des chantiers",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "besoin": "marges réalisées",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "besoin": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)"
+      },
+      {
+        "besoin": "L'amélioration de la communication interne et externe",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe"
+      },
+      {
+        "besoin": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale",
+        "categorie": "calcul_statistiques",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Une meilleure communication entre les acteurs internes et externes",
+        "categorie": "messagerie",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      },
+      {
+        "besoin": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Accès sécurisé et différencié par agence et rôle",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "chef de projet",
+        "libelle_pluriel": "chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 842,
+      "jetons_sortie": 515
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 728,
+      "jetons_sortie": 122
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1076,
+      "jetons_sortie": 750
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Chantier : citation introuvable mot pour mot dans le brief — « - Le suivi de l'avancement des chantiers et des marges réalisées ... - Le but principal est de faciliter le suivi de chantier pour les chefs de projet. » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 954,
+      "jetons_sortie": 309
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1362,
+      "jetons_sortie": 202
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 966,
+      "jetons_sortie": 699
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet",
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "La centralisation de l'ensemble des données chantiers ... Le but principal est de faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "(devis, suivis, documents, photos) ... L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Suivi",
+        "libelle": "suivi",
+        "libelle_pluriel": "suivis",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "(devis, suivis, documents, photos) ... Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "nom": "Document",
+        "libelle": "document",
+        "libelle_pluriel": "documents",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "(devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "photo",
+        "libelle_pluriel": "photos",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "(devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Marge",
+        "libelle": "marge",
+        "libelle_pluriel": "marges",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées ... Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "BonDeCommande",
+        "etat_initial": "devis",
+        "transitions": {
+          "devis": [
+            "commande"
+          ],
+          "commande": [
+            "facture"
+          ],
+          "facture": []
+        },
+        "libelles": {
+          "devis": "devis",
+          "commande": "commande",
+          "facture": "facture"
+        },
+        "initiateur": "chef_de_projet",
+        "decideur": "chef_de_projet",
+        "etapes_par": {},
+        "citation": "- L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "fiche": "Facture",
+        "etat_initial": "devis",
+        "transitions": {
+          "devis": [
+            "facture"
+          ],
+          "facture": []
+        },
+        "libelles": {
+          "devis": "devis",
+          "facture": "facture"
+        },
+        "initiateur": "chef_de_projet",
+        "decideur": "chef_de_projet",
+        "etapes_par": {},
+        "citation": "- L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "visitor",
+        "fiche": "Chantier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Devis",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Suivi",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Document",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Photo",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Devis",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "BonDeCommande",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Facture",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Chantier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Marge",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Chantier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "acteur": "visitor",
+        "fiche": "Marge",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "chef de projet",
+        "label_plural": "chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet",
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Le but principal est de faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "name": "Suivi",
+        "label": "suivi",
+        "label_plural": "suivis",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "name": "Document",
+        "label": "document",
+        "label_plural": "documents",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "(devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Photo",
+        "label": "photo",
+        "label_plural": "photos",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "(devis, suivis, documents, photos)"
+      },
+      {
+        "name": "BonDeCommande",
+        "label": "bon de commande",
+        "label_plural": "bons de commande",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "process": {
+          "initial": "devis",
+          "transitions": {
+            "devis": [
+              "commande"
+            ],
+            "commande": [
+              "facture"
+            ],
+            "facture": []
+          },
+          "initiator": "chef_de_projet",
+          "decider": "chef_de_projet",
+          "steps_by": {},
+          "labels": {
+            "devis": "devis",
+            "commande": "commande",
+            "facture": "facture"
+          },
+          "citation": "- L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+        }
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "process": {
+          "initial": "devis",
+          "transitions": {
+            "devis": [
+              "facture"
+            ],
+            "facture": []
+          },
+          "initiator": "chef_de_projet",
+          "decider": "chef_de_projet",
+          "steps_by": {},
+          "labels": {
+            "devis": "devis",
+            "facture": "facture"
+          },
+          "citation": "- L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+        }
+      },
+      {
+        "name": "Marge",
+        "label": "marge",
+        "label_plural": "marges",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "visitor",
+        "entity": "Chantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Devis",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Suivi",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Document",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Photo",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Devis",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "BonDeCommande",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Facture",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Chantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Marge",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Chantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Marge",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "page « Équipe » pour gérant : inviter des chefs de projet"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "voit tous les chantiers",
+      "voit tous les devis, en crée",
+      "voit tous les suivis",
+      "voit tous les documents",
+      "voit toutes les photos",
+      "voit toutes les marges"
+    ],
+    "Le gérant": [
+      "voit tous les chantiers, en crée, les modifie",
+      "voit tous les devis, en crée, les modifie",
+      "voit tous les suivis, en crée, les modifie",
+      "voit tous les documents, en crée, les modifie",
+      "voit toutes les photos, en crée, les modifie",
+      "voit tous les bons de commande, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie",
+      "voit toutes les marges, en crée, les modifie"
+    ],
+    "Le chef de projet": [
+      "voit tous les chantiers, en crée, les modifie",
+      "voit tous les devis, en crée, les modifie",
+      "voit tous les suivis, en crée, les modifie",
+      "voit tous les documents, en crée, les modifie",
+      "voit toutes les photos, en crée, les modifie",
+      "voit tous les bons de commande, en crée, les modifie, les fait passer de « devis » à « commande », les fait passer de « commande » à « facture »",
+      "voit toutes les factures, en crée, les modifie, les fait passer de « devis » à « facture »",
+      "voit toutes les marges, en crée, les modifie"
+    ]
+  },
+  "questions": [
+    "Les visiteurs sans compte pourront consulter tous les chantiers — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter tous les devis — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter tous les suivis — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter tous les documents — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter toutes les photos — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+    "Les visiteurs sans compte pourront consulter toutes les marges — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)"
+  ],
+  "secondes": 15.5,
+  "jetons": {
+    "entree": 5928,
+    "sortie": 2597,
+    "appels": 6
+  }
+}

@@ -1,0 +1,428 @@
+{
+  "projet": "appr-gestion-immo",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Logiciel de gestion immobilière avec des fiches et des automatisations de tâches, ce qui correspond à un logiciel de gestion de petite structure.",
+    "hors_stock": [
+      {
+        "besoin": "automatiser le rapprochement bancaire",
+        "categorie": "automatisation",
+        "citation": "automatiser le rapprochement bancaire"
+      },
+      {
+        "besoin": "l'encaissement des loyers",
+        "categorie": "paiement",
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "besoin": "le reversement des loyers",
+        "categorie": "paiement",
+        "citation": "le reversement des loyers"
+      },
+      {
+        "besoin": "envoyer automatiquement des quittances",
+        "categorie": "notification",
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "besoin": "relevé de compte",
+        "categorie": "document",
+        "citation": "relevé de compte"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire_de_biens_immobiliers",
+        "libelle": "gestionnaire de biens immobilier",
+        "libelle_pluriel": "gestionnaires de biens immobilier",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "personne",
+        "citation": "Nous recherchons une personne qui serait en mesure de créer un logiciel"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 653,
+      "jetons_sortie": 169
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 539,
+      "jetons_sortie": 99
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 882,
+      "jetons_sortie": 464
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 710,
+      "jetons_sortie": 11
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.1.transitions.encaissement : Input should be a valid array",
+        "droits.2.transitions.reversement : Input should be a valid array"
+      ],
+      "jetons_entree": 722,
+      "jetons_sortie": 346
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1117,
+      "jetons_sortie": 346
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "BienImmobilier",
+        "libelle": "bien immobilier",
+        "libelle_pluriel": "biens immobiliers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_de_biens_immobiliers"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "logiciel de gestion immobilière"
+      },
+      {
+        "nom": "Loyer",
+        "libelle": "loyer",
+        "libelle_pluriel": "loyers",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "gestionnaire_de_biens_immobiliers",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "nom": "ReversementDeLoyer",
+        "libelle": "reversement de loyer",
+        "libelle_pluriel": "reversements de loyer",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "gestionnaire_de_biens_immobiliers",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "le reversement des loyers"
+      },
+      {
+        "nom": "Quittance",
+        "libelle": "quittance",
+        "libelle_pluriel": "quittances",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "gestionnaire_de_biens_immobiliers",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "d'envoyer automatiquement des quittances"
+      },
+      {
+        "nom": "ReleveDeCompte",
+        "libelle": "relevé de compte",
+        "libelle_pluriel": "relevés de compte",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "gestionnaire_de_biens_immobiliers",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte etc.."
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "personne",
+        "fiche": null,
+        "raison": "ce n'est pas une chose à enregistrer"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "gestionnaire_de_biens_immobiliers",
+        "fiche": "BienImmobilier",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Nous recherchons une personne qui serait en mesure de créer un logiciel"
+      },
+      {
+        "acteur": "gestionnaire_de_biens_immobiliers",
+        "fiche": "Loyer",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "encaissement": [
+            "encaissement des loyers"
+          ]
+        },
+        "citation": "la possibilité d'automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "acteur": "gestionnaire_de_biens_immobiliers",
+        "fiche": "ReversementDeLoyer",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "reversement": [
+            "le reversement des loyers"
+          ]
+        },
+        "citation": "la possibilité d'automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "acteur": "gestionnaire_de_biens_immobiliers",
+        "fiche": "Quittance",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "d'envoyer automatiquement des quittances"
+      },
+      {
+        "acteur": "gestionnaire_de_biens_immobiliers",
+        "fiche": "ReleveDeCompte",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "relevé de compte etc.."
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gestionnaire_de_biens_immobiliers",
+        "label": "gestionnaire de biens immobilier",
+        "label_plural": "gestionnaires de biens immobilier",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "entities": [
+      {
+        "name": "BienImmobilier",
+        "label": "bien immobilier",
+        "label_plural": "biens immobiliers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_de_biens_immobiliers"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "logiciel de gestion immobilière"
+      },
+      {
+        "name": "Loyer",
+        "label": "loyer",
+        "label_plural": "loyers",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "gestionnaire_de_biens_immobiliers",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "name": "ReversementDeLoyer",
+        "label": "reversement de loyer",
+        "label_plural": "reversements de loyer",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "gestionnaire_de_biens_immobiliers",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "le reversement des loyers"
+      },
+      {
+        "name": "Quittance",
+        "label": "quittance",
+        "label_plural": "quittances",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "gestionnaire_de_biens_immobiliers",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "d'envoyer automatiquement des quittances"
+      },
+      {
+        "name": "ReleveDeCompte",
+        "label": "relevé de compte",
+        "label_plural": "relevés de compte",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "gestionnaire_de_biens_immobiliers",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte etc"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "gestionnaire_de_biens_immobiliers",
+        "entity": "BienImmobilier",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Nous recherchons une personne qui serait en mesure de créer un logiciel"
+      },
+      {
+        "actor": "gestionnaire_de_biens_immobiliers",
+        "entity": "Loyer",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "encaissement": [
+            "encaissement des loyers"
+          ]
+        },
+        "citation": "la possibilité d'automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "actor": "gestionnaire_de_biens_immobiliers",
+        "entity": "ReversementDeLoyer",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "reversement": [
+            "le reversement des loyers"
+          ]
+        },
+        "citation": "la possibilité d'automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "actor": "gestionnaire_de_biens_immobiliers",
+        "entity": "Quittance",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "d'envoyer automatiquement des quittances"
+      },
+      {
+        "actor": "gestionnaire_de_biens_immobiliers",
+        "entity": "ReleveDeCompte",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "relevé de compte etc"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gestionnaire de biens immobilier": [
+      "voit tous les biens immobiliers, en crée, les modifie",
+      "voit ses loyers, en crée, les modifie, les fait passer de « encaissement » à « encaissement des loyers »",
+      "voit ses reversements de loyer, en crée, les modifie, les fait passer de « reversement » à « le reversement des loyers »",
+      "voit ses quittances, en crée, les modifie",
+      "voit ses relevés de compte, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 10.5,
+  "jetons": {
+    "entree": 4623,
+    "sortie": 1435,
+    "appels": 6
+  }
+}

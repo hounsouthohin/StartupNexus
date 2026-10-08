@@ -1,0 +1,29 @@
+{
+  "created_at": "20261004T152108Z",
+  "args": {
+    "only": [
+      "reel-gestion-scolaire"
+    ],
+    "no_tsc": true,
+    "update": false,
+    "diff": false,
+    "keep": true
+  },
+  "reports": [
+    {
+      "project": "reel-gestion-scolaire",
+      "declaration": "reel-gestion-scolaire.json",
+      "generation_seconds": 4.77,
+      "errors": [],
+      "alerts": [],
+      "files": 421,
+      "diff": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "reference": "identique",
+      "ok": true
+    }
+  ]
+}

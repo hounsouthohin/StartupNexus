@@ -1,0 +1,455 @@
+{
+  "projet": "appr-renovation",
+  "modele": "gpt-5.4-mini",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Projet logiciel pour notre entreprise de rénovation de bâtiments ; il s'agit d'un logiciel ERP léger, centralisé, avec des fiches/chantiers, des rôles et un suivi d'avancement.",
+    "hors_stock": [
+      {
+        "besoin": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)",
+        "categorie": "fichiers_photos",
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "besoin": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "Le suivi de l'avancement des chantiers et des marges réalisées",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "besoin": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)"
+      },
+      {
+        "besoin": "L'amélioration de la communication interne et externe",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe"
+      },
+      {
+        "besoin": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale",
+        "categorie": "calcul_statistiques",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Une meilleure communication entre les acteurs internes et externes",
+        "categorie": "messagerie",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      },
+      {
+        "besoin": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Accès sécurisé et différencié par agence et rôle",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'entreprise recherche un outil"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "chef de projet",
+        "libelle_pluriel": "chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "entreprise de rénovation de bâtiments",
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "libelle": "Gustave Rénovation",
+        "citation": "adapté aux besoins de Gustave Rénovation"
+      },
+      {
+        "libelle": "chantier",
+        "citation": "données chantiers ... le suivi de l'avancement des chantiers"
+      },
+      {
+        "libelle": "devis",
+        "citation": "données chantiers (devis"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 842,
+      "jetons_sortie": 435
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 728,
+      "jetons_sortie": 208
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1185,
+      "jetons_sortie": 661
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 918,
+      "jetons_sortie": 187
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droit gerant/Entreprise/see : citation introuvable mot pour mot dans le brief — « - L'entreprise recherche un outil qui permette :\n- La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)\n- L'automatisation des tâches répétitives (devis, bons de commande, facturation)\n- Le suivi de l'avancement des chantiers et des marges réalisées » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1025,
+      "jetons_sortie": 234
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1396,
+      "jetons_sortie": 70
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Entreprise",
+        "libelle": "entreprise",
+        "libelle_pluriel": "entreprises",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos) ... le suivi de l'avancement des chantiers et des marges réalisées ... une visibilité sur les marges et la rentabilité par chantier, ville et globale ... Une simplification du suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos) ... l'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "l'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "l'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "entreprise de rénovation de bâtiments",
+        "fiche": "Entreprise",
+        "raison": "Le brief parle d'une entreprise, mais ne décrit pas une fiche à enregistrer pour une personne connectée ni un dossier tenu par l'équipe."
+      },
+      {
+        "non_utilisateur": "Gustave Rénovation",
+        "fiche": "Entreprise",
+        "raison": "C'est le nom de l'entreprise, donc le même référentiel d'entreprise."
+      },
+      {
+        "non_utilisateur": "chantier",
+        "fiche": "Chantier",
+        "raison": "Le brief centralise les données chantiers et suit l'avancement des chantiers."
+      },
+      {
+        "non_utilisateur": "devis",
+        "fiche": "Devis",
+        "raison": "Le brief mentionne les devis parmi les données et l'automatisation des devis."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "BonDeCommande",
+        "etat_initial": "cree",
+        "transitions": {
+          "cree": [
+            "envoye"
+          ],
+          "envoye": [
+            "valide",
+            "refuse"
+          ],
+          "valide": [],
+          "refuse": []
+        },
+        "libelles": {
+          "cree": "créé",
+          "envoye": "envoyé",
+          "valide": "validé",
+          "refuse": "refusé"
+        },
+        "initiateur": "gerant",
+        "decideur": "gerant",
+        "etapes_par": {},
+        "citation": "bons de commande"
+      },
+      {
+        "fiche": "Facture",
+        "etat_initial": "cree",
+        "transitions": {
+          "cree": [
+            "envoye"
+          ],
+          "envoye": [
+            "reglee"
+          ],
+          "reglee": []
+        },
+        "libelles": {
+          "cree": "créé",
+          "envoye": "envoyé",
+          "reglee": "réglée"
+        },
+        "initiateur": "gerant",
+        "decideur": "gerant",
+        "etapes_par": {},
+        "citation": "facturation"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "chef_de_projet",
+        "fiche": "Chantier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le but principal est de faciliter le suivi de chantier pour les chefs de projet."
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [
+    "BonDeCommande",
+    "Facture"
+  ],
+  "declaration": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'entreprise recherche un outil"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "chef de projet",
+        "label_plural": "chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Entreprise",
+        "label": "entreprise",
+        "label_plural": "entreprises",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "BonDeCommande",
+        "label": "bon de commande",
+        "label_plural": "bons de commande",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "l'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "l'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "chef_de_projet",
+        "entity": "Chantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le but principal est de faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "entreprises : catalogue en lecture seule — son contenu viendra des données de départ",
+    "page « Équipe » pour gérant : inviter des chefs de projet"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "Le gérant": [
+      "voit toutes les entreprises"
+    ],
+    "Le chef de projet": [
+      "voit toutes les entreprises",
+      "voit tous les chantiers, en crée, les modifie",
+      "voit tous les devis, en crée, les modifie",
+      "voit tous les bons de commande, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie"
+    ]
+  },
+  "questions": [
+    "Le chef de projet verra tous les chantiers, pas seulement ceux qui le concernent — d'accord ? (oui / non)"
+  ],
+  "secondes": 12.5,
+  "jetons": {
+    "entree": 6094,
+    "sortie": 1795,
+    "appels": 6
+  }
+}

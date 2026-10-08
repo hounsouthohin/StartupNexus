@@ -1,0 +1,382 @@
+{
+  "projet": "appr-cabinet-pluri",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion pour un cabinet, avec plusieurs utilisateurs, dossiers et droits d'accès.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion de rendez-vous / agenda",
+        "categorie": "planning",
+        "citation": "gestion de rdv"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "facturation"
+      },
+      {
+        "besoin": "Devis",
+        "categorie": "document",
+        "citation": "devis"
+      },
+      {
+        "besoin": "Partage de dossiers uniquement avec certains professionnels",
+        "categorie": "partage_fin",
+        "citation": "partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "id": "professionnel",
+        "libelle": "professionnel concerné",
+        "libelle_pluriel": "professionnels concernés",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "professionnels concernés"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 638,
+      "jetons_sortie": 548
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 524,
+      "jetons_sortie": 341
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 871,
+      "jetons_sortie": 2530
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 715,
+      "jetons_sortie": 131
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 727,
+      "jetons_sortie": 581
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "ProfilAdministrateur",
+        "libelle": "profil administrateur",
+        "libelle_pluriel": "profils administrateur",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur"
+      },
+      {
+        "nom": "ProfilProfessionnel",
+        "libelle": "profil professionnel concerné",
+        "libelle_pluriel": "profils professionnel concerné",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "professionnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "professionnels concernés"
+      },
+      {
+        "nom": "Dossier",
+        "libelle": "dossier",
+        "libelle_pluriel": "dossiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "professionnel"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ProfilProfessionnel"
+        ],
+        "citation": "partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "nom": "RendezVous",
+        "libelle": "rendez-vous",
+        "libelle_pluriel": "rendez-vous",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion de rdv"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "facturation"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "devis"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Dossier",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "id": "professionnel",
+        "label": "professionnel concerné",
+        "label_plural": "professionnels concernés",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "professionnels concernés"
+      }
+    ],
+    "entities": [
+      {
+        "name": "ProfilAdministrateur",
+        "label": "profil administrateur",
+        "label_plural": "profils administrateur",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur"
+      },
+      {
+        "name": "ProfilProfessionnel",
+        "label": "profil professionnel concerné",
+        "label_plural": "profils professionnel concerné",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "professionnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "professionnels concernés"
+      },
+      {
+        "name": "Dossier",
+        "label": "dossier",
+        "label_plural": "dossiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "professionnel"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "ProfilProfessionnel"
+        ],
+        "citation": "partager les dossiers avec les professionnels concernés"
+      },
+      {
+        "name": "RendezVous",
+        "label": "rendez-vous",
+        "label_plural": "rendez-vous",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion de rdv"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "facturation"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "devis"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Dossier",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "administrateur crée des dossiers qui référencent des profils professionnel concerné, mais n'en voit aucun : impossible de choisir (D2 ?)",
+    "page « Équipe » pour administrateur : inviter des professionnels concernés"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "a son profil administrateur, créé automatiquement, qu'il peut modifier",
+      "voit les profils professionnel concerné affichés dans les dossiers qu'il consulte (sans page dédiée)",
+      "voit tous les dossiers, en crée, les modifie",
+      "voit tous les rendez-vous, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie",
+      "voit tous les devis, en crée, les modifie"
+    ],
+    "Le professionnel concerné": [
+      "a son profil professionnel concerné, créé automatiquement, qu'il peut modifier",
+      "voit tous les dossiers, en crée, les modifie"
+    ]
+  },
+  "questions": [
+    "L'administrateur verra les profils professionnel concerné (ex. nom, coordonnées) affichés dans les dossiers qu'il traite — est-ce acceptable ? (oui / non)"
+  ],
+  "secondes": 50.1,
+  "jetons": {
+    "entree": 3475,
+    "sortie": 4131,
+    "appels": 5
+  }
+}

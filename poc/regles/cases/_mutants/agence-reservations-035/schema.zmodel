@@ -1,0 +1,94 @@
+// Agence de réservations (VRAI brief) — traduction de harness/matrices/reel-agence-reservations.expected.yaml
+// Cas testés : 3 rôles ; un prestataire qui supprime ; le gestionnaire réserve « pour son compte » ;
+// l'administrateur « gère l'ensemble ».
+
+datasource db {
+    provider = 'postgresql'
+    url      = env('DATABASE_URL')
+}
+
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+type Auth {
+    id   String @id
+    role String
+    @@auth
+}
+
+// catalogue · géré par : admin, gestionnaire
+model Rate {
+    id           String        @id @default(cuid())
+    label        String
+    amount       Int
+    reservations Reservation[]
+
+    @@allow('read', auth() != null)
+    @@allow('create,update', auth().role == 'admin' || auth().role == 'gestionnaire')
+}
+
+model Destination {
+    id           String        @id @default(cuid())
+    name         String
+    reservations Reservation[]
+
+    @@allow('read', auth() != null)
+    @@allow('create,update', auth().role == 'admin' || auth().role == 'gestionnaire')
+}
+
+// profil · propriétaire : prestataire (invité par un gestionnaire)
+model ProviderProfile {
+    id     String  @id @default(cuid())
+    userId String  @unique @default(auth().id)
+    name   String
+    phone  String?
+
+    @@allow('create', auth().role == 'prestataire' && userId == auth().id)
+    @@allow('read,update', auth().role == 'prestataire' && userId == auth().id)
+    @@allow('read,update', auth().role == 'gestionnaire' || auth().role == 'admin')   // exceptions citées
+    @@deny('post-update', userId != before().userId)
+}
+
+// collection · propriétaire : prestataire
+model Customer {
+    id           String        @id @default(cuid())
+    ownerId      String        @default(auth().id)
+    name         String
+    reservations Reservation[]
+
+    @@allow('create', auth().role == 'prestataire' && ownerId == auth().id)
+    @@allow('read,update', auth().role == 'prestataire' && ownerId == auth().id)
+    @@allow('read,update', auth().role == 'admin')                                   // exceptions citées
+    @@allow('read', auth().role == 'gestionnaire' && reservations?[true])            // see_via Reservation
+}
+
+enum ReservationStatus {
+    open
+    closed
+}
+
+// collection · propriétaire : prestataire (et le gestionnaire « pour son compte ») · circuit open → closed par gestionnaire
+model Reservation {
+    id            String            @id @default(cuid())
+    ownerId       String            @default(auth().id)
+    customerId    String
+    customer      Customer          @relation(fields: [customerId], references: [id])
+    destinationId String
+    destination   Destination       @relation(fields: [destinationId], references: [id])
+    rateId        String
+    rate          Rate              @relation(fields: [rateId], references: [id])
+    note          String            @default("")
+    status        ReservationStatus @default(open)
+
+    @@allow('read', auth().role == 'prestataire' || auth().role == 'gestionnaire' || auth().role == 'admin')
+    // clôture : on ne pointe que des fiches qu'on a le droit de voir (ZenStack ne le vérifie pas seul)
+    @@allow('create', (auth().role == 'prestataire' || auth().role == 'gestionnaire') && ownerId == auth().id && status == open && check(customer, 'read') && check(destination, 'read') && check(rate, 'read'))
+    @@allow('update', auth().role == 'prestataire' || auth().role == 'gestionnaire' || auth().role == 'admin')
+    // modifier sans changer d'état (dans tous les états)
+    @@allow('post-update', (auth().role == 'prestataire' || auth().role == 'gestionnaire' || auth().role == 'admin') && ((before().status == open && status == open) || (before().status == closed && status == closed)))
+    // fermer : le gestionnaire, rien d'autre ne bouge
+    @@allow('post-update', auth().role == 'gestionnaire' && before().status == open && status == closed && note == before().note && customerId == before().customerId && destinationId == before().destinationId && rateId == before().rateId)
+    @@allow('delete', auth().role == 'prestataire')                                  // « les supprimer »
+    @@deny('post-update', ownerId != before().ownerId)
+}

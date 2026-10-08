@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["typage/**/*.tsx", "lib/**/*.ts", "zenstack/**/*.ts", "next-env.d.ts"],
+  "exclude": ["node_modules"]
+}

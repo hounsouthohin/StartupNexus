@@ -1,651 +1,325 @@
 # USINE — documentation centrale
 
-> **Document de référence unique du projet.** Il remplace la dispersion des anciennes docs
-> (voir §9). En cas de contradiction avec un autre fichier, **ce document fait foi**.
-> Détail du code actuel, fichier par fichier : dossier [`lecture_usine/`](lecture_usine/).
+> **Document de référence unique du projet.** En cas de contradiction avec un autre fichier,
+> **ce document fait foi**. Réécrit le 7 octobre 2026 pour la nouvelle conception (« usine
+> d'assemblage »), à partir des six études menées du 5 au 7 octobre. L'ancienne version (trajectoire
+> du 30 septembre : phases 0 à 6, générateurs de code) est conservée intacte dans
+> [`archives/USINE_trajectoire_avant_assemblage_2026-10-07.md`](archives/USINE_trajectoire_avant_assemblage_2026-10-07.md).
 >
-> Créé le 30 septembre 2026, après la reprise du projet et la lecture complète du code.
-> Mis à jour à chaque décision (journal en §8). Les sections marquées « proposé » sont en
-> discussion ; seules celles marquées « ✔ validé » et le journal engagent.
+> **Comment lire les statuts** : ✔ **prouvé** (par une étude, citée) · ✔ **validé** (décision de
+> l'utilisateur) · ◐ **partiel** · ○ **à faire** · *proposé* (en discussion, n'engage pas).
+> Seuls les statuts ✔ et le journal (§9) engagent.
 
 ---
 
 ## 1. Ce qu'on construit
 
-Une **usine à applications web** : elle transforme un brief écrit en langage courant en une
-application complète, sécurisée et fidèle à la demande, **avec très peu d'IA consommée**.
+Une **usine d'assemblage de logiciels de gestion** pour de petites structures (cabinet, atelier,
+association, PME). À partir du brief d'un client, elle livre vite une application sûre, testée et peu
+chère. ✔ validé (5 oct)
 
-- **Objectif** : un produit commercialisable (pas un portfolio, pas un projet d'apprentissage).
-- **Désir d'origine** : faire travailler des agents IA sur une tâche que beaucoup de gens
-  paieraient pour ne plus faire eux-mêmes. Le développement d'apps en est l'application choisie.
-- **Avantage visé** : là où un agent de code réécrit tout à chaque fois (coûteux, variable,
-  failles fréquentes), l'usine **compile** : l'IA ne fait que comprendre ; le reste est produit
-  par du code déterministe, reproductible, vérifiable et presque gratuit à exécuter.
-- **Stack actuelle des apps générées** : Next.js 15 + React 19 + Clerk (authentification) +
-  Prisma 7 + PostgreSQL + Tailwind/shadcn.
+**Le principe en une ligne : l'IA comprend, un programme assemble.**
 
----
-
-## 2. Principes (acquis, confirmés par les runs)
-
-1. **Loi du contenant.** Une intention du brief sans structure typée pour la porter s'évapore,
-   même si l'IA l'a parfaitement comprise. Étendre l'usine = créer des cases, pas enseigner à l'IA.
-2. **Intelligence aux bords, déterminisme au cœur.** L'IA comprend le brief et écrit la queue
-   vraiment unique ; tout ce qui revient est compilé.
-3. **Une seule source par concept.** Un fait (« qui possède cette donnée », « quelles méthodes
-   existent ») est calculé à un seul endroit ; tout le reste en dérive. Toute copie finit par
-   diverger (preuves : `getPublished` en juillet, les deux pannes du 28 septembre).
-4. **L'app est des acteurs qui déroulent un processus sur des entités.** Pas « des entités et
-   des écrans ». L'unité de conception est l'acteur, pas l'entité.
-5. **Affordance honnête.** Un bouton, un lien, un chiffre n'existe que si l'acteur a la capacité
-   ET que la donnée existe. Sinon il n'apparaît pas.
-6. **Clôture vs désir.** L'usine complète ce qui est impliqué par nécessité (clôture) ; elle ne
-   devine jamais ce qui n'est pas demandé (désir) : le miroir le remonte à l'humain. Dans le doute,
-   c'est un désir.
-7. **La déclaration est le produit.** Le code généré est jetable ; on corrige la déclaration ou le
-   compilateur, jamais le code livré. Corriger un compilateur une fois corrige tout le parc.
-8. **Des juges qui ne mentent pas.** Le build juge la forme ; les oracles (tests dérivés de la
-   déclaration, joués sur l'app qui tourne) jugent le comportement ; le miroir + l'humain jugent
-   l'intention. Un score calculé par un LLM n'est pas une preuve.
-
----
-
-## 3. L'usine aujourd'hui (état au 30 sept 2026)
-
-### 3.1 Le flux
-
-```mermaid
-flowchart LR
-  B["Brief"] --> A["ARCHITECT<br/>5 appels LLM + 2 étapes fixes"]
-  A --> D["DÉCLARATION<br/>ProjectSpec + EnrichedSpec"]
-  D --> C["CONTEXTE<br/>une fiche par entité"]
-  C --> G["~20 GÉNÉRATEURS déterministes"]
-  G --> E["LLM executor<br/>pages sur mesure restantes"]
-  E --> BLD["build"] --> R["revue · QA · aperçu live · learner"]
+```
+brief ──► COMPRENDRE ──► MIROIR ──────► TRADUIRE ───────► PIÈCES ──────► TESTS PAR RÔLE ──► app
+          (IA)           (le client     (programme :      (programme :   (programme :         + sur-mesure
+                          valide)        matrice → règles)  écrans)        serveur + écrans)    (humain)
 ```
 
-Orchestration Temporal (`workflows/todo_pilot_workflow.py`), environ 23 000 lignes.
-Lancer un run : `docker exec factory-worker python scripts/run_batch.py --briefs scripts/<fichier>.json`.
+- **La valeur est l'assembleur**, pas l'IA : à partir d'une matrice validée, il produit une app
+  sûre et testée, presque sans coût. L'IA est un **accélérateur** : elle retire le temps humain de la
+  compréhension (≈ 0,20 $ et une minute par brief) et rend l'usine utilisable sans rendez-vous.
+- **Plan A** (cible) : l'IA écrit la description de l'app, le client la valide dans le miroir.
+  **Plan B** (repli, et possible offre « concierge » pour les premiers clients) : la description est
+  remplie avec le client, l'IA ne fait que proposer. Tout ce qui suit est identique. ✔ validé (7 oct)
+- **Ce que l'IA ne fait jamais** : écrire le code de l'app (l'échec de l'ancienne usine) et décider
+  de la sécurité (règles fixées par programme).
+- **Objectif** : un produit commercialisable (pas un portfolio). Écart de marché observé dans les
+  vrais briefs : budgets annoncés de 500 à 10 000 €, devis reçus en moyenne de 16 600 à 24 300 €.
 
-| Étape | Rôle | Détail |
+### Les niveaux (des livrables testables en vrai)
+
+| Niveau | Ce que l'app sait faire | Statut |
 |---|---|---|
-| Architect | brief → déclaration (+ miroir) | [lecture_usine/02](lecture_usine/02_architect.md) |
-| Contexte | une fiche calculée par entité | [lecture_usine/03](lecture_usine/03_contexte_et_contrats.md) |
-| Générateurs données | types, validation, services, actions, seed | [lecture_usine/04](lecture_usine/04_generateurs_donnees.md) |
-| Générateurs interface | pages, écrans, navigation, dashboard, design | [lecture_usine/05](lecture_usine/05_generateurs_interface.md) |
-| LLM executor | pages sur mesure, boucle de build | [lecture_usine/06](lecture_usine/06_llm_executor.md) |
-| Juges | build, revue, QA, qualité | [lecture_usine/07](lecture_usine/07_controle_qualite.md) |
-| Learner, rapports | suggestions, FactoryRunReport | [lecture_usine/08](lecture_usine/08_learner_et_rapports.md) |
-| Config, infra | stack JSON, templates, Docker | [lecture_usine/09](lecture_usine/09_config_et_infra.md) |
+| **1 — Gérer** | des fiches, des rôles (1 à 3+), chacun ne voit et ne fait que ce qu'il doit ; des demandes à états | **en cours** (§6) |
+| 2 — Prévenir | e-mails sur changement d'état, rappels | ○ |
+| 3 — Montrer | calendrier, planning, graphiques | ○ |
+| 4 — Relier | « ses » clients, « son » agence, partage fiche par fiche | ○ |
+| 5 — Encaisser / connecter | paiement, liens avec d'autres logiciels | ○ |
 
-### 3.2 Ce qui est acquis
-- Types d'apps couverts : CRUD privé, publication publique (slug, SEO, tags), workflows
-  (machine à états avec garde des transitions et verrous), rôles (un rôle privilégié qui voit et
-  décide tout), premières briques d'« âme » (qui initie, navigation filtrée par acteur).
-- Pièces solides : protection des fichiers générés, garde pré-build, source unique des méthodes de
-  service (`methods_for`), indicateurs de dashboard compilés en calculs exacts, Design Compiler
-  (vocabulaire fermé), miroir (`summary_fr` + `unsupported`), aperçu live automatique, seed.
+L'ordre 2 → 5 est provisoire : il sera fixé par la demande réelle (les besoins « hors stock » que la
+compréhension relève sur chaque brief). **On ne passe au niveau suivant que lorsque le précédent est
+fini et testé en vrai.** ✔ validé (5 oct)
 
-### 3.3 Ce qui ne va pas (causes structurelles, vérifiées dans le code)
-1. **Mauvais ordre** : l'architect planifie les écrans avant de déclarer les acteurs.
-2. **Mauvaise unité** : tout est généré « par entité × type de page ». Les notions d'acteur sont
-   des réglages isolés relus dans 9 fichiers ; les gabarits d'écrans et le dashboard n'en lisent
-   aucun (boutons montrés à tous, dashboard identique, navigation limitée à 2 acteurs).
-3. **Concepts recopiés** (propriétaire, visibilité, nommage, clés étrangères) → divergences.
-4. **Modèles transportés en texte** reparsé par des expressions régulières différentes.
-5. **Garde-fous symptomatiques** qui corrigent un LLM planificateur de pages.
-6. ~~**Code vestigial**~~ — traité en phase 2 (≈ 10 000 lignes, dont une partie en attente de
-   suppression par l'humain, voir §6).
-7. **Juges faibles** : un seul juge fiable (le build) ; l'oracle existe mais n'est jamais appelé ;
-   le learner ne fait pas la mission qu'on lui a donnée.
-8. ~~**La déclaration n'est pas conservée**~~ — corrigé le 30 sept (phase 1) : conservée dans
-   `logs/declarations/`, rejouable par le harnais.
-
-Mesure réelle (28 sept) : 2 briefs inédits de complexité normale → 0 build réussi sur 2, alors que
-l'IA avait correctement compris rôles, workflow et dashboards les deux fois. Les pannes venaient du
-cœur déterministe.
+Hors périmètre : places de marché avec paiements au cœur, réseaux sociaux et messageries,
+applications mobiles natives, design original.
 
 ---
 
-## 4. L'usine cible
+## 2. Principes (acquis, confirmés par les essais)
 
-### 4.1 Le flux cible
+1. **Loi du contenant.** Une intention du brief sans structure typée pour la porter s'évapore, même
+   si l'IA l'a comprise. Étendre l'usine = ajouter du vocabulaire à la matrice, pas enseigner à l'IA.
+   *(Confirmé en E5 : sans la nature « registre », l'IA ne pouvait pas exprimer « dossiers confidentiels ».)*
+2. **Intelligence aux bords, programme au cœur.** L'IA comprend ; tout le reste est calculé.
+3. **Une seule source par concept.** La matrice est calculée une fois ; règles serveur, droits
+   d'écran, menus, tests et miroir en dérivent.
+4. **L'app est des acteurs qui déroulent un processus sur des fiches.** L'unité de conception est
+   l'acteur, pas l'écran.
+5. **Affordance honnête.** Un bouton n'apparaît que si le serveur accepterait l'action.
+6. **Clôture vs désir.** L'usine complète ce qui est impliqué par nécessité (clôture) ; ce qui n'est
+   pas demandé remonte au client par le miroir. Dans le doute : désir.
+7. **La description est le produit.** On corrige la description ou le traducteur, jamais le code livré.
+8. **Des juges qui ne mentent pas** (§7). Un outil de mesure n'est cru qu'une fois prouvé (E4). Un
+   juge tire ses attentes de la **source** (la matrice), jamais du fichier qu'il juge : sinon le fichier
+   et le juge se trompent ensemble *(N1.0 : tests d'écran 1/4 → 4/4 erreurs attrapées)*.
+9. **Moindre privilège.** Personne ne reçoit un droit qui n'est pas nécessaire à son rôle ou cité par
+   le brief. Une exception oubliée donne un manque visible, jamais une fuite invisible.
 
-```mermaid
-flowchart LR
-  B["Brief"] --> A["ARCHITECT (IA)<br/>acteurs · entités + natures<br/>workflows · exceptions · libellés"]
-  A --> M["MATRICE DES CAPACITÉS<br/>calculée une fois (déterministe)"]
-  M --> DER["DÉRIVATIONS<br/>pages · navigation · dashboards"]
-  M --> MIR["MIROIR<br/>« qui peut faire quoi » validé par l'humain"]
-  M --> G["GÉNÉRATEURS<br/>lisent la matrice"]
-  DER --> G
-  G --> BLD["build"] --> O["ORACLES<br/>1 vérification par case"]
-```
+### Circulation de l'information — 7 règles ✔ validé (30 sept)
 
-Ce qui change : l'IA ne planifie plus les écrans ; elle déclare qui existe, ce qui existe et
-comment ça évolue. Tout le reste se **déduit**.
+Les étapes ne se parlent pas : chacune lit une fiche de forme fixe et en produit une autre.
+1. **Un fait = un seul auteur.** 2. **Entre machines, des données, jamais du texte.**
+3. **Contrôle strict à chaque frontière** : une réponse invalide est refusée et l'erreur précise est
+renvoyée (N essais), jamais « devinée ». 4. **Fiches figées** : aucune étape ne corrige une fiche amont
+en silence. 5. **L'IA reçoit le minimum, sous forme de données.** 6. **Les ordres d'exécution viennent
+du plan, pas des agents.** 7. **Traçabilité** : chaque fichier sait de quelle case il vient.
 
-### 4.2 Les 9 axes (le vocabulaire de détection)
+Limite assumée : le contrôle bloque une fiche **mal formée**, pas une fiche **fausse** — d'où le
+miroir validé par le client (§3.2) et les contrôles croisés entre agents (E5).
 
-Toute phrase d'un brief répond à l'une de ces questions. Si elle tombe sur un axe où l'usine n'a
-pas de case, c'est un « non couvert » détecté avant de construire.
+---
 
-| # | Axe | Question | Couverture actuelle |
+## 3. La chaîne, maillon par maillon
+
+### 3.1 Comprendre — l'IA écrit la description de l'app  ✔ prouvé · ◐ à compléter
+
+**Comment** (`poc/comprehension/comprendre.py`) : 5 agents, une question chacun, réponses en JSON
+contrôlées par programme (forme stricte, identifiants connus, **citations recopiées mot pour mot**),
+erreur renvoyée à l'agent (2 essais de plus) :
+
+| Agent | Question | Contrôles par programme |
+|---|---|---|
+| 1. Acteurs | qui se connecte, comment on le devient | un responsable ; pas d'inscription libre pour du personnel |
+| 2. Fiches | quelles fiches, quelle nature, à qui | chaque non-utilisateur devient une fiche ; un registre a un responsable |
+| 3. Circuits | quels états, qui fait chaque étape | ≥ 2 états et une flèche ; l'initiateur d'un registre le tient |
+| 4. Droits explicites | ce que le brief dit (supprimer, tout voir…) | visiteur seulement sur une fiche publique ; un acteur rendu aveugle → droits revus |
+| 5. Périmètre | dans / hors ; ce qui est hors stock | citations |
+
+**Preuves** ([`etudes/05`](etudes/05-comprehension.md)) : 10 vrais briefs (lot d'apprentissage),
+grille de référence écrite avant de lancer l'IA. gpt-4o-mini 3/10 ; gpt-5.4-mini 6/10 et instable ;
+**gpt-5.5 9/10**, puis les 3 cas fragiles corrigés en v3. **Modèle retenu : gpt-5.5** ✔ validé.
+Coût réel : 0,195 $ par brief.
+
+**Pas prouvé / à faire** : stabilité de gpt-5.5 (un seul passage) ; **les champs des fiches** (nom,
+type, obligatoire) ne sont pas encore extraits — indispensables aux formulaires (○, niveau 1).
+
+### 3.2 Le miroir — le client valide avant toute construction  ◐
+
+**Existe** (`agents/capability_matrix.py` : `explain`, `questions`) : des phrases « qui peut faire
+quoi » **produites par programme depuis la matrice** (elles ne peuvent pas mentir) et des questions
+oui/non ciblées là où une erreur coûte (un acteur qui voit les données d'un autre, ce que voit un
+visiteur, un registre vu en entier : « Le professionnel verra tous les dossiers, pas seulement ceux
+qui le concernent — d'accord ? »). La question s'est déclenchée sur une vraie erreur de l'IA (E5).
+
+**À faire** (○, niveau 1) : la **porte** (rien ne se construit avant validation), l'interface où le
+client répond (chaque réponse modifie la description de façon déterministe), et le premier essai
+avec de vrais clients. Le miroir est la protection n°1 contre une description fausse.
+
+### 3.3 Traduire — matrice → règles d'accès  ✔ prouvé · ◐ traducteur v0 (N1.0) · ○ à généraliser (N1.3)
+
+**Calculateur** (`agents/capability_matrix.py`, phase 3) : natures → préréglages au moindre privilège,
+exceptions citées, clôture, pages / menus / tableaux de bord dérivés, miroir. Banc de 14 matrices
+(12 de nos briefs + 2 vrais), toutes conformes à l'attendu.
+
+**Traduction en règles ZenStack** ([`etudes/03`](etudes/03-regles-cas-durs.md)) : **11 patrons**
+couvrent tous les cas essayés (profil, catalogue, registre, collection, saisie pour autrui, circuit —
+une règle par flèche —, modification par état, enfant via `check(parent)`, « au travers de »,
+suppression, tables de choix) + **2 règles systématiques** : clôture à la création
+(`check(lien, 'read')`) et cohérence des propriétaires. Sur 5 cas (dont 2 vrais briefs) :
+traduction mécanique, aucun cas impossible.
+
+**Fait (N1.0)** : traducteur v0 (`usine/traduire/`) — description + matrice → schéma et règles,
+notice, droits d'écran, données de départ. Sur la médiathèque, il redonne le schéma écrit à la main en
+E6 (16 règles). **À faire** (○, N1.3) : le généraliser à tous les patrons et doctrines du §4 (enfants,
+saisie pour autrui, modification par état…). Les pièges connus qu'il doit compenser sont au §4.
+
+### 3.4 Les pièces d'écran  ✔ prouvé (plomberie) · ◐ squelette v0 (N1.0) · ○ catalogue à construire
+
+**Décision** ([`etudes/06`](etudes/06-ecrans.md)) : **nos propres pièces**, sur les fonctions que
+ZenStack génère depuis le schéma (`@zenstackhq/tanstack-query`). Refine écarté. ✔
+**Architecture des pièces** : une **notice typée** (fiches, champs, libellés — chaque nom de champ
+vérifié contre le schéma), un **affichage** partagé, une **plomberie** mince. Pièces génériques
+essayées : liste de fiches, fiche + bloc de décision, mon profil (tests par rôle 3/3).
+**Squelette v0** (`usine/modele-app/`, N1.0) : ces pièces + coquille, menu par rôle, bouton d'action
+sur une ligne (« Emprunter »), connexion simulée. Règle apprise : une action qui change l'état est un
+**formulaire** (POST), jamais un lien — Next précharge les liens visibles, et précharger un lien de
+connexion revenait à se connecter (trouvé par les tests d'écran : 42 pages sur 50 au mauvais rôle).
+
+**Catalogue du niveau 1** ([`etudes/01`](etudes/01-pieces-niveau-1.md)) — ○ à construire :
+coquille + menu par rôle ✔ (essayé) · liste de fiches (◐ : pagination, filtres, tri à écrire) ·
+fiche détail + bloc de décision ✔ · formulaire (○ : 12 types de champs) · mon profil ✔ ·
+enfants dans le parent ○ · tableau de bord par rôle ○ · pages publiques ✔ · équipe (invitation avec
+rôle) ○ · messages clairs (« interdit » / « introuvable » / saisie invalide) ○.
+
+### 3.5 Les tests par rôle  ✔ prouvé · ✔ livrés dans chaque app (N1.0) · ◐ données de test à généraliser
+
+- **Côté serveur** : `poc/regles/run.ts`, testeur générique qui lit la matrice et essaie chaque case
+  (voir, voir par identifiant forcé, créer, créer au nom d'un autre, chaque flèche du circuit,
+  changer le propriétaire, supprimer, intrus connecté sans rôle, changement de rôle…), en jugeant sur
+  l'**état de la base**. **Prouvé par mutation** ([`etudes/04`](etudes/04-testeur-prouve.md)) :
+  95,8 % des erreurs à effet attrapées ; **figé en version 1.0**.
+  **v1.1 (N1.0)** : livré dans chaque app (`verification/`), il lit la description et la matrice de
+  l'app ; la partie qui juge est inchangée, les données de test sont construites depuis la description
+  (`cas.mts`). **Re-prouvé sur l'app fabriquée** (`usine/preuve_regles.mts`) : 33/49 erreurs attrapées ;
+  des 16 survivantes, 10 sont sans effet (règles en double) et 6 sont bénignes mais non testées (relire
+  ou modifier **ses propres** fiches après avoir perdu son rôle) → 33/39 erreurs à effet (84,6 %). Un
+  vrai trou trouvé et corrigé en route : aucune fiche « reliée à rien » dans les données.
+- **Côté écrans** ✔ prouvé (N1.0) : `e2e/roles.spec.ts`, livré dans chaque app — pour chaque rôle,
+  menu, boutons de création, circuit, profil ; **attentes tirées de la matrice**. Prouvé par mutation
+  (`usine/preuve_ecrans.py`) : 4/4 erreurs attrapées, témoin vert 3 fois (l'ancienne version, qui lisait
+  les droits produits : 1/4). Il a trouvé dès son premier jour un vrai défaut du squelette (§3.4).
+
+**À faire** (○) : données de test pour tous les patrons (N1.4) ; le testeur essaie aussi le
+changement de rôle **en lecture** et **sur les profils** (referme les 6 bénignes ; v1.2 re-prouvée) ;
+tests d'écran des formulaires de création et de modification (N1.5).
+
+---
+
+## 4. Doctrines (règles que le traducteur applique toujours)
+
+| Doctrine | Contenu | Origine |
+|---|---|---|
+| Natures | **profil** (une par acteur) · **catalogue** (référentiel visible de tous les connectés) · **registre** (fiches tenues par l'équipe, visibles de ceux qui le tiennent) · **collection** (éléments d'un acteur) · **enfant** (lignes d'un parent). Circuit permis sur collection et registre | phase 3 ; registre ajouté le 7 oct (E5) ✔ |
+| Supprimer | jamais accordé par défaut ; seulement si le brief le dit | 1er oct ✔ |
+| Responsable | le responsable de l'app voit en lecture tous les registres ; le client peut le refuser | 7 oct ✔ validé |
+| Rôles listés | « connecté » se traduit par la **liste des rôles déclarés**, jamais « toute personne connectée » (un inconnu peut se créer un compte) | E4 ✔ |
+| Clôture | on ne pointe que ce qu'on a le droit de voir (`check(lien, 'read')` à la création) | E2 ✔ |
+| Cohérence | deux fiches liées du même rôle propriétaire appartiennent à la même personne | E2 ✔ |
+| Propriétaire immuable | le propriétaire d'une fiche ne change jamais | E2 ✔ |
+| Une étape ne change que l'état | les autres champs restent identiques pendant une transition | E2, E4 ✔ |
+| Prudence | un accès que le brief **limite** n'est pas élargi ; le partage fin est signalé hors stock | E5 ✔ |
+| Visiteur | un droit sans compte seulement sur une fiche déclarée publique | E5 ✔ |
+| Pas de confiance dans le refus de relecture | ZenStack peut répondre « refusé » alors que l'écriture a eu lieu : chaque interdiction est une règle explicite | E4 ✔ |
+| Tables de choix | une liste de valeurs (« 478 / 754 ») est une table de données, pas une énumération dans le code | E2 ✔ |
+
+**Pièges techniques connus** : bug ZenStack 3.9.7 (comparer un état à sa valeur d'avant → erreur
+SQL ; contournement : nommer l'état) ; Prisma interdit qu'une IA remette une base à zéro (chaque
+version de schéma d'essai a sa base neuve) ; Next.js 16.4 exige que la lecture de session soit derrière
+un `<Suspense>`.
+
+**Trous de vocabulaire restants** (○) : un **enfant** avec circuit d'états ; plusieurs rôles qui créent
+« pour leur compte » ; l'administrateur qui **modifie** tout (la doctrine ne lui donne que la lecture) ;
+« ses » clients / « son » agence (niveau 4).
+
+---
+
+## 5. Outils et dépendances
+
+| Outil | Rôle | Statut | Porte de sortie |
 |---|---|---|---|
-| 1 | Acteurs | Qui ? | solide |
-| 2 | Entités + natures | Quoi, de quelle nature ? | mince (pas de profil) |
-| 3 | Permissions & conditions | Qui peut faire quoi, sous quelle condition ? | solide pour 2 acteurs |
-| 4 | États | Comment ça évolue ? | solide |
-| 5 | Agrégats | Qu'est-ce qu'on calcule ? | mince (pas de fenêtre de temps) |
-| 6 | Navigation | Qui voit quoi, où ? | mince (pas de dashboard par acteur) |
-| 7 | Libellés | Comment on le dit ? | mince (fuites de noms techniques) |
-| 8 | Effets externes | Qu'est-ce qui sort (e-mail, SMS, paiement) ? | absent |
-| 9 | Temporel | Qu'est-ce qui arrive seul avec le temps ? | absent |
+| Next.js (16.x) | cadre de l'app | ✔ fixé | — |
+| PostgreSQL | base de données | ✔ | — |
+| **ZenStack v3** | règles d'accès (dans le schéma), données, et plomberie des écrans | ✔ retenu (PoC, E2, E4, E6) | CASL ou règles dans la base (Postgres RLS) ; appels directs à l'API RPC |
+| TanStack Query | cache des données à l'écran | ✔ (E6) | — |
+| Clerk | comptes, connexion, rôles | ✔ niveau 1, isolé à un seul endroit ; **à réévaluer avant le premier client** (RGPD : données aux États-Unis ; prix par utilisateur) | Better Auth (bibliothèque, utilisateurs dans notre base) |
+| gpt-5.5 (OpenAI) | comprendre le brief | ✔ validé (E5) | Gemini Pro, Claude (le banc permet de comparer) |
+| Playwright | tests par rôle dans un vrai navigateur | ✔ | — |
+| ~~Refine~~ | — | ✘ écarté (E6) | — |
 
-Les axes disent **quoi capturer**. La matrice est **le moteur** où convergent les axes 1, 2, 3, 6
-(et 5 pour les dashboards).
+**Politique de dépendances** ✔ validé (7 oct) : (1) notre valeur ne vit jamais chez eux — la matrice
+est à nous, les outils sont des cibles de traduction ; (2) bibliothèque plutôt que service, licence
+libre ; (3) peu de dépendances, chacune avec une raison écrite et une porte de sortie ; (4) un seul
+endroit du code touche chaque outil ; (5) versions figées, tests par rôle à chaque montée de version ;
+(6) acheter le difficile et le générique, construire notre cœur.
 
-### 4.3 La matrice des capacités
+**IA payante pour les vrais clients** : les offres gratuites peuvent utiliser les données envoyées ;
+elles ne servent qu'aux essais sur des briefs publics.
 
-**Entrée** (produite par l'architect, validée par Pydantic) :
+---
 
-```yaml
-actors:
-  - { id: client, label: "Client" }
-  - { id: patron, label: "Patron", privileged: true }
-  # le visiteur (non connecté) existe toujours, implicitement
-entities:
-  - { name: Vehicle, nature: collection, owner: client }
-  - { name: Repair,  nature: collection, owner: client,
-      workflow: { initial: pending, transitions: {...}, decider: patron,
-                  captured_on: { rejected: [rejectionReason], completed: [amount] } } }
-  - { name: Workshop, nature: catalog, manager: null, public: true }
-  - { name: ClientProfile, nature: profile, actor: client }
-exceptions:   # seulement ce que le brief dit explicitement et qui s'écarte des préréglages
-  - { actor: client, entity: Repair, action: cancel, while: [pending] }
-```
+## 6. Plan du niveau 1 — « Gérer »
 
-**Les natures sont des préréglages** de la matrice :
+**Le livrable** : à partir d'un brief de gestion, l'usine produit une app qui tourne, sûre, testée,
+avec un miroir validé, sans écrire de code à la main pour cette app.
 
-| Nature | Propriétaire / acteur concerné | Autres acteurs | Visiteur |
-|---|---|---|---|
-| **profil** (un par personne) | voit et modifie SA fiche ; créée automatiquement ; pas de liste | ne voient rien ; la voient dans la fiche de ce qu'ils traitent (« voir au travers de ») | rien |
-| **catalogue** (référentiel partagé) | — | voient tout (seulement le publié si `publication`) ; le ou les gestionnaires déclarés créent et modifient ; sinon lecture seule | voit tout (ou le publié) si `public` |
-| **collection** (sans workflow) | voit les siennes, crée, modifie | rien, sauf exception citée ; si `public` : tous voient tout | rien (sauf `public`) |
-| **collection saisie pour autrui** (`entered_by`) | suit les siennes, ne crée pas | celui qui saisit voit tout, crée, modifie, et voit la liste des propriétaires pour choisir | rien |
-| **collection + workflow** | voit les siennes, crée (initiateur) ; **ne modifie pas** sauf exception citée (ex. « tant qu'en brouillon ») ; un « acte » (commande, inscription) = workflow à un état | le décideur voit tout et fait avancer l'état ; ne crée pas ; des étapes peuvent être confiées à un autre acteur (`steps_by`) | rien |
-| **enfant** (lié à un parent) | même visibilité que le parent ; géré par qui peut **modifier** le parent | idem | **rien** sauf si l'enfant est déclaré public |
-
-**Supprimer n'est accordé par défaut à personne**, quelle que soit la nature : il faut « gérer » ou
-« supprimer » dans le brief (exception citée). *(Règles validées sur le banc de 12 briefs, 1er oct.)*
-
-**Sortie** : une cellule par (acteur, entité) :
-`voir ∈ {rien, les siennes, tout, publiés}` · `créer ∈ {non, oui, auto}` ·
-`modifier (champs, états)` · `supprimer (états)` · `transitions permises`.
-
-Règles de clôture calculées (jamais demandées à l'IA) : profil créé automatiquement ; clé
-étrangère vers le profil de l'acteur remplie automatiquement (jamais un choix « soi-même ») ;
-écran de décision atteignable par le décideur. *(Corrigé le 1er oct : la règle « le décideur
-n'est pas l'initiateur » était fausse en général — dans un tableau de tâches, le propriétaire fait
-avancer ses propres tâches. Le décideur peut donc être le propriétaire lui-même.)*
-
-**Parades aux deux risques de la matrice** *(proposé le 30 sept)* :
-
-1. **Préréglages au moindre privilège** (« refuser par défaut », principe de sécurité standard).
-   Un acteur ne reçoit par défaut que ce que son rôle dans le processus rend nécessaire (le
-   décideur voit ce qu'il décide et ce que ces éléments référencent ; le gestionnaire gère son
-   catalogue) ; tout accès aux données d'autrui au-delà exige une phrase du brief. Effet : une
-   exception oubliée donne un **manque visible** (« la secrétaire ne voit pas X »), corrigeable
-   en modifiant la déclaration et en régénérant, au lieu d'une **fuite invisible**.
-2. **Chaque décision non triviale cite le brief.** L'architect joint à chaque acteur, nature et
-   exception la phrase du brief qui la justifie ; le code vérifie que la citation existe
-   mot pour mot dans le brief (pas d'invention). Sans citation = choix par défaut, candidat à
-   une question du miroir.
-3. **Chemins d'entrée des acteurs** (règle de clôture : chaque acteur en a exactement un) :
-   | Acteur | Comment on le devient |
-   |---|---|
-   | public (le client, le patient…) | s'inscrit seul |
-   | propriétaire du métier (privilégié) | amorçage par e-mail (`ADMIN_EMAILS`, existe) |
-   | personnel interne (mécanicien, secrétaire…) | **invité par le privilégié** depuis une page « Équipe » dérivée |
-
-   Mécanisme : `createInvitation({ emailAddress, publicMetadata: { role } })` de Clerk — le rôle
-   est recopié sur l'utilisateur à l'inscription, et `getCurrentRole()` lit déjà
-   `publicMetadata.role`. Limites connues : 100 invitations/heure ; la variante « en masse » ne
-   recopie pas le rôle (bug Clerk #7956, contournement par le webhook `user.created`). À valider
-   par un essai réel. Hors D1 : deux acteurs publics qui s'inscrivent seuls (marketplace).
-
-### 4.4 Ce qui se déduit de la matrice
-
-| Dérivé | Règle |
-|---|---|
-| **Pages** | pour chaque entité où « voir » n'est pas vide : liste + fiche (profil → une seule page « Mon … ») ; « créer » → page de création ; « modifier » → page d'édition ; transitions → bloc de décision sur la fiche ; ligne du visiteur → pages publiques. URL déterministes. |
-| **Navigation** | par acteur : les entités où « voir » n'est pas vide, pour N acteurs. |
-| **Dashboard** | par acteur : « à traiter » (éléments dans un état où il peut agir) ; « mes … en cours » (ses éléments pas terminés) ; indicateurs déclarés ; portes vers ses zones. |
-| **Services** | filtre de propriétaire issu de « voir » ; une méthode n'existe que si une case en a besoin. |
-| **Actions serveur** | une garde de rôle par case (refus côté serveur). |
-| **Écrans** | chaque bouton rendu seulement si la case l'autorise pour l'acteur courant (capacités calculées côté serveur et passées à l'écran). |
-| **Seed** | des données pour chaque acteur propriétaire ; catalogue sans propriétaire ; un profil par acteur. |
-| **Oracles** | une vérification par case (« le client tente d'accepter → refusé ») et par état pour les cases conditionnelles. |
-| **Miroir** | la matrice rendue en phrases, montrée à l'humain avant de construire. |
-
-### 4.5 Grandir sans exploser : les dimensions
-
-Toute demande exprimable dans le vocabulaire de la matrice est une **donnée**, pas du code. Le
-code ne grandit que quand on ajoute une **dimension**, écrite une fois dans le calcul de la
-matrice puis une fois dans chaque consommateur via des fonctions partagées.
-
-| Dimension | Ajoute | Débloque |
+| Étape | Contenu | Statut |
 |---|---|---|
-| **D1** (maintenant) | matrice fixe + natures + workflow + visiteur | l'équivalent des anciens types A, D, I, K et l'âme de base |
-| **D2** | conditions : selon l'état, selon une relation (« le manager voit SON équipe ») | écoles, cliniques, équipes |
-| **D3** | agrégats avec fenêtre de temps et groupement | vrais tableaux de bord |
-| **D4** | effets : « sur telle transition → e-mail / SMS / webhook / paiement » (connecteurs) | notifications, paiement |
-| **D5** | temporel : « quand la date passe → rappel, expiration » | rappels, échéances |
+| Essais E1-E6 | pièces, PoC, règles, testeur, compréhension, écrans | ✔ faits (études 01 à 06) |
+| **N1.0 Squelette qui marche** | une commande transforme la médiathèque (description écrite à la main, champs compris) en app qui tourne et se vérifie seule, en passant par tous les maillons dans leur version minimale ; chaque N1.x suivante élargit un maillon d'une chaîne qui marche déjà | ✔ **fait** (7 oct) : `python -m usine fabriquer usine/exemples/mediatheque.json` → app en ~4 min, 10 étapes, 0 $ d'IA ; 104/104 règles, 6/6 tests d'écran ; juges re-prouvés par mutation |
+| N1.1 Description complète | ajouter à la compréhension les **champs** des fiches (12 types, obligatoires, tables de choix) ; combler les trous de vocabulaire utiles au niveau 1 | ○ |
+| N1.2 Miroir v1 | porte de validation ; interface de réponse aux questions ; corrections déterministes | ○ |
+| N1.3 Traducteur | matrice → schéma ZenStack (patrons + doctrines), vérifié par le testeur figé | ○ |
+| N1.4 Données de test | générateur de données (≥ 2 par sorte…) et des adaptateurs du testeur | ○ |
+| N1.5 Catalogue de pièces | notice générée depuis la matrice ; pièces du §3.4 ; connexion Clerk + équipe | ○ |
+| N1.6 Assembleur | brief → app, de bout en bout ; tests par rôle (serveur + écrans) produits automatiquement | ○ |
+| N1.7 Examen | les 10 briefs cachés (`harness/briefs_reels/examen/`), textes originaux recueillis ce jour-là ; puis 3 premiers vrais utilisateurs | ○ |
 
-Hors périmètre de la matrice (reste au LLM executor) : présentation riche (graphiques,
-calendriers, mise en page sur mesure), calculs métier complexes.
+**Organisation du code** ✔ validé (7 oct) : un dossier neuf **`usine/`** à la racine (comprendre,
+matrice, miroir, traduire, modele-app, assembler, verifier) ; chaque fabrication laisse ses fiches dans
+`runs/<n°>/` ; une simple commande (`usine fabriquer …`), **sans Temporal au départ** (il viendra
+quand le miroir devra attendre un client pendant des jours) ; l'ancienne usine reste intacte jusqu'à
+la réussite de l'examen, puis elle est retirée.
 
-**Ce que deviennent les anciens types** (ils ne disparaissent pas, ils se décomposent) :
+**Ce qui est produit vs ce qui est fixe** : une app = le **squelette fixe** (pièces, plomberie,
+affichage — écrits et testés une fois, versionnés) + des **fichiers de données produits** par les
+traducteurs (schéma et règles, notice, droits d'écran, données de départ, tests) + un dossier
+**`sur-mesure/`** (le code propre à un client, écrit à la main, jamais touché par l'usine).
 
-| Type | En réalité | Où ça tombe |
+**Voir l'usine travailler** : chaque étape écrit un événement (résultat, durée, coût) → journal de
+fabrication dans le terminal dès N1.0 ; page de suivi visuelle (aussi démonstration client) en N1.6.
+
+**Critères de fin du niveau 1** ✔ validés (7 oct) : sur les 7 briefs d'examen dans le
+périmètre, au moins 6 apps assemblées qui compilent et passent tous leurs tests par rôle, **zéro
+accès forcé accepté** ; les 3 hors périmètre reconnus ; coût d'IA < 1 $ par app ; et l'avis de 3
+utilisateurs réels.
+
+**Méthode** ✔ validé : une fiche avant chaque étape (but, ce que tu verras, fichiers touchés, coût,
+taille, risque) ; travail sans interruption jusqu'au compte rendu ; compte rendu d'une page (fait /
+prouvé / fait à la main / risques / suite) ; un outil est figé et prouvé avant qu'on se fie à ses
+mesures ; essais d'un concept sur la vraie IA avant de le construire.
+
+**Budget IA** ✔ validé (7 oct) : coût estimé dans chaque fiche ; aucun lancement au-delà de 0,20 $
+sans accord ; itérations sur le modèle économique et sur 2-3 briefs ; le modèle cher pour les mesures
+finales ; dépenses étalées dans le temps.
+
+**En continu** : les besoins « hors stock » relevés sur chaque brief sont comptés pour fixer l'ordre
+des niveaux 2 à 5 (`scripts/non_couverts.py`, à brancher sur la nouvelle compréhension).
+
+---
+
+## 7. Les juges
+
+| Juge | Ce qu'il juge | Statut |
 |---|---|---|
-| A, D, I, K | 1-N acteurs, visiteur, publication, workflow | matrice D1 |
-| H | agrégats + graphiques | D3 + blocs d'affichage |
-| G | temps + conflits de créneaux + calendrier | D5 + une règle métier + un bloc |
-| E | paiement + commande atomique | D4 (connecteur) + transaction |
-| J | stockage de fichiers | nouveau type de champ + connecteur |
-| B | propriétaire = organisation | nouvelle dimension (la plus lourde) |
-
-Les briefs existants restent : ils deviennent les étalons du harnais, choisis **par forme de
-matrice** (1/2/3 acteurs, chaque nature, avec/sans workflow, avec/sans visiteur, avec exception)
-plutôt que par type — les vrais briefs mélangent tout (le garage = K + I + catalogue + profil).
-*(Proposé le 30 sept.)*
-
-### 4.6 Circulation de l'information (✔ validé le 30 sept)
-
-Modèle des compilateurs : **les étapes ne se parlent pas ; chacune lit une fiche et en produit
-une autre, de forme fixe.**
-
-```
-Brief (texte)
- → Fiche 1  DÉCLARATION        écrite par l'IA, forme fermée, conservée : c'est le produit
- → Fiche 2  MATRICE + dérivés  calculée, figée
- → Fiche 3  PLAN DE FICHIERS   calculé : pour chaque fichier, qui le produit, avec quelles données
- → Fiche 4  CODE               fichiers produits, protégés
- → Fiche 5  VERDICTS           build, puis oracles case par case
-```
-
-Les 7 règles :
-1. **Un fait = un seul auteur.** Calculé une fois, lu par tous (généralisation de `methods_for`).
-2. **Entre machines, des données, jamais du texte.** La prose sert vers l'humain ; même le texte
-   envoyé à l'IA est fabriqué à partir de données.
-3. **Contrôle strict à chaque frontière.** Fiche invalide refusée à l'entrée ; si elle vient de
-   l'IA, l'erreur précise lui est renvoyée (N essais), puis « non couvert ». Jamais « raw conservé ».
-4. **Fiches figées.** Aucune étape aval ne corrige une fiche amont en silence ; une correction
-   nécessaire devient une règle visible du calcul.
-5. **L'IA reçoit le minimum, sous forme de données.**
-6. **Les ordres d'exécution viennent du plan (fiche 3), pas des agents.** Temporal l'exécute.
-7. **Traçabilité.** Chaque fichier généré sait de quelle case il vient.
-
-Fuites actuelles que ces règles ferment (vérifiées le 30 sept) : dictionnaire libre et modèles en
-texte dans l'architect ; `EnrichedSpec` invalide conservé (`architect.py:458-464`) puis erreur deux
-étapes plus loin (`dev_graph.py:323`) ; 8 représentations de l'app transportées vers la génération
-qui ne lit que `project_spec` ; corrections silencieuses aval (spec_enricher, planner) ; générateurs
-qui recalculent propriétaire/global ; prose vers l'executor ; déclaration effacée.
-
-Limite assumée : la règle 3 bloque une fiche **mal formée**, pas une fiche **fausse** (ex. une
-entité classée « collection » au lieu de « catalogue »). Seul le miroir validé par un humain
-l'attrape → la validation humaine est une pièce obligatoire, pas un confort.
-
-### 4.7 Place de l'IA (direction proposée le 30 sept)
-
-| Rôle de l'IA | Statut |
-|---|---|
-| **Architect** : écrire la fiche 1 (acteurs, natures, processus, exceptions) | le cœur agentique ; réordonné en phase 4 |
-| **Libellés** | garder |
-| **Miroir** : détecter ce que le brief demande et que la déclaration ne porte pas | garder |
-| **Design brief** : choix dans un vocabulaire fermé | garder (bon patron) |
-| **Écriture de code** (executor) | **en attente** : ni retiré ni développé avant la phase 5 |
-
-Refonte de l'executor après la phase 5 (elle dépend de la matrice, qui fournit les données typées) :
-1. **Réduire l'unique** : chaque forme récurrente (calendrier, graphique, kanban, frise…) devient
-   un bloc compilé que l'IA choisit et règle dans un vocabulaire fermé.
-2. **Une zone, pas une page** : la page (données, gardes, navigation) est générée ; l'IA remplit un
-   composant d'affichage qui reçoit des données déjà filtrées par la matrice, typées, sans accès
-   à Prisma ni à l'authentification → elle ne peut pas faire fuir une donnée.
-3. **Un échec ne casse rien** : après N échecs, affichage générique + « zone non personnalisée ».
-
-### 4.8 Le miroir cible (proposé le 30 sept)
-
-Aujourd'hui : un LLM résume la déclaration ; le workflow **n'attend pas** ; le résultat ne va que
-dans le rapport final (`todo_pilot_workflow.py:534`) → on lit « ce que l'app va faire » quand elle
-est déjà construite.
-
-Cible — le miroir est une **vue** de la déclaration, jamais une source (règle 1) :
-1. **Porte avant construction** : le workflow s'arrête après l'architect et attend la validation.
-2. **Interface de correction** : on corrige la déclaration (jamais le code ni le brief), puis tout
-   est recalculé et le miroir réaffiché.
-3. **Contrat vérifié** : chaque phrase vient d'une case, chaque case a son oracle → « phrase
-   validée → vérifiée sur l'app ✅/❌ ».
-4. **Interface d'évolution** : plus tard, le client modifie son miroir → diff de déclaration →
-   régénération (la maintenance comme service).
-5. **Détection des manques** (`unsupported`) → learner.
-
-Les phrases « qui peut faire quoi » sont produites **par du code à partir de la matrice**, pas par
-un LLM (le miroir ne peut plus mentir sur ce qui sera construit). Le LLM garde seulement la
-comparaison brief ↔ déclaration.
-
-**Des questions ciblées, pas un mur de texte.** Une longue liste de phrases est approuvée sans
-être lue. Le miroir met donc en avant 3 à 5 questions oui/non, seulement là où une erreur coûte :
-un acteur qui accède aux données d'un autre, et tout choix par défaut sans citation du brief
-(« La secrétaire doit-elle voir le contenu des consultations ? »). Chaque réponse modifie la
-déclaration de façon déterministe (ajout / retrait d'une exception), sans IA.
+| Contrôles stricts aux frontières | la forme de chaque réponse de l'IA | ✔ (E5) |
+| Banc des matrices | le calculateur contre 14 matrices attendues | ✔ 14/14 |
+| Testeur par rôle (serveur) | les règles d'accès, case par case, sur l'état de la base | ✔ prouvé par mutation (E4) ; v1.1 livré dans chaque app, re-prouvé (N1.0 : 33/39 à effet) |
+| Compilateur (TypeScript) | la cohérence notice / schéma / code | ✔ (E6) |
+| Tests Playwright par rôle | ce que chaque rôle voit et peut faire à l'écran | ✔ livrés dans chaque app, attentes tirées de la matrice, prouvés par mutation 4/4 (N1.0) |
+| Miroir validé | l'intention du client | ◐ (phrases et questions ; porte à construire) |
+| Grille de référence | la compréhension de l'IA (écrite avant de lancer l'IA) | ✔ (E5) |
+| Examen sur briefs cachés | la généralisation | ○ (N1.7) |
 
 ---
 
-## 5. Les juges (cible)
+## 8. Questions ouvertes
 
-| Juge | Juge quoi | Statut cible |
-|---|---|---|
-| `next build` / `tsc` / `prisma validate` | la forme | garder |
-| Garde pré-build | cohérence des fichiers générés | garder |
-| **Harnais** | le cœur déterministe sur toutes les formes de matrice, sans IA | en place (9 étalons, `scripts/harness.py`) |
-| **Oracles** | le comportement réel, case par case, sur l'app qui tourne | à généraliser et brancher (phase 5) |
-| **Miroir + humain** | l'intention | garder, enrichir avec la matrice |
-| Reviewer L1 (auth, PII) | failles sur les pages écrites par le LLM | garder |
-| Reviewer L2 (gpt-4o) | « conformité » | **retiré** (30 sept) |
-| QA Jest (gpt-4o) | tests de code déterministe | **retiré** (30 sept) ; Semgrep gardé |
-| spec_coverage, journey_validator | existence de fichiers | retrait proposé (remplacés par oracles) |
-| Learner | — | devient l'agrégateur des « non couverts » par axe (phase 6) |
-| Coût réel en $ par run | l'avantage économique | à mesurer (à ajouter au rapport) |
+- ~~Où vit le nouveau code~~ → tranché le 7 oct : `usine/` (§6). Le calculateur
+  (`agents/capability_matrix.py`) est utilisé en place et ne déménagera qu'au retrait de l'ancienne usine.
+- **Positionnement commercial** : produit (plan A) ou service « concierge » (plan B) pour les premiers
+  clients ; prix.
+- **Livraison** : hébergement par client, évolution de sa base de données sans perte (migrations),
+  sauvegardes.
+- **Clerk** : réévaluation avant le premier client (RGPD, prix) ; sortie possible : Better Auth.
+- **Partage fiche par fiche** (cabinet médical) : demandé tôt par les vrais briefs ; niveau 4 ou avant ?
+- **Variance de gpt-5.5** : mesurée à l'examen.
+- ~~Critères de fin du niveau 1~~ → validés le 7 oct (§6).
+- **Originalité visuelle** : hors périmètre actuel (30 sept).
 
 ---
 
-## 6. Plan
-
-Chaque phase a un critère de « terminé » vérifiable. On ne passe pas à la suivante sans lui.
-
-### Phase 0 — Documentation centrale ✔ (30 sept 2026)
-Ce document + [`lecture_usine/`](lecture_usine/).
-
-### Phase 1 — Harnais (filet de sécurité) ✔ (30 sept 2026)
-
-**Réalisé :**
-- `agents/declaration_store.py` : l'architect conserve chaque déclaration (brief + ProjectSpec
-  complet, miroir compris) dans `logs/declarations/<projet>/<horodatage>.json`.
-- `agents/stacks/nextjs_clerk_prisma/dev_core.py` : la séquence des générateurs
-  (`generate_core`) et les commandes de préparation (`run_pre_run_commands`), déplacées telles
-  quelles depuis `dev_graph.py` (1 634 → 1 242 lignes). Le pipeline ET le harnais appellent ces
-  fonctions : une seule définition.
-- `scripts/capture_declarations.py` : lance l'architect seul sur des briefs →
-  `harness/declarations/<projet>.json` (9 étalons capturés : abo-tracker, atelier-partage,
-  atelier-recettes, club-running, coworking-hub, garage-atlas, it-requests, médiathèque, notes-frais).
-- `scripts/harness.py` : rejoue, compare à `harness/references/<projet>/`, vérifie `tsc`.
-  Commande : `docker exec factory-worker python scripts/harness.py` (≈ 2 min 45 pour 9 apps, 0 IA).
-- Vérifié : un run complet médiathèque après l'extraction → BUILD_SUCCESS du premier coup,
-  déclaration conservée ; trois passages consécutifs du harnais → fichiers identiques.
-
-**Ce que le harnais a déjà montré (30 sept) :**
-1. **atelier-partage : 10 erreurs `tsc`**, la panne du 28 sept reproduite sans IA en 47 s
-   (`relations.py` filtre par `userId` des entités globales ; relation à 2 niveaux). À traiter par
-   la matrice (phase 5), pas par un correctif isolé.
-2. **Générateur non déterministe** : `dev_seed_generator._topo_order` parcourait un `set` →
-   ordre de `seed.mjs` différent à chaque processus. Corrigé (ordre de la déclaration) : sans ça,
-   le harnais signalait des différences fantômes.
-3. **Alerte « owner_field absent »** sur chaque catalogue global (Book, Space, Workshop, Domain).
-   Corrigé en phase 2 : elle n'est pas fausse — vraie pour `relations.py`, fausse pour `crud.py`
-   → symptôme de la notion de propriétaire calculée à deux endroits (phase 5).
-4. **Seed faux** (atelier-partage) : `slot.create({ workshopId: OWNER })` — la clé étrangère vers
-   un catalogue global reçoit l'identifiant de l'utilisateur. Le seed est hors build, donc
-   invisible au build, mais les données de l'aperçu échoueraient (phase 5, seed lu depuis la matrice).
-5. **Variance de l'architect** : la nouvelle déclaration du garage compile (`tsc` OK), celle du
-   28 sept ne compilait pas ; elle n'avait pas été conservée, donc cette panne-là n'est pas dans les
-   étalons. C'est exactement la raison de conserver chaque déclaration désormais.
-
-**Limites du harnais** : `tsc` juge les types, pas tout ce que vérifie `next build` ; ne couvre
-pas ce qui dépend d'un LLM (design brief, page-clients décorés, pages de l'executor).
-
-Constat de départ (vérifié le 30 sept) : **la déclaration n'était conservée nulle part**.
-L'architect écrit `project_spec_<projet>.json` à la racine de `FACTORY_WORKDIR`, puis
-`dev_graph` supprime au démarrage tous les `.json` de cette racine (il les prend pour des résidus).
-C'est contraire au principe 7 (« la déclaration est le produit »).
-1. **Conserver la déclaration** complète (ProjectSpec + enriched_spec + miroir) dans un dossier
-   dédié, persistant et visible depuis l'hôte (ex. `logs/declarations/<projet>.json`, déjà monté).
-2. **Récupérer les étalons** : relancer l'architect seul sur les briefs existants (quelques appels
-   LLM par brief) — médiathèque, notes-frais, it-requests, coworking, atelier-recettes,
-   abo-tracker, garage-atlas, atelier-partage.
-3. **Étendre `scripts/test_generators.py`** (il existe, mais lit des briefs simplifiés sans
-   enriched_spec) : charger la déclaration complète, appeler les générateurs dans l'ordre de
-   `dev_graph` (sans IA, sans Temporal), lancer `tsc`, enregistrer les fichiers produits comme
-   **référence**.
-- **Terminé quand** : une seule commande rejoue toutes les références, donne le statut `tsc` de
-  chacune et le diff des fichiers générés par rapport à la référence.
-- Faits vérifiés (30 sept) : les briefs des 8 étalons existent en fichiers dans `scripts/`
-  (médiathèque `test_full_pipeline.json`, notes-frais `test_type_i.json`, it-requests
-  `test_typek.json`, coworking `test_lourd.json`, atelier-recettes et abo-tracker
-  `test_expansion_d.json`, garage et atelier-partage `test_*_live_run.json`), plus une trentaine
-  d'autres (dont `kpi_briefs.json`, 10 briefs) pour compléter la grille.
-- Point pratique : `tsc` a besoin des dépendances installées. Le `package.json` des apps étant un
-  gabarit fixe, une seule installation partagée sert à toutes ; compter de l'ordre d'une minute
-  par app (estimation), sans IA.
-
-### Phase 2 — Nettoyage ✔ (30 sept 2026 — suppression de fichiers en attente, voir fin)
-
-**Réalisé** (chaque lot vérifié : harnais identique sur les 9 étalons, `tsc` inchangé, tests
-pytest inchangés, noms indéfinis contrôlés ; puis un run complet médiathèque → BUILD_SUCCESS du
-premier coup en **3 min 56 au lieu de 6 min 39**) :
-- **Code mort débranché** : prebuild_pipeline, page_composer, navigation_generator, API Flask
-  cassée (+ son lancement dans `start.sh`, le service n8n et le port 5000 dans docker-compose).
-- **Learner** : analyses « superviseurs » (P008) et « batchs » (BP001-003) + import `sprint5_gate`
-  retirés (−290 lignes) ; P001-P007 et le rapport de run gardés jusqu'à la phase 6.
-- **Planificateur de l'executor** : plus de planification de services/actions (toujours générés en
-  amont) → plus de repli silencieux vers l'IA si un générateur saute un fichier.
-- **Juges IA retirés** : revue L2 gpt-4o (la revue ne garde que les contrôles déterministes auth +
-  données personnelles) ; tests Jest écrits par gpt-4o (la QA garde Semgrep, qui ne tournait
-  d'ailleurs que si des tests Jest avaient été générés — corrigé).
-- **RAG Qdrant retiré** : prompt système et contexte par fichier de l'executor, standards de la
-  revue, outil `rag_search`, config, `start.sh`, service Qdrant et dépendances.
-- **Recherche web** retirée des outils de l'executor.
-- **`shared_tools.py`** : 7 outils de l'ancienne architecture retirés (800 → 80 lignes).
-- **Config de stack** : 47 → 18 clés (sections jamais lues, dont `_UNUSED_*` déjà marquées) ;
-  schéma de validation mis à jour (il *exigeait* 4 clés que personne ne lisait) ; 12 fonctions de
-  lecture de config orphelines retirées.
-- **Nommage** : 6 copies de camelCase/kebab/pluriel remplacées par `dev_naming` (la copie de
-  pluriel de `dev_pages_generator` était en plus inutilisée).
-- **Retry « régénération complète avec feedback tsc »** retiré : dans l'historique, 27
-  déclenchements pour 1 seul build sauvé, chaque fois la durée du run doublée.
-
-**Écarté après vérification** (pas du code mort) :
-- La double génération des page-clients : la 2ᵉ applique le design brief (IA) ; la 1ʳᵉ est le
-  repli si le design brief échoue.
-- La correction automatique par IA (`correction_pass`) : encore utilisée pour certains cas
-  d'authentification.
-- L'alerte « owner_field absent » : elle dit **vrai** pour `relations.py` (la panne
-  d'atelier-partage) et faux pour `crud.py` → symptôme de la notion de propriétaire calculée à deux
-  endroits ; se résout avec la matrice (phase 5), pas en la faisant taire.
-
-**Mesure** (lignes non vides) : Python 30 978 → 29 055 aujourd'hui → **20 879 une fois les
-fichiers ci-dessous supprimés (−33 %)** ; tout le code 34 205 → 23 671 (−31 %).
-
-**En attente de l'humain** : la suppression de fichiers a été refusée à l'agent (action jugée
-irréversible). Fichiers devenus inutilisés — plus aucun code actif ne les importe (vérifié) :
-`agents/prebuild_pipeline.py`, `agents/stacks/nextjs_clerk_prisma/dev_page_composer.py`,
-`agents/stacks/nextjs_clerk_prisma/dev_navigation_generator.py`, `api/`, `agents/rag_client.py`,
-`agents/web_search.py`, `agents/embedding_provider.py`, `agents/qa.py`, `init_qdrant.py`,
-`scripts/create_full_standards_v1.py`, `scripts/create_frontend_standards_v1.py`,
-`scripts/enrich_qdrant.py`, `scripts/test_generators.py`, `scripts/fixtures/`,
-`scripts/validate_config_consumption.py`, `prompts/base/reviewer.md`, `prompts/base/qa.md`,
-`prompts/stacks/nextjs-clerk-prisma/rules_reviewer.md`, `schemas/prebuild_report.schema.json`.
-Les conteneurs `qdrant` et `n8n` tournent encore (hors docker-compose désormais) : `docker stop`.
-
-**Constats pour la suite** :
-- 27 tests pytest échouent depuis des mois (ils visent `dev.py`, des flags T007, des « content
-  guards »… d'anciennes architectures) : une suite rouge que tout le monde ignore est un juge qui
-  ment → à trier.
-- `agents/core/journey_validator.py` contient des noms indéfinis (`_path_of`, `_auth_of`) : bogue
-  latent dans un juge déjà promis au retrait.
-
-Candidats d'origine (conservés pour mémoire) :
-`agents/prebuild_pipeline.py`, `dev_page_composer.py`, `dev_navigation_generator.py`,
-`api/flask_api.py` (ou le réparer), la partie « superviseurs / batchs » du learner et l'import
-`sprint5_gate`, la planification de services/actions dans `agents/planner.py`, la double génération
-des écrans dans `dev_graph.py`, le retry tsc qui relance tout dans `dev_test_activity.py`, QA Jest,
-les sections non lues de la config JSON, les réimplémentations du nommage (utiliser `dev_naming`).
-Côté agentique (ajouté le 30 sept) : le **RAG Qdrant** (encore interrogé par le prompt système de
-l'executor `dev_prompts.py:138`, son contexte par fichier `dev_context.py:72` et la revue L2
-`review_activity.py:133` ; couper d'abord avec `DISABLE_RAG=1`, vérifier, puis supprimer Qdrant,
-`create_full_standards_v1.py`, `enrich_qdrant.py`), la **recherche web** donnée à l'executor
-(`dev_graph.py:882`), la **revue L2 gpt-4o** (un faux juge est pire qu'aucun juge ; garder L1), n8n.
-Aussi : `scripts/test_generators.py` et `scripts/fixtures/` (remplacés par le harnais, qui appelle
-la même fonction que le pipeline au lieu de recopier la séquence des générateurs) ; l'erreur
-« owner_field absent » de `project_spec` sur les catalogues globaux (contredit `dev_model_context`).
-Ces retraits ne changent pas la sortie déterministe → vérifiables par le harnais.
-- **Terminé quand** : le harnais montre des fichiers générés identiques à la référence pour toutes
-  les déclarations, et le nombre de lignes a baissé.
-
-### En continu — dès le 1er oct 2026 (ajouté après remise en question du plan)
-Le plan disait « construire selon la demande réelle » mais ne mesurait qu'en phase 6, et ne
-parlait jamais de vrais utilisateurs. Deux corrections, en parallèle des phases :
-1. **Compter les manques à chaque run** : `scripts/non_couverts.py` rassemble les « non couverts »
-   du miroir (déclarations conservées + anciens rapports) en une liste unique,
-   `logs/non_couverts.md`. Le classement par axe viendra avec le nouveau miroir (phase 4).
-2. **Vrais briefs, tout de suite** (action humaine) : demander à 3-5 personnes réelles (artisans,
-   associations, petites entreprises) de décrire en quelques lignes l'outil dont elles auraient
-   besoin. Ces briefs deviennent des étalons — plus honnêtes que ceux que nous écrivons nous-mêmes.
-   Message type :
-   > « Je construis un outil qui crée des applications de gestion sur mesure. Si vous aviez une
-   > appli pour votre activité, que devrait-elle faire ? Qui l'utiliserait (vous, vos clients, vos
-   > employés…) et qui aurait le droit de faire quoi ? Quelques lignes suffisent, avec vos mots. »
-
-### Phase 3 — La matrice (calcul seul, sans toucher aux générateurs) — en cours (1er oct 2026)
-
-**Réalisé :**
-- `agents/capability_matrix.py` (~500 lignes, 0 IA) : contrat d'entrée strict (un champ inconnu est
-  refusé), préréglages, exceptions citées, clôture, dérivés (pages, menus, tableaux de bord par
-  acteur), phrases du miroir produites par du code, questions ciblées. Chaque droit garde sa raison
-  et ses citations.
-- Banc `scripts/matrix_bench.py` : 12 briefs (9 étalons + 3 piégeux : marketplace de juillet,
-  cabinet médical, association), entrée et matrice attendue écrites à la main dans
-  `harness/matrices/`, l'attendu AVANT le calcul. **Résultat : 12/12 identiques ; 0,8 exception par
-  brief ; 3 besoins hors D1 identifiés** (visibilité par relation ×2, choix du rôle à l'inscription).
-  Médiathèque = matrice d'accès d'`anatomie_app.md`, menus et tableaux de bord compris.
-- `scripts/non_couverts.py` et `scripts/matrix_ai_probe.py` (test de l'IA), `scripts/clerk_invite_spike.py`.
-
-**Défauts de MA conception trouvés par le banc, puis corrigés** (aucun fichier attendu modifié pour
-faire passer le code, sauf 4 révisions de doctrine signalées dans les fichiers) :
-1. L'enfant d'une entité publique devenait public → participants (nom, e-mail) exposés aux
-   visiteurs. Désormais un enfant n'est public que s'il est déclaré public.
-2. L'enfant héritait des droits du *créateur* du parent → le membre aurait créé ses factures.
-   Désormais seul qui peut *modifier* le parent gère ses enfants.
-3. Pas de « publiés seulement » → brouillons visibles. Ajouté (`publication`).
-4. Pas de « saisi pour le compte d'un autre » (le patron note le véhicule du client). Ajouté
-   (`entered_by`, ou initiateur ≠ propriétaire).
-5. Un seul acteur par processus → ajouté `steps_by` (l'employé soumet, le responsable décide).
-6. La clôture « qui voit tout voit ce que ça référence » créait des pages non demandées (liste des
-   adhérents) → remplacée par « voir au travers de » (affiché dans la fiche, sans page).
-7. Supprimer était accordé par défaut → **supprimer n'est plus jamais accordé par défaut** (il faut
-   « gérer » ou « supprimer » dans le brief) : un compte rendu médical ne se supprime pas d'office.
-8. Un seul gestionnaire de catalogue → plusieurs possibles. Ajouts : collection publique (annonces,
-   produits de vendeurs), alerte si deux acteurs s'inscrivent seuls.
-
-**Test de l'IA (classification des entités, briefs du banc, exemples du prompt pris dans d'autres
-domaines)** : matrices justes avec la classification de l'IA — **gpt-4o-mini 6/12, gpt-4o 8/12**.
-- Sur les 4 échecs de gpt-4o, **3 portent sur des points réellement ambigus du brief** (qui crée les
-  véhicules, qui peut annuler une réservation confirmée, qui gère les domaines) ; **1 vraie
-  erreur** : brouillons de recettes rendus visibles → question systématique ajoutée au miroir sur
-  ce que voient les visiteurs.
-- La classification est **très sensible à la formulation** : un exemple mal choisi a fait tomber
-  gpt-4o-mini à 2/12 (identifiants recopiés, valeurs d'exemple recopiées).
-- Un bug de MON script (« false » en texte converti en vrai) aurait rendu publics des comptes rendus
-  médicaux sans alerte : corrigé par une lecture stricte des booléens — la règle 3 vérifiée en vrai.
-
-**Conséquences proposées pour la phase 4** : gpt-4o (pas mini) pour l'étape de classification
-(quelques centimes par brief) ; les questions ciblées du miroir deviennent obligatoires et couvrent
-les ambiguïtés (visiteurs, qui crée, qui fait chaque étape) ; essayer découpage en petites
-questions et vote sur plusieurs tirages si le score ne monte pas.
-
-**Reste pour fermer la phase 3** (humain) : l'essai réel de l'invitation Clerk (une adresse
-e-mail et un clic) ; ta relecture de 2-3 matrices attendues (médiathèque, garage — lecture
-ambiguë —, cabinet médical).
-
-- Nouveau module `agents/capability_matrix.py` (indépendant de la stack : il ne dépend que de la
-  déclaration) : modèle de données (§4.3), préréglages des natures, règles de clôture,
-  dérivations (pages, navigation, dashboards), phrases du miroir.
-- **Terminé quand** : la matrice calculée pour la médiathèque est exactement la matrice d'accès de
-  l'étalon (anatomie, §9), et celles du garage et de l'atelier sont validées à la main.
-- **Constat (30 sept)** : l'ancienne version du préréglage « collection + workflow » (l'initiateur
-  modifie tant que l'état initial n'est pas quitté) contredisait la matrice de référence de la
-  médiathèque (« éditer un emprunt : adhérent ❌ »). Corrigé en moindre privilège (tableau §4.3).
-  Exactement le type d'erreur que la phase 3 doit attraper avant la phase 5.
-- **Méthode** *(proposé le 30 sept)* : pour chaque étalon, l'entrée de la matrice et la matrice
-  attendue sont écrites **à la main** à partir des phrases du brief (avec citations), la seconde
-  AVANT de lancer le calcul. On teste ainsi le calcul et les préréglages seuls, sans l'IA. Ces
-  entrées servent ensuite de vérité de référence en phase 4 : on mesurera si l'architect produit
-  la même chose.
-- **Porte de décision** *(proposé le 30 sept)* : avant la phase 4, écrire d'abord le contrat
-  précis (table des préréglages, chemins d'entrée, citations), puis calculer la matrice « sur
-  papier » pour tous les étalons **et** quelques briefs piégeux (cabinet médical, école,
-  association). Mesurer : exceptions par brief, préréglages faux, accès trop larges. Si les
-  préréglages ne tiennent pas, on les revoit ici, avant la partie coûteuse (phase 5).
-  Faire aussi l'essai réel de l'invitation Clerk avec rôle.
-- **Test de l'IA en fin de phase** *(ajouté le 1er oct)* : avant de figer le format d'entrée,
-  demander à gpt-4o-mini de classer les entités (profil / catalogue / collection) et de désigner
-  initiateur et décideur sur les briefs du banc ; comparer aux entrées écrites à la main. Quelques
-  centimes. Si l'IA n'y arrive pas, on ajuste le format MAINTENANT plutôt qu'en phase 4.
-
-### Phase 4 — L'architect dans le bon ordre
-- Acteurs, entités + natures, workflows et exceptions déclarés **avant** tout le reste ; les pages
-  ne sont plus planifiées par l'IA mais dérivées ; l'IA garde les libellés. Le miroir montre la
-  matrice en phrases.
-- **Terminé quand** : sur 3 briefs inédits, le miroir décrit correctement « qui peut faire quoi »
-  et les pages dérivées couvrent le brief.
-
-### Phase 5 — Les générateurs lisent la matrice
-Un consommateur à la fois, harnais à chaque pas : services → actions → écrans (gabarits) →
-navigation → dashboard → seed → oracles (+ appel de l'oracle après l'aperçu, score dans le rapport).
-- **Terminé quand** : toutes les formes de matrice passent `tsc` et leurs oracles ; les 6 défauts
-  documentés de la médiathèque ont disparu ; garage-atlas et atelier-partage buildent.
-
-### Phase 5 bis — Premiers vrais utilisateurs *(ajouté le 1er oct)*
-- Faire tourner l'usine sur les vrais briefs récoltés ; montrer le miroir puis l'app à leurs
-  auteurs ; noter ce qui manque, ce qui est faux, ce qu'ils paieraient.
-- **Terminé quand** : au moins 3 personnes réelles ont vu leur app et donné leur avis ; ce que
-  nous apprenons modifie (ou confirme) l'ordre des dimensions D2-D5 et le positionnement (§7).
-
-### Phase 6 — Learner utile
-- Le comptage simple des « non couverts » existe déjà (voir « En continu »). La phase 6 ajoute le
-  classement par axe, le coût réel ($) par run, et le branche dans le rapport de run.
-- **Terminé quand** : le FactoryRunReport affiche score d'oracles, coût, et la liste des « non
-  couverts » agrégée.
-
-### Ensuite — dimensions D2 à D5
-Même méthode pour chacune : contrat écrit d'abord, calcul dans la matrice, consommateurs, oracles,
-harnais. Ordre décidé par la fréquence réelle des « non couverts » (phase 6), pas supposé.
-
----
-
-## 7. Questions ouvertes
-
-- **Positionnement business** : vendre des apps à des clients finaux, l'outil à des développeurs,
-  ou autre — non tranché. L'usine cible sert les deux.
-- **Autres stacks** : le code de génération est à ~100 % spécifique à Next.js/Clerk/Prisma ; le
-  multi-stack attendra que la matrice soit stable.
-- **Reviewer L2** : garder, réduire ou retirer, à décider après la phase 5.
-- **Déploiement production** (domaine du client, base dédiée) et **stockage durable de la
-  déclaration par client** : non construits ; nécessaires pour un service commercial.
-- **Attribution des rôles dans l'app livrée** : aujourd'hui un seul rôle privilégié, attribué par
-  une liste d'e-mails (`ADMIN_EMAILS`) ou à la main dans la console Clerk
-  (`dev_actions_generator.py:40-70`) ; le code généré ne connaît que 2 acteurs. Piste proposée :
-  chemins d'entrée + invitation Clerk avec rôle (§4.3) — à valider par un essai en phase 3.
-- **Préréglages vs exceptions** : si la plupart des briefs demandent beaucoup d'exceptions, les
-  préréglages sont mal choisis. Parades proposées : moindre privilège, citations, questions ciblées
-  du miroir (§4.3, §4.8) ; mesure à la porte de décision de la phase 3.
-- **Zones IA en première version ou pas** : décider après mesure de leur taux de réussite.
-- **Originalité visuelle** : hors des préoccupations actuelles (décision du 30 sept).
-
----
-
-## 8. Journal des décisions
+## 9. Journal des décisions
 
 | Date | Décision | Pourquoi |
 |---|---|---|
@@ -659,49 +333,87 @@ harnais. Ordre décidé par la fréquence réelle des « non couverts » (phase 
 | 30 sept 2026 | Ce document devient la référence unique | 170+ fichiers dispersés et contradictoires |
 | 30 sept 2026 | Pas de nouveau « type » ni de correctif isolé avant la phase 5 | éviter d'empiler sur un cœur qui ne s'auto-vérifie pas |
 | 30 sept 2026 | Conserver chaque déclaration ; le harnais rejoue des déclarations enregistrées | la déclaration est le produit, et elle était effacée à chaque run |
-| 30 sept 2026 | **7 règles de circulation de l'information** (§4.6) | l'information fuit aux frontières (dictionnaires libres, prose, corrections silencieuses, copies) |
+| 30 sept 2026 | **7 règles de circulation de l'information** (§2) | l'information fuit aux frontières (dictionnaires libres, prose, corrections silencieuses, copies) |
 | 30 sept 2026 | Originalité visuelle hors périmètre actuel | le cœur (comportement, âme) passe d'abord |
 | 30 sept 2026 | Phase 1 terminée : déclaration conservée, séquence des générateurs extraite (`dev_core`), harnais sur 9 étalons | filet de sécurité avant de toucher au cœur |
 | 30 sept 2026 | Phase 2 : RAG, revue L2, QA Jest, recherche web, retry tsc et code vestigial retirés ; config 47 → 18 clés | signal nul ou négatif pour un coût réel ; run 41 % plus rapide, sortie des générateurs identique |
 | 1er oct 2026 | Compter les « non couverts » dès maintenant ; test de l'IA en fin de phase 3 ; vrais briefs tout de suite + phase 5 bis « premiers vrais utilisateurs » | le plan mesurait trop tard, figeait un format sans savoir si l'IA peut le remplir, et ne parlait jamais de vrais utilisateurs |
 | 1er oct 2026 | Supprimer n'est accordé par défaut à personne ; un enfant n'est public que déclaré public ; seul qui modifie le parent gère ses enfants | le banc a montré des fuites et des droits trop larges avec les règles précédentes |
+| 5 oct 2026 | **Nouvelle conception : usine d'assemblage.** 4 petits agents de compréhension → contrôle strict + matrice → miroir validé par le client → assembleur programmé posant des pièces testées → tests par rôle → sur-mesure humain. Périmètre : logiciels de gestion de petites structures, par niveaux (1 Gérer, 2 Prévenir, 3 Montrer, 4 Relier, 5 Encaisser/connecter ; ordre 2-5 provisoire) | 0 vrai brief sur 5 compilait ; la génération de code-texte multipliait les pannes et les garde-fous |
+| 5 oct 2026 | Méthode : définir avant d'implémenter ; finir un niveau (livrable testable en vrai) avant le suivant ; fiche validée avant chaque étape ; documentation progressive et critiquée | l'utilisateur ne pouvait plus suivre ni juger ce qui était construit |
+| 5 oct 2026 | Preuve de concept médiathèque (ZenStack + Refine + Clerk) réussie : 35/35 règles serveur, 11/11 HTTP, 3/3 tests par rôle ([`etudes/02`](etudes/02-preuve-de-concept.md)) | vérifier que les pièces tiennent avant de bâtir dessus |
+| 7 oct 2026 | ZenStack v3 retenu (remplace Prisma à l'exécution) ; Clerk gardé et isolé pour le niveau 1 ; politique de dépendances (§5) | la traduction matrice → règles est mécanique ; Clerk est notre dépendance la plus risquée (service) |
+| 7 oct 2026 | Essai 2 ([`etudes/03`](etudes/03-regles-cas-durs.md)) : 5 cas dont 2 vrais briefs, 479/479 vérifications dérivées de la matrice ; traduction matrice → règles mécanique (11 patrons) + 2 règles systématiques (clôture à la création, cohérence des propriétaires) ; 4 trous de vocabulaire à combler avant le niveau 1 | savoir si l'assembleur est faisable avant de le construire |
+| 7 oct 2026 | E4 ([`etudes/04`](etudes/04-testeur-prouve.md)) : testeur prouvé par mutation (205/214 erreurs à effet attrapées, 95,8 %) puis **figé v1.0** ; ZenStack peut répondre « refusé » alors que l'écriture a eu lieu → le traducteur n'en dépend jamais ; « connecté » se traduit par la liste des rôles, jamais `auth() != null` | ne pas se fier à des chiffres produits par un outil non prouvé |
+| 7 oct 2026 | Feuille de route après les essais : E4 testeur prouvé → E5 compréhension (10 briefs d'apprentissage ; ≥ 7/10 matrices justes = automatiser, < 5/10 = configurateur assisté) → E6 écrans → niveau 1 → examen sur briefs inédits. Remplace les phases 4-6 | traiter le risque n°1 (comprendre le brief) avant les maillons faciles |
+| 7 oct 2026 | E5 partie 1 ([`etudes/05`](etudes/05-comprehension.md)) : agents de compréhension sur 10 vrais briefs, grille écrite d'avance ; gpt-4o-mini 3/10, gpt-5.4-mini 6/10, gpt-5.5 4/6 (crédits OpenAI épuisés) → zone intermédiaire ; 5 causes génériques (dont la nature « registre » manquante, seule cause de fuite) ; pas de cul-de-sac | mesurer le risque n°1 avant de construire |
+| 7 oct 2026 | **Nature « registre » ajoutée au calculateur** (`agents/capability_matrix.py`, première modification de l'usine depuis la nouvelle conception) : fiches tenues par l'équipe, visibles de ceux qui les tiennent seulement ; circuit d'états permis sur un registre. Banc 14/14 (le SAV réel passe de 4 écarts à 0) | seule cause de fuite en E5 (dossiers médicaux visibles de tous) ; comble aussi le trou « fiche d'équipe » de l'E2 |
+| 7 oct 2026 | Essais IA : l'offre gratuite de Gemini est insuffisante (Pro : 0 appel/jour ; Flash : 20/jour/modèle) ; versions payantes obligatoires pour les vrais clients (sinon les données peuvent servir à Google) | une mesure demande 60 à 80 appels |
+| 7 oct 2026 | E5 bis : gpt-5.5 + corrections v2 = **9/10** (1 passage) ; gpt-5.4-mini 6/10 et instable ; coût réel 0,195 $/brief (gpt-5.5) et 0,014 $/brief (mini) | seuil « automatiser » atteint mais stabilité non mesurée |
+| 7 oct 2026 | E5 fin (v3) : prudence sur les accès restreints, droits du visiteur limités aux fiches publiques, question du miroir sur les registres vus en entier (calculateur) ; gpt-5.5 juste sur les 3 cas fragiles ; **gpt-5.5 retenu pour la compréhension** ; compréhension close jusqu'au niveau 1 | dernier défaut grave (confidentialité) corrigé ; le chemin critique est l'assembleur |
+| 7 oct 2026 | Plan A / plan B : l'IA est un accélérateur (elle retire le temps humain de la compréhension) ; la valeur est l'assembleur ; le plan B « concierge » peut servir les premiers clients | analyse demandée par l'utilisateur : « quel est l'apport de l'IA ? » |
+| 7 oct 2026 | E6 ([`etudes/06`](etudes/06-ecrans.md)) : **Refine écarté, nos pièces sur les fonctions générées par ZenStack retenues** — mêmes tests par rôle (3/3 chacun), 27 % de plomberie en moins, pas d'adaptateur, typage déduit de la requête (attrape les oublis). Architecture des pièces : notice typée / affichage partagé / plomberie | même résultat avec moins de code et de dépendances, et plus de sécurité de type |
+| 7 oct 2026 | **Doctrine** (validée par l'utilisateur) : le responsable de l'app (bootstrap) voit en lecture tous les registres de l'équipe ; le client peut le refuser dans le miroir. Banc 14/14 | dans une petite structure, le patron répond de tout ; sans ça, l'IA pouvait le priver de ses propres chantiers |
+| 7 oct 2026 | Pas de nouveau passage des 7 briefs déjà justes : les crédits sont gardés pour l'examen sur briefs inédits | peu d'information à apprendre sur des briefs connus |
+| 7 oct 2026 | **Règle de budget IA** : le coût estimé figure dans chaque fiche ; aucun lancement au-delà de 0,20 $ sans accord ; itérations sur le modèle économique et sur 2-3 briefs ; le modèle cher seulement pour les mesures finales ; dépenses étalées dans le temps | l'utilisateur a vu un tiers de sa recharge partir en un jour |
+| 7 oct 2026 | Lot d'apprentissage = les 10 briefs choisis par l'utilisateur (textes originaux) ; lot d'examen = 10 autres briefs (liens seulement, `harness/briefs_reels/examen/`), non ouverts jusqu'à l'examen | un examen sur des textes jamais vus |
+| 7 oct 2026 | Briefs réels en deux lots : un lot connu pour apprendre, un lot **caché** jusqu'à l'examen final du niveau 1, avec quelques briefs hors périmètre exprès | éviter d'ajuster l'usine aux briefs qu'on connaît (surapprentissage) ; vérifier que le miroir sait dire « je ne sais pas faire » |
+| 7 oct 2026 | Niveau 1 : dossier neuf `usine/`, commande simple sans Temporal au départ, **N1.0 « squelette qui marche » en premier**, critères de fin validés ; une app = squelette fixe + fichiers de données produits + `sur-mesure/` ; journal de fabrication visible | éviter l'intégration tardive ; séparer le besoin de voir l'usine travailler (valable) de l'outil Temporal (fait pour la robustesse) |
+| 7 oct 2026 | **USINE.md réécrit pour la nouvelle conception** (chaîne, doctrines, outils, plan du niveau 1) ; l'ancienne trajectoire archivée intacte | le document décrivait encore l'ancienne usine |
+| 7 oct 2026 | **N1.0 fait** : `python -m usine fabriquer <description>` produit en ~4 min une app qui tourne et se vérifie seule (104/104 règles, 6/6 écrans), 0 $ d'IA ; chaque app embarque ses juges, qui lisent sa propre matrice | intégrer tous les maillons dès le début, en version minimale, plutôt qu'à la fin |
+| 7 oct 2026 | **Un juge tire ses attentes de la source** (la matrice), jamais du fichier qu'il juge ; les données de test contiennent au moins une fiche reliée à rien | tests d'écran 1/4 → 4/4 erreurs attrapées ; trou des données trouvé par mutation |
+| 7 oct 2026 | **Squelette : une action qui change l'état est un formulaire (POST), jamais un lien** | Next précharge les liens visibles : la connexion simulée en lien mettait 42 pages sur 50 au mauvais rôle (trouvé par les tests d'écran ; aucune donnée exposée, le serveur jugeait chaque requête sur son cookie) |
 
 ---
 
-## 9. Carte des anciennes docs
+## 10. Carte des documents
 
 | Fichier | Statut |
 |---|---|
-| `factory-sprint0/Roadmap3.2.0.md` | **Historique**. Principes et décisions repris ici (§2, §8). Le séquencement par types est remplacé par §6. |
-| `architecture.md` | **Remplacé** par §3 et `lecture_usine/`. |
-| `typeApps.md` | **Historique**. Les types sont remplacés par la matrice et les dimensions (§4). |
-| `anatomie_app.md` | **Toujours valide** comme étalon (médiathèque, matrice d'accès). Sert de test en phase 3. |
-| `contrat_correction.md` | **Toujours valide** : ses invariants deviennent des oracles (phase 5). |
-| `DETECTEUR_amont_carte_cases.md` | **Repris** en §4.2 (les 9 axes). |
-| `RECHERCHE_briefing_usine.md`, `RECHERCHE_historique_detaille.md` | **Historique** (briefings de recherche externe). |
-| `factory-sprint0/docs/factory_audit.md`, `remodularisation_plan.md` | **Historique** ; leçons reprises en §2 et §8. |
-| `session.md` | **Historique** (idée de contrat de page, déjà implémentée : `dev_page_contract.py`). |
-| `sorties.md` | Journal machine des runs (pas une doc). |
-| `logit.md`, `rapports.md` | Vides. |
-| `lecture_usine/` | **Détail du code actuel**, complément de ce document. |
+| [`etudes/01`](etudes/01-pieces-niveau-1.md) à [`etudes/06`](etudes/06-ecrans.md) | **Valides** : les preuves de ce document (pièces, PoC, règles, testeur, compréhension, écrans) |
+| `usine/` | **La nouvelle usine** (niveau 1) : `description.py` (forme stricte), `matrice.py` (le calculateur, en place), `traduire/` (traducteurs), `modele-app/` (squelette fixe + juges livrés), `assembler.py` (`python -m usine fabriquer …`), `preuve_regles.mts` et `preuve_ecrans.py` (preuves des juges par mutation), `exemples/` |
+| `runs/` | **Jetable** (hors git) : une fabrication par dossier, avec ses fiches, son journal et ses traces |
+| [`archives/USINE_trajectoire_avant_assemblage_2026-10-07.md`](archives/USINE_trajectoire_avant_assemblage_2026-10-07.md) | **Historique** : l'ancienne version de ce document (phases 0-6, 9 axes, dimensions, ancienne usine) |
+| `anatomie_app.md` | **Valide** comme portrait d'une app bien formée (natures, affordance honnête, tableau de bord par acteur) |
+| `contrat_correction.md` | **Partiellement valide** : ses invariants deviennent des tests par rôle |
+| `lecture_usine/` | **Historique** : le détail du code de l'ancienne usine |
+| `poc/` (`mediatheque` supprimé, `regles`, `comprehension`, `ecrans`) | **Jetable** : les essais ; leurs conclusions sont dans `etudes/` |
+| `factory-sprint0/harness/matrices/` | **Valide** : le banc des matrices (14) |
+| `factory-sprint0/harness/briefs_reels/` | **Valide** : 5 premiers vrais briefs, lot d'**apprentissage** (10), lot d'**examen** (10, à ne pas ouvrir) |
+| `factory-sprint0/` (pipeline, générateurs, executor) | **Ancienne usine**, à retirer progressivement (§8) ; seul `agents/capability_matrix.py` est au cœur de la nouvelle |
+| `Roadmap3.2.0.md`, `architecture.md`, `typeApps.md`, `DETECTEUR_amont_carte_cases.md`, `RECHERCHE_*.md`, `factory_audit.md`, `remodularisation_plan.md`, `session.md` | **Historique** (à archiver lors du nettoyage des vieilles docs) |
+| `sorties.md`, `logit.md`, `rapports.md`, `result.md` | Brouillons / journaux machine |
 
 ---
 
-## 10. Petit lexique
+## 11. Petit lexique
 
-- **Déclaration** : la description structurée de l'app, produite par l'IA à partir du brief.
-- **Contexte (fiche par entité)** : ce que l'usine calcule pour chaque entité avant de générer.
-- **Générateur / compilateur** : code qui écrit un fichier de l'app à partir de la déclaration.
-- **Nature d'entité** : profil, catalogue, collection (± workflow), enfant.
-- **Matrice des capacités** : pour chaque acteur et chaque entité, ce qu'il peut voir et faire.
-- **Cellule** : une case de la matrice (un acteur × une entité).
-- **Dimension** : un nouveau type de règle ajouté à la matrice (conditions, temps, effets…).
-- **Axe** : une des 9 questions auxquelles répond toute phrase d'un brief.
-- **Miroir** : la reformulation en français de ce que l'app fera, et de ce qui n'est pas couvert.
-- **Oracle** : un test dérivé de la déclaration, joué sur l'app qui tourne.
-- **Harnais** : l'outil qui rejoue les générateurs sur des déclarations enregistrées, sans IA.
-- **Fiche** : ce qu'une étape de l'usine transmet à la suivante, de forme fixe (§4.6).
-- **Préréglage** : les droits par défaut qu'une nature donne à chaque acteur (l'IA dit « catalogue »,
-  le tableau se remplit seul).
-- **Exception** : un écart au préréglage, déclaré explicitement parce que le brief le demande.
-- **Zone** : la partie d'une page générée que l'IA remplit (affichage seulement, données fournies).
+- **Brief** : la demande du client, en langage courant.
+- **Description de l'app (déclaration)** : ce que l'IA a compris, sous forme de données (acteurs,
+  fiches, circuits, droits) ; c'est le produit.
+- **Acteur** : un type de personne qui se connecte (adhérent, bibliothécaire). **Visiteur** : sans
+  compte. **Responsable** : l'acteur qui porte l'app (le patron, l'administrateur). **Intrus** :
+  quelqu'un de connecté sans rôle déclaré.
+- **Fiche** : une chose enregistrée (un emprunt, un dossier) ; sa **nature** (profil, catalogue,
+  registre, collection, enfant) fixe ses droits par défaut.
+- **Registre** : fiches tenues par l'équipe, visibles de ceux qui le tiennent seulement.
+- **Circuit** : les états d'une fiche et qui fait passer de l'un à l'autre.
+- **Matrice des capacités** : pour chaque acteur et chaque fiche, ce qu'il peut voir et faire.
+- **Préréglage / exception** : les droits par défaut d'une nature / un écart cité par le brief.
+- **Clôture vs désir** : ce qui est impliqué par nécessité / ce qui n'est pas demandé (remonte au miroir).
+- **Miroir** : ce que l'app fera, en phrases, plus des questions ciblées ; le client le valide.
+- **Hors stock / hors périmètre** : un besoin que l'usine ne sait pas encore faire / un projet qui
+  n'est pas un logiciel de gestion.
+- **Traducteur** : le programme qui transforme la matrice en règles d'accès.
+- **Pièce** : un morceau d'écran générique (liste, fiche, formulaire…). **Notice** : la description
+  typée des fiches que lisent les pièces. **Plomberie** : le code qui relie l'écran aux données.
+- **Assembleur** : le programme qui pose les pièces et les règles pour produire l'app.
+- **Testeur** : le programme qui essaie chaque case de la matrice contre la base. **Test par
+  mutation** : on abîme exprès les règles (ou les écrans) pour vérifier que le juge le voit ; une
+  erreur « survivante » est soit sans effet, soit un trou du juge. **Témoin** : la même mesure sur
+  l'app intacte, qui doit passer.
+- **Squelette** : la partie fixe de chaque app (pièces, plomberie, juges), écrite et testée une fois ;
+  l'usine n'y ajoute que des fichiers de données.
+- **Lot d'apprentissage / d'examen** : briefs qu'on étudie / briefs gardés cachés jusqu'au test final.
+- **Plan A / plan B** : l'IA écrit la description / on la remplit avec le client.
+- **Fiche d'étape** : le court document validé avant chaque étape (but, démo, fichiers, coût, risque).

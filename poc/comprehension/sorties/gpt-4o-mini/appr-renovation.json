@@ -1,0 +1,117 @@
+{
+  "projet": "appr-renovation",
+  "modele": "gpt-4o-mini",
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le projet ne correspond pas à un logiciel de gestion de petites structures, mais à un ERP avec des fonctionnalités spécifiques.",
+    "hors_stock": [
+      {
+        "besoin": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)",
+        "categorie": "autre",
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "besoin": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Une interface simple, ergonomique et accessible depuis le terrain (mobile)"
+      },
+      {
+        "besoin": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Accès sécurisé et différencié par agence et rôle",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      },
+      {
+        "besoin": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale",
+        "categorie": "autre",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "L'objectif principal est de concevoir un logiciel ERP léger, centralisé et adapté aux besoins de Gustave Rénovation."
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "chef de projet",
+        "libelle_pluriel": "chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Le but principal est de faciliter le suivi de chantier pour les chefs de projet."
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": []
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Chantier : « gestionnaires » seulement pour un catalog",
+        "fiche Chantier : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Chantier : « parent » seulement pour un child",
+        "fiche Devis : « gestionnaires » seulement pour un catalog",
+        "fiche Devis : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Devis : « parent » seulement pour un child",
+        "fiche Document (child) : pas de « proprietaire » (mettre null)",
+        "fiche Document : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Photo (child) : pas de « proprietaire » (mettre null)",
+        "fiche Photo : « saisie_par » seulement pour une collection, et un id d'acteur"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Chantier : « parent » seulement pour un child",
+        "fiche Devis : « parent » seulement pour un child",
+        "fiche Document (child) : pas de « proprietaire » (mettre null)",
+        "fiche Document : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Photo (child) : pas de « proprietaire » (mettre null)",
+        "fiche Photo : « saisie_par » seulement pour une collection, et un id d'acteur"
+      ]
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 3,
+      "erreurs": [
+        "fiche Chantier : « parent » seulement pour un child",
+        "fiche Devis : « parent » seulement pour un child",
+        "fiche Document (child) : pas de « proprietaire » (mettre null)",
+        "fiche Document : « saisie_par » seulement pour une collection, et un id d'acteur",
+        "fiche Photo (child) : pas de « proprietaire » (mettre null)",
+        "fiche Photo : « saisie_par » seulement pour une collection, et un id d'acteur"
+      ]
+    }
+  ],
+  "fiches": null,
+  "echec": "fiches refusées après 3 essais"
+}

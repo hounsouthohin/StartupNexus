@@ -1,0 +1,54 @@
+{
+  "app": { "nom": "mediatheque", "titre": "Médiathèque" },
+  "acces": {
+    "actors": [
+      { "id": "adherent", "label": "adhérent", "becomes": "signup",
+        "citation": "Après connexion, un adhérent gère son profil" },
+      { "id": "bibliothecaire", "label": "bibliothécaire", "becomes": "bootstrap",
+        "citation": "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents" }
+    ],
+    "entities": [
+      { "name": "Book", "label": "ouvrage", "label_plural": "ouvrages", "nature": "catalog",
+        "public": true, "manager": null, "citation": "peuvent parcourir le catalogue public des ouvrages" },
+      { "name": "Member", "label": "profil", "label_plural": "profils d'adhérents", "nature": "profile",
+        "owner": "adherent", "citation": "un adhérent gère son profil (nom, email, téléphone)" },
+      { "name": "Borrowing", "label": "emprunt", "label_plural": "emprunts", "nature": "collection",
+        "owner": "adherent", "references": ["Book", "Member"],
+        "citation": "Un adhérent ne voit que ses propres emprunts",
+        "process": {
+          "initial": "requested",
+          "transitions": { "requested": ["accepted", "refused"], "accepted": ["returned"], "refused": [], "returned": [] },
+          "initiator": "adherent", "decider": "bibliothecaire",
+          "labels": { "requested": "demandé", "accepted": "accepté", "refused": "refusé", "returned": "rendu" },
+          "citation": "est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu"
+        } }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Book": [
+      { "nom": "title", "libelle": "Titre", "type": "texte" },
+      { "nom": "author", "libelle": "Auteur", "type": "texte" }
+    ],
+    "Member": [
+      { "nom": "name", "libelle": "Nom", "type": "texte" },
+      { "nom": "email", "libelle": "E-mail", "type": "email" },
+      { "nom": "phone", "libelle": "Téléphone", "type": "telephone", "obligatoire": false }
+    ],
+    "Borrowing": []
+  },
+  "ecran": {
+    "Borrowing": {
+      "verbe_creation": "Emprunter",
+      "boutons": { "accepted": "Accepter", "refused": "Refuser", "returned": "Marquer rendu" }
+    }
+  },
+  "depart": {
+    "Book": [
+      { "title": "Germinal", "author": "Émile Zola" },
+      { "title": "Le Petit Prince", "author": "Antoine de Saint-Exupéry" },
+      { "title": "Une si longue lettre", "author": "Mariama Bâ" },
+      { "title": "L'Étranger", "author": "Albert Camus" }
+    ]
+  }
+}

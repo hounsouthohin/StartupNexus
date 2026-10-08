@@ -1,0 +1,35 @@
+# Vrai brief agence-reservations (Codeur.com, 2016) — attendu, écrit AVANT le calcul (essai 2, 7 oct).
+# Lecture littérale. Ambiguïtés (à poser au client par le miroir) :
+#  - « gérer l'ensemble de l'application » (admin) : supprimer n'est pas accordé sans mot explicite ;
+#  - « évaluer les réservations » : noter ? valider ? — lu comme une modification ;
+#  - « les réservations validées » (agenda) suppose un état « validée » que le brief ne décrit pas.
+cells:
+  admin:
+    Rate: {see: all, create: "yes", edit: true}         # « gérer les tarifs, les destinations »
+    Destination: {see: all, create: "yes", edit: true}
+    ProviderProfile: {see: all, edit: true}              # « gérer l'ensemble de l'application »
+    Customer: {see: all, edit: true}
+    Reservation: {see: all, edit: true}
+  gestionnaire:
+    Rate: {see: all, create: "yes", edit: true}
+    Destination: {see: all, create: "yes", edit: true}
+    ProviderProfile: {see: all, edit: true}              # « gérer les comptes de ces prestataires »
+    Customer: {see_via: [Reservation]}                   # rien n'est dit : voit le client sur la réservation
+    Reservation:
+      see: all
+      create: "yes"                                      # « faire des réservations … pour son compte »
+      edit: true                                         # « évaluer », « les modifier »
+      transitions: {open: [closed]}                      # « fermer les réservations »
+  prestataire:
+    Rate: {see: all}
+    Destination: {see: all}
+    ProviderProfile: {see: own, create: "auto", edit: true}
+    Customer: {see: own, create: "yes", edit: true}      # « créer des fiches clients »
+    Reservation: {see: all, create: "yes", edit: true, delete: true}   # « toutes … les modifier, les supprimer »
+auto_links: 0
+limites_d1:
+  - "« ses prestataires » : le gestionnaire ne gère que SES prestataires — périmètre par relation (D2)"
+  - "« les réservations en cours » : visibilité selon l'état (D2)"
+  - "le gestionnaire réserve « pour son compte » : une même fiche a deux sortes de propriétaires"
+  - "alertes à chaque évènement d'une réservation (D4 effets)"
+  - "synchronisation Google Calendar (intégration : hors stock)"

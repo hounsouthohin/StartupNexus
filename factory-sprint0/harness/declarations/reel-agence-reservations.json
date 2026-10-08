@@ -1,0 +1,658 @@
+{
+  "format": "factory-declaration/v1",
+  "project_name": "reel-agence-reservations",
+  "stack_id": "nextjs-clerk-prisma",
+  "created_at": "2026-10-04T15:12:41+00:00",
+  "run_id": "capture-1bd65f1d",
+  "brief": {
+    "description": "Nous sommes une agence de communication et pour le compte d'un de nos clients nous voulons établir un budget pour la réalisation d'une application WEB de réservation. pour ce logiciel, 3 profils de connexion, un admin, des gestionnaires et des prestataires. ADMIN : Doit pouvoir gérer l'ensemble de l'application, créé et donne des accès, gérer les tarifs, les destinations entre autre. GESTIONNAIRE : Doit pouvoir gérer les comptes de ces prestataires, gérer les tarifs, les destinations, faire des réservations, évaluer les réservations, fermer les réservations, les modifier, peut aussi lui même faire des réservations pour son compte. PRESTATAIRE : Doit pouvoir créer des fiches clients, doit pouvoir créer des réservations, doit pouvoir consulter toutes les réservations en court, les modifier, les supprimer. Pour chacun des comptes ils doivent recevoir des alertes pour indiquer un évènement intervenant sur une réservation. RESERVATIONS : Toutes les disponibilités et réservations validées doivent être synchronisé avec l'agenda Google Calendar"
+  },
+  "project_spec": {
+    "project_name": "reel-agence-reservations",
+    "stack_id": "nextjs-clerk-prisma",
+    "description": "Nous sommes une agence de communication et pour le compte d'un de nos clients nous voulons établir un budget pour la réalisation d'une application WEB de réservation. pour ce logiciel, 3 profils de connexion, un admin, des gestionnaires et des prestataires. ADMIN : Doit pouvoir gérer l'ensemble de l'application, créé et donne des accès, gérer les tarifs, les destinations entre autre. GESTIONNAIRE : Doit pouvoir gérer les comptes de ces prestataires, gérer les tarifs, les destinations, faire des réservations, évaluer les réservations, fermer les réservations, les modifier, peut aussi lui même faire des réservations pour son compte. PRESTATAIRE : Doit pouvoir créer des fiches clients, doit pouvoir créer des réservations, doit pouvoir consulter toutes les réservations en court, les modifier, les supprimer. Pour chacun des comptes ils doivent recevoir des alertes pour indiquer un évènement intervenant sur une réservation. RESERVATIONS : Toutes les disponibilités et réservations validées doivent être synchronisé avec l'agenda Google Calendar",
+    "models": [
+      {
+        "name": "Reservation",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "date",
+            "type": "DateTime",
+            "attributes": ""
+          },
+          {
+            "name": "status",
+            "type": "ReservationStatus",
+            "attributes": "@default(pending)"
+          },
+          {
+            "name": "clientId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "client",
+            "type": "Client",
+            "attributes": "@relation(fields: [clientId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "providerId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "provider",
+            "type": "Provider",
+            "attributes": "@relation(fields: [providerId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "managerId",
+            "type": "String?",
+            "attributes": ""
+          },
+          {
+            "name": "manager",
+            "type": "Manager",
+            "attributes": "@relation(fields: [managerId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "clientId"
+      },
+      {
+        "name": "Client",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "providerId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "provider",
+            "type": "Provider",
+            "attributes": "@relation(fields: [providerId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "providerId"
+      },
+      {
+        "name": "Provider",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "managers",
+            "type": "Manager[]",
+            "attributes": ""
+          },
+          {
+            "name": "clients",
+            "type": "Client[]",
+            "attributes": ""
+          },
+          {
+            "name": "reservations",
+            "type": "Reservation[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Manager",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "name",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "email",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "providers",
+            "type": "Provider[]",
+            "attributes": ""
+          },
+          {
+            "name": "reservations",
+            "type": "Reservation[]",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      },
+      {
+        "name": "Alert",
+        "fields": [
+          {
+            "name": "id",
+            "type": "String",
+            "attributes": "@id @default(uuid())"
+          },
+          {
+            "name": "message",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "reservationId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "reservation",
+            "type": "Reservation",
+            "attributes": "@relation(fields: [reservationId], references: [id], onDelete: Cascade)"
+          },
+          {
+            "name": "userId",
+            "type": "String",
+            "attributes": ""
+          },
+          {
+            "name": "createdAt",
+            "type": "DateTime",
+            "attributes": "@default(now())"
+          },
+          {
+            "name": "updatedAt",
+            "type": "DateTime",
+            "attributes": "@updatedAt"
+          }
+        ],
+        "owner_field": "userId"
+      }
+    ],
+    "routes": [],
+    "pages": [
+      {
+        "path": "/",
+        "auth_required": false,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard",
+        "auth_required": true,
+        "page_type": "custom",
+        "model": null
+      },
+      {
+        "path": "/dashboard/reservations",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/reservations/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/reservations/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/reservations/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Reservation"
+      },
+      {
+        "path": "/dashboard/clients",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/clients/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/clients/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/clients/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Client"
+      },
+      {
+        "path": "/dashboard/providers",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Provider"
+      },
+      {
+        "path": "/dashboard/providers/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Provider"
+      },
+      {
+        "path": "/dashboard/providers/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Provider"
+      },
+      {
+        "path": "/dashboard/providers/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Provider"
+      },
+      {
+        "path": "/dashboard/managers",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Manager"
+      },
+      {
+        "path": "/dashboard/managers/new",
+        "auth_required": true,
+        "page_type": "create",
+        "model": "Manager"
+      },
+      {
+        "path": "/dashboard/managers/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Manager"
+      },
+      {
+        "path": "/dashboard/managers/[id]/edit",
+        "auth_required": true,
+        "page_type": "edit",
+        "model": "Manager"
+      },
+      {
+        "path": "/dashboard/alerts",
+        "auth_required": true,
+        "page_type": "list",
+        "model": "Alert"
+      },
+      {
+        "path": "/dashboard/alerts/[id]",
+        "auth_required": true,
+        "page_type": "detail",
+        "model": "Alert"
+      }
+    ],
+    "pages_detail": {
+      "/": {
+        "description": "Page publique — aucun appel Clerk. Présentation de l'agence de communication et des services offerts. Informations sur la création d'applications web de réservation.",
+        "data_fetches": [],
+        "interactive": false,
+        "kpis": [],
+        "filtered_lists": []
+      },
+      "/dashboard": {
+        "description": "Tableau de bord pour les utilisateurs connectés. Accès rapide aux fonctionnalités de gestion des réservations, des clients et des prestataires.",
+        "data_fetches": [
+          {
+            "service": "reservationService.getAllWithRelations(userId)",
+            "as": "reservations"
+          },
+          {
+            "service": "clientService.getAll(userId)",
+            "as": "clients"
+          },
+          {
+            "service": "providerService.getAll(userId)",
+            "as": "providers"
+          },
+          {
+            "service": "alertService.getAll(userId)",
+            "as": "alerts"
+          }
+        ],
+        "interactive": true,
+        "kpis": [
+          {
+            "label": "Total des réservations",
+            "source": "reservations",
+            "agg": "count",
+            "field": "",
+            "filter_field": "",
+            "filter_value": ""
+          },
+          {
+            "label": "Total des clients",
+            "source": "clients",
+            "agg": "count",
+            "field": "",
+            "filter_field": "",
+            "filter_value": ""
+          },
+          {
+            "label": "Total des prestataires",
+            "source": "providers",
+            "agg": "count",
+            "field": "",
+            "filter_field": "",
+            "filter_value": ""
+          }
+        ],
+        "filtered_lists": [
+          {
+            "label": "Réservations en attente",
+            "source": "reservations",
+            "filter_field": "status",
+            "filter_op": "eq",
+            "filter_value": "pending"
+          },
+          {
+            "label": "Réservations à venir",
+            "source": "reservations",
+            "filter_field": "date",
+            "filter_op": "after",
+            "filter_value": "now"
+          }
+        ]
+      }
+    },
+    "user_flows": [
+      "Sur /dashboard : l'utilisateur accède à son tableau de bord",
+      "Sur /dashboard/reservations : l'utilisateur consulte et gère les réservations",
+      "Sur /dashboard/reservations/new : l'utilisateur crée une nouvelle réservation",
+      "Sur /dashboard/reservations/[id] : l'utilisateur consulte le détail d'une réservation",
+      "Sur /dashboard/clients : l'utilisateur gère les clients",
+      "Sur /dashboard/providers : l'utilisateur gère les prestataires",
+      "Sur /dashboard/managers : l'utilisateur gère les gestionnaires",
+      "Sur /dashboard/alerts : l'utilisateur consulte les alertes"
+    ],
+    "ui_labels": {
+      "Reservation": {
+        "date": "Date",
+        "status": "Statut",
+        "clientId": "Client",
+        "providerId": "Prestataire",
+        "managerId": "Gestionnaire"
+      },
+      "Client": {
+        "name": "Nom",
+        "email": "Email",
+        "providerId": "Prestataire"
+      },
+      "Provider": {
+        "name": "Nom",
+        "email": "Email"
+      },
+      "Manager": {
+        "name": "Nom",
+        "email": "Email"
+      },
+      "Alert": {
+        "message": "Message",
+        "reservationId": "Réservation"
+      }
+    },
+    "title_plurals": {
+      "Reservation": "Réservations",
+      "Client": "Clients",
+      "Provider": "Prestataires",
+      "Manager": "Gestionnaires",
+      "Alert": "Alertes"
+    },
+    "title_singulars": {
+      "Reservation": "Réservation",
+      "Client": "Client",
+      "Provider": "Prestataire",
+      "Manager": "Gestionnaire",
+      "Alert": "Alerte"
+    },
+    "enums": {
+      "ReservationStatus": [
+        "pending",
+        "confirmed",
+        "cancelled"
+      ]
+    },
+    "enum_value_labels": {
+      "ReservationStatus": {
+        "pending": "En attente",
+        "confirmed": "Confirmée",
+        "cancelled": "Annulée"
+      }
+    },
+    "page_links": {},
+    "spec_fingerprint": "be2d7a313634117e",
+    "design_system": {
+      "preset_name": "saas_dashboard",
+      "primary_color": "blue-700",
+      "font_heading": "Inter",
+      "font_body": "Inter",
+      "sidebar_bg": "slate-900",
+      "density": "compact",
+      "card_style": "elevated",
+      "list_style": "table",
+      "animation_level": "standard",
+      "hero_style": "minimal",
+      "layout_type": "sidebar",
+      "brand_name": "ResaPro"
+    },
+    "enriched_spec": {
+      "field_annotations": {
+        "status": {
+          "semantic_type": "status-enum",
+          "values": [
+            "pending",
+            "confirmed",
+            "cancelled"
+          ],
+          "display_label": ""
+        },
+        "date": {
+          "semantic_type": "datetime",
+          "values": [],
+          "display_label": ""
+        },
+        "email": {
+          "semantic_type": "email",
+          "values": [],
+          "display_label": ""
+        }
+      },
+      "required_queries": [],
+      "features": [
+        "status_flow",
+        "calendar_view"
+      ],
+      "status_flows": {
+        "Reservation": {
+          "field": "status",
+          "initial": "pending",
+          "transitions": {
+            "pending": [
+              "confirmed",
+              "cancelled"
+            ],
+            "confirmed": [
+              "cancelled"
+            ],
+            "cancelled": []
+          },
+          "locked_states": [],
+          "state_fields": {}
+        }
+      },
+      "ux_hints": {
+        "empty_states": {
+          "/reservations": "Aucune réservation pour le moment. Créez votre première réservation.",
+          "/clients": "Aucun client enregistré. Ajoutez votre premier client."
+        },
+        "dependency_order": [
+          "Créez d'abord un Client avant de créer une Réservation."
+        ],
+        "primary_action": {}
+      },
+      "roles": {
+        "roles": [
+          "admin",
+          "manager",
+          "provider"
+        ],
+        "privileged_role": "admin",
+        "admin_scoped_views": [
+          "Reservation",
+          "Client",
+          "Provider",
+          "Manager"
+        ],
+        "role_gated_actions": {
+          "Reservation": [
+            "status_transition",
+            "update",
+            "delete"
+          ],
+          "Client": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "Provider": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "Manager": [
+            "create",
+            "update",
+            "delete"
+          ]
+        },
+        "global_entities": [],
+        "initiator": {
+          "Reservation": "provider",
+          "Client": "provider"
+        },
+        "surface": {
+          "admin": [
+            "Reservation",
+            "Client",
+            "Provider",
+            "Manager",
+            "Alert"
+          ],
+          "manager": [
+            "Reservation",
+            "Client",
+            "Provider",
+            "Alert"
+          ],
+          "provider": [
+            "Reservation",
+            "Client",
+            "Alert"
+          ]
+        },
+        "dashboard": {
+          "admin": [
+            "toutes les réservations",
+            "gestion des comptes"
+          ],
+          "manager": [
+            "réservations à gérer",
+            "comptes des prestataires"
+          ],
+          "provider": [
+            "mes réservations",
+            "mes clients"
+          ]
+        }
+      }
+    },
+    "summary_fr": "L'application permet à trois types d'utilisateurs (admin, gestionnaires, prestataires) de gérer des réservations. L'admin peut gérer l'ensemble de l'application, y compris les accès, les tarifs et les destinations. Les gestionnaires peuvent gérer les comptes des prestataires, les tarifs, les destinations, et effectuer des réservations. Les prestataires peuvent créer des fiches clients, gérer leurs réservations et recevoir des alertes pour les événements liés aux réservations. Les réservations validées doivent être synchronisées avec Google Calendar.",
+    "unsupported": [
+      "Le brief demande la synchronisation des réservations validées avec Google Calendar ; aucune page ni action de la spec ne mentionne cette fonctionnalité."
+    ]
+  }
+}

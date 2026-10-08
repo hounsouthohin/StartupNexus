@@ -1,0 +1,447 @@
+{
+  "projet": "appr-renovation",
+  "modele": "gpt-5.5",
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un ERP léger de gestion pour une entreprise de rénovation, centré sur la centralisation des données, le suivi de chantiers, des accès par rôle et des processus internes.",
+    "hors_stock": [
+      {
+        "besoin": "Centralisation de documents et photos liés aux chantiers",
+        "categorie": "fichiers_photos",
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "besoin": "Automatisation de tâches répétitives",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "Génération ou gestion automatisée de devis, bons de commande et facturation",
+        "categorie": "document",
+        "citation": "devis, bons de commande, facturation"
+      },
+      {
+        "besoin": "Calcul et suivi des marges réalisées",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "besoin": "Utilisation mobile sur le terrain",
+        "categorie": "mobile_hors_ligne",
+        "citation": "accessible depuis le terrain (mobile)"
+      },
+      {
+        "besoin": "Fonctions de communication interne et externe",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe"
+      },
+      {
+        "besoin": "Utilisation sur téléphone mobile avec mode hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Accès différencié par agence",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      },
+      {
+        "besoin": "Automatisation des processus",
+        "categorie": "automatisation",
+        "citation": "Une centralisation et automatisation des processus et des données"
+      },
+      {
+        "besoin": "Visibilité sur les marges et la rentabilité par chantier, ville et globale",
+        "categorie": "calcul_statistiques",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Meilleure communication entre acteurs internes et externes",
+        "categorie": "messagerie",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "Chef de projet",
+        "libelle_pluriel": "Chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "journal": [
+    {
+      "agent": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 842,
+      "jetons_sortie": 962
+    },
+    {
+      "agent": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 728,
+      "jetons_sortie": 502
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche DocumentChantier : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche PhotoChantier : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 1076,
+      "jetons_sortie": 4186
+    },
+    {
+      "agent": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1704,
+      "jetons_sortie": 627
+    },
+    {
+      "agent": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 948,
+      "jetons_sortie": 205
+    },
+    {
+      "agent": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 960,
+      "jetons_sortie": 411
+    }
+  ],
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis"
+      },
+      {
+        "nom": "SuiviChantier",
+        "libelle": "suivi de chantier",
+        "libelle_pluriel": "suivis de chantier",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "suivi de l'avancement des chantiers"
+      },
+      {
+        "nom": "DocumentChantier",
+        "libelle": "document de chantier",
+        "libelle_pluriel": "documents de chantier",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "documents"
+      },
+      {
+        "nom": "PhotoChantier",
+        "libelle": "photo de chantier",
+        "libelle_pluriel": "photos de chantier",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "photos"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "bons de commande"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "facturation"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "circuits_hors_vocabulaire_D1": [],
+  "declaration": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "Chef de projet",
+        "label_plural": "Chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "devis"
+      },
+      {
+        "name": "SuiviChantier",
+        "label": "suivi de chantier",
+        "label_plural": "suivis de chantier",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "suivi de l'avancement des chantiers"
+      },
+      {
+        "name": "DocumentChantier",
+        "label": "document de chantier",
+        "label_plural": "documents de chantier",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "documents"
+      },
+      {
+        "name": "PhotoChantier",
+        "label": "photo de chantier",
+        "label_plural": "photos de chantier",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "photos"
+      },
+      {
+        "name": "BonDeCommande",
+        "label": "bon de commande",
+        "label_plural": "bons de commande",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "bons de commande"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "facturation"
+      }
+    ],
+    "exceptions": []
+  },
+  "matrice_erreurs": [],
+  "matrice_alertes": [
+    "l'acteur Administrateur ne voit rien : rôle inutile ou déclaration incomplète",
+    "page « Équipe » pour Administrateur : inviter des Chefs de projet"
+  ],
+  "miroir": {
+    "Le visiteur": [
+      "ne voit rien"
+    ],
+    "L'administrateur": [
+      "ne voit rien"
+    ],
+    "Le chef de projet": [
+      "voit tous les chantiers, en crée, les modifie",
+      "voit tous les devis, en crée, les modifie",
+      "voit tous les suivis de chantier, en crée, les modifie",
+      "voit tous les documents de chantier, en crée, les modifie",
+      "voit toutes les photos de chantier, en crée, les modifie",
+      "voit tous les bons de commande, en crée, les modifie",
+      "voit toutes les factures, en crée, les modifie"
+    ]
+  },
+  "questions": [],
+  "secondes": 81.7,
+  "jetons": {
+    "entree": 6258,
+    "sortie": 6893,
+    "appels": 6
+  }
+}

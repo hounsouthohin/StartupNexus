@@ -1,0 +1,62 @@
+[
+  {
+    "project_name": "appr-cabinet-pluri",
+    "brief": {
+      "description": "Logiciel multi-utilisateurs de gestion de rdv, facturation et devis.\nje souhaiterais développer un logiciel de gestion de cabinet pluridisciplinaire, avec agenda, facturation et devis. l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel"
+    }
+  },
+  {
+    "project_name": "appr-renovation",
+    "brief": {
+      "description": "Projet logiciel pour notre entreprise de rénovation de bâtiments.\nNos Besoins Logiciels : L'entreprise recherche un outil qui permette :\n- La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)\n- L'automatisation des tâches répétitives (devis, bons de commande, facturation)\n- Le suivi de l'avancement des chantiers et des marges réalisées\n- Une interface simple, ergonomique et accessible depuis le terrain (mobile)\n- L'amélioration de la communication interne et externe\nLes objectifs et contraintes : L'objectif principal est de concevoir un logiciel ERP léger, centralisé et adapté aux besoins de Gustave Rénovation. Le but principal est de faciliter le suivi de chantier pour les chefs de projet.\nContraintes identifiées :\n- Déploiement souhaité en moins de 6 mois\n- Utilisation sur téléphone mobile indispensable, utilisable hors ligne\n- Accès sécurisé et différencié par agence et rôle\nL'entreprise attend de l'outil :\n- Une centralisation et automatisation des processus et des données\n- Une visibilité sur les marges et la rentabilité par chantier, ville et globale\n- Une meilleure communication entre les acteurs internes et externes\n- Une simplification du suivi de chantier pour les chefs de projet"
+    }
+  },
+  {
+    "project_name": "appr-autocars",
+    "brief": {
+      "description": "Logiciel de gestion pour société tourisme luxe autocars + chauffeurs.\nNous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture. Nous aimons le fonctionnement du logiciel Rapido, de l'éditeur Planet Permis, mais il n'est pas optimisé pour nos besoins, puisque c'est un logiciel pour auto-écoles.\nBesoins :\n- Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi\n- Codes couleurs par chauffeurs et par véhicules\n- Suivi de facturation automatique\n- Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs\n- Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma\n- Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)\nEncore une fois, les besoins sont vraiment proches de ce qu'offre le logiciel Rapido édité par Planet Permis."
+    }
+  },
+  {
+    "project_name": "appr-formation",
+    "brief": {
+      "description": "Création d'un logiciel de gestion pour organisme de formation.\nNous souhaitons créer un \"logiciel\" de gestion de notre activité : une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation. il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle... puis la facturation et l'établissement d'un bilan pour l'entité de base. on a besoin d'une gestion comptable associée"
+    }
+  },
+  {
+    "project_name": "appr-gestion-immo",
+    "brief": {
+      "description": "Logiciel de gestion immobilière.\nNous sommes gestionnaire de biens immobilier dans la région Lyonnaise. Nous recherchons une personne qui serait en mesure de créer un logiciel permettant d'automatiser des taches. Notamment la possibilité d'automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers, d'envoyer automatiquement des quittances, relevé de compte etc.."
+    }
+  },
+  {
+    "project_name": "appr-union-sportive",
+    "brief": {
+      "description": "Gestion d'une base adhérents pour une union sportive.\nL'association recherche un développeur pour concevoir une application web responsive (consultable sur téléphone, tablette et ordinateur) destinée à centraliser toutes nos opérations internes.\nFonctionnalités attendues :\nGestion des adhérents :\n- Création, modification, suppression de fiches membres\n- Statut actif/inactif\n- Historique des adhésions et cotisations\nGestion des adhésions :\n- Enregistrement des adhésions (année, cotisation, dates de validité)\n- Renouvellement automatique ou manuel\n- Vérification du paiement avant activation\n- Export par période\nGestion des participants :\n- Suivi des inscrits aux activités\n- Lien entre participant, activité et statut d'homologation\nCalendrier d'activités :\n- Affichage public consultable sur tous supports\n- Gestion interne : création, modification, annulation\nPaiements :\n- Saisie manuelle ou intégration d'un module de paiement en ligne\n- Validation d'activité ou d'adhésion uniquement après paiement confirmé\nHomologations :\n- Validation d'une activité uniquement après paiement\n- Historique complet des homologations\nExports et statistiques :\n- Export CSV/Excel (adhérents, adhésions, activités, homologations)\n- Tableaux de bord de suivi\nEnvironnement technique souhaité :\n- Application web responsive\n- Technologies ouvertes : PHP/MySQL, Node.js, ou équivalent\n- Interface d'administration avec authentification sécurisée\n- Code commenté et livré intégralement\n- Respect du RGPD\nLivrables attendus : application web fonctionnelle, prête à être hébergée ; code source complet + documentation d'installation ; tests fonctionnels validés ; formation de prise en main.\nDurée estimée : 4 à 6 semaines maximum"
+    }
+  },
+  {
+    "project_name": "appr-mesures-terrain",
+    "brief": {
+      "description": "Création d'un logiciel de gestion de commande.\npour la création d'un logiciel qui faciliterait la gestion des commandes (mesure scientifiques sur terrain) qui inclurait un planning logistique, une automatisation de la gestion des livrables, etc"
+    }
+  },
+  {
+    "project_name": "appr-marketplace",
+    "brief": {
+      "description": "Marketplace avec annonces, paiements, géolocalisation et avis.\nBonjour, Je recherche un développeur freelance ou une équipe expérimentée pour la création d'une marketplace avec paiement en ligne. Le projet concerne la réalisation d'une plateforme web complète, responsive (ordinateur, tablette et mobile), intégrant notamment :\n- Gestion des comptes utilisateurs\n- Publication et gestion d'annonces\n- Moteur de recherche et géolocalisation\n- Paiement en ligne sécurisé\n- Gestion automatique des commissions\n- Messagerie interne\n- Système d'avis et de notation\n- Tableau de bord utilisateur\n- Interface d'administration complète\n- Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)\nL'objectif est de disposer d'une plateforme professionnelle, évolutive et conçue dès le départ pour pouvoir, dans un second temps, être déclinée en application mobile Android et iOS. Je recherche avant tout une personne ou une équipe ayant déjà réalisé des projets similaires (marketplace, plateforme de réservation, mise en relation, etc.)."
+    }
+  },
+  {
+    "project_name": "appr-reseau-social",
+    "brief": {
+      "description": "Création d'un réseau social.\nNous recherchons un developper de site internet freelance afin de créer un réseau social.\nFonctionnalités demandées :\n- Interface générale avec l'ensemble des publications\n- Filtre sur l'interface générale\n- Création de sous-communautés\n- Messagerie privée\n- Système de sondages\n- Publication de photos, vidéos et GIF\n- Classement pour référencer les utilisateurs\n- Système de récompenses avec achat de cadeaux\n- Possibilité de booster les publications\n- Option de suivre un utilisateur\n- Système de notifications\nLe site devra également trouver un espace blog où des articles seront postés et partagés à la communauté."
+    }
+  },
+  {
+    "project_name": "appr-transport-mobile",
+    "brief": {
+      "description": "Création d'application mobile pour transporteur.\nJe me permets de vous contacter en tant que stagiaire au sein de la société Procase. Dans le cadre de mon stage, j'ai identifié des difficultés dans la gestion des livraisons, notamment en période de forte activité, où les retards sont fréquents en raison d'une communication inefficace et de la difficulté à coordonner nos sous-traitants.\nAfin de remédier à ces problèmes, je souhaite proposer en interne le développement d'une application mobile qui centraliserait les informations de livraison et les diffuserait directement aux chauffeurs, permettant ainsi une mise à jour en temps réel des statuts de livraison.\nCette application offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules, avec une confirmation des missions en un clic pour plus de transparence. Elle améliorerait la communication en réduisant les malentendus grâce à des informations précises et des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire.\nDe plus, l'application assurerait un suivi en temps réel des livraisons et vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses.\nL'objectif de cette application est de réduire les retards de livraison, d'améliorer notre image de marque, de faciliter de nouvelles collaborations avec d'autres prestataires, et de gagner en réactivité et en rentabilité."
+    }
+  }
+]
