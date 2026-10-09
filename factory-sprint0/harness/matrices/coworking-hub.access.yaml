@@ -54,9 +54,7 @@ entities:
     parent: Booking
     citation: "Chaque réservation confirmée génère une facture rattachée à cette réservation"
 
-exceptions:
-  - actor: admin
-    entity: Invoice
-    action: transition
-    transitions: {pending: [paid]}
-    citation: "marquer les factures comme payées"
+# (8 oct 2026, N1.1) exception RETIRÉE : « marquer les factures comme payées » est une étape sur une
+# fiche enfant SANS circuit — inexprimable (trou de vocabulaire « enfant à circuit », étude 03). Le
+# calculateur l'acceptait en silence ; il refuse désormais tout état absent du circuit. Besoin hors D1.
+exceptions: []

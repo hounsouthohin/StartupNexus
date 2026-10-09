@@ -1,0 +1,26 @@
+{
+  "_origine": "Fiches et circuit de la médiathèque, recopiés de usine/exemples/mediatheque.json (justes par construction) : entrée du lecteur 6 pour mesurer CE lecteur seul.",
+  "fiches": {
+    "fiches": [
+      { "nom": "Book", "libelle": "ouvrage", "libelle_pluriel": "ouvrages", "feminin": false, "nature": "catalog",
+        "proprietaire": null, "gestionnaires": [], "publique": true, "publication": false, "saisie_par": null,
+        "parent": null, "references": [], "citation": "peuvent parcourir le catalogue public des ouvrages" },
+      { "nom": "Member", "libelle": "profil", "libelle_pluriel": "profils d'adhérents", "feminin": false, "nature": "profile",
+        "proprietaire": "adherent", "gestionnaires": [], "publique": false, "publication": false, "saisie_par": null,
+        "parent": null, "references": [], "citation": "un adhérent gère son profil (nom, email, téléphone)" },
+      { "nom": "Borrowing", "libelle": "emprunt", "libelle_pluriel": "emprunts", "feminin": false, "nature": "collection",
+        "proprietaire": "adherent", "gestionnaires": [], "publique": false, "publication": false, "saisie_par": null,
+        "parent": null, "references": ["Book", "Member"], "citation": "Un adhérent ne voit que ses propres emprunts" }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      { "fiche": "Borrowing", "etat_initial": "requested",
+        "transitions": { "requested": ["accepted", "refused"], "accepted": ["returned"], "refused": [], "returned": [] },
+        "libelles": { "requested": "demandé", "accepted": "accepté", "refused": "refusé", "returned": "rendu" },
+        "initiateur": "adherent", "decideur": "bibliothecaire", "etapes_par": {},
+        "citation": "est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu" }
+    ]
+  }
+}

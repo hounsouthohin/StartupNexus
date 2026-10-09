@@ -75,6 +75,11 @@ applications mobiles natives, design original.
    et le juge se trompent ensemble *(N1.0 : tests d'écran 1/4 → 4/4 erreurs attrapées)*.
 9. **Moindre privilège.** Personne ne reçoit un droit qui n'est pas nécessaire à son rôle ou cité par
    le brief. Une exception oubliée donne un manque visible, jamais une fuite invisible.
+10. **Des blocs complets.** ✔ validé (8 oct) Chaque mot de vocabulaire (nature, action, type de
+   champ…) est un **bloc** : construire, écran, juger, prouver, livrés ensemble. Un programme le vérifie
+   (`python -m usine carte`) : un mot sans son bloc empêche de fabriquer ; un mot pas encore construit
+   est **refusé franchement**, jamais traité à moitié. Étendre l'usine = ajouter des blocs, sans
+   toucher à ceux qui existent.
 
 ### Circulation de l'information — 7 règles ✔ validé (30 sept)
 
@@ -83,10 +88,10 @@ Les étapes ne se parlent pas : chacune lit une fiche de forme fixe et en produi
 3. **Contrôle strict à chaque frontière** : une réponse invalide est refusée et l'erreur précise est
 renvoyée (N essais), jamais « devinée ». 4. **Fiches figées** : aucune étape ne corrige une fiche amont
 en silence. 5. **L'IA reçoit le minimum, sous forme de données.** 6. **Les ordres d'exécution viennent
-du plan, pas des agents.** 7. **Traçabilité** : chaque fichier sait de quelle case il vient.
+du plan, pas de l'IA.** 7. **Traçabilité** : chaque fichier sait de quelle case il vient.
 
 Limite assumée : le contrôle bloque une fiche **mal formée**, pas une fiche **fausse** — d'où le
-miroir validé par le client (§3.2) et les contrôles croisés entre agents (E5).
+miroir validé par le client (§3.2) et les contrôles croisés entre lecteurs IA (E5).
 
 ---
 
@@ -94,11 +99,13 @@ miroir validé par le client (§3.2) et les contrôles croisés entre agents (E5
 
 ### 3.1 Comprendre — l'IA écrit la description de l'app  ✔ prouvé · ◐ à compléter
 
-**Comment** (`poc/comprehension/comprendre.py`) : 5 agents, une question chacun, réponses en JSON
-contrôlées par programme (forme stricte, identifiants connus, **citations recopiées mot pour mot**),
-erreur renvoyée à l'agent (2 essais de plus) :
+**Comment** (`poc/comprehension/comprendre.py`) : 5 **lecteurs IA**, une question chacun, réponses en
+JSON contrôlées par programme (forme stricte, identifiants connus, **citations recopiées mot pour
+mot**), erreur renvoyée au lecteur (2 essais de plus). ✔ validé (8 oct) : on les appelle **lecteurs**,
+pas « agents » — ils n'ont aucun outil et n'agissent sur rien ; ils lisent le brief et répondent à
+une question, et c'est voulu (moins de liberté = moins de dérive).
 
-| Agent | Question | Contrôles par programme |
+| Lecteur | Question | Contrôles par programme |
 |---|---|---|
 | 1. Acteurs | qui se connecte, comment on le devient | un responsable ; pas d'inscription libre pour du personnel |
 | 2. Fiches | quelles fiches, quelle nature, à qui | chaque non-utilisateur devient une fiche ; un registre a un responsable |
@@ -111,8 +118,40 @@ grille de référence écrite avant de lancer l'IA. gpt-4o-mini 3/10 ; gpt-5.4-m
 **gpt-5.5 9/10**, puis les 3 cas fragiles corrigés en v3. **Modèle retenu : gpt-5.5** ✔ validé.
 Coût réel : 0,195 $ par brief.
 
-**Pas prouvé / à faire** : stabilité de gpt-5.5 (un seul passage) ; **les champs des fiches** (nom,
-type, obligatoire) ne sont pas encore extraits — indispensables aux formulaires (○, niveau 1).
+**N1.1 (8 oct, en cours)** : les lecteurs sont dans l'usine (`usine/comprendre/`, commande
+`python -m usine comprendre <brief> --nom <nom>`), les 5 premiers **inchangés**, plus deux nouveaux :
+
+| Lecteur | Question | Contrôles par programme |
+|---|---|---|
+| 6. Champs | les informations de chaque fiche, leur type (11 types), obligatoires, valeurs d'un choix | cité par le brief (mot pour mot) ou « nécessaire » (un nom, si le brief ne cite rien) ; le reste → propositions pour le miroir ; jamais un lien, l'état ou une date automatique |
+| 7. Libellés | titre de l'app, verbe de création, bouton de chaque étape | un bouton par état d'arrivée |
+
+**Plafond de dépense dans le code** : chaque lancement s'arrête de lui-même au-delà de son plafond
+(0,20 $ par défaut). Mesure du lecteur 6 seul contre une grille écrite d'avance
+(`usine/mesures/`) : sur gpt-5.4-mini, médiathèque 8/8 et union sportive 3/3 sans invention, mais
+autocars et formation faibles, et réponses instables d'un passage à l'autre. gpt-5.4-mini range aussi
+les emprunts de la médiathèque en registre (lecteurs 1-5) : **il ne suffit pas**. Coût mesuré d'une
+compréhension complète en gpt-5.5 : ≈ 0,33 $ par brief (lecteur 6 ≈ 0,11 $).
+
+✔ **Prouvé (8 oct) : du texte du brief à l'app vérifiée, sans aucun fichier écrit à la main** —
+médiathèque, gpt-5.5 : champs 8/8 justes et 0 inventé (genre en choix avec ses 4 valeurs), libellés
+justes, un 3ᵉ rôle « gestionnaire » (l'auteur du brief) qui tient le catalogue ; app fabriquée :
+132/132 règles, 7/7 tests d'écran. Coût : 0,46 $ (dont 0,14 $ pour redemander le lecteur 4 après un
+défaut trouvé : il citait les états par leur libellé, et rien ne le refusait — le calculateur et le
+contrôle du lecteur 4 refusent désormais tout état absent du circuit ; reprise `--reprendre` pour ne
+repayer que ce qui est refusé).
+**Vu, pour le miroir (N1.2)** : le gestionnaire ne voit pas les emprunts et le miroir ne le demande
+pas (la doctrine « le responsable voit tout » ne couvre que les registres).
+
+✔ **Lecteur 6 mesuré sur gpt-5.5** (3 briefs, grille écrite d'avance) : **15/16 informations
+attendues trouvées (94 %)**, 0 type faux, 0 lien ou état pris pour un champ ; 1 « inventé » qui cite
+le brief (« renouvellement automatique ou manuel » lu comme un choix) ; 1 manqué (« reste dû ou
+avoir » fusionnés en un seul montant). gpt-5.4-mini : 0 à 1 sur 5 pour les autocars → **gpt-5.5
+retenu pour tous les lecteurs**. Coût réel du lecteur 6 : 0,13 $ par brief ; compréhension complète
+≈ 0,34 $ par brief (critère : < 1 $ par app).
+
+**Pas prouvé / à faire** : stabilité de gpt-5.5 (un seul passage) ; la généralisation se mesurera à
+l'examen (briefs jamais vus).
 
 ### 3.2 Le miroir — le client valide avant toute construction  ◐
 
@@ -139,6 +178,10 @@ suppression, tables de choix) + **2 règles systématiques** : clôture à la cr
 (`check(lien, 'read')`) et cohérence des propriétaires. Sur 5 cas (dont 2 vrais briefs) :
 traduction mécanique, aucun cas impossible.
 
+**Fait (N1.1)** : 11 types de champs (montant, choix ajoutés) ; données de démonstration fabriquées
+par programme quand la description n'en donne pas ; 2 défauts trouvés par l'app d'essai des types
+(`usine/exemples/types.json`) et corrigés à la source : « rien d'autre ne bouge » échouait sur un champ
+facultatif vide (en SQL, vide = vide n'est pas vrai) ; la date de création pouvait être modifiée.
 **Fait (N1.0)** : traducteur v0 (`usine/traduire/`) — description + matrice → schéma et règles,
 notice, droits d'écran, données de départ. Sur la médiathèque, il redonne le schéma écrit à la main en
 E6 (16 règles). **À faire** (○, N1.3) : le généraliser à tous les patrons et doctrines du §4 (enfants,
@@ -169,6 +212,14 @@ rôle) ○ · messages clairs (« interdit » / « introuvable » / saisie inval
   changer le propriétaire, supprimer, intrus connecté sans rôle, changement de rôle…), en jugeant sur
   l'**état de la base**. **Prouvé par mutation** ([`etudes/04`](etudes/04-testeur-prouve.md)) :
   95,8 % des erreurs à effet attrapées ; **figé en version 1.0**.
+  **v1.3 (N1.1b)** : même contenu, nouvelle structure — un **noyau** (personnes d'essai, jugement sur
+  la base, rapport) et **un module par bloc** (`verification/blocs/` : voir, créer, modifier, circuit,
+  supprimer, types de champs). Prouvé sans effet sur ce qui est vérifié : sur 3 apps, la liste
+  complète des vérifications, leur ordre et leurs verdicts sont identiques à la v1.2.
+  **v1.2 (N1.1, figée)** : il essaie aussi les dates, montants et choix (sautés en silence avant), les
+  champs facultatifs vides puis remplis, et la date de création sous une modification ordinaire.
+  Re-prouvée par mutation sur 2 apps : médiathèque 35/41 erreurs à effet (85 %), app des types 37/43
+  (86 %) ; les manquées sont toutes la famille bénigne connue (ci-dessous).
   **v1.1 (N1.0)** : livré dans chaque app (`verification/`), il lit la description et la matrice de
   l'app ; la partie qui juge est inchangée, les données de test sont construites depuis la description
   (`cas.mts`). **Re-prouvé sur l'app fabriquée** (`usine/preuve_regles.mts`) : 33/49 erreurs attrapées ;
@@ -179,6 +230,9 @@ rôle) ○ · messages clairs (« interdit » / « introuvable » / saisie inval
   menu, boutons de création, circuit, profil ; **attentes tirées de la matrice**. Prouvé par mutation
   (`usine/preuve_ecrans.py`) : 4/4 erreurs attrapées, témoin vert 3 fois (l'ancienne version, qui lisait
   les droits produits : 1/4). Il a trouvé dès son premier jour un vrai défaut du squelette (§3.4).
+  **(N1.1b)** les sabotages sont maintenant **tirés de la matrice de chaque app** (donner un droit,
+  retirer ou ajouter une étape, retirer « voir », retirer une entrée du menu, une pièce fixe cassée) :
+  6/6 attrapés sur 3 apps, témoin vert — la preuve vaut pour n'importe quelle app.
 
 **À faire** (○) : données de test pour tous les patrons (N1.4) ; le testeur essaie aussi le
 changement de rôle **en lecture** et **sur les profils** (referme les 6 bénignes ; v1.2 re-prouvée) ;
@@ -247,12 +301,14 @@ avec un miroir validé, sans écrire de code à la main pour cette app.
 |---|---|---|
 | Essais E1-E6 | pièces, PoC, règles, testeur, compréhension, écrans | ✔ faits (études 01 à 06) |
 | **N1.0 Squelette qui marche** | une commande transforme la médiathèque (description écrite à la main, champs compris) en app qui tourne et se vérifie seule, en passant par tous les maillons dans leur version minimale ; chaque N1.x suivante élargit un maillon d'une chaîne qui marche déjà | ✔ **fait** (7 oct) : `python -m usine fabriquer usine/exemples/mediatheque.json` → app en ~4 min, 10 étapes, 0 $ d'IA ; 104/104 règles, 6/6 tests d'écran ; juges re-prouvés par mutation |
-| N1.1 Description complète | ajouter à la compréhension les **champs** des fiches (12 types, obligatoires, tables de choix) ; combler les trous de vocabulaire utiles au niveau 1 | ○ |
+| N1.1 Description complète | ajouter à la compréhension les **champs** des fiches (12 types, obligatoires, tables de choix) ; combler les trous de vocabulaire utiles au niveau 1 | ✔ **fait** (8 oct) : lecteurs 6-7 (champs 15/16 sur gpt-5.5), 11 types, testeur v1.2 re-prouvé ; **médiathèque du texte à l'app sans rien écrire à la main** (132/132, 7/7) ; 4 défauts trouvés et corrigés à la source ; 0,81 $ |
+| **N1.1b Architecture en blocs** | chaque mot de vocabulaire = un bloc complet (construire, écran, juger, prouver) ; testeur en noyau + modules ; sabotages tirés de la matrice ; carte visuelle des blocs | ✔ **fait** (8 oct) : 32 blocs (23 complets, 6 partiels expliqués, 3 refusés franchement) ; contrôle d'architecture prouvé et branché sur `fabriquer` ; testeur v1.3 identique à la v1.2 sur 3 apps ; sabotages d'écran générés 6/6 sur 3 apps ; `python -m usine carte` ; 0 $ |
+| **Répétition générale** (✔ validé, 8 oct) | les briefs du lot d'apprentissage passent dans toute la chaîne (descriptions déjà payées à l'étude 05 : 0 $ ; avec les champs : ≈ 0,15 $ par brief, sur accord) ; la liste de ce qui bloque fixe le contenu de N1.2 à N1.5. **Règle : on ne passe l'examen que quand la répétition le réussit (≥ 6/7)** — les briefs d'examen ne servent qu'une fois, et l'examen coûtera ≈ 3,40 $ (prévoir une recharge) | ○ après N1.1b |
 | N1.2 Miroir v1 | porte de validation ; interface de réponse aux questions ; corrections déterministes | ○ |
 | N1.3 Traducteur | matrice → schéma ZenStack (patrons + doctrines), vérifié par le testeur figé | ○ |
 | N1.4 Données de test | générateur de données (≥ 2 par sorte…) et des adaptateurs du testeur | ○ |
 | N1.5 Catalogue de pièces | notice générée depuis la matrice ; pièces du §3.4 ; connexion Clerk + équipe | ○ |
-| N1.6 Assembleur | brief → app, de bout en bout ; tests par rôle (serveur + écrans) produits automatiquement | ○ |
+| N1.6 Assembleur | brief → app, de bout en bout ; tests par rôle (serveur + écrans) produits automatiquement ; **démonstration visuelle** : page de suivi de la fabrication + le robot d'écran joué dans un navigateur visible et filmé (« l'app vérifie elle-même que l'adhérent ne peut pas accepter son emprunt ») | ○ |
 | N1.7 Examen | les 10 briefs cachés (`harness/briefs_reels/examen/`), textes originaux recueillis ce jour-là ; puis 3 premiers vrais utilisateurs | ○ |
 
 **Organisation du code** ✔ validé (7 oct) : un dossier neuf **`usine/`** à la racine (comprendre,
@@ -294,7 +350,7 @@ des niveaux 2 à 5 (`scripts/non_couverts.py`, à brancher sur la nouvelle compr
 |---|---|---|
 | Contrôles stricts aux frontières | la forme de chaque réponse de l'IA | ✔ (E5) |
 | Banc des matrices | le calculateur contre 14 matrices attendues | ✔ 14/14 |
-| Testeur par rôle (serveur) | les règles d'accès, case par case, sur l'état de la base | ✔ prouvé par mutation (E4) ; v1.1 livré dans chaque app, re-prouvé (N1.0 : 33/39 à effet) |
+| Testeur par rôle (serveur) | les règles d'accès, case par case, sur l'état de la base | ✔ prouvé par mutation (E4) ; livré dans chaque app ; v1.2 re-prouvée (N1.1 : 85-86 % des erreurs à effet) |
 | Compilateur (TypeScript) | la cohérence notice / schéma / code | ✔ (E6) |
 | Tests Playwright par rôle | ce que chaque rôle voit et peut faire à l'écran | ✔ livrés dans chaque app, attentes tirées de la matrice, prouvés par mutation 4/4 (N1.0) |
 | Miroir validé | l'intention du client | ◐ (phrases et questions ; porte à construire) |
@@ -363,6 +419,18 @@ des niveaux 2 à 5 (`scripts/non_couverts.py`, à brancher sur la nouvelle compr
 | 7 oct 2026 | **N1.0 fait** : `python -m usine fabriquer <description>` produit en ~4 min une app qui tourne et se vérifie seule (104/104 règles, 6/6 écrans), 0 $ d'IA ; chaque app embarque ses juges, qui lisent sa propre matrice | intégrer tous les maillons dès le début, en version minimale, plutôt qu'à la fin |
 | 7 oct 2026 | **Un juge tire ses attentes de la source** (la matrice), jamais du fichier qu'il juge ; les données de test contiennent au moins une fiche reliée à rien | tests d'écran 1/4 → 4/4 erreurs attrapées ; trou des données trouvé par mutation |
 | 7 oct 2026 | **Squelette : une action qui change l'état est un formulaire (POST), jamais un lien** | Next précharge les liens visibles : la connexion simulée en lien mettait 42 pages sur 50 au mauvais rôle (trouvé par les tests d'écran ; aucune donnée exposée, le serveur jugeait chaque requête sur son cookie) |
+| 8 oct 2026 | Fiche N1.1 validée ; « agents de compréhension » renommés **lecteurs IA** ; démonstration visuelle du robot d'écran ajoutée à N1.6 | les lecteurs n'ont ni outil ni action : le mot « agent » trompait ; le robot qui clique seul est une démonstration client parlante |
+| 8 oct 2026 | **Plafond de dépense inscrit dans le code** de chaque lancement d'IA (0,20 $ par défaut) | la règle de budget ne doit pas dépendre de la vigilance de l'assistant |
+| 8 oct 2026 | Une **app d'essai de tous les types** (`usine/exemples/types.json`) est fabriquée et vérifiée comme une vraie app | elle a trouvé 3 défauts que la médiathèque cachait (champ facultatif vide, date de création modifiable, fuseau horaire) |
+| 8 oct 2026 | Chaque app fabriquée tourne en **UTC** (`TZ=UTC`) ; une date pure s'affiche en UTC, une date et heure à l'heure de la personne | serveur à l'heure locale + base en UTC : une date relue se décalait de 4 h et bloquait toute modification |
+| 8 oct 2026 | **Testeur v1.2 figé** (tous les types, champs facultatifs vides et remplis, date de création), re-prouvé par mutation sur 2 apps (85-86 %) | le juge doit couvrir chaque type qu'on ajoute, sinon il est aveugle là précisément |
+| 8 oct 2026 | Pas de réglage des lecteurs sur gpt-5.4-mini au-delà de 2 essais | ses réponses changent d'un passage à l'autre : régler la consigne sur lui, c'est poursuivre son bruit |
+| 8 oct 2026 | **Premier « brief → app » sans rien écrire à la main** (médiathèque, gpt-5.5, 0,46 $) : 132/132 règles, 7/7 écrans | la chaîne entière tient ; elle a aussi révélé un défaut que rien ne refusait (états cités par leur libellé) |
+| 8 oct 2026 | Lecteur 6 sur gpt-5.5 : 15/16 informations attendues, 0 type faux ; **gpt-5.5 pour tous les lecteurs** ; N1.1 terminée (0,81 $ au total) | gpt-5.4-mini trop instable (autocars 0-1/5) |
+| 8 oct 2026 | **Architecture en blocs validée** (avant N1.3) : aucun mot de vocabulaire n'entre dans l'usine sans son bloc complet — construire, écran, juger, prouver | le testeur grossissait de l'intérieur à chaque type ajouté : discipline saine, structure qui ne passerait pas aux niveaux 2-5 |
+| 8 oct 2026 | **N1.1b fait : l'usine est rangée en blocs** (catalogue de 32 blocs, contrôle d'architecture qui lit le vocabulaire dans le code et empêche de fabriquer s'il manque un bloc, carte visuelle) ; la publication est désormais refusée franchement (trouvé par l'inventaire : la règle citait un champ jamais créé) | une architecture qu'on peut étendre sans fragiliser ce qui existe, et qu'on peut voir |
+| 8 oct 2026 | **Répétition générale avant l'examen** : l'examen n'a lieu que si le lot d'apprentissage passe toute la chaîne (≥ 6/7) | les briefs d'examen ne servent qu'une fois ; l'examen coûte ≈ 3,40 $ |
+| 8 oct 2026 | Le calculateur refuse tout état absent du circuit ; la matrice de référence « coworking » corrigée (elle encodait une étape sur un enfant sans circuit, inexprimable) ; banc 14/14 | règle 3 : refuser, jamais deviner — l'ancien calculateur acceptait en silence |
 
 ---
 
@@ -371,7 +439,7 @@ des niveaux 2 à 5 (`scripts/non_couverts.py`, à brancher sur la nouvelle compr
 | Fichier | Statut |
 |---|---|
 | [`etudes/01`](etudes/01-pieces-niveau-1.md) à [`etudes/06`](etudes/06-ecrans.md) | **Valides** : les preuves de ce document (pièces, PoC, règles, testeur, compréhension, écrans) |
-| `usine/` | **La nouvelle usine** (niveau 1) : `description.py` (forme stricte), `matrice.py` (le calculateur, en place), `traduire/` (traducteurs), `modele-app/` (squelette fixe + juges livrés), `assembler.py` (`python -m usine fabriquer …`), `preuve_regles.mts` et `preuve_ecrans.py` (preuves des juges par mutation), `exemples/` |
+| `usine/` | **La nouvelle usine** (niveau 1) : `comprendre/` (les 7 lecteurs IA, `python -m usine comprendre …`), `description.py` (forme stricte), `matrice.py` (le calculateur, en place), `traduire/` (traducteurs), `modele-app/` (squelette fixe + juges livrés : `verification/noyau.mts` + `verification/blocs/`), `assembler.py` (`python -m usine fabriquer …`), `blocs/` (**catalogue des blocs**, contrôle d'architecture, carte : `python -m usine carte`), `preuve_regles.mts` et `preuve_ecrans.py` (preuves des juges par sabotage), `mesures/` (grilles écrites d'avance), `exemples/` |
 | `runs/` | **Jetable** (hors git) : une fabrication par dossier, avec ses fiches, son journal et ses traces |
 | [`archives/USINE_trajectoire_avant_assemblage_2026-10-07.md`](archives/USINE_trajectoire_avant_assemblage_2026-10-07.md) | **Historique** : l'ancienne version de ce document (phases 0-6, 9 axes, dimensions, ancienne usine) |
 | `anatomie_app.md` | **Valide** comme portrait d'une app bien formée (natures, affordance honnête, tableau de bord par acteur) |

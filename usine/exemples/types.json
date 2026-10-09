@@ -1,0 +1,55 @@
+{
+  "app": { "nom": "essai-types", "titre": "Essai des types" },
+  "acces": {
+    "actors": [
+      { "id": "gerant", "label": "gérant", "becomes": "bootstrap" },
+      { "id": "client", "label": "client", "becomes": "signup" }
+    ],
+    "entities": [
+      { "name": "Article", "label": "article", "label_plural": "articles", "nature": "catalog",
+        "public": true, "manager": ["gerant"] },
+      { "name": "Profil", "label": "profil", "label_plural": "profils", "nature": "profile", "owner": "client" },
+      { "name": "Commande", "label": "commande", "label_plural": "commandes", "feminine": true,
+        "nature": "collection", "owner": "client", "references": ["Article", "Profil"],
+        "process": {
+          "initial": "demandee",
+          "transitions": { "demandee": ["acceptee", "refusee"], "acceptee": [], "refusee": [] },
+          "initiator": "client", "decider": "gerant",
+          "labels": { "demandee": "demandée", "acceptee": "acceptée", "refusee": "refusée" }
+        } }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Article": [
+      { "nom": "nom", "libelle": "Nom", "type": "texte" },
+      { "nom": "description", "libelle": "Description", "type": "texte_long" },
+      { "nom": "stock", "libelle": "Stock", "type": "nombre" },
+      { "nom": "prix", "libelle": "Prix", "type": "montant" },
+      { "nom": "dateAjout", "libelle": "Ajouté le", "type": "date" },
+      { "nom": "livraison", "libelle": "Livraison", "type": "date_heure" },
+      { "nom": "disponible", "libelle": "Disponible", "type": "oui_non" },
+      { "nom": "contact", "libelle": "Contact", "type": "email", "obligatoire": false },
+      { "nom": "telephone", "libelle": "Téléphone", "type": "telephone", "obligatoire": false },
+      { "nom": "site", "libelle": "Site", "type": "url", "obligatoire": false },
+      { "nom": "categorie", "libelle": "Catégorie", "type": "choix", "valeurs": [
+        { "code": "outil", "libelle": "outil" }, { "code": "piece", "libelle": "pièce" },
+        { "code": "bande_dessinee", "libelle": "bande dessinée" } ] },
+      { "nom": "etoiles", "libelle": "Étoiles", "type": "choix", "valeurs": [
+        { "code": "v_1", "libelle": "1" }, { "code": "v_2", "libelle": "2" }, { "code": "v_3", "libelle": "3" } ] }
+    ],
+    "Profil": [
+      { "nom": "nom", "libelle": "Nom", "type": "texte" },
+      { "nom": "niveau", "libelle": "Niveau", "type": "choix", "valeurs": [
+        { "code": "debutant", "libelle": "débutant" }, { "code": "confirme", "libelle": "confirmé" } ] },
+      { "nom": "budget", "libelle": "Budget", "type": "montant" }
+    ],
+    "Commande": [
+      { "nom": "remarque", "libelle": "Remarque", "type": "texte_long", "obligatoire": false },
+      { "nom": "remise", "libelle": "Remise", "type": "montant", "obligatoire": false }
+    ]
+  },
+  "ecran": {
+    "Commande": { "verbe_creation": "Commander", "boutons": { "acceptee": "Accepter", "refusee": "Refuser" } }
+  }
+}

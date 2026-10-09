@@ -9,7 +9,12 @@ from ..matrice import VISITOR, Matrix
 from .modele import FicheApp, bas, construire, premier_texte
 
 ENTETE = "// FICHIER PRODUIT PAR L'USINE — ne pas modifier : il est régénéré à chaque fabrication.\n"
-AFFICHAGE = {"date": "date", "date_heure": "date", "oui_non": "oui_non"}
+AFFICHAGE = {"date": "date", "date_heure": "date_heure", "oui_non": "oui_non", "montant": "montant", "choix": "choix"}
+
+
+def _options(c) -> dict:
+    """Les valeurs d'un champ « choix » : code (base de données) → libellé (écran)."""
+    return {"options": {v.code: v.libelle for v in c.valeurs}} if c.type == "choix" else {}
 
 
 def _j(x) -> str:
@@ -27,15 +32,17 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
     if e.process:
         champs.append({"nom": "status", "libelle": "État", "type": "etat"})
     for c in f.champs:
-        champs.append({"nom": c.nom, "libelle": c.libelle, **({"type": AFFICHAGE[c.type]} if c.type in AFFICHAGE else {})})
+        champs.append({"nom": c.nom, "libelle": c.libelle, **({"type": AFFICHAGE[c.type]} if c.type in AFFICHAGE else {}),
+                       **_options(c)})
     if e.process:
-        champs.append({"nom": "createdAt", "libelle": "Créé le", "type": "date"})
+        champs.append({"nom": "createdAt", "libelle": "Créé le", "type": "date_heure"})
     n: dict = {
         "modele": bas(e.name),
         "libelle": e.label,
         "titre": f"Mon {e.label}" if e.nature == "profile" else _maj(e.label_plural),
         "champs": champs,
-        "modifiables": [{"nom": c.nom, "libelle": c.libelle, "saisie": c.type, "obligatoire": c.obligatoire} for c in f.champs],
+        "modifiables": [{"nom": c.nom, "libelle": c.libelle, "saisie": c.type, "obligatoire": c.obligatoire, **_options(c)}
+                        for c in f.champs],
     }
     if f.liens:
         roles = {a.id: a.label for a in desc.acces.actors}
@@ -52,9 +59,13 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
         n["etat"] = {"champ": "status", "initial": e.process.initial,
                      "libelles": e.process.labels or {s: s for s in f.etats},
                      "boutons": {t: boutons.get(t) or _maj(e.process.labels.get(t, t)) for t in f.etats if t in cibles}}
-    # « Emprunter » : un bouton sur chaque fiche liée pour créer, d'un clic, la fiche qui la désigne
+    # « Emprunter » : un bouton sur chaque fiche liée pour créer, d'un clic, la fiche qui la désigne —
+    # seulement si le clic suffit à la remplir : aucun champ obligatoire, et un seul lien à poser
+    # (sinon il faut un formulaire : N1.5)
     actions = []
     for autre in fiches.values():
+        if any(c.obligatoire for c in autre.champs) or len([x for x in autre.liens if not x.proprietaire]) != 1:
+            continue
         for l in autre.liens:
             if l.cible == e.name and not l.proprietaire and any(
                     c.entity == autre.nom and c.create == "yes" for c in m.cells):
@@ -102,7 +113,8 @@ def traduire_droits(desc: Description, m: Matrix) -> str:
         if e.nature == "profile":
             menu.append({"fiche": e.name, "chemin": "/profil", "libelle": f"Mon {e.label}", "action": "voir"})
             profil = {"fiche": e.name, "role": e.owner,
-                      "obligatoires": [{"nom": c.nom, "type": c.type} for c in f.champs if c.obligatoire]}
+                      "obligatoires": [{"nom": c.nom, "type": c.type, **({"defaut": c.valeurs[0].code} if c.type == "choix" else {})}
+                                       for c in f.champs if c.obligatoire]}
         else:
             menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": _maj(e.label_plural), "action": "voir"})
     return "\n".join([
@@ -114,6 +126,6 @@ def traduire_droits(desc: Description, m: Matrix) -> str:
         f"export const TITRE = {_j(desc.app.titre)};",
         f"export const MATRICE: Record<Role, Partial<Record<NomFiche, Droits>>> = {_j(matrice)};",
         f"export const MENU: {{ fiche: NomFiche; chemin: string; libelle: string; action: 'voir' }}[] = {_j(menu)};",
-        "export const PROFIL: { fiche: NomFiche; role: Role; obligatoires: { nom: string; type: string }[] } | null = "
+        "export const PROFIL: { fiche: NomFiche; role: Role; obligatoires: { nom: string; type: string; defaut?: string }[] } | null = "
         f"{_j(profil)};", "",
     ])

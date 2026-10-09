@@ -11,6 +11,8 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
+from .blocs import blocs_de
+from .blocs import controle as controle_architecture
 from .description import Description
 from .journal import Journal
 from .matrice import compute_matrix
@@ -77,11 +79,15 @@ def fabriquer(chemin_description: Path) -> Path:
     journal = Journal(run, total=10)
     print(f"Fabrication : {run.relative_to(RACINE)}\n")
 
-    with journal.etape("Lire la description") as e:
+    with journal.etape("Lire la description (et contrôler l'architecture de l'usine)") as e:
+        incomplet = controle_architecture()        # l'usine ne fabrique pas avec un catalogue de blocs incomplet
+        if incomplet:
+            raise RuntimeError("architecture de l'usine incomplète (python -m usine carte) :\n- " + "\n- ".join(incomplet))
         desc = Description.model_validate(brut)       # forme stricte (règle 3)
         (run / "01-description.json").write_text(desc.model_dump_json(indent=2), encoding="utf-8")
+        blocs = blocs_de(desc)
         e["resume"] = (f"{len(desc.acces.actors)} rôles, {len(desc.acces.entities)} fiches, "
-                       f"{sum(len(c) for c in desc.champs.values())} champs")
+                       f"{sum(len(c) for c in desc.champs.values())} champs ; {len(blocs)} blocs utilisés")
 
     with journal.etape("Calculer la matrice") as e:
         m = compute_matrix(desc.acces)
@@ -127,7 +133,9 @@ def fabriquer(chemin_description: Path) -> Path:
         _cmd(f'docker exec {CONTENEUR_BASE} psql -U temporal -d postgres -c "CREATE DATABASE {base}"', app,
              run / "logs" / "base.log")
         url = f"postgresql://temporal:temporal@localhost:5432/{base}"
-        (app / ".env.local").write_text(f"DATABASE_URL={url}\n", encoding="ascii")
+        # TZ=UTC : le serveur compte le temps comme la base. Sinon une date relue puis comparée
+        # (« la date de création ne change pas ») se décale du fuseau de la machine (trouvé en N1.1).
+        (app / ".env.local").write_text(f"DATABASE_URL={url}\nTZ=UTC\n", encoding="ascii")
         _cmd("npx zen db push --schema zenstack/schema.zmodel", app, run / "logs" / "tables.log", env={"DATABASE_URL": url})
         e["resume"] = f"base « {base} » créée (neuve : jamais de remise à zéro)"
 
@@ -160,8 +168,9 @@ def fabriquer(chemin_description: Path) -> Path:
         e["resume"] = verdicts["ecrans"]
         _cmd("npx tsx --env-file=.env.local scripts/seed.ts", app, run / "logs" / "depart-final.log")  # base propre à la livraison
 
-    rapport = {"run": run.name, "description": str(chemin_description), "verdicts": verdicts,
+    rapport = {"run": run.name, "description": str(chemin_description), "verdicts": verdicts, "blocs": blocs,
                "fini": datetime.now().isoformat(timespec="seconds")}
+    print(f"\nBlocs utilisés : {', '.join(blocs)}")
     (run / "99-rapport.json").write_text(json.dumps(rapport, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nApp fabriquée : {app.relative_to(RACINE)}")
     print(f"Pour la lancer : python -m usine demarrer {run.relative_to(RACINE)}")

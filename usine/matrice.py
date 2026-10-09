@@ -8,5 +8,5 @@ if str(_FACTORY) not in sys.path:
     sys.path.insert(0, str(_FACTORY))
 
 from agents.capability_matrix import (  # noqa: E402,F401
-    VISITOR, AccessDeclaration, Cell, Entity, Matrix, compute_matrix, derive_nav, explain, questions,
+    VISITOR, AccessDeclaration, Cell, Entity, Matrix, _norm, compute_matrix, derive_nav, explain, questions,
 )

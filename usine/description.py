@@ -4,7 +4,7 @@
 + les CHAMPS de chaque fiche (types fermés)
 + les libellés d'écran (verbe de création, boutons du circuit)
 + les données de départ (le contenu des catalogues).
-Aujourd'hui écrite à la main (N1.0) ; demain produite par les agents de compréhension (N1.1).
+Écrite par les lecteurs IA (`python -m usine comprendre`, N1.1) ou à la main (usine/exemples/).
 """
 from __future__ import annotations
 
@@ -20,10 +20,19 @@ class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-# Types de champs pris en charge. « montant » et « choix » (tables de choix) arrivent en N1.1.
-TypeChamp = Literal["texte", "texte_long", "nombre", "date", "date_heure", "oui_non", "email", "telephone", "url"]
-RESERVES = {"id", "ownerId", "userId", "status", "createdAt"}
+# Types de champs pris en charge (11 des 12 de l'étude 01 ; les « liens multiples » viendront avec
+# le traducteur complet, N1.3).
+TypeChamp = Literal["texte", "texte_long", "nombre", "montant", "date", "date_heure", "oui_non",
+                    "email", "telephone", "url", "choix"]
+RESERVES = {"id", "ownerId", "userId", "status", "createdAt", "published"}
 IDENT = re.compile(r"^[a-z][A-Za-z0-9]*$")
+CODE = re.compile(r"^[a-z][a-z0-9_]*$")
+
+
+class Valeur(_Strict):
+    """Une valeur d'un champ « choix » : un code stable (base de données) et son libellé (écran)."""
+    code: str
+    libelle: str
 
 
 class Champ(_Strict):
@@ -31,6 +40,10 @@ class Champ(_Strict):
     libelle: str
     type: TypeChamp
     obligatoire: bool = True
+    valeurs: list[Valeur] = Field(default_factory=list)      # seulement pour « choix »
+    # « brief » : cité par le brief ; « necessaire » : le brief ne cite rien, il faut au moins un nom
+    # pour reconnaître la fiche (clôture) — le miroir le montrera au client
+    origine: Literal["brief", "necessaire"] = "brief"
     citation: str = ""
 
 
@@ -70,9 +83,19 @@ class Description(_Strict):
                 if c.nom in vus:
                     errs.append(f"{fiche}.{c.nom} : en double")
                 vus.add(c.nom)
+                codes = [v.code for v in c.valeurs]
+                if c.type == "choix" and (len(codes) < 2 or len(set(codes)) != len(codes)
+                                          or not all(CODE.match(x) for x in codes)):
+                    errs.append(f"{fiche}.{c.nom} : un choix a au moins 2 valeurs, codes uniques en minuscules")
+                if c.type != "choix" and c.valeurs:
+                    errs.append(f"{fiche}.{c.nom} : des valeurs seulement pour un choix")
         for e in self.acces.entities:
             if e.nature == "child":
                 errs.append(f"{e.name} : les fiches enfants arrivent en N1.x (pas dans le squelette)")
+            # (N1.1b, trouvé par l'inventaire des blocs) la publication n'a pas encore son bloc : la règle
+            # citerait un champ « published » jamais créé — refusée franchement plutôt qu'à moitié faite
+            if e.publication:
+                errs.append(f"{e.name} : la publication (brouillon / publié) arrive en N1.3 (bloc pas encore construit)")
         for fiche in self.ecran:
             if fiche not in noms:
                 errs.append(f"ecran : fiche « {fiche} » inconnue")
@@ -82,11 +105,14 @@ class Description(_Strict):
                 continue
             connus = {c.nom for c in self.champs.get(fiche, [])}
             requis = {c.nom for c in self.champs.get(fiche, []) if c.obligatoire}
+            choix = {c.nom: {v.code for v in c.valeurs} for c in self.champs.get(fiche, []) if c.type == "choix"}
             for i, ligne in enumerate(lignes):
                 if set(ligne) - connus:
                     errs.append(f"depart.{fiche}[{i}] : champs inconnus {sorted(set(ligne) - connus)}")
                 if requis - set(ligne):
                     errs.append(f"depart.{fiche}[{i}] : champs obligatoires manquants {sorted(requis - set(ligne))}")
+                errs += [f"depart.{fiche}[{i}].{n} : « {ligne[n]} » n'est pas un code permis {sorted(codes)}"
+                         for n, codes in choix.items() if n in ligne and ligne[n] not in codes]
         if errs:
             raise ValueError("description refusée :\n- " + "\n- ".join(errs))
         return self

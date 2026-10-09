@@ -69,21 +69,29 @@ for (const [nom, fiche] of Object.entries(NOTICE) as [NomFiche, (typeof NOTICE)[
         await p1.getByRole('button', { name: action.libelle }).first().click();
         await expect(p1.getByText('demande enregistrée')).toBeVisible();
         await c1.close();
-        for (const role of connectes.filter((r) => attendu(r, nom, 'voir'))) {
+        // chaque rôle regarde la demande INTACTE (aucune décision encore prise)…
+        const ouvrir = async (role: string) => {
             const c = await browser.newContext();
             await seConnecter(c, role);
             const p = await c.newPage();
             await p.goto(`/f/${nom}`);
             await p.locator('main li a').first().click(); // la plus récente (tri par date décroissante)
+            return { c, p };
+        };
+        let decision: { role: string; libelle: string; cible: string } | undefined;
+        for (const role of connectes.filter((r) => attendu(r, nom, 'voir'))) {
+            const { c, p } = await ouvrir(role);
             await expect(p.locator('dd').filter({ hasText: etat.libelles[etat.initial] })).toBeVisible();
-            const attendus = Object.entries(etat.boutons)
-                .filter(([cible]) => attendu(role, nom, `etat:${cible}`, etat.initial)).map(([, libelle]) => libelle);
-            await expect(p.locator('main section button')).toHaveText(attendus);
-            if (attendus.length) {
-                const [cible] = Object.entries(etat.boutons).find(([, libelle]) => libelle === attendus[0])!;
-                await p.getByRole('button', { name: attendus[0] }).click();
-                await expect(p.locator('dd').filter({ hasText: etat.libelles[cible] })).toBeVisible();
-            }
+            const permis = Object.entries(etat.boutons).filter(([cible]) => attendu(role, nom, `etat:${cible}`, etat.initial));
+            await expect(p.locator('main section button')).toHaveText(permis.map(([, libelle]) => libelle));
+            if (permis.length && !decision) decision = { role, cible: permis[0][0], libelle: permis[0][1] };
+            await c.close();
+        }
+        // … puis UN rôle qui en a le droit décide, et l'état change à l'écran
+        if (decision) {
+            const { c, p } = await ouvrir(decision.role);
+            await p.getByRole('button', { name: decision.libelle }).click();
+            await expect(p.locator('dd').filter({ hasText: etat.libelles[decision.cible] })).toBeVisible();
             await c.close();
         }
     });

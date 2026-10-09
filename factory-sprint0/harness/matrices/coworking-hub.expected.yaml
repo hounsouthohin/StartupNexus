@@ -17,5 +17,5 @@ cells:
       transitions: {requested: [confirmed, refused], confirmed: [done, cancelled]}
     Invoice:
       see: all
-      transitions: {pending: [paid]}           # « marquer les factures comme payées »
+      # (8 oct 2026) « marquer les factures comme payées » : enfant à circuit, hors D1 (voir .access.yaml)
 auto_links: 1

@@ -2,10 +2,12 @@
 // typés par les types que ZenStack génère : un champ renommé dans le schéma est signalé à la
 // compilation (étude 06).
 
-export type Saisie = 'texte' | 'texte_long' | 'nombre' | 'date' | 'date_heure' | 'oui_non' | 'email' | 'telephone' | 'url';
+export type Saisie = 'texte' | 'texte_long' | 'nombre' | 'montant' | 'date' | 'date_heure' | 'oui_non'
+    | 'email' | 'telephone' | 'url' | 'choix';
 
-type Champ<T> = { nom: Extract<keyof T, string>; libelle: string; type?: 'date' | 'etat' | 'oui_non' };
-type ChampModifiable<T> = { nom: Extract<keyof T, string>; libelle: string; saisie: Saisie; obligatoire: boolean };
+// options (champ « choix ») : code enregistré → libellé affiché
+type Champ<T> = { nom: Extract<keyof T, string>; libelle: string; type?: 'date' | 'date_heure' | 'etat' | 'oui_non' | 'montant' | 'choix'; options?: Record<string, string> };
+type ChampModifiable<T> = { nom: Extract<keyof T, string>; libelle: string; saisie: Saisie; obligatoire: boolean; options?: Record<string, string> };
 export type Lien = { nom: string; affiche: string; libelle: string };
 
 export type Fiche<T = Record<string, unknown>> = {

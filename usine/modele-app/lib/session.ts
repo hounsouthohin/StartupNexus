@@ -13,9 +13,11 @@ export async function getUser(): Promise<User | null> {
 }
 
 // Valeur provisoire d'un champ obligatoire du profil, à compléter par la personne.
-function provisoire(type: string, user: User): unknown {
+function provisoire({ type, defaut }: { type: string; defaut?: string }, user: User): unknown {
+    if (defaut !== undefined) return defaut;          // un choix : sa première valeur
     if (type === 'email') return `${user.id}@exemple.invalid`;
     if (type === 'nombre') return 0;
+    if (type === 'montant') return '0';
     if (type === 'oui_non') return false;
     if (type === 'date' || type === 'date_heure') return new Date();
     return 'À compléter';
@@ -28,7 +30,7 @@ export async function ensureProfile(user: User | null) {
     const table = (dbFor(user) as any)[NOTICE[PROFIL.fiche].modele];
     if (await table.findFirst()) return;
     try {
-        await table.create({ data: Object.fromEntries(PROFIL.obligatoires.map((c) => [c.nom, provisoire(c.type, user)])) });
+        await table.create({ data: Object.fromEntries(PROFIL.obligatoires.map((c) => [c.nom, provisoire(c, user)])) });
     } catch {
         // deux requêtes simultanées : l'autre l'a créé
     }

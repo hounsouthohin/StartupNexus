@@ -1,0 +1,172 @@
+# GRILLE DE RÉFÉRENCE des champs — écrite le 8 oct 2026 AVANT tout lancement du lecteur des champs.
+# Elle ne sera pas modifiée après coup pour coller aux réponses (une correction éventuelle sera
+# datée et justifiée ici même).
+#
+# Par brief, par fiche (reconnue par des alias de son nom ou de son libellé) :
+#   attendus    : ce que le brief dit EXPLICITEMENT — doit être trouvé, avec un type permis ;
+#   acceptables : des champs non exigés mais défendables (pas comptés comme inventés) ;
+#   interdits   : ce qui n'est PAS un champ (un lien, l'état, une date automatique) — compté comme erreur.
+# Tout autre champ annoncé « cité par le brief » est compté comme INVENTÉ.
+# Un champ « nécessaire » (un nom pour reconnaître la fiche, quand le brief ne cite rien) n'est
+# jamais compté comme inventé : il sera montré au client par le miroir.
+# Les alias sont comparés au nom et au libellé du champ, sans accents ni majuscules.
+
+mediatheque:
+  brief: factory-sprint0/scripts/test_full_pipeline.json
+  # (ajouté le 8 oct, avant tout lancement du lecteur 6 : la source des fiches, pas la grille)
+  source_fiches: usine/mesures/sources/mediatheque.json
+  fiches:
+    ouvrage:
+      alias: [ouvrage, livre, book]
+      attendus:
+        - { alias: [titre, title], types: [texte] }
+        - { alias: [auteur, author], types: [texte] }
+        - { alias: [resume, summary], types: [texte_long] }
+        - { alias: [genre], types: [choix], valeurs: [roman, essai, bande dessinee, jeunesse] }
+        - { alias: [annee, year], types: [nombre] }
+      acceptables: []
+      interdits: [emprunt]
+    profil:
+      alias: [profil, adherent, member, membre]
+      attendus:
+        - { alias: [nom, name], types: [texte] }
+        - { alias: [email, mail, courriel], types: [email] }
+        - { alias: [telephone, phone, tel], types: [telephone] }
+      acceptables: [prenom]
+      interdits: [emprunt]
+    emprunt:
+      alias: [emprunt, borrowing, pret]
+      attendus: []
+      acceptables: []
+      # l'ouvrage est un lien ; la date de demande est la date de création ; l'état vient du circuit
+      interdits: [ouvrage, livre, date de demande, datedemande, etat, statut, status, adherent]
+
+union-sportive:
+  brief: factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-union-sportive
+  source_fiches: poc/comprehension/sorties/gpt-5.5/v2-passe1/appr-union-sportive.json
+  fiches:
+    adherent:
+      alias: [adherent]
+      attendus: []                       # « fiches membres » : aucun champ cité
+      acceptables: [nom, prenom]
+      interdits: [statut, actif, etat, historique, adhesion, cotisation]
+    adhesion:
+      alias: [adhesion]
+      attendus:
+        - { alias: [annee, year], types: [nombre, texte] }
+        - { alias: [cotisation, montant], types: [montant] }
+        - { alias: [validite, debut, fin], types: [date] }
+      acceptables: [validite, debut, fin, date]
+      interdits: [adherent, etat, statut]
+    participant:
+      alias: [participant]
+      attendus: []
+      acceptables: [nom, prenom]
+      interdits: [activite]
+    activite:
+      alias: [activite]
+      attendus: []
+      acceptables: [nom, intitule, titre, date, lieu, description]
+      interdits: [etat, statut]
+    inscription:
+      alias: [inscription]
+      attendus: []
+      acceptables: [homologation]
+      interdits: [participant, activite]
+    paiement:
+      alias: [paiement]
+      attendus: []
+      acceptables: [montant, date, mode]
+      interdits: [adhesion, activite, etat, statut]
+    homologation:
+      alias: [homologation]
+      attendus: []
+      acceptables: [date]
+      interdits: [participant, activite, paiement]
+
+autocars:
+  brief: factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-autocars
+  source_fiches: poc/comprehension/sorties/gpt-5.5/v2-passe1/appr-autocars.json
+  fiches:
+    client:
+      alias: [client]
+      attendus:
+        - { alias: [coordonnee, adresse, telephone, email, contact], types: [texte, texte_long, telephone, email] }
+        - { alias: [reste, du], types: [montant] }
+        - { alias: [avoir], types: [montant] }
+      acceptables: [nom, coordonnee, adresse, telephone, email, contact, regulier]
+      interdits: [course]
+    chauffeur:
+      alias: [chauffeur]
+      attendus:
+        - { alias: [couleur, color], types: [texte, choix] }
+      acceptables: [nom, prenom, amplitude]
+      interdits: [course, vehicule]
+    vehicule:
+      alias: [vehicule]
+      attendus:
+        - { alias: [couleur, color], types: [texte, choix] }
+      acceptables: [immatriculation, nom, modele]
+      interdits: [course, chauffeur]
+    course:
+      alias: [course]
+      attendus: []
+      acceptables: [date, depart, arrivee, heure, programme, pause, amplitude]
+      interdits: [client, chauffeur, vehicule]
+    facture:
+      alias: [facture]
+      attendus: []
+      acceptables: [montant, numero, date, proforma]
+      interdits: [client, course]
+
+formation:
+  brief: factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-formation
+  source_fiches: poc/comprehension/sorties/gpt-5.5/v2-passe1/appr-formation.json
+  # brief VAGUE : presque rien n'est cité ; on mesure surtout que l'IA n'invente pas
+  fiches:
+    session:
+      alias: [session]
+      attendus:
+        - { alias: [date], types: [date, date_heure] }
+      acceptables: [date, intitule, titre, nom]
+      interdits: [formateur, salle, stagiaire, entite, etat, statut]
+    entite:
+      alias: [entite]
+      attendus: []
+      acceptables: [nom]
+      interdits: [stagiaire]
+    stagiaire:
+      alias: [stagiaire]
+      attendus: []
+      acceptables: [nom, prenom, telephone]
+      interdits: [entite, session]
+    formateur:
+      alias: [formateur]
+      attendus: []
+      acceptables: [nom, prenom]
+      interdits: [session]
+    salle:
+      alias: [salle]
+      attendus: []
+      acceptables: [nom]
+      interdits: [session]
+    facture:
+      alias: [facture]
+      attendus: []
+      acceptables: [montant, numero, date]
+      interdits: [entite, session]
+    bilan:
+      alias: [bilan]
+      attendus: []
+      acceptables: [contenu, texte, date]
+      interdits: [entite, session]
+    ecriture:
+      alias: [ecriture]
+      attendus: []
+      acceptables: [montant, libelle, date]
+      interdits: [facture]
+    tache:
+      alias: [tache]
+      attendus: []
+      acceptables: [nom, intitule, libelle, date, echeance]
+      interdits: [formateur, salle, session]

@@ -158,4 +158,10 @@ const report = [
     ...results.map((r) => `- ${r.verdict} · l.${r.line} · ${r.operator} · ${r.description} — ${r.detail}`),
 ].join('\n');
 writeFileSync('../logs/preuve-regles.md', report);
+// (N1.1b) le même résultat, lisible par programme (la carte des blocs en tire le score de chaque bloc) :
+// pour chaque mutant, la règle d'origine qu'il abîme
+const lignesOrigine = original.replace(/\r\n/g, '\n').split('\n');
+writeFileSync('../preuve-regles.json', JSON.stringify(results.map((r) => ({
+    ligne: r.line, regle: lignesOrigine[r.line - 1].trim(), operateur: r.operator, description: r.description, verdict: r.verdict,
+})), null, 1));
 console.log(`\n  Tués ${killed}/${valid} (${rate} %) · survivants ${count('survivant')} · invalides ${count('invalide')} · plantages ${count('plantage')}`);

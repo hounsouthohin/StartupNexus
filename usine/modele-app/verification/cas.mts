@@ -5,9 +5,11 @@
 // Règle N1.0 (trou trouvé par mutation) : chaque sorte a aussi au moins une fiche RELIÉE À RIEN, sinon
 // « ne voir que les fiches reliées » ne se distingue pas de « tout voir ». Catalogue, registre : les liens
 // visent toujours la 1re fiche, la 2e reste libre. Profil : un 4e utilisateur qui n'a que son profil.
-import type { Case, EntitySpec, User, Users, World } from './testeur.mts';
+// Règle N1.1 (défaut réel trouvé : NULL == NULL n'est pas vrai en SQL) : les champs FACULTATIFS restent
+// vides dans les données ; le testeur (v1.2) les remplit lui-même pour l'autre moitié des essais.
+import type { Case, EntitySpec, User, Users, World } from './noyau.mts';
 
-type Champ = { nom: string; type: string; libelle: string; obligatoire?: boolean };
+type Champ = { nom: string; type: string; libelle: string; obligatoire?: boolean; valeurs?: { code: string }[] };
 type Entite = { name: string; nature: string; owner?: string | null; references?: string[]; process?: unknown };
 
 const bas = (n: string) => n[0].toLowerCase() + n.slice(1);
@@ -18,6 +20,8 @@ function valeur(c: Champ, i: number): unknown {
         case 'telephone': return `060000000${i}`;
         case 'url': return `https://exemple.invalid/${i}`;
         case 'nombre': return i;
+        case 'montant': return `${i}.50`;
+        case 'choix': return c.valeurs![i % c.valeurs!.length].code;
         case 'date': case 'date_heure': return new Date(2026, 0, 1 + i);
         case 'oui_non': return i % 2 === 0;
         default: return `${c.libelle} ${i}`;
@@ -46,7 +50,8 @@ export function construireCas(description: any, depart: any): Case {
             editField: texte?.nom,
             build: (w: World, owner: User | null) => {
                 n++;
-                const data: Record<string, unknown> = Object.fromEntries((champs[e.name] ?? []).map((c) => [c.nom, valeur(c, n)]));
+                const data: Record<string, unknown> = Object.fromEntries((champs[e.name] ?? [])
+                    .filter((c) => c.obligatoire !== false).map((c) => [c.nom, valeur(c, n)]));
                 if (e.nature === 'profile') data.userId = owner!.id;
                 if (e.nature === 'collection') data.ownerId = owner!.id;
                 for (const l of liens(e)) if (l.fk) data[l.fk] = w[`${l.cible}:${owner?.id}`] ?? w[l.cible];

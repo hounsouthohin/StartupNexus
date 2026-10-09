@@ -9,8 +9,17 @@ from ..description import Description
 from ..matrice import VISITOR, Matrix
 from .modele import FicheApp, bas, construire
 
-ZTYPE = {"texte": "String", "texte_long": "String", "nombre": "Int", "date": "DateTime",
+ZTYPE = {"texte": "String", "texte_long": "String", "nombre": "Int", "montant": "Decimal", "date": "DateTime",
          "date_heure": "DateTime", "oui_non": "Boolean", "email": "String", "telephone": "String", "url": "String"}
+
+
+def enum_choix(fiche: str, champ: str) -> str:
+    """Le type d'un champ « choix » : une énumération par champ (« BookGenre »)."""
+    return f"{fiche}{champ[0].upper()}{champ[1:]}"
+
+
+def ztype(fiche: str, c) -> str:
+    return enum_choix(fiche, c.nom) if c.type == "choix" else ZTYPE[c.type]
 
 ENTETE = """// FICHIER PRODUIT PAR L'USINE — ne pas modifier : il est régénéré à chaque fabrication.
 // Tout est REFUSÉ tant qu'une règle @@allow ne l'autorise pas.
@@ -47,6 +56,13 @@ def _ou_etats(etats: list[str]) -> str:
     return "(" + " || ".join(f"(before().status == {s} && status == {s})" for s in etats) + ")"
 
 
+def _inchange(nom: str, facultatif: bool) -> str:
+    """« ce champ ne bouge pas ». Un champ facultatif peut être vide (NULL) : en SQL, NULL == NULL n'est
+    pas vrai, la règle refuserait donc toute étape (trouvé par l'app d'essai des types, N1.1)."""
+    egal = f"{nom} == before().{nom}"
+    return f"({egal} || ({nom} == null && before().{nom} == null))" if facultatif else egal
+
+
 def _portee(f: FicheApp, see: str) -> str:
     """Restriction de portée : « les siennes » → la fiche porte l'identifiant de l'utilisateur."""
     return f"{f.proprio} == auth().id" if see == "own" and f.proprio else ""
@@ -54,7 +70,7 @@ def _portee(f: FicheApp, see: str) -> str:
 
 def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
     e, out = f.e, []
-    autres = [c.nom for c in f.champs] + [l.fk for l in f.liens if not l.proprietaire]
+    autres = [(c.nom, not c.obligatoire) for c in f.champs] + [(l.fk, False) for l in f.liens if not l.proprietaire]
     for c in (c for c in m.cells if c.entity == e.name):
         a = c.actor
         qui = "true" if a == VISITOR else _role(a)          # rôles LISTÉS, jamais « tout connecté » (E4)
@@ -95,7 +111,7 @@ def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
             out.append(f"@@allow('post-update', {_et(qui, _ou_etats(etats))})")
         for depart, cibles in c.transitions.items():         # une règle par flèche ; rien d'autre ne bouge
             arrivee = "(" + " || ".join(f"status == {t}" for t in cibles) + ")"
-            inchanges = [f"{n} == before().{n}" for n in autres]
+            inchanges = [_inchange(n, facultatif) for n, facultatif in autres]
             out.append(f"@@allow('post-update', {_et(qui, f'before().status == {depart}', arrivee, *inchanges)})")
         # ── supprimer (jamais par défaut : seulement si la matrice l'accorde) ──
         if c.delete:
@@ -105,6 +121,8 @@ def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
             out.append(f"@@allow('delete', {_et(*cond)})")
     if f.proprio:                                            # le propriétaire ne change jamais
         out.append(f"@@deny('post-update', {f.proprio} != before().{f.proprio})")
+    # la date de création non plus (antidater une demande ; trouvé par le testeur v1.2, N1.1)
+    out.append("@@deny('post-update', createdAt != before().createdAt)")
     return list(dict.fromkeys(out))
 
 
@@ -122,7 +140,7 @@ def modele(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> str:
             lignes.append(f"    {l.fk} String")
         lignes.append(f"    {l.nom} {l.cible} @relation(fields: [{l.fk}], references: [{l.ref}])")
     for c in f.champs:
-        lignes.append(f"    {c.nom} {ZTYPE[c.type]}{'' if c.obligatoire else '?'}")
+        lignes.append(f"    {c.nom} {ztype(e.name, c)}{'' if c.obligatoire else '?'}")
     if e.process:
         lignes.append(f"    status {e.name}Status @default({e.process.initial})")
     lignes.append("    createdAt DateTime @default(now())")
@@ -140,5 +158,8 @@ def traduire_schema(desc: Description, m: Matrix) -> str:
     for f in fiches.values():
         if f.etats:
             blocs.append(f"enum {f.nom}Status {{\n" + "\n".join(f"    {s}" for s in f.etats) + "\n}")
+        for c in f.champs:
+            if c.type == "choix":
+                blocs.append(f"enum {enum_choix(f.nom, c.nom)} {{\n" + "\n".join(f"    {v.code}" for v in c.valeurs) + "\n}")
     blocs += [modele(f, m, fiches) for f in fiches.values()]
     return "\n\n".join(blocs) + "\n"

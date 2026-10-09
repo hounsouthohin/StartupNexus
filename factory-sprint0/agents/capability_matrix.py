@@ -237,6 +237,17 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
             err(f"exception : entité « {x.entity} » inconnue")
         if not x.citation.strip():
             err(f"exception {x.actor}/{x.entity}/{x.action} sans citation du brief")
+        # (N1.1) une exception ne cite que des états qui existent dans le circuit de l'entité : un
+        # libellé (« demandé ») à la place du code (« demande ») donnait des règles invalides
+        ent = entities.get(x.entity)
+        if ent is not None:
+            p = ent.process
+            etats = (set(p.transitions) | {t for ts in p.transitions.values() for t in ts}) if p else set()
+            cites = set(x.while_states) | set(x.transitions) | {t for ts in x.transitions.values() for t in ts}
+            inconnus = sorted(cites - etats)
+            if inconnus:
+                err(f"exception {x.actor}/{x.entity}/{x.action} : état(s) {inconnus} absent(s) du circuit"
+                    + (f" (états connus : {sorted(etats)})" if etats else " (cette entité n'a pas de circuit)"))
     if brief is not None:
         nb = _norm(brief)
         cited = [(f"acteur {a.id}", a.citation) for a in decl.actors]

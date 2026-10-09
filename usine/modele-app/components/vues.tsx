@@ -8,9 +8,14 @@ type Ligne = Record<string, unknown> & { id: string };
 export function valeur(fiche: Fiche, ligne: Ligne, nom: string, type?: string): string {
     const v = ligne[nom];
     if (v == null || v === '') return '—';
-    if (type === 'date') return new Date(String(v)).toLocaleString('fr-FR');
+    // une DATE est un jour, enregistré à minuit UTC : on l'affiche en UTC, sinon elle recule d'un jour
+    // à l'ouest de Greenwich ; une DATE ET HEURE est un instant : on l'affiche à l'heure de la personne
+    if (type === 'date') return new Date(String(v)).toLocaleDateString('fr-FR', { timeZone: 'UTC' });
+    if (type === 'date_heure') return new Date(String(v)).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
     if (type === 'etat') return fiche.etat?.libelles[String(v)] ?? String(v);
     if (type === 'oui_non') return v ? 'oui' : 'non';
+    if (type === 'montant') return Number(String(v)).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (type === 'choix') return fiche.champs.find((c) => c.nom === nom)?.options?.[String(v)] ?? String(v);
     return String(v);
 }
 
@@ -71,8 +76,9 @@ export function Bouton(props: { onClick: () => void; children: React.ReactNode; 
     );
 }
 
-const ENTREE: Record<Saisie, string> = { texte: 'text', texte_long: 'text', nombre: 'number', date: 'date',
-    date_heure: 'datetime-local', oui_non: 'checkbox', email: 'email', telephone: 'tel', url: 'url' };
+const ENTREE: Record<Saisie, string> = { texte: 'text', texte_long: 'text', nombre: 'number', montant: 'number',
+    date: 'date', date_heure: 'datetime-local', oui_non: 'checkbox', email: 'email', telephone: 'tel', url: 'url',
+    choix: 'text' };
 
 // Convertit la saisie du navigateur dans le type attendu par le schéma.
 function lire(saisie: Saisie, brut: FormDataEntryValue | null, obligatoire: boolean): unknown {
@@ -80,8 +86,21 @@ function lire(saisie: Saisie, brut: FormDataEntryValue | null, obligatoire: bool
     const s = typeof brut === 'string' ? brut.trim() : '';
     if (!s) return obligatoire ? '' : null;
     if (saisie === 'nombre') return Number(s);
+    if (saisie === 'montant') return s;          // texte décimal : pas d'arrondi en virgule flottante
     if (saisie === 'date' || saisie === 'date_heure') return new Date(s);
     return s;
+}
+
+// La valeur enregistrée, dans le format qu'attend le champ de saisie du navigateur.
+function enSaisie(saisie: Saisie, v: unknown): string {
+    if (v == null) return '';
+    if (saisie === 'date') return new Date(String(v)).toISOString().slice(0, 10);   // le jour, en UTC (comme enregistré)
+    if (saisie === 'date_heure') {                                                   // l'instant, à l'heure locale
+        const d = new Date(String(v));
+        const z = (n: number) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`;
+    }
+    return String(v);
 }
 
 export function Formulaire(props: {
@@ -99,12 +118,18 @@ export function Formulaire(props: {
                 <label key={c.nom} className="block text-sm">
                     <span className="text-slate-500">{c.libelle}{c.obligatoire ? '' : ' (facultatif)'}</span>
                     {c.saisie === 'texte_long' ? (
-                        <textarea name={c.nom} defaultValue={String(ligne[c.nom] ?? '')} className="mt-1 block w-full rounded border p-2" />
+                        <textarea name={c.nom} defaultValue={enSaisie(c.saisie, ligne[c.nom])} className="mt-1 block w-full rounded border p-2" />
                     ) : c.saisie === 'oui_non' ? (
                         <input type="checkbox" name={c.nom} defaultChecked={!!ligne[c.nom]} className="ml-2" />
+                    ) : c.saisie === 'choix' ? (
+                        <select name={c.nom} required={c.obligatoire} defaultValue={enSaisie(c.saisie, ligne[c.nom])}
+                            className="mt-1 block w-full rounded border p-2">
+                            {!c.obligatoire && <option value="">—</option>}
+                            {Object.entries(c.options ?? {}).map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
+                        </select>
                     ) : (
-                        <input name={c.nom} type={ENTREE[c.saisie]} required={c.obligatoire}
-                            defaultValue={String(ligne[c.nom] ?? '')} className="mt-1 block w-full rounded border p-2" />
+                        <input name={c.nom} type={ENTREE[c.saisie]} required={c.obligatoire} step={c.saisie === 'montant' ? '0.01' : undefined}
+                            defaultValue={enSaisie(c.saisie, ligne[c.nom])} className="mt-1 block w-full rounded border p-2" />
                     )}
                 </label>
             ))}
