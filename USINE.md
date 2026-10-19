@@ -12,6 +12,125 @@
 
 ---
 
+## 0. Le cap — *proposé le 19 oct 2026, À VALIDER avec l'utilisateur au début de la prochaine session*
+
+> Écrit à la demande de l'utilisateur après une discussion où il a constaté que je mettais mes efforts au
+> mauvais endroit : je perfectionnais la gestion (le miroir, ses preuves) au lieu d'élargir ce que l'usine
+> sait fabriquer. Ce chapitre ne remplace rien tant qu'il n'est pas validé ; une fois validé, il devient la
+> vision de référence et les §1 et §6 seront réécrits pour s'y conformer.
+
+### 0.1 Le but, dit simplement
+
+Une usine qui fabrique, à partir d'une **demande écrite**, des **applications demandées tous les jours** :
+des logiciels de gestion et SaaS métier, mais aussi des apps plus riches — **tableaux de bord, réservation
+avec calendrier, commerce en ligne** — dans un **périmètre de familles d'apps apprises une à une**, et
+**rien en dehors**. Trois qualités, dans cet ordre : **juste** (le cœur de chaque app est prouvé), **rapide**
+(une app sophistiquée s'assemble à partir de modules déjà écrits, sans code nouveau), puis **belle** (le
+design viendra plus tard). Le but commercial reste un SaaS (§1 et phases du modèle accompagné, §8).
+
+### 0.2 Pourquoi l'ancienne usine a échoué, et la règle qui en sort
+
+L'ancienne factory demandait à l'IA d'**écrire le code** des apps : erreurs de compilation, gardes-fous
+empilés, 0 vrai brief sur 5 qui fonctionnait. Les lecteurs de la nouvelle usine réussissent (périmètre
+juste 32/33 sur le corpus) parce que l'IA n'y écrit que des **données typées**, contrôlées par programme.
+**Règle du cap : l'IA ne produit jamais de code. Elle produit des déclarations** (choix parmi des options
+connues, liaisons, paramètres, formules dans un petit langage, textes) **que des modules écrits une fois par
+nous consomment, et que des programmes vérifient.** L'IA ne fabrique jamais une partie que l'usine n'a pas
+apprise : hors du périmètre appris, l'usine dit honnêtement « pas encore » (comme le miroir le fait déjà).
+
+### 0.3 Les familles d'apps (le périmètre)
+
+Une famille = un type d'app très demandé, appris comme on a appris la gestion. Une vraie app combine une
+famille principale et des modules des autres (une boutique a aussi un tableau de bord et une gestion des
+commandes). Le cœur commun à toutes — données, rôles, droits, étapes — est celui de la gestion, déjà
+construit et prouvé : **le travail fait sur la gestion est la fondation de toutes les familles.**
+
+| Famille | Ce qu'il faut comprendre dans un brief | Modules à construire (une fois) | Exemples |
+|---|---|---|---|
+| **Gestion / SaaS métier** | rôles, fiches, qui voit et fait quoi, étapes | fiches, lignes, circuits, droits, profils (✔ faits) ; à finir : saisie pour autrui, « celles qui le désignent », invitations | dossiers, interventions, RH, atelier |
+| **Pilotage** | les chiffres que le client veut suivre, par qui, sur quelle période | indicateurs (compter, sommer, moyenner, sur une période, par catégorie), graphiques, filtres, recherche | suivi d'activité, de stock, de chiffre d'affaires |
+| **Réservation** | ce qu'on réserve, les créneaux, les capacités, qui réserve pour qui, les règles (annulation, délais) | ressources, créneaux et disponibilités, calendrier, réservation avec capacité, liste d'attente, rappels | salle de sport, rendez-vous, location de matériel |
+| **Commerce** | ce qu'on vend, les prix, les variantes, le stock, le parcours d'achat | catalogue public, panier, commande, paiement, stock, comptes clients, suivi de commande | boutique en ligne, vente de services, billetterie simple |
+
+Plus tard, si la demande le justifie : portail client / espace membre, annuaire ou vitrine de contenu.
+Restent hors périmètre : places de marché multi-vendeurs, réseaux sociaux et messageries, applications
+mobiles natives, apps dont la valeur est un algorithme unique (le paramédical du corpus).
+
+### 0.4 Les trois places de l'IA — toutes DANS le périmètre appris
+
+1. **Comprendre** (en amont, existe pour la gestion) : les lecteurs, le critique, le miroir — étendus à
+   chaque famille (nouvelles questions, nouveaux contrôles, nouvelles phrases du miroir).
+2. **Monter** (au milieu, à construire) : un « monteur » IA choisit les modules de la famille et les
+   **raccorde** à la description — quelle fiche est « le produit », quel champ est « le prix », quelle fiche
+   est « la ressource réservable », quels indicateurs mettre au tableau de bord. Il choisit parmi des
+   options connues, et sa réponse est contrôlée par programme comme celle d'un lecteur (identifiants
+   existants, types compatibles, citations du brief).
+3. **Déclarer ce qui serait pénible à coder** (dans les modules) : une formule (prix TTC = prix HT × (1 + TVA)),
+   une règle (une réservation s'annule jusqu'à 24 h avant), un indicateur (« chiffre d'affaires du mois par
+   catégorie »), un filtre, des textes (e-mails, accueil). Écrits dans un **petit langage limité** que
+   l'usine traduit elle-même en code et teste par des exemples — jamais du code libre. (Idée déjà essayée
+   avec succès dans l'ancienne usine pour les indicateurs : `KPIDeclaration`, compilée en expression exacte.)
+4. Plus tard : **le design**, un thème choisi par l'IA dans un cadre vérifié (l'agent de design de juin
+   2026 dérivait parce qu'il n'avait pas de cadre).
+
+### 0.5 Comment on construit une famille (la méthode qui a marché pour la gestion)
+
+1. **Corpus** : 15 à 30 vrais briefs de la famille (codeur.com, etc.), avec la bonne réponse écrite AVANT.
+2. **Anatomie** : ce qu'est une bonne app de cette famille (comme `anatomie_app.md` pour la gestion).
+3. **Vocabulaire** : les nouveaux contenants de la description (loi du contenant, §2) — sans contenant,
+   une intention comprise s'évapore.
+4. **Compréhension** : lecteurs étendus, contrôles, mesure sur le corpus (seuil écrit d'avance).
+5. **Modules** : écrits à la main UNE fois, chacun avec sa part de juge et sa preuve par sabotage.
+6. **Monteur et petit langage** : l'IA raccorde et déclare ; programmes de contrôle et de compilation.
+7. **Fabrication du corpus**, registre des défauts, convergence, puis essai à la main et examen.
+
+Une famille est **apprise** quand : la compréhension atteint son seuil sur le corpus, la majorité des
+briefs donnent une app complète et jugée sans défaut, la convergence des défauts baisse, et l'utilisateur
+a essayé des apps à la main.
+
+### 0.6 Ce qu'il faudra construire techniquement (à détailler famille par famille)
+
+- La **description** gagne des contenants par famille (indicateurs, ressources réservables, catalogue de
+  vente…), validés par le même contrôle strict qu'aujourd'hui.
+- Le **catalogue des blocs** (`usine/blocs/`) devient un catalogue de **modules** : chacun = des pièces de
+  données (modèle ZenStack), des pièces d'écran (squelette Next.js), ses règles, ses tests.
+- Le **monteur** produit un **plan de montage typé** (modules, liaisons, paramètres) ; l'assembleur
+  l'exécute ; les juges le vérifient.
+- Un **compilateur des petits langages** (formules, règles, indicateurs, filtres) → code sûr, testé par
+  exemples.
+- Les **juges** s'étendent : testeur des règles par rôle (existe), tests d'écran par module, tests des
+  formules par exemples, preuve par sabotage de chaque module.
+
+### 0.7 Les deux étapes de la startup (vision de l'utilisateur)
+
+- **Étape cachée** (maintenant) : l'usine fonctionne par commandes ; nous seuls savons la lancer. But :
+  couvrir les 4 familles, avec des apps justes et fonctionnelles.
+- **Étape vivante** (ensuite) : l'usine devient automatique et visible — les agents visuels, la
+  fabrication montrée au client, le design. (La note « jumeau numérique » du 14 oct est une piste pour
+  cette étape, mise de côté.)
+
+### 0.8 Ordre proposé et ce qu'on met en pause
+
+- **Ordre proposé : Pilotage → Réservation → Commerce** — chaque famille s'appuie sur la précédente
+  (le pilotage réutilise directement les données de la gestion et était demandé par 18 briefs sur 32 ; le
+  commerce a besoin du catalogue, du stock, des commandes et du tableau de bord). **L'utilisateur peut
+  préférer commencer par le Commerce** : à trancher.
+- **Avant de commencer** : finir les 3 petites corrections du test « vous jouez le client » (question des
+  noms incompréhensible ; le lecteur 6 doit annoncer ses hypothèses de domaine ; le lecteur 5 doit écrire
+  le hors stock en mots simples).
+- **En pause** : page du miroir (N1.4d — l'étape cachée n'en a pas besoin), compléments en texte libre
+  (N1.4e), PDF, design. **Reste dans la famille Gestion à finir** : saisie pour autrui (8 briefs sur 32).
+
+### 0.9 Questions à trancher à la reprise
+
+1. Ce cap est-il le bon ? Les 4 familles et leurs noms ?
+2. L'ordre des familles : Pilotage d'abord, ou Commerce d'abord ?
+3. Jusqu'où va chaque famille (le commerce inclut-il un vrai paiement en ligne dès le début ?)
+4. L'IA du produit : tout passe aujourd'hui par la session Claude isolée (pas de crédit gpt-5) ; il faudra
+   une IA payée à l'usage pour vendre — quand et laquelle ?
+
+---
+
 ## 1. Ce qu'on construit
 
 Une **usine d'assemblage de logiciels de gestion** pour de petites structures (cabinet, atelier,
@@ -596,6 +715,7 @@ attendus ; ils doivent rester généraux, puis décroître.
 | 9 oct 2026 | **L'utilisateur essaie chaque app à la main** et rend des retours d'utilisateur (au lieu de captures d'écran) : guide `usine/ESSAIS.md`, liste `a-tester.md` par répétition, deux personnes par rôle sur l'accueil (pour vérifier la séparation), `demarrer --depart` | un vrai usage dit plus qu'une image |
 | 12 oct 2026 | **Pause et plan de convergence** (l'utilisateur constate qu'on ne converge pas) : gel des nouveaux blocs ; finir la correction en cours ; **test de stabilité** (16 apps + 3 exemples refabriqués deux fois sans changer le code : 0 défaut nouveau attendu) ; recherche à la racine de la famille « une décision à deux endroits » (n° 35, enfants) ; essais à la main par l'utilisateur ; puis seulement le corpus | les défauts par app ne baissaient plus : on ajoutait du neuf pendant qu'on mesurait l'ancien |
 | 12 oct 2026 | **Les lectures de développement passent à une session Claude (Opus 5.5) isolée** au lieu de gpt-5.5 (crédit épuisé) : dossier vide hors du projet, « boîte aux lettres » (l'usine écrit exactement ce que gpt recevait, mêmes contrôles), lectures étiquetées ; **d'abord mesurée sur les 19 briefs déjà lus par gpt** (0 $) ; le miroir (N1.4) reste ce qui rend la compréhension juste dans le produit ; le produit aura une IA par API (fournisseur à choisir sur mesure) ; chaque réglage touchant l'IA dira au registre s'il « serait encore juste avec une IA parfaite » | l'usine ne dépend d'aucune IA ; seule compte une IA forte, mesurée |
+| 19 oct 2026 | **N1.4c fait : la porte** (`usine/miroir/porte.py`) : `python -m usine.miroir valider <lecture> --client … [--concepteur …]` écrit `description-validee.json` + `validation.json` (qui, quand, empreintes de la description et des réponses) ; `fabriquer` refuse toute description non validée, modifiée d'un caractère, ou dont les réponses ont changé (une réponse après validation l'annule). Règles validées par l'utilisateur : validation refusée tant qu'un refus n'a pas sa proposition acceptée ou qu'une question sur les DROITS n'a pas de réponse ; les essais de l'usine passent par `--essai`, marqués « essai — non validée par un client » (répétitions, corpus, exemples). **Preuves** : `python -m usine.miroir.preuve_porte` (non validée refusée ; validation refusée puis acceptée après réponses ; caractère modifié refusé ; réponse après validation → annulée ; 0 échec) ; app validée fabriquée (maintenance 170/170, 38 écrans) ; répétition en essai (salle de sport 70/70, 18 écrans, marquée) ; exemple sans `--essai` → PORTE FERMÉE | aucune app de client ne se fabrique sans son accord |
 | 19 oct 2026 | **N1.4b fait : les réponses par clics** (`usine/miroir/reponses.py`, `python -m usine.miroir repondre <lecture> id=valeur …`) : chaque réponse = une opération écrite d'avance (garder un champ proposé, renommer, « non » à une question de droit, visiteur, « il doit voir TOUS les … », accepter la proposition) ; description à jour = lecture + `reponses.json` (la lecture ne change jamais) ; effet vérifié sur ce qui sera construit, sinon rien n'est appliqué et la raison est dite ; « ce qui a changé » ; règle validée : une réponse EXPLICITE du client peut donner un droit (notée qui/quand). Les questions sont essayées d'avance : une question sans vrai choix devient un fait expliqué (69 « registre vu en entier » sur 119 n'avaient pas de « non » possible). Les fonctions des questions du calculateur deviennent structurées (`questions_detail`), le client simulé passe par le même ajout de champ. **Preuve** (`python -m usine.miroir.preuve_reponses`) : 67 lectures, 1 700+ réponses rejouées une à une — jamais en silence, effet voulu et rien d'autre (seuls les droits de l'acteur visé changent), miroir toujours complet, « garder tout » = client simulé 67/67 ; 0 défaut. La preuve a attrapé 5 défauts de mon code avant usage (dont « non » au visiteur qui retirait aussi la vue d'autres rôles) | contenu juste et réponses sûres avant la porte (N1.4c) et la page (N1.4d) |
 | 18 oct 2026 | **Place A ADOPTÉE : le critique IA** — vérification indépendante des 10 signalements tirés au hasard (une nouvelle conversation claude.ai, consignes neutres, fichier `runs/essai-critique/a-juger-par-claude.md`) : **9/10 justes** (exigé 7) ; le seul désaccord (n° 10, clôtures : « exagéré, seul le planning manque ») était classé juste par moi → mon classement 63/64 était indulgent, justesse estimée ≈ 90 %. Limite : le juge est aussi un Claude (second avis, pas une vérification humaine). Suite : le critique entre dans la compréhension, ses signalements au volet concepteur du miroir ; d'abord corriger les variantes proposées au client | les 4 critères écrits d'avance sont tenus |
 | 18 oct 2026 | **Essai A (critique IA de la compréhension), résultats** — session Claude isolée (Opus, 0 $), 32 lectures du corpus, critères écrits d'avance : (1) paramédical signalé « cœur non construit », bloquant : **oui** ; (2) briefs limite : **3/3** ; (4) bruit : **2,3 signalements par brief** (≤ 3) ; (3) justesse des 64 bloquants ou importants : **63/64 selon mon classement** (1 faux : « utilisable par un novice », non actionnable), 4 affirmations graves vérifiées dans les miroirs, **10 à vérifier par l'utilisateur** (n° 1, 9, 10, 16, 41, 42, 46, 48, 60, 64 de `runs/essai-critique/a-classer.md`). **Découverte majeure** : la plupart des contradictions graves viennent des VARIANTES que le miroir propose « à la place » (N1.4a) — retirer « saisie pour autrui » fait saisir le propriétaire lui-même (l'étudiant crée ses notes et diplômes, l'employé ses soldes de congés), retirer « voir les siennes » rend la direction aveugle : une variante peut DONNER des droits que le brief refuse → à corriger avant de montrer le miroir à un client. Défauts du miroir vus au passage : raisons de refus montrées brutes (codes, messages techniques), « affichées dans les  qu'il consulte » (libellé vide) | adoption de la place A en attente de la vérification de l'utilisateur |

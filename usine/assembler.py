@@ -102,11 +102,18 @@ def alleger(app: Path) -> None:
                 break
 
 
-def fabriquer(chemin_description: Path, garder_dependances: bool = False) -> Path:
+def fabriquer(chemin_description: Path, garder_dependances: bool = False, essai: bool = False) -> Path:
+    """(N1.4c) LA PORTE : sans validation du client (usine/miroir/porte.py), rien ne se fabrique — sauf un essai de
+    l'usine, explicite et marqué comme tel (répétitions, corpus, exemples)."""
+    from .miroir.porte import ESSAI, verifier
+    validation = None if essai else verifier(Path(chemin_description))
     brut = json.loads(chemin_description.read_text(encoding="utf-8"))
     nom = brut.get("app", {}).get("nom", "app")
     run = RUNS / f"{datetime.now():%Y%m%d-%H%M%S}-{nom}"
     (run / "logs").mkdir(parents=True)
+    (run / "validation.json").write_text(json.dumps(validation or {"statut": ESSAI}, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"Validée par {validation['client']} (avec {validation['concepteur']}) le {validation['quand']}" if validation
+          else f"⚠ {ESSAI.upper()}")
     try:
         return _fabriquer(chemin_description, brut, run)
     finally:   # une app livrée pèse ~120 Mo : `python -m usine demarrer` réinstalle ses dépendances au besoin

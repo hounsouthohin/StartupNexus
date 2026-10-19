@@ -2,7 +2,8 @@
 
     python -m usine comprendre <brief.txt | briefs.json#projet> --nom <nom> [--modele gpt-5.5] [--plafond 0.20]
     python -m usine carte [--sans-ouvrir]
-    python -m usine fabriquer usine/exemples/mediatheque.json
+    python -m usine fabriquer runs/<n°>-<nom>-comprendre/description-validee.json   (validée par le client, N1.4c)
+    python -m usine fabriquer usine/exemples/mediatheque.json --essai             (essai de l'usine, marqué)
     python -m usine demarrer runs/<n°> [--port 3300] [--depart]
 """
 from __future__ import annotations
@@ -26,8 +27,9 @@ def main() -> int:
     c.add_argument("--reprendre", type=Path, help="dossier …-comprendre précédent : ses réponses encore valides sont réutilisées")
     k = sub.add_parser("carte", help="la carte des blocs de l'usine (contrôle d'architecture + page visuelle)")
     k.add_argument("--sans-ouvrir", action="store_true")
-    f = sub.add_parser("fabriquer", help="description → app qui tourne")
+    f = sub.add_parser("fabriquer", help="description validée par le client → app qui tourne")
     f.add_argument("description", type=Path)
+    f.add_argument("--essai", action="store_true", help="essai de l'usine, sans client (marqué « non validée par un client »)")
     d = sub.add_parser("demarrer", help="lancer une app fabriquée")
     d.add_argument("run", type=Path)
     d.add_argument("--port", type=int, default=3300)
@@ -50,8 +52,12 @@ def main() -> int:
         return 0
     if args.commande == "fabriquer":
         from .assembler import fabriquer
+        from .miroir.porte import PorteFermee
         try:
-            fabriquer(args.description)
+            fabriquer(args.description, essai=args.essai)
+        except PorteFermee as x:
+            print(f"PORTE FERMÉE : {x}")
+            return 1
         except Exception:
             print("\nFabrication interrompue (voir le journal ci-dessus et runs/<n°>/logs/).")
             return 1

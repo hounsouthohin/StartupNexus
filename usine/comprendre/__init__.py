@@ -268,4 +268,5 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
         ecrire_miroir(run, {**miroir, "critique": critique.model_dump()})
     if desc is None:
         return fin("DESCRIPTION REFUSÉE : " + rapport["description_refusee"].splitlines()[1 if "\n" in rapport["description_refusee"] else 0])
-    return fin("DESCRIPTION PRÊTE : python -m usine fabriquer " + str((run / "description.json").relative_to(RACINE)))
+    return fin("DESCRIPTION PRÊTE : miroir à lire avec le client puis à valider — python -m usine.miroir valider "
+               + str(run.relative_to(RACINE)) + ' --client "…"')

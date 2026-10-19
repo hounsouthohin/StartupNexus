@@ -67,7 +67,7 @@ def essayer(nom: str, brut: dict, dossier: Path) -> dict:
     chemin.write_text(json.dumps(brut, ensure_ascii=False, indent=2), encoding="utf-8")
     debut = datetime.now()
     try:
-        run = fabriquer(chemin)
+        run = fabriquer(chemin, essai=True)      # (N1.4c) essai de l'usine, sans client : marqué, la porte ne s'applique pas
     except Exception as x:   # l'étape qui échoue est dans le journal de fabrication
         runs = sorted((p for p in RUNS.glob(f"*-{brut['app']['nom']}") if p.stat().st_mtime >= debut.timestamp() - 1),
                       key=lambda p: p.stat().st_mtime)
@@ -168,6 +168,7 @@ def a_tester(dossier: Path) -> Path:
     """La liste des apps à essayer à la main (guide : usine/ESSAIS.md), une ligne par app fabriquée."""
     tableau = json.loads((dossier / "repetition.json").read_text(encoding="utf-8"))
     lignes = [f"# Apps à essayer — {dossier.name}", "", "Mode d'emploi et fiche de retour : `usine/ESSAIS.md`.", "",
+              "**Apps d'ESSAI — non validées par un client** (N1.4c : la porte ne s'applique qu'aux apps des clients).", "",
               "| Brief | App | Juges de l'usine | Lancer | Lire avant (brief, miroir) |", "|---|---|---|---|---|"]
     for l in tableau:
         comp = f"runs/{l['comprehension']}"

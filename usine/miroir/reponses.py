@@ -214,4 +214,6 @@ def ajouter(run: Path, nouvelles: dict[str, str], qui: str) -> list[dict]:
     quand = datetime.now().isoformat(timespec="seconds")
     rs += [{"id": k, "valeur": v, "qui": qui, "quand": quand} for k, v in nouvelles.items()]
     (run / "reponses.json").write_text(json.dumps(rs, ensure_ascii=False, indent=1), encoding="utf-8")
+    from .porte import annuler                    # (N1.4c) une réponse après la validation l'annule
+    annuler(run, "nouvelle(s) réponse(s) : " + ", ".join(nouvelles))
     return rs

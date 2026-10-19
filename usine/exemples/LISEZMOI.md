@@ -1,7 +1,7 @@
 # Les exemples de l'usine
 
 Des descriptions d'app qui servent de **preuves rejouables** : chacune se fabrique avec
-`python -m usine fabriquer usine/exemples/<nom>.json`, et ses juges peuvent être re-prouvés par
+`python -m usine fabriquer usine/exemples/<nom>.json --essai` (essai de l'usine, sans client : N1.4c), et ses juges peuvent être re-prouvés par
 sabotage (`usine/preuve_regles.mts`, `usine/preuve_ecrans.py`).
 
 | Fichier | Origine | Ce qu'il prouve |

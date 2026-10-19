@@ -20,6 +20,22 @@ def etat(mi: dict) -> str:
             + (", refus + variante" if mi["refus"] and not mi["refus"]["rien_ne_se_construit"] else ", refus (rien ne se construit)" if mi["refus"] else ""))
 
 
+if sys.argv[1:2] == ["valider"]:      # (N1.4c) python -m usine.miroir valider <lecture> --client "…" [--concepteur "…"]
+    import argparse
+    from .porte import valider
+    a = argparse.ArgumentParser(prog="usine.miroir valider")
+    a.add_argument("lecture", type=Path)
+    a.add_argument("--client", required=True)
+    a.add_argument("--concepteur", default="concepteur")
+    args = a.parse_args(sys.argv[2:])
+    raisons = valider(args.lecture, args.client, args.concepteur)
+    if raisons:
+        print("VALIDATION REFUSÉE :", *raisons, sep="\n  - ")
+        sys.exit(1)
+    print(f"VALIDÉE par {args.client} (avec {args.concepteur}) — à fabriquer :\n"
+          f"  python -m usine fabriquer {args.lecture / 'description-validee.json'}")
+    sys.exit(0)
+
 if sys.argv[1:2] == ["repondre"]:
     run = Path(sys.argv[2])
     nouvelles = dict(a.split("=", 1) for a in sys.argv[3:])
