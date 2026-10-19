@@ -2,7 +2,7 @@
 // création, jamais la fiche d'un autre quand on ne voit que les siennes, l'ancienne fiche après un
 // changement de rôle, et jamais le propriétaire.
 import {
-    cellOf, freshText, kase, modelDef, ownerRole, raw, record, setState, statesOf, target, tryUpdate, userOf, world,
+    as, cellOf, foreignKeys, freshText, kase, modelDef, ownerRole, raw, record, setState, statesOf, target, tryUpdate, userOf, world,
     type Bloc,
 } from '../noyau.mts';
 
@@ -35,6 +35,43 @@ export const modifier: Bloc = {
                 if (s !== undefined) await setState(entity, t.id, s);
                 record(actor, entity, `modifier : sa date de création`, false,
                     await tryUpdate(u, entity, t.id, { createdAt: new Date(Date.UTC(2020, 0, 1)) }));
+                if (s !== undefined) await setState(entity, t.id, t[spec.stateField!]);
+            }
+        }
+        // v1.4 (changement 8) : clôture et cohérence À LA MODIFICATION — changer un lien, c'est désigner
+        // une autre fiche : seulement une qu'on voit, et du même propriétaire ; re-désigner une fiche
+        // visible reste permis (la règle ne doit pas bloquer trop)
+        {
+            const s = states.length && spec.stateField ? states.find((x) => edit(x)) : undefined;
+            if (s !== undefined || (!states.length && edit())) {
+                if (s !== undefined) await setState(entity, t.id, s);
+                for (const { fk, target: tg, ref } of foreignKeys(entity)) {
+                    // qui ne voit la fiche visée qu'AU TRAVERS d'autres fiches ne re-désigne pas ce lien (la
+                    // fiche deviendrait visible grâce au lien même qu'il pose — trou trouvé par la v1.4)
+                    if ((cellOf(actor, tg).see ?? 'none') === 'none') {
+                        const autre = (await raw[kase.entities[tg].model].findMany()).find((r: any) => r[ref] !== t[fk]);
+                        if (autre)
+                            record(actor, entity, `modifier : re-désigner ${tg} (vue seulement au travers)`, false,
+                                await tryUpdate(u, entity, t.id, { [fk]: autre[ref] }));
+                        continue;
+                    }
+                    const visibles = (await as(u)[kase.entities[tg].model].findMany()).map((r: any) => r[ref]);
+                    const cachee = (await raw[kase.entities[tg].model].findMany()).find((r: any) => !visibles.includes(r[ref]));
+                    if (cachee)
+                        record(actor, entity, `modifier : pointer ${tg} qu'il ne voit pas`, false,
+                            await tryUpdate(u, entity, t.id, { [fk]: cachee[ref] }));
+                    const tOwner = kase.entities[tg].ownerField;
+                    const memeProprio = (r: any) => !spec.ownerField || !tOwner || ownerRole(tg) !== ownerRole(entity) || r[tOwner] === t[spec.ownerField];
+                    const visiblesFiches = (await as(u)[kase.entities[tg].model].findMany());
+                    const autreVisible = visiblesFiches.find((r: any) => r[ref] !== t[fk] && memeProprio(r));
+                    if (autreVisible)
+                        record(actor, entity, `modifier : re-désigner ${tg} qu'il voit`, true,
+                            await tryUpdate(u, entity, t.id, { [fk]: autreVisible[ref] }));
+                    const etranger = visiblesFiches.find((r: any) => !memeProprio(r));
+                    if (etranger)
+                        record(actor, entity, `modifier : pointer ${tg} d'un AUTRE propriétaire`, false,
+                            await tryUpdate(u, entity, t.id, { [fk]: etranger[ref] }));
+                }
                 if (s !== undefined) await setState(entity, t.id, t[spec.stateField!]);
             }
         }

@@ -21,6 +21,7 @@ export type EntitySpec = {
     // Rôles qui créent des fiches À LEUR NOM sans être le rôle propriétaire (« pour son compte ») :
     // la matrice D1 ne sait pas le dire (un seul rôle propriétaire) — trou de vocabulaire noté.
     createsForSelf?: string[];
+    parent?: string; // (N1.3) une ligne : la fiche à laquelle elle appartient
     build: (w: World, owner: User | null) => Record<string, unknown>; // données valides de création
 };
 export type Case = {
@@ -34,6 +35,7 @@ export type Cell = {
     see?: 'none' | 'own' | 'published' | 'all';
     see_via?: string[];
     create?: 'no' | 'yes' | 'auto';
+    create_while?: string[]; // (N1.3) une ligne : états du parent où elle s'ajoute
     edit?: boolean;
     edit_while?: string[];
     delete?: boolean;
@@ -41,13 +43,14 @@ export type Cell = {
     transitions?: Record<string, string[]>;
 };
 // Un BLOC du testeur : les vérifications d'un mot de vocabulaire, pour un acteur et une fiche.
-export type Bloc = { nom: string; essayer: (acteur: string, fiche: string) => Promise<void> };
+// (N1.3) `enfants` : le bloc juge les LIGNES (fiches enfants) ; les autres blocs ne les voient pas.
+export type Bloc = { nom: string; enfants?: boolean; essayer: (acteur: string, fiche: string) => Promise<void> };
 
 // ─── Mise en place ──────────────────────────────────────────────────────────
 // v1.1 (changements 1 et 2) : tout vient des fichiers produits par l'usine pour CETTE app.
 const lire = (chemin: string) => JSON.parse(readFileSync(new URL(chemin, import.meta.url), 'utf8'));
 const description = lire('./description.json');
-export const kase: Case = construireCas(description, lire('../depart.json'));
+export const kase: Case = construireCas(description, lire('../depart.json'), lire('./matrice.json'));
 export const { schema } = await import('../zenstack/schema.ts');
 const url = process.env.DATABASE_URL!;
 const expected: { cells: Record<string, Record<string, Cell>> } = { cells: {} };
@@ -134,13 +137,17 @@ export async function tryDelete(u: User | null, entity: string, id: string): Pro
 
 // ─── Relations lues dans le schéma généré ───────────────────────────────────
 export const modelDef = (entity: string) => schema.models[entity];
-// Clés étrangères simples (champ local → modèle cible), hors lien vers le propriétaire.
+// Clés étrangères simples (champ local → modèle cible) : les DÉSIGNATIONS — hors lien vers le propriétaire, et
+// (N1.3) hors lien d'une ligne vers son parent (une appartenance, jugée par le bloc « enfant » : les autres blocs
+// n'ont pas à connaître les lignes).
 export function foreignKeys(entity: string): { fk: string; target: string; ref: string }[] {
     const out = [];
+    const parent = kase.entities[entity].parent;
     for (const f of Object.values<any>(modelDef(entity).fields)) {
         const rel = f.relation;
         if (rel?.fields?.length === 1 && kase.entities[f.type]) {
             if (rel.fields[0] === kase.entities[entity].ownerField) continue;
+            if (parent && f.type === parent) continue;
             out.push({ fk: rel.fields[0], target: f.type, ref: rel.references[0] });
         }
     }
@@ -190,10 +197,12 @@ export let world: World = {};
 export async function lancer(blocsVoir: Bloc[], blocsAgir: Bloc[]) {
     for (const m of kase.resetOrder) await raw[m].deleteMany();
     world = await kase.seed(raw, users);
-    for (const b of blocsVoir) for (const a of actors) for (const e of Object.keys(kase.entities)) await b.essayer(a, e);
+    // (N1.3) chaque bloc ne juge que les fiches de sa sorte : les lignes (enfants) ont leur propre bloc
+    const pour = (b: Bloc, e: string) => !!b.enfants === !!kase.entities[e].parent;
+    for (const b of blocsVoir) for (const a of actors) for (const e of Object.keys(kase.entities)) if (pour(b, e)) await b.essayer(a, e);
     for (const a of actors)
         for (const e of Object.keys(kase.entities))
-            for (const b of blocsAgir) await b.essayer(a, e);
+            for (const b of blocsAgir) if (pour(b, e)) await b.essayer(a, e);
     rapport();
 }
 

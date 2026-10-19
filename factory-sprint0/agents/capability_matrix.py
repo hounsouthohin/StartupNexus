@@ -127,6 +127,9 @@ class Cell(BaseModel):
     # ce que la clôture accorde. Parcourir l'entité resterait un désir (miroir).
     see_via: list[str] = Field(default_factory=list)
     create: Literal["no", "yes", "auto"] = "no"
+    # (N1.3) une ligne (enfant) s'ajoute seulement dans ces états de son PARENT — écrit ici UNE fois, lu par le
+    # traducteur, l'écran et les juges (avant : la règle était recodée à 4 endroits)
+    create_while: list[str] = Field(default_factory=list)
     edit: bool = False
     edit_while: list[str] = Field(default_factory=list)      # vide = dans tous les états
     delete: bool = False
@@ -146,6 +149,12 @@ class Matrix(BaseModel):
     entities: list[str]
     cells: list[Cell]
     auto_links: list[str] = Field(default_factory=list)
+    # (12 oct) les liens « fiche>profil » qui SONT le lien de propriété (ownerId → userId) : décidés ici UNE fois
+    # (`lien_proprietaire`), lus par l'usine (traduire/modele.py) et par le testeur (verification/cas.mts)
+    owner_links: list[str] = Field(default_factory=list)
+    # (12 oct) les liens « fiche>cible » qu'un acteur devrait choisir PARMI LES SIENS (« celles qui le désignent ») :
+    # refusés ici ; l'outil de répétition les lit au lieu de refaire le calcul
+    own_choice_links: list[str] = Field(default_factory=list)
     issues: list[Issue] = Field(default_factory=list)
 
     def cell(self, actor: str, entity: str) -> Cell:
@@ -168,12 +177,20 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def lien_proprietaire(e: Entity, ref: Entity) -> bool:
+    """« ref » est le profil du propriétaire de la collection « e » : ce lien EST la propriété (ownerId → userId).
+    UNE seule définition (12 oct : trois endroits la recalculaient, avec des conditions légèrement différentes)."""
+    return e.nature == "collection" and ref.nature == "profile" and e.owner is not None and ref.owner == e.owner
+
+
 def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
     """Calcule la matrice. Si `brief` est fourni, vérifie que chaque citation y figure mot pour mot."""
     actors = {a.id: a for a in decl.actors}
     entities = {e.name: e for e in decl.entities}
     issues: list[Issue] = []
     auto_links: list[str] = []
+    owner_links: list[str] = []
+    own_choice_links: list[str] = []
 
     def err(msg: str) -> None:
         issues.append(Issue(level="error", message=msg))
@@ -246,7 +263,7 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
             cites = set(x.while_states) | set(x.transitions) | {t for ts in x.transitions.values() for t in ts}
             inconnus = sorted(cites - etats)
             if inconnus:
-                err(f"exception {x.actor}/{x.entity}/{x.action} : état(s) {inconnus} absent(s) du circuit"
+                err(f"[erreur:etats-inconnus] exception {x.actor}/{x.entity}/{x.action} : état(s) {inconnus} absent(s) du circuit"
                     + (f" (états connus : {sorted(etats)})" if etats else " (cette entité n'a pas de circuit)"))
     if brief is not None:
         nb = _norm(brief)
@@ -380,25 +397,8 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
                     c.see = "all"
                     grant(c, "collection publique : visible de tous", e.citation)
 
-    # ── 2. Enfants : héritent de la visibilité du parent ─────────────────
-    # (après les préréglages des parents ; un seul niveau en D1). Moindre privilège :
-    #  - le visiteur n'hérite PAS : un enfant n'est public que s'il est déclaré public
-    #    (les participants d'une sortie publique ne le sont pas — fuite réelle du 6 juillet) ;
-    #  - seul qui peut MODIFIER le parent gère ses enfants (créer un parent ne suffit pas :
-    #    le membre qui réserve ne crée pas ses factures).
-    for e in decl.entities:
-        if e.nature != "child":
-            continue
-        for a in [VISITOR, *actors]:
-            pc, c = grid[(a, e.parent)], grid[(a, e.name)]
-            if a == VISITOR and not e.public:
-                continue
-            c.see = pc.see
-            if pc.edit:
-                c.create, c.edit = "yes", True
-            if pc.see != "none":
-                grant(c, f"enfant de {entities[e.parent].label} : même visibilité que le parent"
-                      + (", géré par qui gère le parent" if pc.edit else ""), *pc.sources)
+    # ── 2. (12 oct) Les enfants sont calculés en UN seul endroit : la section 3b, après les exceptions.
+    #    (L'ancien héritage, ici, faisait doublon avec 3b — famille « une décision à deux endroits ».)
 
     # ── 3. Exceptions citées ─────────────────────────────────────────────
     for x in decl.exceptions:
@@ -423,16 +423,69 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
                 c.transitions = {s: t for s, t in c.transitions.items() if t}
         c.why.append(tag)
 
+    # ── 3a. (n° 56, 16 oct) On voit ce qu'on modifie : qui peut modifier, supprimer ou faire avancer une fiche
+    #    la voit (les siennes s'il en est le propriétaire, sinon toutes). Voir donne moins que modifier : aucun
+    #    pouvoir de plus. Sans cette clôture, flotte-assurance : l'administrateur « gère » des contrats qu'il ne
+    #    voit pas → l'app refusait ses gestes, ou les écrivait en lui répondant « refusé ». (Créer sans voir reste
+    #    permis : c'est le dépôt.) Jouée avant 3b pour que les lignes héritent de la visibilité du parent.
+    def voit_ce_quil_modifie(e: Entity) -> None:
+        for a in actors:
+            c = grid[(a, e.name)]
+            if c.see == "none" and (c.edit or c.delete or c.transitions):
+                c.see = "own" if a == e.owner else "all"
+                grant(c, "clôture : voit ce qu'il modifie")
+
+    for e in decl.entities:
+        if e.nature != "child":
+            voit_ce_quil_modifie(e)
+
+    # ── 3b. (N1.3) Enfants, APRÈS les exceptions du parent (doctrine du 10 oct) : qui peut MODIFIER le
+    #    parent — y compris par une exception (« le client modifie sa commande tant qu'elle est demandée ») —
+    #    gère ses lignes : créer, modifier, retirer, dans les mêmes états ; une exception écrite sur l'enfant
+    #    lui-même prime, mais SEULEMENT pour l'action qu'elle nomme (trouvé sur un vrai brief : « les conducteurs
+    #    voient les rapports » bloquait tout l'héritage, et la matrice refusait le retrait que le traducteur
+    #    permettait). Le visiteur n'hérite toujours pas (un enfant n'est public que s'il est déclaré public :
+    #    les participants d'une sortie publique ne le sont pas — fuite réelle du 6 juillet).
+    for e in decl.entities:
+        if e.nature != "child":
+            continue
+        for a in [VISITOR, *actors]:
+            pc, c = grid[(a, e.parent)], grid[(a, e.name)]
+            if a == VISITOR and not e.public:
+                continue
+            nommees = {x.action for x in decl.exceptions if x.actor == a and x.entity == e.name}
+            gere = pc.edit and a != VISITOR
+            if pc.see != "none":
+                grant(c, f"enfant de {entities[e.parent].label} : même visibilité que le parent"
+                      + (", géré par qui gère le parent" if gere else ""), *pc.sources)
+            if "see" not in nommees:
+                c.see = pc.see
+            if "create" not in nommees:
+                c.create = "yes" if gere else "no"
+                c.create_while = list(pc.edit_while) if gere else []   # une ligne s'ajoute quand elle se modifie
+            if "edit" not in nommees:
+                c.edit, c.edit_while = (True, list(pc.edit_while)) if gere else (False, [])
+            if "delete" not in nommees:
+                c.delete, c.delete_while = (True, list(pc.edit_while)) if gere else (False, [])
+        voit_ce_quil_modifie(e)   # une exception sur la ligne elle-même peut encore la faire modifier sans la voir
+
     # ── 4. Clôture ───────────────────────────────────────────────────────
     def creator(e: Entity) -> str | None:
         if e.nature != "collection":
             return None
         return e.process.initiator if e.process else (e.entered_by or e.owner)
 
+    def personnes_de(t: Entity) -> set[str]:
+        """Les rôles dont les fiches t sont « à eux » : leur propriétaire, ou les personnes qu'elles désignent."""
+        roles = {t.owner} if t.owner else set()
+        return roles | {entities[p].owner for p in t.references if entities[p].nature == "profile" and entities[p].owner}
+
     for e in decl.entities:
         for r in e.references:
             ref = entities[r]
-            owners_profile = ref.nature == "profile" and e.owner is not None and ref.owner == e.owner
+            owners_profile = lien_proprietaire(e, ref)
+            if owners_profile:
+                owner_links.append(f"{e.name}>{r}")
             # a) Le propriétaire crée lui-même : le lien vers SA fiche est rempli automatiquement.
             auto = owners_profile and creator(e) == e.owner
             if auto:
@@ -450,10 +503,22 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
                 if c.see != "none" and rc.see == "none" and e.name not in rc.see_via:
                     rc.see_via.append(e.name)
                     rc.why.append(f"clôture : affiché dans les {e.label_plural} qu'il voit")
-                # d) Qui crée doit pouvoir choisir ce que l'élément référence (sauf lien automatique).
+                # d) Qui crée doit pouvoir choisir ce que l'élément référence (sauf lien automatique) :
+                #    il voit toutes les fiches visées (comme b). Ce n'était qu'une alerte, que personne
+                #    n'arrêtait : l'usine a fabriqué une app où créer était impossible (répétition temps 2,
+                #    « bon d'intervention » → collaborateur vu seulement au travers des bons existants).
+                #    SAUF si ces fiches appartiennent à des personnes de SON rôle (le client qui choisit SON
+                #    site) : les lui montrer toutes exposerait celles des autres → erreur, jamais d'ouverture.
                 if a != VISITOR and c.create == "yes" and rc.see == "none" and not (auto and a == e.owner):
-                    warn(f"{actors[a].label} crée des {e.label_plural} qui référencent des "
-                         f"{ref.label_plural}, mais n'en voit aucun : impossible de choisir (D2 ?)")
+                    if a in personnes_de(ref):
+                        if f"{e.name}>{r}" not in own_choice_links:
+                            own_choice_links.append(f"{e.name}>{r}")
+                        err(f"[bloc:portee:designe] {actors[a].label} crée des {e.label_plural} qui désignent des "
+                            f"{ref.label_plural}, mais ne voit pas les siens : les lui montrer tous exposerait ceux des "
+                            f"autres — « celles qui le désignent » arrive en N1.3")
+                    else:
+                        rc.see, rc.see_via = "all", []
+                        grant(rc, f"clôture : choisit les {ref.label_plural} de ses {e.label_plural}", e.citation)
 
     # ── 5. Contrôles de la matrice obtenue ───────────────────────────────
     for a in decl.actors:
@@ -473,6 +538,8 @@ def compute_matrix(decl: AccessDeclaration, brief: str | None = None) -> Matrix:
         entities=list(entities),
         cells=list(grid.values()),
         auto_links=auto_links,
+        owner_links=owner_links,
+        own_choice_links=own_choice_links,
         issues=issues,
     )
 
@@ -628,10 +695,11 @@ def explain(m: Matrix, decl: AccessDeclaration) -> dict[str, list[str]]:
     return out
 
 
-def questions(m: Matrix, decl: AccessDeclaration) -> list[str]:
+def questions_detail(m: Matrix, decl: AccessDeclaration) -> list[dict]:
     """Questions oui/non à poser au client, seulement là où une erreur coûte ET que le brief ne
     tranche pas : un acteur qui voit les données d'un autre sans citation qui le justifie, ou un
-    droit déduit par une règle de clôture."""
+    droit déduit par une règle de clôture.
+    (18 oct, N1.4b) Chaque question dit sa sorte, son acteur et sa fiche : le miroir y attache les réponses."""
     labels = {a.id: a.label for a in decl.actors}
     fem = {a.id: a.feminine for a in decl.actors}
     entities = {e.name: e for e in decl.entities}
@@ -647,24 +715,37 @@ def questions(m: Matrix, decl: AccessDeclaration) -> list[str]:
             who = the(labels[c.actor], fem[c.actor]).capitalize()
             these = "celles" if e.feminine else "ceux"
             him = "la" if fem[c.actor] else "le"
-            qs.append(f"{who} verra {every} {e.label_plural}, pas seulement {these} qui {him} concernent — "
-                      "d'accord ? (oui / non)")
+            qs.append({"sorte": "registre_entier", "actor": c.actor, "entity": c.entity,
+                       "texte": f"{who} verra {every} {e.label_plural}, pas seulement {these} qui {him} concernent — "
+                                "d'accord ? (oui / non)"})
         if c.actor == VISITOR:
             # Ce que voit un visiteur sans compte : la question vaut toujours d'être posée
             # (test de l'IA du 1er oct : l'erreur réelle était des brouillons rendus publics).
             if c.see == "all":
                 every = "toutes les" if e.feminine else "tous les"
-                qs.append(f"Les visiteurs sans compte pourront consulter {every} {e.label_plural} — "
-                          "d'accord ? (si certains ne doivent pas être visibles, par exemple des "
-                          "brouillons, répondez non)")
+                qs.append({"sorte": "visiteur", "actor": c.actor, "entity": c.entity,
+                           "texte": f"Les visiteurs sans compte pourront consulter {every} {e.label_plural} — "
+                                    "d'accord ? (si certains ne doivent pas être visibles, par exemple des "
+                                    "brouillons, répondez non)"})
             continue
         owner = e.owner if e.nature != "child" else entities[e.parent].owner if e.parent else None
         who = the(labels[c.actor], fem[c.actor]).capitalize()
         pr = "elle" if fem[c.actor] else "il"
         if c.see == "all" and e.nature in ("collection", "child") and owner and owner != c.actor and not c.sources:
-            qs.append(f"{who} doit-{pr} voir les {e.label_plural} de tout le monde ? (oui / non)")
+            qs.append({"sorte": "tout_le_monde", "actor": c.actor, "entity": c.entity,
+                       "texte": f"{who} doit-{pr} voir les {e.label_plural} de tout le monde ? (oui / non)"})
         if c.see_via and owner != c.actor:
             via = " et les ".join(entities[v].label_plural for v in c.see_via)
-            qs.append(f"{who} verra les {e.label_plural} (ex. nom, coordonnées) affichés "
-                      f"dans les {via} qu'{pr} traite — est-ce acceptable ? (oui / non)")
-    return list(dict.fromkeys(qs))
+            qs.append({"sorte": "vu_via", "actor": c.actor, "entity": c.entity,
+                       "texte": f"{who} verra les {e.label_plural} (ex. nom, coordonnées) affichés "
+                                f"dans les {via} qu'{pr} traite — est-ce acceptable ? (oui / non)"})
+    vus, out = set(), []
+    for q in qs:
+        if q["texte"] not in vus:
+            vus.add(q["texte"]); out.append(q)
+    return out
+
+
+def questions(m: Matrix, decl: AccessDeclaration) -> list[str]:
+    """Les questions en texte (anciens appelants : banc des matrices, études)."""
+    return [q["texte"] for q in questions_detail(m, decl)]

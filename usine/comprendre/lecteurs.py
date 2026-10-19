@@ -298,8 +298,12 @@ et dans les tournures « un A par X » (une information de X) ou « fixer / plan
 Pour chaque fiche :
 - « origine » = "brief" : le brief CITE cette information pour cette fiche (« chaque ouvrage a un
   titre ») ; « citation » obligatoire, mot pour mot.
-- « origine » = "necessaire" : SEULEMENT si le brief ne cite aucune information pour cette fiche :
-  UN champ texte pour la reconnaître dans une liste (son nom, son intitulé) ; citation vide "".
+- « origine » = "necessaire" : UN champ texte pour reconnaître la fiche dans une liste (son nom, son
+  intitulé), placé EN PREMIER, citation vide "" — SEULEMENT si le brief ne cite aucune information pour
+  cette fiche, OU si la fiche ne désigne aucune autre fiche et qu'aucune information citée ne permet de
+  la reconnaître (une capacité, une couleur ne disent pas de quelle salle il s'agit).
+- Une fiche qui ne désigne aucune autre fiche a pour PREMIER champ celui qui la fait reconnaître : un
+  texte court (nom, numéro, référence, intitulé).
 - Tout autre champ utile mais NON cité va dans « propositions » (on demandera au client) — jamais
   dans « champs ».
 NE LISTE PAS — l'application les gère déjà :
@@ -321,7 +325,8 @@ naissance et un niveau (débutant, intermédiaire, avancé) ; une inscription d�
 instrument, avec son tarif annuel. » → Eleve : nom, prenom (texte), dateNaissance (date), niveau
 (choix : débutant, intermédiaire, avancé) ; Inscription : tarifAnnuel (montant) — pas de champ
 « élève » ni « instrument » : ce sont des liens ; Instrument (le brief n'en dit rien) : un champ
-"necessaire" nom (texte), et en proposition « marque ».
+"necessaire" nom (texte), et en proposition « marque ». « Chaque salle a sa capacité et une couleur sur
+le planning » → Salle : nom (texte, "necessaire", en premier), capacite (nombre), couleur (texte).
 Forme : {"fiches": [{"fiche": "NomExact", "champs": [{"nom": "…", "libelle": "…", "type": "…",
 "obligatoire": true, "valeurs": [], "origine": "brief|necessaire", "citation": "…"}],
 "propositions": [{"libelle": "…", "type": "…", "raison": "…"}]}]}
@@ -332,7 +337,9 @@ UNIQUEMENT en JSON. On te donne le brief, les fiches, leurs liens et leurs circu
 1. « titre » : le nom de l'application, court (2 à 4 mots) : « Médiathèque », « Gestion du club ».
 2. Pour chaque fiche qui a un circuit : « boutons » = pour CHAQUE état d'arrivée d'une flèche, le
    libellé du bouton qui y fait passer, à l'infinitif (« accepte » → « Accepter », « rendu » →
-   « Marquer rendu », « annule » → « Annuler »).
+   « Marquer rendu », « annule » → « Annuler »). Deux boutons d'une fiche ont des noms différents, et
+   aucun ne reprend un geste que l'application a déjà : Créer, Modifier, Supprimer, Enregistrer (un état
+   « supprimé » → « Classer supprimé », pas « Supprimer », qui efface la fiche).
 3. Pour chaque fiche qui désigne une autre fiche : « verbe_creation » = le libellé du bouton qui la
    crée d'un clic depuis la fiche désignée (une réservation créée depuis une salle → « Réserver » ;
    une inscription depuis un cours → « S'inscrire ») ; null si ça n'a pas de sens.
@@ -413,6 +420,11 @@ def controle_fiches(o: SortieFiches, ctx: dict) -> list[str]:
             errs.append(f"{w} (child) : « parent » doit être une fiche de la liste")
         if f.nature != "child" and f.parent:
             errs.append(f"{w} : « parent » seulement pour un child")
+        # (13 oct, trouvé par la génération qui plantait — bâtiment, lecture Claude) le lien d'une ligne vers son
+        # parent existe déjà : le redire dans « references » créait deux fois le même champ
+        if f.nature == "child" and f.parent in f.references:
+            errs.append(f"{w} (child de {f.parent}) : ne mets pas {f.parent} dans « references » — le lien vers le "
+                        "parent existe déjà")
         errs += [f"{w} : référence « {r} » inconnue — les références sont des NOMS DE FICHES parmi {names} "
                  "(pas des acteurs)" for r in f.references if r not in names]
     # contrôle croisé avec le lecteur 1 : chaque non-utilisateur devient une fiche (ou est écarté avec raison)
@@ -429,12 +441,23 @@ def controle_fiches(o: SortieFiches, ctx: dict) -> list[str]:
     return errs
 
 
+def circuit_admis(nature: str) -> bool:
+    """Seule une collection ou un registre a un circuit d'états. UNE définition, lue par le contrôle du lecteur 3
+    et par l'assemblage (13 oct : l'assemblage laissait tomber en silence un circuit posé sur un catalogue, mais
+    le lecteur 4 recevait quand même ses états, et la matrice était refusée — union sportive, lecture Claude)."""
+    return nature in ("collection", "registry")
+
+
 def controle_circuits(o: SortieCircuits, ctx: dict) -> list[str]:
     errs, actors, names = [], ctx["actor_ids"], ctx["fiche_names"]
     for c in o.circuits:
         w = f"circuit {c.fiche}"
         if c.fiche not in names:
             errs.append(f"{w} : fiche inconnue (parmi {names})")
+        nature = ctx.get("fiche_natures", {}).get(c.fiche)
+        if nature and not circuit_admis(nature):
+            errs.append(f"{w} : la fiche est un « {nature} », qui ne change pas d'état (seule une collection ou un "
+                        "registre a un circuit) — ne liste pas ce circuit")
         states = set(c.transitions) | {s for t in c.transitions.values() for s in t}
         if c.etat_initial not in states:
             errs.append(f"{w} : état initial absent des transitions")
@@ -517,12 +540,24 @@ def controle_champs(o: SortieChamps, ctx: dict) -> list[str]:
         if not f.champs and not fi["liens"]:
             errs.append(f"{w} : sans aucun champ ni lien, cette fiche serait impossible à reconnaître dans une "
                         "liste — relève ce que le brief en dit, ou mets UN champ « necessaire » (son nom)")
-        if necessaires and any(c.origine == "brief" for c in f.champs):
-            errs.append(f"{w} : un champ « necessaire » seulement si le brief ne cite AUCUNE information "
-                        "pour cette fiche (sinon, mets-le en proposition)")
+        if necessaires and f.champs[0].origine != "necessaire":
+            errs.append(f"{w} : le champ « necessaire » (celui qui fait reconnaître la fiche) se place EN PREMIER")
+        # (répétition temps 2) une fiche qui ne désigne rien se reconnaît par son premier champ : un chauffeur
+        # décrit par « amplitudes » et « code couleur » n'avait pas de nom — les listes et les choix de lien
+        # l'affichaient par sa couleur
+        if f.champs and not fi["liens"] and f.champs[0].type != "texte":
+            errs.append(f"{w} : elle ne désigne aucune autre fiche — son PREMIER champ doit la faire reconnaître "
+                        "dans une liste (un texte court : nom, numéro, intitulé) ; s'il n'est pas dans le brief, "
+                        "ajoute-le en premier comme « necessaire »")
+        if necessaires and fi["liens"] and any(c.origine == "brief" for c in f.champs):
+            errs.append(f"{w} : elle désigne d'autres fiches et le brief cite ses informations — pas de champ "
+                        "« necessaire » (mets-le en proposition)")
     errs += _cites(ctx["brief"], [(f"{f.fiche}.{c.nom}", c.citation) for f in o.fiches for c in f.champs
                                   if c.origine == "brief"])
     return errs
+
+
+GESTES = {"créer", "modifier", "supprimer", "enregistrer", "confirmer la suppression"}   # boutons fixes du squelette
 
 
 def controle_libelles(o: SortieLibelles, ctx: dict) -> list[str]:
@@ -539,6 +574,15 @@ def controle_libelles(o: SortieLibelles, ctx: dict) -> list[str]:
         if en_trop:
             errs.append(f"fiche {f.fiche} : boutons pour des états qui ne sont pas des arrivées : {sorted(en_trop)}")
         errs += [f"fiche {f.fiche} : bouton « {e} » vide" for e, lib in f.boutons.items() if not lib.strip()]
+        # (répétition temps 2, trouvé par les tests d'écran) un bouton d'étape qui reprend un geste de l'application
+        # (« Supprimer » pour passer à l'état « supprimé », à côté du vrai « Supprimer ») : deux boutons homonymes
+        for e, lib in f.boutons.items():
+            if lib.strip().lower() in GESTES:
+                errs.append(f"fiche {f.fiche} : le bouton « {lib} » (vers « {e} ») porte le nom d'un geste que l'application "
+                            "a déjà (créer, modifier, supprimer, enregistrer) — choisis un autre mot (« Classer … », « Archiver »)")
+        libelles = [lib.strip().lower() for lib in f.boutons.values()]
+        if len(set(libelles)) != len(libelles):
+            errs.append(f"fiche {f.fiche} : deux boutons portent le même nom")
     for n, etats in arrivees.items():
         manquants = [e for e in etats if e not in (vus[n].boutons if n in vus else {})]
         if manquants:

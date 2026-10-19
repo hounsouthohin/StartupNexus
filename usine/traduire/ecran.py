@@ -39,17 +39,38 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
     n: dict = {
         "modele": bas(e.name),
         "libelle": e.label,
-        "titre": f"Mon {e.label}" if e.nature == "profile" else _maj(e.label_plural),
+        # la liste (aussi celle des profils, vue par d'autres rôles) ; « Mon … » est le titre de /profil
+        "titre": _maj(e.label_plural),
         "champs": champs,
         "modifiables": [{"nom": c.nom, "libelle": c.libelle, "saisie": c.type, "obligatoire": c.obligatoire, **_options(c)}
                         for c in f.champs],
     }
+    if e.nature not in ("profile", "child"):     # (N1.3) une ligne s'ajoute depuis la page de son parent
+        # (N1.2) le bouton du formulaire de création : « Nouvelle facture », « Nouveau chantier »
+        nouveau = "Nouvelle" if e.feminine else "Nouvel" if e.label[:1].lower() in "aeiouyéèêâîôh" else "Nouveau"
+        n["creation"] = {"libelle": f"{nouveau} {e.label}"}
     if f.liens:
         roles = {a.id: a.label for a in desc.acces.actors}
-        # le profil du propriétaire s'affiche sous le nom de son rôle (« Adhérent »), pas « Profil »
+        # le profil du propriétaire s'affiche sous le nom de son rôle (« Adhérent »), pas « Profil » ;
+        # (N1.2) fk / cible / proprietaire : pour les listes de choix des formulaires (le lien vers le
+        # profil du propriétaire est posé automatiquement : jamais choisi)
         n["liens"] = [{"nom": l.nom, "affiche": premier_texte(fiches[l.cible]),
-                       "libelle": _maj(roles.get(e.owner, fiches[l.cible].e.label) if l.proprietaire else fiches[l.cible].e.label)}
+                       "libelle": _maj(roles.get(e.owner, fiches[l.cible].e.label) if l.proprietaire else fiches[l.cible].e.label),
+                       "fk": l.fk, "cible": l.cible, "proprietaire": l.proprietaire, **({"parent": True} if l.parent else {})}
                       for l in f.liens]
+    lp = next((l for l in f.liens if l.parent), None)
+    if lp:
+        n["parent"] = {"fiche": lp.cible, "fk": lp.fk}     # (N1.3) une ligne : posée depuis la page de son parent
+    if f.enfants:
+        # (N1.3) les lignes de cette fiche, affichées (et gérées) dans sa page
+        n["enfants"] = [{"fiche": src, "fk": next(l.fk for l in fiches[src].liens if l.parent),
+                         "libelle": _maj(fiches[src].e.label_plural), "libelle_un": fiches[src].e.label}
+                        for _rel, src in f.enfants]
+    if f.inverses:
+        # (N1.2) les fiches qui peuvent désigner celle-ci : une fiche désignée ne se supprime pas (intégrité),
+        # l'écran le dit au lieu de proposer un bouton que le serveur refuserait
+        n["designee_par"] = [{"relation": rel, "libelle": fiches[source].e.label_plural, "libelle_un": fiches[source].e.label}
+                             for rel, source in f.inverses]
     tri = "createdAt" if e.process else premier_texte(f)
     if tri != "id":
         n["tri"] = {"champ": tri, "sens": "desc" if e.process else "asc"}
@@ -64,7 +85,7 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
     # (sinon il faut un formulaire : N1.5)
     actions = []
     for autre in fiches.values():
-        if any(c.obligatoire for c in autre.champs) or len([x for x in autre.liens if not x.proprietaire]) != 1:
+        if autre.e.nature == "child" or any(c.obligatoire for c in autre.champs) or len([x for x in autre.liens if not x.proprietaire]) != 1:
             continue
         for l in autre.liens:
             if l.cible == e.name and not l.proprietaire and any(
@@ -90,6 +111,14 @@ def traduire_notice(desc: Description, m: Matrix) -> str:
     return "\n".join(lignes)
 
 
+def traduire_roles(desc: Description) -> str:
+    """lib/roles.ts : le libellé de chaque rôle pour l'accueil et l'en-tête (répétition temps 2 : l'écran
+    affichait l'identifiant, « responsable_des_commandes »)."""
+    libelles = {VISITOR: "visiteur", **{a.id: a.label for a in desc.acces.actors}}
+    return ("// FICHIER PRODUIT PAR L'USINE — libellés des rôles pour l'écran.\n"
+            f"export const LIBELLE_ROLE: Record<string, string> = {_j(libelles)};\n")
+
+
 def traduire_droits(desc: Description, m: Matrix) -> str:
     fiches = construire(desc, m)
     roles = [VISITOR] + [a.id for a in desc.acces.actors]
@@ -100,21 +129,38 @@ def traduire_droits(desc: Description, m: Matrix) -> str:
             d["voir"] = True
         if c.create == "yes":
             d["creer"] = True
+            if c.create_while:
+                d["creer_pendant"] = c.create_while       # (N1.3) une ligne : états du parent où elle s'ajoute (matrice)
         if c.edit:
             d["modifier"] = True
+            if c.edit_while:
+                d["modifier_pendant"] = c.edit_while      # (N1.2) seulement dans ces états
+        if c.delete:
+            d["supprimer"] = True
+            if c.delete_while:
+                d["supprimer_pendant"] = c.delete_while
         if c.transitions:
             d["transitions"] = c.transitions
         if d:
             matrice[c.actor][c.entity] = d
     menu = []
-    profil = None
+    profils = []
     for f in fiches.values():
         e = f.e
         if e.nature == "profile":
-            menu.append({"fiche": e.name, "chemin": "/profil", "libelle": f"Mon {e.label}", "action": "voir"})
-            profil = {"fiche": e.name, "role": e.owner,
-                      "obligatoires": [{"nom": c.nom, "type": c.type, **({"defaut": c.valeurs[0].code} if c.type == "choix" else {})}
-                                       for c in f.champs if c.obligatoire]}
+            # (répétition temps 2) UN profil par rôle : l'usine n'en gardait qu'un (le dernier) — les autres
+            # rôles n'avaient ni profil créé à la connexion, ni « Mon profil » ; ce qui désignait leur profil
+            # (« l'équipe et ses membres ») était impossible à créer. Les autres rôles qui voient ces profils
+            # les ont en liste, jamais comme « Mon … ».
+            menu.append({"fiche": e.name, "chemin": "/profil", "libelle": f"Mon {e.label}", "action": "voir", "role": e.owner})
+            menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": _maj(e.label_plural), "action": "voir",
+                         "sauf": e.owner})
+            profils.append({"fiche": e.name, "role": e.owner,
+                            "obligatoires": [{"nom": c.nom, "type": c.type,
+                                              **({"defaut": c.valeurs[0].code} if c.type == "choix" else {})}
+                                             for c in f.champs if c.obligatoire]})
+        elif e.nature == "child":
+            continue                                 # (N1.3) une ligne n'a pas de menu : elle vit dans son parent
         else:
             menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": _maj(e.label_plural), "action": "voir"})
     return "\n".join([
@@ -125,7 +171,11 @@ def traduire_droits(desc: Description, m: Matrix) -> str:
         f"export const ROLES_CONNECTES: Role[] = {_j(roles[1:])};",
         f"export const TITRE = {_j(desc.app.titre)};",
         f"export const MATRICE: Record<Role, Partial<Record<NomFiche, Droits>>> = {_j(matrice)};",
-        f"export const MENU: {{ fiche: NomFiche; chemin: string; libelle: string; action: 'voir' }}[] = {_j(menu)};",
-        "export const PROFIL: { fiche: NomFiche; role: Role; obligatoires: { nom: string; type: string; defaut?: string }[] } | null = "
-        f"{_j(profil)};", "",
+        "export const MENU: { fiche: NomFiche; chemin: string; libelle: string; action: 'voir'; role?: Role; sauf?: Role }[] = "
+        f"{_j(menu)};",
+        "export const PROFILS: { fiche: NomFiche; role: Role; obligatoires: { nom: string; type: string; defaut?: string }[] }[] = "
+        f"{_j(profils)};",
+        "// une entrée de menu « Mon … » n'est que pour son rôle ; la liste du même profil, pour les autres",
+        "export const pourRole = (m: { role?: Role; sauf?: Role }, role: Role) => (!m.role || m.role === role) && m.sauf !== role;",
+        "",
     ])

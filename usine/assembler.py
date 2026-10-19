@@ -17,7 +17,7 @@ from .description import Description
 from .journal import Journal
 from .matrice import compute_matrix
 from .traduire.depart import traduire_depart
-from .traduire.ecran import traduire_droits, traduire_notice
+from .traduire.ecran import traduire_droits, traduire_notice, traduire_roles
 from .traduire.schema import traduire_schema
 
 RACINE = Path(__file__).resolve().parents[1]
@@ -71,11 +71,50 @@ class _serveur:
         self.f.close()
 
 
-def fabriquer(chemin_description: Path) -> Path:
+MARQUE = ".usine-installation-complete"   # posée après une installation réussie, retirée AVANT toute suppression
+
+
+def installer(app: Path, log: Path) -> None:
+    _cmd("npm ci --prefer-offline --no-audit --no-fund", app, log)
+    (app / "node_modules" / MARQUE).write_text("ok", encoding="ascii")
+
+
+def dependances(app: Path, log: Path) -> None:
+    """Réinstalle les dépendances d'une app livrée si elles ont été retirées (versions figées par le
+    fichier de verrouillage du squelette : le résultat est identique à celui de la fabrication).
+    (12 oct, trouvé à l'essai à la main) un dossier node_modules qui EXISTE n'est pas une installation complète :
+    une suppression interrompue sous Windows laisse un dossier partiel — seule la marque fait foi."""
+    if not (app / "node_modules" / MARQUE).exists():
+        print("Installation des dépendances (une fois, depuis le cache local) …", flush=True)
+        installer(app, log)       # npm ci repart de zéro : il efface lui-même un dossier partiel
+
+
+def alleger(app: Path) -> None:
+    """Retire les dépendances d'une app (≈ 620 Mo, identiques pour toutes les apps). Trouvé à la répétition
+    temps 2 : chaque app les gardait, le disque s'est rempli après ~55 fabrications (39 Go dans runs/).
+    La marque part EN PREMIER : si la suppression s'arrête à mi-chemin, le reste est vu comme incomplet."""
+    nm = app / "node_modules"
+    if nm.exists():
+        (nm / MARQUE).unlink(missing_ok=True)
+        for _ in range(2):        # un fichier encore ouvert peut faire échouer la 1re tentative
+            subprocess.run(f'cmd /c rmdir /s /q "{nm}"', shell=True, capture_output=True)
+            if not nm.exists():
+                break
+
+
+def fabriquer(chemin_description: Path, garder_dependances: bool = False) -> Path:
     brut = json.loads(chemin_description.read_text(encoding="utf-8"))
     nom = brut.get("app", {}).get("nom", "app")
     run = RUNS / f"{datetime.now():%Y%m%d-%H%M%S}-{nom}"
     (run / "logs").mkdir(parents=True)
+    try:
+        return _fabriquer(chemin_description, brut, run)
+    finally:   # une app livrée pèse ~120 Mo : `python -m usine demarrer` réinstalle ses dépendances au besoin
+        if not garder_dependances:
+            alleger(run / "app")
+
+
+def _fabriquer(chemin_description: Path, brut: dict, run: Path) -> Path:
     journal = Journal(run, total=10)
     print(f"Fabrication : {run.relative_to(RACINE)}\n")
 
@@ -102,6 +141,7 @@ def fabriquer(chemin_description: Path) -> Path:
             "zenstack/schema.zmodel": traduire_schema(desc, m),
             "lib/notice.ts": traduire_notice(desc, m),
             "lib/droits.ts": traduire_droits(desc, m),
+            "lib/roles.ts": traduire_roles(desc),
             "depart.json": json.dumps(traduire_depart(desc, m), ensure_ascii=False, indent=2),
             # ce que les tests livrés avec l'app vérifient : SA description et SA matrice
             "verification/description.json": desc.model_dump_json(indent=2),
@@ -124,7 +164,7 @@ def fabriquer(chemin_description: Path) -> Path:
         e["resume"] = f"{nb} fichiers ; {len(produits)} produits, le reste fixe"
 
     with journal.etape("Installer les dépendances (versions figées)") as e:
-        _cmd("npm ci --prefer-offline --no-audit --no-fund", app, run / "logs" / "installer.log")
+        installer(app, run / "logs" / "installer.log")
         e["resume"] = "installé depuis le fichier de verrouillage du squelette"
 
     with journal.etape("Générer le code d'accès et créer la base") as e:

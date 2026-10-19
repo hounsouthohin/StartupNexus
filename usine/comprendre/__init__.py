@@ -2,8 +2,8 @@
 
 Chaque étape laisse sa fiche dans runs/<n°>-<nom>-comprendre/ (règles 6 et 7) :
   brief.txt · lecteurs.json (réponses brutes + journal des appels) · description.json (le contrat
-  d'entrée de `fabriquer`) · miroir.md (ce que l'app fera, en phrases, et ce qu'il faut demander au
-  client) · 99-rapport.json (dépense, verdict).
+  d'entrée de `fabriquer`) · miroir.json + miroir.md (N1.4a : ce que l'app fera, calculé, et ce qu'il
+  faut demander au client) · 99-rapport.json (dépense, verdict).
 Les lecteurs ne décident que de ce qu'ils lisent ; tout le reste (matrice, codes des choix, contrôle
 final) est calculé. Plafond de dépense par lancement (ia.py) : la règle de budget est dans le code.
 """
@@ -20,7 +20,10 @@ from pydantic import ValidationError
 
 from ..description import Description
 from ..journal import Journal
-from ..matrice import AccessDeclaration, compute_matrix, explain, questions
+from ..matrice import AccessDeclaration, compute_matrix
+from ..miroir import construire, construire_hors, en_markdown
+from ..miroir import ecrire as ecrire_miroir
+from .critique import Q_CRITIQUE, SortieCritique, controle_critique
 from . import lecteurs as L
 from .ia import Budget, PlafondAtteint, client_pour, demander
 
@@ -80,7 +83,7 @@ def declaration(acteurs: L.SortieActeurs, fiches: L.SortieFiches, circuits: L.So
              "publication": f.publication, "entered_by": f.saisie_par, "parent": f.parent,
              "references": f.references, "citation": _cite(f.citation)}
         c = par_fiche.get(f.nom)
-        if c and f.nature in ("collection", "registry"):
+        if c and L.circuit_admis(f.nature):
             e["process"] = {"initial": c.etat_initial, "transitions": c.transitions, "initiator": c.initiateur,
                             "decider": c.decideur, "steps_by": c.etapes_par, "labels": c.libelles,
                             "citation": _cite(c.citation)}
@@ -118,13 +121,18 @@ def lire_champs(sortie: L.SortieChamps | None, brief: str) -> tuple[dict, dict]:
     return champs, propositions
 
 
-def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: float = 0.20,
+def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: float = 2.0,
                reprendre: Path | None = None) -> Path:
     """reprendre : un dossier « …-comprendre » précédent ; chaque réponse déjà payée y est réutilisée
     si elle passe les contrôles ACTUELS (sinon le lecteur est redemandé)."""
+    # (12 oct) le lot d'EXAMEN n'est jamais lu par la session Claude isolée : il reste à l'IA du produit (garde-fou 5)
+    if modele == "boite" and "examen" in Path(chemin_brief.split("#")[0]).parts:
+        raise SystemExit("le lot d'examen ne passe pas par la boîte aux lettres (il est réservé à l'IA du produit)")
     brief = lire_brief(chemin_brief)
     anciens = json.loads((reprendre / "lecteurs.json").read_text(encoding="utf-8")) if reprendre else {}
-    run = RUNS / f"{datetime.now():%Y%m%d-%H%M%S}-{nom}-comprendre"
+    # une lecture par la session Claude isolée porte son étiquette : jamais confondue avec celle de gpt
+    etiquette = "-claude" if modele == "boite" else ""
+    run = RUNS / f"{datetime.now():%Y%m%d-%H%M%S}-{nom}{etiquette}-comprendre"
     run.mkdir(parents=True)
     (run / "brief.txt").write_text(brief, encoding="utf-8")
     journal = Journal(run, total=10)
@@ -165,7 +173,7 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
         if perimetre is None:
             return fin("ÉCHEC : périmètre illisible")
         if perimetre.perimetre == "hors":
-            (run / "miroir.md").write_text(f"# Hors de notre périmètre\n\n{perimetre.raison}\n", encoding="utf-8")
+            ecrire_miroir(run, construire_hors(perimetre.raison, [b.model_dump() for b in perimetre.hors_stock]))
             return fin("HORS PÉRIMÈTRE (aucune description produite)")
         acteurs = lecteur("Lecteur 1 — acteurs", L.Q_ACTEURS, {"brief": brief}, L.SortieActeurs, L.controle_acteurs, {}, "acteurs")
         if acteurs is None:
@@ -177,6 +185,7 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
         if fiches is None:
             return fin("ÉCHEC : fiches refusées 3 fois")
         ctx.update(fiche_names=[f.nom for f in fiches.fiches],
+                   fiche_natures={f.nom: f.nature for f in fiches.fiches},
                    registry_managers={f.nom: f.gestionnaires for f in fiches.fiches if f.nature == "registry"},
                    public_fiches={f.nom for f in fiches.fiches if f.publique})
         base2 = {**base, "fiches": [{"nom": f.nom, "libelle": f.libelle, "nature": f.nature} for f in fiches.fiches]}
@@ -244,33 +253,19 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
             e["resume"] = f"{sum(len(c) for c in champs.values())} champs, {sum(len(p) for p in propositions.values())} proposition(s)"
 
     with journal.etape("Écrire le miroir (ce que l'app fera, ce qu'il faut demander)") as e:
-        miroir = miroir_md(perimetre, decl, m, champs, propositions)
-        (run / "miroir.md").write_text(miroir, encoding="utf-8")
-        e["resume"] = f"{miroir.count('?')} question(s)"
+        # (N1.4a) calculé depuis la description qui sera fabriquée (ou la variante proposée si elle est refusée)
+        miroir = construire(brut, [b.model_dump() for b in perimetre.hors_stock], propositions)
+        ecrire_miroir(run, miroir)
+        e["resume"] = f"{len(miroir['questions'])} question(s)" + (", refus + proposition" if miroir["refus"] else "")
+    # (18 oct, place A adoptée — essai A) le lecteur 8 relit le brief ET le miroir (vue du client) : un AVIS, montré au
+    # volet concepteur ; il ne change jamais la description
+    try:
+        critique = lecteur("Lecteur 8 — critique", Q_CRITIQUE, {"brief": brief, "miroir": en_markdown(miroir).split("\n---\n")[0]},
+                           SortieCritique, controle_critique, {}, "critique")
+    except PlafondAtteint:
+        critique = None
+    if critique is not None:
+        ecrire_miroir(run, {**miroir, "critique": critique.model_dump()})
     if desc is None:
         return fin("DESCRIPTION REFUSÉE : " + rapport["description_refusee"].splitlines()[1 if "\n" in rapport["description_refusee"] else 0])
     return fin("DESCRIPTION PRÊTE : python -m usine fabriquer " + str((run / "description.json").relative_to(RACINE)))
-
-
-def miroir_md(perimetre: L.SortiePerimetre, decl: AccessDeclaration, m, champs: dict, propositions: dict) -> str:
-    """Première forme du miroir (N1.2 en fera la porte de validation) : tout ce que le client doit voir."""
-    lignes = ["# Ce que l'application fera", ""]
-    for acteur, phrases in explain(m, decl).items():
-        lignes += [f"## {acteur}", *[f"- {p}" for p in phrases], ""]
-    lignes += ["# Les informations enregistrées", ""]
-    for fiche, liste in champs.items():
-        noms = [f"{c['libelle']} ({c['type']}{', facultatif' if not c['obligatoire'] else ''})" for c in liste]
-        lignes.append(f"- **{fiche}** : " + (", ".join(noms) if noms else "aucune (seulement ses liens)"))
-    necessaires = [(f, c["libelle"]) for f, liste in champs.items() for c in liste if c["origine"] == "necessaire"]
-    qs = questions(m, decl) + [f"Le brief ne dit rien des informations de « {f} » : nous avons mis « {lib} » — "
-                               "est-ce le bon nom pour la reconnaître ? (oui / non)" for f, lib in necessaires]
-    if qs:
-        lignes += ["", "# Questions", "", *[f"- {q}" for q in qs]]
-    if propositions:
-        lignes += ["", "# Informations que nous pourrions ajouter (à confirmer)", ""]
-        for fiche, ps in propositions.items():
-            lignes.append(f"- **{fiche}** : " + ", ".join(f"{p['libelle']} ({p['type']})" for p in ps))
-    if perimetre.hors_stock:
-        lignes += ["", "# Pas encore dans notre stock (à traiter à part)", "",
-                   *[f"- {b.besoin} — « {b.citation} »" for b in perimetre.hors_stock]]
-    return "\n".join(lignes) + "\n"

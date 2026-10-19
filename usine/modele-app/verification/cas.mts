@@ -10,7 +10,7 @@
 import type { Case, EntitySpec, User, Users, World } from './noyau.mts';
 
 type Champ = { nom: string; type: string; libelle: string; obligatoire?: boolean; valeurs?: { code: string }[] };
-type Entite = { name: string; nature: string; owner?: string | null; references?: string[]; process?: unknown };
+type Entite = { name: string; nature: string; owner?: string | null; references?: string[]; process?: unknown; parent?: string | null };
 
 const bas = (n: string) => n[0].toLowerCase() + n.slice(1);
 
@@ -28,16 +28,17 @@ function valeur(c: Champ, i: number): unknown {
     }
 }
 
-export function construireCas(description: any, depart: any): Case {
+export function construireCas(description: any, depart: any, matrice: any): Case {
     const entites: Entite[] = description.acces.entities;
     const parNom = Object.fromEntries(entites.map((e) => [e.name, e]));
     const champs: Record<string, Champ[]> = description.champs ?? {};
-    // le même découpage des liens que l'usine (usine/traduire/modele.py)
-    const liens = (e: Entite) => (e.references ?? []).map((r) => {
-        const cible = parNom[r];
-        const proprietaire = cible.nature === 'profile' && e.nature === 'collection' && cible.owner === e.owner;
+    // (12 oct) les liens de propriété viennent de la MATRICE (décidés une fois par le calculateur), au lieu d'être
+    // recalculés ici avec une copie de la règle
+    const proprietes = new Set<string>(matrice.owner_links ?? []);
+    const liens = (e: Entite) => [...(e.references ?? []).map((r) => {
+        const proprietaire = proprietes.has(`${e.name}>${r}`);
         return { cible: r, fk: proprietaire ? null : `${bas(r)}Id` };
-    });
+    }), ...(e.nature === 'child' && e.parent ? [{ cible: e.parent, fk: `${bas(e.parent)}Id` }] : [])];   // (N1.3) son parent
     let n = 0;
     const entities: Record<string, EntitySpec> = {};
     for (const e of entites) {
@@ -48,6 +49,7 @@ export function construireCas(description: any, depart: any): Case {
             profile: e.nature === 'profile',
             stateField: e.process ? 'status' : undefined,
             editField: texte?.nom,
+            parent: e.nature === 'child' ? e.parent ?? undefined : undefined,
             build: (w: World, owner: User | null) => {
                 n++;
                 const data: Record<string, unknown> = Object.fromEntries((champs[e.name] ?? [])
@@ -71,6 +73,18 @@ export function construireCas(description: any, depart: any): Case {
             for (const modele of creation) {
                 const e = parNom[nomDe[modele]];
                 const spec = entities[e.name];
+                // (N1.3) des lignes sous CHAQUE parent de départ (de propriétaires différents si le parent en a) :
+                // sinon « voir les lignes des parents qu'on voit » ne se distingue pas de « tout voir »
+                if (e.nature === 'child' && e.parent) {
+                    const p = parNom[e.parent];
+                    const parents = p.nature === 'profile' || p.nature === 'collection'
+                        ? users[p.owner!].slice(0, 2).map((u) => w[`${p.name}:${u.id}`]).filter(Boolean) : [w[p.name]];
+                    for (const pid of parents) {
+                        const fiche = await raw[spec.model].create({ data: { ...spec.build(w, null), [`${bas(p.name)}Id`]: pid } });
+                        w[e.name] ??= fiche.id;
+                    }
+                    continue;
+                }
                 const proprietaires = e.nature === 'profile' || e.nature === 'collection' ? users[e.owner!].slice(0, 2) : [null, null];
                 for (const u of proprietaires) {
                     const fiche = await raw[spec.model].create({ data: spec.build(w, u) });
@@ -79,6 +93,11 @@ export function construireCas(description: any, depart: any): Case {
                 }
                 // la fiche reliée à rien : jamais rangée dans w, donc aucune autre fiche ne la désigne
                 if (e.nature === 'profile') await raw[spec.model].create({ data: spec.build(w, { id: `${e.owner}_4`, role: e.owner! }) });
+                // (N1.2, trou trouvé par mutation) une COLLECTION désignée par une autre fiche : une 3e fiche du
+                // 1er propriétaire, que rien ne désigne (sinon « voir au travers » ne se distingue pas de « tout
+                // voir », et « re-désigner une autre de ses fiches » n'a rien à re-désigner)
+                const designee = entites.some((x) => (x.references ?? []).includes(e.name));
+                if (e.nature === 'collection' && designee) await raw[spec.model].create({ data: spec.build(w, proprietaires[0]) });
             }
             return w;
         },

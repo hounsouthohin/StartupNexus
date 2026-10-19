@@ -1,0 +1,148 @@
+# Périmètre attendu, écrit AVANT tout lancement (9 oct 2026). « limite » : les deux réponses sont acceptées.
+briefs:
+  c2-restauration-collective:
+    perimetre: dans
+    pourquoi: stocks, achats, recettes, RH multi-sites ; coûts et rapports = hors
+      stock
+    secteur: restauration
+  c2-erp-compta:
+    perimetre: limite
+    pourquoi: cœur = comptabilité / gestion financière (calculs) ; stock = dans
+    secteur: générique
+  c2-clotures-maintenance:
+    perimetre: dans
+    pourquoi: portail client + maintenance ; site vitrine, appli mobile, documents
+      = hors stock
+    secteur: BTP
+  c2-portes-interventions:
+    perimetre: dans
+    pourquoi: bons d'intervention, congés, commandes ; signature, devis, documents
+      = hors stock
+    secteur: maintenance industrielle
+  c2-batiment-stock-devis:
+    perimetre: dans
+    pourquoi: stock, devis/factures, chantiers ; site + devis en ligne = hors stock
+    secteur: BTP
+  c2-ventes-stock-simple:
+    perimetre: dans
+    pourquoi: ventes, clients, stock, tableau de bord
+    secteur: commerce
+  c2-commerce-meubles:
+    perimetre: dans
+    pourquoi: commandes, encaissements, fournisseurs, stocks, livraisons
+    secteur: commerce
+  c2-support-interventions:
+    perimetre: dans
+    pourquoi: fiches d'intervention, traité / non traité, base de connaissances
+    secteur: support technique
+  c2-depannage-24h:
+    perimetre: dans
+    pourquoi: interventions clients / techniciens ; SMS, pourcentages = hors stock
+    secteur: dépannage à domicile
+  c2-conciergerie-menage:
+    perimetre: dans
+    pourquoi: réservations, ménages pris par les équipes, rapports ; PDF, photos =
+      hors stock
+    secteur: nettoyage
+  c2-nettoyage-industriel:
+    perimetre: dans
+    pourquoi: clients, sites, plannings agents, rapports ; planning = hors stock
+    secteur: nettoyage
+  c2-planning-intelligent:
+    perimetre: hors
+    pourquoi: produit grand public, optimisation automatique (trafic, météo)
+    secteur: grand public
+  c2-ecole-privee:
+    perimetre: dans
+    pourquoi: inscriptions, paiements mensuels, notes
+    secteur: éducation
+  c2-plateforme-educative:
+    perimetre: limite
+    pourquoi: inscriptions/notes = dans ; plusieurs établissements, OCR + IA, diplômes
+      = hors
+    secteur: éducation
+  c2-location-evenementiel:
+    perimetre: dans
+    pourquoi: clients, devis, contrats, stock par événement ; calendrier, vidéos =
+      hors stock
+    secteur: événementiel
+  c2-materiel-epi:
+    perimetre: dans
+    pourquoi: matériels, vérifications ; amortissements, alertes = hors stock
+    secteur: matériel de sécurité
+  c2-conges-attestations:
+    perimetre: dans
+    pourquoi: demandes de congé / attestation validées par rôles ; calculs, e-mails,
+      pointeuse = hors stock
+    secteur: RH
+  c2-conges-absences:
+    perimetre: dans
+    pourquoi: congés et absences des agents ; solde de 30 jours = calcul
+    secteur: RH
+  c2-restaurant-caisse:
+    perimetre: limite
+    pourquoi: cœur = caisse / prise de commande (point de vente) ; menu, stock, réservations
+      = dans
+    secteur: restauration
+  c2-portail-visa:
+    perimetre: dans
+    pourquoi: chaque client suit son dossier ; documents = hors stock
+    secteur: voyage
+  c2-suivi-dossiers:
+    perimetre: dans
+    pourquoi: dossiers suivis par admin et client ; documents générés = hors stock
+    secteur: générique
+  c2-dossiers-maintenance:
+    perimetre: dans
+    pourquoi: dossiers clients, intervenants, matériel, interventions ; formulaires
+      générés = hors stock
+    secteur: maintenance
+  c2-cabinet-avocats:
+    perimetre: dans
+    pourquoi: dossiers, répartition, tâches ; machine learning, alertes = hors stock
+    secteur: juridique
+  c2-dossiers-plaintes:
+    perimetre: dans
+    pourquoi: dossiers suivant une procédure ; courriers types = hors stock
+    secteur: juridique
+  c2-atelier-reparation:
+    perimetre: dans
+    pourquoi: bons d'entrée, interventions, pièces, machines
+    secteur: garage / atelier
+  c2-garage-automobile:
+    perimetre: dans
+    pourquoi: réception, contrôle, réparation ; photos, rapport imprimable = hors
+      stock
+    secteur: garage / atelier
+  c2-salle-de-sport:
+    perimetre: dans
+    pourquoi: adhérents, abonnements, présences ; paiements = hors stock
+    secteur: sport
+  c2-crossfit-reservations:
+    perimetre: dans
+    pourquoi: créneaux et inscriptions ; places max, liste d'attente, rappels = hors
+      stock
+    secteur: sport
+  c2-micro-creche:
+    perimetre: dans
+    pourquoi: personnel, parents, enfants, stocks ; pointage, photos, fiches de paie
+      = hors stock
+    secteur: petite enfance
+  c2-flotte-assurance:
+    perimetre: dans
+    pourquoi: souscripteurs, contrats, véhicules ; carte verte PDF, e-mails = hors
+      stock
+    secteur: assurance
+  c2-parc-auto-qr:
+    perimetre: dans
+    pourquoi: véhicules, états des lieux, coûts ; QR, e-mails, calculs = hors stock
+    secteur: gestion de parc
+  c2-paramedical-analyse:
+    perimetre: hors
+    pourquoi: cœur = analyse automatique sur dessins (iPad), recommandations calculées
+    secteur: santé
+  c2-cliniques-patients:
+    perimetre: dans
+    pourquoi: patients, rendez-vous, ordonnances ; SMS, factures, planning = hors
+      stock
+    secteur: santé

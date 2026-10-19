@@ -19,6 +19,20 @@
 // ▌     bloc (blocs/*.mts) — AUCUNE vérification ajoutée, retirée ou modifiée : la liste complète des
 // ▌     vérifications et leurs verdicts sont identiques à ceux de la v1.2 sur 3 apps (comparaison
 // ▌     TESTEUR_DETAIL), et les preuves par mutation redonnent les mêmes scores.
+// ▌ VERSION 1.4 — 9 oct 2026 (N1.2, formulaires). Changement, et sa nature :
+// ▌  8. besoin nouveau (les formulaires rendent les liens modifiables) : en MODIFIANT, pointer une fiche
+// ▌     qu'on ne voit pas, ou d'un autre propriétaire, est refusé ; re-désigner une fiche visible du
+// ▌     même propriétaire reste permis (blocs/modifier.mts) ;
+// ▌  9. trou de couverture (trouvé par l'app d'essai des types) : la suppression permise seulement
+// ▌     dans certains états est essayée état par état (blocs/supprimer.mts) ;
+// ▌ 10. besoin nouveau (doctrine d'intégrité) : même qui peut supprimer ne supprime pas une fiche que
+// ▌     d'autres désignent ; qui ne voit une fiche qu'au travers d'autres ne re-désigne pas ce lien.
+// ▌ VERSION 1.5 — 10 oct 2026 (N1.3, fiches enfants). Changement, et sa nature :
+// ▌ 11. besoin nouveau (bloc « enfant », doctrine du 10 oct) : les LIGNES d'une fiche ont leur bloc
+// ▌     (blocs/enfant.mts) — voir celles des parents qu'on voit ; gérer selon l'état du parent ; jamais
+// ▌     déplacée ; cascade. Les autres blocs ne jugent plus les lignes (noyau : `enfants`), et l'intégrité
+// ▌     ne compte pas les lignes d'une fiche parmi ce qui la retient (blocs/supprimer.mts). Pour une app
+// ▌     SANS fiche enfant, les vérifications sont inchangées.
 // ▌ Toute modification ultérieure = nouvelle version, notée avec sa nature (erreur / besoin / rustine).
 // Testeur générique : lit la matrice de l'app et essaie chaque case contre la base, avec le client AVEC
 // règles, rôle par rôle. Livré avec l'app : il resservira à chaque évolution.
@@ -26,9 +40,11 @@
 import { lancer } from './noyau.mts';
 import { circuit } from './blocs/circuit.mts';
 import { creer } from './blocs/creer.mts';
+import { enfant } from './blocs/enfant.mts';
 import { modifier } from './blocs/modifier.mts';
 import { supprimer } from './blocs/supprimer.mts';
 import { voir } from './blocs/voir.mts';
 
 // L'ordre compte (mêmes données, mêmes cibles) : « voir » pour tous d'abord, puis les actions.
-await lancer([voir], [creer, modifier, circuit, supprimer]);
+// (N1.3) les lignes (fiches enfants) sont jugées par leur propre bloc, « enfant ».
+await lancer([voir], [creer, modifier, circuit, supprimer, enfant]);

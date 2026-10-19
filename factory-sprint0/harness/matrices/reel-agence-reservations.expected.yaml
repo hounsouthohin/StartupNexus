@@ -14,7 +14,9 @@ cells:
     Rate: {see: all, create: "yes", edit: true}
     Destination: {see: all, create: "yes", edit: true}
     ProviderProfile: {see: all, edit: true}              # « gérer les comptes de ces prestataires »
-    Customer: {see_via: [Reservation]}                   # rien n'est dit : voit le client sur la réservation
+    Customer: {see: all}                                 # il crée des réservations : il doit choisir le client
+                                                         # (9 oct : l'attendu « vu seulement au travers des
+                                                         # réservations » rendait la 1re réservation impossible)
     Reservation:
       see: all
       create: "yes"                                      # « faire des réservations … pour son compte »

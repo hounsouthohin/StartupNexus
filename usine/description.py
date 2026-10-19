@@ -42,8 +42,9 @@ class Champ(_Strict):
     obligatoire: bool = True
     valeurs: list[Valeur] = Field(default_factory=list)      # seulement pour « choix »
     # « brief » : cité par le brief ; « necessaire » : le brief ne cite rien, il faut au moins un nom
-    # pour reconnaître la fiche (clôture) — le miroir le montrera au client
-    origine: Literal["brief", "necessaire"] = "brief"
+    # pour reconnaître la fiche (clôture) — le miroir le montrera au client ; « proposition » : proposé
+    # par l'IA et ACCEPTÉ par le client (miroir, N1.4 — en répétition : client simulé, étiqueté)
+    origine: Literal["brief", "necessaire", "proposition"] = "brief"
     citation: str = ""
 
 
@@ -89,13 +90,50 @@ class Description(_Strict):
                     errs.append(f"{fiche}.{c.nom} : un choix a au moins 2 valeurs, codes uniques en minuscules")
                 if c.type != "choix" and c.valeurs:
                     errs.append(f"{fiche}.{c.nom} : des valeurs seulement pour un choix")
+        # (12 oct) chaque refus d'un bloc pas construit commence par un CODE stable « [bloc:<id du catalogue>] » ou
+        # « [limite:…] » : le catalogue des blocs et l'outil de répétition lisent le code, plus des morceaux de phrase
+        natures = {e.name: e.nature for e in self.acces.entities}
         for e in self.acces.entities:
-            if e.nature == "child":
-                errs.append(f"{e.name} : les fiches enfants arrivent en N1.x (pas dans le squelette)")
+            # (N1.3) les fiches enfants (les lignes d'une fiche) sont construites ; une ligne de ligne, pas encore
+            # (13 oct) une ligne qui « désigne » aussi son parent : le même lien deux fois — refusé franchement
+            # (la génération du schéma plantait sur un champ en double)
+            if e.nature == "child" and e.parent in e.references:
+                errs.append(f"[erreur:enfant-designe-parent] {e.name} : désigne aussi son parent {e.parent} "
+                            "(le lien vers le parent existe déjà)")
+            if e.nature == "child" and natures.get(e.parent) == "child":
+                errs.append(f"[limite:ligne-de-ligne] {e.name} : une ligne de ligne (enfant de {e.parent}, lui-même enfant) n'est pas encore construite")
             # (N1.1b, trouvé par l'inventaire des blocs) la publication n'a pas encore son bloc : la règle
             # citerait un champ « published » jamais créé — refusée franchement plutôt qu'à moitié faite
             if e.publication:
-                errs.append(f"{e.name} : la publication (brouillon / publié) arrive en N1.3 (bloc pas encore construit)")
+                errs.append(f"[bloc:portee:published] {e.name} : la publication (brouillon / publié) arrive en N1.3 (bloc pas encore construit)")
+            # (N1.2) saisie pour autrui : l'écran devrait faire choisir la personne concernée — bloc pas encore
+            # construit (aucun des vrais briefs ne l'a demandé) : refusé franchement
+            if e.nature == "collection" and (e.entered_by or (e.process and e.process.initiator != e.owner)):
+                errs.append(f"[bloc:lien:pour-autrui] {e.name} : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)")
+            # (répétition temps 2, trouvé par le juge des règles) un profil est créé tout seul à la première
+            # connexion : un lien obligatoire (« son agence ») ne peut pas y être rempli — l'app plantait à la
+            # première connexion de ce rôle. Bloc « lien depuis un profil » pas encore construit : refusé franchement
+            if e.nature == "profile" and e.references:
+                errs.append(f"[bloc:lien:profil] {e.name} : un profil qui désigne une autre fiche ({', '.join(e.references)}) arrive en N1.3 "
+                            "(bloc « lien depuis un profil » pas encore construit)")
+        # (répétition temps 2, trouvé par le testeur qui plantait) « les siennes » sur une fiche SANS propriétaire
+        # (« le client voit ses équipements » : l'équipement le désigne, il ne lui appartient pas) — aucune
+        # règle n'était écrite (l'acteur ne voyait rien, en silence). Bloc « celles qui le désignent » pas
+        # encore construit : refusé franchement
+        proprio = {e.name: e.owner for e in self.acces.entities}
+        for x in self.acces.exceptions:
+            # (13 oct, corpus) même chose pour un acteur qui n'est PAS le propriétaire (« l'enseignant voit les siennes »
+            # parmi les notes des étudiants) : il n'en possède aucune — il veut celles qui le désignent
+            # (14 oct, corpus) créer le PROFIL d'une autre personne (« le RH crée les comptes des employés ») : c'est
+            # inviter quelqu'un — bloc pas encore construit (N1.5) ; traduit tel quel, la règle laissait le RH se créer
+            # une fiche d'employé à lui-même (le juge l'a vu)
+            if x.action == "create" and x.allow and natures.get(x.entity) == "profile" and proprio.get(x.entity) != x.actor:
+                errs.append(f"[bloc:acteur:invitation] {x.actor} / {x.entity} : créer le compte d'une autre personne, c'est "
+                            "l'inviter — arrive avec la connexion et l'équipe (N1.5)")
+            if x.action == "see" and x.allow and x.scope == "own" and x.entity in proprio and proprio[x.entity] != x.actor:
+                errs.append(f"[bloc:portee:designe] {x.actor} / {x.entity} : « les siennes » sur des fiches qu'il ne possède pas "
+                            f"({'sans propriétaire' if not proprio[x.entity] else 'elles sont à « ' + proprio[x.entity] + ' »'}) — "
+                            "« celles qui le désignent » arrive en N1.3 (bloc pas encore construit)")
         for fiche in self.ecran:
             if fiche not in noms:
                 errs.append(f"ecran : fiche « {fiche} » inconnue")

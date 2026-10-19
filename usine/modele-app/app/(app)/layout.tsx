@@ -18,8 +18,8 @@ async function AvecSession({ children }: { children: React.ReactNode }) {
     await ensureProfile(user);
     const role = (user?.role ?? 'visitor') as Role;
     return (
-        <Fournisseur role={role}>
-            <Entete role={role} />
+        <Fournisseur role={role} personne={user?.id ?? ''}>
+            <Entete role={role} personne={user?.id} />
             <main className="mx-auto max-w-4xl p-6">{children}</main>
         </Fournisseur>
     );

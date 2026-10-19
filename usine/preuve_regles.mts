@@ -99,7 +99,19 @@ function mutants(source: string): Mutant[] {
 // ─── Exécution ─────────────────────────────────────────────────────────────────────────────
 const SCHEMA = 'zenstack/schema.zmodel';
 const original = readFileSync(SCHEMA, 'utf8');
-const list = mutants(original.replace(/\r\n/g, '\n'));
+// (N1.3) MODELES=A,B : ne saboter que les règles de ces fiches (prouver un bloc neuf sans rejouer toute l'app)
+const viser = (process.env.MODELES ?? '').split(',').filter(Boolean);
+const dansModeles = (src: string, ligne: number): boolean => {
+    if (!viser.length) return true;
+    const lignes = src.split('\n');
+    for (let i = ligne - 1; i >= 0; i--) {
+        const m = lignes[i].match(/^model (\w+) \{/);
+        if (m) return viser.includes(m[1]);
+        if (lignes[i] === '}') return false;
+    }
+    return false;
+};
+const list = mutants(original.replace(/\r\n/g, '\n')).filter((m) => dansModeles(original.replace(/\r\n/g, '\n'), m.line));
 const generer = () => spawnSync('npx zen generate --schema zenstack/schema.zmodel -o zenstack --silent', { shell: true, encoding: 'utf8' });
 const tester = () => spawnSync('npx tsx --env-file=.env.local verification/testeur.mts', { shell: true, encoding: 'utf8', timeout: 300_000 });
 type Result = Mutant & { verdict: 'tué' | 'survivant' | 'invalide' | 'plantage'; detail: string };

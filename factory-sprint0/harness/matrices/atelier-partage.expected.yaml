@@ -16,7 +16,7 @@ cells:
   animateur:
     Workshop: {see: all, create: "yes", edit: true}   # « Je propose des ateliers » ; supprimer : non dit
     Domain: {see: all}              # liste fixe : personne ne la gère
-    Slot: {see: all, create: "yes", edit: true}       # « ceux que je propose »
+    Slot: {see: all, create: "yes", edit: true, delete: true}   # « ceux que je propose » ; retirer une ligne : doctrine du 10 oct (qui gère le parent gère ses lignes)
     ParticipantProfile: {see_via: [Reservation]}   # voit qui a réservé (nom, téléphone) sur la réservation
     Reservation:
       see: all

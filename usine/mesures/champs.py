@@ -115,7 +115,7 @@ def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser()
     p.add_argument("--modele", default="gpt-5.4-mini")
-    p.add_argument("--plafond", type=float, default=0.20)
+    p.add_argument("--plafond", type=float, default=2.0)
     p.add_argument("--mediatheque", help="dossier d'un `comprendre` de la médiathèque (pour ses fiches)")
     p.add_argument("--seulement", action="append", default=[])
     args = p.parse_args()

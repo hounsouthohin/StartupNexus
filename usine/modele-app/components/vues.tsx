@@ -1,7 +1,8 @@
 'use client';
 // AFFICHAGE pur : il reçoit des données, il n'en cherche aucune (étude 06).
 import Link from 'next/link';
-import type { Fiche, Saisie } from '@/lib/fiche';
+import { useState } from 'react';
+import type { Fiche, Lien, Saisie } from '@/lib/fiche';
 
 type Ligne = Record<string, unknown> & { id: string };
 
@@ -30,8 +31,12 @@ export function Tableau(props: { fiche: Fiche; lignes: Ligne[]; lienDetail?: str
     return (
         <ul className="divide-y rounded border bg-white">
             {lignes.map((l) => {
-                const morceaux = [...(fiche.liens ?? []).map((k) => valeurLien(l, k.nom, k.affiche)),
-                    ...fiche.champs.map((c) => valeur(fiche, l, c.nom, c.type))].filter((x) => x && x !== '—');
+                // d'abord ce qui IDENTIFIE la fiche (ses liens, son nom…), l'état ensuite : le lien cliquable de la
+                // ligne est le premier morceau — pas « actif » (trouvé par la répétition)
+                const champs = [...fiche.champs.filter((c) => c.type !== 'etat'), ...fiche.champs.filter((c) => c.type === 'etat')];
+                // (N1.3) une ligne n'affiche pas son parent : on est déjà dans sa page
+                const morceaux = [...(fiche.liens ?? []).filter((k) => !k.parent).map((k) => valeurLien(l, k.nom, k.affiche)),
+                    ...champs.map((c) => valeur(fiche, l, c.nom, c.type))].filter((x) => x && x !== '—');
                 return (
                     <li key={l.id} className="flex items-center justify-between gap-4 p-3">
                         <span>
@@ -41,7 +46,7 @@ export function Tableau(props: { fiche: Fiche; lignes: Ligne[]; lienDetail?: str
                                 <span key={i} className={i === 0 ? 'font-semibold' : 'text-slate-500'}>{i ? ' — ' : ''}{x}</span>
                             )))}
                         </span>
-                        {props.actions?.(l)}
+                        <span className="flex shrink-0 flex-wrap gap-2">{props.actions?.(l)}</span>
                     </li>
                 );
             })}
@@ -103,17 +108,45 @@ function enSaisie(saisie: Saisie, v: unknown): string {
     return String(v);
 }
 
+// Le formulaire d'une fiche : création (ligne vide) ou modification (ligne remplie). Les liens vers
+// d'autres fiches sont des listes de choix, rendues par `choixLien` (la pièce qui sait les charger) ;
+// le lien vers le profil du propriétaire n'est jamais choisi : il est posé automatiquement.
 export function Formulaire(props: {
-    fiche: Fiche; ligne: Ligne; onSave: (valeurs: Record<string, unknown>) => void;
-    etat: 'repos' | 'en-cours' | 'ok' | 'erreur'; erreur?: string;
+    fiche: Fiche; ligne?: Record<string, unknown>; onSave: (valeurs: Record<string, unknown>) => void;
+    etat: 'repos' | 'en-cours' | 'ok' | 'erreur'; erreur?: string; bouton?: string;
+    choixLien?: (lien: Lien, valeur: string) => React.ReactNode;
 }) {
-    const { fiche, ligne } = props;
+    const { fiche } = props;
+    const ligne = props.ligne ?? {};
+    const [patience, setPatience] = useState(false);
+    const [manque, setManque] = useState<string[]>([]);
+    // le profil du propriétaire et (N1.3) le parent d'une ligne sont posés automatiquement : jamais choisis
+    const liens = (fiche.liens ?? []).filter((l) => !l.proprietaire && !l.parent);
     return (
         <form className="space-y-3 rounded border bg-white p-4" onSubmit={(e) => {
             e.preventDefault();
+            // (N1.3, défaut trouvé par le témoin d'une preuve) envoyé pendant qu'une liste de choix chargeait, le
+            // formulaire partait avec un lien VIDE, refusé par la base avec un message incompréhensible : il attend
+            if (e.currentTarget.querySelector('[data-chargement]')) { setPatience(true); return; }
+            setPatience(false);
             const data = new FormData(e.currentTarget);
-            props.onSave(Object.fromEntries(fiche.modifiables.map((c) => [c.nom, lire(c.saisie, data.get(c.nom), c.obligatoire)])));
+            // (13 oct) une fiche liée sans aucun choix possible : on le dit au lieu d'envoyer une demande que le serveur
+            // refuserait avec un message incompréhensible (ligne de checklist sans point de checklist — portes)
+            const manque = props.choixLien ? liens.filter((l) => !data.has(l.fk)).map((l) => l.libelle.toLowerCase()) : [];
+            setManque(manque);
+            if (manque.length) return;
+            props.onSave(Object.fromEntries([
+                ...fiche.modifiables.map((c) => [c.nom, lire(c.saisie, data.get(c.nom), c.obligatoire)]),
+                // un lien absent du formulaire n'est jamais envoyé (il serait effacé)
+                ...(props.choixLien ? liens.filter((l) => data.has(l.fk)).map((l) => [l.fk, String(data.get(l.fk))]) : []),
+            ]));
         }}>
+            {props.choixLien && liens.map((l) => (
+                <label key={l.fk} className="block text-sm">
+                    <span className="text-slate-500">{l.libelle}</span>
+                    {props.choixLien!(l, String(ligne[l.fk] ?? ''))}
+                </label>
+            ))}
             {fiche.modifiables.map((c) => (
                 <label key={c.nom} className="block text-sm">
                     <span className="text-slate-500">{c.libelle}{c.obligatoire ? '' : ' (facultatif)'}</span>
@@ -133,7 +166,9 @@ export function Formulaire(props: {
                     )}
                 </label>
             ))}
-            <button disabled={props.etat === 'en-cours'} className="rounded bg-slate-900 px-3 py-1 text-sm text-white">Enregistrer</button>
+            <button disabled={props.etat === 'en-cours'} className="rounded bg-slate-900 px-3 py-1 text-sm text-white">{props.bouton ?? 'Enregistrer'}</button>
+            {patience && <span className="ml-3 text-sm text-slate-500">Patientez : les listes de choix se chargent.</span>}
+            {manque.length > 0 && <span className="ml-3 text-sm text-red-700">Impossible pour l&apos;instant : il faut d&apos;abord créer {manque.join(', ')}.</span>}
             {props.etat === 'ok' && <span className="ml-3 text-sm text-green-700">Enregistré.</span>}
             {props.etat === 'erreur' && <span className="ml-3 text-sm text-red-700">Refusé : {props.erreur}</span>}
         </form>

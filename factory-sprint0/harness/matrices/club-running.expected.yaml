@@ -6,4 +6,4 @@ cells:
     # privé montre ses participants ». (Fuite réelle constatée le 6 juillet 2026.)
   organizer:
     Run: {see: all, create: "yes", edit: true, delete: true}
-    Participant: {see: all, create: "yes", edit: true}   # « je note les participants » ; supprimer : non dit (révisé 1er oct)
+    Participant: {see: all, create: "yes", edit: true, delete: true}   # « je note les participants » ; retirer une ligne : doctrine du 10 oct (qui gère le parent gère ses lignes)

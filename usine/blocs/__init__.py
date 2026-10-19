@@ -26,8 +26,8 @@ S, MOD, E, D = "usine/traduire/schema.py", "usine/traduire/modele.py", "usine/tr
 DESC, MAT = "usine/description.py", "factory-sprint0/agents/capability_matrix.py"
 V, P, F = "usine/modele-app/components/vues.tsx", "usine/modele-app/components/pieces.tsx", "usine/modele-app/lib/fiche.ts"
 JB = "usine/modele-app/verification/blocs/"
-NOY, CAS, E2E = "usine/modele-app/verification/noyau.mts", "usine/modele-app/verification/cas.mts", "usine/modele-app/e2e/roles.spec.ts"
-EX_MED, EX_TYP = "usine/exemples/mediatheque.json", "usine/exemples/types.json"
+NOY, CAS, E2E = "usine/modele-app/verification/noyau.mts", "usine/modele-app/verification/cas.mts", "usine/modele-app/e2e/noyau.ts"
+EX_MED, EX_TYP, EX_UNI = "usine/exemples/mediatheque.json", "usine/exemples/types.json", "usine/exemples/union-sportive.json"
 
 
 @dataclass
@@ -58,8 +58,9 @@ class Bloc:
     def etat(self) -> str:
         if self.refuse:
             return "refusé"
-        n = sum(1 for p in self.parties.values() if p)
-        return "complet" if n == 4 else "partiel"
+        # une règle serveur n'a pas d'écran par nature : son écran manquant n'est pas un manque
+        requises = [n for n in self.parties if not (n == "écran" and self.id in SANS_ECRAN)]
+        return "complet" if all(self.parties[n] for n in requises) else "partiel"
 
 
 def _type(t: str, nom: str, base: str, role: str) -> Bloc:
@@ -85,25 +86,30 @@ BLOCS: list[Bloc] = [
          Partie(EX_MED, '"nature": "collection"', "médiathèque")),
     Bloc("nature:registry", "Natures de fiches", "Registre", "des fiches tenues par l'équipe, vues seulement de ceux qui les tiennent",
          Partie(MAT, '"registry"', "préréglages du calculateur"), Partie(P, "export function ListeDeFiches"),
-         Partie(JB + "voir.mts", "voir : rien"), None,
-         notes=["jamais fabriqué dans une app prouvée : la répétition générale (lot d'apprentissage, surtout des registres) le prouvera"]),
+         Partie(JB + "voir.mts", "voir : rien"),
+         Partie(EX_UNI, '"nature": "registry"', "union sportive (répétition) : 188/188, sabotages à effet 70/70")),
     Bloc("nature:child", "Natures de fiches", "Enfant", "des lignes qui n'existent qu'à l'intérieur d'une autre fiche",
-         refuse=Partie(DESC, "les fiches enfants arrivent", "refusé par la description"), notes=["prévu en N1.3"]),
+         construire=Partie(S, "def regles_enfant", "vue comme le parent ; gérée par qui modifie le parent dans son état ; "
+                                                   "jamais déplacée ; supprimée avec lui (seule cascade)"),
+         ecran=Partie(P, "function Lignes", "dans la page du parent : ajouter, modifier la ligne, retirer"),
+         juger=Partie(JB + "enfant.mts", "export const enfant", "voir, gérer selon l'état du parent, déplacer, cascade"),
+         prouver=Partie(EX_TYP, '"nature": "child"', "app d'essai des types : lignes de commande — 267/267, 16/16 ; "
+                                                     "sabotages des règles 27/27 à effet (15 masqués, classés), d'écran 10/10"),
+         notes=["N1.3 (10 oct) : 6 briefs sur 16 en avaient besoin ; une ligne de ligne reste refusée"]),
     # ── Actions ────────────────────────────────────────────────────────────
     Bloc("action:see", "Actions", "Voir", "qui voit quelles fiches (rien, les siennes, toutes, au travers d'une autre)",
          Partie(S, "@@allow('read'"), Partie(E, '"chemin": f"/f/{e.name}"', "menu par rôle et listes"),
          Partie(JB + "voir.mts", "export const voir"), Partie(EX_MED, '"references"', "médiathèque ; sabotages d'écran « perd voir », « menu »")),
     Bloc("action:create", "Actions", "Créer", "qui crée quelles fiches, pour lui seul, dans l'état de départ",
-         Partie(S, "@@allow('create'"), Partie(P, "useCreate()", "bouton d'un clic ; formulaires de création : N1.5"),
-         Partie(JB + "creer.mts", "export const creer"), Partie(EX_MED, '"initiator"', "médiathèque ; sabotage d'écran « reçoit créer »"),
-         notes=["création d'un clic seulement si la fiche n'a ni champ obligatoire ni second lien (formulaires : N1.5)"]),
+         Partie(S, "@@allow('create'"), Partie(P, "function CreationFiche", "bouton « Nouveau… » + formulaire ; boutons d'un clic"),
+         Partie(JB + "creer.mts", "export const creer"), Partie(EX_MED, '"initiator"', "médiathèque ; sabotages d'écran « reçoit créer »")),
     Bloc("action:edit", "Actions", "Modifier", "qui modifie quelles fiches, et dans quels états",
-         Partie(S, "@@allow('update'"), Partie(V, "export function Formulaire", "formulaire du profil ; les autres : N1.5"),
-         Partie(JB + "modifier.mts", "export const modifier"), Partie(EX_MED, '"nature": "profile"', "médiathèque (profil)"),
-         notes=["l'écran de modification n'existe que pour le profil (N1.5)"]),
+         Partie(S, "@@allow('update'"), Partie(P, 'action="modifier"', "bouton « Modifier » + formulaire, selon l'état"),
+         Partie(JB + "modifier.mts", "export const modifier"), Partie(EX_TYP, '"action": "edit"', "app des types : modifier selon l'état")),
     Bloc("action:delete", "Actions", "Supprimer", "jamais par défaut ; seulement si le brief le dit",
-         Partie(S, "@@allow('delete'"), None, Partie(JB + "supprimer.mts", "export const supprimer"), None,
-         notes=["pas de bouton « supprimer » (N1.5)", "seul le REFUS est prouvé : aucune app prouvée n'accorde la suppression"]),
+         Partie(S, "@@allow('delete'"), Partie(P, 'action="supprimer"', "bouton « Supprimer » + confirmation, selon l'état"),
+         Partie(JB + "supprimer.mts", "export const supprimer"),
+         Partie(EX_UNI, '"action": "delete"', "union sportive : suppression accordée par le brief, prouvée")),
     Bloc("action:transition", "Actions", "Étapes d'un circuit", "les états d'une fiche et qui la fait passer de l'un à l'autre",
          Partie(S, "une règle par flèche"), Partie(P, "n.etat.boutons", "boutons de décision"),
          Partie(JB + "circuit.mts", "export const circuit"), Partie(EX_MED, '"transitions"', "médiathèque ; sabotages d'écran « perd / gagne une étape »")),
@@ -112,11 +118,18 @@ BLOCS: list[Bloc] = [
          Partie(S, "?[true]"), Partie(V, "function valeurLien"), Partie(JB + "voir.mts", "seulement au travers"),
          Partie(EX_MED, '"references": ["Book", "Member"]', "médiathèque : le bibliothécaire voit les profils au travers des emprunts")),
     Bloc("portee:published", "Portées de lecture", "Publiées seulement", "brouillon / publié : les autres ne voient que le publié",
-         refuse=Partie(DESC, "la publication (brouillon / publié) arrive", "refusé par la description"), notes=["prévu en N1.3"]),
+         refuse=Partie(DESC, "[bloc:portee:published]", "refusé par la description"), notes=["prévu en N1.3"]),
+    Bloc("portee:designe", "Portées de lecture", "Celles qui le désignent", "voir les fiches qui désignent sa propre fiche (le client voit ses équipements)",
+         refuse=Partie(DESC, "[bloc:portee:designe]", "refusé par la description (et par le calculateur : choisir parmi les siens)"),
+         notes=["trouvé à la répétition temps 2 (2 briefs sur 9) : « les siennes » sur une fiche sans propriétaire ; "
+                "à construire en N1.3 selon sa fréquence dans le corpus"]),
     # ── Acteurs ────────────────────────────────────────────────────────────
     Bloc("acteur:roles", "Acteurs", "Rôles", "chaque personne connectée a un rôle ; les règles listent les rôles, jamais « tout connecté »",
          Partie(S, "def _role"), Partie("usine/modele-app/app/connexion/[qui]/route.ts", "export async function POST", "connexion simulée ; Clerk et invitations : N1.5"),
          Partie(NOY, "export const users"), Partie(EX_MED, '"becomes"', "médiathèque")),
+    Bloc("acteur:invitation", "Acteurs", "Invitation", "créer le compte d'une autre personne (le RH crée les comptes des employés)",
+         refuse=Partie(DESC, "[bloc:acteur:invitation]", "refusé par la description"),
+         notes=["trouvé au corpus (14 oct) ; prévu avec la connexion et l'équipe (N1.5)"]),
     Bloc("acteur:visitor", "Acteurs", "Visiteur", "quelqu'un sans compte : ne voit que ce qui est public",
          Partie(S, "VISITOR"), Partie(E2E, "'visitor'"), Partie(NOY, "'visitor'"), Partie(EX_MED, '"public": true', "médiathèque")),
     Bloc("acteur:intrus", "Acteurs", "Intrus", "connecté mais sans rôle déclaré : exactement les droits du visiteur",
@@ -124,8 +137,15 @@ BLOCS: list[Bloc] = [
          Partie(NOY, "INTRUDER"), Partie(EX_MED, '"becomes"', "médiathèque")),
     # ── Liens ──────────────────────────────────────────────────────────────
     Bloc("lien:reference", "Liens", "Lien vers une fiche", "une fiche en désigne une autre (un emprunt désigne un ouvrage)",
-         Partie(MOD, "class Lien"), Partie(V, "function valeurLien"), Partie(JB + "creer.mts", "foreignKeys"),
-         Partie(EX_MED, '"references"', "médiathèque")),
+         Partie(MOD, "class Lien"), Partie(P, "function ChoixLien", "affiché dans les fiches ; liste de choix des fiches visibles"),
+         Partie(JB + "creer.mts", "foreignKeys"), Partie(EX_MED, '"references"', "médiathèque")),
+    Bloc("lien:pour-autrui", "Liens", "Saisie pour autrui", "une personne crée une fiche au nom d'une autre (la secrétaire pour l'employé)",
+         refuse=Partie(DESC, "[bloc:lien:pour-autrui]", "refusé par la description"),
+         notes=["aucun des 7 vrais briefs ne l'a demandé ; arrivera avec l'écran « choisir la personne »"]),
+    Bloc("lien:profil", "Liens", "Lien depuis un profil", "le profil d'une personne désigne une autre fiche (l'agence du chef de projet)",
+         refuse=Partie(DESC, "[bloc:lien:profil]", "refusé par la description"),
+         notes=["trouvé à la répétition temps 2 (rénovation) : le profil, créé tout seul à la première connexion, "
+                "ne peut pas remplir ce lien ; à construire en N1.3 selon sa fréquence dans le corpus"]),
     Bloc("lien:multiple", "Liens", "Liens multiples", "une fiche en désigne plusieurs du même genre (un article et ses étiquettes)",
          refuse=Partie(DESC, "les « liens multiples » viendront", "absent du vocabulaire de la description"), notes=["prévu en N1.3"]),
     # ── Garanties (règles systématiques) ───────────────────────────────────
@@ -136,8 +156,19 @@ BLOCS: list[Bloc] = [
          Partie(S, "la date de création non plus"), None, Partie(JB + "modifier.mts", "sa date de création"),
          Partie(EX_TYP, '"nature": "collection"', "app des types et médiathèque"), notes=["règle serveur seulement : rien à afficher"]),
     Bloc("garantie:cloture", "Garanties", "Clôture à la création", "on ne désigne que des fiches qu'on a le droit de voir",
-         Partie(S, "check({l.nom}, 'read')"), None, Partie(JB + "creer.mts", "qu'il ne voit pas"), None,
-         notes=["règle serveur seulement", "prouvée seulement quand la fiche désignée n'est pas publique : jamais encore (toujours « sans effet »)"]),
+         Partie(S, "check({l.nom}, 'read')"), None, Partie(JB + "creer.mts", "qu'il ne voit pas"),
+         Partie(EX_TYP, '"name": "Adresse"', "app des types : prouvée en groupe avec la cohérence (sabotage de groupe)"),
+         notes=["règle serveur seulement", "elle se recouvre avec la cohérence des propriétaires : prouvée ensemble, pas seule"]),
+    Bloc("garantie:cloture-modif", "Garanties", "Clôture à la modification",
+         "en changeant un lien, on ne désigne qu'une fiche qu'on voit DIRECTEMENT, et du même propriétaire",
+         Partie(S, "AUSSI À LA MODIFICATION"), None, Partie(JB + "modifier.mts", "vue seulement au travers"),
+         Partie(EX_TYP, '"name": "Adresse"', "app des types : client et gérant ne peuvent pas pointer une adresse cachée ou d'un autre"),
+         notes=["règle serveur seulement (l'écran ne propose que les fiches visibles, mais il ne protège rien)",
+                "ses trois règles se recouvrent dans l'app d'essai : prouvées ensemble, pas une à une"]),
+    Bloc("garantie:integrite", "Garanties", "Intégrité", "on ne supprime pas une fiche que d'autres désignent (jamais de cascade)",
+         Partie(S, "onDelete: Restrict"), Partie(P, "impossible de la supprimer", "bouton grisé et raison affichée"),
+         Partie(JB + "supprimer.mts", "une fiche désignée par"),
+         Partie(EX_UNI, '"references"', "union sportive : un adhérent désigné par une adhésion")),
     Bloc("garantie:etape-seule", "Garanties", "Une étape ne change que l'état", "pendant une étape, aucun autre champ ne bouge",
          Partie(S, "def _inchange"), None, Partie(JB + "circuit.mts", "en changeant aussi"),
          Partie(EX_TYP, '"obligatoire": false', "app des types : champs facultatifs vides et remplis"), notes=["règle serveur seulement"]),
@@ -155,7 +186,7 @@ BLOCS: list[Bloc] = [
     _type("choix", "Liste fixe", "enum", "une valeur parmi une liste donnée par le brief"),
 ]
 # les parties « écran » d'une règle serveur n'existent pas par nature : ce n'est pas un manque
-SANS_ECRAN = {"garantie:proprietaire", "garantie:date", "garantie:cloture", "garantie:etape-seule"}
+SANS_ECRAN = {"garantie:proprietaire", "garantie:date", "garantie:cloture", "garantie:cloture-modif", "garantie:etape-seule"}
 
 
 def vocabulaire() -> dict[str, list[str]]:
@@ -208,7 +239,9 @@ def blocs_de(desc) -> list[str]:
     if any(e.process for e in desc.acces.entities):
         utilises |= {"action:transition", "garantie:etape-seule"}
     if any(e.references for e in desc.acces.entities):
-        utilises |= {"lien:reference", "garantie:cloture"}
+        utilises |= {"lien:reference", "garantie:cloture", "garantie:cloture-modif", "garantie:integrite"}
+    if any(e.nature == "profile" for e in desc.acces.entities):
+        utilises.add("action:edit")
     if any(e.owner for e in desc.acces.entities):
         utilises.add("garantie:proprietaire")
     utilises |= {"action:see", "action:create", "acteur:roles", "acteur:visitor", "acteur:intrus", "garantie:date"}

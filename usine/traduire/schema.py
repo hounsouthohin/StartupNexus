@@ -56,9 +56,14 @@ def _ou_etats(etats: list[str]) -> str:
     return "(" + " || ".join(f"(before().status == {s} && status == {s})" for s in etats) + ")"
 
 
-def _inchange(nom: str, facultatif: bool) -> str:
+def _inchange(nom: str, facultatif: bool, valeurs: list[str] | None = None) -> str:
     """« ce champ ne bouge pas ». Un champ facultatif peut être vide (NULL) : en SQL, NULL == NULL n'est
-    pas vrai, la règle refuserait donc toute étape (trouvé par l'app d'essai des types, N1.1)."""
+    pas vrai, la règle refuserait donc toute étape (trouvé par l'app d'essai des types, N1.1).
+    Un champ « choix » (énumération) s'écrit valeur par valeur, comme l'état : comparer une énumération à
+    son before() provoque la même erreur SQL dans ZenStack 3.9.7 (trouvé à la répétition temps 2)."""
+    if valeurs:
+        cas = [f"(before().{nom} == {v} && {nom} == {v})" for v in valeurs]
+        return "(" + " || ".join(cas + ([f"({nom} == null && before().{nom} == null)"] if facultatif else [])) + ")"
     egal = f"{nom} == before().{nom}"
     return f"({egal} || ({nom} == null && before().{nom} == null))" if facultatif else egal
 
@@ -68,9 +73,52 @@ def _portee(f: FicheApp, see: str) -> str:
     return f"{f.proprio} == auth().id" if see == "own" and f.proprio else ""
 
 
-def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
+def regles_enfant(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
+    """(N1.3) Une LIGNE (fiche enfant) : vue par qui voit son parent ; ajoutée, modifiée, retirée selon SA case de
+    la matrice (le calculateur la tire du parent : qui modifie le parent, dans ses états — doctrine du 10 oct ; un
+    seul auteur, la matrice — le traducteur ne recalcule rien), et sur un parent qu'on voit ; jamais déplacée vers
+    un autre parent ; supprimée avec lui (onDelete: Cascade, dans `modele`)."""
     e, out = f.e, []
-    autres = [(c.nom, not c.obligatoire) for c in f.champs] + [(l.fk, False) for l in f.liens if not l.proprietaire]
+    lp = next(l for l in f.liens if l.parent)
+    parent = fiches[lp.cible]
+    autres = [l for l in f.liens if not l.parent and not l.proprietaire]
+    parent_lu = f"check({lp.nom}, 'read')"
+    for c in (c for c in m.cells if c.entity == e.name):
+        a = c.actor
+        qui = "true" if a == VISITOR else _role(a)
+        if c.see != "none":
+            out.append(f"@@allow('read', {_et(qui, parent_lu)})")
+        if a == VISITOR:
+            continue
+        pc = next((x for x in m.cells if x.actor == a and x.entity == parent.nom), None)
+        base = [qui, parent_lu]
+        if pc is not None and pc.see == "own" and parent.proprio:
+            base.append(f"{lp.nom}.{parent.proprio} == auth().id")        # SON parent, s'il ne voit que les siens
+
+        def etats(liste: list[str]) -> str:                              # les états du PARENT où c'est permis
+            return "(" + " || ".join(f"{lp.nom}.status == {s}" for s in liste) + ")" if parent.e.process and liste else ""
+        cloture = [f"check({l.nom}, 'read')" for l in autres]           # on ne désigne que ce qu'on voit (E2)
+        if c.create == "yes":                                            # créer : dans les états que dit la matrice
+            out.append(f"@@allow('create', {_et(*base, etats(c.create_while), *cloture)})")
+        if c.edit:
+            out.append(f"@@allow('update', {_et(*base, etats(c.edit_while))})")
+        if c.delete:
+            out.append(f"@@allow('delete', {_et(*base, etats(c.delete_while))})")
+    out.append(f"@@deny('post-update', {lp.fk} != before().{lp.fk})")   # une ligne ne change jamais de parent
+    out.append("@@deny('post-update', createdAt != before().createdAt)")
+    for l in autres:
+        out.append(f"@@deny('post-update', {l.fk} != before().{l.fk} && !check({l.nom}, 'read'))")
+    for rel, _source in f.inverses:
+        out.append(f"@@deny('delete', {rel}?[true])")
+    return list(dict.fromkeys(out))
+
+
+def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
+    if f.e.nature == "child":
+        return regles_enfant(f, m, fiches)
+    e, out = f.e, []
+    autres = ([(c.nom, not c.obligatoire, [v.code for v in c.valeurs] if c.type == "choix" else None) for c in f.champs]
+              + [(l.fk, False, None) for l in f.liens if not l.proprietaire])
     for c in (c for c in m.cells if c.entity == e.name):
         a = c.actor
         qui = "true" if a == VISITOR else _role(a)          # rôles LISTÉS, jamais « tout connecté » (E4)
@@ -111,7 +159,7 @@ def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
             out.append(f"@@allow('post-update', {_et(qui, _ou_etats(etats))})")
         for depart, cibles in c.transitions.items():         # une règle par flèche ; rien d'autre ne bouge
             arrivee = "(" + " || ".join(f"status == {t}" for t in cibles) + ")"
-            inchanges = [_inchange(n, facultatif) for n, facultatif in autres]
+            inchanges = [_inchange(n, facultatif, valeurs) for n, facultatif, valeurs in autres]
             out.append(f"@@allow('post-update', {_et(qui, f'before().status == {depart}', arrivee, *inchanges)})")
         # ── supprimer (jamais par défaut : seulement si la matrice l'accorde) ──
         if c.delete:
@@ -121,14 +169,39 @@ def regles(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> list[str]:
             out.append(f"@@allow('delete', {_et(*cond)})")
     if f.proprio:                                            # le propriétaire ne change jamais
         out.append(f"@@deny('post-update', {f.proprio} != before().{f.proprio})")
+    # intégrité : on ne supprime pas une fiche que d'autres désignent — une RÈGLE explicite (doctrine E4 :
+    # chaque interdiction est une règle) ; la contrainte de la base (onDelete: Restrict) reste le filet
+    for rel, _source in f.inverses:
+        out.append(f"@@deny('delete', {rel}?[true])")
     # la date de création non plus (antidater une demande ; trouvé par le testeur v1.2, N1.1)
     out.append("@@deny('post-update', createdAt != before().createdAt)")
+    # (N1.2) clôture et cohérence des propriétaires AUSSI À LA MODIFICATION : changer un lien, c'est
+    # désigner une autre fiche — seulement une qu'on voit, et du même propriétaire (les formulaires de
+    # modification rendent les liens modifiables ; l'écran ne protège rien, le serveur si)
+    for l in f.liens:
+        if l.proprietaire:
+            continue
+        out.append(f"@@deny('post-update', {l.fk} != before().{l.fk} && !check({l.nom}, 'read'))")
+        cible = fiches[l.cible]
+        if f.proprio and cible.proprio and cible.e.owner == e.owner and cible.e.nature == "collection":
+            out.append(f"@@deny('post-update', {l.fk} != before().{l.fk} && {l.nom}.ownerId != ownerId)")
+        # qui ne voit la fiche visée QU'AU TRAVERS d'autres fiches ne peut pas re-désigner ce lien : la fiche
+        # deviendrait visible… grâce au lien qu'il est en train de poser (la vérification tournerait en rond
+        # — trou trouvé par le testeur v1.4 sur l'app d'essai)
+        for c in m.cells:
+            if c.entity == e.name and c.actor != VISITOR and c.edit:
+                vue = next((x for x in m.cells if x.actor == c.actor and x.entity == l.cible), None)
+                if vue is not None and vue.see == "none":
+                    out.append(f"@@deny('post-update', {_role(c.actor)} && {l.fk} != before().{l.fk})")
     return list(dict.fromkeys(out))
 
 
 def modele(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> str:
     e = f.e
-    lignes = [f"// {e.nature} · {e.label}" + (f" · {e.citation}" if e.citation else ""),
+    # une citation peut tenir sur plusieurs lignes du brief (liste à puces) : en commentaire, UNE ligne
+    # (trouvé par la répétition générale : la suite sortait du commentaire et cassait le schéma)
+    citation = " ".join(e.citation.split())
+    lignes = [f"// {e.nature} · {e.label}" + (f" · {citation}" if citation else ""),
               f"model {e.name} {{", "    id String @id @default(cuid())"]
     if e.nature == "profile":
         lignes.append("    userId String @unique @default(auth().id)")
@@ -138,13 +211,17 @@ def modele(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> str:
     for l in f.liens:
         if not l.proprietaire:
             lignes.append(f"    {l.fk} String")
-        lignes.append(f"    {l.nom} {l.cible} @relation(fields: [{l.fk}], references: [{l.ref}])")
+        # onDelete: Restrict — on ne supprime pas une fiche que d'autres fiches désignent (intégrité : jamais
+        # de suppression en cascade qui effacerait l'historique sans prévenir). SEULE exception (doctrine du
+        # 10 oct) : les lignes d'une fiche partent avec elle (une ligne de devis n'existe pas sans son devis)
+        suppression = "Cascade" if l.parent else "Restrict"
+        lignes.append(f"    {l.nom} {l.cible} @relation(fields: [{l.fk}], references: [{l.ref}], onDelete: {suppression})")
     for c in f.champs:
         lignes.append(f"    {c.nom} {ztype(e.name, c)}{'' if c.obligatoire else '?'}")
     if e.process:
         lignes.append(f"    status {e.name}Status @default({e.process.initial})")
     lignes.append("    createdAt DateTime @default(now())")
-    for rel, source in f.inverses:
+    for rel, source in f.inverses + f.enfants:
         lignes.append(f"    {rel} {source}[]")
     lignes.append("")
     lignes += [f"    {r}" for r in regles(f, m, fiches)]

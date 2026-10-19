@@ -3,7 +3,7 @@
     python -m usine comprendre <brief.txt | briefs.json#projet> --nom <nom> [--modele gpt-5.5] [--plafond 0.20]
     python -m usine carte [--sans-ouvrir]
     python -m usine fabriquer usine/exemples/mediatheque.json
-    python -m usine demarrer runs/<n°> [--port 3300]
+    python -m usine demarrer runs/<n°> [--port 3300] [--depart]
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def main() -> int:
     c.add_argument("brief")
     c.add_argument("--nom", required=True, help="identifiant court de l'app (minuscules, chiffres, tirets)")
     c.add_argument("--modele", default="gpt-5.5")
-    c.add_argument("--plafond", type=float, default=0.20, help="dépense maximale de ce lancement, en $ US")
+    c.add_argument("--plafond", type=float, default=2.0, help="dépense maximale de ce lancement, en $ US (protection contre les boucles)")
     c.add_argument("--reprendre", type=Path, help="dossier …-comprendre précédent : ses réponses encore valides sont réutilisées")
     k = sub.add_parser("carte", help="la carte des blocs de l'usine (contrôle d'architecture + page visuelle)")
     k.add_argument("--sans-ouvrir", action="store_true")
@@ -31,6 +31,7 @@ def main() -> int:
     d = sub.add_parser("demarrer", help="lancer une app fabriquée")
     d.add_argument("run", type=Path)
     d.add_argument("--port", type=int, default=3300)
+    d.add_argument("--depart", action="store_true", help="remettre les données de départ avant de lancer")
     args = p.parse_args()
     if args.commande == "carte":
         from .blocs.carte import generer
@@ -40,7 +41,12 @@ def main() -> int:
         return 1 if erreurs else 0
     if args.commande == "comprendre":
         from .comprendre import comprendre
-        comprendre(args.brief, args.nom, args.modele, args.plafond, args.reprendre)
+        from .comprendre.ia import fin_de_lot
+        try:
+            comprendre(args.brief, args.nom, args.modele, args.plafond, args.reprendre)
+        finally:
+            if args.modele == "boite":
+                fin_de_lot()           # la session isolée s'arrête
         return 0
     if args.commande == "fabriquer":
         from .assembler import fabriquer
@@ -51,6 +57,11 @@ def main() -> int:
             return 1
         return 0
     app = args.run / "app"
+    from .assembler import dependances
+    dependances(app, args.run / "logs" / "installer-demarrer.log")
+    if args.depart:
+        print("Remise des données de départ (tout ce qui a été saisi est effacé) …")
+        subprocess.call("npx tsx --env-file=.env.local scripts/seed.ts", cwd=app, shell=True)
     print(f"App : http://localhost:{args.port}  (Ctrl+C pour arrêter)")
     return subprocess.call(f"npx next start -p {args.port}", cwd=app, shell=True)
 

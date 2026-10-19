@@ -20,6 +20,7 @@ class Lien:
     fk: str             # champ qui porte la clé (« bookId » ou, pour le profil du propriétaire, « ownerId »)
     ref: str            # champ visé (« id » ou « userId »)
     proprietaire: bool  # True : c'est le profil du propriétaire (lien rempli automatiquement)
+    parent: bool = False  # (N1.3) True : une ligne vers SON parent (posé depuis la page du parent, jamais changé)
 
 
 @dataclass
@@ -29,6 +30,7 @@ class FicheApp:
     proprio: str | None                 # champ qui porte l'identifiant du propriétaire
     liens: list[Lien] = field(default_factory=list)
     inverses: list[tuple[str, str]] = field(default_factory=list)   # (nom de relation, fiche qui pointe ici)
+    enfants: list[tuple[str, str]] = field(default_factory=list)    # (N1.3) (nom de relation, fiche enfant)
     etats: list[str] = field(default_factory=list)
 
     @property
@@ -52,26 +54,34 @@ def etats_ordonnes(e: Entity) -> list[str]:
 
 
 def construire(desc: Description, m: Matrix) -> dict[str, FicheApp]:
-    ents = {e.name: e for e in desc.acces.entities}
     fiches: dict[str, FicheApp] = {}
     for e in desc.acces.entities:
         proprio = "userId" if e.nature == "profile" else "ownerId" if e.nature == "collection" else None
         fiches[e.name] = FicheApp(e=e, champs=list(desc.champs.get(e.name, [])), proprio=proprio, etats=etats_ordonnes(e))
+    proprietes = set(m.owner_links)        # décidé par le calculateur, UNE fois (12 oct)
     for e in desc.acces.entities:
         f = fiches[e.name]
         for r in e.references:
-            cible = ents[r]
             # le profil du propriétaire : lien porté par ownerId → userId, rempli automatiquement
-            if cible.nature == "profile" and e.nature == "collection" and cible.owner == e.owner:
+            if f"{e.name}>{r}" in proprietes:
                 f.liens.append(Lien(nom=bas(r), cible=r, fk="ownerId", ref="userId", proprietaire=True))
             else:
                 f.liens.append(Lien(nom=bas(r), cible=r, fk=f"{bas(r)}Id", ref="id", proprietaire=False))
             fiches[r].inverses.append((f"{bas(e.name)}s", e.name))
+        # (N1.3) une fiche ENFANT (une ligne) appartient à un parent : ce n'est pas une désignation (pas dans
+        # « inverses » : le parent reste supprimable, et ses lignes partent avec lui)
+        if e.nature == "child" and e.parent:
+            f.liens.insert(0, Lien(nom=bas(e.parent), cible=e.parent, fk=f"{bas(e.parent)}Id", ref="id",
+                                   proprietaire=False, parent=True))
+            fiches[e.parent].enfants.append((f"{bas(e.name)}s", e.name))
     return fiches
 
 
 def premier_texte(f: FicheApp) -> str:
-    for c in f.champs:
-        if c.type in ("texte", "email"):
-            return c.nom
+    """Le champ qui sert de titre à une fiche (listes, choix d'un lien, tri). (Répétition temps 2) sans texte
+    court, l'écran montrait l'identifiant technique (« cmv1qsz… ») : on prend le meilleur champ qui existe."""
+    for types in (("texte", "email"), ("telephone", "url", "texte_long"), ("choix", "nombre", "date", "date_heure", "montant")):
+        for c in f.champs:
+            if c.type in types:
+                return c.nom
     return "id"

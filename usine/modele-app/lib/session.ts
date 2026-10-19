@@ -1,7 +1,7 @@
 import 'server-only';
 import { cookies } from 'next/headers';
 import { dbFor, type User } from './db';
-import { PROFIL, ROLES_CONNECTES, type Role } from './droits';
+import { PROFILS, ROLES_CONNECTES, type Role } from './droits';
 import { NOTICE } from './notice';
 
 // Connexion SIMULÉE par un cookie « <id>:<rôle> » (Clerk prendra le relais en N1.5).
@@ -24,13 +24,16 @@ function provisoire({ type, defaut }: { type: string; defaut?: string }, user: U
 }
 
 // « Mon profil » est créé à la première visite, par le client AVEC règles.
+// (répétition temps 2) un profil PAR RÔLE — et on cherche le SIEN : un rôle qui voit tous les profils de
+// son genre aurait trouvé celui d'un autre, et la 2e personne n'aurait jamais eu de profil.
 export async function ensureProfile(user: User | null) {
-    if (!PROFIL || user?.role !== PROFIL.role) return;
+    const profil = PROFILS.find((p) => p.role === user?.role);
+    if (!profil || !user) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const table = (dbFor(user) as any)[NOTICE[PROFIL.fiche].modele];
-    if (await table.findFirst()) return;
+    const table = (dbFor(user) as any)[NOTICE[profil.fiche].modele];
+    if (await table.findFirst({ where: { userId: user.id } })) return;
     try {
-        await table.create({ data: Object.fromEntries(PROFIL.obligatoires.map((c) => [c.nom, provisoire(c, user)])) });
+        await table.create({ data: Object.fromEntries(profil.obligatoires.map((c) => [c.nom, provisoire(c, user)])) });
     } catch {
         // deux requêtes simultanées : l'autre l'a créé
     }

@@ -13,9 +13,9 @@
       "mermaid":      { "type": "string", "default": "" },
       "project_name": { "type": "string" },
       "stack_id":     { "type": "string" },
-      "run_id":       { "type": "string" },
+      "run_id":       { "type": "string" }, 
       "requirements": {
-        "type": "array",
+        "type": "array", 
         "items": { "type": "string" },
         "description": "Requirements extraits par l'Architect — utilisés pour compute_spec_coverage"
       },

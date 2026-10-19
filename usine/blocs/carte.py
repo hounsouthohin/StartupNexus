@@ -43,6 +43,10 @@ def bloc_du_sabotage(m: dict) -> str:
 
 
 def bloc_du_sabotage_ecran(s: str) -> str:
+    if "modifier" in s:
+        return "action:edit"
+    if "supprimer" in s:
+        return "action:delete"
     if "créer" in s:
         return "action:create"
     if "étape" in s or "décision" in s:

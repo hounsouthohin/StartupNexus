@@ -6,8 +6,10 @@ import { dbFor } from '@/lib/db';
 import { getUser } from '@/lib/session';
 import { schema } from '@/zenstack/schema';
 
+// (N1.3) les refus et erreurs du serveur vont dans son journal : sans cela, l'écran ne disait que « An error
+// occurred while fetching the data » et la cause restait invisible (échec intermittent du 10 oct)
 const handler = NextRequestHandler({
-    apiHandler: new RPCApiHandler({ schema }),
+    apiHandler: new RPCApiHandler({ schema, log: ['warn', 'error'] }),
     getClient: async () => dbFor(await getUser()),
     useAppDir: true,
 });

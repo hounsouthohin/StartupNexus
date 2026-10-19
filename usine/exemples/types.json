@@ -1,55 +1,392 @@
 {
-  "app": { "nom": "essai-types", "titre": "Essai des types" },
+  "app": {
+    "nom": "essai-types",
+    "titre": "Essai des types"
+  },
   "acces": {
     "actors": [
-      { "id": "gerant", "label": "gérant", "becomes": "bootstrap" },
-      { "id": "client", "label": "client", "becomes": "signup" }
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "becomes": "bootstrap"
+      },
+      {
+        "id": "client",
+        "label": "client",
+        "becomes": "signup"
+      }
     ],
     "entities": [
-      { "name": "Article", "label": "article", "label_plural": "articles", "nature": "catalog",
-        "public": true, "manager": ["gerant"] },
-      { "name": "Profil", "label": "profil", "label_plural": "profils", "nature": "profile", "owner": "client" },
-      { "name": "Commande", "label": "commande", "label_plural": "commandes", "feminine": true,
-        "nature": "collection", "owner": "client", "references": ["Article", "Profil"],
+      {
+        "name": "Article",
+        "label": "article",
+        "label_plural": "articles",
+        "nature": "catalog",
+        "public": true,
+        "manager": [
+          "gerant"
+        ]
+      },
+      {
+        "name": "Profil",
+        "label": "profil",
+        "label_plural": "profils",
+        "nature": "profile",
+        "owner": "client"
+      },
+      {
+        "name": "Adresse",
+        "label": "adresse",
+        "label_plural": "adresses",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "client",
+        "references": [
+          "Profil"
+        ]
+      },
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "client",
+        "references": [
+          "Article",
+          "Profil",
+          "Adresse"
+        ],
         "process": {
           "initial": "demandee",
-          "transitions": { "demandee": ["acceptee", "refusee"], "acceptee": [], "refusee": [] },
-          "initiator": "client", "decider": "gerant",
-          "labels": { "demandee": "demandée", "acceptee": "acceptée", "refusee": "refusée" }
-        } }
+          "transitions": {
+            "demandee": [
+              "acceptee",
+              "refusee"
+            ],
+            "acceptee": [],
+            "refusee": []
+          },
+          "initiator": "client",
+          "decider": "gerant",
+          "labels": {
+            "demandee": "demandée",
+            "acceptee": "acceptée",
+            "refusee": "refusée"
+          }
+        }
+      },
+      {
+        "name": "LigneCommande",
+        "label": "ligne de commande",
+        "label_plural": "lignes de commande",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "parent": "Commande",
+        "references": [
+          "Article"
+        ],
+        "citation": "app d'essai : les lignes d'une commande (N1.3)"
+      }
     ],
-    "exceptions": []
+    "exceptions": [
+      {
+        "actor": "client",
+        "entity": "Commande",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [
+          "demandee"
+        ],
+        "citation": "app d'essai : le client modifie sa commande tant qu'elle est demandée"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Commande",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "refusee"
+        ],
+        "citation": "app d'essai : le gérant supprime une commande refusée"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Commande",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "demandee"
+        ],
+        "citation": "app d'essai : le gérant corrige une commande demandée"
+      }
+    ]
   },
   "champs": {
     "Article": [
-      { "nom": "nom", "libelle": "Nom", "type": "texte" },
-      { "nom": "description", "libelle": "Description", "type": "texte_long" },
-      { "nom": "stock", "libelle": "Stock", "type": "nombre" },
-      { "nom": "prix", "libelle": "Prix", "type": "montant" },
-      { "nom": "dateAjout", "libelle": "Ajouté le", "type": "date" },
-      { "nom": "livraison", "libelle": "Livraison", "type": "date_heure" },
-      { "nom": "disponible", "libelle": "Disponible", "type": "oui_non" },
-      { "nom": "contact", "libelle": "Contact", "type": "email", "obligatoire": false },
-      { "nom": "telephone", "libelle": "Téléphone", "type": "telephone", "obligatoire": false },
-      { "nom": "site", "libelle": "Site", "type": "url", "obligatoire": false },
-      { "nom": "categorie", "libelle": "Catégorie", "type": "choix", "valeurs": [
-        { "code": "outil", "libelle": "outil" }, { "code": "piece", "libelle": "pièce" },
-        { "code": "bande_dessinee", "libelle": "bande dessinée" } ] },
-      { "nom": "etoiles", "libelle": "Étoiles", "type": "choix", "valeurs": [
-        { "code": "v_1", "libelle": "1" }, { "code": "v_2", "libelle": "2" }, { "code": "v_3", "libelle": "3" } ] }
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte"
+      },
+      {
+        "nom": "description",
+        "libelle": "Description",
+        "type": "texte_long"
+      },
+      {
+        "nom": "stock",
+        "libelle": "Stock",
+        "type": "nombre"
+      },
+      {
+        "nom": "prix",
+        "libelle": "Prix",
+        "type": "montant"
+      },
+      {
+        "nom": "dateAjout",
+        "libelle": "Ajouté le",
+        "type": "date"
+      },
+      {
+        "nom": "livraison",
+        "libelle": "Livraison",
+        "type": "date_heure"
+      },
+      {
+        "nom": "disponible",
+        "libelle": "Disponible",
+        "type": "oui_non"
+      },
+      {
+        "nom": "contact",
+        "libelle": "Contact",
+        "type": "email",
+        "obligatoire": false
+      },
+      {
+        "nom": "telephone",
+        "libelle": "Téléphone",
+        "type": "telephone",
+        "obligatoire": false
+      },
+      {
+        "nom": "site",
+        "libelle": "Site",
+        "type": "url",
+        "obligatoire": false
+      },
+      {
+        "nom": "categorie",
+        "libelle": "Catégorie",
+        "type": "choix",
+        "valeurs": [
+          {
+            "code": "outil",
+            "libelle": "outil"
+          },
+          {
+            "code": "piece",
+            "libelle": "pièce"
+          },
+          {
+            "code": "bande_dessinee",
+            "libelle": "bande dessinée"
+          }
+        ]
+      },
+      {
+        "nom": "etoiles",
+        "libelle": "Étoiles",
+        "type": "choix",
+        "valeurs": [
+          {
+            "code": "v_1",
+            "libelle": "1"
+          },
+          {
+            "code": "v_2",
+            "libelle": "2"
+          },
+          {
+            "code": "v_3",
+            "libelle": "3"
+          }
+        ]
+      }
     ],
     "Profil": [
-      { "nom": "nom", "libelle": "Nom", "type": "texte" },
-      { "nom": "niveau", "libelle": "Niveau", "type": "choix", "valeurs": [
-        { "code": "debutant", "libelle": "débutant" }, { "code": "confirme", "libelle": "confirmé" } ] },
-      { "nom": "budget", "libelle": "Budget", "type": "montant" }
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte"
+      },
+      {
+        "nom": "niveau",
+        "libelle": "Niveau",
+        "type": "choix",
+        "valeurs": [
+          {
+            "code": "debutant",
+            "libelle": "débutant"
+          },
+          {
+            "code": "confirme",
+            "libelle": "confirmé"
+          }
+        ]
+      },
+      {
+        "nom": "budget",
+        "libelle": "Budget",
+        "type": "montant"
+      }
+    ],
+    "Adresse": [
+      {
+        "nom": "libelle",
+        "libelle": "Libellé",
+        "type": "texte"
+      },
+      {
+        "nom": "ville",
+        "libelle": "Ville",
+        "type": "texte"
+      }
     ],
     "Commande": [
-      { "nom": "remarque", "libelle": "Remarque", "type": "texte_long", "obligatoire": false },
-      { "nom": "remise", "libelle": "Remise", "type": "montant", "obligatoire": false }
+      {
+        "nom": "objet",
+        "libelle": "Objet",
+        "type": "texte",
+        "obligatoire": false
+      },
+      {
+        "nom": "remarque",
+        "libelle": "Remarque",
+        "type": "texte_long",
+        "obligatoire": false
+      },
+      {
+        "nom": "remise",
+        "libelle": "Remise",
+        "type": "montant",
+        "obligatoire": false
+      },
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true
+      },
+      {
+        "nom": "quantite",
+        "libelle": "Quantité",
+        "type": "nombre",
+        "obligatoire": true
+      },
+      {
+        "nom": "dateSouhaitee",
+        "libelle": "Date souhaitée",
+        "type": "date",
+        "obligatoire": false
+      },
+      {
+        "nom": "creneau",
+        "libelle": "Créneau",
+        "type": "date_heure",
+        "obligatoire": true
+      },
+      {
+        "nom": "cadeau",
+        "libelle": "Paquet cadeau",
+        "type": "oui_non",
+        "obligatoire": true
+      },
+      {
+        "nom": "emailSuivi",
+        "libelle": "E-mail de suivi",
+        "type": "email",
+        "obligatoire": false
+      },
+      {
+        "nom": "telSuivi",
+        "libelle": "Téléphone de suivi",
+        "type": "telephone",
+        "obligatoire": true
+      },
+      {
+        "nom": "lienSuivi",
+        "libelle": "Lien de suivi",
+        "type": "url",
+        "obligatoire": false
+      },
+      {
+        "nom": "mode",
+        "libelle": "Mode",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "retrait",
+            "libelle": "retrait"
+          },
+          {
+            "code": "livraison",
+            "libelle": "livraison"
+          }
+        ]
+      },
+      {
+        "nom": "relance",
+        "libelle": "Relance",
+        "type": "choix",
+        "obligatoire": false,
+        "valeurs": [
+          {
+            "code": "acceptee",
+            "libelle": "acceptée"
+          },
+          {
+            "code": "aucune",
+            "libelle": "aucune"
+          }
+        ]
+      }
+    ],
+    "LigneCommande": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true
+      },
+      {
+        "nom": "quantite",
+        "libelle": "Quantité",
+        "type": "nombre",
+        "obligatoire": true
+      },
+      {
+        "nom": "prixUnitaire",
+        "libelle": "Prix unitaire",
+        "type": "montant",
+        "obligatoire": false
+      }
     ]
   },
   "ecran": {
-    "Commande": { "verbe_creation": "Commander", "boutons": { "acceptee": "Accepter", "refusee": "Refuser" } }
+    "Commande": {
+      "verbe_creation": "Commander",
+      "boutons": {
+        "acceptee": "Accepter",
+        "refusee": "Refuser"
+      }
+    }
   }
 }

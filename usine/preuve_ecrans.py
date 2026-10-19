@@ -45,10 +45,17 @@ def mutations(app: Path) -> list[tuple[str, str, str, str]]:
         transforme(m)
         out.append((quoi, "lib/droits.ts", l_mat, _remplace(l_mat, m)))
 
-    # 1. un rôle reçoit « créer » sur une fiche qui a un bouton de création, sans en avoir le droit
-    a_bouton = sorted({x.split('"', 1)[0] for x in notice.split('"cree": "')[1:]})   # fiches « créées d'un clic »
-    for fiche in a_bouton:
-        sans = next((r for r in roles if not matrice[r].get(fiche, {}).get("creer")), None)
+    # Seuls des sabotages À EFFET VISIBLE (sinon un « survivant » ne prouve rien — trouvé par la
+    # répétition : « créer » donné au visiteur, qui ne voit même pas la liste où le bouton apparaîtrait).
+    # 1. un rôle reçoit « créer » sur une fiche créée d'un clic, alors qu'il VOIT la liste où le bouton s'affiche
+    sources = {}   # fiche créée d'un clic → fiche dont la liste porte le bouton
+    for l in notice.splitlines():
+        if l.startswith("const fiche") and " satisfies " in l:
+            nom_liste = l.split(" = ", 1)[0].removeprefix("const fiche")
+            for a in json.loads(l.split(" = ", 1)[1].rsplit(" satisfies ", 1)[0]).get("actionsLigne", []):
+                sources.setdefault(a["cree"], nom_liste)
+    for fiche, liste in sources.items():
+        sans = next((r for r in roles if matrice[r].get(liste, {}).get("voir") and not matrice[r].get(fiche, {}).get("creer")), None)
         if sans:
             mut(f"droits : « {sans} » reçoit « créer » sur {fiche}",
                 lambda m, r=sans, f=fiche: m[r].setdefault(f, {}).update(creer=True))
@@ -81,11 +88,44 @@ def mutations(app: Path) -> list[tuple[str, str, str, str]]:
         if f:
             mut(f"droits : « {r} » perd « voir » sur {f}", lambda m, r=r, f=f: m[r][f].pop("voir"))
             break
+    # (N1.2) les formulaires : le bouton « Nouveau… », « Modifier », « Supprimer »
+    avec_creation = [l.split(" = ", 1)[0].removeprefix("const fiche") for l in notice.splitlines()
+                     if l.startswith("const fiche") and '"creation"' in l]
+    for f in avec_creation:   # 4b. « créer » donné à un rôle qui voit la liste (le bouton « Nouveau… » apparaît)
+        r = next((r for r in roles if matrice[r].get(f, {}).get("voir") and not matrice[r][f].get("creer")), None)
+        if r:
+            mut(f"droits : « {r} » reçoit « créer » sur {f} (bouton « Nouveau… »)", lambda m, r=r, f=f: m[r][f].update(creer=True))
+            break
+    for r in roles:           # 4c. un rôle perd « modifier »
+        f = next((f for f, d in matrice[r].items() if d.get("modifier") and not d.get("modifier_pendant") and f in avec_creation), None)
+        if f:
+            mut(f"droits : « {r} » perd « modifier » sur {f}", lambda m, r=r, f=f: m[r][f].pop("modifier"))
+            break
+    for f in avec_creation:   # 4d. « supprimer » donné à un rôle qui voit la fiche et ne l'a pas
+        r = next((r for r in roles if r != "visitor" and matrice[r].get(f, {}).get("voir") and not matrice[r][f].get("supprimer")), None)
+        if r:
+            mut(f"droits : « {r} » reçoit « supprimer » sur {f}", lambda m, r=r, f=f: m[r][f].update(supprimer=True))
+            break
     # 5. une fiche disparaît du menu
     if menu:
         out.append((f"menu : « {menu[-1]['libelle']} » disparaît", "lib/droits.ts", l_menu, _remplace(l_menu, menu[:-1])))
-    # 6. une pièce fixe : les boutons de décision ne sont plus filtrés par rôle
-    out.append(("pièce fixe : les boutons de décision ne sont plus filtrés par rôle", "lib/peut.ts", PEUT_AVANT, "return true;"))
+    # 6. une pièce fixe : les boutons de décision ne sont plus filtrés par rôle (seulement s'il y a un
+    #    circuit qu'un rôle voit sans pouvoir décider : sinon le sabotage n'a aucun effet visible)
+    if any(r != "visitor" and d.get("voir") and not d.get("transitions") for f in circuits for r in roles
+           for d in [matrice[r].get(f, {})]):
+        out.append(("pièce fixe : les boutons de décision ne sont plus filtrés par rôle", "lib/peut.ts", PEUT_AVANT, "return true;"))
+    # 7. (N1.3) les LIGNES : la pièce oublie l'état (et le droit) du parent — « Ajouter » partout où l'on voit le parent ;
+    #    et un rôle qui voit le parent perd « voir » sur ses lignes (la section disparaît)
+    if '"parent": {"fiche"' in notice:
+        out.append(("pièce fixe : on ajoute des lignes quel que soit l'état du parent", "components/pieces.tsx",
+                    "const peutAjouter = peut(role, nom, 'creer', etatParent);", "const peutAjouter = peut(role, nom, 'creer');"))
+        for l in notice.splitlines():
+            if l.startswith("const fiche") and '"parent": {"fiche"' in l:
+                nom = l.split(" = ", 1)[0].removeprefix("const fiche")
+                r = next((r for r in roles if r != "visitor" and matrice[r].get(nom, {}).get("voir")), None)
+                if r:
+                    mut(f"droits : « {r} » perd « voir » sur les lignes {nom}", lambda m, r=r, f=nom: m[r][f].pop("voir"))
+                break
     return out
 
 
@@ -118,6 +158,8 @@ def _jouer(app: Path, specs: list[str], log: Path) -> dict[str, str]:
 
 def main(run: Path, specs: list[str]) -> dict:
     app = run / "app"
+    from .assembler import dependances
+    dependances(app, run / "logs" / "installer-preuve.log")   # une app livrée n'a plus ses dépendances
     resultats = []
     liste = mutations(app)
     for i, (quoi, fichier, avant, apres) in enumerate(liste, 1):

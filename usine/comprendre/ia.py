@@ -1,21 +1,74 @@
 """L'appel à l'IA, commun à tous les lecteurs : réponse en JSON, contrôlée par programme, refusée
 avec l'erreur précise et redemandée (2 essais de plus — règle 3), jetons et dollars comptés.
 
-PLAFOND : chaque lancement a un plafond de dépense (0,20 $ par défaut, règle de budget). Il est
-vérifié avant chaque appel : dépassé, le lancement s'arrête de lui-même.
+PLAFOND : chaque lancement a un plafond de dépense (2 $ par défaut depuis le 9 oct : le coût n'est
+pas un frein à l'apprentissage, le plafond protège seulement contre une boucle qui s'emballerait). Il
+est vérifié avant chaque appel : dépassé, le lancement s'arrête de lui-même.
 """
 from __future__ import annotations
 
 import json
 import os
 import time
+from pathlib import Path
+from types import SimpleNamespace
 
 from pydantic import ValidationError
 
 # $ US par million de jetons (entrée, sortie), relevés le 7 oct 2026 ; les jetons de réflexion
-# des modèles qui raisonnent sont comptés en sortie.
-PRIX = {"gpt-5.4-mini": (0.75, 4.50), "gpt-5.5": (5.00, 30.00), "gemini-pro-latest": (2.00, 12.00)}
+# des modèles qui raisonnent sont comptés en sortie. « boite » : une session Claude isolée (forfait de
+# l'utilisateur, pas de facture à l'usage) — voir ClientBoite.
+PRIX = {"gpt-5.4-mini": (0.75, 4.50), "gpt-5.5": (5.00, 30.00), "gemini-pro-latest": (2.00, 12.00), "boite": (0.0, 0.0)}
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# la boîte aux lettres, HORS du projet (la session isolée n'a pas accès au projet)
+BOITE = Path(os.getenv("USINE_BOITE", r"C:\Users\BAMBARA Arthur\lecteur-isole\boite"))
+ATTENTE_MAX = 12 * 3600      # une réponse peut attendre que le forfait de la session se renouvelle
+
+
+class ClientBoite:
+    """(12 oct, décision de l'utilisateur) La « boîte aux lettres » : au lieu d'appeler gpt, chaque question est
+    déposée dans BOITE/demandes/<n>.json — EXACTEMENT les messages que gpt recevrait, ni plus ni moins — et la
+    réponse est attendue dans BOITE/reponses/<n>.json, écrite par un agent neuf qu'une session Claude isolée lance
+    pour chaque question (aucune mémoire d'une question à l'autre, comme un appel à gpt). Mêmes contrôles ensuite.
+    Imite le client OpenAI (chat.completions.create) : le reste de l'usine ne change pas."""
+
+    def __init__(self):
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+        # (13 oct, défaut vu au premier essai) chaque lecture a SES numéros (« <date>-0001 ») et range les anciennes
+        # questions à part : une réponse en retard d'une lecture précédente ne peut plus tomber sur une question neuve
+        self.lot, self.n = time.strftime("%Y%m%d-%H%M%S"), 0
+        demandes, reponses = BOITE / "demandes", BOITE / "reponses"
+        demandes.mkdir(parents=True, exist_ok=True)
+        reponses.mkdir(parents=True, exist_ok=True)
+        anciens = list(demandes.glob("*.json")) + list(reponses.glob("*.json"))
+        if anciens:
+            archive = BOITE / "archives" / self.lot
+            for p in anciens:
+                (archive / p.parent.name).mkdir(parents=True, exist_ok=True)
+                p.replace(archive / p.parent.name / p.name)
+
+    def _create(self, model: str, messages: list, **_):
+        demandes, reponses = BOITE / "demandes", BOITE / "reponses"
+        (BOITE / "FIN").unlink(missing_ok=True)
+        self.n += 1
+        nom = f"{self.lot}-{self.n:04d}.json"
+        (demandes / nom).write_text(json.dumps({"messages": messages}, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"   (question {nom[:-5]} déposée dans la boîte — en attente de la session Claude isolée)", flush=True)
+        debut = time.time()
+        while not (reponses / nom).exists():
+            if time.time() - debut > ATTENTE_MAX:
+                raise SystemExit(f"aucune réponse à la question {nom[:-5]} après {ATTENTE_MAX // 3600} h : arrêt "
+                                 "(la session isolée est-elle ouverte ? relancer avec --reprendre)")
+            time.sleep(2)
+        time.sleep(1)                                   # laisser l'agent finir d'écrire le fichier
+        texte = (reponses / nom).read_text(encoding="utf-8-sig")
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=texte))], usage=None)
+
+
+def fin_de_lot() -> None:
+    """Signale à la session isolée que le lot est terminé (elle s'arrête)."""
+    if BOITE.exists():
+        (BOITE / "FIN").write_text("fin", encoding="utf-8")
 
 
 class PlafondAtteint(RuntimeError):
@@ -46,8 +99,9 @@ class Budget:
 def client_pour(modele: str):
     from dotenv import load_dotenv
     from openai import OpenAI
-    from pathlib import Path
     load_dotenv(Path(__file__).resolve().parents[2] / "factory-sprint0" / ".env")
+    if modele == "boite":
+        return ClientBoite()
     if modele.startswith("gemini"):
         cle = os.getenv("GEMINI_API_KEY")
         if not cle:
