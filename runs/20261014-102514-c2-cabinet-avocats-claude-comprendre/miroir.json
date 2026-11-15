@@ -1,0 +1,744 @@
+{
+ "titre": "Gestion du cabinet",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Aide automatique à la répartition des dossiers selon les dossiers déjà attribués, les spécialités et l'ancienneté des collaborateurs",
+   "categorie": "automatisation",
+   "citation": "Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués, des spécialités des collaborateurs, de leur ancienneté"
+  },
+  {
+   "besoin": "Lien avec le logiciel existant où sont saisies les heures effectuées",
+   "categorie": "integration",
+   "citation": "les heures ayant été effectuées étant rentrées dans un autre logiciel, nous souhaiterions lier les deux"
+  },
+  {
+   "besoin": "Vue en temps réel de la charge de travail des équipes pour l'associé",
+   "categorie": "calcul_statistiques",
+   "citation": "L'associé est ainsi conscient en temps réel de la charge de travail de ses équipes"
+  },
+  {
+   "besoin": "L'associé ne voit que la charge de « ses » équipes",
+   "categorie": "cloisonnement",
+   "citation": "la charge de travail de ses équipes"
+  },
+  {
+   "besoin": "Alerte par e-mail quand un collaborateur a une charge de travail trop importante",
+   "categorie": "notification",
+   "citation": "système d'alerte mail dès lors qu'un collaborateur possède une charge de travail trop importante"
+  },
+  {
+   "besoin": "Prévision par machine learning de la charge de travail future d'un dossier selon sa typologie",
+   "categorie": "calcul_statistiques",
+   "citation": "Machine learning pour prévoir, selon la typologie de dossier, la charge de travail que celui-ci peut représenter dans l'avenir"
+  },
+  {
+   "besoin": "Suivi des forfaits de facturation (heures déjà facturées par rapport au maximum négocié)",
+   "categorie": "calcul_statistiques",
+   "citation": "suivi des forfait de facturation"
+  },
+  {
+   "besoin": "Alerte quand le nombre d'heures facturées approche du maximum négocié avec le client",
+   "categorie": "notification",
+   "citation": "un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'associé",
+   "Le manager",
+   "Le collaborateur"
+  ],
+  "fiches": 6,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "associe",
+   "libelle": "L'associé",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous recherchons un prestataire afin de développer un logiciel pour cabinet d'avocats"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Dossiers juridiques, Types de dossier, Clients, Forfaits de facturation",
+     "cases": [
+      {
+       "fiche": "Dossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence"
+       ]
+      },
+      {
+       "fiche": "TypeDossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "selon la typologie de dossier"
+       ]
+      },
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "du maximum négocié avec le client"
+       ]
+      },
+      {
+       "fiche": "ForfaitFacturation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "suivi des forfait de facturation avec un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Profils collaborateurs",
+     "cases": [
+      {
+       "fiche": "Collaborateur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Dossiers juridiques qu'il voit",
+        "clôture : choisit les Profils collaborateurs de ses Dossiers juridiques"
+       ],
+       "citations": [
+        "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "manager",
+   "libelle": "Le manager",
+   "devient": "invité par associe",
+   "citations": [
+    "Assistance à la répartition des dossiers pour le manager"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Types de dossier, Profils collaborateurs, Clients",
+     "cases": [
+      {
+       "fiche": "TypeDossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "selon la typologie de dossier"
+       ]
+      },
+      {
+       "fiche": "Collaborateur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Dossiers juridiques qu'il voit",
+        "clôture : choisit les Profils collaborateurs de ses Dossiers juridiques"
+       ],
+       "citations": [
+        "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence"
+       ]
+      },
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Dossiers juridiques qu'il voit",
+        "clôture : choisit les Clients de ses Dossiers juridiques"
+       ],
+       "citations": [
+        "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Dossiers juridiques : voit tout, en crée, les modifie, les fait passer de « à attribuer » à « attribué »",
+     "cases": [
+      {
+       "fiche": "Dossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "a_attribuer": [
+          "attribue"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Assistance à la répartition des dossiers pour le manager »"
+       ],
+       "citations": [
+        "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence",
+        "Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués",
+        "Assistance à la répartition des dossiers pour le manager"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "collaborateur",
+   "libelle": "Le collaborateur",
+   "devient": "invité par associe",
+   "citations": [
+    "Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Types de dossier",
+     "cases": [
+      {
+       "fiche": "TypeDossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "selon la typologie de dossier"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : Tâches",
+     "cases": [
+      {
+       "fiche": "Tache",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer »"
+       ],
+       "citations": [
+        "permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer",
+        "Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Profil collaborateur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Collaborateur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "des spécialités des collaborateurs, de leur ancienneté"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Dossier",
+   "texte": "Le dossier juridique passe par : « à attribuer » → « attribué »",
+   "qui": [
+    "Le manager fait passer de « à attribuer » à « attribué »"
+   ],
+   "citations": [
+    "Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Dossier",
+   "libelle": "Dossier juridique",
+   "nature": "registry",
+   "relie_a": [
+    "Type de dossier",
+    "Client",
+    "Profil collaborateur"
+   ],
+   "champs": [
+    {
+     "nom": "niveauImportance",
+     "libelle": "Niveau d'importance",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "niveau d'importance"
+    },
+    {
+     "nom": "niveauUrgence",
+     "libelle": "Niveau d'urgence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "niveau d'importance et d'urgence"
+    },
+    {
+     "nom": "chargeTravailPrevue",
+     "libelle": "Charge de travail prévue (heures)",
+     "type": "nombre",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "la charge de travail que celui-ci peut représenter"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Dossier:Intitulé ou référence du dossier",
+     "libelle": "Intitulé ou référence du dossier",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Dossier:Description du dossier",
+     "libelle": "Description du dossier",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Dossier:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence"
+   ]
+  },
+  {
+   "fiche": "TypeDossier",
+   "libelle": "Type de dossier",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:TypeDossier:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:TypeDossier:Charge de travail moyenne (heures)",
+     "libelle": "Charge de travail moyenne (heures)",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "selon la typologie de dossier"
+   ]
+  },
+  {
+   "fiche": "Collaborateur",
+   "libelle": "Profil collaborateur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "specialites",
+     "libelle": "Spécialités",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des spécialités des collaborateurs"
+    },
+    {
+     "nom": "anciennete",
+     "libelle": "Ancienneté (années)",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "de leur ancienneté"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Collaborateur:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Collaborateur:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Collaborateur:Fonction (collaborateur, manager, associé)",
+     "libelle": "Fonction (collaborateur, manager, associé)",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Collaborateur:Équipe",
+     "libelle": "Équipe",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Collaborateur:Seuil de charge de travail",
+     "libelle": "Seuil de charge de travail",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Collaborateur:Date d'arrivée au cabinet",
+     "libelle": "Date d'arrivée au cabinet",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "des spécialités des collaborateurs, de leur ancienneté"
+   ]
+  },
+  {
+   "fiche": "Tache",
+   "libelle": "Tâche",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Tache:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Tache:Durée estimée (heures)",
+     "libelle": "Durée estimée (heures)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Tache:Échéance",
+     "libelle": "Échéance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+   ]
+  },
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "du maximum négocié avec le client"
+   ]
+  },
+  {
+   "fiche": "ForfaitFacturation",
+   "libelle": "Forfait de facturation",
+   "nature": "registry",
+   "relie_a": [
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "heuresFacturees",
+     "libelle": "Heures déjà facturées",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le nombre d'heures déjà facturées"
+    },
+    {
+     "nom": "heuresMaximum",
+     "libelle": "Nombre d'heures maximum négocié",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "maximum négocié avec le client"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ForfaitFacturation:Intitulé du forfait",
+     "libelle": "Intitulé du forfait",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ForfaitFacturation:Montant du forfait",
+     "libelle": "Montant du forfait",
+     "type": "montant"
+    },
+    {
+     "id": "garder:ForfaitFacturation:Seuil d'alerte (% du maximum)",
+     "libelle": "Seuil d'alerte (% du maximum)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:ForfaitFacturation:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:ForfaitFacturation:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "suivi des forfait de facturation avec un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:manager:Dossier",
+   "sorte": "registre_entier",
+   "texte": "Le manager verra tous les Dossiers juridiques, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Dossier (registre) : l'initiateur (manager) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "registre_entier:manager:Client",
+   "sorte": "registre_entier",
+   "texte": "Le manager verra tous les Clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Dossiers juridiques qu'il voit; clôture : choisit les Clients de ses Dossiers juridiques"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:TypeDossier:nom",
+     "texte": "Type de dossier → « Nom »"
+    },
+    {
+     "id": "nom:Collaborateur:nom",
+     "texte": "Profil collaborateur → « Nom »"
+    },
+    {
+     "id": "nom:Tache:intitule",
+     "texte": "Tâche → « Intitulé »"
+    },
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

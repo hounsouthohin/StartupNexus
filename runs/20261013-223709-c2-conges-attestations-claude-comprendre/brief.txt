@@ -1,0 +1,54 @@
+Gestion de congé , gestion de pointage et génération des attestations
+l'application doit avoir 3 versions : web , Android et desktop.
+
+L'application doit offrir 5 types d'accès:
+
+- Accès "Employé" qui offre:
+
+* Consultation des informations personnelles, solde de congé et solde de maladies.
+
+*Demande de congé et demande d'obtenir une attestation ( travail , salaire .. )
+
+* Consultation de l'historique des retards.
+
+- Accès " Décideur ":
+
+* Il a les fonctionnalités de l'accès "employé"  ​
+
+*Confirmer les demandes de congé.
+
+- Accès "Directeur":
+
+* Il a les fonctionnalités de l'accès "Décideur"
+
+* Confirmer les demandes d'attestation.
+
+- Accès "Employé RH":  ​
+
+* Il a les fonctionnalités de l'accès "Décideur"
+
+* Création de nouveaux comptes.
+
+* Modification des soldes de congé et de maladie.
+
+- Accès " Responsable RH":
+
+* Il a les fonctionnalités de l'accès "Employé RH"
+
+* Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes).
+
+Les besoins :
+
+* L'application doit calculer à partir des dates donnés par le demandeur la durée du congé demandé en retranchant automatique les jours fériés , les samedis et les dimanches.
+
+* Mise à jours menstruel automatique des soldes de congé et de maladies.
+
+*Envoie automatiques des e-mails aux acteurs concernés lors des évènements suivants: 
+
+- Nouveaux demande de congé / d'attestation.
+
+- Acceptation / refus d'une demande.
+
+ * Génération automatique des attestations signés électroniquement.
+
+* Accès à la pointeuse et gêner des statistiques liés aux retards

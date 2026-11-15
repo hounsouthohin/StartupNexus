@@ -1,0 +1,682 @@
+{
+ "titre": "Gestion BTP",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Calcul des quantités en stock à partir des entrées et des sorties de marchandises",
+   "categorie": "calcul_statistiques",
+   "citation": "mieux contrôler les entrées et les sorties des marchandises"
+  },
+  {
+   "besoin": "Production de devis (documents chiffrés avec calcul des montants)",
+   "categorie": "document",
+   "citation": "La création d’un outil pour réaliser des devis"
+  },
+  {
+   "besoin": "Facturation des clients professionnels et particuliers (factures, montants)",
+   "categorie": "document",
+   "citation": "gérer la partie facturation pour nos clients professionnels et particuliers"
+  },
+  {
+   "besoin": "Site internet vitrine pour présenter le savoir-faire",
+   "categorie": "autre",
+   "citation": "Création d’un site internet (afin de mettre en avant notre savoir-faire"
+  },
+  {
+   "besoin": "Devis en ligne pour les particuliers depuis le site internet",
+   "categorie": "autre",
+   "citation": "proposer la possibilité d’établir un devis en ligne à nos clients particuliers"
+  },
+  {
+   "besoin": "Application mobile pour le suivi de chantier",
+   "categorie": "mobile_hors_ligne",
+   "citation": "La création d’une application (web et mobile)"
+  },
+  {
+   "besoin": "Suivi des délais et organisation des corps de métier sur les chantiers",
+   "categorie": "planning",
+   "citation": "les délais, l’organisation des différents domaines d’application"
+  },
+  {
+   "besoin": "Comptes rendus et rapports de chantier",
+   "categorie": "document",
+   "citation": "C/R, rapports"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant",
+   "Le conducteur de travaux"
+  ],
+  "fiches": 7,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous sommes une entreprise générale de bâtiment"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Marchandises, Mouvements de stock, Clients, Devis, Factures, Chantiers",
+     "cases": [
+      {
+       "fiche": "Marchandise",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "marchandises qui serviront à nos chantiers (sac de colle à carrelage, ciment, parpaing"
+       ]
+      },
+      {
+       "fiche": "MouvementStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "contrôler les entrées et les sorties des marchandises qui serviront à nos chantiers"
+       ]
+      },
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "nos clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "établir un devis en ligne à nos clients particuliers"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gérer la partie facturation pour nos clients professionnels et particuliers"
+       ]
+      },
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "le suivi de nos chantiers (afin de connaître leur avancement, les délais"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Rapports de chantier (dans chaque Chantier)",
+     "cases": [
+      {
+       "fiche": "RapportChantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "le suivi de nos chantiers (afin de connaître leur avancement, les délais"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "conducteur_travaux",
+   "libelle": "Le conducteur de travaux",
+   "devient": "invité par gerant",
+   "citations": [
+    "pour nos conducteurs de travaux"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Chantiers",
+     "cases": [
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « pour le suivi de nos chantiers (afin de connaître leur avancement »"
+       ],
+       "citations": [
+        "le suivi de nos chantiers (afin de connaître leur avancement, les délais",
+        "pour le suivi de nos chantiers (afin de connaître leur avancement"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Rapports de chantier (dans chaque Chantier)",
+     "cases": [
+      {
+       "fiche": "RapportChantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "le suivi de nos chantiers (afin de connaître leur avancement, les délais",
+        "pour le suivi de nos chantiers (afin de connaître leur avancement"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Marchandise",
+   "libelle": "Marchandise",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Marchandise:Unité (sac, tonne, pièce…)",
+     "libelle": "Unité (sac, tonne, pièce…)",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Marchandise:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Marchandise:Seuil d'alerte",
+     "libelle": "Seuil d'alerte",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Marchandise:Prix d'achat unitaire",
+     "libelle": "Prix d'achat unitaire",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "marchandises qui serviront à nos chantiers (sac de colle à carrelage, ciment, parpaing"
+   ]
+  },
+  {
+   "fiche": "MouvementStock",
+   "libelle": "Mouvement de stock",
+   "nature": "registry",
+   "relie_a": [
+    "Marchandise",
+    "Chantier"
+   ],
+   "champs": [
+    {
+     "nom": "sens",
+     "libelle": "Sens du mouvement",
+     "type": "choix parmi : entrée, sortie",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les entrées et les sorties des marchandises"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:MouvementStock:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:MouvementStock:Date du mouvement",
+     "libelle": "Date du mouvement",
+     "type": "date"
+    },
+    {
+     "id": "garder:MouvementStock:Fournisseur",
+     "libelle": "Fournisseur",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "contrôler les entrées et les sorties des marchandises qui serviront à nos chantiers"
+   ]
+  },
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "typeClient",
+     "libelle": "Type de client",
+     "type": "choix parmi : professionnel, particulier",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "nos clients professionnels et particuliers"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Valeur « petit promoteur immobilier » pour le type de client",
+     "libelle": "Valeur « petit promoteur immobilier » pour le type de client",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Numéro SIRET",
+     "libelle": "Numéro SIRET",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "nos clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+   ]
+  },
+  {
+   "fiche": "Devis",
+   "libelle": "Devis",
+   "nature": "registry",
+   "relie_a": [
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Devis:Description des travaux",
+     "libelle": "Description des travaux",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Devis:Montant HT",
+     "libelle": "Montant HT",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Devis:Taux de TVA",
+     "libelle": "Taux de TVA",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Devis:Date de validité",
+     "libelle": "Date de validité",
+     "type": "date"
+    },
+    {
+     "id": "garder:Devis:Demandé en ligne",
+     "libelle": "Demandé en ligne",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "établir un devis en ligne à nos clients particuliers"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "Facture",
+   "nature": "registry",
+   "relie_a": [
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de facture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Montant HT",
+     "libelle": "Montant HT",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Taux de TVA",
+     "libelle": "Taux de TVA",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Facture:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Date de paiement",
+     "libelle": "Date de paiement",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "gérer la partie facturation pour nos clients professionnels et particuliers"
+   ]
+  },
+  {
+   "fiche": "Chantier",
+   "libelle": "Chantier",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom du chantier",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "avancement",
+     "libelle": "Avancement (%)",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "connaître leur avancement"
+    },
+    {
+     "nom": "delai",
+     "libelle": "Délai (date de fin prévue)",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les délais"
+    },
+    {
+     "nom": "organisationDomaines",
+     "libelle": "Organisation des domaines d'application",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "l’organisation des différents domaines d’application"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Chantier:Adresse du chantier",
+     "libelle": "Adresse du chantier",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Chantier:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:Chantier:Domaine (gros œuvre, 2nd œuvre)",
+     "libelle": "Domaine (gros œuvre, 2nd œuvre)",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Chantier:Budget",
+     "libelle": "Budget",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "le suivi de nos chantiers (afin de connaître leur avancement, les délais"
+   ]
+  },
+  {
+   "fiche": "RapportChantier",
+   "libelle": "Rapport de chantier",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Chantier"
+   ],
+   "champs": [
+    {
+     "nom": "typeRapport",
+     "libelle": "Type de document",
+     "type": "choix parmi : C/R, rapport",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "C/R, rapports"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:RapportChantier:Intitulé",
+     "libelle": "Intitulé",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:RapportChantier:Date de la visite",
+     "libelle": "Date de la visite",
+     "type": "date"
+    },
+    {
+     "id": "garder:RapportChantier:Contenu",
+     "libelle": "Contenu",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:RapportChantier:Photos",
+     "libelle": "Photos",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "C/R, rapports"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:conducteur_travaux:Chantier",
+   "sorte": "registre_entier",
+   "texte": "Le conducteur de travaux verra tous les Chantiers, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Marchandise:nom",
+     "texte": "Marchandise → « Nom »"
+    },
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:Devis:intitule",
+     "texte": "Devis → « Intitulé »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "Facture → « Numéro de facture »"
+    },
+    {
+     "id": "nom:Chantier:nom",
+     "texte": "Chantier → « Nom du chantier »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

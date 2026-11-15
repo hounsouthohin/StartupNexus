@@ -1,0 +1,1355 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un outil de gestion et de maintenance pour une PME de pose (clôtures, portails, aires de jeux) : fiches équipements et sites, demandes d'intervention et de devis qui passent par des états, rapports de maintenance, et des accès par rôle (clients collectivités et personnel interne). Le site vitrine, l'application mobile, le chat, le planning et les statistiques s'ajoutent à ce coeur sans le remplacer. Ce sont des besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Site internet vitrine présentant l'activité de l'entreprise",
+        "categorie": "autre",
+        "citation": "Créer un site représentatif de l'activité de notre entreprise moderne, épurée, classe ou serait présenté notre activité"
+      },
+      {
+        "besoin": "Application mobile native iOS et Android en plus de l'interface web",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Accès interface web et via application ... accessible via une application mobile (iOS, Android)"
+      },
+      {
+        "besoin": "Suivi des accès individuels (traçabilité de qui se connecte et fait quoi)",
+        "categorie": "autre",
+        "citation": "accès individuels avec possibilité de suivi"
+      },
+      {
+        "besoin": "Interface multilingue",
+        "categorie": "autre",
+        "citation": "multilingue"
+      },
+      {
+        "besoin": "Consultation des plannings par le client dans son portail",
+        "categorie": "planning",
+        "citation": "consulter leurs équipements, plannings et rapports"
+      },
+      {
+        "besoin": "Notifications automatiques au client pour les interventions réalisées",
+        "categorie": "notification",
+        "citation": "notifications automatiques pour informer des interventions réalisées"
+      },
+      {
+        "besoin": "Exports des rapports en Excel et PDF",
+        "categorie": "document",
+        "citation": "exportations possibles (Excel, PDF)"
+      },
+      {
+        "besoin": "Planning prévisionnel des passages visible par le client",
+        "categorie": "planning",
+        "citation": "Planning prévisionnel de passage"
+      },
+      {
+        "besoin": "Documents joints aux équipements (certificats, notices, fiches techniques)",
+        "categorie": "fichiers_photos",
+        "citation": "listing des équipements avec documentations"
+      },
+      {
+        "besoin": "Tableau de bord global par mois, par équipe et par client",
+        "categorie": "calcul_statistiques",
+        "citation": "tableau de bord global (par mois, par équipe, par client)"
+      },
+      {
+        "besoin": "Statistiques et reporting sur le temps passé, les coûts et les interventions",
+        "categorie": "calcul_statistiques",
+        "citation": "statistiques et reporting (temps passé, coûts, interventions)"
+      },
+      {
+        "besoin": "Chat intégré type WhatsApp par chantier ou par client",
+        "categorie": "messagerie",
+        "citation": "chat intégré type WhatsApp, par chantier ou par client"
+      },
+      {
+        "besoin": "Notifications liées aux échanges",
+        "categorie": "notification",
+        "citation": "notifications et échanges documentés"
+      },
+      {
+        "besoin": "Envoi de photos HD, fichiers et messages vocaux dans les échanges",
+        "categorie": "fichiers_photos",
+        "citation": "photos HD, fichiers, messages vocaux"
+      },
+      {
+        "besoin": "Historique des discussions",
+        "categorie": "messagerie",
+        "citation": "historisation des discussions"
+      },
+      {
+        "besoin": "Traduction vocale",
+        "categorie": "autre",
+        "citation": "utilisation de la traduction vocale"
+      },
+      {
+        "besoin": "Réservation de matériel par les techniciens (disponibilité)",
+        "categorie": "planning",
+        "citation": "réserver matériels"
+      },
+      {
+        "besoin": "Planning du personnel avec vue par chantier et par équipe",
+        "categorie": "planning",
+        "citation": "Organisation du planning du personnel ... vue par chantier/par équipe"
+      },
+      {
+        "besoin": "Gestion des ressources matérielles dans le planning",
+        "categorie": "planning",
+        "citation": "gestion des ressources matérielles"
+      },
+      {
+        "besoin": "Paramétrage et filtres personnalisables par l'utilisateur",
+        "categorie": "autre",
+        "citation": "paramétrage et filtres personnalisables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "La société POSE, spécialisée dans la pose de clôtures, portails et aires de jeux, souhaite mettre en place"
+      },
+      {
+        "id": "technicien",
+        "libelle": "technicien",
+        "libelle_pluriel": "techniciens",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "soit par les personnels de notre entreprise ... possibilité pour nos techniciens d’envoyer des commandes"
+      },
+      {
+        "id": "charge_de_depot",
+        "libelle": "chargé de dépôt",
+        "libelle_pluriel": "chargés de dépôt",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "envoyer des commandes à notre chargé de dépôt"
+      },
+      {
+        "id": "client",
+        "libelle": "client (collectivité)",
+        "libelle_pluriel": "clients (collectivités)",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "soit à nos clients (collectivités, communes) ... portail client dédié pour consulter leurs équipements, plannings et rapports"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "visiteur du site internet",
+        "citation": "un site internet accessible à tous"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "client",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "PROFIL PERSONNALISE (soit à nos clients (collectivités, communes)"
+      },
+      {
+        "nom": "Activite",
+        "libelle": "activité",
+        "libelle_pluriel": "activités",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "site internet accessible à tous ... ou serait présenté notre activité"
+      },
+      {
+        "nom": "Site",
+        "libelle": "site",
+        "libelle_pluriel": "sites",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Gestion des sites"
+      },
+      {
+        "nom": "Equipement",
+        "libelle": "équipement",
+        "libelle_pluriel": "équipements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "consulter leurs équipements ... listing des équipements avec documentations"
+      },
+      {
+        "nom": "DocumentEquipement",
+        "libelle": "document d'équipement",
+        "libelle_pluriel": "documents d'équipement",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Equipement",
+        "references": [],
+        "citation": "certificat de conformité, notice de montage, fiche technique, fiche produit"
+      },
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "le suivi et la conduite des chantiers"
+      },
+      {
+        "nom": "Equipe",
+        "libelle": "équipe",
+        "libelle_pluriel": "équipes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "affectation des équipes"
+      },
+      {
+        "nom": "Affectation",
+        "libelle": "affectation",
+        "libelle_pluriel": "affectations",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Equipe",
+          "Chantier"
+        ],
+        "citation": "Organisation du planning du personnel ... vue par chantier/par équipe"
+      },
+      {
+        "nom": "CategorieIntervention",
+        "libelle": "catégorie d'intervention",
+        "libelle_pluriel": "catégories d'intervention",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "classé par catégorie"
+      },
+      {
+        "nom": "DemandeIntervention",
+        "libelle": "demande d'intervention",
+        "libelle_pluriel": "demandes d'intervention",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "client",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CategorieIntervention"
+        ],
+        "citation": "Demande d’intervention ... classé par catégorie"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "intervention",
+        "libelle_pluriel": "interventions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "technicien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DemandeIntervention",
+          "Equipe",
+          "Client"
+        ],
+        "citation": "informer des interventions réalisées ... affectation des équipes"
+      },
+      {
+        "nom": "RapportMaintenance",
+        "libelle": "rapport de maintenance",
+        "libelle_pluriel": "rapports de maintenance",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "technicien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Intervention"
+        ],
+        "citation": "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+      },
+      {
+        "nom": "PassagePrevu",
+        "libelle": "passage prévu",
+        "libelle_pluriel": "passages prévus",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Planning prévisionnel de passage"
+      },
+      {
+        "nom": "DemandeDevis",
+        "libelle": "demande de devis",
+        "libelle_pluriel": "demandes de devis",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "client",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "suivi des demandes (rouge, orange, vert) ... réponses aux demandes de devis"
+      },
+      {
+        "nom": "Discussion",
+        "libelle": "discussion",
+        "libelle_pluriel": "discussions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "technicien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier",
+          "Client"
+        ],
+        "citation": "chat intégré type WhatsApp, par chantier ou par client"
+      },
+      {
+        "nom": "Message",
+        "libelle": "message",
+        "libelle_pluriel": "messages",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Discussion",
+        "references": [],
+        "citation": "échanges documentés (photos HD, fichiers, messages vocaux) ... historisation des discussions"
+      },
+      {
+        "nom": "Materiel",
+        "libelle": "matériel",
+        "libelle_pluriel": "matériels",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "charge_de_depot"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des ressources matérielles"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "technicien",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Materiel"
+        ],
+        "citation": "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+      },
+      {
+        "nom": "ReservationMateriel",
+        "libelle": "réservation de matériel",
+        "libelle_pluriel": "réservations de matériel",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "technicien",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Materiel"
+        ],
+        "citation": "et de réserver matériels"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "visiteur du site internet",
+        "fiche": null,
+        "raison": "Visiteur anonyme sans compte qui consulte seulement le site vitrine : le brief ne demande rien à enregistrer sur lui (il voit les fiches publiques Activite)."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "DemandeDevis",
+        "etat_initial": "rouge",
+        "transitions": {
+          "rouge": [
+            "orange"
+          ],
+          "orange": [
+            "vert"
+          ],
+          "vert": []
+        },
+        "libelles": {
+          "rouge": "rouge",
+          "orange": "orange",
+          "vert": "vert"
+        },
+        "initiateur": "client",
+        "decideur": "gerant",
+        "etapes_par": {},
+        "citation": "suivi des demandes (rouge, orange, vert) ... réponses aux demandes de devis"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "visitor",
+        "fiche": "Activite",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "site internet accessible à tous ... serait présenté notre activité"
+      },
+      {
+        "acteur": "client",
+        "fiche": "Equipement",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "portail client dédié pour consulter leurs équipements"
+      },
+      {
+        "acteur": "client",
+        "fiche": "PassagePrevu",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "consulter leurs équipements, plannings et rapports"
+      },
+      {
+        "acteur": "client",
+        "fiche": "RapportMaintenance",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "consulter leurs équipements, plannings et rapports ... accès à la bibliothèque de rapports de maintenance"
+      },
+      {
+        "acteur": "client",
+        "fiche": "DocumentEquipement",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "listing des équipements avec documentations"
+      },
+      {
+        "acteur": "client",
+        "fiche": "DemandeDevis",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "suivi des demandes (rouge, orange, vert)"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "BonDeCommande",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "ReservationMateriel",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "possibilité pour nos techniciens ... de réserver matériels"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Type de client (collectivité, commune)",
+            "type": "choix",
+            "raison": "Le brief cite les collectivités et les communes comme clients, sans dire s'il faut les distinguer sur la fiche."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour situer le client, mais le brief n'en parle pas."
+          },
+          {
+            "libelle": "Email de contact",
+            "type": "email",
+            "raison": "Nécessaire pour les notifications automatiques, mais non cité."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée utile, non citée."
+          },
+          {
+            "libelle": "Langue préférée",
+            "type": "texte",
+            "raison": "L'outil doit être multilingue, mais le brief ne dit pas s'il faut enregistrer une langue par client."
+          }
+        ]
+      },
+      {
+        "fiche": "Activite",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Pour présenter l'activité sur le site internet, non cité."
+          },
+          {
+            "libelle": "Photo",
+            "type": "url",
+            "raison": "Le site doit être représentatif de l'activité, mais aucune information précise n'est citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Site",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Pour localiser le site, non cité."
+          },
+          {
+            "libelle": "Commune",
+            "type": "texte",
+            "raison": "Utile pour les clients collectivités, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Equipement",
+        "champs": [
+          {
+            "nom": "typeEquipement",
+            "libelle": "Type d'équipement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "jeux",
+              "agrès",
+              "panneaux",
+              "sols",
+              "clôtures"
+            ],
+            "origine": "brief",
+            "citation": "état du patrimoine (jeux, agrès, panneaux, sols, clôtures)"
+          },
+          {
+            "nom": "etat",
+            "libelle": "État",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Etat des équipements"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom ou désignation",
+            "type": "texte",
+            "raison": "Pour reconnaître l'équipement dans le listing, non cité."
+          },
+          {
+            "libelle": "Date d'installation",
+            "type": "date",
+            "raison": "Utile pour le suivi du patrimoine, non citée."
+          },
+          {
+            "libelle": "Fabricant ou référence produit",
+            "type": "texte",
+            "raison": "Utile avec les fiches produit et techniques, non cité."
+          },
+          {
+            "libelle": "Valeurs possibles de l'état",
+            "type": "choix",
+            "raison": "Le brief parle de l'état des équipements sans en énumérer les valeurs."
+          }
+        ]
+      },
+      {
+        "fiche": "DocumentEquipement",
+        "champs": [
+          {
+            "nom": "typeDocument",
+            "libelle": "Type de document",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "certificat de conformité",
+              "notice de montage",
+              "fiche technique",
+              "fiche produit",
+              "notice d’entretien"
+            ],
+            "origine": "brief",
+            "citation": "documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fichier du document",
+            "type": "url",
+            "raison": "Le document lui-même doit être consultable, mais le brief ne précise pas comment il est stocké."
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Utile pour un certificat de conformité, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Chantier",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse du chantier",
+            "type": "texte_long",
+            "raison": "Pour la conduite des chantiers, non citée."
+          },
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Utile pour le planning, non citée."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Utile pour le planning, non citée."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Pour préparer le chantier, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Equipe",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Chef d'équipe",
+            "type": "texte",
+            "raison": "Utile pour l'affectation, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Affectation",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Le planning du personnel suppose des dates, mais le brief ne les cite pas."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Le planning du personnel suppose des dates, mais le brief ne les cite pas."
+          },
+          {
+            "libelle": "Consignes",
+            "type": "texte_long",
+            "raison": "Utile pour l'équipe, non citées."
+          }
+        ]
+      },
+      {
+        "fiche": "CategorieIntervention",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Pour aider le client à choisir la bonne catégorie, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "DemandeIntervention",
+        "champs": [
+          {
+            "nom": "objet",
+            "libelle": "Objet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description du problème",
+            "type": "texte_long",
+            "raison": "Le client doit expliquer sa demande, mais le brief ne le dit pas."
+          },
+          {
+            "libelle": "Urgente",
+            "type": "oui_non",
+            "raison": "Le brief parle de gestion des interventions d'urgence sans dire si la demande porte cette information."
+          },
+          {
+            "libelle": "Photo",
+            "type": "url",
+            "raison": "Utile pour illustrer la demande, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "tempsPasse",
+            "libelle": "Temps passé (heures)",
+            "type": "nombre",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "statistiques et reporting (temps passé, coûts, interventions)"
+          },
+          {
+            "nom": "cout",
+            "libelle": "Coût",
+            "type": "montant",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "temps passé, couts, interventions"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de réalisation",
+            "type": "date",
+            "raison": "Le brief parle des interventions réalisées et d'un tableau de bord par mois, sans citer de date d'intervention."
+          },
+          {
+            "libelle": "Description des travaux",
+            "type": "texte_long",
+            "raison": "Utile pour informer le client, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "RapportMaintenance",
+        "champs": [
+          {
+            "nom": "typeMaintenance",
+            "libelle": "Type de maintenance",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "préventive",
+              "corrective",
+              "urgence"
+            ],
+            "origine": "brief",
+            "citation": "rapports de maintenance (préventive, corrective, urgence)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Compte rendu",
+            "type": "texte_long",
+            "raison": "Le contenu du rapport n'est pas décrit dans le brief."
+          },
+          {
+            "libelle": "Date du rapport",
+            "type": "date",
+            "raison": "Utile pour classer la bibliothèque de rapports, non citée."
+          },
+          {
+            "libelle": "Fichier du rapport",
+            "type": "url",
+            "raison": "Utile pour un rapport déjà rédigé, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "PassagePrevu",
+        "champs": [
+          {
+            "nom": "datePassage",
+            "libelle": "Date de passage prévue",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Planning prévisionnel de passage"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Objet du passage",
+            "type": "texte",
+            "raison": "Pour savoir pourquoi on passe, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "DemandeDevis",
+        "champs": [
+          {
+            "nom": "objet",
+            "libelle": "Objet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "reponse",
+            "libelle": "Réponse",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "réponses aux demandes de devis"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description de la demande",
+            "type": "texte_long",
+            "raison": "Le client doit détailler son besoin, non cité."
+          },
+          {
+            "libelle": "Montant du devis",
+            "type": "montant",
+            "raison": "Utile pour la réponse, non cité."
+          },
+          {
+            "libelle": "Fichier du devis",
+            "type": "url",
+            "raison": "Utile pour joindre le devis, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Discussion",
+        "champs": [
+          {
+            "nom": "sujet",
+            "libelle": "Sujet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Message",
+        "champs": [
+          {
+            "nom": "photo",
+            "libelle": "Photo HD",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "échanges documentés (photos HD, fichiers, messages vocaux)"
+          },
+          {
+            "nom": "fichier",
+            "libelle": "Fichier",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "échanges documentés (photos HD, fichiers, messages vocaux)"
+          },
+          {
+            "nom": "messageVocal",
+            "libelle": "Message vocal",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "échanges documentés (photos HD, fichiers, messages vocaux)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Texte du message",
+            "type": "texte_long",
+            "raison": "Un chat de type WhatsApp suppose des messages écrits, mais le brief ne le dit pas explicitement."
+          },
+          {
+            "libelle": "Traduction",
+            "type": "texte_long",
+            "raison": "Le brief parle de traduction vocale sans dire si la traduction est enregistrée."
+          }
+        ]
+      },
+      {
+        "fiche": "Materiel",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence",
+            "type": "texte",
+            "raison": "Utile pour le chargé de dépôt, non citée."
+          },
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "Utile pour les commandes et réservations, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "BonDeCommande",
+        "champs": [
+          {
+            "nom": "objet",
+            "libelle": "Objet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Utile pour la commande, non citée."
+          },
+          {
+            "libelle": "Date souhaitée",
+            "type": "date",
+            "raison": "Utile pour le chargé de dépôt, non citée."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Pour préciser la commande, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "ReservationMateriel",
+        "champs": [
+          {
+            "nom": "objet",
+            "libelle": "Objet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Une réservation suppose une période, non citée."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Une réservation suppose une période, non citée."
+          },
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Utile si plusieurs unités sont réservées, non citée."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion POSE",
+    "fiches": [
+      {
+        "fiche": "Site",
+        "verbe_creation": "Ajouter un site",
+        "boutons": {}
+      },
+      {
+        "fiche": "Equipement",
+        "verbe_creation": "Ajouter un équipement",
+        "boutons": {}
+      },
+      {
+        "fiche": "DocumentEquipement",
+        "verbe_creation": "Joindre un document",
+        "boutons": {}
+      },
+      {
+        "fiche": "Chantier",
+        "verbe_creation": "Ouvrir un chantier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Affectation",
+        "verbe_creation": "Affecter",
+        "boutons": {}
+      },
+      {
+        "fiche": "DemandeIntervention",
+        "verbe_creation": "Demander une intervention",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier une intervention",
+        "boutons": {}
+      },
+      {
+        "fiche": "RapportMaintenance",
+        "verbe_creation": "Rédiger un rapport",
+        "boutons": {}
+      },
+      {
+        "fiche": "PassagePrevu",
+        "verbe_creation": "Planifier un passage",
+        "boutons": {}
+      },
+      {
+        "fiche": "DemandeDevis",
+        "verbe_creation": null,
+        "boutons": {
+          "orange": "Prendre en charge",
+          "vert": "Marquer traitée"
+        }
+      },
+      {
+        "fiche": "Discussion",
+        "verbe_creation": "Démarrer une discussion",
+        "boutons": {}
+      },
+      {
+        "fiche": "Message",
+        "verbe_creation": "Envoyer un message",
+        "boutons": {}
+      },
+      {
+        "fiche": "BonDeCommande",
+        "verbe_creation": "Commander",
+        "boutons": {}
+      },
+      {
+        "fiche": "ReservationMateriel",
+        "verbe_creation": "Réserver",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche DocumentEquipement : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche DemandeIntervention : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche DemandeDevis : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Message : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche BonDeCommande : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche ReservationMateriel : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

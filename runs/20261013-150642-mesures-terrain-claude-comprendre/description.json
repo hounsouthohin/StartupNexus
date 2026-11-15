@@ -1,0 +1,126 @@
+{
+  "app": {
+    "nom": "mesures-terrain",
+    "titre": "Gestion des commandes"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire",
+        "label_plural": "Gestionnaires",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "un logiciel qui faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+      },
+      {
+        "name": "Intervention",
+        "label": "intervention planifiée",
+        "label_plural": "interventions planifiées",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": null,
+        "citation": "(mesure scientifiques sur terrain) qui inclurait un planning logistique"
+      },
+      {
+        "name": "Livrable",
+        "label": "livrable",
+        "label_plural": "livrables",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": null,
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Commande": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Intervention": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Livrable": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Intervention": {
+      "verbe_creation": "Planifier",
+      "boutons": {}
+    },
+    "Livrable": {
+      "verbe_creation": "Ajouter un livrable",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

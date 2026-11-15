@@ -1,0 +1,6 @@
+Plateforme RH cabinet d'avocats
+Nous recherchons un prestataire afin de développer un logiciel pour cabinet d'avocats aux fonctionnalités suivantes: pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence. Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués, des spécialités des collaborateurs, de leur ancienneté etc. Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer (les heures ayant été effectuées étant rentrées dans un autre logiciel, nous souhaiterions lier les deux). L'associé est ainsi conscient en temps réel de la charge de travail de ses équipes, avec un système d'alerte mail dès lors qu'un collaborateur possède une charge de travail trop importante.
+
+Machine learning pour prévoir, selon la typologie de dossier, la charge de travail que celui-ci peut représenter dans l'avenir.
+
+Enfin, suivi des forfait de facturation avec un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client.

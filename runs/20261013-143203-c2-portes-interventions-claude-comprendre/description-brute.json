@@ -1,0 +1,620 @@
+{
+  "app": {
+    "nom": "c2-portes-interventions",
+    "titre": "Gestion des interventions"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "dirigeant",
+        "label": "Dirigeant",
+        "label_plural": "Dirigeants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Notre entreprise spécialisée dans la réparation et l'entretien de portes de garage"
+      },
+      {
+        "id": "employe_administratif",
+        "label": "Employé administratif",
+        "label_plural": "Employés administratifs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "dirigeant",
+        "citation": "Formation succincte à destination de notre équipe administrative"
+      },
+      {
+        "id": "collaborateur",
+        "label": "Collaborateur",
+        "label_plural": "Collaborateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "dirigeant",
+        "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Collaborateur",
+        "label": "Collaborateur",
+        "label_plural": "Collaborateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+      },
+      {
+        "name": "Chantier",
+        "label": "Chantier",
+        "label_plural": "Chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "adresses des chantiers"
+      },
+      {
+        "name": "TypeIntervention",
+        "label": "Type d'intervention",
+        "label_plural": "Types d'intervention",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Checklist personnalisable selon le type d'intervention"
+      },
+      {
+        "name": "PointChecklist",
+        "label": "Point de checklist",
+        "label_plural": "Points de checklist",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "TypeIntervention",
+        "references": [],
+        "citation": "Checklist personnalisable selon le type d'intervention (remplaçant les fichiers Excel)"
+      },
+      {
+        "name": "BonIntervention",
+        "label": "Bon d'intervention",
+        "label_plural": "Bons d'intervention",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif",
+          "collaborateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Chantier",
+          "Collaborateur",
+          "TypeIntervention"
+        ],
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+      },
+      {
+        "name": "LigneChecklist",
+        "label": "Ligne de checklist",
+        "label_plural": "Lignes de checklist",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "BonIntervention",
+        "references": [
+          "PointChecklist"
+        ],
+        "citation": "Checklist personnalisable selon le type d'intervention"
+      },
+      {
+        "name": "Materiel",
+        "label": "Matériel",
+        "label_plural": "Matériels",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout automatique de matériel avec génération instantanée de devis"
+      },
+      {
+        "name": "LigneMateriel",
+        "label": "Ligne de matériel",
+        "label_plural": "Lignes de matériel",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "BonIntervention",
+        "references": [
+          "Materiel"
+        ],
+        "citation": "Ajout automatique de matériel"
+      },
+      {
+        "name": "Devis",
+        "label": "Devis",
+        "label_plural": "Devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif",
+          "collaborateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "BonIntervention",
+          "Client"
+        ],
+        "citation": "génération instantanée de devis"
+      },
+      {
+        "name": "CategorieDocument",
+        "label": "Catégorie de documents",
+        "label_plural": "Catégories de documents",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "classement des fichiers"
+      },
+      {
+        "name": "Document",
+        "label": "Document",
+        "label_plural": "Documents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "CategorieDocument"
+        ],
+        "citation": "Gestion documentaire avec classement des fichiers et moteur de recherche"
+      },
+      {
+        "name": "DemandeConge",
+        "label": "Demande de congés",
+        "label_plural": "Demandes de congés",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion intégrée des demandes de congés",
+        "process": {
+          "initial": "demandee",
+          "transitions": {
+            "demandee": [
+              "acceptee",
+              "refusee"
+            ],
+            "acceptee": [],
+            "refusee": []
+          },
+          "initiator": "collaborateur",
+          "decider": "dirigeant",
+          "steps_by": {},
+          "labels": {
+            "demandee": "demandée",
+            "acceptee": "acceptée",
+            "refusee": "refusée"
+          },
+          "citation": "Gestion intégrée des demandes de congés"
+        }
+      },
+      {
+        "name": "CommandeMateriel",
+        "label": "Commande de matériel",
+        "label_plural": "Commandes de matériel",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Materiel"
+        ],
+        "citation": "commandes de matériel"
+      },
+      {
+        "name": "CommandeVetement",
+        "label": "Commande de vêtements professionnels",
+        "label_plural": "Commandes de vêtements professionnels",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "commandes de matériel et vêtements professionnels"
+      },
+      {
+        "name": "FichePaie",
+        "label": "Fiche de paie",
+        "label_plural": "Fiches de paie",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "employe_administratif",
+        "parent": null,
+        "references": [],
+        "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+      },
+      {
+        "name": "CodeAcces",
+        "label": "Code d'accès",
+        "label_plural": "Codes d'accès",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des codes d'accès digitaux (clavier à code)"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Collaborateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Chantier": [
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "adresses des chantiers"
+      }
+    ],
+    "TypeIntervention": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "PointChecklist": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé du point",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "BonIntervention": [
+      {
+        "nom": "debut",
+        "libelle": "Début de l'intervention",
+        "type": "date_heure",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Horodatage précis des interventions (début et fin)"
+      },
+      {
+        "nom": "fin",
+        "libelle": "Fin de l'intervention",
+        "type": "date_heure",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Horodatage précis des interventions (début et fin)"
+      },
+      {
+        "nom": "signatureClient",
+        "libelle": "Signature électronique du client",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Signature électronique du client sur tablette"
+      }
+    ],
+    "LigneChecklist": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Materiel": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "LigneMateriel": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CategorieDocument": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Document": [
+      {
+        "nom": "titre",
+        "libelle": "Titre",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "DemandeConge": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CommandeMateriel": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CommandeVetement": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "FichePaie": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CodeAcces": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "code",
+        "libelle": "Code",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "codes d'accès digitaux"
+      }
+    ]
+  },
+  "ecran": {
+    "Chantier": {
+      "verbe_creation": "Ajouter un chantier",
+      "boutons": {}
+    },
+    "PointChecklist": {
+      "verbe_creation": "Ajouter un point",
+      "boutons": {}
+    },
+    "BonIntervention": {
+      "verbe_creation": "Planifier une intervention",
+      "boutons": {}
+    },
+    "LigneChecklist": {
+      "verbe_creation": "Cocher un point",
+      "boutons": {}
+    },
+    "LigneMateriel": {
+      "verbe_creation": "Ajouter du matériel",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Générer le devis",
+      "boutons": {}
+    },
+    "Document": {
+      "verbe_creation": "Déposer un document",
+      "boutons": {}
+    },
+    "DemandeConge": {
+      "verbe_creation": null,
+      "boutons": {
+        "acceptee": "Accepter",
+        "refusee": "Refuser"
+      }
+    },
+    "CommandeMateriel": {
+      "verbe_creation": "Commander",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

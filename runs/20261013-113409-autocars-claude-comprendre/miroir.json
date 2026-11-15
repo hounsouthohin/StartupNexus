@@ -1,0 +1,472 @@
+{
+ "titre": "Gestion des autocars",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Vue planning des chauffeurs",
+   "categorie": "planning",
+   "citation": "Établissement de planning"
+  },
+  {
+   "besoin": "Calcul des amplitudes des chauffeurs et des temps de pause obligatoires prévus par la loi",
+   "categorie": "calcul_statistiques",
+   "citation": "comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi"
+  },
+  {
+   "besoin": "Codes couleurs par chauffeur et par véhicule dans l'affichage du planning",
+   "categorie": "planning",
+   "citation": "Codes couleurs par chauffeurs et par véhicules"
+  },
+  {
+   "besoin": "Suivi automatique de la facturation",
+   "categorie": "automatisation",
+   "citation": "Suivi de facturation automatique"
+  },
+  {
+   "besoin": "Envoi des programmes aux chauffeurs directement depuis le logiciel",
+   "categorie": "notification",
+   "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+  },
+  {
+   "besoin": "Transmission des données de facturation au logiciel EBP pour établir les factures proforma",
+   "categorie": "integration",
+   "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+  },
+  {
+   "besoin": "Calcul du reste dû ou de l'avoir en cours sur la fiche client",
+   "categorie": "calcul_statistiques",
+   "citation": "reste dû ou avoir en cours"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant"
+  ],
+  "fiches": 5,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Logiciel de gestion pour société tourisme luxe autocars"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Clients, Chauffeurs, Véhicules, Courses, Factures",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+       ]
+      },
+      {
+       "fiche": "Chauffeur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Établissement de planning comprenant les amplitudes chauffeurs"
+       ]
+      },
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Codes couleurs par chauffeurs et par véhicules"
+       ]
+      },
+      {
+       "fiche": "Course",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Établissement de planning comprenant les amplitudes chauffeurs"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "logiciel de gestion de planning et suivis de facture"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "coordonnees",
+     "libelle": "Coordonnées",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "coordonnées"
+    },
+    {
+     "nom": "resteDu",
+     "libelle": "Reste dû",
+     "type": "montant",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "reste dû"
+    },
+    {
+     "nom": "avoirEnCours",
+     "libelle": "Avoir en cours",
+     "type": "montant",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "avoir en cours"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Client régulier",
+     "libelle": "Client régulier",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)"
+   ]
+  },
+  {
+   "fiche": "Chauffeur",
+   "libelle": "Chauffeur",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "couleur",
+     "libelle": "Couleur",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Codes couleurs par chauffeurs"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Chauffeur:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Chauffeur:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Chauffeur:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "Établissement de planning comprenant les amplitudes chauffeurs"
+   ]
+  },
+  {
+   "fiche": "Vehicule",
+   "libelle": "Véhicule",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "immatriculation",
+     "libelle": "Immatriculation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "couleur",
+     "libelle": "Couleur",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Codes couleurs par chauffeurs et par véhicules"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Vehicule:Marque et modèle",
+     "libelle": "Marque et modèle",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Vehicule:Nombre de places",
+     "libelle": "Nombre de places",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Codes couleurs par chauffeurs et par véhicules"
+   ]
+  },
+  {
+   "fiche": "Course",
+   "libelle": "Course",
+   "nature": "registry",
+   "relie_a": [
+    "Client",
+    "Chauffeur",
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Course:Date et heure de début",
+     "libelle": "Date et heure de début",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Course:Date et heure de fin",
+     "libelle": "Date et heure de fin",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Course:Lieu de départ",
+     "libelle": "Lieu de départ",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Course:Destination",
+     "libelle": "Destination",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Course:Nombre de passagers",
+     "libelle": "Nombre de passagers",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Course:Prix",
+     "libelle": "Prix",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Établissement de planning comprenant les amplitudes chauffeurs"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "Facture",
+   "nature": "registry",
+   "relie_a": [
+    "Client",
+    "Course"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Date de facture",
+     "libelle": "Date de facture",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Montant réglé",
+     "libelle": "Montant réglé",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Proforma",
+     "libelle": "Proforma",
+     "type": "oui / non"
+    },
+    {
+     "id": "garder:Facture:Transmise à EBP",
+     "libelle": "Transmise à EBP",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "logiciel de gestion de planning et suivis de facture"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:Chauffeur:nom",
+     "texte": "Chauffeur → « Nom »"
+    },
+    {
+     "id": "nom:Vehicule:immatriculation",
+     "texte": "Véhicule → « Immatriculation »"
+    },
+    {
+     "id": "nom:Course:intitule",
+     "texte": "Course → « Intitulé »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "Facture → « Numéro »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

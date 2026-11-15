@@ -34,7 +34,7 @@ from .assembler import RUNS, fabriquer
 from .description import Description
 
 RACINE = Path(__file__).resolve().parents[1]
-E5 = RACINE / "poc" / "comprehension"
+E5 = RACINE / "usine" / "briefs_reels" / "apprentissage"   # lot d'apprentissage : briefs, grille et sorties de l'étude 05
 # (16 oct, N1.4a) refuser puis proposer à la place : partagé avec le miroir (usine/variante.py)
 from .variante import blocs_refuses, proposer, refus, variante  # noqa: E402,F401
 
@@ -249,7 +249,7 @@ def main() -> int:
         if args.corpus:
             refs, briefs = RACINE / args.corpus / "references.yaml", f"{args.corpus}/briefs.json"
         else:
-            refs, briefs = E5 / "references.yaml", "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json"
+            refs, briefs = E5 / "references.yaml", "usine/briefs_reels/apprentissage/briefs.json"
         grille = yaml.safe_load(refs.read_text(encoding="utf-8"))["briefs"]
         projets = {x: r["perimetre"] for x, r in grille.items() if not args.seulement or x in args.seulement}
         deja = {}

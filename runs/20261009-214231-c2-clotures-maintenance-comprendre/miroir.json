@@ -1,0 +1,2221 @@
+{
+ "titre": "Gestion POSE",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:portee:designe] client_collectivite / Equipement : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] client_collectivite / PassagePlanifie : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] client_collectivite / RapportMaintenance : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] client_collectivite / DocumentEquipement : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-clotu...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "portee:designe"
+  ],
+  "pas_encore": [
+   "⚠ La collectivité cliente ne verra pas les équipements qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ La collectivité cliente ne verra pas les passages planifiés qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ La collectivité cliente ne verra pas les rapports de maintenance qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ La collectivité cliente ne verra pas les documents d'équipement qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "choisir, dans un(e) demande d'intervention, un(e) site client parmi les siens : pas encore possible — lien retiré",
+   "choisir, dans un(e) demande d'intervention, un(e) équipement parmi les siens : pas encore possible — lien retiré",
+   "choisir, dans un(e) demande de devis, un(e) site client parmi les siens : pas encore possible — lien retiré",
+   "choisir, dans un(e) demande de devis, un(e) équipement parmi les siens : pas encore possible — lien retiré"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Site internet vitrine de présentation de l’entreprise",
+   "categorie": "autre",
+   "citation": "Créer un site représentatif de l'activité de notre entreprise moderne, épurée, classe ou serait présenté notre activité"
+  },
+  {
+   "besoin": "Application mobile iOS/Android",
+   "categorie": "mobile_hors_ligne",
+   "citation": "accessible via une application mobile (iOS, Android)"
+  },
+  {
+   "besoin": "Suivi ou traçabilité des accès individuels",
+   "categorie": "autre",
+   "citation": "accès sécurisé(accès individuels avec possibilité de suivi)"
+  },
+  {
+   "besoin": "Interface multilingue",
+   "categorie": "autre",
+   "citation": "multilingue"
+  },
+  {
+   "besoin": "Ajout de modules / modularité du produit",
+   "categorie": "autre",
+   "citation": "possibilité d’ajout de modules"
+  },
+  {
+   "besoin": "Consultation et gestion de plannings",
+   "categorie": "planning",
+   "citation": "consulter leurs équipements, plannings et rapports – suivi du patrimoine/équipements/sols ... Planning prévisionnel de passage ... Organisation du planning du personnel"
+  },
+  {
+   "besoin": "Notifications automatiques aux clients",
+   "categorie": "notification",
+   "citation": "notifications automatiques pour informer des interventions réalisées."
+  },
+  {
+   "besoin": "Bibliothèque de rapports de maintenance",
+   "categorie": "document",
+   "citation": "accès à la bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+  },
+  {
+   "besoin": "Export Excel et PDF",
+   "categorie": "document",
+   "citation": "exportations possibles (Excel, PDF)"
+  },
+  {
+   "besoin": "Documentations et pièces jointes liées aux équipements",
+   "categorie": "fichiers_photos",
+   "citation": "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+  },
+  {
+   "besoin": "Affectation des équipes aux interventions",
+   "categorie": "planning",
+   "citation": "affectation des équipes."
+  },
+  {
+   "besoin": "Tableau de bord global",
+   "categorie": "calcul_statistiques",
+   "citation": "tableau de bord global (par mois, par équipe, par client)"
+  },
+  {
+   "besoin": "Statistiques et reporting sur temps, coûts et interventions",
+   "categorie": "calcul_statistiques",
+   "citation": "statistiques et reporting (temps passé, coûts, interventions)"
+  },
+  {
+   "besoin": "Chat intégré par chantier ou par client",
+   "categorie": "messagerie",
+   "citation": "chat intégré type WhatsApp, par chantier ou par client"
+  },
+  {
+   "besoin": "Notifications liées à la communication",
+   "categorie": "notification",
+   "citation": "notifications et échanges documentés (photos HD, fichiers, messages vocaux)"
+  },
+  {
+   "besoin": "Photos HD, fichiers et messages vocaux dans les échanges",
+   "categorie": "fichiers_photos",
+   "citation": "photos HD, fichiers, messages vocaux"
+  },
+  {
+   "besoin": "Historisation des discussions",
+   "categorie": "messagerie",
+   "citation": "historisation des discussions"
+  },
+  {
+   "besoin": "Traduction vocale",
+   "categorie": "autre",
+   "citation": "utilisation de la traduction vocale."
+  },
+  {
+   "besoin": "Réservation de matériel",
+   "categorie": "planning",
+   "citation": "réserver matériels"
+  },
+  {
+   "besoin": "Gestion des ressources matérielles",
+   "categorie": "planning",
+   "citation": "gestion des ressources matérielles"
+  },
+  {
+   "besoin": "Paramétrage et filtres personnalisables",
+   "categorie": "autre",
+   "citation": "paramétrage et filtres personnalisables"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur pose",
+   "Le personnel de l'entreprise",
+   "La collectivité cliente"
+  ],
+  "fiches": 22,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Voit tout : pages du site internet",
+     "cases": [
+      {
+       "fiche": "PageSiteInternet",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "registre public : visible de tous",
+        "exception : « site internet accessible à tous »"
+       ],
+       "citations": [
+        "site internet accessible à tous",
+        "site internet accessible à tous"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "administrateur_pose",
+   "libelle": "L'administrateur pose",
+   "devient": "responsable de l'app",
+   "citations": [
+    "La société POSE, spécialisée dans la pose de clôtures, portails et aires de jeux, souhaite mettre en place"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : pages du site internet, sites clients, équipements, catégories de demande d'intervention, interventions, devis, rapports de maintenance, passages planifiés, chantiers, équipes, créneaux de planning du personnel, conversations, matériels, bons de commande internes",
+     "cases": [
+      {
+       "fiche": "PageSiteInternet",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "site internet accessible à tous"
+       ]
+      },
+      {
+       "fiche": "SiteClient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des sites"
+       ]
+      },
+      {
+       "fiche": "Equipement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+       ]
+      },
+      {
+       "fiche": "CategorieDemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      },
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des interventions d’urgence"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "réponses aux demandes de devis"
+       ]
+      },
+      {
+       "fiche": "RapportMaintenance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+       ]
+      },
+      {
+       "fiche": "PassagePlanifie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Planning prévisionnel de passage"
+       ]
+      },
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "suivi et la conduite des chantiers"
+       ]
+      },
+      {
+       "fiche": "Equipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "affectation des équipes"
+       ]
+      },
+      {
+       "fiche": "CreneauPlanningPersonnel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "vue par chantier/par équipe"
+       ]
+      },
+      {
+       "fiche": "Conversation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des commandes/matériels"
+       ]
+      },
+      {
+       "fiche": "BonCommandeInterne",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "bon de commande internes (possibilité pour nos techniciens d’envoyer des commandes"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : profils personnel de l'entreprise, profils collectivité cliente, demandes d'intervention, demandes de devis",
+     "cases": [
+      {
+       "fiche": "ProfilPersonnelEntreprise",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les équipes qu'il voit",
+        "clôture : choisit les profils personnel de l'entreprise de ses équipes"
+       ],
+       "citations": [
+        "affectation des équipes"
+       ]
+      },
+      {
+       "fiche": "ProfilCollectiviteCliente",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les sites clients qu'il voit",
+        "clôture : choisit les profils collectivité cliente de ses sites clients"
+       ],
+       "citations": [
+        "Gestion des sites"
+       ]
+      },
+      {
+       "fiche": "DemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les interventions qu'il voit",
+        "clôture : choisit les demandes d'intervention de ses interventions"
+       ],
+       "citations": [
+        "gestion des interventions d’urgence"
+       ]
+      },
+      {
+       "fiche": "DemandeDevis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les devis qu'il voit",
+        "clôture : choisit les demandes de devis de ses devis"
+       ],
+       "citations": [
+        "réponses aux demandes de devis"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : documents d'équipement (dans chaque équipement), messages de conversation (dans chaque conversation)",
+     "cases": [
+      {
+       "fiche": "DocumentEquipement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de équipement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+       ]
+      },
+      {
+       "fiche": "MessageConversation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de conversation : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil administrateur POSE, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilAdministrateurPose",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "accès sécurisé(accès individuels avec possibilité de suivi)"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "personnel_entreprise",
+   "libelle": "Le personnel de l'entreprise",
+   "devient": "invité par administrateur_pose",
+   "citations": [
+    "par les personnels de notre entreprise - Accès interface web et via application"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : pages du site internet, profils collectivité cliente, catégories de demande d'intervention, demandes d'intervention",
+     "cases": [
+      {
+       "fiche": "PageSiteInternet",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "registre public : visible de tous"
+       ],
+       "citations": [
+        "site internet accessible à tous"
+       ]
+      },
+      {
+       "fiche": "ProfilCollectiviteCliente",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les sites clients qu'il voit",
+        "clôture : choisit les profils collectivité cliente de ses sites clients"
+       ],
+       "citations": [
+        "Gestion des sites"
+       ]
+      },
+      {
+       "fiche": "CategorieDemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      },
+      {
+       "fiche": "DemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les interventions qu'il voit",
+        "clôture : choisit les demandes d'intervention de ses interventions"
+       ],
+       "citations": [
+        "gestion des interventions d’urgence"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : sites clients, équipements, interventions, devis, rapports de maintenance, passages planifiés, chantiers, équipes, créneaux de planning du personnel, conversations, matériels, bons de commande internes",
+     "cases": [
+      {
+       "fiche": "SiteClient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des sites"
+       ]
+      },
+      {
+       "fiche": "Equipement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements »"
+       ],
+       "citations": [
+        "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)",
+        "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements"
+       ]
+      },
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien) ;\n\nDemande d’intervention:\n\n- gestion des interventions d’urgence ;\n\n- affectation des équipes »"
+       ],
+       "citations": [
+        "gestion des interventions d’urgence",
+        "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien) ;\n\nDemande d’intervention:\n\n- gestion des interventions d’urgence ;\n\n- affectation des équipes"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Demande de devis:\n\n- réponses aux demandes de devis »"
+       ],
+       "citations": [
+        "réponses aux demandes de devis",
+        "Demande de devis:\n\n- réponses aux demandes de devis"
+       ]
+      },
+      {
+       "fiche": "RapportMaintenance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+       ]
+      },
+      {
+       "fiche": "PassagePlanifie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Planning prévisionnel de passage"
+       ]
+      },
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "suivi et la conduite des chantiers"
+       ]
+      },
+      {
+       "fiche": "Equipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "affectation des équipes"
+       ]
+      },
+      {
+       "fiche": "CreneauPlanningPersonnel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Organisation du planning du personnel:\n\n- vue par chantier/par équipe »"
+       ],
+       "citations": [
+        "vue par chantier/par équipe",
+        "Organisation du planning du personnel:\n\n- vue par chantier/par équipe"
+       ]
+      },
+      {
+       "fiche": "Conversation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « gestion des ressources matérielles »"
+       ],
+       "citations": [
+        "Gestion des commandes/matériels",
+        "gestion des ressources matérielles"
+       ]
+      },
+      {
+       "fiche": "BonCommandeInterne",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt »"
+       ],
+       "citations": [
+        "bon de commande internes (possibilité pour nos techniciens d’envoyer des commandes",
+        "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : documents d'équipement (dans chaque équipement), messages de conversation (dans chaque conversation)",
+     "cases": [
+      {
+       "fiche": "DocumentEquipement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements avec documentations »",
+        "enfant de équipement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements avec documentations",
+        "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)",
+        "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements"
+       ]
+      },
+      {
+       "fiche": "MessageConversation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de conversation : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : réservations de matériel",
+     "cases": [
+      {
+       "fiche": "ReservationMateriel",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt et de réserver matériels »"
+       ],
+       "citations": [
+        "réserver matériels",
+        "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt et de réserver matériels"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil personnel de l'entreprise, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilPersonnelEntreprise",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "personnels de notre entreprise"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de devis : voit tout, les fait passer de « orange » à « vert »",
+     "cases": [
+      {
+       "fiche": "DemandeDevis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "orange": [
+          "vert"
+         ]
+        }
+       },
+       "pourquoi": [
+        "décideur du processus : voit tout et fait évoluer l'état"
+       ],
+       "citations": [
+        "Demande de devis:\n\n- suivi des demandes (rouge, orange, vert)"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "client_collectivite",
+   "libelle": "La collectivité cliente",
+   "devient": "invité par administrateur_pose",
+   "citations": [
+    "accessible aussi bien aux équipes internes qu’aux clients (collectivités)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : pages du site internet, catégories de demande d'intervention, rapports de maintenance",
+     "cases": [
+      {
+       "fiche": "PageSiteInternet",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "registre public : visible de tous"
+       ],
+       "citations": [
+        "site internet accessible à tous"
+       ]
+      },
+      {
+       "fiche": "CategorieDemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      },
+      {
+       "fiche": "RapportMaintenance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « accès à la bibliothèque de rapports de maintenance »"
+       ],
+       "citations": [
+        "accès à la bibliothèque de rapports de maintenance"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : demandes d'intervention",
+     "cases": [
+      {
+       "fiche": "DemandeIntervention",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "Demande d’intervention:\n\n-classé par catégorie"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil collectivité cliente, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilCollectiviteCliente",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "nos clients (collectivités, communes)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les sites clients affichés dans les rapports de maintenance qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "SiteClient",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "RapportMaintenance"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rapports de maintenance qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "voit les équipements affichés dans les rapports de maintenance qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "Equipement",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "RapportMaintenance"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rapports de maintenance qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "voit les interventions affichées dans les rapports de maintenance qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "RapportMaintenance"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rapports de maintenance qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de devis : voit seulement les siennes, en crée, les fait passer de « rouge » à « orange »",
+     "cases": [
+      {
+       "fiche": "DemandeDevis",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "rouge": [
+          "orange"
+         ]
+        }
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "fait l'étape depuis « rouge »",
+        "exception : « suivi des demandes (rouge, orange, vert) »"
+       ],
+       "citations": [
+        "suivi des demandes (rouge, orange, vert)",
+        "Demande de devis:\n\n- suivi des demandes (rouge, orange, vert)",
+        "suivi des demandes (rouge, orange, vert)"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "DemandeDevis",
+   "texte": "La demande de devis passe par : « rouge » → « orange » → « vert »",
+   "qui": [
+    "Le personnel de l'entreprise fait passer de « orange » à « vert »",
+    "La collectivité cliente fait passer de « rouge » à « orange »"
+   ],
+   "citations": [
+    "Demande de devis:\n\n- suivi des demandes (rouge, orange, vert)"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "PageSiteInternet",
+   "libelle": "page du site internet",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "titre",
+     "libelle": "Titre",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "site internet accessible à tous"
+   ]
+  },
+  {
+   "fiche": "ProfilAdministrateurPose",
+   "libelle": "profil administrateur POSE",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "accès sécurisé(accès individuels avec possibilité de suivi)"
+   ]
+  },
+  {
+   "fiche": "ProfilPersonnelEntreprise",
+   "libelle": "profil personnel de l'entreprise",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "personnels de notre entreprise"
+   ]
+  },
+  {
+   "fiche": "ProfilCollectiviteCliente",
+   "libelle": "profil collectivité cliente",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nomCollectivite",
+     "libelle": "Nom de la collectivité",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "nos clients (collectivités, communes)"
+   ]
+  },
+  {
+   "fiche": "SiteClient",
+   "libelle": "site client",
+   "nature": "registry",
+   "relie_a": [
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "Gestion des sites"
+   ]
+  },
+  {
+   "fiche": "Equipement",
+   "libelle": "équipement",
+   "nature": "registry",
+   "relie_a": [
+    "site client",
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "typeEquipement",
+     "libelle": "Type d’équipement",
+     "type": "choix parmi : jeux, agrès, panneaux, sols, clôtures",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "état du patrimoine (jeux, agrès, panneaux, sols, clôtures)"
+    },
+    {
+     "nom": "etat",
+     "libelle": "État",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "état du patrimoine"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+   ]
+  },
+  {
+   "fiche": "DocumentEquipement",
+   "libelle": "document d'équipement",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque équipement"
+   ],
+   "champs": [
+    {
+     "nom": "typeDocument",
+     "libelle": "Type de document",
+     "type": "choix parmi : certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DocumentEquipement:Fichier du document",
+     "libelle": "Fichier du document",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien"
+   ]
+  },
+  {
+   "fiche": "CategorieDemandeIntervention",
+   "libelle": "catégorie de demande d'intervention",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "libelle",
+     "libelle": "Libellé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "classé par catégorie"
+   ]
+  },
+  {
+   "fiche": "DemandeIntervention",
+   "libelle": "demande d'intervention",
+   "nature": "collection",
+   "relie_a": [
+    "profil collectivité cliente",
+    "catégorie de demande d'intervention"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "Demande d’intervention:\n\n-classé par catégorie"
+   ]
+  },
+  {
+   "fiche": "Intervention",
+   "libelle": "intervention",
+   "nature": "registry",
+   "relie_a": [
+    "demande d'intervention",
+    "site client",
+    "équipement",
+    "équipe"
+   ],
+   "champs": [
+    {
+     "nom": "urgence",
+     "libelle": "Urgence",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "interventions d’urgence"
+    },
+    {
+     "nom": "tempsPasse",
+     "libelle": "Temps passé",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "temps passé, couts, interventions"
+    },
+    {
+     "nom": "cout",
+     "libelle": "Coût",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "temps passé, couts, interventions"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion des interventions d’urgence"
+   ]
+  },
+  {
+   "fiche": "DemandeDevis",
+   "libelle": "demande de devis",
+   "nature": "collection",
+   "relie_a": [
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "suivi des demandes (rouge, orange, vert)"
+   ]
+  },
+  {
+   "fiche": "Devis",
+   "libelle": "devis",
+   "nature": "registry",
+   "relie_a": [
+    "demande de devis",
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "reponse",
+     "libelle": "Réponse",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "réponses aux demandes de devis"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "réponses aux demandes de devis"
+   ]
+  },
+  {
+   "fiche": "RapportMaintenance",
+   "libelle": "rapport de maintenance",
+   "nature": "registry",
+   "relie_a": [
+    "intervention",
+    "site client",
+    "équipement",
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "typeMaintenance",
+     "libelle": "Type de maintenance",
+     "type": "choix parmi : préventive, corrective, urgence",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "rapports de maintenance (préventive, corrective, urgence)"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+   ]
+  },
+  {
+   "fiche": "PassagePlanifie",
+   "libelle": "passage planifié",
+   "nature": "registry",
+   "relie_a": [
+    "site client",
+    "équipement",
+    "intervention",
+    "équipe"
+   ],
+   "champs": [
+    {
+     "nom": "dateHeurePassage",
+     "libelle": "Date et heure de passage",
+     "type": "date et heure",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Planning prévisionnel de passage"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "Planning prévisionnel de passage"
+   ]
+  },
+  {
+   "fiche": "Chantier",
+   "libelle": "chantier",
+   "nature": "registry",
+   "relie_a": [
+    "profil collectivité cliente",
+    "site client"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "suivi et la conduite des chantiers"
+   ]
+  },
+  {
+   "fiche": "Equipe",
+   "libelle": "équipe",
+   "nature": "registry",
+   "relie_a": [
+    "profil personnel de l'entreprise"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "affectation des équipes"
+   ]
+  },
+  {
+   "fiche": "CreneauPlanningPersonnel",
+   "libelle": "créneau de planning du personnel",
+   "nature": "registry",
+   "relie_a": [
+    "chantier",
+    "équipe"
+   ],
+   "champs": [
+    {
+     "nom": "libelle",
+     "libelle": "Libellé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "vue par chantier/par équipe"
+   ]
+  },
+  {
+   "fiche": "Conversation",
+   "libelle": "conversation",
+   "nature": "registry",
+   "relie_a": [
+    "chantier",
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "titre",
+     "libelle": "Titre",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "chat intégré type WhatsApp, par chantier ou par client"
+   ]
+  },
+  {
+   "fiche": "MessageConversation",
+   "libelle": "message de conversation",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque conversation",
+    "profil personnel de l'entreprise",
+    "profil collectivité cliente"
+   ],
+   "champs": [
+    {
+     "nom": "photoHDUrl",
+     "libelle": "Photo HD",
+     "type": "lien web",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "photos HD"
+    },
+    {
+     "nom": "fichierUrl",
+     "libelle": "Fichier",
+     "type": "lien web",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "fichiers"
+    },
+    {
+     "nom": "messageVocalUrl",
+     "libelle": "Message vocal",
+     "type": "lien web",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "messages vocaux"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "photos HD, fichiers, messages vocaux"
+   ]
+  },
+  {
+   "fiche": "Materiel",
+   "libelle": "matériel",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "Gestion des commandes/matériels"
+   ]
+  },
+  {
+   "fiche": "BonCommandeInterne",
+   "libelle": "bon de commande interne",
+   "nature": "registry",
+   "relie_a": [
+    "matériel",
+    "profil personnel de l'entreprise"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "bon de commande internes (possibilité pour nos techniciens d’envoyer des commandes"
+   ]
+  },
+  {
+   "fiche": "ReservationMateriel",
+   "libelle": "réservation de matériel",
+   "nature": "collection",
+   "relie_a": [
+    "matériel",
+    "chantier"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "réserver matériels"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "visiteur:visitor:PageSiteInternet",
+   "sorte": "visiteur",
+   "texte": "Les visiteurs sans compte pourront consulter toutes les pages du site internet — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:PageSiteInternet",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra toutes les pages du site internet, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:SiteClient",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les sites clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les équipements qu'il voit; clôture : choisit les sites clients de ses équipements"
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Equipement",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les équipements, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les interventions qu'il voit; clôture : choisit les équipements de ses interventions"
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Intervention",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra toutes les interventions, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rapports de maintenance qu'il voit; clôture : choisit les interventions de ses rapports de maintenance"
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Devis",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les devis, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:RapportMaintenance",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les rapports de maintenance, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:PassagePlanifie",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les passages planifiés, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Chantier",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les chantiers, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les créneaux de planning du personnel qu'il voit; clôture : choisit les chantiers de ses créneaux de planning du personnel"
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Equipe",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra toutes les équipes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:CreneauPlanningPersonnel",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les créneaux de planning du personnel, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Conversation",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra toutes les conversations, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:Materiel",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les matériels, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les bons de commande internes qu'il voit; clôture : choisit les matériels de ses bons de commande internes"
+  },
+  {
+   "id": "registre_entier:personnel_entreprise:BonCommandeInterne",
+   "sorte": "registre_entier",
+   "texte": "Le personnel de l'entreprise verra tous les bons de commande internes, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:client_collectivite:PageSiteInternet",
+   "sorte": "registre_entier",
+   "texte": "La collectivité cliente verra toutes les pages du site internet, pas seulement celles qui la concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "vu_via:client_collectivite:SiteClient",
+   "sorte": "vu_via",
+   "texte": "La collectivité cliente verra les sites clients (ex. nom, coordonnées) affichés dans les rapports de maintenance qu'elle traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rapports de maintenance qu'il voit"
+  },
+  {
+   "id": "vu_via:client_collectivite:Equipement",
+   "sorte": "vu_via",
+   "texte": "La collectivité cliente verra les équipements (ex. nom, coordonnées) affichés dans les rapports de maintenance qu'elle traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rapports de maintenance qu'il voit"
+  },
+  {
+   "id": "vu_via:client_collectivite:Intervention",
+   "sorte": "vu_via",
+   "texte": "La collectivité cliente verra les interventions (ex. nom, coordonnées) affichés dans les rapports de maintenance qu'elle traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rapports de maintenance qu'il voit"
+  },
+  {
+   "id": "registre_entier:client_collectivite:RapportMaintenance",
+   "sorte": "registre_entier",
+   "texte": "La collectivité cliente verra tous les rapports de maintenance, pas seulement ceux qui la concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:PageSiteInternet:titre",
+     "texte": "page du site internet → « Titre »"
+    },
+    {
+     "id": "nom:ProfilAdministrateurPose:nom",
+     "texte": "profil administrateur POSE → « Nom »"
+    },
+    {
+     "id": "nom:ProfilPersonnelEntreprise:nom",
+     "texte": "profil personnel de l'entreprise → « Nom »"
+    },
+    {
+     "id": "nom:ProfilCollectiviteCliente:nomCollectivite",
+     "texte": "profil collectivité cliente → « Nom de la collectivité »"
+    },
+    {
+     "id": "nom:SiteClient:nom",
+     "texte": "site client → « Nom »"
+    },
+    {
+     "id": "nom:CategorieDemandeIntervention:libelle",
+     "texte": "catégorie de demande d'intervention → « Libellé »"
+    },
+    {
+     "id": "nom:DemandeIntervention:intitule",
+     "texte": "demande d'intervention → « Intitulé »"
+    },
+    {
+     "id": "nom:DemandeDevis:intitule",
+     "texte": "demande de devis → « Intitulé »"
+    },
+    {
+     "id": "nom:Chantier:nom",
+     "texte": "chantier → « Nom »"
+    },
+    {
+     "id": "nom:Equipe:nom",
+     "texte": "équipe → « Nom »"
+    },
+    {
+     "id": "nom:CreneauPlanningPersonnel:libelle",
+     "texte": "créneau de planning du personnel → « Libellé »"
+    },
+    {
+     "id": "nom:Conversation:titre",
+     "texte": "conversation → « Titre »"
+    },
+    {
+     "id": "nom:Materiel:nom",
+     "texte": "matériel → « Nom »"
+    },
+    {
+     "id": "nom:BonCommandeInterne:reference",
+     "texte": "bon de commande interne → « Référence »"
+    },
+    {
+     "id": "nom:ReservationMateriel:reference",
+     "texte": "réservation de matériel → « Référence »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "voir_tous:client_collectivite:Equipement",
+   "sorte": "voir_tous",
+   "reponses": [
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : la collectivité cliente doit-elle voir TOUS les équipements ?",
+   "impossible": "impossible : Collectivité cliente crée des demandes d'intervention qui désignent des sites clients, mais ne voit pas les siens : les lui montrer tous exposerait ceux des autres — « celles qui le désignent » arrive en N1.3 ; Collectivité cliente crée des demandes de devis qui désignent des sites clients, mais ne voit pas les siens : les lui montrer tous exposerait ceux des autres — « celles qui le désignent » a"
+  },
+  {
+   "id": "voir_tous:client_collectivite:PassagePlanifie",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : la collectivité cliente doit-elle voir TOUS les passages planifiés ?"
+  },
+  {
+   "id": "voir_tous:client_collectivite:RapportMaintenance",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : la collectivité cliente doit-elle voir TOUS les rapports de maintenance ?"
+  },
+  {
+   "id": "voir_tous:client_collectivite:DocumentEquipement",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : la collectivité cliente doit-elle voir TOUS les documents d'équipement ?"
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

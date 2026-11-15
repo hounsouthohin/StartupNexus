@@ -1,0 +1,56 @@
+{
+ "perimetre": "hors",
+ "raison": "Le cœur du projet est une marketplace avec paiement en ligne et commissions, explicitement hors périmètre.",
+ "hors_stock": [
+  {
+   "besoin": "marketplace / place de marché",
+   "categorie": "autre",
+   "citation": "création d'une marketplace avec paiement en ligne"
+  },
+  {
+   "besoin": "moteur de recherche",
+   "categorie": "autre",
+   "citation": "Moteur de recherche et géolocalisation"
+  },
+  {
+   "besoin": "géolocalisation",
+   "categorie": "autre",
+   "citation": "Moteur de recherche et géolocalisation"
+  },
+  {
+   "besoin": "paiement en ligne sécurisé",
+   "categorie": "paiement",
+   "citation": "Paiement en ligne sécurisé"
+  },
+  {
+   "besoin": "gestion automatique des commissions",
+   "categorie": "paiement",
+   "citation": "Gestion automatique des commissions"
+  },
+  {
+   "besoin": "messagerie interne",
+   "categorie": "messagerie",
+   "citation": "Messagerie interne"
+  },
+  {
+   "besoin": "système d'avis et de notation",
+   "categorie": "calcul_statistiques",
+   "citation": "Système d'avis et de notation"
+  },
+  {
+   "besoin": "tableau de bord utilisateur",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableau de bord utilisateur"
+  },
+  {
+   "besoin": "site multilingue",
+   "categorie": "autre",
+   "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+  },
+  {
+   "besoin": "application mobile Android et iOS",
+   "categorie": "mobile_hors_ligne",
+   "citation": "application mobile Android et iOS"
+  }
+ ]
+}

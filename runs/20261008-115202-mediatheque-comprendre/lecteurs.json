@@ -1,0 +1,248 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "C'est un logiciel de gestion d'une médiathèque associative, avec des fiches, des acteurs et rôles, de la consultation/création selon rôles, et un circuit d'états sur les emprunts.",
+    "hors_stock": [
+      {
+        "besoin": "—",
+        "categorie": "autre",
+        "citation": "L'interface doit être claire, chaleureuse et accessible."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je gère une médiathèque associative ... faire tourner."
+      },
+      {
+        "id": "adherent",
+        "libelle": "adhérent",
+        "libelle_pluriel": "adhérents",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "Après connexion, un adhérent gère son profil ... demande à emprunter un ouvrage"
+      },
+      {
+        "id": "bibliothecaire",
+        "libelle": "bibliothécaire",
+        "libelle_pluriel": "bibliothécaires",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "visiteur",
+        "citation": "Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages"
+      },
+      {
+        "libelle": "ouvrage",
+        "citation": "chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+      },
+      {
+        "libelle": "emprunt",
+        "citation": "un emprunt concerne un ouvrage, a une date de demande et un état"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Adherent",
+        "libelle": "adhérent",
+        "libelle_pluriel": "adhérents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "adherent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "un adhérent gère son profil (nom, email, téléphone)"
+      },
+      {
+        "nom": "Ouvrage",
+        "libelle": "ouvrage",
+        "libelle_pluriel": "ouvrages",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+      },
+      {
+        "nom": "Emprunt",
+        "libelle": "emprunt",
+        "libelle_pluriel": "emprunts",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "bibliothecaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Ouvrage"
+        ],
+        "citation": "un emprunt concerne un ouvrage, a une date de demande et un état ... Un adhérent ne voit que ses propres emprunts ... Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "visiteur",
+        "fiche": null,
+        "raison": "ce n'est pas une chose à enregistrer"
+      },
+      {
+        "non_utilisateur": "ouvrage",
+        "fiche": "Ouvrage",
+        "raison": "c'est un élément du catalogue public"
+      },
+      {
+        "non_utilisateur": "emprunt",
+        "fiche": "Emprunt",
+        "raison": "c'est une fiche tenue par l'équipe, liée à un ouvrage"
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Emprunt",
+        "etat_initial": "demande",
+        "transitions": {
+          "demande": [
+            "acceptee",
+            "refusee"
+          ],
+          "acceptee": [
+            "rendu"
+          ],
+          "refusee": [],
+          "rendu": []
+        },
+        "libelles": {
+          "demande": "demandé",
+          "acceptee": "accepté",
+          "refusee": "refusé",
+          "rendu": "rendu"
+        },
+        "initiateur": "bibliothecaire",
+        "decideur": "bibliothecaire",
+        "etapes_par": {
+          "demande": "adherent"
+        },
+        "citation": "un emprunt commence en demandé, puis il est soit accepté, soit refusé ; un emprunt accepté passe ensuite à rendu quand l'adhérent ramène l'ouvrage ... le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu"
+      }
+    ]
+  },
+  "droits": null,
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 801,
+      "jetons_sortie": 90
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 687,
+      "jetons_sortie": 282
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Emprunt : « saisie_par » seulement pour une collection, et un id d'acteur"
+      ],
+      "jetons_entree": 1144,
+      "jetons_sortie": 434
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [
+        "fiche Emprunt : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 1619,
+      "jetons_sortie": 436
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 3,
+      "erreurs": [],
+      "jetons_entree": 2091,
+      "jetons_sortie": 433
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Emprunt : sur un registre, l'initiateur est l'un de ceux qui le tiennent : ['bibliothecaire']",
+        "circuit Emprunt : sur un registre, l'initiateur est l'un de ceux qui le tiennent : ['bibliothecaire']"
+      ],
+      "jetons_entree": 835,
+      "jetons_sortie": 341
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1254,
+      "jetons_sortie": 195
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droit bibliothecaire/Emprunt/transition : citation introuvable mot pour mot dans le brief — « est la seule personne à pouvoir ... marquer un emprunt comme rendu ; un emprunt accepté passe ensuite à rendu » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 942,
+      "jetons_sortie": 492
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [
+        "droit bibliothecaire/Emprunt/transition : citation introuvable mot pour mot dans le brief — « est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un emprunt accepté passe ensuite à rendu » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)",
+        "droit bibliothecaire/Emprunt/transition : citation introuvable mot pour mot dans le brief — « est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un emprunt accepté passe ensuite à rendu » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1529,
+      "jetons_sortie": 496
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 3,
+      "erreurs": [
+        "droit adherent/Emprunt/create : citation introuvable mot pour mot dans le brief — « un adhérent gère son profil et demande à emprunter un ouvrage » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 2205,
+      "jetons_sortie": 467
+    }
+  ]
+}

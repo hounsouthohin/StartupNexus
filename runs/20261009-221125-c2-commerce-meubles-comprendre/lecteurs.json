@@ -1,0 +1,743 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion interne pour un commerce, avec commandes, clients, fournisseurs, stocks, produits et rôles d'administration.",
+    "hors_stock": [
+      {
+        "besoin": "Facturation clients",
+        "categorie": "document",
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "besoin": "Suivi des encaissements clients",
+        "categorie": "paiement",
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "besoin": "Gestion des stocks avec entrées, sorties et réservations",
+        "categorie": "calcul_statistiques",
+        "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+      },
+      {
+        "besoin": "Programmation des livraisons clients",
+        "categorie": "planning",
+        "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+      },
+      {
+        "besoin": "Utilisation sur smartphone avec développement d’une application",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation du logiciel depuis smartphone, développement d'une application."
+      },
+      {
+        "besoin": "Fonction de retour arrière sur page",
+        "categorie": "autre",
+        "citation": "avec possibilité de retour arrière sur page"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "commandes et facturations clients"
+      },
+      {
+        "libelle": "Fournisseur",
+        "citation": "commandes fournisseurs lié à nos commandes clients"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "nom": "Fournisseur",
+        "libelle": "fournisseur",
+        "libelle_pluriel": "fournisseurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion et Suivi  des commandes fournisseurs"
+      },
+      {
+        "nom": "ReferenceProduit",
+        "libelle": "référence produit",
+        "libelle_pluriel": "références produits",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Base de données de nos références produits, avec prix."
+      },
+      {
+        "nom": "CommandeClient",
+        "libelle": "commande client",
+        "libelle_pluriel": "commandes clients",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "nom": "FactureClient",
+        "libelle": "facture client",
+        "libelle_pluriel": "factures clients",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "CommandeClient"
+        ],
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "nom": "EncaissementClient",
+        "libelle": "encaissement client",
+        "libelle_pluriel": "encaissements clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "nom": "CommandeFournisseur",
+        "libelle": "commande fournisseur",
+        "libelle_pluriel": "commandes fournisseurs",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Fournisseur",
+          "CommandeClient"
+        ],
+        "citation": "Gestion et Suivi  des commandes fournisseurs lié à nos commandes clients"
+      },
+      {
+        "nom": "StockProduit",
+        "libelle": "stock produit",
+        "libelle_pluriel": "stocks produits",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ReferenceProduit"
+        ],
+        "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+      },
+      {
+        "nom": "MouvementStock",
+        "libelle": "mouvement de stock",
+        "libelle_pluriel": "mouvements de stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ReferenceProduit"
+        ],
+        "citation": "entrée/sortie/ réservation contremarque"
+      },
+      {
+        "nom": "LivraisonClient",
+        "libelle": "livraison client",
+        "libelle_pluriel": "livraisons clients",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "CommandeClient"
+        ],
+        "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Les commandes, facturations, encaissements et livraisons sont indiqués comme concernant des clients."
+      },
+      {
+        "non_utilisateur": "Fournisseur",
+        "fiche": "Fournisseur",
+        "raison": "Le brief mentionne des commandes fournisseurs."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Client",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Fournisseur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "ReferenceProduit",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "CommandeClient",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "FactureClient",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "EncaissementClient",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "CommandeFournisseur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "StockProduit",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "MouvementStock",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "LivraisonClient",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnée utile à confirmer pour contacter le client."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée utile à confirmer pour contacter le client."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Information utile à confirmer pour la facturation ou la livraison."
+          }
+        ]
+      },
+      {
+        "fiche": "Fournisseur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnée utile à confirmer pour contacter le fournisseur."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée utile à confirmer pour contacter le fournisseur."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Information utile à confirmer pour les commandes fournisseurs."
+          }
+        ]
+      },
+      {
+        "fiche": "ReferenceProduit",
+        "champs": [
+          {
+            "nom": "prix",
+            "libelle": "Prix",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Base de données de nos références produits, avec prix."
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Libellé du produit",
+            "type": "texte",
+            "raison": "Champ utile à confirmer pour identifier la référence produit dans les listes."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Information utile à confirmer pour détailler la référence produit."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandeClient",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de commande",
+            "type": "texte",
+            "raison": "Identifiant métier utile à confirmer pour retrouver une commande client."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Information utile à confirmer pour le suivi commercial."
+          }
+        ]
+      },
+      {
+        "fiche": "FactureClient",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "raison": "Identifiant métier utile à confirmer pour retrouver une facture client."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Information utile à confirmer pour la facturation client."
+          }
+        ]
+      },
+      {
+        "fiche": "EncaissementClient",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant encaissé",
+            "type": "montant",
+            "raison": "Information utile à confirmer pour le suivi des encaissements."
+          },
+          {
+            "libelle": "Mode de paiement",
+            "type": "texte",
+            "raison": "Information utile à confirmer pour qualifier l’encaissement."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandeFournisseur",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de commande fournisseur",
+            "type": "texte",
+            "raison": "Identifiant métier utile à confirmer pour retrouver une commande fournisseur."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Information utile à confirmer pour le suivi des commandes fournisseurs."
+          }
+        ]
+      },
+      {
+        "fiche": "StockProduit",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "Information utile à confirmer pour le suivi des stocks."
+          },
+          {
+            "libelle": "Emplacement",
+            "type": "texte",
+            "raison": "Information utile à confirmer pour localiser les produits en stock."
+          }
+        ]
+      },
+      {
+        "fiche": "MouvementStock",
+        "champs": [
+          {
+            "nom": "typeMouvement",
+            "libelle": "Type de mouvement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "entrée",
+              "sortie",
+              "réservation contremarque"
+            ],
+            "origine": "brief",
+            "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Information utile à confirmer pour quantifier le mouvement de stock."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Information utile à confirmer pour préciser le mouvement de stock."
+          }
+        ]
+      },
+      {
+        "fiche": "LivraisonClient",
+        "champs": [
+          {
+            "nom": "typeLivraison",
+            "libelle": "Type de livraison",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "complété",
+              "partielle"
+            ],
+            "origine": "brief",
+            "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date prévue de livraison",
+            "type": "date",
+            "raison": "Information utile à confirmer pour la programmation des livraisons clients."
+          },
+          {
+            "libelle": "Adresse de livraison",
+            "type": "texte_long",
+            "raison": "Information utile à confirmer pour organiser la livraison client."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion Meubles",
+    "fiches": [
+      {
+        "fiche": "CommandeClient",
+        "verbe_creation": "Commander",
+        "boutons": {}
+      },
+      {
+        "fiche": "FactureClient",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      },
+      {
+        "fiche": "EncaissementClient",
+        "verbe_creation": "Encaisser",
+        "boutons": {}
+      },
+      {
+        "fiche": "CommandeFournisseur",
+        "verbe_creation": "Commander fournisseur",
+        "boutons": {}
+      },
+      {
+        "fiche": "StockProduit",
+        "verbe_creation": "Initialiser le stock",
+        "boutons": {}
+      },
+      {
+        "fiche": "MouvementStock",
+        "verbe_creation": "Enregistrer un mouvement",
+        "boutons": {}
+      },
+      {
+        "fiche": "LivraisonClient",
+        "verbe_creation": "Planifier une livraison",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 788,
+      "jetons_sortie": 752
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 674,
+      "jetons_sortie": 394
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1095,
+      "jetons_sortie": 1948
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 947,
+      "jetons_sortie": 529
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1060,
+      "jetons_sortie": 1020
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1514,
+      "jetons_sortie": 3150
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 964,
+      "jetons_sortie": 535
+    }
+  ]
+}

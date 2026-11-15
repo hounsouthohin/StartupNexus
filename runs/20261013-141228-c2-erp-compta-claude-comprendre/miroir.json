@@ -1,0 +1,358 @@
+{
+ "titre": "Gestion d'entreprise",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Facturation (émission de factures)",
+   "categorie": "document",
+   "citation": "faire de la facturation"
+  },
+  {
+   "besoin": "Comptabilité",
+   "categorie": "calcul_statistiques",
+   "citation": "la comptabilité"
+  },
+  {
+   "besoin": "Gestion financière",
+   "categorie": "calcul_statistiques",
+   "citation": "la gestion financière"
+  },
+  {
+   "besoin": "Version hybride (mobile) de l'application dans un second temps",
+   "categorie": "mobile_hors_ligne",
+   "citation": "puis hybride plus tard"
+  },
+  {
+   "besoin": "Option de saisie automatique",
+   "categorie": "automatisation",
+   "citation": "une option de saisie automatique"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le dirigeant",
+   "L'expert comptable"
+  ],
+  "fiches": 3,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "dirigeant",
+   "libelle": "Le dirigeant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Création d’une application de gestion d’entreprise"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : factures, écritures comptables, articles en stock",
+     "cases": [
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "faire de la facturation"
+       ]
+      },
+      {
+       "fiche": "EcritureComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la possibilité de rajouter un expert comptable"
+       ]
+      },
+      {
+       "fiche": "Article",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la gestion de stock"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "expert_comptable",
+   "libelle": "L'expert comptable",
+   "devient": "invité par dirigeant",
+   "citations": [
+    "la possibilité de rajouter un expert comptable"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : écritures comptables",
+     "cases": [
+      {
+       "fiche": "EcritureComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la possibilité de rajouter un expert comptable"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de facture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Date de facture",
+     "libelle": "Date de facture",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Client facturé",
+     "libelle": "Client facturé",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Facture:Montant hors taxes",
+     "libelle": "Montant hors taxes",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Montant TVA",
+     "libelle": "Montant TVA",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Montant TTC",
+     "libelle": "Montant TTC",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "faire de la facturation"
+   ]
+  },
+  {
+   "fiche": "EcritureComptable",
+   "libelle": "écriture comptable",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "libelle",
+     "libelle": "Libellé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EcritureComptable:Date de l'écriture",
+     "libelle": "Date de l'écriture",
+     "type": "date"
+    },
+    {
+     "id": "garder:EcritureComptable:Numéro de compte",
+     "libelle": "Numéro de compte",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:EcritureComptable:Montant au débit",
+     "libelle": "Montant au débit",
+     "type": "montant"
+    },
+    {
+     "id": "garder:EcritureComptable:Montant au crédit",
+     "libelle": "Montant au crédit",
+     "type": "montant"
+    },
+    {
+     "id": "garder:EcritureComptable:Journal",
+     "libelle": "Journal",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:EcritureComptable:Pièce justificative",
+     "libelle": "Pièce justificative",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "la possibilité de rajouter un expert comptable"
+   ]
+  },
+  {
+   "fiche": "Article",
+   "libelle": "article en stock",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de l'article",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Article:Référence",
+     "libelle": "Référence",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Article:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Article:Prix unitaire de vente",
+     "libelle": "Prix unitaire de vente",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Article:Prix d'achat",
+     "libelle": "Prix d'achat",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Article:Seuil d'alerte de stock",
+     "libelle": "Seuil d'alerte de stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Article:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "la gestion de stock"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:expert_comptable:EcritureComptable",
+   "sorte": "registre_entier",
+   "texte": "L'expert comptable verra toutes les écritures comptables, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Facture:numero",
+     "texte": "facture → « Numéro de facture »"
+    },
+    {
+     "id": "nom:EcritureComptable:libelle",
+     "texte": "écriture comptable → « Libellé »"
+    },
+    {
+     "id": "nom:Article:nom",
+     "texte": "article en stock → « Nom de l'article »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

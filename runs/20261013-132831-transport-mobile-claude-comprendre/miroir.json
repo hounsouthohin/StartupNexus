@@ -1,0 +1,684 @@
+{
+ "titre": "Suivi des livraisons",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Application mobile pour les chauffeurs",
+   "categorie": "mobile_hors_ligne",
+   "citation": "Création d'application mobile pour transporteur ... le développement d'une application mobile qui centraliserait les informations de livraison"
+  },
+  {
+   "besoin": "Diffusion directe et en temps réel des informations et des statuts de livraison aux chauffeurs",
+   "categorie": "notification",
+   "citation": "les diffuserait directement aux chauffeurs, permettant ainsi une mise à jour en temps réel des statuts de livraison"
+  },
+  {
+   "besoin": "Choix des trajets et des horaires par les chauffeurs selon leurs disponibilités et la capacité de leurs véhicules (planning des missions)",
+   "categorie": "planning",
+   "citation": "choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules"
+  },
+  {
+   "besoin": "Notifications automatiques envoyées lorsqu'une entreprise a une demande de transport",
+   "categorie": "notification",
+   "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+  },
+  {
+   "besoin": "Suivi en temps réel des livraisons (localisation, avancement)",
+   "categorie": "autre",
+   "citation": "un suivi en temps réel des livraisons"
+  },
+  {
+   "besoin": "Vérification systématique et automatique des documents obligatoires, notamment pour les marchandises dangereuses",
+   "categorie": "automatisation",
+   "citation": "vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses"
+  },
+  {
+   "besoin": "Gestion des documents de transport rattachés aux livraisons (pièces justificatives)",
+   "categorie": "fichiers_photos",
+   "citation": "les documents nécessaires, notamment pour les marchandises dangereuses"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le responsable",
+   "Le chauffeur"
+  ],
+  "fiches": 6,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "responsable",
+   "libelle": "Le responsable",
+   "devient": "responsable de l'app",
+   "citations": [
+    "je souhaite proposer en interne le développement d'une application mobile"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Chauffeurs, Véhicules",
+     "cases": [
+      {
+       "fiche": "Chauffeur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Livraisons qu'il voit",
+        "clôture : choisit les Chauffeurs de ses Livraisons"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+       ]
+      },
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Livraisons qu'il voit",
+        "clôture : choisit les Véhicules de ses Livraisons"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Entreprises clientes, Sous-traitants, Livraisons",
+     "cases": [
+      {
+       "fiche": "EntrepriseCliente",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "lorsqu'une entreprise aura une demande de transport à faire"
+       ]
+      },
+      {
+       "fiche": "SousTraitant",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la difficulté à coordonner nos sous-traitants"
+       ]
+      },
+      {
+       "fiche": "Livraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Documents de livraison (dans chaque Livraison)",
+     "cases": [
+      {
+       "fiche": "DocumentLivraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Livraison : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chauffeur",
+   "libelle": "Le chauffeur",
+   "devient": "invité par responsable",
+   "citations": [
+    "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : Véhicules",
+     "cases": [
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "la capacité de leurs véhicules"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Entreprises clientes",
+     "cases": [
+      {
+       "fiche": "EntrepriseCliente",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Livraisons qu'il voit",
+        "clôture : choisit les Entreprises clientes de ses Livraisons"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Documents de livraison (dans chaque Livraison)",
+     "cases": [
+      {
+       "fiche": "DocumentLivraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Livraison : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs",
+        "lorsqu'une entreprise aura une demande de transport à faire",
+        "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Chauffeur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Chauffeur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Livraisons : voit tout, en crée, les modifie, les fait passer de « demandée » à « confirmée »",
+     "cases": [
+      {
+       "fiche": "Livraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "demandee": [
+          "confirmee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « centraliserait les informations de livraison et les diffuserait directement aux chauffeurs »",
+        "exception : « offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires »"
+       ],
+       "citations": [
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs",
+        "lorsqu'une entreprise aura une demande de transport à faire",
+        "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs",
+        "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Livraison",
+   "texte": "La livraison passe par : « demandée » → « confirmée »",
+   "qui": [
+    "Le chauffeur fait passer de « demandée » à « confirmée »"
+   ],
+   "citations": [
+    "lorsqu'une entreprise aura une demande de transport à faire"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Chauffeur",
+   "libelle": "Chauffeur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "disponibilites",
+     "libelle": "Disponibilités",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "en fonction de leurs disponibilités"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Chauffeur:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Chauffeur:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités"
+   ]
+  },
+  {
+   "fiche": "Vehicule",
+   "libelle": "Véhicule",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "immatriculation",
+     "libelle": "Immatriculation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "capacite",
+     "libelle": "Capacité",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "la capacité de leurs véhicules"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Vehicule:Type de véhicule",
+     "libelle": "Type de véhicule",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Vehicule:Unité de capacité (kg, m³, palettes)",
+     "libelle": "Unité de capacité (kg, m³, palettes)",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "la capacité de leurs véhicules"
+   ]
+  },
+  {
+   "fiche": "EntrepriseCliente",
+   "libelle": "Entreprise cliente",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EntrepriseCliente:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:EntrepriseCliente:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:EntrepriseCliente:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "lorsqu'une entreprise aura une demande de transport à faire"
+   ]
+  },
+  {
+   "fiche": "SousTraitant",
+   "libelle": "Sous-traitant",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:SousTraitant:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:SousTraitant:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "la difficulté à coordonner nos sous-traitants"
+   ]
+  },
+  {
+   "fiche": "Livraison",
+   "libelle": "Livraison",
+   "nature": "registry",
+   "relie_a": [
+    "Entreprise cliente",
+    "Chauffeur",
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "trajet",
+     "libelle": "Trajet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "choisir leurs trajets"
+    },
+    {
+     "nom": "horaire",
+     "libelle": "Horaire",
+     "type": "date et heure",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "choisir leurs trajets et horaires"
+    },
+    {
+     "nom": "marchandisesDangereuses",
+     "libelle": "Marchandises dangereuses",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "notamment pour les marchandises dangereuses"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Livraison:Adresse d'enlèvement",
+     "libelle": "Adresse d'enlèvement",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Livraison:Adresse de livraison",
+     "libelle": "Adresse de livraison",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Livraison:Description de la marchandise",
+     "libelle": "Description de la marchandise",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Livraison:Poids ou volume de la marchandise",
+     "libelle": "Poids ou volume de la marchandise",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Livraison:Date de livraison effective",
+     "libelle": "Date de livraison effective",
+     "type": "date et heure"
+    }
+   ],
+   "citations": [
+    "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+   ]
+  },
+  {
+   "fiche": "DocumentLivraison",
+   "libelle": "Document de livraison",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Livraison"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DocumentLivraison:Fichier ou lien du document",
+     "libelle": "Fichier ou lien du document",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:DocumentLivraison:Document vérifié",
+     "libelle": "Document vérifié",
+     "type": "oui / non"
+    },
+    {
+     "id": "garder:DocumentLivraison:Date de validité",
+     "libelle": "Date de validité",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:chauffeur:EntrepriseCliente",
+   "sorte": "registre_entier",
+   "texte": "Le chauffeur verra toutes les Entreprises clientes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Livraisons qu'il voit; clôture : choisit les Entreprises clientes de ses Livraisons"
+  },
+  {
+   "id": "registre_entier:chauffeur:Livraison",
+   "sorte": "registre_entier",
+   "texte": "Le chauffeur verra toutes les Livraisons, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : voit ce qu'il modifie"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Chauffeur:nom",
+     "texte": "Chauffeur → « Nom »"
+    },
+    {
+     "id": "nom:Vehicule:immatriculation",
+     "texte": "Véhicule → « Immatriculation »"
+    },
+    {
+     "id": "nom:EntrepriseCliente:nom",
+     "texte": "Entreprise cliente → « Nom »"
+    },
+    {
+     "id": "nom:SousTraitant:nom",
+     "texte": "Sous-traitant → « Nom »"
+    },
+    {
+     "id": "nom:DocumentLivraison:intitule",
+     "texte": "Document de livraison → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

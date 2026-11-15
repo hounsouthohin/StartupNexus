@@ -1,0 +1,663 @@
+{
+ "titre": "Bilan postural",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Utilisation sur iPad pour l'examen clinique, en plus du PC (on ne sait pas encore si c'est une application web adaptée à la tablette ou une application native)",
+   "categorie": "mobile_hors_ligne",
+   "citation": "application métier paramédical web PC + iPad ... iPad pour l’examen clinique"
+  },
+  {
+   "besoin": "Saisie graphique de l'examen sur des dessins du corps humain : points osseux à 3 états et flèches prédéfinies pour indiquer un désalignement",
+   "categorie": "autre",
+   "citation": "l’examen clinique sur dessins humains génériques ... certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+  },
+  {
+   "besoin": "Analyse automatique de la position des points et de la direction des flèches",
+   "categorie": "calcul_statistiques",
+   "citation": "L’application analyse automatiquement la position des points et la direction des flèches"
+  },
+  {
+   "besoin": "Croisement avec les tableaux de correspondance du praticien pour proposer automatiquement des recommandations, des exercices et des corrections de semelles",
+   "categorie": "automatisation",
+   "citation": "fait la corrélation avec mes tableaux de correspondance pour générer automatiquement recommandations, exercices et corrections de semelles"
+  },
+  {
+   "besoin": "Rédaction d'un compte rendu complet et hiérarchisé qui rassemble toutes les informations",
+   "categorie": "document",
+   "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le praticien"
+  ],
+  "fiches": 9,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "praticien",
+   "libelle": "Le praticien",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Je souhaite une application métier paramédical web PC + iPad"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Patients, Anamnèses, Examens cliniques, Points osseux, Tableaux de correspondance, Comptes rendus",
+     "cases": [
+      {
+       "fiche": "Patient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "application gestion patient et clinique"
+       ]
+      },
+      {
+       "fiche": "Anamnese",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "PC pour l’administratif et l’anamnèse"
+       ]
+      },
+      {
+       "fiche": "ExamenClinique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "iPad pour l’examen clinique sur dessins humains génériques"
+       ]
+      },
+      {
+       "fiche": "PointOsseux",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "dessins humains génériques"
+       ]
+      },
+      {
+       "fiche": "TableauCorrespondance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "fait la corrélation avec mes tableaux de correspondance"
+       ]
+      },
+      {
+       "fiche": "CompteRendu",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : États de points osseux (dans chaque Examen clinique), Flèches de désalignement (dans chaque Examen clinique), Recommandations (dans chaque Examen clinique)",
+     "cases": [
+      {
+       "fiche": "EtatPointOsseux",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Examen clinique : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "iPad pour l’examen clinique sur dessins humains génériques"
+       ]
+      },
+      {
+       "fiche": "FlecheDesalignement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Examen clinique : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "iPad pour l’examen clinique sur dessins humains génériques"
+       ]
+      },
+      {
+       "fiche": "Recommandation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Examen clinique : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "iPad pour l’examen clinique sur dessins humains génériques"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Patient",
+   "libelle": "Patient",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Patient:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Patient:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Patient:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Patient:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Patient:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "application gestion patient et clinique"
+   ]
+  },
+  {
+   "fiche": "Anamnese",
+   "libelle": "Anamnèse",
+   "nature": "registry",
+   "relie_a": [
+    "Patient"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Anamnese:Motif de consultation",
+     "libelle": "Motif de consultation",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Anamnese:Antécédents médicaux",
+     "libelle": "Antécédents médicaux",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Anamnese:Traitements en cours",
+     "libelle": "Traitements en cours",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Anamnese:Activité physique",
+     "libelle": "Activité physique",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "PC pour l’administratif et l’anamnèse"
+   ]
+  },
+  {
+   "fiche": "ExamenClinique",
+   "libelle": "Examen clinique",
+   "nature": "registry",
+   "relie_a": [
+    "Patient"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ExamenClinique:Date de l'examen",
+     "libelle": "Date de l'examen",
+     "type": "date"
+    },
+    {
+     "id": "garder:ExamenClinique:Observations",
+     "libelle": "Observations",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:ExamenClinique:Vue du dessin utilisée",
+     "libelle": "Vue du dessin utilisée",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "iPad pour l’examen clinique sur dessins humains génériques"
+   ]
+  },
+  {
+   "fiche": "PointOsseux",
+   "libelle": "Point osseux",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:PointOsseux:Emplacement sur le dessin",
+     "libelle": "Emplacement sur le dessin",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:PointOsseux:Région du corps",
+     "libelle": "Région du corps",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:PointOsseux:Ordre d'affichage",
+     "libelle": "Ordre d'affichage",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "dessins humains génériques"
+   ]
+  },
+  {
+   "fiche": "EtatPointOsseux",
+   "libelle": "État de point osseux",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Examen clinique",
+    "Point osseux"
+   ],
+   "champs": [
+    {
+     "nom": "position",
+     "libelle": "Position",
+     "type": "choix parmi : aligné, gauche, droite",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Chaque point osseux a 3 états (aligné / gauche / droite)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EtatPointOsseux:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Chaque point osseux a 3 états (aligné / gauche / droite)"
+   ]
+  },
+  {
+   "fiche": "FlecheDesalignement",
+   "libelle": "Flèche de désalignement",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Examen clinique"
+   ],
+   "champs": [
+    {
+     "nom": "structure",
+     "libelle": "Structure bilatérale",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+    },
+    {
+     "nom": "direction",
+     "libelle": "Direction",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "la direction des flèches"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:FlecheDesalignement:Liste des directions possibles",
+     "libelle": "Liste des directions possibles",
+     "type": "choix"
+    },
+    {
+     "id": "garder:FlecheDesalignement:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+   ]
+  },
+  {
+   "fiche": "TableauCorrespondance",
+   "libelle": "Tableau de correspondance",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:TableauCorrespondance:Combinaison de positions et de flèches concernée",
+     "libelle": "Combinaison de positions et de flèches concernée",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:TableauCorrespondance:Recommandation associée",
+     "libelle": "Recommandation associée",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:TableauCorrespondance:Exercices associés",
+     "libelle": "Exercices associés",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:TableauCorrespondance:Correction de semelles associée",
+     "libelle": "Correction de semelles associée",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "fait la corrélation avec mes tableaux de correspondance"
+   ]
+  },
+  {
+   "fiche": "Recommandation",
+   "libelle": "Recommandation",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Examen clinique",
+    "Tableau de correspondance"
+   ],
+   "champs": [
+    {
+     "nom": "recommandations",
+     "libelle": "Recommandations",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+    },
+    {
+     "nom": "exercices",
+     "libelle": "Exercices",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+    },
+    {
+     "nom": "correctionsSemelles",
+     "libelle": "Corrections de semelles",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Recommandation:Priorité",
+     "libelle": "Priorité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Recommandation:Validée par le praticien",
+     "libelle": "Validée par le praticien",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "générer automatiquement recommandations, exercices et corrections de semelles"
+   ]
+  },
+  {
+   "fiche": "CompteRendu",
+   "libelle": "Compte rendu",
+   "nature": "registry",
+   "relie_a": [
+    "Patient",
+    "Anamnèse",
+    "Examen clinique"
+   ],
+   "champs": [
+    {
+     "nom": "contenu",
+     "libelle": "Contenu",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CompteRendu:Conclusion",
+     "libelle": "Conclusion",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:CompteRendu:Date d'envoi au patient",
+     "libelle": "Date d'envoi au patient",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Patient:nom",
+     "texte": "Patient → « Nom »"
+    },
+    {
+     "id": "nom:Anamnese:intitule",
+     "texte": "Anamnèse → « Intitulé »"
+    },
+    {
+     "id": "nom:ExamenClinique:intitule",
+     "texte": "Examen clinique → « Intitulé »"
+    },
+    {
+     "id": "nom:PointOsseux:nom",
+     "texte": "Point osseux → « Nom »"
+    },
+    {
+     "id": "nom:TableauCorrespondance:nom",
+     "texte": "Tableau de correspondance → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

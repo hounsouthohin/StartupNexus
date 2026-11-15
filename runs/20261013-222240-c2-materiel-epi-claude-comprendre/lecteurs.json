@@ -1,0 +1,304 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'un parc de matériel EPI montagne : des fiches matériel (date de fabrication, fin de vie, valeur) et, pour chaque matériel, des vérifications saisies. Cela relève de notre périmètre de gestion. L'amortissement, l'édition de fiches, les vues de synthèse comptable et les alertes sont des besoins hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Calcul automatique de l'amortissement de la valeur de chaque matériel selon les années",
+        "categorie": "calcul_statistiques",
+        "citation": "amortissements de la valeur en fonction des années"
+      },
+      {
+        "besoin": "Édition (document généré) d'une fiche de suivi individuelle par matériel",
+        "categorie": "document",
+        "citation": "édition d'une fiche de suivie individuelle"
+      },
+      {
+        "besoin": "Vue de synthèse des stocks et des valeurs, avec le montant d'amortissement par exercice comptable, pour la comptabilité",
+        "categorie": "calcul_statistiques",
+        "citation": "visualisation des stocks, valeurs, montant d'amortissement par exercice pour la compta"
+      },
+      {
+        "besoin": "Alertes à date pour la péremption du matériel et pour les vérifications à faire",
+        "categorie": "notification",
+        "citation": "alerte péremption et vérification à la date"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "Gestionnaire du matériel",
+        "libelle_pluriel": "Gestionnaires du matériel",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Gestion matériel epi montagne et amortissement ... saisie des vérifications pour chaque matériel"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Materiel",
+        "libelle": "Matériel",
+        "libelle_pluriel": "Matériels",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "saisie des matériels, date de fabrication, fin de vie"
+      },
+      {
+        "nom": "Verification",
+        "libelle": "Vérification",
+        "libelle_pluriel": "Vérifications",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Materiel",
+        "references": [],
+        "citation": "saisie des vérifications pour chaque matériel"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "gestionnaire",
+        "fiche": "Materiel",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "application de saisie des matériels"
+      },
+      {
+        "acteur": "gestionnaire",
+        "fiche": "Verification",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "saisie des vérifications pour chaque matériel"
+      },
+      {
+        "acteur": "gestionnaire",
+        "fiche": "Materiel",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "visualisation des stocks, valeurs"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Materiel",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "dateFabrication",
+            "libelle": "Date de fabrication",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "date de fabrication"
+          },
+          {
+            "nom": "dateFinVie",
+            "libelle": "Date de fin de vie",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "fin de vie"
+          },
+          {
+            "nom": "valeur",
+            "libelle": "Valeur",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "amortissements de la valeur"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de série",
+            "type": "texte",
+            "raison": "Identifier chaque EPI individuellement pour la fiche de suivi individuelle."
+          },
+          {
+            "libelle": "Marque / modèle",
+            "type": "texte",
+            "raison": "Utile pour reconnaître le matériel et suivre les consignes du fabricant ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Catégorie de matériel",
+            "type": "texte",
+            "raison": "Regrouper les EPI (baudriers, cordes, casques...) dans la visualisation des stocks ; liste à préciser par le client."
+          },
+          {
+            "libelle": "Date d'achat / de mise en service",
+            "type": "date",
+            "raison": "Point de départ probable de l'amortissement par exercice ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Durée d'amortissement (années)",
+            "type": "nombre",
+            "raison": "Le brief parle d'amortissement en fonction des années sans préciser la durée ni le mode de calcul."
+          },
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "Le brief demande une visualisation des stocks ; à savoir si chaque fiche est un article unique ou un lot."
+          },
+          {
+            "libelle": "Date de prochaine vérification",
+            "type": "date",
+            "raison": "Pourrait servir à l'alerte de vérification ; à confirmer si elle se fixe sur le matériel ou sur la vérification."
+          }
+        ]
+      },
+      {
+        "fiche": "Verification",
+        "champs": [
+          {
+            "nom": "dateVerification",
+            "libelle": "Date de vérification",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "vérification à la date"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Résultat (conforme / non conforme)",
+            "type": "choix",
+            "raison": "Le résultat d'un contrôle d'EPI est habituellement noté ; le brief n'énumère pas les valeurs."
+          },
+          {
+            "libelle": "Vérificateur",
+            "type": "texte",
+            "raison": "Savoir qui a réalisé la vérification pour la fiche de suivi individuelle."
+          },
+          {
+            "libelle": "Observations",
+            "type": "texte_long",
+            "raison": "Noter les défauts constatés ou les remarques du contrôle."
+          },
+          {
+            "libelle": "Date de la prochaine vérification",
+            "type": "date",
+            "raison": "Pourrait alimenter l'alerte de vérification à la date ; non cité dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion EPI montagne",
+    "fiches": [
+      {
+        "fiche": "Verification",
+        "verbe_creation": "Vérifier",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Verification : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

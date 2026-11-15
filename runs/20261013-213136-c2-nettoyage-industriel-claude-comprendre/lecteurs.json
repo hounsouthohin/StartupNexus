@@ -1,0 +1,763 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion pour une PME de nettoyage : des fiches clients, sites et interventions, des personnes avec des rôles (responsables d’équipes, agents) qui voient leurs interventions, et des interventions qui passent par des états (commencée, terminée, problème signalé). Le planning, l’usage sur smartphone, les photos et les rapports sont des besoins hors stock, mais ils ne sont pas le cœur du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Préparer et visualiser les plannings (semaine, jour, par site et par personne)",
+        "categorie": "planning",
+        "citation": "D’organiser les plannings de nos 2 responsables d’équipes et de nos 25 agents ... Préparer les plannings de la semaine : qui va où, à quelle heure, pour quel type de prestation."
+      },
+      {
+        "besoin": "Détecter qu’un agent est déjà prévu ailleurs au même moment (éviter les doublons)",
+        "categorie": "planning",
+        "citation": "Voir facilement si un agent est déjà prévu ailleurs au même moment, afin d’éviter les doublons."
+      },
+      {
+        "besoin": "Gérer les absences des agents et réorganiser rapidement les interventions",
+        "categorie": "planning",
+        "citation": "Gérer les absences d’un agent (congé, maladie) et pouvoir réorganiser rapidement les interventions."
+      },
+      {
+        "besoin": "Utilisation par les agents depuis leur smartphone (Android, iOS si possible, éventuellement en PWA)",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Les agents, eux, utiliseront principalement leur smartphone (Android surtout, iOS si possible, mais ce n’est pas bloquant au départ). ... wpa au lieu versions mobiles par exemple"
+      },
+      {
+        "besoin": "Photos avant/après sur les interventions et photo jointe au signalement d’un problème",
+        "categorie": "fichiers_photos",
+        "citation": "photos avant/après quand c’est nécessaire ... ajouter des photos si besoin ... avec un commentaire et, si possible, une photo"
+      },
+      {
+        "besoin": "Sortir des rapports d’intervention par site ou par client sur une période donnée, pour montrer le suivi aux clients",
+        "categorie": "document",
+        "citation": "pouvoir sortir des petits rapports d’intervention (par site ou par client) sur une période donnée ... pour pouvoir montrer à nos clients un minimum de suivi (rapports d’intervention, photos, historique par site)"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Notre société, est une entreprise de nettoyage industriel"
+      },
+      {
+        "id": "responsable_equipe",
+        "libelle": "Responsable d'équipe",
+        "libelle_pluriel": "Responsables d'équipe",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Les responsables d’équipes travailleront plutôt depuis un ordinateur (bureau)."
+      },
+      {
+        "id": "agent",
+        "libelle": "Agent",
+        "libelle_pluriel": "Agents",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Les agents, eux, utiliseront principalement leur smartphone"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "Créer une fiche pour chaque client, avec ses coordonnées"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Agent",
+        "libelle": "Agent",
+        "libelle_pluriel": "Agents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "agent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "environ 25 agents qui interviennent sur l’ensemble de la région ... des accès par identifiant/mot de passe"
+      },
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "responsable_equipe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Créer une fiche pour chaque client, avec ses coordonnées"
+      },
+      {
+        "nom": "Site",
+        "libelle": "Site",
+        "libelle_pluriel": "Sites",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "responsable_equipe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "de leurs différents sites (adresses, types de locaux, consignes particulières, fréquence de nettoyage)"
+      },
+      {
+        "nom": "TypePrestation",
+        "libelle": "Type de prestation",
+        "libelle_pluriel": "Types de prestation",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "qui va où, à quelle heure, pour quel type de prestation"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "Intervention",
+        "libelle_pluriel": "Interventions",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "agent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "responsable_equipe",
+        "parent": null,
+        "references": [
+          "Site",
+          "TypePrestation"
+        ],
+        "citation": "les interventions prévues chaque jour, par site et par personne ... voir leurs interventions du jour sur leur téléphone"
+      },
+      {
+        "nom": "Tache",
+        "libelle": "Tâche",
+        "libelle_pluriel": "Tâches",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "éventuellement cocher les tâches faites"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "Photo",
+        "libelle_pluriel": "Photos",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "photos avant/après quand c’est nécessaire"
+      },
+      {
+        "nom": "Signalement",
+        "libelle": "Signalement de problème",
+        "libelle_pluriel": "Signalements de problème",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "agent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "citation": "En cas de problème sur place ... permettre à l’agent de nous remonter l’information simplement, avec un commentaire et, si possible, une photo"
+      },
+      {
+        "nom": "Absence",
+        "libelle": "Absence",
+        "libelle_pluriel": "Absences",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "responsable_equipe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Agent"
+        ],
+        "citation": "Gérer les absences d’un agent (congé, maladie)"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Le brief demande une fiche par client (coordonnées, sites, consignes) ; elle est tenue par l'équipe et le client ne se connecte pas."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Intervention",
+        "etat_initial": "prevue",
+        "transitions": {
+          "prevue": [
+            "en_cours"
+          ],
+          "en_cours": [
+            "terminee"
+          ],
+          "terminee": []
+        },
+        "libelles": {
+          "prevue": "prévue",
+          "en_cours": "en cours",
+          "terminee": "terminée"
+        },
+        "initiateur": "responsable_equipe",
+        "decideur": "agent",
+        "etapes_par": {},
+        "citation": "les interventions prévues chaque jour ... de signaler quand ils commencent et quand ils terminent"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "agent",
+        "fiche": "Intervention",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "permettre à nos agents, sur le terrain, de voir leurs interventions du jour sur leur téléphone"
+      },
+      {
+        "acteur": "agent",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {
+          "prevue": [
+            "en_cours"
+          ],
+          "en_cours": [
+            "terminee"
+          ]
+        },
+        "citation": "permettre à nos agents, sur le terrain ... de signaler quand ils commencent et quand ils terminent"
+      },
+      {
+        "acteur": "agent",
+        "fiche": "Tache",
+        "action": "edit",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour les agents ... éventuellement cocher les tâches faites"
+      },
+      {
+        "acteur": "agent",
+        "fiche": "Photo",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour les agents ... ajouter des photos si besoin"
+      },
+      {
+        "acteur": "agent",
+        "fiche": "Signalement",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "permettre à l’agent de nous remonter l’information simplement, avec un commentaire"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Agent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment identifier un agent ; utile pour distinguer les 25 agents."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour joindre un agent sur le terrain en cas de changement de planning ou de remplacement."
+          },
+          {
+            "libelle": "Fonction (agent, responsable d'équipe)",
+            "type": "choix",
+            "raison": "Le brief distingue 2 responsables d'équipes et environ 25 agents ; à confirmer s'ils sont dans la même fiche."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "coordonnees",
+            "libelle": "Coordonnées",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "avec ses coordonnées"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Interlocuteur",
+            "type": "texte",
+            "raison": "Personne à contacter chez le client, non précisée dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour transmettre au client les rapports d'intervention ; à confirmer si les coordonnées doivent être détaillées."
+          },
+          {
+            "libelle": "Consignes générales",
+            "type": "texte_long",
+            "raison": "Le brief cite des consignes de nettoyage associées à la fiche client ; à confirmer si certaines valent pour tous ses sites."
+          }
+        ]
+      },
+      {
+        "fiche": "Site",
+        "champs": [
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "leurs différents sites (adresses"
+          },
+          {
+            "nom": "typeLocaux",
+            "libelle": "Type de locaux",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "types de locaux"
+          },
+          {
+            "nom": "consignes",
+            "libelle": "Consignes particulières",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "consignes particulières"
+          },
+          {
+            "nom": "frequence",
+            "libelle": "Fréquence de passage",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "tous les jours",
+              "une fois par semaine",
+              "une fois par mois",
+              "ponctuellement après travaux ou événement"
+            ],
+            "origine": "brief",
+            "citation": "à quelle fréquence nous passons (tous les jours, une fois par semaine, une fois par mois, ou ponctuellement après travaux ou événement)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du site",
+            "type": "texte",
+            "raison": "Pour distinguer facilement les différents sites d'un même client dans les listes et plannings."
+          },
+          {
+            "libelle": "Informations d'accès (codes, clés, horaires)",
+            "type": "texte_long",
+            "raison": "Le brief évoque des problèmes d'accès impossible ; utile pour les agents sur place."
+          },
+          {
+            "libelle": "Contact sur place",
+            "type": "telephone",
+            "raison": "Utile pour l'agent en cas de problème sur le site."
+          }
+        ]
+      },
+      {
+        "fiche": "TypePrestation",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Le brief ne détaille pas le contenu d'un type de prestation."
+          },
+          {
+            "libelle": "Durée habituelle (minutes)",
+            "type": "nombre",
+            "raison": "Aiderait à préparer les plannings et à repérer les chevauchements."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "dateHeurePrevue",
+            "libelle": "Date et heure prévues",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les interventions prévues chaque jour ... qui va où, à quelle heure"
+          },
+          {
+            "nom": "commentaire",
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "cases à cocher, commentaires"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Heure de fin prévue",
+            "type": "date_heure",
+            "raison": "Nécessaire pour voir si un agent est déjà prévu ailleurs au même moment (éviter les doublons)."
+          },
+          {
+            "libelle": "Heure de début réelle",
+            "type": "date_heure",
+            "raison": "Le passage en cours est géré par le circuit ; à confirmer si l'heure exacte doit figurer dans les rapports."
+          },
+          {
+            "libelle": "Heure de fin réelle",
+            "type": "date_heure",
+            "raison": "Le passage à terminée est géré par le circuit ; à confirmer si l'heure exacte doit figurer dans les rapports."
+          },
+          {
+            "libelle": "Consignes spécifiques à l'intervention",
+            "type": "texte_long",
+            "raison": "En complément des consignes du site, pour une intervention ponctuelle."
+          }
+        ]
+      },
+      {
+        "fiche": "Tache",
+        "champs": [
+          {
+            "nom": "faite",
+            "libelle": "Faite",
+            "type": "oui_non",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "cocher les tâches faites"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Intitulé de la tâche",
+            "type": "texte",
+            "raison": "Le brief ne dit pas comment une tâche est décrite ; nécessaire pour savoir quoi cocher."
+          }
+        ]
+      },
+      {
+        "fiche": "Photo",
+        "champs": [
+          {
+            "nom": "image",
+            "libelle": "Photo (lien vers le fichier)",
+            "type": "url",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "ajouter des photos si besoin"
+          },
+          {
+            "nom": "moment",
+            "libelle": "Avant / après",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "avant",
+              "après"
+            ],
+            "origine": "brief",
+            "citation": "photos avant/après"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Légende",
+            "type": "texte",
+            "raison": "Pour préciser ce que montre la photo dans les rapports clients."
+          }
+        ]
+      },
+      {
+        "fiche": "Signalement",
+        "champs": [
+          {
+            "nom": "typeProbleme",
+            "libelle": "Type de problème",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "accès impossible, dégâts constatés, matériel en panne"
+          },
+          {
+            "nom": "commentaire",
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "avec un commentaire"
+          },
+          {
+            "nom": "photo",
+            "libelle": "Photo (lien vers le fichier)",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "si possible, une photo"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Suite donnée",
+            "type": "texte_long",
+            "raison": "Pour garder une trace de la réponse apportée au problème remonté."
+          }
+        ]
+      },
+      {
+        "fiche": "Absence",
+        "champs": [
+          {
+            "nom": "motif",
+            "libelle": "Motif",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "congé",
+              "maladie"
+            ],
+            "origine": "brief",
+            "citation": "les absences d’un agent (congé, maladie)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Nécessaire pour savoir quelles interventions réorganiser ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Nécessaire pour savoir quand l'agent est de nouveau disponible ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Pour préciser l'absence si besoin."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des interventions",
+    "fiches": [
+      {
+        "fiche": "Site",
+        "verbe_creation": "Ajouter un site",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier",
+        "boutons": {
+          "en_cours": "Commencer",
+          "terminee": "Terminer"
+        }
+      },
+      {
+        "fiche": "Tache",
+        "verbe_creation": "Ajouter une tâche",
+        "boutons": {}
+      },
+      {
+        "fiche": "Photo",
+        "verbe_creation": "Ajouter une photo",
+        "boutons": {}
+      },
+      {
+        "fiche": "Signalement",
+        "verbe_creation": "Signaler un problème",
+        "boutons": {}
+      },
+      {
+        "fiche": "Absence",
+        "verbe_creation": "Déclarer une absence",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.1.transitions.prevue : Input should be a valid array",
+        "droits.1.transitions.en_cours : Input should be a valid array"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

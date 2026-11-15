@@ -1,0 +1,15 @@
+{
+  "run": "20261009-212815-transport-mobile-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-transport-mobile",
+  "modele": "gpt-5.5",
+  "verdict": "HORS PÉRIMÈTRE (aucune description produite)",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 1,
+    "jetons_entree": 867,
+    "jetons_sortie": 885,
+    "dollars": 0.0309,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:28:25"
+}

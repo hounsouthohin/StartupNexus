@@ -1,0 +1,1584 @@
+{
+ "titre": "Congés et pointage",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:pour-autrui] Solde : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:portee:designe] decideur / Employe : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] decideur / Solde : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] decideur / Pointage : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] directeur / Employe : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] directeur / Solde : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] directeur / Pointage : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] employe_rh / Employe : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] employe_rh / Solde : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] employe_rh / Pointage : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:acteur:invitation] employe_rh / Employe : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)",
+   "[bloc:portee:designe] responsable_rh / Employe : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] responsable_rh / Solde : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] responsable_rh / Pointage : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « employe ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:acteur:invitation] responsable_rh / Employe : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-conge...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "acteur:invitation",
+   "lien:pour-autrui",
+   "portee:designe"
+  ],
+  "pas_encore": [
+   "⚠ Le décideur ne verra pas les Employés qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le décideur ne verra pas les Soldes qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le décideur ne verra pas les Pointages qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le directeur ne verra pas les Employés qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le directeur ne verra pas les Soldes qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le directeur ne verra pas les Pointages qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ L'employé rh ne verra pas les Employés qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ L'employé rh ne verra pas les Soldes qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ L'employé rh ne verra pas les Pointages qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le responsable rh ne verra pas les Employés qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le responsable rh ne verra pas les Soldes qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le responsable rh ne verra pas les Pointages qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "L'employé rh crée le compte des Employés : pas encore possible (les invitations arrivent avec la connexion)",
+   "Le responsable rh crée le compte des Employés : pas encore possible (les invitations arrivent avec la connexion)",
+   "les soldes que l'employé rh saisit pour l'employé : pas encore possible — retirées"
+  ],
+  "elargit": [
+   "responsable_rh / Employe : voir (own → all)"
+  ],
+  "rien_ne_se_construit": true
+ },
+ "hors_stock": [
+  {
+   "besoin": "Versions Android et desktop natives en plus de la version web",
+   "categorie": "mobile_hors_ligne",
+   "citation": "l'application doit avoir 3 versions : web , Android et desktop."
+  },
+  {
+   "besoin": "Calcul automatique de la durée du congé sans compter les jours fériés ni les week-ends",
+   "categorie": "calcul_statistiques",
+   "citation": "la durée du congé demandé en retranchant automatique les jours fériés , les samedis et les dimanches"
+  },
+  {
+   "besoin": "Mise à jour mensuelle automatique des soldes de congé et de maladie",
+   "categorie": "automatisation",
+   "citation": "Mise à jours menstruel automatique des soldes de congé et de maladies."
+  },
+  {
+   "besoin": "Envoi automatique d'e-mails aux acteurs concernés lors des nouvelles demandes et des acceptations ou refus",
+   "categorie": "notification",
+   "citation": "Envoie automatiques des e-mails aux acteurs concernés"
+  },
+  {
+   "besoin": "Génération automatique des attestations (travail, salaire...)",
+   "categorie": "document",
+   "citation": "Génération automatique des attestations signés électroniquement."
+  },
+  {
+   "besoin": "Signature électronique des attestations",
+   "categorie": "autre",
+   "citation": "attestations signés électroniquement"
+  },
+  {
+   "besoin": "Lien avec la pointeuse pour récupérer le pointage et les retards",
+   "categorie": "integration",
+   "citation": "Accès à la pointeuse"
+  },
+  {
+   "besoin": "Statistiques sur les retards",
+   "categorie": "calcul_statistiques",
+   "citation": "gêner des statistiques liés aux retards"
+  },
+  {
+   "besoin": "Historique des modifications (changements des soldes, ajouts et suppressions de comptes)",
+   "categorie": "autre",
+   "citation": "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le responsable rh",
+   "L'employé rh",
+   "L'employé",
+   "Le décideur",
+   "Le directeur"
+  ],
+  "fiches": 8,
+  "circuits": 2
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "responsable_rh",
+   "libelle": "Le responsable rh",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes et modifie : Soldes",
+     "cases": [
+      {
+       "fiche": "Solde",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Consultation des informations personnelles, solde de congé et solde de maladies »",
+        "exception : « Il a les fonctionnalités de l'accès \"Employé RH »"
+       ],
+       "citations": [
+        "Consultation des informations personnelles, solde de congé et solde de maladies",
+        "Il a les fonctionnalités de l'accès \"Employé RH"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes : Pointages",
+     "cases": [
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"Employé RH »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"Employé RH"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Jours fériés, Événements d'historique",
+     "cases": [
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "en retranchant automatique les jours fériés"
+       ]
+      },
+      {
+       "fiche": "EvenementHistorique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes) »"
+       ],
+       "citations": [
+        "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)",
+        "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Employé, créé automatiquement",
+     "cases": [
+      {
+       "fiche": "Employe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"Employé RH »",
+        "exception : « Il a les fonctionnalités de l'accès \"Employé RH »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"Employé RH",
+        "Il a les fonctionnalités de l'accès \"Employé RH"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de congé : voit tout, en crée, les fait passer de « en attente » à « acceptée »",
+     "cases": [
+      {
+       "fiche": "DemandeConge",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "acceptee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "exception : « Demande de congé et demande d'obtenir une attestation »",
+        "exception : « Il a les fonctionnalités de l'accès \"Employé RH »",
+        "clôture : voit ce qu'il modifie"
+       ],
+       "citations": [
+        "Demande de congé et demande d'obtenir une attestation",
+        "Il a les fonctionnalités de l'accès \"Employé RH"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "crée des Demandes d'attestation sans les voir ensuite (dépôt)",
+     "cases": [
+      {
+       "fiche": "DemandeAttestation",
+       "droits": {
+        "see": "none",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Demande de congé et demande d'obtenir une attestation »"
+       ],
+       "citations": [
+        "Demande de congé et demande d'obtenir une attestation"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "employe_rh",
+   "libelle": "L'employé rh",
+   "devient": "invité par responsable_rh",
+   "citations": [
+    "Création de nouveaux comptes"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : Soldes",
+     "cases": [
+      {
+       "fiche": "Solde",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "saisit les Soldes pour le compte de leur propriétaire",
+        "exception : « Consultation des informations personnelles, solde de congé et solde de maladies »",
+        "exception : « Modification des soldes de congé et de maladie »"
+       ],
+       "citations": [
+        "Modification des soldes de congé et de maladie",
+        "Consultation des informations personnelles, solde de congé et solde de maladies",
+        "Modification des soldes de congé et de maladie"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes : Pointages",
+     "cases": [
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"Décideur »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"Décideur"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Jours fériés",
+     "cases": [
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "en retranchant automatique les jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Employé, créé automatiquement",
+     "cases": [
+      {
+       "fiche": "Employe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"Décideur »",
+        "exception : « Création de nouveaux comptes »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"Décideur",
+        "Création de nouveaux comptes"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de congé : voit tout, en crée, les fait passer de « en attente » à « acceptée »",
+     "cases": [
+      {
+       "fiche": "DemandeConge",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "acceptee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "exception : « Demande de congé et demande d'obtenir une attestation »",
+        "exception : « Il a les fonctionnalités de l'accès \"Décideur »",
+        "clôture : voit ce qu'il modifie"
+       ],
+       "citations": [
+        "Demande de congé et demande d'obtenir une attestation",
+        "Il a les fonctionnalités de l'accès \"Décideur"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "crée des Demandes d'attestation sans les voir ensuite (dépôt)",
+     "cases": [
+      {
+       "fiche": "DemandeAttestation",
+       "droits": {
+        "see": "none",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Demande de congé et demande d'obtenir une attestation »"
+       ],
+       "citations": [
+        "Demande de congé et demande d'obtenir une attestation"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "employe",
+   "libelle": "L'employé",
+   "devient": "invité par employe_rh",
+   "citations": [
+    "Demande de congé et demande d'obtenir une attestation"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes : Soldes, Attestations (dans chaque Demande d'attestation)",
+     "cases": [
+      {
+       "fiche": "Solde",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "suit les Soldes saisis pour lui",
+        "exception : « Consultation des informations personnelles, solde de congé et solde de maladies »"
+       ],
+       "citations": [
+        "Modification des soldes de congé et de maladie",
+        "Consultation des informations personnelles, solde de congé et solde de maladies"
+       ]
+      },
+      {
+       "fiche": "Attestation",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Demande d'attestation : même visibilité que le parent"
+       ],
+       "citations": [
+        "demande d'obtenir une attestation ( travail , salaire .. )",
+        "Demande de congé et demande d'obtenir une attestation ( travail , salaire .. )"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes et crée : Demandes de congé, Demandes d'attestation",
+     "cases": [
+      {
+       "fiche": "DemandeConge",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "exception : « Demande de congé et demande d'obtenir une attestation »"
+       ],
+       "citations": [
+        "Confirmer les demandes de congé",
+        "Demande de congé et demande d'obtenir une attestation"
+       ]
+      },
+      {
+       "fiche": "DemandeAttestation",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "exception : « Demande de congé et demande d'obtenir une attestation ( travail , salaire .. ) »"
+       ],
+       "citations": [
+        "demande d'obtenir une attestation ( travail , salaire .. )",
+        "Demande de congé et demande d'obtenir une attestation ( travail , salaire .. )"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : Pointages",
+     "cases": [
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « Consultation de l'historique des retards »"
+       ],
+       "citations": [
+        "Accès à la pointeuse et gêner des statistiques liés aux retards",
+        "Consultation de l'historique des retards"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Jours fériés",
+     "cases": [
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "en retranchant automatique les jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Employé, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Employe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement",
+        "exception : « Consultation des informations personnelles »"
+       ],
+       "citations": [
+        "Consultation des informations personnelles",
+        "Consultation des informations personnelles"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "decideur",
+   "libelle": "Le décideur",
+   "devient": "invité par employe_rh",
+   "citations": [
+    "Confirmer les demandes de congé"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes : Soldes, Pointages",
+     "cases": [
+      {
+       "fiche": "Solde",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Consultation des informations personnelles, solde de congé et solde de maladies »"
+       ],
+       "citations": [
+        "Consultation des informations personnelles, solde de congé et solde de maladies"
+       ]
+      },
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"employé »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"employé"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Jours fériés",
+     "cases": [
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "en retranchant automatique les jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Employé, créé automatiquement",
+     "cases": [
+      {
+       "fiche": "Employe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"employé »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"employé"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de congé : voit tout, en crée, les fait passer de « en attente » à « acceptée » ou « refusée »",
+     "cases": [
+      {
+       "fiche": "DemandeConge",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "acceptee",
+          "refusee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "décideur du processus : voit tout et fait évoluer l'état",
+        "exception : « Demande de congé et demande d'obtenir une attestation »",
+        "exception : « Confirmer les demandes de congé »"
+       ],
+       "citations": [
+        "Acceptation / refus d'une demande",
+        "Demande de congé et demande d'obtenir une attestation",
+        "Confirmer les demandes de congé"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "crée des Demandes d'attestation sans les voir ensuite (dépôt)",
+     "cases": [
+      {
+       "fiche": "DemandeAttestation",
+       "droits": {
+        "see": "none",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Demande de congé et demande d'obtenir une attestation »"
+       ],
+       "citations": [
+        "Demande de congé et demande d'obtenir une attestation"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "directeur",
+   "libelle": "Le directeur",
+   "devient": "invité par employe_rh",
+   "citations": [
+    "Confirmer les demandes d'attestation"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes : Soldes, Pointages",
+     "cases": [
+      {
+       "fiche": "Solde",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Consultation des informations personnelles, solde de congé et solde de maladies »"
+       ],
+       "citations": [
+        "Consultation des informations personnelles, solde de congé et solde de maladies"
+       ]
+      },
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"Décideur »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"Décideur"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Attestations (dans chaque Demande d'attestation), Jours fériés",
+     "cases": [
+      {
+       "fiche": "Attestation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Demande d'attestation : même visibilité que le parent"
+       ],
+       "citations": [
+        "Confirmer les demandes d'attestation",
+        "Demande de congé et demande d'obtenir une attestation"
+       ]
+      },
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "en retranchant automatique les jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Employé, créé automatiquement",
+     "cases": [
+      {
+       "fiche": "Employe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Il a les fonctionnalités de l'accès \"Décideur »"
+       ],
+       "citations": [
+        "Il a les fonctionnalités de l'accès \"Décideur"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de congé : voit tout, en crée, les fait passer de « en attente » à « acceptée »",
+     "cases": [
+      {
+       "fiche": "DemandeConge",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "acceptee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "exception : « Demande de congé et demande d'obtenir une attestation »",
+        "exception : « Il a les fonctionnalités de l'accès \"Décideur »",
+        "clôture : voit ce qu'il modifie"
+       ],
+       "citations": [
+        "Demande de congé et demande d'obtenir une attestation",
+        "Il a les fonctionnalités de l'accès \"Décideur"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes d'attestation : voit tout, en crée, les fait passer de « en attente » à « acceptée » ou « refusée »",
+     "cases": [
+      {
+       "fiche": "DemandeAttestation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "acceptee",
+          "refusee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "décideur du processus : voit tout et fait évoluer l'état",
+        "exception : « Demande de congé et demande d'obtenir une attestation »",
+        "exception : « Confirmer les demandes d'attestation »"
+       ],
+       "citations": [
+        "Confirmer les demandes d'attestation",
+        "Demande de congé et demande d'obtenir une attestation",
+        "Confirmer les demandes d'attestation"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "DemandeConge",
+   "texte": "La demande de congé commence « en attente » ; de « en attente », vers « acceptée » ou « refusée »",
+   "qui": [
+    "Le responsable rh fait passer de « en attente » à « acceptée »",
+    "L'employé rh fait passer de « en attente » à « acceptée »",
+    "Le décideur fait passer de « en attente » à « acceptée » ou « refusée »",
+    "Le directeur fait passer de « en attente » à « acceptée »"
+   ],
+   "citations": [
+    "Acceptation / refus d'une demande"
+   ]
+  },
+  {
+   "fiche": "DemandeAttestation",
+   "texte": "La demande d'attestation commence « en attente » ; de « en attente », vers « acceptée » ou « refusée »",
+   "qui": [
+    "Le directeur fait passer de « en attente » à « acceptée » ou « refusée »"
+   ],
+   "citations": [
+    "Confirmer les demandes d'attestation"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Employe",
+   "libelle": "Employé",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Employe:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Employe:Matricule",
+     "libelle": "Matricule",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Employe:E-mail",
+     "libelle": "E-mail",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Employe:Poste / fonction",
+     "libelle": "Poste / fonction",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Employe:Date d'embauche",
+     "libelle": "Date d'embauche",
+     "type": "date"
+    },
+    {
+     "id": "garder:Employe:Type d'accès",
+     "libelle": "Type d'accès",
+     "type": "choix"
+    }
+   ],
+   "citations": [
+    "Consultation des informations personnelles"
+   ]
+  },
+  {
+   "fiche": "Solde",
+   "libelle": "Solde",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "soldeConge",
+     "libelle": "Solde de congé",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "solde de congé"
+    },
+    {
+     "nom": "soldeMaladie",
+     "libelle": "Solde de maladie",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "solde de maladies"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Solde:Date de dernière mise à jour",
+     "libelle": "Date de dernière mise à jour",
+     "type": "date"
+    },
+    {
+     "id": "garder:Solde:Acquisition mensuelle (jours)",
+     "libelle": "Acquisition mensuelle (jours)",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Modification des soldes de congé et de maladie"
+   ]
+  },
+  {
+   "fiche": "DemandeConge",
+   "libelle": "Demande de congé",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "dateDebut",
+     "libelle": "Date de début",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "dates donnés par le demandeur"
+    },
+    {
+     "nom": "dateFin",
+     "libelle": "Date de fin",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "dates donnés par le demandeur"
+    },
+    {
+     "nom": "duree",
+     "libelle": "Durée du congé (jours)",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "la durée du congé demandé"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DemandeConge:Type de congé",
+     "libelle": "Type de congé",
+     "type": "choix"
+    },
+    {
+     "id": "garder:DemandeConge:Motif",
+     "libelle": "Motif",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:DemandeConge:Motif du refus",
+     "libelle": "Motif du refus",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:DemandeConge:Demi-journée",
+     "libelle": "Demi-journée",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "Confirmer les demandes de congé"
+   ]
+  },
+  {
+   "fiche": "DemandeAttestation",
+   "libelle": "Demande d'attestation",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "typeAttestation",
+     "libelle": "Type d'attestation",
+     "type": "choix parmi : travail, salaire",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "attestation ( travail , salaire .. )"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DemandeAttestation:Motif / destinataire",
+     "libelle": "Motif / destinataire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:DemandeAttestation:Motif du refus",
+     "libelle": "Motif du refus",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:DemandeAttestation:Nombre d'exemplaires",
+     "libelle": "Nombre d'exemplaires",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "demande d'obtenir une attestation ( travail , salaire .. )"
+   ]
+  },
+  {
+   "fiche": "Attestation",
+   "libelle": "Attestation",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Demande d'attestation"
+   ],
+   "champs": [
+    {
+     "nom": "signatureElectronique",
+     "libelle": "Signature électronique",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "attestations signés électroniquement"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Attestation:Numéro d'attestation",
+     "libelle": "Numéro d'attestation",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Attestation:Date de signature",
+     "libelle": "Date de signature",
+     "type": "date"
+    },
+    {
+     "id": "garder:Attestation:Signataire",
+     "libelle": "Signataire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Attestation:Lien du document",
+     "libelle": "Lien du document",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "Génération automatique des attestations signés électroniquement"
+   ]
+  },
+  {
+   "fiche": "Pointage",
+   "libelle": "Pointage",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "enRetard",
+     "libelle": "En retard",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "l'historique des retards"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Pointage:Date et heure du pointage",
+     "libelle": "Date et heure du pointage",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Pointage:Type de pointage (entrée / sortie)",
+     "libelle": "Type de pointage (entrée / sortie)",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Pointage:Durée du retard (minutes)",
+     "libelle": "Durée du retard (minutes)",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Accès à la pointeuse et gêner des statistiques liés aux retards"
+   ]
+  },
+  {
+   "fiche": "JourFerie",
+   "libelle": "Jour férié",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:JourFerie:Date",
+     "libelle": "Date",
+     "type": "date"
+    },
+    {
+     "id": "garder:JourFerie:Récurrent chaque année",
+     "libelle": "Récurrent chaque année",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "en retranchant automatique les jours fériés"
+   ]
+  },
+  {
+   "fiche": "EvenementHistorique",
+   "libelle": "Événement d'historique",
+   "nature": "registry",
+   "relie_a": [
+    "Employé",
+    "Solde"
+   ],
+   "champs": [
+    {
+     "nom": "typeEvenement",
+     "libelle": "Type d'événement",
+     "type": "choix parmi : changement des soldes, ajout de compte, suppression de compte",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "changements des soldes , ajouts et suppression des comptes"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EvenementHistorique:Ancienne valeur",
+     "libelle": "Ancienne valeur",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:EvenementHistorique:Nouvelle valeur",
+     "libelle": "Nouvelle valeur",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:EvenementHistorique:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Employe:nom",
+     "texte": "Employé → « Nom »"
+    },
+    {
+     "id": "nom:Solde:intitule",
+     "texte": "Solde → « Intitulé »"
+    },
+    {
+     "id": "nom:DemandeConge:intitule",
+     "texte": "Demande de congé → « Intitulé »"
+    },
+    {
+     "id": "nom:DemandeAttestation:intitule",
+     "texte": "Demande d'attestation → « Intitulé »"
+    },
+    {
+     "id": "nom:Pointage:reference",
+     "texte": "Pointage → « Référence »"
+    },
+    {
+     "id": "nom:JourFerie:nom",
+     "texte": "Jour férié → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "voir_tous:decideur:Employe",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le décideur doit-il voir TOUS les employés ?"
+  },
+  {
+   "id": "voir_tous:decideur:Solde",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le décideur doit-il voir TOUS les soldes ?"
+  },
+  {
+   "id": "voir_tous:decideur:Pointage",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le décideur doit-il voir TOUS les pointages ?"
+  },
+  {
+   "id": "voir_tous:directeur:Employe",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le directeur doit-il voir TOUS les employés ?"
+  },
+  {
+   "id": "voir_tous:directeur:Solde",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le directeur doit-il voir TOUS les soldes ?"
+  },
+  {
+   "id": "voir_tous:directeur:Pointage",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le directeur doit-il voir TOUS les pointages ?"
+  },
+  {
+   "id": "voir_tous:employe_rh:Employe",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : l'employé rh doit-il voir TOUS les employés ?"
+  },
+  {
+   "id": "voir_tous:employe_rh:Solde",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : l'employé rh doit-il voir TOUS les soldes ?"
+  },
+  {
+   "id": "voir_tous:employe_rh:Pointage",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : l'employé rh doit-il voir TOUS les pointages ?"
+  },
+  {
+   "id": "voir_tous:responsable_rh:Employe",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le responsable rh doit-il voir TOUS les employés ?"
+  },
+  {
+   "id": "voir_tous:responsable_rh:Solde",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le responsable rh doit-il voir TOUS les soldes ?"
+  },
+  {
+   "id": "voir_tous:responsable_rh:Pointage",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le responsable rh doit-il voir TOUS les pointages ?"
+  }
+ ]
+}

@@ -1,7 +1,7 @@
 # Corpus 2 — 33 vrais briefs (Codeur.com), recueillis le 9 oct 2026
 
 Même source que le lot d'apprentissage. Usage interne de test uniquement. Sert à la RÉPÉTITION
-(couverture de l'usine) : on peut les étudier. L'examen final reste sur `factory-sprint0/harness/briefs_reels/examen/`.
+(couverture de l'usine) : on peut les étudier. L'examen final reste sur `usine/briefs_reels/examen/`.
 
 ## Comment ils ont été choisis (règle écrite avant tout lancement)
 

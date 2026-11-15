@@ -1,0 +1,514 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est une application web de gestion d'interventions avec authentification, comptes utilisateurs avec permissions, formulaires d'intervention, CRUD et passage d'état traité.",
+    "hors_stock": [
+      {
+        "besoin": "Sécurisation SSL de l'authentification",
+        "categorie": "autre",
+        "citation": "interface d'authentification entièrement sécurisé en SSL"
+      },
+      {
+        "besoin": "Recherche de formulaires",
+        "categorie": "autre",
+        "citation": "gestion complète des formulaire (recherche,modifcation,ajout supprission...)"
+      },
+      {
+        "besoin": "Classement des interventions par date",
+        "categorie": "autre",
+        "citation": "toutes les interventions sont classés par date"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur possède le choix"
+      },
+      {
+        "id": "agent",
+        "libelle": "agent",
+        "libelle_pluriel": "agents",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "un agent peut alors remplir un formulaire"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "client",
+        "citation": "description du problème d'un client"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "CompteAgent",
+        "libelle": "compte agent",
+        "libelle_pluriel": "comptes agents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "agent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "on peut s'enregister et cérer des comptes utilisatuers avec des permissions différentes"
+      },
+      {
+        "nom": "CompteAdministrateur",
+        "libelle": "compte administrateur",
+        "libelle_pluriel": "comptes administrateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "on peut s'enregister et cérer des comptes utilisatuers avec des permissions différentes"
+      },
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "agent"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "description du problème d'un client"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "intervention",
+        "libelle_pluriel": "interventions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "agent",
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client ,ce  formulaire peut ensuite être enregistré dans la base...toutes les interventions sont classés par date"
+      },
+      {
+        "nom": "EntreeKnowledgeBase",
+        "libelle": "entrée de knowledge base",
+        "libelle_pluriel": "entrées de knowledge base",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "citation": "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "client",
+        "fiche": "Client",
+        "raison": "Le brief mentionne le problème d'un client dans le formulaire d'intervention."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Intervention",
+        "etat_initial": "enregistre",
+        "transitions": {
+          "enregistre": [
+            "envoye"
+          ],
+          "envoye": [
+            "traite"
+          ],
+          "traite": [
+            "supprime",
+            "commente",
+            "mis_en_knowledge_base"
+          ],
+          "supprime": [],
+          "commente": [],
+          "mis_en_knowledge_base": []
+        },
+        "libelles": {
+          "enregistre": "enregistré",
+          "envoye": "envoyé",
+          "traite": "traité",
+          "supprime": "supprimé",
+          "commente": "commenté",
+          "mis_en_knowledge_base": "mis dans une knowledge base"
+        },
+        "initiateur": "agent",
+        "decideur": "agent",
+        "etapes_par": {
+          "traite": "administrateur"
+        },
+        "citation": "ce  formulaire peut ensuite être enregistré dans la base,envoyé au centre de traitement pour y être traité. ... dès que l'agent a traité une intervention celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "agent",
+        "fiche": "Intervention",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client"
+      },
+      {
+        "acteur": "agent",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "envoye": [
+            "traite"
+          ]
+        },
+        "citation": "l'agent a traité une intervention celle ci est marqué comme traité"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Intervention",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "traite"
+        ],
+        "transitions": {},
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "traite"
+        ],
+        "transitions": {
+          "traite": [
+            "commente"
+          ]
+        },
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "traite"
+        ],
+        "transitions": {
+          "traite": [
+            "mis_en_knowledge_base"
+          ]
+        },
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "CompteAgent",
+        "champs": [
+          {
+            "nom": "permissions",
+            "libelle": "Permissions",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "comptes utilisatuers avec des permissions différentes"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Identifiant de connexion",
+            "type": "texte",
+            "raison": "Utile pour l'authentification, mais le brief ne précise pas le champ à enregistrer."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter ou identifier le compte, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "CompteAdministrateur",
+        "champs": [
+          {
+            "nom": "permissions",
+            "libelle": "Permissions",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "comptes utilisatuers avec des permissions différentes"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Identifiant de connexion",
+            "type": "texte",
+            "raison": "Utile pour l'authentification, mais le brief ne précise pas le champ à enregistrer."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter ou identifier le compte, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Utile pour identifier le client, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour le support technique, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter le client, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "descriptionProbleme",
+            "libelle": "Description du problème",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "formulaire contenant une description du problème d'un client"
+          },
+          {
+            "nom": "date",
+            "libelle": "Date",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "interventions sont classés par date"
+          },
+          {
+            "nom": "commentaire",
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "commenté"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Priorité",
+            "type": "texte",
+            "raison": "Utile pour organiser le traitement des interventions, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Catégorie de problème",
+            "type": "texte",
+            "raison": "Utile pour classer les problèmes techniques, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "EntreeKnowledgeBase",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Résumé",
+            "type": "texte_long",
+            "raison": "Utile pour consulter la knowledge base, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Mots-clés",
+            "type": "texte",
+            "raison": "Utile pour retrouver une référence en cas de problème similaire, mais non cité comme champ dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion interventions",
+    "fiches": [
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Créer une intervention",
+        "boutons": {
+          "commente": "Commenter",
+          "envoye": "Envoyer",
+          "mis_en_knowledge_base": "Mettre en knowledge base",
+          "supprime": "Supprimer",
+          "traite": "Marquer traité"
+        }
+      },
+      {
+        "fiche": "EntreeKnowledgeBase",
+        "verbe_creation": "Ajouter à la knowledge base",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 831,
+      "jetons_sortie": 574
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 717,
+      "jetons_sortie": 485
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1147,
+      "jetons_sortie": 1524
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 884,
+      "jetons_sortie": 1245
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.0.portee : Input should be 'own' or 'all'",
+        "droits.1.portee : Input should be 'own' or 'all'",
+        "droits.1.transitions.vers : Input should be a valid array",
+        "droits.2.portee : Input should be 'own' or 'all'",
+        "droits.3.portee : Input should be 'own' or 'all'",
+        "droits.3.transitions.vers : Input should be a valid array",
+        "droits.4.portee : Input should be 'own' or 'all'",
+        "droits.4.transitions.vers : Input should be a valid array"
+      ],
+      "jetons_entree": 1065,
+      "jetons_sortie": 2910
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [
+        "droit agent/Intervention/transition : état(s) ['vers'] inconnu(s) — utilise les CODES des états du circuit de Intervention : ['commente', 'enregistre', 'envoye', 'mis_en_knowledge_base', 'supprime', 'traite']",
+        "droit administrateur/Intervention/transition : état(s) ['vers'] inconnu(s) — utilise les CODES des états du circuit de Intervention : ['commente', 'enregistre', 'envoye', 'mis_en_knowledge_base', 'supprime', 'traite']",
+        "droit administrateur/Intervention/transition : état(s) ['vers'] inconnu(s) — utilise les CODES des états du circuit de Intervention : ['commente', 'enregistre', 'envoye', 'mis_en_knowledge_base', 'supprime', 'traite']"
+      ],
+      "jetons_entree": 1533,
+      "jetons_sortie": 723
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 3,
+      "erreurs": [],
+      "jetons_entree": 2047,
+      "jetons_sortie": 841
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1412,
+      "jetons_sortie": 3263
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 854,
+      "jetons_sortie": 532
+    }
+  ]
+}

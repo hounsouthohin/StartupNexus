@@ -1,0 +1,18 @@
+{
+  "run": "20261013-120911-union-sportive-claude-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-union-sportive",
+  "modele": "boite",
+  "matrice_erreurs": [
+    "[erreur:etats-inconnus] exception administrateur/Activite/transition : état(s) ['annulee', 'planifiee'] absent(s) du circuit (cette entité n'a pas de circuit)"
+  ],
+  "verdict": "ÉCHEC : matrice refusée — [erreur:etats-inconnus] exception administrateur/Activite/transition : état(s) ['annulee', 'planifiee'] absent(s) du circuit (cette entité n'a pas de circuit)",
+  "depense": {
+    "modele": "boite",
+    "appels": 5,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-13T13:27:05"
+}

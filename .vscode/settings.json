@@ -1,6 +1,3 @@
 {
-    "python.analysis.extraPaths": [
-        "./factory-sprint0"
-    ],
     "claudeCode.useTerminal": true
 }

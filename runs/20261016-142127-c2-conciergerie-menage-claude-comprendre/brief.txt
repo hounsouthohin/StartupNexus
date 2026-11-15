@@ -1,0 +1,54 @@
+Application menage avec rapport
+Projet d'application interne – Villas Victoria conciergerie 
+
+Je souhaite développer une application interne, exclusivement destinée à la gestion de mes équipes de ménage.
+
+Planning
+
+Le planning sera inspiré du calendrier Airbnb :
+
+les villas en ligne ;
+
+les dates en colonne ;
+
+les réservations affichées sous forme de bandes colorées.
+
+Chaque réservation indique :
+
+la villa ;
+
+les dates du séjour ;
+
+les horaires d'arrivée et de départ 
+
+le nombre de voyageurs.
+
+Lorsqu'un ménage est disponible, la réservation apparaît dans une couleur "Disponible".
+
+Les équipes peuvent cliquer sur "Je prends cette intervention". Le premier intervenant qui se positionne est automatiquement affecté au ménage.
+
+Une fois la mission attribuée, la réservation change automatiquement de couleur et prend la couleur de l'équipe concernée afin d'identifier immédiatement le responsable de l'intervention.
+
+Fiche intervention après chaque ménage 
+
+À la fin du ménage, l'équipe complète un rapport comprenant :
+
+la date de l'intervention ;
+
+l'heure de début et de fin ;
+
+le nom de l'intervenant ou de l'équipe ;
+
+une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs...) ;
+
+le signalement des anomalies éventuelles ;
+
+un espace de commentaires ;
+
+des photos obligatoires de chaque pièce et des points stratégiques.
+
+Après le ménage, je complète le rapport avec les informations relevées lors de mon accueil des voyageurs (état du logement, remarques des voyageurs, éventuels dysfonctionnements, informations importantes).
+
+Le rapport est ensuite automatiquement généré en PDF afin d'être transmis au propriétaire. Il constitue un compte rendu complet de chaque intervention, avec le travail des équipes, mes observations et les photos du logement.
+
+L'objectif est de disposer d'un outil simple, intuitif et professionnel permettant de suivre en temps réel les réservations, les équipes affectées et la qualité des prestations.

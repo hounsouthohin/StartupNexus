@@ -1,0 +1,20 @@
+Application de gestion des interventions technique
+[b]Description du programme / site web :[/b]
+
+cette application web permet de gérer les interventions d'un centre du support technique exemple un fournisseur de service internet.
+
+Elle dipose d'une interface d'authentification entièrement sécurisé en SSL oû on peut s'enregister et cérer des comptes utilisatuers avec des permissions différentes en utilisant les sessions et les ccokies.
+
+une fois enregistré dans la base de donnée un agent peut alors remplir un formulaire contenant une description du problème d'un client ,ce  formulaire peut ensuite être enregistré dans la base,envoyé au centre de traitement pour y être traité.
+
+Cette application propose une gestion complète des formulaire (recherche,modifcation,ajout supprission...).
+
+toutes les interventions sont classés par date et dès que l'agent a traité une intervention celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base pour se servir comme référence en cas de problème similaire.
+
+[b]Fonctions, contenu à ajouter ou à modifier :[/b]
+
+ras
+
+[b]Autres aspects de la prestation :[/b]
+
+l'application peut être délivré immédiatement

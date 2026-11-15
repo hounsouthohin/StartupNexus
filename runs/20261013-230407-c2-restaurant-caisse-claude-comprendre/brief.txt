@@ -1,0 +1,92 @@
+Création de logiciel de restauration
+Détails du projet :
+
+Nous recherchons un développeur pour création un logiciel de gestion de restauration  permettant la gestion efficace des commandes, des stocks, des tables, des paiements, du personnel et des rapports dans un restaurant.
+
+Détails des prestations attendues :
+
+Développer un logiciel complet et intuitif permettant de gérer efficacement les opérations d’un restaurant, depuis la prise de commande jusqu’à la gestion des stocks, des paiements et des statistiques.
+
+Gestion des utilisateurs
+
+Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)
+
+Système de rôles et permissions pour chaque profil
+
+Historique de connexion
+
+Gestion des tables
+
+Plan de salle visuel
+
+Statut des tables (libre, occupée, réservée, en attente de paiement)
+
+Attribution des commandes à une table
+
+Prise de commande rapide
+
+Interface tactile ou responsive (PC, tablette)
+
+Sélection des plats, quantités, variantes (ex : cuisson, taille)
+
+Envoi automatique en cuisine (impression ou affichage à l’écran)
+
+Gestion du menu
+
+Ajout, modification et désactivation des produits
+
+Catégorisation : entrées, plats, desserts, boissons
+
+Gestion des prix, variantes et disponibilités
+
+Stock et approvisionnement
+
+Suivi en temps réel des stocks
+
+Alerte de seuil critique
+
+Historique d’entrée/sortie
+
+Gestion des fournisseurs
+
+Paiements & facturation
+
+Paiement par espèce, carte, mobile money
+
+Facture imprimée ou PDF
+
+Possibilité de diviser l’addition
+
+Commandes à emporter et livraison
+
+Gestion des commandes hors salle
+
+Suivi des livreurs et états de livraison
+
+Historique des commandes
+
+Réservations
+
+Prise de réservation manuelle ou via une interface publique
+
+Confirmation automatique, annulation, rappel
+
+Rapports et statistiques
+
+Chiffre d'affaires journalier, mensuel
+
+Produits les plus vendus
+
+Performance du personnel
+
+Rapport de stock
+
+Détails des exigences :
+
+Back-end : Laravel (PHP), Node.js ou Django
+
+Front-end : Vue.js, React ou Bootstrap
+
+Base de données : MySQL / PostgreSQL
+
+Mobile : Flutter ou React Native

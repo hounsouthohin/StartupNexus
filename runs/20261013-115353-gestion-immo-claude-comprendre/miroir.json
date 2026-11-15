@@ -1,0 +1,654 @@
+{
+ "titre": "Gestion locative",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Automatiser des tâches (c'est l'objectif principal du brief)",
+   "categorie": "automatisation",
+   "citation": "créer un logiciel permettant d'automatiser des taches"
+  },
+  {
+   "besoin": "Rapprochement bancaire automatique (il faut un lien avec les données de la banque)",
+   "categorie": "integration",
+   "citation": "automatiser le rapprochement bancaire"
+  },
+  {
+   "besoin": "Encaissement des loyers",
+   "categorie": "paiement",
+   "citation": "l'encaissement des loyers"
+  },
+  {
+   "besoin": "Reversement des loyers",
+   "categorie": "paiement",
+   "citation": "le reversement des loyers"
+  },
+  {
+   "besoin": "Production des quittances de loyer",
+   "categorie": "document",
+   "citation": "envoyer automatiquement des quittances"
+  },
+  {
+   "besoin": "Envoi automatique des quittances",
+   "categorie": "notification",
+   "citation": "envoyer automatiquement des quittances"
+  },
+  {
+   "besoin": "Production et envoi des relevés de compte",
+   "categorie": "document",
+   "citation": "relevé de compte etc.."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire"
+  ],
+  "fiches": 8,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous sommes gestionnaire de biens immobilier"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Propriétaires, Biens, Locataires, Encaissements de loyer, Reversements de loyer, Quittances, Relevés de compte, Opérations bancaires",
+     "cases": [
+      {
+       "fiche": "Proprietaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "le reversement des loyers"
+       ]
+      },
+      {
+       "fiche": "Bien",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestionnaire de biens immobilier"
+       ]
+      },
+      {
+       "fiche": "Locataire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "l'encaissement des loyers"
+       ]
+      },
+      {
+       "fiche": "EncaissementLoyer",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "l'encaissement des loyers"
+       ]
+      },
+      {
+       "fiche": "ReversementLoyer",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "le reversement des loyers"
+       ]
+      },
+      {
+       "fiche": "Quittance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "envoyer automatiquement des quittances"
+       ]
+      },
+      {
+       "fiche": "ReleveCompte",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "relevé de compte"
+       ]
+      },
+      {
+       "fiche": "OperationBancaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "automatiser le rapprochement bancaire"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Proprietaire",
+   "libelle": "Propriétaire",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Proprietaire:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Proprietaire:Adresse email",
+     "libelle": "Adresse email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Proprietaire:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Proprietaire:Adresse postale",
+     "libelle": "Adresse postale",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Proprietaire:IBAN",
+     "libelle": "IBAN",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "le reversement des loyers"
+   ]
+  },
+  {
+   "fiche": "Bien",
+   "libelle": "Bien",
+   "nature": "registry",
+   "relie_a": [
+    "Propriétaire"
+   ],
+   "champs": [
+    {
+     "nom": "designation",
+     "libelle": "Désignation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Bien:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Bien:Type de bien",
+     "libelle": "Type de bien",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Bien:Surface (m²)",
+     "libelle": "Surface (m²)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Bien:Montant du loyer",
+     "libelle": "Montant du loyer",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Bien:Montant des charges",
+     "libelle": "Montant des charges",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "gestionnaire de biens immobilier"
+   ]
+  },
+  {
+   "fiche": "Locataire",
+   "libelle": "Locataire",
+   "nature": "registry",
+   "relie_a": [
+    "Bien"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Locataire:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Locataire:Adresse email",
+     "libelle": "Adresse email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Locataire:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Locataire:Date d'entrée dans le logement",
+     "libelle": "Date d'entrée dans le logement",
+     "type": "date"
+    },
+    {
+     "id": "garder:Locataire:Dépôt de garantie",
+     "libelle": "Dépôt de garantie",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "l'encaissement des loyers"
+   ]
+  },
+  {
+   "fiche": "EncaissementLoyer",
+   "libelle": "Encaissement de loyer",
+   "nature": "registry",
+   "relie_a": [
+    "Locataire",
+    "Bien"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EncaissementLoyer:Montant encaissé",
+     "libelle": "Montant encaissé",
+     "type": "montant"
+    },
+    {
+     "id": "garder:EncaissementLoyer:Date d'encaissement",
+     "libelle": "Date d'encaissement",
+     "type": "date"
+    },
+    {
+     "id": "garder:EncaissementLoyer:Période concernée",
+     "libelle": "Période concernée",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:EncaissementLoyer:Mode de paiement",
+     "libelle": "Mode de paiement",
+     "type": "choix"
+    }
+   ],
+   "citations": [
+    "l'encaissement des loyers"
+   ]
+  },
+  {
+   "fiche": "ReversementLoyer",
+   "libelle": "Reversement de loyer",
+   "nature": "registry",
+   "relie_a": [
+    "Propriétaire",
+    "Bien"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ReversementLoyer:Montant reversé",
+     "libelle": "Montant reversé",
+     "type": "montant"
+    },
+    {
+     "id": "garder:ReversementLoyer:Date de reversement",
+     "libelle": "Date de reversement",
+     "type": "date"
+    },
+    {
+     "id": "garder:ReversementLoyer:Honoraires de gestion déduits",
+     "libelle": "Honoraires de gestion déduits",
+     "type": "montant"
+    },
+    {
+     "id": "garder:ReversementLoyer:Période concernée",
+     "libelle": "Période concernée",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "le reversement des loyers"
+   ]
+  },
+  {
+   "fiche": "Quittance",
+   "libelle": "Quittance",
+   "nature": "registry",
+   "relie_a": [
+    "Locataire",
+    "Encaissement de loyer"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de quittance",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Quittance:Période",
+     "libelle": "Période",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Quittance:Montant du loyer",
+     "libelle": "Montant du loyer",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Quittance:Montant des charges",
+     "libelle": "Montant des charges",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Quittance:Date d'envoi",
+     "libelle": "Date d'envoi",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "envoyer automatiquement des quittances"
+   ]
+  },
+  {
+   "fiche": "ReleveCompte",
+   "libelle": "Relevé de compte",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ReleveCompte:Date de début de période",
+     "libelle": "Date de début de période",
+     "type": "date"
+    },
+    {
+     "id": "garder:ReleveCompte:Date de fin de période",
+     "libelle": "Date de fin de période",
+     "type": "date"
+    },
+    {
+     "id": "garder:ReleveCompte:Solde",
+     "libelle": "Solde",
+     "type": "montant"
+    },
+    {
+     "id": "garder:ReleveCompte:Date d'envoi",
+     "libelle": "Date d'envoi",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "relevé de compte"
+   ]
+  },
+  {
+   "fiche": "OperationBancaire",
+   "libelle": "Opération bancaire",
+   "nature": "registry",
+   "relie_a": [
+    "Encaissement de loyer",
+    "Reversement de loyer"
+   ],
+   "champs": [
+    {
+     "nom": "libelle",
+     "libelle": "Libellé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:OperationBancaire:Date de l'opération",
+     "libelle": "Date de l'opération",
+     "type": "date"
+    },
+    {
+     "id": "garder:OperationBancaire:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:OperationBancaire:Sens (débit / crédit)",
+     "libelle": "Sens (débit / crédit)",
+     "type": "choix"
+    },
+    {
+     "id": "garder:OperationBancaire:Rapprochée",
+     "libelle": "Rapprochée",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "automatiser le rapprochement bancaire"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Proprietaire:nom",
+     "texte": "Propriétaire → « Nom »"
+    },
+    {
+     "id": "nom:Bien:designation",
+     "texte": "Bien → « Désignation »"
+    },
+    {
+     "id": "nom:Locataire:nom",
+     "texte": "Locataire → « Nom »"
+    },
+    {
+     "id": "nom:EncaissementLoyer:reference",
+     "texte": "Encaissement de loyer → « Référence »"
+    },
+    {
+     "id": "nom:ReversementLoyer:reference",
+     "texte": "Reversement de loyer → « Référence »"
+    },
+    {
+     "id": "nom:Quittance:numero",
+     "texte": "Quittance → « Numéro de quittance »"
+    },
+    {
+     "id": "nom:ReleveCompte:intitule",
+     "texte": "Relevé de compte → « Intitulé »"
+    },
+    {
+     "id": "nom:OperationBancaire:libelle",
+     "texte": "Opération bancaire → « Libellé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

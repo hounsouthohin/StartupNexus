@@ -1,0 +1,374 @@
+{
+ "titre": "Gestion immobilière",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Automatisation de tâches",
+   "categorie": "automatisation",
+   "citation": "d'automatiser des taches"
+  },
+  {
+   "besoin": "Rapprochement bancaire automatisé",
+   "categorie": "automatisation",
+   "citation": "d'automatiser le rapprochement bancaire"
+  },
+  {
+   "besoin": "Encaissement des loyers",
+   "categorie": "paiement",
+   "citation": "l'encaissement des loyers"
+  },
+  {
+   "besoin": "Reversement des loyers",
+   "categorie": "paiement",
+   "citation": "le reversement des loyers"
+  },
+  {
+   "besoin": "Envoi automatique de quittances et relevés de compte",
+   "categorie": "notification",
+   "citation": "d'envoyer automatiquement des quittances, relevé de compte etc.."
+  },
+  {
+   "besoin": "Quittances et relevés de compte générés",
+   "categorie": "document",
+   "citation": "quittances, relevé de compte"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire de biens immobilier"
+  ],
+  "fiches": 5,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire de biens immobilier",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous sommes gestionnaire de biens immobilier"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : biens immobiliers, rapprochements bancaires, loyers, quittances, relevés de compte",
+     "cases": [
+      {
+       "fiche": "BienImmobilier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestionnaire de biens immobilier"
+       ]
+      },
+      {
+       "fiche": "RapprochementBancaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "rapprochement bancaire"
+       ]
+      },
+      {
+       "fiche": "Loyer",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "l'encaissement des loyers, le reversement des loyers"
+       ]
+      },
+      {
+       "fiche": "Quittance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "envoyer automatiquement des quittances"
+       ]
+      },
+      {
+       "fiche": "ReleveDeCompte",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "relevé de compte"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "BienImmobilier",
+   "libelle": "bien immobilier",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:BienImmobilier:Adresse",
+     "libelle": "Adresse",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:BienImmobilier:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "gestionnaire de biens immobilier"
+   ]
+  },
+  {
+   "fiche": "RapprochementBancaire",
+   "libelle": "rapprochement bancaire",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:RapprochementBancaire:Période",
+     "libelle": "Période",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:RapprochementBancaire:Montant rapproché",
+     "libelle": "Montant rapproché",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "rapprochement bancaire"
+   ]
+  },
+  {
+   "fiche": "Loyer",
+   "libelle": "loyer",
+   "nature": "registry",
+   "relie_a": [
+    "bien immobilier"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Loyer:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Loyer:Période",
+     "libelle": "Période",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "l'encaissement des loyers, le reversement des loyers"
+   ]
+  },
+  {
+   "fiche": "Quittance",
+   "libelle": "quittance",
+   "nature": "registry",
+   "relie_a": [
+    "loyer"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Quittance:Numéro de quittance",
+     "libelle": "Numéro de quittance",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Quittance:Montant quittancé",
+     "libelle": "Montant quittancé",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "envoyer automatiquement des quittances"
+   ]
+  },
+  {
+   "fiche": "ReleveDeCompte",
+   "libelle": "relevé de compte",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ReleveDeCompte:Période",
+     "libelle": "Période",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ReleveDeCompte:Solde",
+     "libelle": "Solde",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "relevé de compte"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:BienImmobilier:nom",
+     "texte": "bien immobilier → « Nom »"
+    },
+    {
+     "id": "nom:RapprochementBancaire:nom",
+     "texte": "rapprochement bancaire → « Nom »"
+    },
+    {
+     "id": "nom:Loyer:nom",
+     "texte": "loyer → « Nom »"
+    },
+    {
+     "id": "nom:Quittance:nom",
+     "texte": "quittance → « Nom »"
+    },
+    {
+     "id": "nom:ReleveDeCompte:nom",
+     "texte": "relevé de compte → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

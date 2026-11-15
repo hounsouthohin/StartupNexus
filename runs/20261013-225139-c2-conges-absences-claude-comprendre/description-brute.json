@@ -1,0 +1,138 @@
+{
+  "app": {
+    "nom": "c2-conges-absences",
+    "titre": "Gestion des congés"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire du personnel",
+        "label_plural": "Gestionnaires du personnel",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "un tableau de bord ou je peux voir qui est en congé"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Agent",
+        "label": "agent",
+        "label_plural": "agents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "30 jours ouvrable de congé pour chaque agent"
+      },
+      {
+        "name": "TypeConge",
+        "label": "type de congé",
+        "label_plural": "types de congé",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "un congé avaloire (circonstanciel) ou annuel"
+      },
+      {
+        "name": "Conge",
+        "label": "congé",
+        "label_plural": "congés",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Agent",
+          "TypeConge"
+        ],
+        "citation": "savoir qui a pris un congé avaloire (circonstanciel) ou annuel"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "gestionnaire",
+        "entity": "Conge",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "je peux voir qui est en congé"
+      }
+    ]
+  },
+  "champs": {
+    "Agent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "joursCongeOuvrables",
+        "libelle": "Jours ouvrables de congé",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "30 jours ouvrable de congé pour chaque agent"
+      }
+    ],
+    "TypeConge": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Conge": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Conge": {
+      "verbe_creation": "Poser un congé",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

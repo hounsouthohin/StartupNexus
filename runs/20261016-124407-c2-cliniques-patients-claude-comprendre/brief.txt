@@ -1,0 +1,60 @@
+Système de gestion des cliniques et des patients
+Je souhaite obtenir un devis pour créer une plateforme  web de gestion de cliniques et de patients. 
+
+Il sera utiliser par les médecins et les cliniques afin de gérer les rendez-vous et les rencontres de plusieurs médecins à la clinique. 
+
+Il vous permet de prendre, gérer et suivre la prise de rendez-vous des patients pour les médecins. 
+
+Ajoutez des jours fériés, la réceptionniste définit des rappels de rendez-vous et définit la notification par e-mail pour les médecins. Gardant la confidentialité au premier plan, le rendez-vous de chaque médecin peut être gardé privé pour les autres.
+
+Liste des fonctionnalités:
+
+Tableau de bord : permet de visualiser les modules importants de l'hôpital.
+
+-Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins.
+
+- Notification SMS (Twilio) : Des alertes de notification sont envoyées parla plateforme sur les événements importants marqués.
+
+- Rapport :  permet d'exploiter les données en générant des rapports pour la gestion.
+
+-mpression d'ordonnance : obtenez une liste complète des ordonnances de médicaments à un seul endroit et imprimez-la pour votre référence.
+
+-Impression de la facture : générez une facture pour les patients et conservez le dossier  dans la plateforme.
+
+-Option d'activation/désactivation du module : sélectionnez et basculez pour activer un module particulier ou le désactiver selon vos besoins.
+
+* Module d'administration de la clinique
+
+L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients
+
+Prendre note de l'état du patient
+
+Gérer Pour suivre les rendez-vous
+
+Statut de l'ordonnance
+
+* Module médecin
+
+Le médecin peut gérer les données des patients
+
+Tableau de bord avec un calendrier pour le médecin
+
+Gérer la prescription des patients
+
+Obtenez tous les détails du patient.
+
+*Module Réceptionniste
+
+Aperçu rapide des événements importants de la journée
+
+Accéder et gérer les rapports pour la direction
+
+Mettez à jour et gérez le calendrier avec les événements et avis importants.
+
+*Module patient
+
+Permet au patient de s'inscrire
+
+L'administrateur de la clinique peut accuser réception de l'inscription du patient
+
+Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité.

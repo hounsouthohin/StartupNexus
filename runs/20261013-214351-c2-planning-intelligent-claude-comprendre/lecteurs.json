@@ -1,0 +1,52 @@
+{
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est un assistant personnel de planification intelligente : un calendrier qui organise et optimise automatiquement l'emploi du temps de chaque utilisateur (professionnels, étudiants) selon les priorités, le trafic ou la météo. Ce n'est pas un logiciel de gestion d'une petite structure avec des fiches, des rôles et des demandes qui passent par des états.",
+    "hors_stock": [
+      {
+        "besoin": "Vue planning / calendrier",
+        "categorie": "planning",
+        "citation": "Petite application de gestion de planning intuitif ... un calendrier fluide"
+      },
+      {
+        "besoin": "Organisation automatique des plannings selon les priorités",
+        "categorie": "automatisation",
+        "citation": "Elle organise automatiquement les plannings en fonction des priorités"
+      },
+      {
+        "besoin": "Prise en compte des temps de déplacement, du trafic et de la météo (liens avec des services externes)",
+        "categorie": "integration",
+        "citation": "des temps de déplacement, du trafic, ou de la météo"
+      },
+      {
+        "besoin": "Propositions automatiques d'ajustement en cas d'imprévu",
+        "categorie": "automatisation",
+        "citation": "propose des ajustements en cas d’imprévus"
+      },
+      {
+        "besoin": "Rappels automatiques",
+        "categorie": "notification",
+        "citation": "offrant des rappels automatiques"
+      },
+      {
+        "besoin": "Optimisation continue du temps (calcul d'emploi du temps optimal)",
+        "categorie": "calcul_statistiques",
+        "citation": "une optimisation continue du temps"
+      },
+      {
+        "besoin": "Gestion des tâches et rendez-vous en temps réel",
+        "categorie": "autre",
+        "citation": "gérer leurs tâches et rendez-vous en temps réel"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

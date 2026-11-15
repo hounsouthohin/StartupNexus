@@ -1,0 +1,16 @@
+{
+  "run": "20261016-142127-c2-conciergerie-menage-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-conciergerie-menage",
+  "modele": "boite",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- [bloc:lien:profil] Intervenant : un profil qui désigne une autre fiche (Equipe) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-conci...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "boite",
+    "appels": 9,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-16T14:36:18"
+}

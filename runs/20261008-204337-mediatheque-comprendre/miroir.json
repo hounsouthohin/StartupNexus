@@ -1,0 +1,447 @@
+{
+ "titre": "Médiathèque associative",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[erreur:etats-inconnus] exception bibliothecaire/Emprunt/transition : état(s) ['accepté', 'demandé', 'refusé'] absent(s) du circuit (états connus : ['accepte', 'demande', 'refuse', 'rendu'])"
+  ],
+  "blocs": [
+   "erreur etats-inconnus"
+  ],
+  "pas_encore": [
+   "un droit de le bibliothécaire sur les emprunts lié à une étape que le brief ne définit pas — retiré"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Interface claire, chaleureuse et accessible",
+   "categorie": "autre",
+   "citation": "L'interface doit être claire, chaleureuse et accessible."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire de la médiathèque",
+   "L'adhérent",
+   "Le bibliothécaire"
+  ],
+  "fiches": 3,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Voit tout : ouvrages",
+     "cases": [
+      {
+       "fiche": "Ouvrage",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "catalogue public : visible des visiteurs",
+        "exception : « Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages »"
+       ],
+       "citations": [
+        "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication",
+        "Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire de la médiathèque",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Je gère une médiathèque associative"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : ouvrages",
+     "cases": [
+      {
+       "fiche": "Ouvrage",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "adherent",
+   "libelle": "L'adhérent",
+   "devient": "invité par gestionnaire",
+   "citations": [
+    "Après connexion, un adhérent gère son profil"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : ouvrages",
+     "cases": [
+      {
+       "fiche": "Ouvrage",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes et crée : emprunts",
+     "cases": [
+      {
+       "fiche": "Emprunt",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "exception : « un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage »",
+        "exception : « Un adhérent ne voit que ses propres emprunts »"
+       ],
+       "citations": [
+        "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état",
+        "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage",
+        "Un adhérent ne voit que ses propres emprunts"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil adhérent, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilAdherent",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement",
+        "exception : « un adhérent gère son profil »"
+       ],
+       "citations": [
+        "Après connexion, un adhérent gère son profil (nom, email, téléphone)",
+        "un adhérent gère son profil"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "bibliothecaire",
+   "libelle": "Le bibliothécaire",
+   "devient": "invité par gestionnaire",
+   "citations": [
+    "Le ou la bibliothécaire, en revanche, voit tous les emprunts"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : ouvrages",
+     "cases": [
+      {
+       "fiche": "Ouvrage",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les profils adhérents affichés dans les emprunts qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "ProfilAdherent",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "Emprunt"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les emprunts qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "Emprunts : voit tout, les fait passer de « demandé » à « accepté » ou « refusé », les fait passer de « accepté » à « rendu »",
+     "cases": [
+      {
+       "fiche": "Emprunt",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "demande": [
+          "accepte",
+          "refuse"
+         ],
+         "accepte": [
+          "rendu"
+         ]
+        }
+       },
+       "pourquoi": [
+        "décideur du processus : voit tout et fait évoluer l'état",
+        "exception : « Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents »"
+       ],
+       "citations": [
+        "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre",
+        "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Emprunt",
+   "texte": "L'emprunt commence « demandé » ; de « demandé », vers « accepté » ou « refusé » ; de « accepté », vers « rendu »",
+   "qui": [
+    "Le bibliothécaire fait passer de « demandé » à « accepté » ou « refusé »",
+    "Le bibliothécaire fait passer de « accepté » à « rendu »"
+   ],
+   "citations": [
+    "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Ouvrage",
+   "libelle": "ouvrage",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "titre",
+     "libelle": "Titre",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "chaque ouvrage a un titre"
+    },
+    {
+     "nom": "auteur",
+     "libelle": "Auteur",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un auteur"
+    },
+    {
+     "nom": "resume",
+     "libelle": "Résumé",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un résumé (texte long)"
+    },
+    {
+     "nom": "genre",
+     "libelle": "Genre",
+     "type": "choix parmi : roman, essai, bande dessinée, jeunesse",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un genre (roman, essai, bande dessinée, jeunesse)"
+    },
+    {
+     "nom": "anneePublication",
+     "libelle": "Année de publication",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "une année de publication"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+   ]
+  },
+  {
+   "fiche": "ProfilAdherent",
+   "libelle": "profil adhérent",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un adhérent gère son profil (nom, email, téléphone)"
+    },
+    {
+     "nom": "email",
+     "libelle": "Email",
+     "type": "e-mail",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un adhérent gère son profil (nom, email, téléphone)"
+    },
+    {
+     "nom": "telephone",
+     "libelle": "Téléphone",
+     "type": "téléphone",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un adhérent gère son profil (nom, email, téléphone)"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "Après connexion, un adhérent gère son profil (nom, email, téléphone)"
+   ]
+  },
+  {
+   "fiche": "Emprunt",
+   "libelle": "emprunt",
+   "nature": "collection",
+   "relie_a": [
+    "ouvrage",
+    "profil adhérent"
+   ],
+   "champs": [],
+   "propositions": [],
+   "citations": [
+    "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "visiteur:visitor:Ouvrage",
+   "sorte": "visiteur",
+   "texte": "Les visiteurs sans compte pourront consulter tous les ouvrages — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "vu_via:bibliothecaire:ProfilAdherent",
+   "sorte": "vu_via",
+   "texte": "Le bibliothécaire verra les profils adhérents (ex. nom, coordonnées) affichés dans les emprunts qu'il traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les emprunts qu'il voit"
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

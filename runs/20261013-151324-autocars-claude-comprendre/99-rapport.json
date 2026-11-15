@@ -1,0 +1,15 @@
+{
+  "run": "20261013-151324-autocars-claude-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-autocars",
+  "modele": "boite",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261013-151324-autocars-claude-comprendre\\description.json",
+  "depense": {
+    "modele": "boite",
+    "appels": 7,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-13T15:17:37"
+}

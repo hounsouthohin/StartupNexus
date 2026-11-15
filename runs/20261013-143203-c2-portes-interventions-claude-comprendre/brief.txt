@@ -1,0 +1,42 @@
+Création d'une application web de gestion d'interventions techniques
+Bonjour,
+
+Notre entreprise spécialisée dans la réparation et l'entretien de portes de garage et niveleurs de quai souhaite se doter d'une application web permettant de faciliter et structurer la gestion de ses interventions.
+
+Fonctionnalités principales attendues :
+
+Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)
+
+Horodatage précis des interventions (début et fin)
+
+Checklist personnalisable selon le type d'intervention (remplaçant les fichiers Excel)
+
+Ajout automatique de matériel avec génération instantanée de devis
+
+Signature électronique du client sur tablette
+
+Gestion documentaire avec classement des fichiers et moteur de recherche
+
+Gestion intégrée des demandes de congés, commandes de matériel et vêtements professionnels
+
+Stockage sécurisé des fiches de paie par collaborateur
+
+Gestion des codes d'accès digitaux (clavier à code)
+
+Exigences techniques :
+
+Nous sommes ouverts aux propositions techniques (solution customisée ou no-code type Bubble.io) selon les meilleures pratiques de sécurité, ergonomie et évolutivité.
+
+Livrables attendus :
+
+Application web complète et opérationnelle
+
+Documentation technique détaillée
+
+Formation succincte à destination de notre équipe administrative
+
+Délai de réalisation :
+
+La première version opérationnelle est attendue idéalement sous 2 à 3 mois maximum.
+
+Merci de nous transmettre vos références pertinentes et de nous détailler la solution technique que vous préconisez.

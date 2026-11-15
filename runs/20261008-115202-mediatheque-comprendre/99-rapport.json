@@ -1,0 +1,15 @@
+{
+  "run": "20261008-115202-mediatheque-comprendre",
+  "brief": "factory-sprint0/scripts/test_full_pipeline.json#mediatheque",
+  "modele": "gpt-5.4-mini",
+  "verdict": "ÉCHEC : circuits ou droits refusés 3 fois",
+  "depense": {
+    "modele": "gpt-5.4-mini",
+    "appels": 10,
+    "jetons_entree": 13107,
+    "jetons_sortie": 3666,
+    "dollars": 0.0263,
+    "plafond": 0.2
+  },
+  "fini": "2026-10-08T11:52:32"
+}

@@ -1,0 +1,15 @@
+{
+  "run": "20261009-221125-c2-commerce-meubles-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-commerce-meubles",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261009-221125-c2-commerce-meubles-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 7,
+    "jetons_entree": 7042,
+    "jetons_sortie": 8328,
+    "dollars": 0.2851,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T22:12:44"
+}

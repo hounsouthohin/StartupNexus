@@ -1,0 +1,306 @@
+{
+  "app": {
+    "nom": "c2-crossfit-reservations",
+    "titre": "Réservations CrossFit"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "coach",
+        "label": "Coach",
+        "label_plural": "Coachs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l’un pour les 2 coach (espace Admin)"
+      },
+      {
+        "id": "adherent",
+        "label": "Adhérent",
+        "label_plural": "Adhérents",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "l’un pour les adhérents de la salle de crossfit"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Adherent",
+        "label": "Adhérent",
+        "label_plural": "Adhérents",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "adherent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Le client devra crée un compte en entrant les informations ci dessous"
+      },
+      {
+        "name": "Creneau",
+        "label": "Créneau",
+        "label_plural": "Créneaux",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "coach"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Le client doit avoir une visualisation en temps réel de l’emploie du temps"
+      },
+      {
+        "name": "Reservation",
+        "label": "Réservation",
+        "label_plural": "Réservations",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "adherent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Creneau"
+        ],
+        "citation": "Le client choisi son ou ses créneaux selon les places disponibles",
+        "process": {
+          "initial": "inscrite",
+          "transitions": {
+            "inscrite": [
+              "annulee"
+            ],
+            "annulee": []
+          },
+          "initiator": "adherent",
+          "decider": "adherent",
+          "steps_by": {},
+          "labels": {
+            "inscrite": "inscrite",
+            "annulee": "annulée"
+          },
+          "citation": "2H max avant la séance pour pouvoir l’annuler"
+        }
+      },
+      {
+        "name": "InscriptionAttente",
+        "label": "Inscription en liste d'attente",
+        "label_plural": "Inscriptions en liste d'attente",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "adherent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Creneau"
+        ],
+        "citation": "Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "coach",
+        "entity": "Reservation",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le coach veut avoir une visualisation globale sur le nombre d’adhérents à chaque créneaux (qui sera présent à quelle séance)"
+      },
+      {
+        "actor": "coach",
+        "entity": "Adherent",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le coach veut avoir une visualisation sur chaque adhérents de sa salle de crossfit"
+      },
+      {
+        "actor": "coach",
+        "entity": "Adherent",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "il faut que le coach puisse ajouter et supprimer les clients"
+      },
+      {
+        "actor": "coach",
+        "entity": "Adherent",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "il faut que le coach puisse ajouter et supprimer les clients"
+      },
+      {
+        "actor": "coach",
+        "entity": "Creneau",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle"
+      },
+      {
+        "actor": "adherent",
+        "entity": "Adherent",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le client devra crée un compte"
+      },
+      {
+        "actor": "adherent",
+        "entity": "Creneau",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le client doit avoir une visualisation en temps réel de l’emploie du temps"
+      },
+      {
+        "actor": "adherent",
+        "entity": "Reservation",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le client choisi son ou ses créneaux selon les places disponibles"
+      },
+      {
+        "actor": "adherent",
+        "entity": "Reservation",
+        "action": "transition",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {
+          "inscrite": [
+            "annulee"
+          ]
+        },
+        "citation": "2H max avant la séance pour pouvoir l’annuler"
+      }
+    ]
+  },
+  "champs": {
+    "Adherent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "nom et prénom"
+      },
+      {
+        "nom": "prenom",
+        "libelle": "Prénom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "nom et prénom"
+      },
+      {
+        "nom": "typeAbonnement",
+        "libelle": "Type d'abonnement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "seance",
+            "libelle": "séance"
+          },
+          {
+            "code": "semaine",
+            "libelle": "semaine"
+          },
+          {
+            "code": "mois",
+            "libelle": "mois"
+          }
+        ],
+        "origine": "brief",
+        "citation": "type d’abonnement (séance , semaine ou mois)"
+      },
+      {
+        "nom": "dateAnniversaireAbonnement",
+        "libelle": "Date d'anniversaire de l'abonnement",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "date d’anniversaire de l’abonnement (le jour ou le client paie son abonnement)"
+      },
+      {
+        "nom": "situationReguliere",
+        "libelle": "En situation régulière (a payé)",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la régularité (vert si le client a payé et est en situation régulière et rouge à l’inverse)"
+      }
+    ],
+    "Creneau": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "nombrePlacesMax",
+        "libelle": "Nombre de places maximum",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "15 personnes par créneaux maximum"
+      }
+    ],
+    "Reservation": [],
+    "InscriptionAttente": []
+  },
+  "ecran": {
+    "Reservation": {
+      "verbe_creation": "Réserver",
+      "boutons": {
+        "annulee": "Annuler"
+      }
+    },
+    "InscriptionAttente": {
+      "verbe_creation": "Rejoindre la liste d'attente",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

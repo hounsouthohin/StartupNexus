@@ -1,0 +1,1294 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un outil de gestion pour une petite entreprise, avec clients et équipes internes, équipements, demandes d’intervention/devis, chantiers, maintenance et gestion interne. Le site internet vitrine et les fonctions avancées restent des besoins hors stock, mais ne rendent pas le projet hors périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "Site internet vitrine de présentation de l’entreprise",
+        "categorie": "autre",
+        "citation": "Créer un site représentatif de l'activité de notre entreprise moderne, épurée, classe ou serait présenté notre activité"
+      },
+      {
+        "besoin": "Application mobile iOS/Android",
+        "categorie": "mobile_hors_ligne",
+        "citation": "accessible via une application mobile (iOS, Android)"
+      },
+      {
+        "besoin": "Suivi ou traçabilité des accès individuels",
+        "categorie": "autre",
+        "citation": "accès sécurisé(accès individuels avec possibilité de suivi)"
+      },
+      {
+        "besoin": "Interface multilingue",
+        "categorie": "autre",
+        "citation": "multilingue"
+      },
+      {
+        "besoin": "Ajout de modules / modularité du produit",
+        "categorie": "autre",
+        "citation": "possibilité d’ajout de modules"
+      },
+      {
+        "besoin": "Consultation et gestion de plannings",
+        "categorie": "planning",
+        "citation": "consulter leurs équipements, plannings et rapports – suivi du patrimoine/équipements/sols ... Planning prévisionnel de passage ... Organisation du planning du personnel"
+      },
+      {
+        "besoin": "Notifications automatiques aux clients",
+        "categorie": "notification",
+        "citation": "notifications automatiques pour informer des interventions réalisées."
+      },
+      {
+        "besoin": "Bibliothèque de rapports de maintenance",
+        "categorie": "document",
+        "citation": "accès à la bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+      },
+      {
+        "besoin": "Export Excel et PDF",
+        "categorie": "document",
+        "citation": "exportations possibles (Excel, PDF)"
+      },
+      {
+        "besoin": "Documentations et pièces jointes liées aux équipements",
+        "categorie": "fichiers_photos",
+        "citation": "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+      },
+      {
+        "besoin": "Affectation des équipes aux interventions",
+        "categorie": "planning",
+        "citation": "affectation des équipes."
+      },
+      {
+        "besoin": "Tableau de bord global",
+        "categorie": "calcul_statistiques",
+        "citation": "tableau de bord global (par mois, par équipe, par client)"
+      },
+      {
+        "besoin": "Statistiques et reporting sur temps, coûts et interventions",
+        "categorie": "calcul_statistiques",
+        "citation": "statistiques et reporting (temps passé, coûts, interventions)"
+      },
+      {
+        "besoin": "Chat intégré par chantier ou par client",
+        "categorie": "messagerie",
+        "citation": "chat intégré type WhatsApp, par chantier ou par client"
+      },
+      {
+        "besoin": "Notifications liées à la communication",
+        "categorie": "notification",
+        "citation": "notifications et échanges documentés (photos HD, fichiers, messages vocaux)"
+      },
+      {
+        "besoin": "Photos HD, fichiers et messages vocaux dans les échanges",
+        "categorie": "fichiers_photos",
+        "citation": "photos HD, fichiers, messages vocaux"
+      },
+      {
+        "besoin": "Historisation des discussions",
+        "categorie": "messagerie",
+        "citation": "historisation des discussions"
+      },
+      {
+        "besoin": "Traduction vocale",
+        "categorie": "autre",
+        "citation": "utilisation de la traduction vocale."
+      },
+      {
+        "besoin": "Réservation de matériel",
+        "categorie": "planning",
+        "citation": "réserver matériels"
+      },
+      {
+        "besoin": "Gestion des ressources matérielles",
+        "categorie": "planning",
+        "citation": "gestion des ressources matérielles"
+      },
+      {
+        "besoin": "Paramétrage et filtres personnalisables",
+        "categorie": "autre",
+        "citation": "paramétrage et filtres personnalisables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur_pose",
+        "libelle": "Administrateur POSE",
+        "libelle_pluriel": "Administrateurs POSE",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "La société POSE, spécialisée dans la pose de clôtures, portails et aires de jeux, souhaite mettre en place"
+      },
+      {
+        "id": "personnel_entreprise",
+        "libelle": "Personnel de l'entreprise",
+        "libelle_pluriel": "Personnels de l'entreprise",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur_pose",
+        "citation": "par les personnels de notre entreprise - Accès interface web et via application."
+      },
+      {
+        "id": "client_collectivite",
+        "libelle": "Collectivité cliente",
+        "libelle_pluriel": "Collectivités clientes",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "administrateur_pose",
+        "citation": "accessible aussi bien aux équipes internes qu’aux clients (collectivités)"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "PageSiteInternet",
+        "libelle": "page du site internet",
+        "libelle_pluriel": "pages du site internet",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "site internet accessible à tous"
+      },
+      {
+        "nom": "ProfilAdministrateurPose",
+        "libelle": "profil administrateur POSE",
+        "libelle_pluriel": "profils administrateur POSE",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur_pose",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "accès sécurisé(accès individuels avec possibilité de suivi);"
+      },
+      {
+        "nom": "ProfilPersonnelEntreprise",
+        "libelle": "profil personnel de l'entreprise",
+        "libelle_pluriel": "profils personnel de l'entreprise",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "personnel_entreprise",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "personnels de notre entreprise"
+      },
+      {
+        "nom": "ProfilCollectiviteCliente",
+        "libelle": "profil collectivité cliente",
+        "libelle_pluriel": "profils collectivité cliente",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "client_collectivite",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "nos clients (collectivités, communes)"
+      },
+      {
+        "nom": "SiteClient",
+        "libelle": "site client",
+        "libelle_pluriel": "sites clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ProfilCollectiviteCliente"
+        ],
+        "citation": "Gestion des sites:"
+      },
+      {
+        "nom": "Equipement",
+        "libelle": "équipement",
+        "libelle_pluriel": "équipements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "SiteClient",
+          "ProfilCollectiviteCliente"
+        ],
+        "citation": "listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+      },
+      {
+        "nom": "DocumentEquipement",
+        "libelle": "document d'équipement",
+        "libelle_pluriel": "documents d'équipement",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Equipement",
+        "references": [],
+        "citation": "certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien"
+      },
+      {
+        "nom": "CategorieDemandeIntervention",
+        "libelle": "catégorie de demande d'intervention",
+        "libelle_pluriel": "catégories de demande d'intervention",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "classé par catégorie."
+      },
+      {
+        "nom": "DemandeIntervention",
+        "libelle": "demande d'intervention",
+        "libelle_pluriel": "demandes d'intervention",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "client_collectivite",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ProfilCollectiviteCliente",
+          "SiteClient",
+          "Equipement",
+          "CategorieDemandeIntervention"
+        ],
+        "citation": "Demande d’intervention:\n\n-classé par catégorie."
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "intervention",
+        "libelle_pluriel": "interventions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DemandeIntervention",
+          "SiteClient",
+          "Equipement",
+          "Equipe"
+        ],
+        "citation": "gestion des interventions d’urgence ;"
+      },
+      {
+        "nom": "DemandeDevis",
+        "libelle": "demande de devis",
+        "libelle_pluriel": "demandes de devis",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "client_collectivite",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ProfilCollectiviteCliente",
+          "SiteClient",
+          "Equipement"
+        ],
+        "citation": "suivi des demandes (rouge, orange, vert)."
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DemandeDevis",
+          "ProfilCollectiviteCliente"
+        ],
+        "citation": "réponses aux demandes de devis."
+      },
+      {
+        "nom": "RapportMaintenance",
+        "libelle": "rapport de maintenance",
+        "libelle_pluriel": "rapports de maintenance",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Intervention",
+          "SiteClient",
+          "Equipement",
+          "ProfilCollectiviteCliente"
+        ],
+        "citation": "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+      },
+      {
+        "nom": "PassagePlanifie",
+        "libelle": "passage planifié",
+        "libelle_pluriel": "passages planifiés",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "SiteClient",
+          "Equipement",
+          "Intervention",
+          "Equipe"
+        ],
+        "citation": "Planning prévisionnel de passage"
+      },
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ProfilCollectiviteCliente",
+          "SiteClient"
+        ],
+        "citation": "suivi et la conduite des chantiers"
+      },
+      {
+        "nom": "Equipe",
+        "libelle": "équipe",
+        "libelle_pluriel": "équipes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ProfilPersonnelEntreprise"
+        ],
+        "citation": "affectation des équipes."
+      },
+      {
+        "nom": "CreneauPlanningPersonnel",
+        "libelle": "créneau de planning du personnel",
+        "libelle_pluriel": "créneaux de planning du personnel",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier",
+          "Equipe"
+        ],
+        "citation": "vue par chantier/par équipe"
+      },
+      {
+        "nom": "Conversation",
+        "libelle": "conversation",
+        "libelle_pluriel": "conversations",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier",
+          "ProfilCollectiviteCliente"
+        ],
+        "citation": "chat intégré type WhatsApp, par chantier ou par client"
+      },
+      {
+        "nom": "MessageConversation",
+        "libelle": "message de conversation",
+        "libelle_pluriel": "messages de conversation",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Conversation",
+        "references": [
+          "ProfilPersonnelEntreprise",
+          "ProfilCollectiviteCliente"
+        ],
+        "citation": "photos HD, fichiers, messages vocaux"
+      },
+      {
+        "nom": "Materiel",
+        "libelle": "matériel",
+        "libelle_pluriel": "matériels",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des commandes/matériels:"
+      },
+      {
+        "nom": "BonCommandeInterne",
+        "libelle": "bon de commande interne",
+        "libelle_pluriel": "bons de commande internes",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur_pose",
+          "personnel_entreprise"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Materiel",
+          "ProfilPersonnelEntreprise"
+        ],
+        "citation": "bon de commande internes (possibilité pour nos techniciens d’envoyer des commandes"
+      },
+      {
+        "nom": "ReservationMateriel",
+        "libelle": "réservation de matériel",
+        "libelle_pluriel": "réservations de matériel",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "personnel_entreprise",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Materiel",
+          "Chantier"
+        ],
+        "citation": "réserver matériels."
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "DemandeDevis",
+        "etat_initial": "rouge",
+        "transitions": {
+          "rouge": [
+            "orange"
+          ],
+          "orange": [
+            "vert"
+          ],
+          "vert": []
+        },
+        "libelles": {
+          "rouge": "rouge",
+          "orange": "orange",
+          "vert": "vert"
+        },
+        "initiateur": "client_collectivite",
+        "decideur": "personnel_entreprise",
+        "etapes_par": {
+          "rouge": "client_collectivite"
+        },
+        "citation": "Demande de devis:\n\n- suivi des demandes (rouge, orange, vert). ... Demande de devis:\n\n- réponses aux demandes de devis."
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "visitor",
+        "fiche": "PageSiteInternet",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "site internet accessible à tous"
+      },
+      {
+        "acteur": "client_collectivite",
+        "fiche": "Equipement",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE CLIENT: ... consulter leurs équipements, plannings et rapports"
+      },
+      {
+        "acteur": "client_collectivite",
+        "fiche": "PassagePlanifie",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE CLIENT: ... consulter leurs équipements, plannings et rapports"
+      },
+      {
+        "acteur": "client_collectivite",
+        "fiche": "RapportMaintenance",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE CLIENT: ... consulter leurs équipements, plannings et rapports"
+      },
+      {
+        "acteur": "client_collectivite",
+        "fiche": "RapportMaintenance",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE CLIENT: ... accès à la bibliothèque de rapports de maintenance"
+      },
+      {
+        "acteur": "client_collectivite",
+        "fiche": "DemandeDevis",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE CLIENT: ... suivi des demandes (rouge, orange, vert)"
+      },
+      {
+        "acteur": "client_collectivite",
+        "fiche": "DocumentEquipement",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE CLIENT: ... listing des équipements avec documentations"
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "Equipement",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements"
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "DocumentEquipement",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements avec documentations"
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "Intervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "INTERFACE ENTREPRISE\n\nGestion des sites:\n\n- listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien) ;\n\nDemande d’intervention:\n\n- gestion des interventions d’urgence ;\n\n- affectation des équipes."
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "Devis",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Demande de devis:\n\n- réponses aux demandes de devis."
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "BonCommandeInterne",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "ReservationMateriel",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt et de réserver matériels"
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "CreneauPlanningPersonnel",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Organisation du planning du personnel:\n\n- vue par chantier/par équipe"
+      },
+      {
+        "acteur": "personnel_entreprise",
+        "fiche": "Materiel",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "gestion des ressources matérielles"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "PageSiteInternet",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "ProfilAdministrateurPose",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "ProfilPersonnelEntreprise",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "ProfilCollectiviteCliente",
+        "champs": [
+          {
+            "nom": "nomCollectivite",
+            "libelle": "Nom de la collectivité",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "SiteClient",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Equipement",
+        "champs": [
+          {
+            "nom": "typeEquipement",
+            "libelle": "Type d’équipement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "jeux",
+              "agrès",
+              "panneaux",
+              "sols",
+              "clôtures"
+            ],
+            "origine": "brief",
+            "citation": "état du patrimoine (jeux, agrès, panneaux, sols, clôtures)"
+          },
+          {
+            "nom": "etat",
+            "libelle": "État",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "état du patrimoine"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "DocumentEquipement",
+        "champs": [
+          {
+            "nom": "typeDocument",
+            "libelle": "Type de document",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "certificat de conformité",
+              "notice de montage",
+              "fiche technique",
+              "fiche produit",
+              "notice d’entretien"
+            ],
+            "origine": "brief",
+            "citation": "certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fichier du document",
+            "type": "url",
+            "raison": "Le brief mentionne des documentations, mais ne précise pas le champ permettant de stocker le fichier ou son lien."
+          }
+        ]
+      },
+      {
+        "fiche": "CategorieDemandeIntervention",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "DemandeIntervention",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "urgence",
+            "libelle": "Urgence",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "interventions d’urgence"
+          },
+          {
+            "nom": "tempsPasse",
+            "libelle": "Temps passé",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "temps passé, couts, interventions"
+          },
+          {
+            "nom": "cout",
+            "libelle": "Coût",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "temps passé, couts, interventions"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "DemandeDevis",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "reponse",
+            "libelle": "Réponse",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "réponses aux demandes de devis"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "RapportMaintenance",
+        "champs": [
+          {
+            "nom": "typeMaintenance",
+            "libelle": "Type de maintenance",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "préventive",
+              "corrective",
+              "urgence"
+            ],
+            "origine": "brief",
+            "citation": "rapports de maintenance (préventive, corrective, urgence)"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "PassagePlanifie",
+        "champs": [
+          {
+            "nom": "dateHeurePassage",
+            "libelle": "Date et heure de passage",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Planning prévisionnel de passage"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Chantier",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Equipe",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "CreneauPlanningPersonnel",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Conversation",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "MessageConversation",
+        "champs": [
+          {
+            "nom": "photoHDUrl",
+            "libelle": "Photo HD",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "photos HD"
+          },
+          {
+            "nom": "fichierUrl",
+            "libelle": "Fichier",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "fichiers"
+          },
+          {
+            "nom": "messageVocalUrl",
+            "libelle": "Message vocal",
+            "type": "url",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "messages vocaux"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Materiel",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "BonCommandeInterne",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "ReservationMateriel",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion POSE",
+    "fiches": [
+      {
+        "fiche": "SiteClient",
+        "verbe_creation": "Ajouter un site",
+        "boutons": {}
+      },
+      {
+        "fiche": "Equipement",
+        "verbe_creation": "Ajouter un équipement",
+        "boutons": {}
+      },
+      {
+        "fiche": "DocumentEquipement",
+        "verbe_creation": "Ajouter un document",
+        "boutons": {}
+      },
+      {
+        "fiche": "DemandeIntervention",
+        "verbe_creation": "Demander une intervention",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier une intervention",
+        "boutons": {}
+      },
+      {
+        "fiche": "DemandeDevis",
+        "verbe_creation": "Demander un devis",
+        "boutons": {
+          "orange": "Passer en orange",
+          "vert": "Passer en vert"
+        }
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Établir un devis",
+        "boutons": {}
+      },
+      {
+        "fiche": "RapportMaintenance",
+        "verbe_creation": "Rédiger un rapport",
+        "boutons": {}
+      },
+      {
+        "fiche": "PassagePlanifie",
+        "verbe_creation": "Planifier un passage",
+        "boutons": {}
+      },
+      {
+        "fiche": "Chantier",
+        "verbe_creation": "Créer un chantier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Equipe",
+        "verbe_creation": "Créer une équipe",
+        "boutons": {}
+      },
+      {
+        "fiche": "CreneauPlanningPersonnel",
+        "verbe_creation": "Planifier un créneau",
+        "boutons": {}
+      },
+      {
+        "fiche": "Conversation",
+        "verbe_creation": "Ouvrir une conversation",
+        "boutons": {}
+      },
+      {
+        "fiche": "MessageConversation",
+        "verbe_creation": "Envoyer un message",
+        "boutons": {}
+      },
+      {
+        "fiche": "BonCommandeInterne",
+        "verbe_creation": "Commander du matériel",
+        "boutons": {}
+      },
+      {
+        "fiche": "ReservationMateriel",
+        "verbe_creation": "Réserver du matériel",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1438,
+      "jetons_sortie": 4118
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1324,
+      "jetons_sortie": 1249
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1780,
+      "jetons_sortie": 7211
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1924,
+      "jetons_sortie": 1167
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 2070,
+      "jetons_sortie": 4530
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 2764,
+      "jetons_sortie": 5076
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 2291,
+      "jetons_sortie": 1331
+    }
+  ]
+}

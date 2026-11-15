@@ -1,0 +1,16 @@
+{
+  "run": "20261009-212826-c2-restauration-collective-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-restauration-collective",
+  "modele": "gpt-5.5",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- ProfilAdministrateur : un profil qui désigne une autre fiche (RoleUtilisateur) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit)\n- ProfilUtilisateur : un profil qui désigne une autre fiche (RoleUtilisateur) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-resta...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 7,
+    "jetons_entree": 6874,
+    "jetons_sortie": 6872,
+    "dollars": 0.2405,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:29:37"
+}

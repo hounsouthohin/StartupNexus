@@ -1,0 +1,399 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion d'un cabinet pluridisciplinaire, utilise par plusieurs personnes avec des acces differents selon leur role. C'est une petite structure, donc c'est dans notre perimetre. L'agenda, la facturation, les devis et le partage dossier par dossier sont hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Agenda et gestion des rendez-vous",
+        "categorie": "planning",
+        "citation": "gestion de rdv ... avec agenda"
+      },
+      {
+        "besoin": "Facturation (création de factures)",
+        "categorie": "document",
+        "citation": "facturation"
+      },
+      {
+        "besoin": "Établissement de devis",
+        "categorie": "document",
+        "citation": "devis"
+      },
+      {
+        "besoin": "Partage de chaque dossier par l'administrateur avec les seuls professionnels concernés",
+        "categorie": "partage_fin",
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "id": "professionnel",
+        "libelle": "Professionnel",
+        "libelle_pluriel": "Professionnels",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "partager les dossiers avec les professionnels concernés ... que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Professionnel",
+        "libelle": "Professionnel",
+        "libelle_pluriel": "Professionnels",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "professionnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "les professionnels concernés"
+      },
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier",
+        "libelle_pluriel": "Dossiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      },
+      {
+        "nom": "RendezVous",
+        "libelle": "Rendez-vous",
+        "libelle_pluriel": "Rendez-vous",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion de rdv ... avec agenda"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "avec agenda, facturation et devis"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "Devis",
+        "libelle_pluriel": "Devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "avec agenda, facturation et devis"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Professionnel",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment identifier un professionnel au-delà de son nom."
+          },
+          {
+            "libelle": "Spécialité",
+            "type": "texte",
+            "raison": "Le cabinet est dit pluridisciplinaire, mais le brief ne dit pas si la discipline de chaque professionnel est enregistrée."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter le professionnel ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour contacter le professionnel ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Dossier",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne dit pas si le dossier concerne une personne ni comment l'identifier."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Souvent utile pour distinguer deux dossiers ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnées de la personne suivie ; non citées dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnées de la personne suivie ; non citées dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour la facturation ; non citée dans le brief."
+          },
+          {
+            "libelle": "Notes",
+            "type": "texte_long",
+            "raison": "Contenu du dossier à préciser avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "RendezVous",
+        "champs": [
+          {
+            "nom": "objet",
+            "libelle": "Objet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure",
+            "type": "date_heure",
+            "raison": "Indispensable pour un agenda, mais le brief ne le précise pas."
+          },
+          {
+            "libelle": "Durée",
+            "type": "nombre",
+            "raison": "Utile pour l'agenda ; non citée dans le brief."
+          },
+          {
+            "libelle": "Lieu ou salle",
+            "type": "texte",
+            "raison": "Possible dans un cabinet pluridisciplinaire ; non cité dans le brief."
+          },
+          {
+            "libelle": "Notes",
+            "type": "texte_long",
+            "raison": "Commentaire libre sur le rendez-vous ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de facture",
+            "type": "date",
+            "raison": "Mention habituelle d'une facture ; non citée dans le brief."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief parle de facturation sans préciser les montants enregistrés."
+          },
+          {
+            "libelle": "Description des prestations",
+            "type": "texte_long",
+            "raison": "Détail de ce qui est facturé ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de paiement",
+            "type": "date",
+            "raison": "Pour suivre les règlements ; non citée dans le brief."
+          },
+          {
+            "libelle": "Mode de paiement",
+            "type": "texte",
+            "raison": "Pour suivre les règlements ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date du devis",
+            "type": "date",
+            "raison": "Mention habituelle d'un devis ; non citée dans le brief."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief parle de devis sans préciser les montants enregistrés."
+          },
+          {
+            "libelle": "Description des prestations",
+            "type": "texte_long",
+            "raison": "Détail de ce qui est proposé ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Durée de validité du devis ; non citée dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du cabinet",
+    "fiches": []
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,0 +1,434 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est une application de gestion simple pour une petite structure : des fiches ventes, clients et stock que l'on affiche, ajoute, modifie et supprime. C'est notre périmètre. Seul le tableau de bord (totaux, classement des clients, comptage des commandes) est hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Tableau de bord affichant le total des ventes",
+        "categorie": "calcul_statistiques",
+        "citation": "1 page dashboard reprenant le total des ventes"
+      },
+      {
+        "besoin": "Classement des plus gros clients sur le tableau de bord",
+        "categorie": "calcul_statistiques",
+        "citation": "les plus gros clients"
+      },
+      {
+        "besoin": "Comptage du nombre de commandes (et autres indicateurs non précisés) sur le tableau de bord",
+        "categorie": "calcul_statistiques",
+        "citation": "le nombre de commandes etc"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "nous recherchons quelqu’un capable de développer une application"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "1 page de gestion des clients"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "nom": "Vente",
+        "libelle": "vente",
+        "libelle_pluriel": "ventes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "le total des ventes, les plus gros clients ... 1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "nom": "Commande",
+        "libelle": "commande",
+        "libelle_pluriel": "commandes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion de commandes/stock/ventes/clients ... le nombre de commandes"
+      },
+      {
+        "nom": "Article",
+        "libelle": "article en stock",
+        "libelle_pluriel": "articles en stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Les clients sont des fiches tenues par le gérant (page de gestion des clients : recherche, ajout, suppression, modification) ; ils ne se connectent pas."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "gerant",
+        "fiche": "Vente",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Vente",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Vente",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Vente",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Article",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Article",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Article",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Article",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Le brief ne précise aucune information sur le client ; utile pour le contacter."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée utile pour la gestion des clients, non citée dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Souvent nécessaire pour les ventes et commandes, non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Vente",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le tableau de bord affiche « le total des ventes » et « les plus gros clients » : il faut sans doute un montant par vente, à confirmer avec le client."
+          },
+          {
+            "libelle": "Quantité vendue",
+            "type": "nombre",
+            "raison": "Une vente d'articles en stock pourrait préciser la quantité vendue ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Commande",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief ne dit rien du contenu d'une commande ; un montant est souvent utile."
+          },
+          {
+            "libelle": "Quantité commandée",
+            "type": "nombre",
+            "raison": "Une commande porte souvent sur une quantité d'articles ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de livraison prévue",
+            "type": "date",
+            "raison": "Information fréquente pour suivre une commande, non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Article",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "Le brief prévoit une « page de gestion de stock » sans préciser les informations suivies ; la quantité disponible est probablement attendue."
+          },
+          {
+            "libelle": "Prix unitaire",
+            "type": "montant",
+            "raison": "Utile pour calculer le montant des ventes, non cité dans le brief."
+          },
+          {
+            "libelle": "Référence article",
+            "type": "texte",
+            "raison": "Facilite la recherche dans le stock, non citée dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion commerciale",
+    "fiches": [
+      {
+        "fiche": "Vente",
+        "verbe_creation": "Vendre",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

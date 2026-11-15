@@ -1,0 +1,6 @@
+Logiciel de logistique de garage automobile
+j'ai un garage automobile, et je voudrais faire un site ou appli intranet, qui met en relation tout les acteur de ma société, de la réception du véhicule, un check complet de l'état de la mécanique de la voiture, photo des pièces qui sont dégradé, le rapport sera imprimable afin de pouvoir présenter au client le rapport des traveaux, génération d'un document de réparation à effectuer en fonction du checkup, confirmation de la fin de la réparation, voila un peut l'idée, ce n'est pas la finalité mais c'est un peut ce que j'imagine. 
+
+cordialement.
+
+Merci.

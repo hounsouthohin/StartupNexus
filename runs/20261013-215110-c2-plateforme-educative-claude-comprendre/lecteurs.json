@@ -1,0 +1,954 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion d'établissements d'enseignement : fiches étudiants, filières, matières, enseignants et notes, avec des rôles (étudiants, secrétariat, enseignants, direction, admin) qui consultent, saisissent et valident, et des dossiers d'inscription qui passent par des états (suivi puis validation). Les besoins hors stock (documents PDF, OCR/IA, signature électronique, tableaux de bord, notifications, multi-établissements...) s'ajoutent à ce coeur de gestion.",
+    "hors_stock": [
+      {
+        "besoin": "Une même solution proposée à plusieurs établissements, dont les données doivent être séparées",
+        "categorie": "cloisonnement",
+        "citation": "Il s’agit d’une solution que je souhaiterais proposer à plusieurs établissements."
+      },
+      {
+        "besoin": "Automatisation des processus d'inscription, de gestion des notes et de délivrance des attestations et diplômes",
+        "categorie": "automatisation",
+        "citation": "Automatiser les processus d’inscription, de gestion des notes, et de délivrance des attestations et diplômes."
+      },
+      {
+        "besoin": "Traçabilité des données académiques (historique des actions, journal)",
+        "categorie": "autre",
+        "citation": "Garantir la traçabilité, la transparence et la sécurité des données académiques."
+      },
+      {
+        "besoin": "Dépôt de pièces jointes au dossier d'inscription (carte d'identité...)",
+        "categorie": "fichiers_photos",
+        "citation": "Upload de documents (carte d’identité…)"
+      },
+      {
+        "besoin": "Analyse des pièces jointes par OCR et IA pour pré-remplir automatiquement les champs du formulaire",
+        "categorie": "automatisation",
+        "citation": "avec analyse des pièces jointes par OCR ... OCR + IA pour pré-remplir automatiquement les champs."
+      },
+      {
+        "besoin": "Formulaire d'inscription dynamique",
+        "categorie": "autre",
+        "citation": "Formulaire dynamique de saisie."
+      },
+      {
+        "besoin": "Calcul automatique des notes (moyennes, résultats)",
+        "categorie": "calcul_statistiques",
+        "citation": "Enregistrement et calcul automatisé des notes."
+      },
+      {
+        "besoin": "Génération de bulletins semestriels et annuels",
+        "categorie": "document",
+        "citation": "Génération de bulletins semestriels/annuels."
+      },
+      {
+        "besoin": "Génération en PDF des attestations et diplômes, téléchargeables par les étudiants",
+        "categorie": "document",
+        "citation": "Génération d’attestations et diplômes avec QR code. ... Génération PDF avec"
+      },
+      {
+        "besoin": "QR code intégré aux documents pour en vérifier l'authenticité",
+        "categorie": "document",
+        "citation": "Intégration d’un QR code pour authentification"
+      },
+      {
+        "besoin": "Signature électronique et système de validation sécurisé",
+        "categorie": "integration",
+        "citation": "Intégration d’une signature électronique et d’un système de validation sécurisé."
+      },
+      {
+        "besoin": "Tableaux de bord pour chaque rôle et tableau de bord synthétique (étudiants inscrits, résultats, documents délivrés)",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableau de bord pour les différents rôles (admin, direction, enseignants, étudiants). ... Tableau de bord synthétique (étudiants inscrits, résultats, documents délivrés)."
+      },
+      {
+        "besoin": "Export des données par la direction",
+        "categorie": "autre",
+        "citation": "supervision des opérations et export des données."
+      },
+      {
+        "besoin": "Notifications aux étudiants (validation du dossier) et rappels d'échéances",
+        "categorie": "notification",
+        "citation": "Notifications (validation, échéances)."
+      },
+      {
+        "besoin": "Archivage sécurisé des données",
+        "categorie": "autre",
+        "citation": "Archivage sécurisé."
+      },
+      {
+        "besoin": "Recherche multicritères (étudiants, filières, années)",
+        "categorie": "autre",
+        "citation": "Recherche multicritères (étudiants, filières, années)."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je souhaiterais mettre en place une plate-forme de gestion éducative ... (admin, direction, enseignants, étudiants)"
+      },
+      {
+        "id": "direction",
+        "libelle": "Membre de la direction",
+        "libelle_pluriel": "Membres de la direction",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Direction : supervision des opérations et export des données."
+      },
+      {
+        "id": "secretaire",
+        "libelle": "Secrétaire académique",
+        "libelle_pluriel": "Secrétaires académiques",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Secrétariat académique : validation des dossiers, génération de documents."
+      },
+      {
+        "id": "enseignant",
+        "libelle": "Enseignant",
+        "libelle_pluriel": "Enseignants",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Enseignants : saisie des notes et consultation des résultats."
+      },
+      {
+        "id": "etudiant",
+        "libelle": "Étudiant",
+        "libelle_pluriel": "Étudiants",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "Étudiants : inscription, consultation de notes, téléchargement d’attestations."
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Etudiant",
+        "libelle": "Étudiant",
+        "libelle_pluriel": "Étudiants",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "etudiant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Portail étudiant et interface d’administration."
+      },
+      {
+        "nom": "Enseignant",
+        "libelle": "Enseignant",
+        "libelle_pluriel": "Enseignants",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "enseignant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout/modification des filières, matières, enseignants."
+      },
+      {
+        "nom": "Filiere",
+        "libelle": "Filière",
+        "libelle_pluriel": "Filières",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout/modification des filières, matières, enseignants."
+      },
+      {
+        "nom": "Matiere",
+        "libelle": "Matière",
+        "libelle_pluriel": "Matières",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Filiere"
+        ],
+        "citation": "Ajout/modification des filières, matières, enseignants."
+      },
+      {
+        "nom": "Inscription",
+        "libelle": "Inscription",
+        "libelle_pluriel": "Inscriptions",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "etudiant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Filiere"
+        ],
+        "citation": "Gestion des inscriptions en ligne ... Suivi de l’état du dossier."
+      },
+      {
+        "nom": "PieceJointe",
+        "libelle": "Pièce jointe",
+        "libelle_pluriel": "Pièces jointes",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Inscription",
+        "references": [],
+        "citation": "Upload de documents (carte d’identité…)"
+      },
+      {
+        "nom": "Evaluation",
+        "libelle": "Évaluation",
+        "libelle_pluriel": "Évaluations",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "enseignant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Matiere"
+        ],
+        "citation": "Gestion des cours, évaluations, notes et bulletins."
+      },
+      {
+        "nom": "Note",
+        "libelle": "Note",
+        "libelle_pluriel": "Notes",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "etudiant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "enseignant",
+        "parent": null,
+        "references": [
+          "Evaluation"
+        ],
+        "citation": "Enseignants : saisie des notes et consultation des résultats."
+      },
+      {
+        "nom": "Bulletin",
+        "libelle": "Bulletin",
+        "libelle_pluriel": "Bulletins",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "etudiant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "secretaire",
+        "parent": null,
+        "references": [],
+        "citation": "Génération de bulletins semestriels/annuels."
+      },
+      {
+        "nom": "Attestation",
+        "libelle": "Attestation",
+        "libelle_pluriel": "Attestations",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "etudiant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "secretaire",
+        "parent": null,
+        "references": [],
+        "citation": "Génération d’attestations et diplômes avec QR code."
+      },
+      {
+        "nom": "Diplome",
+        "libelle": "Diplôme",
+        "libelle_pluriel": "Diplômes",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "etudiant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "secretaire",
+        "parent": null,
+        "references": [],
+        "citation": "Génération d’attestations et diplômes avec QR code."
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Inscription",
+        "etat_initial": "soumise",
+        "transitions": {
+          "soumise": [
+            "validee"
+          ],
+          "validee": []
+        },
+        "libelles": {
+          "soumise": "soumise",
+          "validee": "validée"
+        },
+        "initiateur": "etudiant",
+        "decideur": "secretaire",
+        "etapes_par": {},
+        "citation": "Étudiants : inscription ... Secrétariat académique : validation des dossiers ... Suivi de l’état du dossier."
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "etudiant",
+        "fiche": "Inscription",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Étudiants : inscription"
+      },
+      {
+        "acteur": "etudiant",
+        "fiche": "Note",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Étudiants : inscription, consultation de notes ... Historique des résultats"
+      },
+      {
+        "acteur": "etudiant",
+        "fiche": "Attestation",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "consultation de notes, téléchargement d’attestations ... Accès aux documents (bulletins, attestations)"
+      },
+      {
+        "acteur": "etudiant",
+        "fiche": "Bulletin",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Portail étudiant ... Accès aux documents (bulletins, attestations)"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Inscription",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "soumise": [
+            "validee"
+          ]
+        },
+        "citation": "Secrétariat académique : validation des dossiers"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Attestation",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Secrétariat académique : validation des dossiers, génération de documents ... Accès aux documents (bulletins, attestations)"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Bulletin",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Secrétariat académique : validation des dossiers, génération de documents ... Accès aux documents (bulletins, attestations)"
+      },
+      {
+        "acteur": "enseignant",
+        "fiche": "Note",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Enseignants : saisie des notes"
+      },
+      {
+        "acteur": "enseignant",
+        "fiche": "Note",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Enseignants : saisie des notes et consultation des résultats"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Etudiant",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas l'identité de l'étudiant ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Numéro étudiant",
+            "type": "texte",
+            "raison": "Utile pour la recherche multicritères et les documents délivrés ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Souvent requise sur les attestations et diplômes ; non citée dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour les notifications (validation, échéances) ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée de contact usuelle ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Enseignant",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas les informations d'un enseignant ; à confirmer."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnée de contact usuelle ; non citée dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée de contact usuelle ; non citée dans le brief."
+          },
+          {
+            "libelle": "Grade ou statut",
+            "type": "texte",
+            "raison": "Information fréquente en gestion académique ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Filiere",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Code",
+            "type": "texte",
+            "raison": "Identifiant court utile pour la recherche ; non cité dans le brief."
+          },
+          {
+            "libelle": "Niveau",
+            "type": "texte",
+            "raison": "La plate-forme vise écoles, lycées et universités ; le niveau n'est pas précisé."
+          },
+          {
+            "libelle": "Durée (années)",
+            "type": "nombre",
+            "raison": "Utile pour les bulletins annuels et les diplômes ; non citée dans le brief."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Présentation de la filière ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Matiere",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Code",
+            "type": "texte",
+            "raison": "Identifiant court de la matière ; non cité dans le brief."
+          },
+          {
+            "libelle": "Coefficient",
+            "type": "nombre",
+            "raison": "Nécessaire au calcul automatisé des notes, mais non précisé dans le brief."
+          },
+          {
+            "libelle": "Crédits ECTS",
+            "type": "nombre",
+            "raison": "Usuel dans le supérieur (style Scodoc) ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Semestre",
+            "type": "texte",
+            "raison": "Utile pour les bulletins semestriels ; non cité pour la matière."
+          },
+          {
+            "libelle": "Volume horaire",
+            "type": "nombre",
+            "raison": "Information fréquente pour une matière ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Inscription",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Année universitaire",
+            "type": "texte",
+            "raison": "La recherche multicritères porte sur les années, sans dire à quelle fiche l'année se rattache."
+          },
+          {
+            "libelle": "Niveau d'études",
+            "type": "texte",
+            "raison": "Le contenu du formulaire dynamique de saisie n'est pas détaillé dans le brief."
+          },
+          {
+            "libelle": "Établissement d'origine",
+            "type": "texte",
+            "raison": "Information courante d'un dossier d'inscription ; non citée."
+          },
+          {
+            "libelle": "Commentaire de validation",
+            "type": "texte_long",
+            "raison": "Utile au secrétariat lors de la validation des dossiers ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "PieceJointe",
+        "champs": [
+          {
+            "nom": "typeDocument",
+            "libelle": "Type de document",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Upload de documents (carte d’identité…)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fichier (lien)",
+            "type": "url",
+            "raison": "Le document téléversé lui-même ; le mode de stockage n'est pas précisé."
+          },
+          {
+            "libelle": "Texte extrait par OCR",
+            "type": "texte_long",
+            "raison": "Le brief prévoit une analyse OCR des pièces jointes sans dire si le résultat est conservé."
+          }
+        ]
+      },
+      {
+        "fiche": "Evaluation",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date",
+            "type": "date",
+            "raison": "Date de l'évaluation ; non citée dans le brief."
+          },
+          {
+            "libelle": "Type d'évaluation",
+            "type": "texte",
+            "raison": "Examen, contrôle continu... : les types ne sont pas énumérés dans le brief."
+          },
+          {
+            "libelle": "Coefficient",
+            "type": "nombre",
+            "raison": "Nécessaire au calcul automatisé des notes, mais non précisé."
+          },
+          {
+            "libelle": "Note maximale",
+            "type": "nombre",
+            "raison": "Barème de l'évaluation ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Note",
+        "champs": [
+          {
+            "nom": "valeur",
+            "libelle": "Valeur",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "saisie des notes"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Appréciation",
+            "type": "texte_long",
+            "raison": "Commentaire de l'enseignant ; non cité dans le brief."
+          },
+          {
+            "libelle": "Absence justifiée",
+            "type": "oui_non",
+            "raison": "Cas fréquent dans la saisie des notes ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Bulletin",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "periodicite",
+            "libelle": "Périodicité",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "semestriel",
+              "annuel"
+            ],
+            "origine": "brief",
+            "citation": "bulletins semestriels/annuels"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Année universitaire",
+            "type": "texte",
+            "raison": "Période couverte par le bulletin ; non précisée dans le brief."
+          },
+          {
+            "libelle": "Moyenne générale",
+            "type": "nombre",
+            "raison": "Résultat du calcul automatisé des notes ; non cité comme information du bulletin."
+          },
+          {
+            "libelle": "Appréciation",
+            "type": "texte_long",
+            "raison": "Usuelle sur un bulletin ; non citée dans le brief."
+          },
+          {
+            "libelle": "Date de délivrance",
+            "type": "date",
+            "raison": "Le tableau de bord suit les documents délivrés ; date non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Attestation",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "qrCode",
+            "libelle": "QR code d'authentification",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "attestations et diplômes avec QR code"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Type d'attestation",
+            "type": "texte",
+            "raison": "Scolarité, réussite... : les types ne sont pas énumérés dans le brief."
+          },
+          {
+            "libelle": "Date de délivrance",
+            "type": "date",
+            "raison": "Le tableau de bord suit les documents délivrés ; date non citée."
+          },
+          {
+            "libelle": "Signature électronique",
+            "type": "oui_non",
+            "raison": "Le brief prévoit une signature électronique sans préciser ce qui est enregistré."
+          },
+          {
+            "libelle": "Année universitaire",
+            "type": "texte",
+            "raison": "Période concernée par l'attestation ; non précisée."
+          }
+        ]
+      },
+      {
+        "fiche": "Diplome",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "qrCode",
+            "libelle": "QR code d'authentification",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "attestations et diplômes avec QR code"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date d'obtention",
+            "type": "date",
+            "raison": "Information usuelle d'un diplôme ; non citée dans le brief."
+          },
+          {
+            "libelle": "Mention",
+            "type": "texte",
+            "raison": "Les mentions possibles ne sont pas énumérées dans le brief."
+          },
+          {
+            "libelle": "Numéro de diplôme",
+            "type": "texte",
+            "raison": "Utile à l'authentification ; non cité dans le brief."
+          },
+          {
+            "libelle": "Signature électronique",
+            "type": "oui_non",
+            "raison": "Le brief prévoit une signature électronique sans préciser ce qui est enregistré."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion de scolarité",
+    "fiches": [
+      {
+        "fiche": "Matiere",
+        "verbe_creation": "Ajouter une matière",
+        "boutons": {}
+      },
+      {
+        "fiche": "Inscription",
+        "verbe_creation": "S'inscrire",
+        "boutons": {
+          "validee": "Valider"
+        }
+      },
+      {
+        "fiche": "PieceJointe",
+        "verbe_creation": "Joindre une pièce",
+        "boutons": {}
+      },
+      {
+        "fiche": "Evaluation",
+        "verbe_creation": "Programmer une évaluation",
+        "boutons": {}
+      },
+      {
+        "fiche": "Note",
+        "verbe_creation": "Saisir une note",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.4.transitions.soumise : Input should be a valid array"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

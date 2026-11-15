@@ -1,0 +1,584 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion interne pour une société de restauration collective multi-sites : fiches (stocks, achats, inventaires, recettes, dépenses, RH), rôles utilisateurs et workflow de validation, utilisé via navigateur web. Les calculs, la facturation, les tableaux de bord, le reporting et les exports sont hors stock mais ne sortent pas le projet du périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "Calcul du coût des repas",
+        "categorie": "calcul_statistiques",
+        "citation": "coût des repas"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "facturation"
+      },
+      {
+        "besoin": "Tableaux de bord consolidés",
+        "categorie": "calcul_statistiques",
+        "citation": "tableaux de bord consolidés"
+      },
+      {
+        "besoin": "Reporting détaillé par site et au niveau global",
+        "categorie": "calcul_statistiques",
+        "citation": "reporting détaillé par site et au niveau global"
+      },
+      {
+        "besoin": "Exports Excel et PDF",
+        "categorie": "document",
+        "citation": "des exports Excel/PDF sont requis"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "pour notre société de restauration collective multi-sites"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "Utilisateur",
+        "libelle_pluriel": "Utilisateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "gestion des rôles utilisateurs, workflow de validation"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Site",
+        "libelle": "site",
+        "libelle_pluriel": "sites",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "restauration collective multi-sites ... reporting détaillé par site"
+      },
+      {
+        "nom": "Article",
+        "libelle": "article",
+        "libelle_pluriel": "articles",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion des stocks"
+      },
+      {
+        "nom": "Achat",
+        "libelle": "achat",
+        "libelle_pluriel": "achats",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Article"
+        ],
+        "citation": "gestion des stocks, achats ... workflow de validation"
+      },
+      {
+        "nom": "Inventaire",
+        "libelle": "inventaire",
+        "libelle_pluriel": "inventaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Article"
+        ],
+        "citation": "achats, inventaires"
+      },
+      {
+        "nom": "Recette",
+        "libelle": "recette",
+        "libelle_pluriel": "recettes",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Article"
+        ],
+        "citation": "inventaires, recettes, coût des repas"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "coût des repas, facturation"
+      },
+      {
+        "nom": "Depense",
+        "libelle": "dépense",
+        "libelle_pluriel": "dépenses",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "facturation, dépenses"
+      },
+      {
+        "nom": "Employe",
+        "libelle": "employé",
+        "libelle_pluriel": "employés",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "dépenses, RH"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Site",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom du site",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Le brief ne précise pas comment un site est localisé ; utile pour distinguer les sites."
+          },
+          {
+            "libelle": "Responsable du site",
+            "type": "texte",
+            "raison": "Le brief mentionne un workflow de validation par site sans dire qui valide."
+          }
+        ]
+      },
+      {
+        "fiche": "Article",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de l'article",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Unité de mesure",
+            "type": "texte",
+            "raison": "Nécessaire pour la gestion des stocks et des inventaires, mais non précisée dans le brief."
+          },
+          {
+            "libelle": "Prix unitaire",
+            "type": "montant",
+            "raison": "Utile pour calculer le coût des repas ; le brief ne le rattache pas à l'article."
+          },
+          {
+            "libelle": "Seuil de stock minimum",
+            "type": "nombre",
+            "raison": "Courant en gestion des stocks ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Catégorie",
+            "type": "texte",
+            "raison": "Pour classer les articles ; le brief n'en dit rien."
+          }
+        ]
+      },
+      {
+        "fiche": "Achat",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date d'achat",
+            "type": "date",
+            "raison": "Utile pour le suivi des achats ; non citée dans le brief."
+          },
+          {
+            "libelle": "Fournisseur",
+            "type": "texte",
+            "raison": "Le brief ne dit pas auprès de qui les achats sont faits."
+          },
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Nécessaire pour alimenter les stocks ; non précisée."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Utile pour le reporting et le coût des repas ; non cité pour l'achat."
+          }
+        ]
+      },
+      {
+        "fiche": "Inventaire",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'inventaire",
+            "type": "date",
+            "raison": "Un inventaire se fait à une date donnée ; non précisée dans le brief."
+          },
+          {
+            "libelle": "Quantité comptée",
+            "type": "nombre",
+            "raison": "Le brief cite les inventaires sans détailler ce qu'ils enregistrent."
+          },
+          {
+            "libelle": "Écart constaté",
+            "type": "nombre",
+            "raison": "Courant pour comparer stock théorique et stock réel ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Recette",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de la recette",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nombre de portions",
+            "type": "nombre",
+            "raison": "Utile pour calculer le coût des repas ; non précisé."
+          },
+          {
+            "libelle": "Coût par portion",
+            "type": "montant",
+            "raison": "Le brief parle du « coût des repas » sans le rattacher explicitement à la recette."
+          },
+          {
+            "libelle": "Instructions de préparation",
+            "type": "texte_long",
+            "raison": "Courant pour une recette ; le brief n'en dit rien."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Client facturé",
+            "type": "texte",
+            "raison": "Le brief ne dit pas à qui la facturation s'adresse."
+          },
+          {
+            "libelle": "Date de facture",
+            "type": "date",
+            "raison": "Indispensable sur une facture ; non citée dans le brief."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Utile pour le reporting ; non précisé."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Courant pour suivre les paiements ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Depense",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Indispensable pour une dépense ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de la dépense",
+            "type": "date",
+            "raison": "Utile pour le reporting ; non précisée."
+          },
+          {
+            "libelle": "Catégorie",
+            "type": "texte",
+            "raison": "Pour ventiler les dépenses dans les tableaux de bord ; le brief n'énumère pas de catégories."
+          },
+          {
+            "libelle": "Justificatif",
+            "type": "texte",
+            "raison": "Utile pour le workflow de validation ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Employe",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Courant pour identifier un employé ; non cité."
+          },
+          {
+            "libelle": "Poste",
+            "type": "texte",
+            "raison": "Le brief mentionne la gestion RH sans détailler les informations."
+          },
+          {
+            "libelle": "Date d'embauche",
+            "type": "date",
+            "raison": "Courant en gestion RH ; à confirmer."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour joindre l'employé ; non cité."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour l'accès à l'application ; non cité."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Restauration collective",
+    "fiches": [
+      {
+        "fiche": "Achat",
+        "verbe_creation": "Acheter",
+        "boutons": {}
+      },
+      {
+        "fiche": "Inventaire",
+        "verbe_creation": "Inventorier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Recette",
+        "verbe_creation": null,
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Depense",
+        "verbe_creation": "Saisir une dépense",
+        "boutons": {}
+      },
+      {
+        "fiche": "Employe",
+        "verbe_creation": "Embaucher",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "app": {
+    "nom": "cabinet-pluri",
+    "titre": "Gestion du cabinet"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "id": "professionnel",
+        "label": "Professionnel",
+        "label_plural": "Professionnels",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Dossier",
+        "label": "Dossier",
+        "label_plural": "Dossiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      },
+      {
+        "name": "RendezVous",
+        "label": "Rendez-vous",
+        "label_plural": "Rendez-vous",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Dossier"
+        ],
+        "process": null,
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Dossier"
+        ],
+        "process": null,
+        "citation": "avec agenda, facturation et devis"
+      },
+      {
+        "name": "Devis",
+        "label": "Devis",
+        "label_plural": "Devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Dossier"
+        ],
+        "process": null,
+        "citation": "gestion de rdv, facturation et devis"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Dossier": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du dossier",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RendezVous": [
+      {
+        "nom": "objet",
+        "libelle": "Objet du rendez-vous",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro du devis",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "RendezVous": {
+      "verbe_creation": "Prendre rendez-vous",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Établir un devis",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

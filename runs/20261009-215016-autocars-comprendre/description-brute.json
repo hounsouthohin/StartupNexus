@@ -1,0 +1,227 @@
+{
+  "app": {
+    "nom": "autocars",
+    "titre": "Gestion Autocars"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chauffeur",
+        "label": "chauffeur",
+        "label_plural": "chauffeurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "amplitudes chauffeurs"
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "par véhicules"
+      },
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      },
+      {
+        "name": "Course",
+        "label": "course",
+        "label_plural": "courses",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "citation": "courses précédentes"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Course"
+        ],
+        "citation": "Suivi de facturation automatique"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Chauffeur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "amplitudes",
+        "libelle": "Amplitudes",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les amplitudes chauffeurs"
+      },
+      {
+        "nom": "couleur",
+        "libelle": "Couleur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "Vehicule": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "couleur",
+        "libelle": "Couleur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "coordonnees",
+        "libelle": "Coordonnées",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "coordonnées"
+      },
+      {
+        "nom": "solde",
+        "libelle": "Reste dû ou avoir en cours",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ],
+    "Course": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Course": {
+      "verbe_creation": "Planifier une course",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

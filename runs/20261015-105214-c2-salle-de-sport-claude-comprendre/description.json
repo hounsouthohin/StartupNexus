@@ -1,0 +1,192 @@
+{
+  "app": {
+    "nom": "c2-salle-de-sport",
+    "titre": "Gestion GymPlus"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "solution complète de gestion de salles de sport"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Adherent",
+        "label": "Adhérent",
+        "label_plural": "Adhérents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "la gestion des adhérents"
+      },
+      {
+        "name": "Abonnement",
+        "label": "Abonnement",
+        "label_plural": "Abonnements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Adherent"
+        ],
+        "process": null,
+        "citation": "des adhérents, des abonnements"
+      },
+      {
+        "name": "Paiement",
+        "label": "Paiement",
+        "label_plural": "Paiements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Adherent",
+          "Abonnement"
+        ],
+        "process": null,
+        "citation": "des abonnements, des paiements"
+      },
+      {
+        "name": "Presence",
+        "label": "Présence",
+        "label_plural": "Présences",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Adherent",
+          "Activite"
+        ],
+        "process": null,
+        "citation": "des présences et des activités sportives"
+      },
+      {
+        "name": "Activite",
+        "label": "Activité sportive",
+        "label_plural": "Activités sportives",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "des activités sportives"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Adherent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Abonnement": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Paiement": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Presence": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Activite": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Abonnement": {
+      "verbe_creation": "Abonner",
+      "boutons": {}
+    },
+    "Paiement": {
+      "verbe_creation": "Payer",
+      "boutons": {}
+    },
+    "Presence": {
+      "verbe_creation": "Pointer",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

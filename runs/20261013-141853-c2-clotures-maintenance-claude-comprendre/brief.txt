@@ -1,0 +1,114 @@
+Création d'un site internet et plateforme de gestion
+La société POSE, spécialisée dans la pose de clôtures, portails et aires de jeux, souhaite mettre en place, en plus d'un site internet accessible à tous, un outil informatique de gestion et de maintenance. Actuellement, les outils utilisés ne permettent pas de centraliser efficacement la planification, la relation client, le suivi technique et la communication interne et externe. L’état final recherché est de disposer d’un outil centralisé, moderne et ergonomique, accessible aussi bien aux équipes internes qu’aux clients (collectivités), permettant de préparer le suivi et la conduite des chantiers ainsi que de la maintenance. La partie client sera tournée vers la maintenance alors que la partie POSE sera tournée maintenance et gestion interne.
+
+PARTIE SITE INTERNET: Créer un site représentatif de l'activité de notre entreprise moderne, épurée, classe ou serait présenté notre activité
+
+PARTIE ACCESSIBLE VIA PROFIL PERSONNALISE (soit à nos clients (collectivités, communes), soit par les personnels de notre entreprise - Accès interface web et via application.
+
+Interface et ergonomie
+
+- interface intuitive, inspirée de Récréatool (sté Récréaction) ;
+
+- accessible via une application mobile (iOS, Android) et une interface web responsive ;
+
+- accès sécurisé(accès individuels avec possibilité de suivi);
+
+- prise en main rapide, simplicité d’utilisation.
+
+Contraintes et attentes
+
+- interface ergonomique, prise en main rapide ;
+
+- multilingue ;
+
+- évolutivité du produit avec possibilité d’ajout de modules ;
+
+- budget maîtrisé, possibilité de déploiement en phase pilote.
+
+Planning prévisionnel
+
+- phase de conception ;
+
+- développement ;
+
+- tests décembre 2025 ;
+
+- déploiement pilote ;
+
+- mise en production Janvier 2026.
+
+INTERFACE CLIENT: 
+
+Accès:
+
+- portail client dédié pour consulter leurs équipements, plannings et rapports – suivi du patrimoine/équipements/sols ;
+
+- notifications automatiques pour informer des interventions réalisées.
+
+Demande d’intervention:
+
+-classé par catégorie.
+
+Demande de devis:
+
+- suivi des demandes (rouge, orange, vert).
+
+Rapports:
+
+- accès à la bibliothèque de rapports de maintenance (préventive, corrective, urgence)
+
+- exportations possibles (Excel, PDF)
+
+Planning prévisionnel de passage
+
+Etat des équipements:
+
+- état du patrimoine (jeux, agrès, panneaux, sols, clôtures);
+
+- listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien).
+
+INTERFACE ENTREPRISE
+
+Gestion des sites:
+
+- listing des équipements avec documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien) ;
+
+Demande d’intervention:
+
+- gestion des interventions d’urgence ;
+
+- affectation des équipes.
+
+Demande de devis:
+
+- réponses aux demandes de devis.
+
+Reporting:
+
+- tableau de bord global (par mois, par équipe, par client) ;
+
+- temps passé, couts, interventions
+
+- statistiques et reporting (temps passé, coûts, interventions) ;
+
+Communication: 
+
+- chat intégré type WhatsApp, par chantier ou par client ;
+
+- notifications et échanges documentés (photos HD, fichiers, messages vocaux) ;
+
+- historisation des discussions ;
+
+- utilisation de la traduction vocale.
+
+Gestion des commandes/matériels:
+
+- bon de commande internes (possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt et de réserver matériels.
+
+Organisation du planning du personnel:
+
+- vue par chantier/par équipe
+
+- gestion des ressources matérielles ;
+
+- paramétrage et filtres personnalisables .

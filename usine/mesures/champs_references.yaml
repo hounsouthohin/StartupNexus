@@ -11,8 +11,9 @@
 # jamais compté comme inventé : il sera montré au client par le miroir.
 # Les alias sont comparés au nom et au libellé du champ, sans accents ni majuscules.
 
+# (13 nov 2026 : chemins mis à jour après l'épuration du dépôt ; fichiers déplacés sans changement, grille inchangée)
 mediatheque:
-  brief: factory-sprint0/scripts/test_full_pipeline.json
+  brief: usine/mesures/sources/mediatheque-brief.json
   # (ajouté le 8 oct, avant tout lancement du lecteur 6 : la source des fiches, pas la grille)
   source_fiches: usine/mesures/sources/mediatheque.json
   fiches:
@@ -42,8 +43,8 @@ mediatheque:
       interdits: [ouvrage, livre, date de demande, datedemande, etat, statut, status, adherent]
 
 union-sportive:
-  brief: factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-union-sportive
-  source_fiches: poc/comprehension/sorties/gpt-5.5/v2-passe1/appr-union-sportive.json
+  brief: usine/briefs_reels/apprentissage/briefs.json#appr-union-sportive
+  source_fiches: usine/briefs_reels/apprentissage/sorties/gpt-5.5/v2-passe1/appr-union-sportive.json
   fiches:
     adherent:
       alias: [adherent]
@@ -85,8 +86,8 @@ union-sportive:
       interdits: [participant, activite, paiement]
 
 autocars:
-  brief: factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-autocars
-  source_fiches: poc/comprehension/sorties/gpt-5.5/v2-passe1/appr-autocars.json
+  brief: usine/briefs_reels/apprentissage/briefs.json#appr-autocars
+  source_fiches: usine/briefs_reels/apprentissage/sorties/gpt-5.5/v2-passe1/appr-autocars.json
   fiches:
     client:
       alias: [client]
@@ -120,8 +121,8 @@ autocars:
       interdits: [client, course]
 
 formation:
-  brief: factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-formation
-  source_fiches: poc/comprehension/sorties/gpt-5.5/v2-passe1/appr-formation.json
+  brief: usine/briefs_reels/apprentissage/briefs.json#appr-formation
+  source_fiches: usine/briefs_reels/apprentissage/sorties/gpt-5.5/v2-passe1/appr-formation.json
   # brief VAGUE : presque rien n'est cité ; on mesure surtout que l'IA n'invente pas
   fiches:
     session:

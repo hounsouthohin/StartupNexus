@@ -1,0 +1,294 @@
+{
+ "titre": "Gestion des commandes",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[erreur:enfant-designe-parent] Livrable : désigne aussi son parent Commande (le lien vers le parent existe déjà) [type=value_error, input_value={'app': {'nom': 'mesures-...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "erreur enfant-designe-parent"
+  ],
+  "pas_encore": [],
+  "elargit": [],
+  "rien_ne_se_construit": true
+ },
+ "hors_stock": [
+  {
+   "besoin": "Planning logistique des commandes et des interventions sur le terrain",
+   "categorie": "planning",
+   "citation": "un planning logistique"
+  },
+  {
+   "besoin": "Automatisation de la gestion des livrables",
+   "categorie": "automatisation",
+   "citation": "une automatisation de la gestion des livrables"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire"
+  ],
+  "fiches": 3,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire",
+   "devient": "responsable de l'app",
+   "citations": [
+    "un logiciel qui faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : commandes, interventions planifiées",
+     "cases": [
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+       ]
+      },
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "qui inclurait un planning logistique"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : livrables (dans chaque commande)",
+     "cases": [
+      {
+       "fiche": "Livrable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de commande : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Commande",
+   "libelle": "commande",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Commande:Client",
+     "libelle": "Client",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Commande:Type de mesure",
+     "libelle": "Type de mesure",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Commande:Lieu (site de mesure)",
+     "libelle": "Lieu (site de mesure)",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Commande:Date souhaitée de réalisation",
+     "libelle": "Date souhaitée de réalisation",
+     "type": "date"
+    },
+    {
+     "id": "garder:Commande:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+   ]
+  },
+  {
+   "fiche": "Intervention",
+   "libelle": "intervention planifiée",
+   "nature": "registry",
+   "relie_a": [
+    "commande"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Intervention:Date et heure prévues",
+     "libelle": "Date et heure prévues",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Intervention:Lieu d'intervention",
+     "libelle": "Lieu d'intervention",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Intervention:Intervenants",
+     "libelle": "Intervenants",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Intervention:Matériel nécessaire",
+     "libelle": "Matériel nécessaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "qui inclurait un planning logistique"
+   ]
+  },
+  {
+   "fiche": "Livrable",
+   "libelle": "livrable",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque commande",
+    "commande"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Livrable:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Livrable:Type de livrable",
+     "libelle": "Type de livrable",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Livrable:Lien vers le fichier",
+     "libelle": "Lien vers le fichier",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:Livrable:Date de remise",
+     "libelle": "Date de remise",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "une automatisation de la gestion des livrables"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Commande:reference",
+     "texte": "commande → « Référence »"
+    },
+    {
+     "id": "nom:Intervention:intitule",
+     "texte": "intervention planifiée → « Intitulé »"
+    },
+    {
+     "id": "nom:Livrable:intitule",
+     "texte": "livrable → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

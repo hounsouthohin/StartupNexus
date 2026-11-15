@@ -1,0 +1,2 @@
+Creation logiciel gestion atelier de réparation
+Besoin d'un freelance pour créer un logiciel de gestion d'atelier de réparation : bon d'entrée, bon d'intervention, commande de pièce, suivi de machine. J'ai un exemple de soft que je peux transmettre.

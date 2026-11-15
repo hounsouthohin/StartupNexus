@@ -1,0 +1,463 @@
+{
+ "titre": "Gestion de l'école",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Gestion des paiements mensuels (scolarité)",
+   "categorie": "paiement",
+   "citation": "les payements mensuels"
+  },
+  {
+   "besoin": "Documents financiers ou administratifs sur l'élève ou son parent",
+   "categorie": "document",
+   "citation": "tout autres documents financiers ou administratifs concernant l'élève ou son parent"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire de l'école"
+  ],
+  "fiches": 6,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire de l'école",
+   "devient": "responsable de l'app",
+   "citations": [
+    "un logiciel me permettant de gérer une école privée"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : élèves, parents, inscriptions, paiements mensuels, notes de classe, documents administratifs ou financiers",
+     "cases": [
+      {
+       "fiche": "Eleve",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "concernant l'élève ou son parent"
+       ]
+      },
+      {
+       "fiche": "Parent",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "l'élève ou son parent"
+       ]
+      },
+      {
+       "fiche": "Inscription",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "tant les inscriptions"
+       ]
+      },
+      {
+       "fiche": "Paiement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "les payements mensuels"
+       ]
+      },
+      {
+       "fiche": "Note",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "le notes de classe"
+       ]
+      },
+      {
+       "fiche": "Document",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "tout autres documents financiers ou administratifs concernant l'élève ou son parent"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Eleve",
+   "libelle": "élève",
+   "nature": "registry",
+   "relie_a": [
+    "parent"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Eleve:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Eleve:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Eleve:Classe",
+     "libelle": "Classe",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "concernant l'élève ou son parent"
+   ]
+  },
+  {
+   "fiche": "Parent",
+   "libelle": "parent",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Parent:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Parent:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Parent:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Parent:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "l'élève ou son parent"
+   ]
+  },
+  {
+   "fiche": "Inscription",
+   "libelle": "inscription",
+   "nature": "registry",
+   "relie_a": [
+    "élève"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Inscription:Année scolaire",
+     "libelle": "Année scolaire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Inscription:Classe",
+     "libelle": "Classe",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Inscription:Frais d'inscription",
+     "libelle": "Frais d'inscription",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "tant les inscriptions"
+   ]
+  },
+  {
+   "fiche": "Paiement",
+   "libelle": "paiement mensuel",
+   "nature": "registry",
+   "relie_a": [
+    "élève"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Paiement:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Paiement:Mois concerné",
+     "libelle": "Mois concerné",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Paiement:Date de paiement",
+     "libelle": "Date de paiement",
+     "type": "date"
+    },
+    {
+     "id": "garder:Paiement:Mode de paiement",
+     "libelle": "Mode de paiement",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "les payements mensuels"
+   ]
+  },
+  {
+   "fiche": "Note",
+   "libelle": "note de classe",
+   "nature": "registry",
+   "relie_a": [
+    "élève"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Note:Valeur de la note",
+     "libelle": "Valeur de la note",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Note:Matière",
+     "libelle": "Matière",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Note:Date de l'évaluation",
+     "libelle": "Date de l'évaluation",
+     "type": "date"
+    },
+    {
+     "id": "garder:Note:Coefficient",
+     "libelle": "Coefficient",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Note:Période (trimestre)",
+     "libelle": "Période (trimestre)",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "le notes de classe"
+   ]
+  },
+  {
+   "fiche": "Document",
+   "libelle": "document administratif ou financier",
+   "nature": "registry",
+   "relie_a": [
+    "élève",
+    "parent"
+   ],
+   "champs": [
+    {
+     "nom": "typeDocument",
+     "libelle": "Type de document",
+     "type": "choix parmi : Financier, Administratif",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "documents financiers ou administratifs"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Document:Titre",
+     "libelle": "Titre",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Document:Fichier ou lien",
+     "libelle": "Fichier ou lien",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:Document:Date du document",
+     "libelle": "Date du document",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "tout autres documents financiers ou administratifs concernant l'élève ou son parent"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Eleve:nom",
+     "texte": "élève → « Nom »"
+    },
+    {
+     "id": "nom:Parent:nom",
+     "texte": "parent → « Nom »"
+    },
+    {
+     "id": "nom:Inscription:intitule",
+     "texte": "inscription → « Intitulé »"
+    },
+    {
+     "id": "nom:Paiement:reference",
+     "texte": "paiement mensuel → « Référence »"
+    },
+    {
+     "id": "nom:Note:intitule",
+     "texte": "note de classe → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

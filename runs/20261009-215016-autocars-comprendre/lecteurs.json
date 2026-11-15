@@ -1,0 +1,403 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion pour une société, avec planning, suivi de facturation et fiches clients.",
+    "hors_stock": [
+      {
+        "besoin": "Planning des chauffeurs et véhicules",
+        "categorie": "planning",
+        "citation": "logiciel de gestion de planning"
+      },
+      {
+        "besoin": "Gestion des amplitudes chauffeurs dans le planning",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "besoin": "Affichage ou calcul des pauses obligatoires légales",
+        "categorie": "calcul_statistiques",
+        "citation": "affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Codes couleurs par chauffeurs et véhicules",
+        "categorie": "autre",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "besoin": "Suivi de facturation automatique",
+        "categorie": "automatisation",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Envoi des programmes aux chauffeurs depuis le logiciel",
+        "categorie": "notification",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission de données vers EBP",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP"
+      },
+      {
+        "besoin": "Suivi du reste dû ou des avoirs clients",
+        "categorie": "calcul_statistiques",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Chauffeur",
+        "citation": "envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "libelle": "Client",
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "amplitudes chauffeurs"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "par véhicules"
+      },
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      },
+      {
+        "nom": "Course",
+        "libelle": "course",
+        "libelle_pluriel": "courses",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "citation": "courses précédentes"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Course"
+        ],
+        "citation": "Suivi de facturation automatique"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Chauffeur",
+        "fiche": "Chauffeur",
+        "raison": "Le planning comprend les amplitudes chauffeurs et des codes couleurs par chauffeurs."
+      },
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Le brief demande la création de fiches clients pour les réguliers."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Chauffeur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "amplitudes",
+            "libelle": "Amplitudes",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les amplitudes chauffeurs"
+          },
+          {
+            "nom": "couleur",
+            "libelle": "Couleur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Codes couleurs par chauffeurs et par véhicules"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour envoyer les programmes aux chauffeurs, mais le brief ne précise pas le canal d'envoi."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour contacter les chauffeurs, mais non cité explicitement."
+          }
+        ]
+      },
+      {
+        "fiche": "Vehicule",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "couleur",
+            "libelle": "Couleur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Codes couleurs par chauffeurs et par véhicules"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Immatriculation",
+            "type": "texte",
+            "raison": "Utile pour identifier un véhicule, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Capacité",
+            "type": "nombre",
+            "raison": "Utile pour un autocar, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "coordonnees",
+            "libelle": "Coordonnées",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "coordonnées"
+          },
+          {
+            "nom": "solde",
+            "libelle": "Reste dû ou avoir en cours",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "reste dû ou avoir en cours"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Les coordonnées sont citées, mais le brief ne détaille pas les champs à séparer."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Les coordonnées sont citées, mais le brief ne précise pas si l'email doit être enregistré séparément."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Les coordonnées sont citées, mais le brief ne précise pas si le téléphone doit être enregistré séparément."
+          }
+        ]
+      },
+      {
+        "fiche": "Course",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Programme",
+            "type": "texte_long",
+            "raison": "Le brief parle d'envoyer des programmes aux chauffeurs, mais ne précise pas le contenu enregistré pour une course."
+          },
+          {
+            "libelle": "Date et heure de départ",
+            "type": "date_heure",
+            "raison": "Utile pour le planning, mais non cité explicitement comme champ de course."
+          },
+          {
+            "libelle": "Lieu de départ",
+            "type": "texte",
+            "raison": "Utile pour une course, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Lieu d'arrivée",
+            "type": "texte",
+            "raison": "Utile pour une course, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Utile pour le suivi de facturation, mais non cité comme champ précis."
+          },
+          {
+            "libelle": "Numéro de facture EBP",
+            "type": "texte",
+            "raison": "La transmission vers EBP est citée, mais le brief ne précise pas quelles données de facture sont conservées."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion Autocars",
+    "fiches": [
+      {
+        "fiche": "Course",
+        "verbe_creation": "Planifier une course",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1435,
+      "jetons_sortie": 5011
+    }
+  ]
+}

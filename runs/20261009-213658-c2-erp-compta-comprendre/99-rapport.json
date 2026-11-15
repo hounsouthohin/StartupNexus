@@ -1,0 +1,15 @@
+{
+  "run": "20261009-213658-c2-erp-compta-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-erp-compta",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261009-213658-c2-erp-compta-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 7,
+    "jetons_entree": 5401,
+    "jetons_sortie": 4109,
+    "dollars": 0.1503,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:37:47"
+}

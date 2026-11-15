@@ -1,0 +1,922 @@
+{
+ "titre": "Ménages Villas Victoria",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:profil] Intervenant : un profil qui désigne une autre fiche (Equipe) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-conci...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "lien:profil"
+  ],
+  "pas_encore": [
+   "relier chaque Intervenant à Équipe : pas encore possible — lien retiré"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Vue planning de type calendrier : villas en ligne, dates en colonne, réservations affichées en bandes colorées",
+   "categorie": "planning",
+   "citation": "Le planning sera inspiré du calendrier Airbnb ... les réservations affichées sous forme de bandes colorées"
+  },
+  {
+   "besoin": "Couleur de la réservation selon son état (couleur « Disponible ») puis selon l'équipe affectée, changée automatiquement sur le planning",
+   "categorie": "planning",
+   "citation": "la réservation change automatiquement de couleur et prend la couleur de l'équipe concernée"
+  },
+  {
+   "besoin": "Photos obligatoires de chaque pièce et des points stratégiques dans le rapport d'intervention",
+   "categorie": "fichiers_photos",
+   "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+  },
+  {
+   "besoin": "Génération automatique du rapport d'intervention en PDF (travail des équipes, observations, photos)",
+   "categorie": "document",
+   "citation": "Le rapport est ensuite automatiquement généré en PDF"
+  },
+  {
+   "besoin": "Transmission du rapport au propriétaire, qui n'est pas utilisateur de l'application (le moyen d'envoi n'est pas précisé)",
+   "categorie": "notification",
+   "citation": "afin d'être transmis au propriétaire"
+  },
+  {
+   "besoin": "Suivi en temps réel des réservations, des équipes affectées et de la qualité des prestations",
+   "categorie": "autre",
+   "citation": "suivre en temps réel les réservations, les équipes affectées et la qualité des prestations"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant de la conciergerie",
+   "L'intervenant de ménage"
+  ],
+  "fiches": 8,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant de la conciergerie",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Je souhaite développer une application interne, exclusivement destinée à la gestion de mes équipes de ménage"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Villas, Propriétaires, Équipes, Réservations",
+     "cases": [
+      {
+       "fiche": "Villa",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "les villas en ligne"
+       ]
+      },
+      {
+       "fiche": "Proprietaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "afin d'être transmis au propriétaire"
+       ]
+      },
+      {
+       "fiche": "Equipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "prend la couleur de l'équipe concernée"
+       ]
+      },
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Chaque réservation indique"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Points de contrôle (dans chaque Intervention), Photos (dans chaque Intervention)",
+     "cases": [
+      {
+       "fiche": "PointControle",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Intervention : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "Après le ménage, je complète le rapport"
+       ]
+      },
+      {
+       "fiche": "Photo",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Intervention : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "Après le ménage, je complète le rapport"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Interventions : voit tout, en crée, les modifie, les fait passer de « réalisée (rapport de l'équipe rempli) » à « complétée par le gérant »",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "realisee": [
+          "completee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait l'étape depuis « realisee »",
+        "exception : « Après le ménage, je complète le rapport »",
+        "exception : « Après le ménage, je complète le rapport »"
+       ],
+       "citations": [
+        "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "Après le ménage, je complète le rapport",
+        "Après le ménage, je complète le rapport"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "intervenant",
+   "libelle": "L'intervenant de ménage",
+   "devient": "invité par gerant",
+   "citations": [
+    "Les équipes peuvent cliquer sur \"Je prends cette intervention\". Le premier intervenant qui se positionne est automatiquement affecté au ménage"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Villas, Équipes",
+     "cases": [
+      {
+       "fiche": "Villa",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "les villas en ligne"
+       ]
+      },
+      {
+       "fiche": "Equipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "prend la couleur de l'équipe concernée"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Réservations",
+     "cases": [
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Chaque réservation indique"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Points de contrôle (dans chaque Intervention), Photos (dans chaque Intervention)",
+     "cases": [
+      {
+       "fiche": "PointControle",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Intervention : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "Les équipes peuvent cliquer sur \"Je prends cette intervention"
+       ]
+      },
+      {
+       "fiche": "Photo",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Intervention : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "Les équipes peuvent cliquer sur \"Je prends cette intervention"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les Propriétaires affichés dans les Villas qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "Proprietaire",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "Villa"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Villas qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "a son Intervenant, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Intervenant",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "le nom de l'intervenant ou de l'équipe"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Interventions : voit tout, en crée, les modifie, les fait passer de « disponible » à « attribuée », les fait passer de « attribuée » à « réalisée (rapport de l'équipe rempli) »",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "disponible": [
+          "attribuee"
+         ],
+         "attribuee": [
+          "realisee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Les équipes peuvent cliquer sur \"Je prends cette intervention »",
+        "exception : « À la fin du ménage, l'équipe complète un rapport »",
+        "exception : « À la fin du ménage, l'équipe complète un rapport »"
+       ],
+       "citations": [
+        "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "Les équipes peuvent cliquer sur \"Je prends cette intervention",
+        "À la fin du ménage, l'équipe complète un rapport",
+        "À la fin du ménage, l'équipe complète un rapport"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Intervention",
+   "texte": "L'intervention passe par : « disponible » → « attribuée » → « réalisée (rapport de l'équipe rempli) » → « complétée par le gérant »",
+   "qui": [
+    "Le gérant de la conciergerie fait passer de « réalisée (rapport de l'équipe rempli) » à « complétée par le gérant »",
+    "L'intervenant de ménage fait passer de « disponible » à « attribuée »",
+    "L'intervenant de ménage fait passer de « attribuée » à « réalisée (rapport de l'équipe rempli) »"
+   ],
+   "citations": [
+    "À la fin du ménage, l'équipe complète un rapport"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Villa",
+   "libelle": "Villa",
+   "nature": "catalog",
+   "relie_a": [
+    "Propriétaire"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de la villa",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Villa:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Villa:Nombre de chambres",
+     "libelle": "Nombre de chambres",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "les villas en ligne"
+   ]
+  },
+  {
+   "fiche": "Proprietaire",
+   "libelle": "Propriétaire",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Proprietaire:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Proprietaire:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "afin d'être transmis au propriétaire"
+   ]
+  },
+  {
+   "fiche": "Equipe",
+   "libelle": "Équipe",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de l'équipe",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le nom de l'intervenant ou de l'équipe"
+    },
+    {
+     "nom": "couleur",
+     "libelle": "Couleur sur le planning",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "prend la couleur de l'équipe concernée"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "prend la couleur de l'équipe concernée"
+   ]
+  },
+  {
+   "fiche": "Intervenant",
+   "libelle": "Intervenant",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le nom de l'intervenant"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Intervenant:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Intervenant:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "le nom de l'intervenant ou de l'équipe"
+   ]
+  },
+  {
+   "fiche": "Reservation",
+   "libelle": "Réservation",
+   "nature": "registry",
+   "relie_a": [
+    "Villa"
+   ],
+   "champs": [
+    {
+     "nom": "dateArrivee",
+     "libelle": "Date d'arrivée",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les dates du séjour"
+    },
+    {
+     "nom": "dateDepart",
+     "libelle": "Date de départ",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les dates du séjour"
+    },
+    {
+     "nom": "heureArrivee",
+     "libelle": "Heure d'arrivée",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les horaires d'arrivée et de départ"
+    },
+    {
+     "nom": "heureDepart",
+     "libelle": "Heure de départ",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les horaires d'arrivée et de départ"
+    },
+    {
+     "nom": "nombreVoyageurs",
+     "libelle": "Nombre de voyageurs",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le nombre de voyageurs"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Reservation:Nom du voyageur principal",
+     "libelle": "Nom du voyageur principal",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Reservation:Référence de la réservation (Airbnb)",
+     "libelle": "Référence de la réservation (Airbnb)",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Chaque réservation indique"
+   ]
+  },
+  {
+   "fiche": "Intervention",
+   "libelle": "Intervention",
+   "nature": "registry",
+   "relie_a": [
+    "Réservation",
+    "Équipe"
+   ],
+   "champs": [
+    {
+     "nom": "dateIntervention",
+     "libelle": "Date de l'intervention",
+     "type": "date",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "la date de l'intervention"
+    },
+    {
+     "nom": "heureDebut",
+     "libelle": "Heure de début",
+     "type": "texte court",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "l'heure de début et de fin"
+    },
+    {
+     "nom": "heureFin",
+     "libelle": "Heure de fin",
+     "type": "texte court",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "l'heure de début et de fin"
+    },
+    {
+     "nom": "anomalies",
+     "libelle": "Anomalies signalées",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le signalement des anomalies éventuelles"
+    },
+    {
+     "nom": "commentaires",
+     "libelle": "Commentaires",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un espace de commentaires"
+    },
+    {
+     "nom": "etatLogement",
+     "libelle": "État du logement (accueil)",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "état du logement"
+    },
+    {
+     "nom": "remarquesVoyageurs",
+     "libelle": "Remarques des voyageurs",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "remarques des voyageurs"
+    },
+    {
+     "nom": "dysfonctionnements",
+     "libelle": "Dysfonctionnements",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "éventuels dysfonctionnements"
+    },
+    {
+     "nom": "informationsImportantes",
+     "libelle": "Informations importantes",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "informations importantes"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Intervention:Date d'envoi du rapport au propriétaire",
+     "libelle": "Date d'envoi du rapport au propriétaire",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs"
+   ]
+  },
+  {
+   "fiche": "PointControle",
+   "libelle": "Point de contrôle",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Intervention"
+   ],
+   "champs": [
+    {
+     "nom": "zone",
+     "libelle": "Pièce ou zone contrôlée",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs"
+    },
+    {
+     "nom": "controle",
+     "libelle": "Contrôlé",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "une checklist de contrôle"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:PointControle:Remarque sur le point",
+     "libelle": "Remarque sur le point",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs"
+   ]
+  },
+  {
+   "fiche": "Photo",
+   "libelle": "Photo",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Intervention"
+   ],
+   "champs": [
+    {
+     "nom": "emplacement",
+     "libelle": "Pièce ou point photographié",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+    },
+    {
+     "nom": "fichier",
+     "libelle": "Photo (lien du fichier)",
+     "type": "lien web",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des photos obligatoires"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Photo:Légende",
+     "libelle": "Légende",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "des photos obligatoires de chaque pièce et des points stratégiques"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "vu_via:intervenant:Proprietaire",
+   "sorte": "vu_via",
+   "texte": "L'intervenant de ménage verra les Propriétaires (ex. nom, coordonnées) affichés dans les Villas qu'il traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Villas qu'il voit"
+  },
+  {
+   "id": "registre_entier:intervenant:Reservation",
+   "sorte": "registre_entier",
+   "texte": "L'intervenant de ménage verra toutes les Réservations, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Interventions qu'il voit; clôture : choisit les Réservations de ses Interventions"
+  },
+  {
+   "id": "registre_entier:intervenant:Intervention",
+   "sorte": "registre_entier",
+   "texte": "L'intervenant de ménage verra toutes les Interventions, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : voit ce qu'il modifie"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Villa:nom",
+     "texte": "Villa → « Nom de la villa »"
+    },
+    {
+     "id": "nom:Proprietaire:nom",
+     "texte": "Propriétaire → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

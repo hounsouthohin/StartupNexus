@@ -1,0 +1,244 @@
+{
+  "app": {
+    "nom": "c2-support-interventions",
+    "titre": "Gestion des interventions"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      },
+      {
+        "id": "agent",
+        "label": "Agent",
+        "label_plural": "Agents",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "cérer des comptes utilisatuers avec des permissions différentes"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Agent",
+        "label": "Agent",
+        "label_plural": "Agents",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "agent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "une fois enregistré dans la base de donnée un agent"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "agent",
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "une description du problème d'un client"
+      },
+      {
+        "name": "Intervention",
+        "label": "Intervention",
+        "label_plural": "Interventions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "agent",
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "enregistree",
+          "transitions": {
+            "enregistree": [
+              "envoyee"
+            ],
+            "envoyee": [
+              "traitee"
+            ],
+            "traitee": []
+          },
+          "initiator": "agent",
+          "decider": "agent",
+          "steps_by": {},
+          "labels": {
+            "enregistree": "enregistrée",
+            "envoyee": "envoyée au centre de traitement",
+            "traitee": "traitée"
+          },
+          "citation": "formulaire peut ensuite être enregistré dans la base,envoyé au centre de traitement pour y être traité"
+        },
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client"
+      },
+      {
+        "name": "ArticleConnaissance",
+        "label": "Article de la base de connaissances",
+        "label_plural": "Articles de la base de connaissances",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "process": null,
+        "citation": "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "agent",
+        "entity": "Intervention",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client"
+      },
+      {
+        "actor": "agent",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "envoyee": [
+            "traitee"
+          ]
+        },
+        "citation": "dès que l'agent a traité une intervention celle ci est marqué comme traité"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Intervention",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "traitee"
+        ],
+        "transitions": {},
+        "citation": "celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "ArticleConnaissance",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      }
+    ]
+  },
+  "champs": {
+    "Agent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Intervention": [
+      {
+        "nom": "descriptionProbleme",
+        "libelle": "Description du problème",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "une description du problème d'un client"
+      },
+      {
+        "nom": "commentaire",
+        "libelle": "Commentaire de l'administrateur",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "de la supprimier,commenté"
+      }
+    ],
+    "ArticleConnaissance": [
+      {
+        "nom": "titre",
+        "libelle": "Titre",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Intervention": {
+      "verbe_creation": "Signaler un problème",
+      "boutons": {
+        "envoyee": "Envoyer au traitement",
+        "traitee": "Marquer traitée"
+      }
+    },
+    "ArticleConnaissance": {
+      "verbe_creation": "Ajouter à la base de connaissances",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

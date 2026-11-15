@@ -1,0 +1,555 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un outil de gestion de parc automobile pour un cabinet d'assurance. Il comporte des fiches (souscripteurs, contrats, immatriculations en fiches enfants) et deux rôles qui se connectent : l'administrateur crée, modifie et supprime les souscripteurs et les flottes, et chaque souscripteur gère sa propre flotte. Le PDF de carte verte, les e-mails, l'import et l'export Excel, le filtre d'affichage et la contrainte d'hébergement sont des besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Génération en PDF d'une carte verte à imprimer, avec un contenu imposé (modèle dans un PDF joint)",
+        "categorie": "document",
+        "citation": "permettre d’imprimer une carte verte (vie génération pdf)... La carte verte doit contenir les infos suivantes (voir PDF joint)"
+      },
+      {
+        "besoin": "Envoi automatique d'un e-mail à l'agence et au client à chaque action (sauf l'impression de la carte verte)",
+        "categorie": "notification",
+        "citation": "Lors de chaque action (sauf impression carte verte), un mail doit être envoyé à l’agence et au client."
+      },
+      {
+        "besoin": "Import d'un fichier Excel par l'administrateur pour alimenter la flotte",
+        "categorie": "autre",
+        "citation": "Avec possibilité d’import fichier excel pour alimenter la flotte"
+      },
+      {
+        "besoin": "Export du parc de véhicules vers Excel",
+        "categorie": "autre",
+        "citation": "possibilité export parc sur excel"
+      },
+      {
+        "besoin": "Filtre d'affichage des véhicules selon qu'ils sont sortis ou non",
+        "categorie": "autre",
+        "citation": "possibilité de filtrer l’affichage des véhicules si sortis ou non"
+      },
+      {
+        "besoin": "Contrainte technique : application en PHP/MySQL installable sur un hébergement mutualisé OVH",
+        "categorie": "autre",
+        "citation": "Interface php/mysql pouvant être installé sur hébergement mutualisé OVH."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous sommes un cabinet d’assurance ... Pour l’administrateur"
+      },
+      {
+        "id": "souscripteur",
+        "libelle": "Souscripteur",
+        "libelle_pluriel": "Souscripteurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "mettre à disposition de nos clients un outils de gestion de leur parc auto ... Création / modification / suppression : de souscripteur"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Agence",
+        "citation": "un mail doit être envoyé à l’agence et au client"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Pour l’administrateur : ... Identifiant et mot de passe ... Adresse email"
+      },
+      {
+        "nom": "Souscripteur",
+        "libelle": "souscripteur",
+        "libelle_pluriel": "souscripteurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "souscripteur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création / modification / suppression : de souscripteur et de flotte ... Pour chaque souscripteur : ... Raison sociale"
+      },
+      {
+        "nom": "Contrat",
+        "libelle": "contrat",
+        "libelle_pluriel": "contrats",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "souscripteur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "administrateur",
+        "parent": null,
+        "references": [],
+        "citation": "Qui détient 1 ou plusieurs contrats ... Numéro de contrat ... Echéance"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Contrat",
+        "references": [],
+        "citation": "permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation) ... Avec 1 ou plusieurs immatriculations ... Date d’entrée ... Date de sortie"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Agence",
+        "fiche": null,
+        "raison": "L'agence (le cabinet d'assurance) ne fait que recevoir un mail à chaque action ; le brief ne décrit aucune information à enregistrer sur elle. Son adresse d'envoi sera à demander au client."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Souscripteur",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour l’administrateur ... Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Souscripteur",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour l’administrateur ... Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Souscripteur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour l’administrateur ... Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Contrat",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour l’administrateur ... Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Contrat",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour l’administrateur ... Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Contrat",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pour l’administrateur ... Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Vehicule",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Avec possibilité d’import fichier excel pour alimenter la flotte"
+      },
+      {
+        "acteur": "souscripteur",
+        "fiche": "Vehicule",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation)"
+      },
+      {
+        "acteur": "souscripteur",
+        "fiche": "Vehicule",
+        "action": "edit",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation)"
+      },
+      {
+        "acteur": "souscripteur",
+        "fiche": "Vehicule",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "possibilité de filtrer l’affichage des véhicules si sortis ou non"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Administrateur",
+        "champs": [
+          {
+            "nom": "identifiant",
+            "libelle": "Identifiant",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Identifiant et mot de passe"
+          },
+          {
+            "nom": "motDePasse",
+            "libelle": "Mot de passe",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Identifiant et mot de passe"
+          },
+          {
+            "nom": "email",
+            "libelle": "Adresse email",
+            "type": "email",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Adresse email"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom",
+            "type": "texte",
+            "raison": "Savoir qui est l'administrateur au-delà de son identifiant de connexion."
+          }
+        ]
+      },
+      {
+        "fiche": "Souscripteur",
+        "champs": [
+          {
+            "nom": "raisonSociale",
+            "libelle": "Raison sociale",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Raison sociale"
+          },
+          {
+            "nom": "identifiant",
+            "libelle": "Identifiant",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "identifiant"
+          },
+          {
+            "nom": "motDePasse",
+            "libelle": "Mot de passe",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "mot de passe"
+          },
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Adresse"
+          },
+          {
+            "nom": "codePostal",
+            "libelle": "Code postal",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Code postal"
+          },
+          {
+            "nom": "ville",
+            "libelle": "Ville",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Ville"
+          },
+          {
+            "nom": "email",
+            "libelle": "Email",
+            "type": "email",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "email"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pouvoir joindre le client autrement que par email."
+          },
+          {
+            "libelle": "Email de l'agence",
+            "type": "email",
+            "raison": "Le brief prévoit un mail à l'agence à chaque action, sans dire où trouver l'adresse de l'agence de ce client."
+          }
+        ]
+      },
+      {
+        "fiche": "Contrat",
+        "champs": [
+          {
+            "nom": "numeroContrat",
+            "libelle": "Numéro de contrat",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Numéro de contrat"
+          },
+          {
+            "nom": "echeance",
+            "libelle": "Échéance",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Echéance"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date d'effet",
+            "type": "date",
+            "raison": "Connaître le début de la période couverte, utile pour la carte verte."
+          }
+        ]
+      },
+      {
+        "fiche": "Vehicule",
+        "champs": [
+          {
+            "nom": "immatriculation",
+            "libelle": "Immatriculation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Immatriculation"
+          },
+          {
+            "nom": "marque",
+            "libelle": "Marque",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Marque"
+          },
+          {
+            "nom": "modele",
+            "libelle": "Modèle",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Modèle"
+          },
+          {
+            "nom": "categorie",
+            "libelle": "Catégorie",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "Voiture : A",
+              "Moto : B",
+              "Camion : C",
+              "Tracteur : C",
+              "Autobus ou autocar : E",
+              "Remorque : F",
+              "Autre : E"
+            ],
+            "origine": "brief",
+            "citation": "Catégorie ... Voiture : A ... Autre : E"
+          },
+          {
+            "nom": "dateEntree",
+            "libelle": "Date d'entrée",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Date d’entrée"
+          },
+          {
+            "nom": "dateSortie",
+            "libelle": "Date de sortie",
+            "type": "date",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Date de sortie"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de série (VIN)",
+            "type": "texte",
+            "raison": "Identifier le véhicule de façon sûre même si l'immatriculation change."
+          },
+          {
+            "libelle": "Date de première mise en circulation",
+            "type": "date",
+            "raison": "Information souvent demandée par l'assureur pour un véhicule."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion de flotte",
+    "fiches": [
+      {
+        "fiche": "Vehicule",
+        "verbe_creation": "Ajouter un véhicule",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Souscripteur : « saisie_par » seulement pour une collection, et un id d'acteur"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Vehicule : la fiche est un « child », qui ne change pas d'état (seule une collection ou un registre a un circuit) — ne liste pas ce circuit"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

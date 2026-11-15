@@ -1,0 +1,388 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Application de gestion d'une médiathèque associative avec catalogue public, adhérents connectés, rôles, emprunts et circuit d'états.",
+    "hors_stock": [
+      {
+        "besoin": "Interface claire, chaleureuse et accessible",
+        "categorie": "autre",
+        "citation": "L'interface doit être claire, chaleureuse et accessible."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "gestionnaire de la médiathèque",
+        "libelle_pluriel": "gestionnaires de la médiathèque",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je gère une médiathèque associative"
+      },
+      {
+        "id": "adherent",
+        "libelle": "adhérent",
+        "libelle_pluriel": "adhérents",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gestionnaire",
+        "citation": "Après connexion, un adhérent gère son profil"
+      },
+      {
+        "id": "bibliothecaire",
+        "libelle": "bibliothécaire",
+        "libelle_pluriel": "bibliothécaires",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gestionnaire",
+        "citation": "Le ou la bibliothécaire, en revanche, voit tous les emprunts"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "visiteur",
+        "citation": "Les visiteurs, sans se connecter"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Ouvrage",
+        "libelle": "ouvrage",
+        "libelle_pluriel": "ouvrages",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+      },
+      {
+        "nom": "ProfilAdherent",
+        "libelle": "profil adhérent",
+        "libelle_pluriel": "profils adhérents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "adherent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Après connexion, un adhérent gère son profil (nom, email, téléphone)"
+      },
+      {
+        "nom": "Emprunt",
+        "libelle": "emprunt",
+        "libelle_pluriel": "emprunts",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "adherent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Ouvrage",
+          "ProfilAdherent"
+        ],
+        "citation": "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état...Un adhérent ne voit que ses propres emprunts"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "visiteur",
+        "fiche": null,
+        "raison": "Le visiteur consulte le catalogue sans compte ; le brief ne dit pas qu'une fiche visiteur est enregistrée."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Emprunt",
+        "etat_initial": "demande",
+        "transitions": {
+          "demande": [
+            "accepte",
+            "refuse"
+          ],
+          "accepte": [
+            "rendu"
+          ],
+          "refuse": [],
+          "rendu": []
+        },
+        "libelles": {
+          "demande": "demandé",
+          "accepte": "accepté",
+          "refuse": "refusé",
+          "rendu": "rendu"
+        },
+        "initiateur": "adherent",
+        "decideur": "bibliothecaire",
+        "etapes_par": {},
+        "citation": "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage ... Un emprunt commence en demandé, puis il est soit accepté, soit refusé ; un emprunt accepté passe ensuite à rendu quand l'adhérent ramène l'ouvrage. ... Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre."
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "visitor",
+        "fiche": "Ouvrage",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages ... Un visiteur peut ouvrir la fiche d'un ouvrage pour en voir tous les détails"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "ProfilAdherent",
+        "action": "edit",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un adhérent gère son profil"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "Emprunt",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "Emprunt",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Un adhérent ne voit que ses propres emprunts"
+      },
+      {
+        "acteur": "bibliothecaire",
+        "fiche": "Emprunt",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "voit tous les emprunts de tous les adhérents"
+      },
+      {
+        "acteur": "bibliothecaire",
+        "fiche": "Emprunt",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "demande"
+        ],
+        "transitions": {
+          "demande": [
+            "accepte"
+          ]
+        },
+        "citation": "Un emprunt commence en demandé, puis il est soit accepté ... la seule personne à pouvoir accepter"
+      },
+      {
+        "acteur": "bibliothecaire",
+        "fiche": "Emprunt",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "demande"
+        ],
+        "transitions": {
+          "demande": [
+            "refuse"
+          ]
+        },
+        "citation": "Un emprunt commence en demandé, puis il est soit accepté, soit refusé ... pouvoir accepter, refuser"
+      },
+      {
+        "acteur": "bibliothecaire",
+        "fiche": "Emprunt",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "accepte"
+        ],
+        "transitions": {
+          "accepte": [
+            "rendu"
+          ]
+        },
+        "citation": "un emprunt accepté passe ensuite à rendu ... marquer un emprunt comme rendu"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Ouvrage",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "chaque ouvrage a un titre"
+          },
+          {
+            "nom": "auteur",
+            "libelle": "Auteur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un auteur"
+          },
+          {
+            "nom": "resume",
+            "libelle": "Résumé",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un résumé (texte long)"
+          },
+          {
+            "nom": "genre",
+            "libelle": "Genre",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "roman",
+              "essai",
+              "bande dessinée",
+              "jeunesse"
+            ],
+            "origine": "brief",
+            "citation": "un genre (roman, essai, bande dessinée, jeunesse)"
+          },
+          {
+            "nom": "anneePublication",
+            "libelle": "Année de publication",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "une année de publication"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "ProfilAdherent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un adhérent gère son profil (nom, email, téléphone)"
+          },
+          {
+            "nom": "email",
+            "libelle": "Email",
+            "type": "email",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un adhérent gère son profil (nom, email, téléphone)"
+          },
+          {
+            "nom": "telephone",
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un adhérent gère son profil (nom, email, téléphone)"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Emprunt",
+        "champs": [],
+        "propositions": []
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Médiathèque associative",
+    "fiches": [
+      {
+        "fiche": "Emprunt",
+        "verbe_creation": "Emprunter",
+        "boutons": {
+          "accepte": "Accepter",
+          "refuse": "Refuser",
+          "rendu": "Marquer rendu"
+        }
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.5.transitions.from : Input should be a valid array",
+        "droits.5.transitions.to : Input should be a valid array",
+        "droits.6.transitions.from : Input should be a valid array",
+        "droits.6.transitions.to : Input should be a valid array",
+        "droits.7.transitions.from : Input should be a valid array",
+        "droits.7.transitions.to : Input should be a valid array"
+      ],
+      "jetons_entree": 993,
+      "jetons_sortie": 2040
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [
+        "droit bibliothecaire/Emprunt/transition : état(s) ['from', 'to'] inconnu(s) — utilise les CODES des états du circuit de Emprunt : ['accepte', 'demande', 'refuse', 'rendu']",
+        "droit bibliothecaire/Emprunt/transition : état(s) ['from', 'to'] inconnu(s) — utilise les CODES des états du circuit de Emprunt : ['accepte', 'demande', 'refuse', 'rendu']",
+        "droit bibliothecaire/Emprunt/transition : état(s) ['from', 'to'] inconnu(s) — utilise les CODES des états du circuit de Emprunt : ['accepte', 'demande', 'refuse', 'rendu']"
+      ],
+      "jetons_entree": 1581,
+      "jetons_sortie": 703
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 3,
+      "erreurs": [],
+      "jetons_entree": 2253,
+      "jetons_sortie": 1073
+    }
+  ]
+}

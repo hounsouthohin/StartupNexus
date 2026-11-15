@@ -1,0 +1,288 @@
+{
+ "titre": "Gestion d'entreprise",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Facturation (émission de factures)",
+   "categorie": "document",
+   "citation": "faire de la facturation"
+  },
+  {
+   "besoin": "Comptabilité (calculs et écritures comptables)",
+   "categorie": "calcul_statistiques",
+   "citation": "la comptabilité"
+  },
+  {
+   "besoin": "Gestion financière (suivi et calculs financiers)",
+   "categorie": "calcul_statistiques",
+   "citation": "la gestion financière"
+  },
+  {
+   "besoin": "Gestion de stock (suivi des quantités et mouvements)",
+   "categorie": "autre",
+   "citation": "la gestion de stock"
+  },
+  {
+   "besoin": "Saisie automatique",
+   "categorie": "automatisation",
+   "citation": "une option de saisie automatique"
+  },
+  {
+   "besoin": "Version hybride (mobile) dans un second temps",
+   "categorie": "mobile_hors_ligne",
+   "citation": "puis hybride plus tard"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "L'expert comptable"
+  ],
+  "fiches": 3,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous recherchons des free-lances"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : factures, écritures comptables, articles en stock",
+     "cases": [
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "de la facturation"
+       ]
+      },
+      {
+       "fiche": "EcritureComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la comptabilité"
+       ]
+      },
+      {
+       "fiche": "ArticleStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la gestion de stock"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "expert_comptable",
+   "libelle": "L'expert comptable",
+   "devient": "invité par administrateur",
+   "citations": [
+    "la possibilité de rajouter un expert comptable"
+   ],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de facture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Taux de TVA",
+     "libelle": "Taux de TVA",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "de la facturation"
+   ]
+  },
+  {
+   "fiche": "EcritureComptable",
+   "libelle": "écriture comptable",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "libelle",
+     "libelle": "Libellé de l'écriture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EcritureComptable:Date de l'écriture",
+     "libelle": "Date de l'écriture",
+     "type": "date"
+    },
+    {
+     "id": "garder:EcritureComptable:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:EcritureComptable:Compte comptable",
+     "libelle": "Compte comptable",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "la comptabilité"
+   ]
+  },
+  {
+   "fiche": "ArticleStock",
+   "libelle": "article en stock",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "designation",
+     "libelle": "Désignation de l'article",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ArticleStock:Référence",
+     "libelle": "Référence",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ArticleStock:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:ArticleStock:Prix unitaire",
+     "libelle": "Prix unitaire",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "la gestion de stock"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Facture:numero",
+     "texte": "facture → « Numéro de facture »"
+    },
+    {
+     "id": "nom:EcritureComptable:libelle",
+     "texte": "écriture comptable → « Libellé de l'écriture »"
+    },
+    {
+     "id": "nom:ArticleStock:designation",
+     "texte": "article en stock → « Désignation de l'article »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

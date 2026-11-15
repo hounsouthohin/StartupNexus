@@ -1,0 +1,2 @@
+Création d'un logiciel de gestion pour organisme de formation.
+Nous souhaitons créer un "logiciel" de gestion de notre activité : une entité nous envoie des stagiaires que nous répartissons sur des sessions de formation. il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle... puis la facturation et l'établissement d'un bilan pour l'entité de base. on a besoin d'une gestion comptable associée

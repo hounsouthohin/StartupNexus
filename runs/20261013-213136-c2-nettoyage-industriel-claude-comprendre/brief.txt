@@ -1,0 +1,78 @@
+Site pour gérer les interventions d'une société d'entretien
+Objet : Demande de devis pour un logiciel de gestion de nos interventions de nettoyage
+
+Bonjour,
+
+Notre société, est une entreprise de nettoyage industriel, qui intervient auprès de professionnels pour l’entretien de bureaux, commerces, locaux techniques, chantiers après travaux, etc. Nous avons aujourd’hui un site principal, 2 responsables d’équipes et environ 25 agents qui interviennent sur l’ensemble de la région.
+
+Nous gérons pour l’instant nos plannings et nos interventions surtout avec des tableaux, des messages et du téléphone, et cela devient difficile à suivre au quotidien : changements de planning, remplacements, suivi qualité pour les clients, photos avant/après, etc. Nous souhaitons donc nous équiper d’un outil simple et pratique pour mieux organiser notre activité.
+
+Notre besoin en termes simples
+
+Nous recherchons une solution (logiciel ou application) qui nous permette :
+
+D’avoir une vue claire de nos clients et de leurs différents sites (adresses, types de locaux, consignes particulières, fréquence de nettoyage).
+
+D’organiser les plannings de nos 2 responsables d’équipes et de nos 25 agents, avec les interventions prévues chaque jour, par site et par personne.
+
+De permettre à nos agents, sur le terrain, de voir leurs interventions du jour sur leur téléphone, de signaler quand ils commencent et quand ils terminent, et de pouvoir mettre quelques infos simples (cases à cocher, commentaires, photos avant/après quand c’est nécessaire).
+
+De garder une trace de ce qui a été fait, pour pouvoir montrer à nos clients un minimum de suivi (rapports d’intervention, photos, historique par site).
+
+Nous ne sommes pas des spécialistes en informatique, les applications du marché ne nous satisfont pas, nous cherchons donc une solution clé en main, pas trop compliquée à utiliser ni à paramétrer.
+
+Ce que nous aimerions pouvoir faire concrètement
+
+Pour être plus précis, voici des situations très concrètes que nous voudrions pouvoir gérer facilement :
+
+Créer une fiche pour chaque client, avec ses coordonnées, ses sites  et les consignes de nettoyage associées.
+
+Indiquer pour chaque site à quelle fréquence nous passons (tous les jours, une fois par semaine, une fois par mois, ou ponctuellement après travaux ou événement).
+
+Préparer les plannings de la semaine : qui va où, à quelle heure, pour quel type de prestation.
+
+Voir facilement si un agent est déjà prévu ailleurs au même moment, afin d’éviter les doublons.
+
+Gérer les absences d’un agent (congé, maladie) et pouvoir réorganiser rapidement les interventions.
+
+Pour les agents : depuis leur téléphone, voir leurs tournées du jour, cliquer sur une intervention pour avoir l’adresse, les consignes, éventuellement cocher les tâches faites et ajouter des photos si besoin.
+
+En cas de problème sur place (accès impossible, dégâts constatés, matériel en panne…), permettre à l’agent de nous remonter l’information simplement, avec un commentaire et, si possible, une photo.
+
+À la fin, pouvoir sortir des petits rapports d’intervention (par site ou par client) sur une période donnée, pour le suivi interne et pour rassurer nos clients sur le travail réalisé.
+
+Demande formulé
+
+Sur le plan pratique :
+
+Les responsables d’équipes travailleront plutôt depuis un ordinateur (bureau).
+
+Les agents, eux, utiliseront principalement leur smartphone (Android surtout, iOS si possible, mais ce n’est pas bloquant au départ).
+
+Nous souhaitons une solution sécurisée, avec des accès par identifiant/mot de passe, et respectueuse de la confidentialité des données.
+
+Nous souhaitons également :
+
+Un délai de mise en place raisonnable, avec une première version utilisable rapidement par nos responsables d’équipes, puis un déploiement auprès de tous les agents.
+
+Une formation simple (ou des tutoriels clairs) pour que l’équipe puisse prendre l’outil en main sans connaissances techniques particulières. 1 jour maximum.
+
+Un accompagnement minimum au démarrage et une solution de maintenance/assistance en cas de bug ou de questions, annuelle.
+
+Ce que nous attendons dans votre réponse
+
+Afin de pouvoir comparer les offres, nous vous remercions de bien vouloir nous transmettre :
+
+Une description, en termes simples, de la solution que vous proposez (comment cela fonctionne pour nous au quotidien).
+
+Le délai estimé pour la mise en place et les grandes étapes (paramétrage, tests, formation, mise en service).
+
+Votre proposition de prix, en distinguant :
+
+Ce qu’il y a à payer au départ (mise en place, adaptation, formation, etc.).
+
+Ce qu’il y a à payer ensuite régulièrement (abonnement, maintenance, hébergement, etc.).
+
+Éventuellement, s’il y a un coût par utilisateur / par agent.
+
+Si certaines fonctionnalités décrites ci-dessus font fortement augmenter le coût, n’hésitez pas à le préciser et à proposer éventuellement une version « de base » et des options (wpa au lieu versions mobiles par exemple), afin que nous puissions adapter selon notre budget.

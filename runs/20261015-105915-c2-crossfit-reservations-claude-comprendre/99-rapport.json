@@ -1,0 +1,16 @@
+{
+  "run": "20261015-105915-c2-crossfit-reservations-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-crossfit-reservations",
+  "modele": "boite",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- [bloc:acteur:invitation] coach / Adherent : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-cross...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "boite",
+    "appels": 10,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-15T11:07:19"
+}

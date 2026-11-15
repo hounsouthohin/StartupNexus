@@ -1,0 +1,15 @@
+{
+  "run": "20261009-211402-gestion-immo-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-gestion-immo",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261009-211402-gestion-immo-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 7,
+    "jetons_entree": 5460,
+    "jetons_sortie": 4021,
+    "dollars": 0.1479,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:14:55"
+}

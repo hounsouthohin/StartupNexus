@@ -1,0 +1,620 @@
+{
+  "app": {
+    "nom": "c2-depannage-24h",
+    "titre": "Gestion des interventions"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "patron",
+        "label": "Patron",
+        "label_plural": "Patrons",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "id": "secretaire",
+        "label": "Secrétaire",
+        "label_plural": "Secrétaires",
+        "feminine": true,
+        "becomes": "invited",
+        "invited_by": "patron",
+        "citation": "aide la secrétaire à gérer les interventions"
+      },
+      {
+        "id": "technicien",
+        "label": "Technicien",
+        "label_plural": "Techniciens",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "patron",
+        "citation": "Les techniciens ont leur propre interface unique"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Technicien",
+        "label": "Technicien",
+        "label_plural": "Techniciens",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "technicien",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Les techniciens ont leur propre interface unique, avec leurs informations personnelles (fiche opérateur, nom, numéro de téléphone)"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "secretaire",
+          "patron"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "mettant en relation clients, types/nature d'interventions et techniciens"
+      },
+      {
+        "name": "TypeIntervention",
+        "label": "Type d'intervention",
+        "label_plural": "Types d'intervention",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "secretaire",
+          "patron"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "prestations ou mots-clés de prestation"
+      },
+      {
+        "name": "SousTraitant",
+        "label": "Sous-traitant",
+        "label_plural": "Sous-traitants",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "secretaire",
+          "patron"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "les coordonnées et montants payés aux sous-traitants"
+      },
+      {
+        "name": "Intervention",
+        "label": "Intervention",
+        "label_plural": "Interventions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "secretaire",
+          "patron"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "TypeIntervention",
+          "Technicien",
+          "SousTraitant"
+        ],
+        "citation": "une liste quotidienne des interventions sur le calendrier, triée par date, client et technicien, avec le montant des travaux",
+        "process": {
+          "initial": "en_cours",
+          "transitions": {
+            "en_cours": [
+              "effectuee",
+              "annulee"
+            ],
+            "effectuee": [],
+            "annulee": []
+          },
+          "initiator": "secretaire",
+          "decider": "secretaire",
+          "steps_by": {},
+          "labels": {
+            "en_cours": "en cours",
+            "effectuee": "effectuée",
+            "annulee": "annulée"
+          },
+          "citation": "Chaque intervention est associée à un état coloré : en cours (🟠), effectuée (🟢), annulée (🔴)"
+        }
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "patron",
+        "entity": "Intervention",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "Intervention",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "Client",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "Client",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "Technicien",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "Technicien",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "TypeIntervention",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "TypeIntervention",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "SousTraitant",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "patron",
+        "entity": "SousTraitant",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Intervention",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Intervention",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Client",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Client",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Technicien",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Technicien",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "TypeIntervention",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "TypeIntervention",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "SousTraitant",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "SousTraitant",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Intervention",
+        "action": "edit",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Intervention",
+        "action": "delete",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Client",
+        "action": "edit",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Client",
+        "action": "delete",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Technicien",
+        "action": "edit",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Technicien",
+        "action": "delete",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "TypeIntervention",
+        "action": "edit",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "TypeIntervention",
+        "action": "delete",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "SousTraitant",
+        "action": "edit",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "SousTraitant",
+        "action": "delete",
+        "allow": false,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "actor": "technicien",
+        "entity": "Technicien",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Les techniciens ont leur propre interface unique, avec leurs informations personnelles"
+      }
+    ]
+  },
+  "champs": {
+    "Technicien": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "fiche opérateur, nom, numéro de téléphone"
+      },
+      {
+        "nom": "telephone",
+        "libelle": "Numéro de téléphone",
+        "type": "telephone",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "nom, numéro de téléphone"
+      },
+      {
+        "nom": "secteursActivite",
+        "libelle": "Secteurs d'activités",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "leurs secteurs d'activités"
+      },
+      {
+        "nom": "departementsIntervention",
+        "libelle": "Départements d'intervention",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "d'interventions par département"
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "TypeIntervention": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SousTraitant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "coordonnees",
+        "libelle": "Coordonnées",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les coordonnées et montants payés aux sous-traitants"
+      }
+    ],
+    "Intervention": [
+      {
+        "nom": "dateIntervention",
+        "libelle": "Date de l'intervention",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "triée par date, client et technicien"
+      },
+      {
+        "nom": "departement",
+        "libelle": "Département",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "technicien, client, période, département"
+      },
+      {
+        "nom": "montantTravaux",
+        "libelle": "Montant des travaux",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le montant des travaux"
+      },
+      {
+        "nom": "materielsFournitures",
+        "libelle": "Matériels/fournitures déposés",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "des matériels/fournitures déposés"
+      },
+      {
+        "nom": "montantFacture",
+        "libelle": "Montant de la facture",
+        "type": "montant",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "du montant de la facture"
+      },
+      {
+        "nom": "pourcentageTechnicien",
+        "libelle": "Pourcentage attribué au technicien",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "attribuant 20% du montant de la facture au technicien"
+      },
+      {
+        "nom": "montantSousTraitant",
+        "libelle": "Montant payé au sous-traitant",
+        "type": "montant",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "montants payés aux sous-traitants"
+      }
+    ]
+  },
+  "ecran": {
+    "Intervention": {
+      "verbe_creation": "Planifier",
+      "boutons": {
+        "annulee": "Annuler",
+        "effectuee": "Marquer effectuée"
+      }
+    }
+  },
+  "depart": {}
+}

@@ -1,0 +1,570 @@
+{
+ "titre": "Gestion du garage",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Photos des pièces dégradées lors du check-up",
+   "categorie": "fichiers_photos",
+   "citation": "photo des pièces qui sont dégradé"
+  },
+  {
+   "besoin": "Rapport de check-up imprimable à présenter au client",
+   "categorie": "document",
+   "citation": "le rapport sera imprimable afin de pouvoir présenter au client le rapport des traveaux"
+  },
+  {
+   "besoin": "Génération d'un document des réparations à effectuer à partir du check-up",
+   "categorie": "document",
+   "citation": "génération d'un document de réparation à effectuer en fonction du checkup"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant",
+   "L'employé"
+  ],
+  "fiches": 5,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "j'ai un garage automobile"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Clients, Véhicules, Check-ups, Documents de réparation",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "présenter au client le rapport des traveaux"
+       ]
+      },
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la réception du véhicule"
+       ]
+      },
+      {
+       "fiche": "Checkup",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "un check complet de l'état de la mécanique de la voiture"
+       ]
+      },
+      {
+       "fiche": "DocumentReparation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "génération d'un document de réparation à effectuer en fonction du checkup"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Photos de pièces (dans chaque Check-up)",
+     "cases": [
+      {
+       "fiche": "PhotoPiece",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Check-up : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "un check complet de l'état de la mécanique de la voiture"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "employe",
+   "libelle": "L'employé",
+   "devient": "invité par gerant",
+   "citations": [
+    "met en relation tout les acteur de ma société"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Clients, Véhicules, Check-ups",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "présenter au client le rapport des traveaux"
+       ]
+      },
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la réception du véhicule"
+       ]
+      },
+      {
+       "fiche": "Checkup",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "un check complet de l'état de la mécanique de la voiture"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Photos de pièces (dans chaque Check-up)",
+     "cases": [
+      {
+       "fiche": "PhotoPiece",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Check-up : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "un check complet de l'état de la mécanique de la voiture"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Documents de réparation : voit tout, en crée, les modifie, les fait passer de « à effectuer » à « terminée »",
+     "cases": [
+      {
+       "fiche": "DocumentReparation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "a_effectuer": [
+          "terminee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "génération d'un document de réparation à effectuer en fonction du checkup",
+        "génération d'un document de réparation à effectuer en fonction du checkup, confirmation de la fin de la réparation"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "DocumentReparation",
+   "texte": "Le document de réparation passe par : « à effectuer » → « terminée »",
+   "qui": [
+    "L'employé fait passer de « à effectuer » à « terminée »"
+   ],
+   "citations": [
+    "génération d'un document de réparation à effectuer en fonction du checkup, confirmation de la fin de la réparation"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "présenter au client le rapport des traveaux"
+   ]
+  },
+  {
+   "fiche": "Vehicule",
+   "libelle": "Véhicule",
+   "nature": "registry",
+   "relie_a": [
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "immatriculation",
+     "libelle": "Immatriculation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Vehicule:Marque",
+     "libelle": "Marque",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Vehicule:Modèle",
+     "libelle": "Modèle",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Vehicule:Kilométrage",
+     "libelle": "Kilométrage",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Vehicule:Date de réception",
+     "libelle": "Date de réception",
+     "type": "date"
+    },
+    {
+     "id": "garder:Vehicule:Numéro de série (VIN)",
+     "libelle": "Numéro de série (VIN)",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "la réception du véhicule"
+   ]
+  },
+  {
+   "fiche": "Checkup",
+   "libelle": "Check-up",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "etatMecanique",
+     "libelle": "État de la mécanique",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "un check complet de l'état de la mécanique de la voiture"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Checkup:Kilométrage relevé",
+     "libelle": "Kilométrage relevé",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Checkup:Conclusions / recommandations",
+     "libelle": "Conclusions / recommandations",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "un check complet de l'état de la mécanique de la voiture"
+   ]
+  },
+  {
+   "fiche": "PhotoPiece",
+   "libelle": "Photo de pièce",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Check-up"
+   ],
+   "champs": [
+    {
+     "nom": "piece",
+     "libelle": "Pièce",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "photo des pièces qui sont dégradé"
+    },
+    {
+     "nom": "photo",
+     "libelle": "Photo",
+     "type": "lien web",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "photo des pièces"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:PhotoPiece:Description de la dégradation",
+     "libelle": "Description de la dégradation",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "photo des pièces qui sont dégradé"
+   ]
+  },
+  {
+   "fiche": "DocumentReparation",
+   "libelle": "Document de réparation",
+   "nature": "registry",
+   "relie_a": [
+    "Check-up",
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "reparationsAEffectuer",
+     "libelle": "Réparations à effectuer",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "document de réparation à effectuer"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DocumentReparation:Rapport des travaux réalisés",
+     "libelle": "Rapport des travaux réalisés",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:DocumentReparation:Date de fin de réparation",
+     "libelle": "Date de fin de réparation",
+     "type": "date"
+    },
+    {
+     "id": "garder:DocumentReparation:Montant estimé",
+     "libelle": "Montant estimé",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "génération d'un document de réparation à effectuer en fonction du checkup"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:employe:Client",
+   "sorte": "registre_entier",
+   "texte": "L'employé verra tous les Clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Véhicules qu'il voit; clôture : choisit les Clients de ses Véhicules"
+  },
+  {
+   "id": "registre_entier:employe:Vehicule",
+   "sorte": "registre_entier",
+   "texte": "L'employé verra tous les Véhicules, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Check-ups qu'il voit; clôture : choisit les Véhicules de ses Check-ups"
+  },
+  {
+   "id": "registre_entier:employe:Checkup",
+   "sorte": "registre_entier",
+   "texte": "L'employé verra tous les Check-ups, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Documents de réparation qu'il voit; clôture : choisit les Check-ups de ses Documents de réparation"
+  },
+  {
+   "id": "registre_entier:employe:DocumentReparation",
+   "sorte": "registre_entier",
+   "texte": "L'employé verra tous les Documents de réparation, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité DocumentReparation (registre) : l'initiateur (employe) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:Vehicule:immatriculation",
+     "texte": "Véhicule → « Immatriculation »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

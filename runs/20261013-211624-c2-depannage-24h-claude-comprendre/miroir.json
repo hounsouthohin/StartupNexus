@@ -1,0 +1,769 @@
+{
+ "titre": "Gestion des interventions",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Vue calendrier avec une liste quotidienne des interventions",
+   "categorie": "planning",
+   "citation": "générer une liste quotidienne des interventions sur le calendrier"
+  },
+  {
+   "besoin": "Calcul de pourcentages sur le montant facturé (par exemple 20 % pour le technicien)",
+   "categorie": "calcul_statistiques",
+   "citation": "facilite le calcul des pourcentages, par exemple, en attribuant 20% du montant de la facture au technicien"
+  },
+  {
+   "besoin": "Recherche multicritère (technicien, client, période, département, prestations, mots-clés)",
+   "categorie": "autre",
+   "citation": "Les recherches peuvent être effectuées par technicien, client, période, département, prestations ou mots-clés de prestation"
+  },
+  {
+   "besoin": "Envoi des interventions par SMS au technicien",
+   "categorie": "notification",
+   "citation": "Les interventions sont envoyées directement par SMS sur le téléphone du technicien"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le patron",
+   "La secrétaire",
+   "Le technicien"
+  ],
+  "fiches": 5,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "patron",
+   "libelle": "Le patron",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Seuls les administrateurs peuvent modifier ou supprimer des données"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, modifie et supprime : Techniciens",
+     "cases": [
+      {
+       "fiche": "Technicien",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "clôture : voit ce qu'il modifie"
+       ],
+       "citations": [
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Clients, Types d'intervention, Sous-traitants, Interventions",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "mettant en relation clients, types/nature d'interventions et techniciens",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      },
+      {
+       "fiche": "TypeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "prestations ou mots-clés de prestation",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      },
+      {
+       "fiche": "SousTraitant",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "les coordonnées et montants payés aux sous-traitants",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      },
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "une liste quotidienne des interventions sur le calendrier, triée par date, client et technicien, avec le montant des travaux",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "secretaire",
+   "libelle": "La secrétaire",
+   "devient": "invité par patron",
+   "citations": [
+    "aide la secrétaire à gérer les interventions"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, modifie et supprime : Techniciens",
+     "cases": [
+      {
+       "fiche": "Technicien",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "clôture : voit ce qu'il modifie"
+       ],
+       "citations": [
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Clients, Types d'intervention, Sous-traitants",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "mettant en relation clients, types/nature d'interventions et techniciens",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      },
+      {
+       "fiche": "TypeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "prestations ou mots-clés de prestation",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      },
+      {
+       "fiche": "SousTraitant",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "les coordonnées et montants payés aux sous-traitants",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Interventions : voit tout, en crée, les modifie, les supprime, les fait passer de « en cours » à « effectuée » ou « annulée »",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {
+         "en_cours": [
+          "effectuee",
+          "annulee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "une liste quotidienne des interventions sur le calendrier, triée par date, client et technicien, avec le montant des travaux",
+        "Chaque intervention est associée à un état coloré : en cours (🟠), effectuée (🟢), annulée (🔴)",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "technicien",
+   "libelle": "Le technicien",
+   "devient": "invité par patron",
+   "citations": [
+    "Les techniciens ont leur propre interface unique"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Types d'intervention",
+     "cases": [
+      {
+       "fiche": "TypeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »"
+       ],
+       "citations": [
+        "prestations ou mots-clés de prestation",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Technicien, créé automatiquement",
+     "cases": [
+      {
+       "fiche": "Technicien",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Seuls les administrateurs peuvent modifier ou supprimer des données »",
+        "exception : « Les techniciens ont leur propre interface unique, avec leurs informations personnelles »"
+       ],
+       "citations": [
+        "Les techniciens ont leur propre interface unique, avec leurs informations personnelles (fiche opérateur, nom, numéro de téléphone)",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Seuls les administrateurs peuvent modifier ou supprimer des données",
+        "Les techniciens ont leur propre interface unique, avec leurs informations personnelles"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Intervention",
+   "texte": "L'intervention commence « en cours » ; de « en cours », vers « effectuée » ou « annulée »",
+   "qui": [
+    "La secrétaire fait passer de « en cours » à « effectuée » ou « annulée »"
+   ],
+   "citations": [
+    "Chaque intervention est associée à un état coloré : en cours (🟠), effectuée (🟢), annulée (🔴)"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Technicien",
+   "libelle": "Technicien",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "fiche opérateur, nom, numéro de téléphone"
+    },
+    {
+     "nom": "telephone",
+     "libelle": "Numéro de téléphone",
+     "type": "téléphone",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "nom, numéro de téléphone"
+    },
+    {
+     "nom": "secteursActivite",
+     "libelle": "Secteurs d'activités",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "leurs secteurs d'activités"
+    },
+    {
+     "nom": "departementsIntervention",
+     "libelle": "Départements d'intervention",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "d'interventions par département"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Technicien:Fiche opérateur (contenu à préciser)",
+     "libelle": "Fiche opérateur (contenu à préciser)",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Technicien:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Technicien:Pourcentage habituel sur facture",
+     "libelle": "Pourcentage habituel sur facture",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Les techniciens ont leur propre interface unique, avec leurs informations personnelles (fiche opérateur, nom, numéro de téléphone)"
+   ]
+  },
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Client:Ville",
+     "libelle": "Ville",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "mettant en relation clients, types/nature d'interventions et techniciens"
+   ]
+  },
+  {
+   "fiche": "TypeIntervention",
+   "libelle": "Type d'intervention",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:TypeIntervention:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:TypeIntervention:Tarif de base",
+     "libelle": "Tarif de base",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "prestations ou mots-clés de prestation"
+   ]
+  },
+  {
+   "fiche": "SousTraitant",
+   "libelle": "Sous-traitant",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "coordonnees",
+     "libelle": "Coordonnées",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les coordonnées et montants payés aux sous-traitants"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:SousTraitant:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:SousTraitant:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:SousTraitant:Spécialité",
+     "libelle": "Spécialité",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "les coordonnées et montants payés aux sous-traitants"
+   ]
+  },
+  {
+   "fiche": "Intervention",
+   "libelle": "Intervention",
+   "nature": "registry",
+   "relie_a": [
+    "Client",
+    "Type d'intervention",
+    "Technicien",
+    "Sous-traitant"
+   ],
+   "champs": [
+    {
+     "nom": "dateIntervention",
+     "libelle": "Date de l'intervention",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "triée par date, client et technicien"
+    },
+    {
+     "nom": "departement",
+     "libelle": "Département",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "technicien, client, période, département"
+    },
+    {
+     "nom": "montantTravaux",
+     "libelle": "Montant des travaux",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le montant des travaux"
+    },
+    {
+     "nom": "materielsFournitures",
+     "libelle": "Matériels/fournitures déposés",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des matériels/fournitures déposés"
+    },
+    {
+     "nom": "montantFacture",
+     "libelle": "Montant de la facture",
+     "type": "montant",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "du montant de la facture"
+    },
+    {
+     "nom": "pourcentageTechnicien",
+     "libelle": "Pourcentage attribué au technicien",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "attribuant 20% du montant de la facture au technicien"
+    },
+    {
+     "nom": "montantSousTraitant",
+     "libelle": "Montant payé au sous-traitant",
+     "type": "montant",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "montants payés aux sous-traitants"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Intervention:Heure de l'intervention",
+     "libelle": "Heure de l'intervention",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Intervention:Adresse / ville de l'intervention",
+     "libelle": "Adresse / ville de l'intervention",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Intervention:Description de la prestation",
+     "libelle": "Description de la prestation",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Intervention:Montant des matériels/fournitures",
+     "libelle": "Montant des matériels/fournitures",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Intervention:Part du technicien",
+     "libelle": "Part du technicien",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "une liste quotidienne des interventions sur le calendrier, triée par date, client et technicien, avec le montant des travaux"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:secretaire:Client",
+   "sorte": "registre_entier",
+   "texte": "La secrétaire verra tous les Clients, pas seulement ceux qui la concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Interventions qu'il voit; clôture : choisit les Clients de ses Interventions"
+  },
+  {
+   "id": "registre_entier:secretaire:SousTraitant",
+   "sorte": "registre_entier",
+   "texte": "La secrétaire verra tous les Sous-traitants, pas seulement ceux qui la concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Interventions qu'il voit; clôture : choisit les Sous-traitants de ses Interventions"
+  },
+  {
+   "id": "registre_entier:secretaire:Intervention",
+   "sorte": "registre_entier",
+   "texte": "La secrétaire verra toutes les Interventions, pas seulement celles qui la concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Intervention (registre) : l'initiateur (secretaire) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:TypeIntervention:intitule",
+     "texte": "Type d'intervention → « Intitulé »"
+    },
+    {
+     "id": "nom:SousTraitant:nom",
+     "texte": "Sous-traitant → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

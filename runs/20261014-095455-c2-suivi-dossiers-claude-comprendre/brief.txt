@@ -1,0 +1,14 @@
+Création d'un CRM
+Nous recherchons un développeur capable de créer une application  pour un suivi de dossiers.
+
+Interface d’administration : Authentification, gestion et suivi des
+
+dossiers, génération automatique de documents (contrats, lettres,
+
+factures), gestion documentaire (ajout, visualisation, notifications).
+
+- Interface client : Authentification, suivi de l’état d’avancement,
+
+gestion documentaire (ajout, visualisation, notifications).
+
+- Mise en place, formation et documentation utilisateur.

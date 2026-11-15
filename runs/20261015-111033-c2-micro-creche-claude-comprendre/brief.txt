@@ -1,0 +1,82 @@
+Application pour gestion micro crèche
+Objet : Recherche développeur (ou équipe) pour application de gestion de micro-crèche.
+
+Bonjour,
+
+Je recherche un(e) développeur(se) ou une équipe pour créer une application mobile et/ou web destinée à la gestion d’une micro-crèche.
+
+L’objectif est de faciliter la gestion du personnel, la communication avec les parents, et le suivi logistique (stocks).
+
+Fonctionnalités à développer (version MVP) :
+
+-Espace personnel :
+
+Planning du personnel
+
+Pointage d’arrivée/départ
+
+Accès aux fiches de paie
+
+Signalement de besoins (stocks manquants)
+
+-Espace parent :
+
+Réservation de créneaux de garde
+
+Informations enfants (santé, habitudes…)
+
+Transmissions quotidiennes
+
+Accès sécurisé à des photos
+
+-Espace direction :
+
+Création comptes personnel/parents
+
+Suivi des présences et pointages
+
+Gestion des stocks (ajout, seuils d’alerte)
+
+Envoi de documents/messages
+
+🔐 Contraintes techniques :
+
+Application sécurisée et conforme RGPD
+
+Hébergement en Europe (ou France)
+
+Authentification sécurisée (2FA optionnelle)
+
+Application mobile Android/iOS (cross-platform possible)
+
+Interface intuitive (parents peu technophiles)
+
+Optionnel (à chiffrer séparément) :
+
+Version web pour direction
+
+Interface multilingue (français obligatoire, créole souhaité)
+
+Ajout d’un back-office de facturation ou de messagerie
+
+🕒 Deadline souhaitée :
+
+Version fonctionnelle (MVP) livrée idéalement d’ici juin 2026.
+
+💶 Budget :
+
+Budget estimé pour MVP : 5 000 € à 10 000 €
+
+Merci d’indiquer :
+
+Devis
+
+Délai de réalisation
+
+Technologies proposées (ex : Flutter, React Native, Firebase…)
+
+Modalités de maintenance/évolution
+
+Cordialement
+
+CHEVREUX Mégane

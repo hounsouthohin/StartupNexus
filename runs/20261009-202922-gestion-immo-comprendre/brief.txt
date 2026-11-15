@@ -1,0 +1,2 @@
+Logiciel de gestion immobilière.
+Nous sommes gestionnaire de biens immobilier dans la région Lyonnaise. Nous recherchons une personne qui serait en mesure de créer un logiciel permettant d'automatiser des taches. Notamment la possibilité d'automatiser le rapprochement bancaire, l'encaissement des loyers, le reversement des loyers, d'envoyer automatiquement des quittances, relevé de compte etc..

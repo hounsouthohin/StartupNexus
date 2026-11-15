@@ -1,0 +1,501 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est la gestion d'une petite structure (une salle de crossfit) : des fiches adhérents, des créneaux et des inscriptions, deux rôles (les coachs administrateurs voient tout, ajoutent et suppriment des adhérents ; l'adhérent crée son compte, s'inscrit à un créneau et peut annuler). Les inscriptions passent par des états (inscrit, en liste d'attente, annulé). Il n'y a pas de paiement en ligne : le paiement se fait hors application, seul son suivi est demandé. Le planning, les notifications, les règles de capacité et de délai sont des besoins hors stock, mais le projet reste un logiciel de gestion. Le brief parle d'« application » sans dire si elle doit être mobile native : on le demandera au client.",
+    "hors_stock": [
+      {
+        "besoin": "Vue emploi du temps (planning des créneaux) consultable en temps réel par le coach et par les adhérents",
+        "categorie": "planning",
+        "citation": "Le client doit avoir une visualisation en temps réel de l’emploie du temps ... L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle"
+      },
+      {
+        "besoin": "Comptage des adhérents inscrits à chaque créneau",
+        "categorie": "calcul_statistiques",
+        "citation": "une visualisation globale sur le nombre d’adhérents à chaque créneaux"
+      },
+      {
+        "besoin": "Limite de 15 places par créneau et calcul des places disponibles",
+        "categorie": "calcul_statistiques",
+        "citation": "Le client choisi son ou ses créneaux selon les places disponibles ... 15 personnes par créneaux maximum"
+      },
+      {
+        "besoin": "Liste d'attente gérée automatiquement quand un créneau est complet",
+        "categorie": "automatisation",
+        "citation": "Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète"
+      },
+      {
+        "besoin": "Annulation interdite moins de 2 heures avant la séance (règle liée à l'heure)",
+        "categorie": "autre",
+        "citation": "2H max avant la séance pour pouvoir l’annuler"
+      },
+      {
+        "besoin": "Limite d'un créneau par jour et par adhérent (à confirmer, le brief dit aussi « son ou ses créneaux »)",
+        "categorie": "autre",
+        "citation": "Il choisi un créneaux par jour ( 6 créneaux par jour)"
+      },
+      {
+        "besoin": "Indicateur de couleur vert/rouge selon que l'adhérent a payé et est en situation régulière (suivi des paiements)",
+        "categorie": "autre",
+        "citation": "vert si le client a payé et est en situation régulière et rouge à l’inverse"
+      },
+      {
+        "besoin": "Notification de rappel au coach 2 jours avant l'échéance de l'abonnement d'un adhérent",
+        "categorie": "notification",
+        "citation": "Le coach reçoit une notification de l’application ... 2 jours avant la fin de sa date d’anniversaire"
+      },
+      {
+        "besoin": "Notification au coach quand un adhérent annule une séance",
+        "categorie": "notification",
+        "citation": "L’administrateur est notifier si le client annule une séance"
+      },
+      {
+        "besoin": "Message de relance automatique au coach et à l'adhérent à l'échéance de l'abonnement",
+        "categorie": "notification",
+        "citation": "L’application relance l’administrateur tout comme le client avec un message lorsque que la date d’anniversaire (date d’inscription) arrive à échéance"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "coach",
+        "libelle": "Coach",
+        "libelle_pluriel": "Coachs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l’un pour les 2 coach (espace Admin)"
+      },
+      {
+        "id": "adherent",
+        "libelle": "Adhérent",
+        "libelle_pluriel": "Adhérents",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "l’un pour les adhérents de la salle de crossfit ... Le client devra crée un compte"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Adherent",
+        "libelle": "Adhérent",
+        "libelle_pluriel": "Adhérents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "adherent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "il faut que le coach puisse ajouter et supprimer les clients ... Le client devra crée un compte en entrant les informations ci dessous"
+      },
+      {
+        "nom": "Creneau",
+        "libelle": "Créneau",
+        "libelle_pluriel": "Créneaux",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "coach"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Le client doit avoir une visualisation en temps réel de l’emploie du temps ... 15 personnes par créneaux maximum"
+      },
+      {
+        "nom": "Reservation",
+        "libelle": "Réservation",
+        "libelle_pluriel": "Réservations",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "adherent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Creneau"
+        ],
+        "citation": "qui sera présent à quelle séance ... Le client choisi son ou ses créneaux selon les places disponibles"
+      },
+      {
+        "nom": "InscriptionAttente",
+        "libelle": "Inscription en liste d'attente",
+        "libelle_pluriel": "Inscriptions en liste d'attente",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "adherent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Creneau"
+        ],
+        "citation": "Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Reservation",
+        "etat_initial": "inscrite",
+        "transitions": {
+          "inscrite": [
+            "annulee"
+          ],
+          "annulee": []
+        },
+        "libelles": {
+          "inscrite": "inscrite",
+          "annulee": "annulée"
+        },
+        "initiateur": "adherent",
+        "decideur": "adherent",
+        "etapes_par": {},
+        "citation": "s’inscrit sur celui souhaiter ... le client annule une séance ... 2H max avant la séance pour pouvoir l’annuler"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "coach",
+        "fiche": "Reservation",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le coach veut avoir une visualisation globale sur le nombre d’adhérents à chaque créneaux (qui sera présent à quelle séance)"
+      },
+      {
+        "acteur": "coach",
+        "fiche": "Adherent",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le coach veut avoir une visualisation sur chaque adhérents de sa salle de crossfit"
+      },
+      {
+        "acteur": "coach",
+        "fiche": "Adherent",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "il faut que le coach puisse ajouter et supprimer les clients"
+      },
+      {
+        "acteur": "coach",
+        "fiche": "Adherent",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "il faut que le coach puisse ajouter et supprimer les clients"
+      },
+      {
+        "acteur": "coach",
+        "fiche": "Creneau",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "Adherent",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le client devra crée un compte"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "Creneau",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le client doit avoir une visualisation en temps réel de l’emploie du temps ... a accès à l’emploi du temps de la salle"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "Reservation",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "s’inscrit sur celui souhaiter ... Le client choisi son ou ses créneaux selon les places disponibles"
+      },
+      {
+        "acteur": "adherent",
+        "fiche": "Reservation",
+        "action": "transition",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {
+          "inscrite": [
+            "annulee"
+          ]
+        },
+        "citation": "si le client annule une séance ... 2H max avant la séance pour pouvoir l’annuler"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Adherent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "nom et prénom"
+          },
+          {
+            "nom": "prenom",
+            "libelle": "Prénom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "nom et prénom"
+          },
+          {
+            "nom": "typeAbonnement",
+            "libelle": "Type d'abonnement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "séance",
+              "semaine",
+              "mois"
+            ],
+            "origine": "brief",
+            "citation": "type d’abonnement (séance , semaine ou mois)"
+          },
+          {
+            "nom": "dateAnniversaireAbonnement",
+            "libelle": "Date d'anniversaire de l'abonnement",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "date d’anniversaire de l’abonnement (le jour ou le client paie son abonnement)"
+          },
+          {
+            "nom": "situationReguliere",
+            "libelle": "En situation régulière (a payé)",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la régularité (vert si le client a payé et est en situation régulière et rouge à l’inverse)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Le coach doit pouvoir prévenir le client de vive voix pour la relance de paiement ; le brief ne dit pas comment le joindre."
+          },
+          {
+            "libelle": "Montant de l'abonnement",
+            "type": "montant",
+            "raison": "Le brief parle de paiement et de relance, mais pas du prix payé par l'adhérent."
+          }
+        ]
+      },
+      {
+        "fiche": "Creneau",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "nombrePlacesMax",
+            "libelle": "Nombre de places maximum",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "15 personnes par créneaux maximum"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure de début",
+            "type": "date_heure",
+            "raison": "Nécessaire pour placer le créneau dans l'emploi du temps (6 créneaux par jour) et appliquer la règle d'annulation 2 h avant la séance ; le brief ne le cite pas comme information."
+          },
+          {
+            "libelle": "Durée (minutes)",
+            "type": "nombre",
+            "raison": "La durée d'une séance n'est pas précisée."
+          },
+          {
+            "libelle": "Coach",
+            "type": "texte",
+            "raison": "La salle a 2 coachs ; à confirmer si chaque créneau est attribué à l'un d'eux."
+          }
+        ]
+      },
+      {
+        "fiche": "Reservation",
+        "champs": [],
+        "propositions": [
+          {
+            "libelle": "Date de la séance",
+            "type": "date",
+            "raison": "Si un créneau se répète chaque jour, il faudrait préciser le jour réservé ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "InscriptionAttente",
+        "champs": [],
+        "propositions": [
+          {
+            "libelle": "Rang dans la liste d'attente",
+            "type": "nombre",
+            "raison": "Le brief prévoit une liste d'attente quand la séance est complète, mais ne dit pas comment l'ordre de passage est fixé."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Réservations CrossFit",
+    "fiches": [
+      {
+        "fiche": "Reservation",
+        "verbe_creation": "Réserver",
+        "boutons": {
+          "annulee": "Annuler"
+        }
+      },
+      {
+        "fiche": "InscriptionAttente",
+        "verbe_creation": "Rejoindre la liste d'attente",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Adherent : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Reservation : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche InscriptionAttente : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Adherent : la fiche est un « profile », qui ne change pas d'état (seule une collection ou un registre a un circuit) — ne liste pas ce circuit"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.8.transitions.inscrite : Input should be a valid array"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+{
+  "app": {
+    "nom": "c2-atelier-reparation",
+    "titre": "Atelier de réparation"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "logiciel de gestion d'atelier de réparation"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Machine",
+        "label": "Machine",
+        "label_plural": "Machines",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "suivi de machine"
+      },
+      {
+        "name": "BonEntree",
+        "label": "Bon d'entrée",
+        "label_plural": "Bons d'entrée",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Machine"
+        ],
+        "process": null,
+        "citation": "gestion d'atelier de réparation : bon d'entrée"
+      },
+      {
+        "name": "BonIntervention",
+        "label": "Bon d'intervention",
+        "label_plural": "Bons d'intervention",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Machine"
+        ],
+        "process": null,
+        "citation": "bon d'intervention"
+      },
+      {
+        "name": "CommandePiece",
+        "label": "Commande de pièce",
+        "label_plural": "Commandes de pièces",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "commande de pièce"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Machine": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "BonEntree": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro du bon",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "BonIntervention": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro du bon",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CommandePiece": [
+      {
+        "nom": "piece",
+        "libelle": "Pièce commandée",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "BonEntree": {
+      "verbe_creation": "Réceptionner",
+      "boutons": {}
+    },
+    "BonIntervention": {
+      "verbe_creation": "Intervenir",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

@@ -1,0 +1,917 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion d'une petite structure (micro-crèche) : comptes du personnel et des parents créés par la direction, fiches enfants, signalements et gestion des stocks, suivi des présences, avec des espaces différents selon le rôle (personnel, parent, direction). L'application mobile, la messagerie, le planning et les photos sont des besoins hors stock autour de ce coeur de gestion, ils ne le remplacent pas.",
+    "hors_stock": [
+      {
+        "besoin": "Planning du personnel",
+        "categorie": "planning",
+        "citation": "Planning du personnel"
+      },
+      {
+        "besoin": "Réservation de créneaux de garde par les parents (gestion de créneaux sur un calendrier)",
+        "categorie": "planning",
+        "citation": "Réservation de créneaux de garde"
+      },
+      {
+        "besoin": "Mise à disposition des fiches de paie (documents) pour le personnel",
+        "categorie": "document",
+        "citation": "Accès aux fiches de paie"
+      },
+      {
+        "besoin": "Accès sécurisé des parents à des photos",
+        "categorie": "fichiers_photos",
+        "citation": "Accès sécurisé à des photos"
+      },
+      {
+        "besoin": "Alerte quand un stock passe sous un seuil",
+        "categorie": "automatisation",
+        "citation": "Gestion des stocks (ajout, seuils d’alerte)"
+      },
+      {
+        "besoin": "Envoi de documents par la direction",
+        "categorie": "fichiers_photos",
+        "citation": "Envoi de documents/messages"
+      },
+      {
+        "besoin": "Communication et envoi de messages avec les parents",
+        "categorie": "messagerie",
+        "citation": "la communication avec les parents ... Envoi de documents/messages"
+      },
+      {
+        "besoin": "Application mobile Android/iOS",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Application mobile Android/iOS (cross-platform possible)"
+      },
+      {
+        "besoin": "Double authentification (2FA) optionnelle",
+        "categorie": "autre",
+        "citation": "Authentification sécurisée (2FA optionnelle)"
+      },
+      {
+        "besoin": "Interface multilingue (français, créole)",
+        "categorie": "autre",
+        "citation": "Interface multilingue (français obligatoire, créole souhaité)"
+      },
+      {
+        "besoin": "Back-office de facturation (optionnel)",
+        "categorie": "document",
+        "citation": "Ajout d’un back-office de facturation"
+      },
+      {
+        "besoin": "Back-office de messagerie (optionnel)",
+        "categorie": "messagerie",
+        "citation": "back-office de facturation ou de messagerie"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "direction",
+        "libelle": "Direction",
+        "libelle_pluriel": "Directions",
+        "feminin": true,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Espace direction ... Création comptes personnel/parents"
+      },
+      {
+        "id": "personnel",
+        "libelle": "Membre du personnel",
+        "libelle_pluriel": "Membres du personnel",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "direction",
+        "citation": "Espace personnel ... Création comptes personnel/parents"
+      },
+      {
+        "id": "parent",
+        "libelle": "Parent",
+        "libelle_pluriel": "Parents",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "direction",
+        "citation": "Espace parent ... Création comptes personnel/parents"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Enfant",
+        "citation": "Informations enfants (santé, habitudes…)"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "ProfilPersonnel",
+        "libelle": "membre du personnel",
+        "libelle_pluriel": "membres du personnel",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "personnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "nom": "ProfilParent",
+        "libelle": "parent",
+        "libelle_pluriel": "parents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "parent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "nom": "Enfant",
+        "libelle": "enfant",
+        "libelle_pluriel": "enfants",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "parent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Informations enfants (santé, habitudes…)"
+      },
+      {
+        "nom": "Reservation",
+        "libelle": "réservation de créneau",
+        "libelle_pluriel": "réservations de créneau",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "parent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Enfant"
+        ],
+        "citation": "Réservation de créneaux de garde"
+      },
+      {
+        "nom": "Transmission",
+        "libelle": "transmission",
+        "libelle_pluriel": "transmissions",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "parent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "personnel",
+        "parent": null,
+        "references": [
+          "Enfant"
+        ],
+        "citation": "Transmissions quotidiennes"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "photo",
+        "libelle_pluriel": "photos",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "parent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "personnel",
+        "parent": null,
+        "references": [],
+        "citation": "Accès sécurisé à des photos"
+      },
+      {
+        "nom": "Planning",
+        "libelle": "planning",
+        "libelle_pluriel": "plannings",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "personnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Planning du personnel"
+      },
+      {
+        "nom": "Pointage",
+        "libelle": "pointage",
+        "libelle_pluriel": "pointages",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "personnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Pointage d’arrivée/départ ... Suivi des présences et pointages"
+      },
+      {
+        "nom": "FicheDePaie",
+        "libelle": "fiche de paie",
+        "libelle_pluriel": "fiches de paie",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "personnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "direction",
+        "parent": null,
+        "references": [],
+        "citation": "Accès aux fiches de paie"
+      },
+      {
+        "nom": "SignalementBesoin",
+        "libelle": "signalement de besoin",
+        "libelle_pluriel": "signalements de besoin",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "personnel",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "ArticleStock"
+        ],
+        "citation": "Signalement de besoins (stocks manquants)"
+      },
+      {
+        "nom": "ArticleStock",
+        "libelle": "article en stock",
+        "libelle_pluriel": "articles en stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "direction"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des stocks (ajout, seuils d’alerte)"
+      },
+      {
+        "nom": "Document",
+        "libelle": "document",
+        "libelle_pluriel": "documents",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "direction"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Envoi de documents/messages"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Enfant",
+        "fiche": "Enfant",
+        "raison": "Le parent renseigne les informations de ses enfants (santé, habitudes) dans son espace ; chaque enfant est rattaché au parent connecté."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "personnel",
+        "fiche": "Pointage",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Pointage d’arrivée/départ"
+      },
+      {
+        "acteur": "personnel",
+        "fiche": "FicheDePaie",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Accès aux fiches de paie"
+      },
+      {
+        "acteur": "personnel",
+        "fiche": "SignalementBesoin",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Signalement de besoins (stocks manquants)"
+      },
+      {
+        "acteur": "parent",
+        "fiche": "Reservation",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Réservation de créneaux de garde"
+      },
+      {
+        "acteur": "direction",
+        "fiche": "ProfilPersonnel",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "acteur": "direction",
+        "fiche": "ProfilParent",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "acteur": "direction",
+        "fiche": "Pointage",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Suivi des présences et pointages"
+      },
+      {
+        "acteur": "direction",
+        "fiche": "ArticleStock",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Gestion des stocks (ajout"
+      },
+      {
+        "acteur": "direction",
+        "fiche": "Document",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Envoi de documents/messages"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "ProfilPersonnel",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas l'identité des membres du personnel."
+          },
+          {
+            "libelle": "Poste / fonction",
+            "type": "texte",
+            "raison": "Utile pour le planning, non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnées du personnel non mentionnées dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour la création de compte et l'envoi de documents, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "ProfilParent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas l'identité des parents."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour joindre le parent, non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour l'envoi de documents/messages, non cité."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Coordonnées postales non mentionnées dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Enfant",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "sante",
+            "libelle": "Informations de santé",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Informations enfants (santé"
+          },
+          {
+            "nom": "habitudes",
+            "libelle": "Habitudes",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Informations enfants (santé, habitudes"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment l'enfant est identifié."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Information courante en crèche, non citée dans le brief."
+          },
+          {
+            "libelle": "Allergies",
+            "type": "texte_long",
+            "raison": "Le brief cite « santé » sans détailler ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Personnes autorisées à récupérer l'enfant",
+            "type": "texte_long",
+            "raison": "Information fréquente en crèche, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Reservation",
+        "champs": [
+          {
+            "nom": "debutCreneau",
+            "libelle": "Début du créneau",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Réservation de créneaux de garde"
+          },
+          {
+            "nom": "finCreneau",
+            "libelle": "Fin du créneau",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Réservation de créneaux de garde"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Précision éventuelle du parent sur la réservation, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Transmission",
+        "champs": [
+          {
+            "nom": "jour",
+            "libelle": "Jour de la transmission",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Transmissions quotidiennes"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Contenu de la transmission",
+            "type": "texte_long",
+            "raison": "Le brief ne détaille pas ce que contient une transmission."
+          },
+          {
+            "libelle": "Repas",
+            "type": "texte_long",
+            "raison": "Rubrique courante des transmissions en crèche, non citée."
+          },
+          {
+            "libelle": "Sieste",
+            "type": "texte_long",
+            "raison": "Rubrique courante des transmissions en crèche, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Photo",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Lien du fichier photo",
+            "type": "url",
+            "raison": "Le brief ne précise pas comment la photo est stockée."
+          },
+          {
+            "libelle": "Date de prise de vue",
+            "type": "date",
+            "raison": "Utile pour classer les photos, non citée."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Légende éventuelle, non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Planning",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Le brief ne précise pas la période couverte par un planning."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Le brief ne précise pas la période couverte par un planning."
+          },
+          {
+            "libelle": "Horaires",
+            "type": "texte_long",
+            "raison": "Le contenu du planning du personnel n'est pas détaillé."
+          }
+        ]
+      },
+      {
+        "fiche": "Pointage",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "heureArrivee",
+            "libelle": "Heure d'arrivée",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Pointage d’arrivée/départ"
+          },
+          {
+            "nom": "heureDepart",
+            "libelle": "Heure de départ",
+            "type": "date_heure",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Pointage d’arrivée/départ"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Justification d'un retard ou d'une absence, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "FicheDePaie",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Période (mois)",
+            "type": "date",
+            "raison": "Le brief ne précise pas la période de la fiche de paie."
+          },
+          {
+            "libelle": "Lien du fichier",
+            "type": "url",
+            "raison": "Le brief ne précise pas comment la fiche de paie est déposée."
+          },
+          {
+            "libelle": "Montant net",
+            "type": "montant",
+            "raison": "Information non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "SignalementBesoin",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité souhaitée",
+            "type": "nombre",
+            "raison": "Le brief ne précise pas si une quantité est indiquée dans le signalement."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Précision sur le besoin, non citée."
+          },
+          {
+            "libelle": "Urgent",
+            "type": "oui_non",
+            "raison": "Niveau d'urgence non mentionné dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "ArticleStock",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "quantiteEnStock",
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Gestion des stocks (ajout"
+          },
+          {
+            "nom": "seuilAlerte",
+            "libelle": "Seuil d'alerte",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "seuils d’alerte"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Unité",
+            "type": "texte",
+            "raison": "Unité de mesure (paquet, boîte…) non précisée dans le brief."
+          },
+          {
+            "libelle": "Catégorie",
+            "type": "texte",
+            "raison": "Classement des articles (couches, alimentation…) non cité."
+          },
+          {
+            "libelle": "Fournisseur",
+            "type": "texte",
+            "raison": "Information non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Lien du fichier",
+            "type": "url",
+            "raison": "Le brief ne précise pas comment le document est joint."
+          },
+          {
+            "libelle": "Message",
+            "type": "texte_long",
+            "raison": "Texte accompagnant l'envoi, non détaillé dans le brief."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Information non citée dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion de la micro-crèche",
+    "fiches": [
+      {
+        "fiche": "Reservation",
+        "verbe_creation": "Réserver un créneau",
+        "boutons": {}
+      },
+      {
+        "fiche": "Transmission",
+        "verbe_creation": "Noter une transmission",
+        "boutons": {}
+      },
+      {
+        "fiche": "SignalementBesoin",
+        "verbe_creation": "Signaler un besoin",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Pointage : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

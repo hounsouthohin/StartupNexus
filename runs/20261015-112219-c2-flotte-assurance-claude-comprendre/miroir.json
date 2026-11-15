@@ -1,0 +1,322 @@
+{
+ "titre": "Gestion de flotte",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:pour-autrui] Contrat : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:acteur:invitation] administrateur / Souscripteur : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)",
+   "[bloc:portee:designe] souscripteur / Vehicule : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-flott...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "acteur:invitation",
+   "lien:pour-autrui",
+   "portee:designe"
+  ],
+  "pas_encore": [
+   "⚠ Le souscripteur ne verra pas les véhicules qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "L'administrateur crée le compte des souscripteurs : pas encore possible (les invitations arrivent avec la connexion)",
+   "les contrats que l'administrateur saisit pour le souscripteur : pas encore possible — retirées"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Génération en PDF d'une carte verte à imprimer, avec un contenu imposé (modèle dans un PDF joint)",
+   "categorie": "document",
+   "citation": "permettre d’imprimer une carte verte (vie génération pdf)... La carte verte doit contenir les infos suivantes (voir PDF joint)"
+  },
+  {
+   "besoin": "Envoi automatique d'un e-mail à l'agence et au client à chaque action (sauf l'impression de la carte verte)",
+   "categorie": "notification",
+   "citation": "Lors de chaque action (sauf impression carte verte), un mail doit être envoyé à l’agence et au client."
+  },
+  {
+   "besoin": "Import d'un fichier Excel par l'administrateur pour alimenter la flotte",
+   "categorie": "autre",
+   "citation": "Avec possibilité d’import fichier excel pour alimenter la flotte"
+  },
+  {
+   "besoin": "Export du parc de véhicules vers Excel",
+   "categorie": "autre",
+   "citation": "possibilité export parc sur excel"
+  },
+  {
+   "besoin": "Filtre d'affichage des véhicules selon qu'ils sont sortis ou non",
+   "categorie": "autre",
+   "citation": "possibilité de filtrer l’affichage des véhicules si sortis ou non"
+  },
+  {
+   "besoin": "Contrainte technique : application en PHP/MySQL installable sur un hébergement mutualisé OVH",
+   "categorie": "autre",
+   "citation": "Interface php/mysql pouvant être installé sur hébergement mutualisé OVH."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le souscripteur"
+  ],
+  "fiches": 2,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous sommes un cabinet d’assurance"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, modifie et supprime : souscripteurs",
+     "cases": [
+      {
+       "fiche": "Souscripteur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Création / modification / suppression : de souscripteur et de flotte »",
+        "exception : « Création / modification / suppression : de souscripteur et de flotte »",
+        "clôture : voit ce qu'il modifie"
+       ],
+       "citations": [
+        "Création / modification / suppression : de souscripteur et de flotte",
+        "Création / modification / suppression : de souscripteur et de flotte"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son administrateur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Administrateur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Identifiant et mot de passe"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "souscripteur",
+   "libelle": "Le souscripteur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "mettre à disposition de nos clients un outils de gestion de leur parc auto"
+   ],
+   "phrases": [
+    {
+     "texte": "a son souscripteur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Souscripteur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Création / modification / suppression : de souscripteur et de flotte"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Administrateur",
+   "libelle": "administrateur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "identifiant",
+     "libelle": "Identifiant",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Identifiant et mot de passe"
+    },
+    {
+     "nom": "motDePasse",
+     "libelle": "Mot de passe",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Identifiant et mot de passe"
+    },
+    {
+     "nom": "email",
+     "libelle": "Adresse email",
+     "type": "e-mail",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Adresse email"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Administrateur:Nom",
+     "libelle": "Nom",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Identifiant et mot de passe"
+   ]
+  },
+  {
+   "fiche": "Souscripteur",
+   "libelle": "souscripteur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "raisonSociale",
+     "libelle": "Raison sociale",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Raison sociale"
+    },
+    {
+     "nom": "identifiant",
+     "libelle": "Identifiant",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "identifiant"
+    },
+    {
+     "nom": "motDePasse",
+     "libelle": "Mot de passe",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "mot de passe"
+    },
+    {
+     "nom": "adresse",
+     "libelle": "Adresse",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Adresse"
+    },
+    {
+     "nom": "codePostal",
+     "libelle": "Code postal",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Code postal"
+    },
+    {
+     "nom": "ville",
+     "libelle": "Ville",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Ville"
+    },
+    {
+     "nom": "email",
+     "libelle": "Email",
+     "type": "e-mail",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "email"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Souscripteur:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Souscripteur:Email de l'agence",
+     "libelle": "Email de l'agence",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "Création / modification / suppression : de souscripteur et de flotte"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

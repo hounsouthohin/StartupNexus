@@ -1,0 +1,333 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est une application de gestion d’entreprise de type ERP : « application de gestion d’entreprise » ... « type ERP ».",
+    "hors_stock": [
+      {
+        "besoin": "Application hybride plus tard",
+        "categorie": "mobile_hors_ligne",
+        "citation": "application web dans un premier temps puis hybride plus tard"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "faire de la facturation"
+      },
+      {
+        "besoin": "Comptabilité",
+        "categorie": "calcul_statistiques",
+        "citation": "la comptabilité"
+      },
+      {
+        "besoin": "Gestion financière",
+        "categorie": "calcul_statistiques",
+        "citation": "la gestion financière"
+      },
+      {
+        "besoin": "Gestion de stock avec calculs de quantités/mouvements",
+        "categorie": "calcul_statistiques",
+        "citation": "la gestion de stock"
+      },
+      {
+        "besoin": "Saisie automatique",
+        "categorie": "automatisation",
+        "citation": "une option de saisie automatique"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons des free-lances"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "Utilisateur",
+        "libelle_pluriel": "Utilisateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "utilisée aussi bien par un novice qu’un professionnel du domaine"
+      },
+      {
+        "id": "expert_comptable",
+        "libelle": "Expert comptable",
+        "libelle_pluriel": "Experts comptables",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "la possibilité de rajouter un expert comptable"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "faire de la facturation"
+      },
+      {
+        "nom": "EcritureComptable",
+        "libelle": "écriture comptable",
+        "libelle_pluriel": "écritures comptables",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "utilisateur",
+          "expert_comptable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la comptabilité ... rajouter un expert comptable"
+      },
+      {
+        "nom": "OperationFinanciere",
+        "libelle": "opération financière",
+        "libelle_pluriel": "opérations financières",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion financière"
+      },
+      {
+        "nom": "ArticleStock",
+        "libelle": "article de stock",
+        "libelle_pluriel": "articles de stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion de stock"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "raison": "Identifier la facture avec une référence métier."
+          },
+          {
+            "libelle": "Date de facture",
+            "type": "date",
+            "raison": "Information généralement nécessaire pour la facturation."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Information généralement nécessaire pour la facturation."
+          }
+        ]
+      },
+      {
+        "fiche": "EcritureComptable",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Libellé comptable",
+            "type": "texte",
+            "raison": "Décrire l’écriture comptable."
+          },
+          {
+            "libelle": "Date d’écriture",
+            "type": "date",
+            "raison": "Situer l’écriture dans la comptabilité."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Montant de l’écriture comptable."
+          }
+        ]
+      },
+      {
+        "fiche": "OperationFinanciere",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l’opération",
+            "type": "date",
+            "raison": "Situer l’opération financière dans le temps."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Montant de l’opération financière."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Préciser le détail de l’opération financière."
+          }
+        ]
+      },
+      {
+        "fiche": "ArticleStock",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence",
+            "type": "texte",
+            "raison": "Identifier l’article de stock avec une référence."
+          },
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "Suivre le niveau de stock de l’article."
+          },
+          {
+            "libelle": "Seuil d’alerte",
+            "type": "nombre",
+            "raison": "Déclencher une alerte lorsque le stock devient faible."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion d’entreprise",
+    "fiches": []
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 654,
+      "jetons_sortie": 527
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 540,
+      "jetons_sortie": 686
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 986,
+      "jetons_sortie": 1360
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 704,
+      "jetons_sortie": 77
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 817,
+      "jetons_sortie": 510
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1143,
+      "jetons_sortie": 847
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 557,
+      "jetons_sortie": 102
+    }
+  ]
+}

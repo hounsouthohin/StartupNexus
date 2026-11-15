@@ -1,0 +1,10 @@
+Logiciel de gestion pour société tourisme luxe autocars + chauffeurs.
+Nous recherchons un Codeur capable de créer un logiciel de gestion de planning et suivis de facture. Nous aimons le fonctionnement du logiciel Rapido, de l'éditeur Planet Permis, mais il n'est pas optimisé pour nos besoins, puisque c'est un logiciel pour auto-écoles.
+Besoins :
+- Établissement de planning comprenant les amplitudes chauffeurs, affichant les temps de pauses obligatoires demandés par la loi
+- Codes couleurs par chauffeurs et par véhicules
+- Suivi de facturation automatique
+- Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs
+- Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma
+- Création de fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées, courses précédentes, reste dû ou avoir en cours)
+Encore une fois, les besoins sont vraiment proches de ce qu'offre le logiciel Rapido édité par Planet Permis.

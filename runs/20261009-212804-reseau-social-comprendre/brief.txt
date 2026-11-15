@@ -1,0 +1,15 @@
+Création d'un réseau social.
+Nous recherchons un developper de site internet freelance afin de créer un réseau social.
+Fonctionnalités demandées :
+- Interface générale avec l'ensemble des publications
+- Filtre sur l'interface générale
+- Création de sous-communautés
+- Messagerie privée
+- Système de sondages
+- Publication de photos, vidéos et GIF
+- Classement pour référencer les utilisateurs
+- Système de récompenses avec achat de cadeaux
+- Possibilité de booster les publications
+- Option de suivre un utilisateur
+- Système de notifications
+Le site devra également trouver un espace blog où des articles seront postés et partagés à la communauté.

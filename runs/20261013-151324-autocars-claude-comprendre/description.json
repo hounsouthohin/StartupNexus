@@ -1,0 +1,243 @@
+{
+  "app": {
+    "nom": "autocars",
+    "titre": "Planning autocars"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Logiciel de gestion pour société tourisme luxe autocars + chauffeurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      },
+      {
+        "name": "Chauffeur",
+        "label": "chauffeur",
+        "label_plural": "chauffeurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "name": "Course",
+        "label": "course",
+        "label_plural": "courses",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "process": null,
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Course"
+        ],
+        "process": null,
+        "citation": "Suivi de facturation automatique"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de fiches clients pour les réguliers"
+      }
+    ]
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "coordonnees",
+        "libelle": "Coordonnées",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées"
+      },
+      {
+        "nom": "resteDu",
+        "libelle": "Reste dû",
+        "type": "montant",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "reste dû ou avoir en cours"
+      },
+      {
+        "nom": "avoirEnCours",
+        "libelle": "Avoir en cours",
+        "type": "montant",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ],
+    "Chauffeur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "couleur",
+        "libelle": "Couleur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Codes couleurs par chauffeurs"
+      }
+    ],
+    "Vehicule": [
+      {
+        "nom": "immatriculation",
+        "libelle": "Immatriculation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "couleur",
+        "libelle": "Couleur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      }
+    ],
+    "Course": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Course": {
+      "verbe_creation": "Planifier",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

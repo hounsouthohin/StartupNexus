@@ -1,0 +1,524 @@
+{
+  "app": {
+    "nom": "c2-conciergerie-menage",
+    "titre": "Ménages Villas Victoria"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant de la conciergerie",
+        "label_plural": "Gérants de la conciergerie",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Je souhaite développer une application interne, exclusivement destinée à la gestion de mes équipes de ménage"
+      },
+      {
+        "id": "intervenant",
+        "label": "Intervenant de ménage",
+        "label_plural": "Intervenants de ménage",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "Les équipes peuvent cliquer sur \"Je prends cette intervention\". Le premier intervenant qui se positionne est automatiquement affecté au ménage"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Villa",
+        "label": "Villa",
+        "label_plural": "Villas",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Proprietaire"
+        ],
+        "citation": "les villas en ligne"
+      },
+      {
+        "name": "Proprietaire",
+        "label": "Propriétaire",
+        "label_plural": "Propriétaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "afin d'être transmis au propriétaire"
+      },
+      {
+        "name": "Equipe",
+        "label": "Équipe",
+        "label_plural": "Équipes",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "prend la couleur de l'équipe concernée"
+      },
+      {
+        "name": "Intervenant",
+        "label": "Intervenant",
+        "label_plural": "Intervenants",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "intervenant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Equipe"
+        ],
+        "citation": "le nom de l'intervenant ou de l'équipe"
+      },
+      {
+        "name": "Reservation",
+        "label": "Réservation",
+        "label_plural": "Réservations",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "intervenant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Villa"
+        ],
+        "citation": "Chaque réservation indique"
+      },
+      {
+        "name": "Intervention",
+        "label": "Intervention",
+        "label_plural": "Interventions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "intervenant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Reservation",
+          "Equipe"
+        ],
+        "citation": "je complète le rapport avec les informations relevées lors de mon accueil des voyageurs",
+        "process": {
+          "initial": "disponible",
+          "transitions": {
+            "disponible": [
+              "attribuee"
+            ],
+            "attribuee": [
+              "realisee"
+            ],
+            "realisee": [
+              "completee"
+            ],
+            "completee": []
+          },
+          "initiator": "gerant",
+          "decider": "intervenant",
+          "steps_by": {
+            "realisee": "gerant"
+          },
+          "labels": {
+            "disponible": "disponible",
+            "attribuee": "attribuée",
+            "realisee": "réalisée (rapport de l'équipe rempli)",
+            "completee": "complétée par le gérant"
+          },
+          "citation": "À la fin du ménage, l'équipe complète un rapport"
+        }
+      },
+      {
+        "name": "PointControle",
+        "label": "Point de contrôle",
+        "label_plural": "Points de contrôle",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs"
+      },
+      {
+        "name": "Photo",
+        "label": "Photo",
+        "label_plural": "Photos",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "intervenant",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "disponible"
+        ],
+        "transitions": {
+          "disponible": [
+            "attribuee"
+          ]
+        },
+        "citation": "Les équipes peuvent cliquer sur \"Je prends cette intervention"
+      },
+      {
+        "actor": "intervenant",
+        "entity": "Intervention",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "À la fin du ménage, l'équipe complète un rapport"
+      },
+      {
+        "actor": "intervenant",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "own",
+        "while_states": [
+          "attribuee"
+        ],
+        "transitions": {
+          "attribuee": [
+            "realisee"
+          ]
+        },
+        "citation": "À la fin du ménage, l'équipe complète un rapport"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Intervention",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Après le ménage, je complète le rapport"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "realisee"
+        ],
+        "transitions": {
+          "realisee": [
+            "completee"
+          ]
+        },
+        "citation": "Après le ménage, je complète le rapport"
+      }
+    ]
+  },
+  "champs": {
+    "Villa": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de la villa",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Proprietaire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Equipe": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de l'équipe",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le nom de l'intervenant ou de l'équipe"
+      },
+      {
+        "nom": "couleur",
+        "libelle": "Couleur sur le planning",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "prend la couleur de l'équipe concernée"
+      }
+    ],
+    "Intervenant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le nom de l'intervenant"
+      }
+    ],
+    "Reservation": [
+      {
+        "nom": "dateArrivee",
+        "libelle": "Date d'arrivée",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les dates du séjour"
+      },
+      {
+        "nom": "dateDepart",
+        "libelle": "Date de départ",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les dates du séjour"
+      },
+      {
+        "nom": "heureArrivee",
+        "libelle": "Heure d'arrivée",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les horaires d'arrivée et de départ"
+      },
+      {
+        "nom": "heureDepart",
+        "libelle": "Heure de départ",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les horaires d'arrivée et de départ"
+      },
+      {
+        "nom": "nombreVoyageurs",
+        "libelle": "Nombre de voyageurs",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le nombre de voyageurs"
+      }
+    ],
+    "Intervention": [
+      {
+        "nom": "dateIntervention",
+        "libelle": "Date de l'intervention",
+        "type": "date",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la date de l'intervention"
+      },
+      {
+        "nom": "heureDebut",
+        "libelle": "Heure de début",
+        "type": "texte",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l'heure de début et de fin"
+      },
+      {
+        "nom": "heureFin",
+        "libelle": "Heure de fin",
+        "type": "texte",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l'heure de début et de fin"
+      },
+      {
+        "nom": "anomalies",
+        "libelle": "Anomalies signalées",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le signalement des anomalies éventuelles"
+      },
+      {
+        "nom": "commentaires",
+        "libelle": "Commentaires",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un espace de commentaires"
+      },
+      {
+        "nom": "etatLogement",
+        "libelle": "État du logement (accueil)",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "état du logement"
+      },
+      {
+        "nom": "remarquesVoyageurs",
+        "libelle": "Remarques des voyageurs",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "remarques des voyageurs"
+      },
+      {
+        "nom": "dysfonctionnements",
+        "libelle": "Dysfonctionnements",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "éventuels dysfonctionnements"
+      },
+      {
+        "nom": "informationsImportantes",
+        "libelle": "Informations importantes",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "informations importantes"
+      }
+    ],
+    "PointControle": [
+      {
+        "nom": "zone",
+        "libelle": "Pièce ou zone contrôlée",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs"
+      },
+      {
+        "nom": "controle",
+        "libelle": "Contrôlé",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "une checklist de contrôle"
+      }
+    ],
+    "Photo": [
+      {
+        "nom": "emplacement",
+        "libelle": "Pièce ou point photographié",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+      },
+      {
+        "nom": "fichier",
+        "libelle": "Photo (lien du fichier)",
+        "type": "url",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "des photos obligatoires"
+      }
+    ]
+  },
+  "ecran": {
+    "Villa": {
+      "verbe_creation": "Ajouter une villa",
+      "boutons": {}
+    },
+    "Intervenant": {
+      "verbe_creation": "Ajouter un intervenant",
+      "boutons": {}
+    },
+    "Reservation": {
+      "verbe_creation": "Réserver",
+      "boutons": {}
+    },
+    "Intervention": {
+      "verbe_creation": "Planifier le ménage",
+      "boutons": {
+        "attribuee": "Prendre l'intervention",
+        "realisee": "Marquer réalisée",
+        "completee": "Compléter le rapport"
+      }
+    },
+    "PointControle": {
+      "verbe_creation": "Ajouter un point de contrôle",
+      "boutons": {}
+    },
+    "Photo": {
+      "verbe_creation": "Ajouter une photo",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

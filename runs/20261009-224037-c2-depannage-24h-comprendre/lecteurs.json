@@ -1,0 +1,1235 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est une application web de gestion d'interventions, avec clients, techniciens, administrateurs, fiches d'intervention et états.",
+    "hors_stock": [
+      {
+        "besoin": "Fonctionnement avec plusieurs connexions administrateur simultanées / exigence de performance",
+        "categorie": "autre",
+        "citation": "capable de fonctionner correctement même avec plusieurs connexions administrateur simultanées"
+      },
+      {
+        "besoin": "Affichage des interventions dans un calendrier",
+        "categorie": "planning",
+        "citation": "générer une liste quotidienne des interventions sur le calendrier"
+      },
+      {
+        "besoin": "Calcul de pourcentages et répartition du montant de facture",
+        "categorie": "calcul_statistiques",
+        "citation": "Elle facilite le calcul des pourcentages, par exemple, en attribuant 20% du montant de la facture au technicien"
+      },
+      {
+        "besoin": "Recherche multicritères par technicien, client, période, département, prestations ou mots-clés",
+        "categorie": "autre",
+        "citation": "Les recherches peuvent être effectuées par technicien, client, période, département, prestations ou mots-clés de prestation"
+      },
+      {
+        "besoin": "Envoi des interventions par SMS aux techniciens",
+        "categorie": "notification",
+        "citation": "Les interventions sont envoyées directement par SMS sur le téléphone du technicien"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "patron",
+        "libelle": "patron",
+        "libelle_pluriel": "patrons",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "accessible au secrétariat et au patron"
+      },
+      {
+        "id": "secretaire",
+        "libelle": "secrétaire",
+        "libelle_pluriel": "secrétaires",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "patron",
+        "citation": "Cette application aide la secrétaire à gérer les interventions ... accessible au secrétariat et au patron"
+      },
+      {
+        "id": "technicien",
+        "libelle": "technicien",
+        "libelle_pluriel": "techniciens",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "patron",
+        "citation": "Les techniciens ont leur propre interface unique"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "client",
+        "citation": "en mettant en relation clients, types/nature d'interventions et techniciens"
+      },
+      {
+        "libelle": "sous-traitant",
+        "citation": "les coordonnées et montants payés aux sous-traitants"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "secretaire",
+          "patron"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "clients, types/nature d'interventions et techniciens"
+      },
+      {
+        "nom": "SousTraitant",
+        "libelle": "sous-traitant",
+        "libelle_pluriel": "sous-traitants",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "secretaire",
+          "patron"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "coordonnées et montants payés aux sous-traitants"
+      },
+      {
+        "nom": "Prestation",
+        "libelle": "prestation",
+        "libelle_pluriel": "prestations",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "secretaire",
+          "patron"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "prestations ou mots-clés de prestation"
+      },
+      {
+        "nom": "Departement",
+        "libelle": "département",
+        "libelle_pluriel": "départements",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "département"
+      },
+      {
+        "nom": "EtatIntervention",
+        "libelle": "état d'intervention",
+        "libelle_pluriel": "états d'intervention",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "en cours (🟠), effectuée (🟢), annulée (🔴)."
+      },
+      {
+        "nom": "FicheOperateur",
+        "libelle": "fiche opérateur",
+        "libelle_pluriel": "fiches opérateur",
+        "feminin": true,
+        "nature": "profile",
+        "proprietaire": "technicien",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Prestation",
+          "Departement"
+        ],
+        "citation": "fiche opérateur, nom, numéro de téléphone"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "intervention",
+        "libelle_pluriel": "interventions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "secretaire",
+          "patron"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "FicheOperateur",
+          "Prestation",
+          "Departement",
+          "EtatIntervention"
+        ],
+        "citation": "liste quotidienne des interventions sur le calendrier"
+      },
+      {
+        "nom": "LigneMaterielFourniture",
+        "libelle": "ligne de matériel/fourniture déposé",
+        "libelle_pluriel": "lignes de matériel/fourniture déposé",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "matériels/fournitures déposés"
+      },
+      {
+        "nom": "LigneSousTraitance",
+        "libelle": "ligne de sous-traitance",
+        "libelle_pluriel": "lignes de sous-traitance",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Intervention",
+        "references": [
+          "SousTraitant"
+        ],
+        "citation": "coordonnées et montants payés aux sous-traitants"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "client",
+        "fiche": "Client",
+        "raison": "Le brief parle de mettre en relation les interventions avec les clients et de rechercher par client."
+      },
+      {
+        "non_utilisateur": "sous-traitant",
+        "fiche": "SousTraitant",
+        "raison": "Le brief demande d'enregistrer les coordonnées et montants payés aux sous-traitants."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Intervention",
+        "etat_initial": "en_cours",
+        "transitions": {
+          "en_cours": [
+            "effectuee",
+            "annulee"
+          ],
+          "effectuee": [],
+          "annulee": []
+        },
+        "libelles": {
+          "en_cours": "en cours",
+          "effectuee": "effectuée",
+          "annulee": "annulée"
+        },
+        "initiateur": "secretaire",
+        "decideur": "secretaire",
+        "etapes_par": {},
+        "citation": "Cette application aide la secrétaire à gérer les interventions ... Chaque intervention est associée à un état coloré : en cours (🟠), effectuée (🟢), annulée (🔴)."
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "secretaire",
+        "fiche": "Client",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Client",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "SousTraitant",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "SousTraitant",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Prestation",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Prestation",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Departement",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Departement",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "EtatIntervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "EtatIntervention",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "FicheOperateur",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "FicheOperateur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Intervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "Intervention",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "LigneMaterielFourniture",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "LigneMaterielFourniture",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "LigneSousTraitance",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "secretaire",
+        "fiche": "LigneSousTraitance",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Client",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Client",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "SousTraitant",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "SousTraitant",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Prestation",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Prestation",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Departement",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Departement",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "EtatIntervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "EtatIntervention",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "FicheOperateur",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "FicheOperateur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Intervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "Intervention",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "LigneMaterielFourniture",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "LigneMaterielFourniture",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "LigneSousTraitance",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "patron",
+        "fiche": "LigneSousTraitance",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Client",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Client",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "SousTraitant",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "SousTraitant",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Prestation",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Prestation",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Departement",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Departement",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "EtatIntervention",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "EtatIntervention",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "FicheOperateur",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "FicheOperateur",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Intervention",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Intervention",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "LigneMaterielFourniture",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "LigneMaterielFourniture",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "LigneSousTraitance",
+        "action": "edit",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "LigneSousTraitance",
+        "action": "delete",
+        "autorise": false,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Seuls les administrateurs peuvent modifier ou supprimer des données"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "FicheOperateur",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Les techniciens ont leur propre interface unique, avec leurs informations personnelles (fiche opérateur, nom, numéro de téléphone)"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Departement",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "leurs secteurs d'activités et d'interventions par département"
+      },
+      {
+        "acteur": "technicien",
+        "fiche": "Intervention",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Les interventions sont envoyées directement par SMS sur le téléphone du technicien"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour contacter le client, mais non cité explicitement dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour localiser l’intervention, mais non cité explicitement dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "SousTraitant",
+        "champs": [
+          {
+            "nom": "coordonnees",
+            "libelle": "Coordonnées",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "coordonnées et montants payés aux sous-traitants"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom",
+            "type": "texte",
+            "raison": "Utile pour reconnaître le sous-traitant dans une liste, mais non cité explicitement dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile si les coordonnées doivent être structurées, mais le brief ne détaille pas les éléments des coordonnées."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile si les coordonnées doivent être structurées, mais le brief ne détaille pas les éléments des coordonnées."
+          }
+        ]
+      },
+      {
+        "fiche": "Prestation",
+        "champs": [
+          {
+            "nom": "typeNatureIntervention",
+            "libelle": "Type/nature d’intervention",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "types/nature d'interventions"
+          },
+          {
+            "nom": "motsCles",
+            "libelle": "Mots-clés",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "mots-clés de prestation"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Utile pour détailler la prestation, mais non cité explicitement dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Departement",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Code département",
+            "type": "texte",
+            "raison": "Utile pour identifier un département français, mais non cité explicitement dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "EtatIntervention",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "en cours",
+              "effectuée",
+              "annulée"
+            ],
+            "origine": "brief",
+            "citation": "en cours (🟠), effectuée (🟢), annulée (🔴)"
+          },
+          {
+            "nom": "couleur",
+            "libelle": "Couleur",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "🟠",
+              "🟢",
+              "🔴"
+            ],
+            "origine": "brief",
+            "citation": "en cours (🟠), effectuée (🟢), annulée (🔴)"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "FicheOperateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "nom"
+          },
+          {
+            "nom": "numeroTelephone",
+            "libelle": "Numéro de téléphone",
+            "type": "telephone",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "numéro de téléphone"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Utile pour identifier le technicien, mais non cité explicitement dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter le technicien, mais non cité explicitement dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "dateIntervention",
+            "libelle": "Date",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "triée par date"
+          },
+          {
+            "nom": "ville",
+            "libelle": "Ville",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "dans différentes villes de France"
+          },
+          {
+            "nom": "montantTravaux",
+            "libelle": "Montant des travaux",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "montant des travaux"
+          },
+          {
+            "nom": "montantFacture",
+            "libelle": "Montant de la facture",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "montant de la facture"
+          },
+          {
+            "nom": "pourcentageTechnicien",
+            "libelle": "Pourcentage attribué au technicien",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "en attribuant 20% du montant de la facture au technicien"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse d’intervention",
+            "type": "texte_long",
+            "raison": "Utile pour localiser précisément l’intervention, mais non cité explicitement dans le brief."
+          },
+          {
+            "libelle": "Heure d’intervention",
+            "type": "date_heure",
+            "raison": "Utile pour un calendrier, mais le brief cite seulement la date."
+          }
+        ]
+      },
+      {
+        "fiche": "LigneMaterielFourniture",
+        "champs": [
+          {
+            "nom": "materielFournitureDepose",
+            "libelle": "Matériel/fourniture déposé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "matériels/fournitures déposés"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Utile pour détailler les matériels/fournitures déposés, mais non cité explicitement dans le brief."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Utile pour valoriser les matériels/fournitures, mais non cité explicitement dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "LigneSousTraitance",
+        "champs": [
+          {
+            "nom": "montantPaye",
+            "libelle": "Montant payé",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "coordonnées et montants payés aux sous-traitants"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Utile pour préciser la sous-traitance, mais non cité explicitement dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion interventions",
+    "fiches": [
+      {
+        "fiche": "FicheOperateur",
+        "verbe_creation": "Ajouter un opérateur",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier une intervention",
+        "boutons": {
+          "annulee": "Annuler",
+          "effectuee": "Marquer effectuée"
+        }
+      },
+      {
+        "fiche": "LigneMaterielFourniture",
+        "verbe_creation": "Ajouter du matériel",
+        "boutons": {}
+      },
+      {
+        "fiche": "LigneSousTraitance",
+        "verbe_creation": "Ajouter une sous-traitance",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 889,
+      "jetons_sortie": 781
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 775,
+      "jetons_sortie": 741
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche FicheOperateur : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche LigneMaterielFourniture : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche LigneSousTraitance : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Client : citation introuvable mot pour mot dans le brief — « mettre en relation clients, types/nature d'interventions et techniciens » (recopie un passage exact, sans le reformuler ni le corriger ; pour assembler deux passages, sépare-les par « ... »)"
+      ],
+      "jetons_entree": 1230,
+      "jetons_sortie": 4003
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 2262,
+      "jetons_sortie": 1379
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuits.0.decideur : Input should be a valid string"
+      ],
+      "jetons_entree": 1073,
+      "jetons_sortie": 692
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 1280,
+      "jetons_sortie": 402
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1225,
+      "jetons_sortie": 6541
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1632,
+      "jetons_sortie": 6491
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1085,
+      "jetons_sortie": 641
+    }
+  ]
+}

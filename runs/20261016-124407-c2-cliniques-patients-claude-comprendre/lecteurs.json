@@ -1,0 +1,1050 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion de cliniques : des fiches (patients, rendez-vous, ordonnances), des acteurs avec des rôles (administrateur de clinique, infirmière, médecin, réceptionniste, patient) qui consultent et gèrent les données, et des éléments qui passent par des états (statut de l'ordonnance, inscription du patient validée par l'administrateur). Il reste dans le périmètre, mais il demande beaucoup de choses hors stock : planning et disponibilités, rappels, notifications e-mail et SMS, lien avec Twilio, tableaux de bord, rapports, ordonnances et factures imprimées, multiclinique et activation des modules.",
+    "hors_stock": [
+      {
+        "besoin": "Prise de rendez-vous en fonction de la disponibilité des médecins",
+        "categorie": "planning",
+        "citation": "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+      },
+      {
+        "besoin": "Gestion des jours fériés dans l'agenda",
+        "categorie": "planning",
+        "citation": "Ajoutez des jours fériés"
+      },
+      {
+        "besoin": "Calendrier du médecin dans son tableau de bord",
+        "categorie": "planning",
+        "citation": "Tableau de bord avec un calendrier pour le médecin"
+      },
+      {
+        "besoin": "Vue des événements importants de la journée pour la réceptionniste",
+        "categorie": "planning",
+        "citation": "Aperçu rapide des événements importants de la journée"
+      },
+      {
+        "besoin": "Calendrier tenu par la réceptionniste avec les événements et avis importants",
+        "categorie": "planning",
+        "citation": "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+      },
+      {
+        "besoin": "Rappels de rendez-vous",
+        "categorie": "notification",
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "besoin": "Notifications par e-mail aux médecins",
+        "categorie": "notification",
+        "citation": "définit la notification par e-mail pour les médecins"
+      },
+      {
+        "besoin": "Alertes par SMS sur les événements importants",
+        "categorie": "notification",
+        "citation": "Des alertes de notification sont envoyées parla plateforme sur les événements importants marqués"
+      },
+      {
+        "besoin": "Lien avec le service SMS Twilio",
+        "categorie": "integration",
+        "citation": "Notification SMS (Twilio)"
+      },
+      {
+        "besoin": "Tableau de bord général",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableau de bord : permet de visualiser les modules importants de l'hôpital"
+      },
+      {
+        "besoin": "Génération de rapports pour la gestion et la direction",
+        "categorie": "calcul_statistiques",
+        "citation": "permet d'exploiter les données en générant des rapports pour la gestion ... Accéder et gérer les rapports pour la direction"
+      },
+      {
+        "besoin": "Impression des ordonnances",
+        "categorie": "document",
+        "citation": "obtenez une liste complète des ordonnances de médicaments à un seul endroit et imprimez-la pour votre référence"
+      },
+      {
+        "besoin": "Génération et impression de factures pour les patients",
+        "categorie": "document",
+        "citation": "Impression de la facture : générez une facture pour les patients"
+      },
+      {
+        "besoin": "Plusieurs cliniques gérées dans la même plateforme, chacune avec ses données",
+        "categorie": "cloisonnement",
+        "citation": "Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+      },
+      {
+        "besoin": "Activation ou désactivation des modules selon les besoins",
+        "categorie": "autre",
+        "citation": "sélectionnez et basculez pour activer un module particulier ou le désactiver selon vos besoins"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur de la clinique",
+        "libelle_pluriel": "administrateurs de la clinique",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je souhaite obtenir un devis pour créer une plateforme ... L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+      },
+      {
+        "id": "medecin",
+        "libelle": "médecin",
+        "libelle_pluriel": "médecins",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "id": "infirmiere",
+        "libelle": "infirmière",
+        "libelle_pluriel": "infirmières",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "id": "receptionniste",
+        "libelle": "réceptionniste",
+        "libelle_pluriel": "réceptionnistes",
+        "feminin": true,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "id": "patient",
+        "libelle": "patient",
+        "libelle_pluriel": "patients",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "Permet au patient de s'inscrire"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Patient",
+        "libelle": "patient",
+        "libelle_pluriel": "patients",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "patient",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Permet au patient de s'inscrire ... L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+      },
+      {
+        "nom": "Medecin",
+        "libelle": "médecin",
+        "libelle_pluriel": "médecins",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "medecin",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Clinique"
+        ],
+        "citation": "Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+      },
+      {
+        "nom": "Clinique",
+        "libelle": "clinique",
+        "libelle_pluriel": "cliniques",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+      },
+      {
+        "nom": "RendezVous",
+        "libelle": "rendez-vous",
+        "libelle_pluriel": "rendez-vous",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "patient",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Medecin",
+          "Clinique"
+        ],
+        "citation": "le rendez-vous de chaque médecin peut être gardé privé pour les autres ... Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+      },
+      {
+        "nom": "Disponibilite",
+        "libelle": "disponibilité",
+        "libelle_pluriel": "disponibilités",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "medecin",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "prendre rendez-vous avec un médecin selon sa disponibilité"
+      },
+      {
+        "nom": "JourFerie",
+        "libelle": "jour férié",
+        "libelle_pluriel": "jours fériés",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "receptionniste"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajoutez des jours fériés"
+      },
+      {
+        "nom": "RappelRendezVous",
+        "libelle": "rappel de rendez-vous",
+        "libelle_pluriel": "rappels de rendez-vous",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "receptionniste"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "RendezVous"
+        ],
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "nom": "Evenement",
+        "libelle": "événement",
+        "libelle_pluriel": "événements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "receptionniste"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+      },
+      {
+        "nom": "NoteEtatPatient",
+        "libelle": "note sur l'état du patient",
+        "libelle_pluriel": "notes sur l'état du patient",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "infirmiere"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients ... Prendre note de l'état du patient"
+      },
+      {
+        "nom": "Ordonnance",
+        "libelle": "ordonnance",
+        "libelle_pluriel": "ordonnances",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "medecin",
+          "administrateur",
+          "infirmiere"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "Statut de l'ordonnance ... Gérer la prescription des patients"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "générez une facture pour les patients"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "receptionniste",
+        "fiche": "RappelRendezVous",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Patient",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Patient",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Patient",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "acteur": "infirmiere",
+        "fiche": "Patient",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "acteur": "infirmiere",
+        "fiche": "Patient",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "acteur": "infirmiere",
+        "fiche": "Patient",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "NoteEtatPatient",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière ... Prendre note de l'état du patient"
+      },
+      {
+        "acteur": "infirmiere",
+        "fiche": "NoteEtatPatient",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière ... Prendre note de l'état du patient"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "RendezVous",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière ... Gérer Pour suivre les rendez-vous"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "RendezVous",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière ... Gérer Pour suivre les rendez-vous"
+      },
+      {
+        "acteur": "infirmiere",
+        "fiche": "RendezVous",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière ... Gérer Pour suivre les rendez-vous"
+      },
+      {
+        "acteur": "infirmiere",
+        "fiche": "RendezVous",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière ... Gérer Pour suivre les rendez-vous"
+      },
+      {
+        "acteur": "medecin",
+        "fiche": "Patient",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le médecin peut gérer les données des patients ... Obtenez tous les détails du patient."
+      },
+      {
+        "acteur": "medecin",
+        "fiche": "Patient",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "acteur": "medecin",
+        "fiche": "Patient",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "acteur": "medecin",
+        "fiche": "Ordonnance",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Module médecin ... Gérer la prescription des patients"
+      },
+      {
+        "acteur": "medecin",
+        "fiche": "Ordonnance",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Module médecin ... Gérer la prescription des patients"
+      },
+      {
+        "acteur": "medecin",
+        "fiche": "Ordonnance",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Module médecin ... Gérer la prescription des patients"
+      },
+      {
+        "acteur": "receptionniste",
+        "fiche": "Evenement",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Module Réceptionniste ... Aperçu rapide des événements importants de la journée"
+      },
+      {
+        "acteur": "receptionniste",
+        "fiche": "Evenement",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Module Réceptionniste ... Mettez à jour et gérez le calendrier avec les événements et avis importants."
+      },
+      {
+        "acteur": "receptionniste",
+        "fiche": "Evenement",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Module Réceptionniste ... Mettez à jour et gérez le calendrier avec les événements et avis importants."
+      },
+      {
+        "acteur": "patient",
+        "fiche": "Patient",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Permet au patient de s'inscrire"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Patient",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+      },
+      {
+        "acteur": "patient",
+        "fiche": "RendezVous",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité."
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Patient",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "receptionInscriptionAccusee",
+            "libelle": "Réception de l'inscription accusée",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "accuser réception de l'inscription du patient"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief parle des données et détails du patient sans les préciser."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Information courante d'un dossier patient, non citée."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour les notifications SMS et rappels de rendez-vous."
+          },
+          {
+            "libelle": "E-mail",
+            "type": "email",
+            "raison": "Utile pour l'inscription et les rappels."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour la facturation."
+          }
+        ]
+      },
+      {
+        "fiche": "Medecin",
+        "champs": [
+          {
+            "nom": "notificationEmail",
+            "libelle": "Notification par e-mail",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "définit la notification par e-mail pour les médecins"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom",
+            "type": "texte",
+            "raison": "Pour reconnaître le médecin si son compte ne fournit pas déjà son nom."
+          },
+          {
+            "libelle": "E-mail",
+            "type": "email",
+            "raison": "Nécessaire pour envoyer les notifications par e-mail."
+          },
+          {
+            "libelle": "Spécialité",
+            "type": "texte",
+            "raison": "Aide le patient à choisir un médecin."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contact du médecin, non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Clinique",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Pour situer chaque clinique ou hôpital."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contact de la clinique."
+          },
+          {
+            "libelle": "Modules activés",
+            "type": "texte",
+            "raison": "Le brief prévoit l'activation ou la désactivation de modules, sans dire si c'est par clinique."
+          }
+        ]
+      },
+      {
+        "fiche": "RendezVous",
+        "champs": [
+          {
+            "nom": "prive",
+            "libelle": "Privé",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "le rendez-vous de chaque médecin peut être gardé privé"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure",
+            "type": "date_heure",
+            "raison": "Indispensable pour placer le rendez-vous dans le calendrier, mais non cité."
+          },
+          {
+            "libelle": "Motif",
+            "type": "texte_long",
+            "raison": "Raison de la consultation, non citée."
+          },
+          {
+            "libelle": "Durée",
+            "type": "nombre",
+            "raison": "Pour gérer les créneaux du médecin."
+          }
+        ]
+      },
+      {
+        "fiche": "Disponibilite",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Début",
+            "type": "date_heure",
+            "raison": "Le brief cite la disponibilité du médecin sans en préciser le contenu."
+          },
+          {
+            "libelle": "Fin",
+            "type": "date_heure",
+            "raison": "Pour délimiter le créneau disponible."
+          },
+          {
+            "libelle": "Jour de la semaine",
+            "type": "texte",
+            "raison": "Si les disponibilités sont récurrentes."
+          }
+        ]
+      },
+      {
+        "fiche": "JourFerie",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date",
+            "type": "date",
+            "raison": "Indispensable pour bloquer la prise de rendez-vous ce jour-là, mais non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "RappelRendezVous",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure d'envoi",
+            "type": "date_heure",
+            "raison": "Le brief dit que la réceptionniste définit des rappels sans en préciser le contenu."
+          },
+          {
+            "libelle": "Canal (SMS, e-mail)",
+            "type": "texte",
+            "raison": "Le brief cite des notifications SMS et par e-mail."
+          },
+          {
+            "libelle": "Message",
+            "type": "texte_long",
+            "raison": "Texte envoyé au destinataire."
+          }
+        ]
+      },
+      {
+        "fiche": "Evenement",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "important",
+            "libelle": "Important",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les événements importants marqués"
+          },
+          {
+            "nom": "date",
+            "libelle": "Date",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "événements importants de la journée"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Détail de l'événement ou de l'avis."
+          },
+          {
+            "libelle": "Nature (événement ou avis)",
+            "type": "texte",
+            "raison": "Le brief parle d'« événements et avis importants » sur le calendrier."
+          },
+          {
+            "libelle": "Heure",
+            "type": "date_heure",
+            "raison": "Si l'événement doit être placé à une heure précise du calendrier."
+          }
+        ]
+      },
+      {
+        "fiche": "NoteEtatPatient",
+        "champs": [
+          {
+            "nom": "etat",
+            "libelle": "État du patient",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Prendre note de l'état du patient"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Ordonnance",
+        "champs": [
+          {
+            "nom": "medicaments",
+            "libelle": "Médicaments",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "des ordonnances de médicaments"
+          },
+          {
+            "nom": "statut",
+            "libelle": "Statut",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Statut de l'ordonnance"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Posologie",
+            "type": "texte_long",
+            "raison": "Instructions de prise, utiles à l'impression de l'ordonnance."
+          },
+          {
+            "libelle": "Durée du traitement",
+            "type": "texte",
+            "raison": "Information courante d'une ordonnance, non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief demande de générer une facture sans en préciser le contenu."
+          },
+          {
+            "libelle": "Détail des prestations",
+            "type": "texte_long",
+            "raison": "Pour l'impression de la facture."
+          },
+          {
+            "libelle": "Payée",
+            "type": "oui_non",
+            "raison": "Pour suivre le règlement."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des cliniques",
+    "fiches": [
+      {
+        "fiche": "Medecin",
+        "verbe_creation": "Ajouter un médecin",
+        "boutons": {}
+      },
+      {
+        "fiche": "RendezVous",
+        "verbe_creation": "Prendre rendez-vous",
+        "boutons": {}
+      },
+      {
+        "fiche": "RappelRendezVous",
+        "verbe_creation": "Programmer un rappel",
+        "boutons": {}
+      },
+      {
+        "fiche": "NoteEtatPatient",
+        "verbe_creation": "Noter l'état",
+        "boutons": {}
+      },
+      {
+        "fiche": "Ordonnance",
+        "verbe_creation": "Prescrire",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Patient : la fiche est un « profile », qui ne change pas d'état (seule une collection ou un registre a un circuit) — ne liste pas ce circuit"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

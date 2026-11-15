@@ -1,0 +1,187 @@
+{
+ "titre": "Suivi des visas",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:pour-autrui] Dossier : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x) [type=value_error, input_value={'app': {'nom': 'c2-porta...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "lien:pour-autrui"
+  ],
+  "pas_encore": [
+   "les dossiers que le responsable saisit pour le client : pas encore possible — retirées"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Relier la base Airtable existante (Clients, Dossiers) a Softr",
+   "categorie": "integration",
+   "citation": "Relier Airtable (base de données) à Softr"
+  },
+  {
+   "besoin": "Livrer l'application dans l'outil no-code Softr impose par le client",
+   "categorie": "autre",
+   "citation": "Application Softr fonctionnelle et sécurisée"
+  },
+  {
+   "besoin": "Page tableau de bord pour le client",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableau de bord client"
+  },
+  {
+   "besoin": "Documents du dossier televerses par le client",
+   "categorie": "fichiers_photos",
+   "citation": "documents ... Téléversement des documents par le client"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le responsable",
+   "Le client"
+  ],
+  "fiches": 1,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "responsable",
+   "libelle": "Le responsable",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Je suis le responsable d’une **agence de voyage et d’assistance visa"
+   ],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "client",
+   "libelle": "Le client",
+   "devient": "s'inscrit lui-même",
+   "citations": [
+    "L’application permettra à mes clients de"
+   ],
+   "phrases": [
+    {
+     "texte": "a son Client, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "se connecter avec email + mot de passe"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "email",
+     "libelle": "Email",
+     "type": "e-mail",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "se connecter avec email"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Nationalité",
+     "libelle": "Nationalité",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "se connecter avec email + mot de passe"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

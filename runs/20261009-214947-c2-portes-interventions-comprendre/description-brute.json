@@ -1,0 +1,524 @@
+{
+  "app": {
+    "nom": "c2-portes-interventions",
+    "titre": "Interventions techniques"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Notre entreprise spécialisée dans la réparation et l'entretien de portes de garage et niveleurs de quai souhaite se doter d'une application web"
+      },
+      {
+        "id": "membre_equipe_administrative",
+        "label": "Membre de l'équipe administrative",
+        "label_plural": "Membres de l'équipe administrative",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Formation succincte à destination de notre équipe administrative"
+      },
+      {
+        "id": "collaborateur",
+        "label": "Collaborateur",
+        "label_plural": "Collaborateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+      },
+      {
+        "name": "ProfilCollaborateur",
+        "label": "profil collaborateur",
+        "label_plural": "profils collaborateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "collaborateurs"
+      },
+      {
+        "name": "AdresseChantier",
+        "label": "adresse de chantier",
+        "label_plural": "adresses de chantiers",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "adresses des chantiers"
+      },
+      {
+        "name": "BonIntervention",
+        "label": "bon d'intervention",
+        "label_plural": "bons d'intervention",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "ProfilCollaborateur",
+          "AdresseChantier",
+          "TypeIntervention"
+        ],
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)",
+        "process": {
+          "initial": "debut",
+          "transitions": {
+            "debut": [
+              "fin"
+            ],
+            "fin": []
+          },
+          "initiator": "membre_equipe_administrative",
+          "decider": "collaborateur",
+          "steps_by": {},
+          "labels": {
+            "debut": "début",
+            "fin": "fin"
+          },
+          "citation": "Horodatage précis des interventions (début et fin)"
+        }
+      },
+      {
+        "name": "TypeIntervention",
+        "label": "type d'intervention",
+        "label_plural": "types d'intervention",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "type d'intervention"
+      },
+      {
+        "name": "Checklist",
+        "label": "checklist",
+        "label_plural": "checklists",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "TypeIntervention"
+        ],
+        "citation": "Checklist personnalisable selon le type d'intervention"
+      },
+      {
+        "name": "Materiel",
+        "label": "matériel",
+        "label_plural": "matériels",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout automatique de matériel"
+      },
+      {
+        "name": "LigneMaterielIntervention",
+        "label": "ligne de matériel d'intervention",
+        "label_plural": "lignes de matériel d'intervention",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "BonIntervention",
+        "references": [
+          "Materiel"
+        ],
+        "citation": "Ajout automatique de matériel"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "BonIntervention",
+          "Client"
+        ],
+        "citation": "génération instantanée de devis"
+      },
+      {
+        "name": "Document",
+        "label": "document",
+        "label_plural": "documents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion documentaire avec classement des fichiers et moteur de recherche"
+      },
+      {
+        "name": "DemandeConge",
+        "label": "demande de congé",
+        "label_plural": "demandes de congés",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "demandes de congés"
+      },
+      {
+        "name": "CommandeMateriel",
+        "label": "commande de matériel",
+        "label_plural": "commandes de matériel",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Materiel"
+        ],
+        "citation": "commandes de matériel"
+      },
+      {
+        "name": "CommandeVetementProfessionnel",
+        "label": "commande de vêtement professionnel",
+        "label_plural": "commandes de vêtements professionnels",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "commandes de matériel et vêtements professionnels"
+      },
+      {
+        "name": "FichePaie",
+        "label": "fiche de paie",
+        "label_plural": "fiches de paie",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "fiches de paie par collaborateur"
+      },
+      {
+        "name": "CodeAccesDigital",
+        "label": "code d'accès digital",
+        "label_plural": "codes d'accès digitaux",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe_administrative"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des codes d'accès digitaux (clavier à code)"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ProfilCollaborateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "AdresseChantier": [
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "adresses des chantiers"
+      }
+    ],
+    "BonIntervention": [
+      {
+        "nom": "horodatageDebut",
+        "libelle": "Horodatage de début",
+        "type": "date_heure",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Horodatage précis des interventions (début et fin)"
+      },
+      {
+        "nom": "horodatageFin",
+        "libelle": "Horodatage de fin",
+        "type": "date_heure",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Horodatage précis des interventions (début et fin)"
+      },
+      {
+        "nom": "signatureElectroniqueClient",
+        "libelle": "Signature électronique du client",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Signature électronique du client sur tablette"
+      }
+    ],
+    "TypeIntervention": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Checklist": [
+      {
+        "nom": "contenu",
+        "libelle": "Contenu de la checklist",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Checklist personnalisable selon le type d'intervention"
+      }
+    ],
+    "Materiel": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "LigneMaterielIntervention": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Document": [
+      {
+        "nom": "classement",
+        "libelle": "Classement",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "classement des fichiers"
+      }
+    ],
+    "DemandeConge": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CommandeMateriel": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CommandeVetementProfessionnel": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "FichePaie": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CodeAccesDigital": [
+      {
+        "nom": "code",
+        "libelle": "Code d'accès",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "codes d'accès digitaux (clavier à code)"
+      }
+    ]
+  },
+  "ecran": {
+    "BonIntervention": {
+      "verbe_creation": "Créer une intervention",
+      "boutons": {
+        "fin": "Terminer"
+      }
+    },
+    "Checklist": {
+      "verbe_creation": "Créer une checklist",
+      "boutons": {}
+    },
+    "LigneMaterielIntervention": {
+      "verbe_creation": "Ajouter du matériel",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Générer un devis",
+      "boutons": {}
+    },
+    "CommandeMateriel": {
+      "verbe_creation": "Commander du matériel",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

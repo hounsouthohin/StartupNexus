@@ -1,0 +1,12 @@
+Développer un logiciel / application gestion patient et clinique.
+Bonjour 
+
+Je souhaite une application métier paramédical web PC + iPad.
+
+PC pour l’administratif et l’anamnèse, iPad pour l’examen clinique sur dessins humains génériques.
+
+Chaque point osseux a 3 états (aligné / gauche / droite) et certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement.
+
+L’application analyse automatiquement la position des points et la direction des flèches, et fait la corrélation avec mes tableaux de correspondance pour générer automatiquement recommandations, exercices et corrections de semelles.
+
+Et au final toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé.

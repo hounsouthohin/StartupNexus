@@ -1,0 +1,438 @@
+{
+  "app": {
+    "nom": "c2-restauration-collective",
+    "titre": "Gestion restauration"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre société de restauration collective multi-sites"
+      },
+      {
+        "id": "utilisateur",
+        "label": "Utilisateur",
+        "label_plural": "Utilisateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "avec gestion des rôles utilisateurs"
+      }
+    ],
+    "entities": [
+      {
+        "name": "ProfilAdministrateur",
+        "label": "profil administrateur",
+        "label_plural": "profils administrateur",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "RoleUtilisateur"
+        ],
+        "citation": "gestion des rôles utilisateurs"
+      },
+      {
+        "name": "ProfilUtilisateur",
+        "label": "profil utilisateur",
+        "label_plural": "profils utilisateur",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "utilisateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "RoleUtilisateur"
+        ],
+        "citation": "gestion des rôles utilisateurs"
+      },
+      {
+        "name": "RoleUtilisateur",
+        "label": "rôle utilisateur",
+        "label_plural": "rôles utilisateurs",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des rôles utilisateurs"
+      },
+      {
+        "name": "Site",
+        "label": "site",
+        "label_plural": "sites",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "restauration collective multi-sites"
+      },
+      {
+        "name": "Stock",
+        "label": "stock",
+        "label_plural": "stocks",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "gestion des stocks"
+      },
+      {
+        "name": "Achat",
+        "label": "achat",
+        "label_plural": "achats",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "achats"
+      },
+      {
+        "name": "Inventaire",
+        "label": "inventaire",
+        "label_plural": "inventaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Stock"
+        ],
+        "citation": "inventaires"
+      },
+      {
+        "name": "Recette",
+        "label": "recette",
+        "label_plural": "recettes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "recettes"
+      },
+      {
+        "name": "CoutRepas",
+        "label": "coût des repas",
+        "label_plural": "coûts des repas",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Recette"
+        ],
+        "citation": "coût des repas"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "facturation"
+      },
+      {
+        "name": "Depense",
+        "label": "dépense",
+        "label_plural": "dépenses",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "dépenses"
+      },
+      {
+        "name": "DossierRh",
+        "label": "dossier RH",
+        "label_plural": "dossiers RH",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "RH"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "ProfilAdministrateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ProfilUtilisateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RoleUtilisateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Site": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Stock": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Achat": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Inventaire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Recette": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CoutRepas": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Depense": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "DossierRh": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "ProfilAdministrateur": {
+      "verbe_creation": "Créer un profil administrateur",
+      "boutons": {}
+    },
+    "ProfilUtilisateur": {
+      "verbe_creation": "Créer un profil utilisateur",
+      "boutons": {}
+    },
+    "Stock": {
+      "verbe_creation": "Gérer le stock",
+      "boutons": {}
+    },
+    "Achat": {
+      "verbe_creation": "Saisir un achat",
+      "boutons": {}
+    },
+    "Inventaire": {
+      "verbe_creation": "Réaliser un inventaire",
+      "boutons": {}
+    },
+    "Recette": {
+      "verbe_creation": "Créer une recette",
+      "boutons": {}
+    },
+    "CoutRepas": {
+      "verbe_creation": "Calculer le coût des repas",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Créer une facture",
+      "boutons": {}
+    },
+    "Depense": {
+      "verbe_creation": "Saisir une dépense",
+      "boutons": {}
+    },
+    "DossierRh": {
+      "verbe_creation": "Créer un dossier RH",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

@@ -1,0 +1,12 @@
+Developpement d'une Application Web de Gestion de d'intervention
+Nous cherchons un développeur web fullstack pour créer une application performante et rapide, capable de fonctionner correctement même avec plusieurs connexions administrateur simultanées, sur mobiles et tablettes. Cette application aide la secrétaire à gérer les interventions en mettant en relation clients, types/nature d'interventions et techniciens dans différentes villes de France (service 🆘 24/7).
+
+L'application permet de générer une liste quotidienne des interventions sur le calendrier, triée par date, client et technicien, avec le montant des travaux, des matériels/fournitures déposés, ainsi que les coordonnées et montants payés aux sous-traitants. Elle facilite le calcul des pourcentages, par exemple, en attribuant 20% du montant de la facture au technicien.
+
+Les recherches peuvent être effectuées par technicien, client, période, département, prestations ou mots-clés de prestation (ex : débouchage Toulon).
+
+Chaque intervention est associée à un état coloré : en cours (🟠), effectuée (🟢), annulée (🔴).
+
+Seuls les administrateurs peuvent modifier ou supprimer des données via une interface unique, accessible au secrétariat et au patron. Les techniciens ont leur propre interface unique, avec leurs informations personnelles (fiche opérateur, nom, numéro de téléphone) et leurs secteurs d'activités et d'interventions par département.
+
+Les interventions sont envoyées directement par SMS sur le téléphone du technicien.

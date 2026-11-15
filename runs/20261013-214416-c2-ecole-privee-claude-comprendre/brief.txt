@@ -1,0 +1,2 @@
+Création d'un logiciel de gestion d'une école privée
+je cherche quelqu'un qui peut me guider pour pouvoir développer un logiciel me permettant de gérer une école privée; tant les inscriptions, les payements mensuels, que le notes de classe et les listes ou tout autres documents financiers ou administratifs concernant l'élève ou son parent

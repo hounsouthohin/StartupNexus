@@ -1,0 +1,619 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est une application de gestion pour une petite structure : gestion de stocks, devis/facturation et suivi de chantiers. Certains éléments demandés sont hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion de stock avec contrôle des entrées et sorties de marchandises",
+        "categorie": "calcul_statistiques",
+        "citation": "application de gestion des stock (pour mieux contrôler les entrées et les sorties des marchandises"
+      },
+      {
+        "besoin": "Réalisation de devis",
+        "categorie": "document",
+        "citation": "un outil pour réaliser des devis"
+      },
+      {
+        "besoin": "Facturation clients",
+        "categorie": "document",
+        "citation": "gérer la partie facturation pour nos clients professionnels et particuliers"
+      },
+      {
+        "besoin": "Site internet vitrine",
+        "categorie": "autre",
+        "citation": "Création d’un site internet (afin de mettre en avant notre savoir-faire"
+      },
+      {
+        "besoin": "Devis en ligne pour les clients particuliers",
+        "categorie": "document",
+        "citation": "proposer la possibilité d’établir un devis en ligne à nos clients particuliers"
+      },
+      {
+        "besoin": "Application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "une application (web et mobile)"
+      },
+      {
+        "besoin": "Gestion des délais et de l’organisation des chantiers",
+        "categorie": "planning",
+        "citation": "les délais, l’organisation des différents domaines d’application"
+      },
+      {
+        "besoin": "Comptes-rendus et rapports de chantier",
+        "categorie": "document",
+        "citation": "C/R, rapports"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous aimerions développer une application de gestion qui permettra de gérer notre activité."
+      },
+      {
+        "id": "conducteur_de_travaux",
+        "libelle": "Conducteur de travaux",
+        "libelle_pluriel": "Conducteurs de travaux",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "pour nos conducteurs de travaux"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client professionnel",
+        "citation": "nos clients professionnels et particuliers"
+      },
+      {
+        "libelle": "Client particulier",
+        "citation": "nos clients particuliers"
+      },
+      {
+        "libelle": "Petit promoteur immobilier",
+        "citation": "petits promoteurs immobiliers"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+      },
+      {
+        "nom": "Marchandise",
+        "libelle": "marchandise",
+        "libelle_pluriel": "marchandises",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "marchandises qui serviront à nos chantiers (sac de colle à carrelage, ciment, parpaing…)"
+      },
+      {
+        "nom": "EntreeStock",
+        "libelle": "entrée de stock",
+        "libelle_pluriel": "entrées de stock",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Marchandise"
+        ],
+        "citation": "contrôler les entrées et les sorties des marchandises"
+      },
+      {
+        "nom": "SortieStock",
+        "libelle": "sortie de stock",
+        "libelle_pluriel": "sorties de stock",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Marchandise",
+          "Chantier"
+        ],
+        "citation": "sorties des marchandises qui serviront à nos chantiers"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": true,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "réaliser des devis ... établir un devis en ligne à nos clients particuliers"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "gérer la partie facturation pour nos clients professionnels et particuliers"
+      },
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "conducteur_de_travaux"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "suivi de nos chantiers"
+      },
+      {
+        "nom": "RapportChantier",
+        "libelle": "rapport de chantier",
+        "libelle_pluriel": "rapports de chantier",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "C/R, rapports"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client professionnel",
+        "fiche": "Client",
+        "raison": "Type de client à gérer pour les devis et la facturation."
+      },
+      {
+        "non_utilisateur": "Client particulier",
+        "fiche": "Client",
+        "raison": "Type de client à gérer pour les devis, la facturation et le devis en ligne."
+      },
+      {
+        "non_utilisateur": "Petit promoteur immobilier",
+        "fiche": "Client",
+        "raison": "Le brief le cite comme un client concerné par les devis et la facturation."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "conducteur_de_travaux",
+        "fiche": "Chantier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "pour le suivi de nos chantiers (afin de connaître leur avancement, les délais"
+      },
+      {
+        "acteur": "conducteur_de_travaux",
+        "fiche": "RapportChantier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "C/R, rapports,…) pour nos conducteurs de travaux"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "typeClient",
+            "libelle": "Type de client",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "professionnels",
+              "particuliers",
+              "petits promoteurs immobiliers"
+            ],
+            "origine": "brief",
+            "citation": "clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du client",
+            "type": "texte",
+            "raison": "Identifier le client dans les listes et les documents."
+          },
+          {
+            "libelle": "Adresse email",
+            "type": "email",
+            "raison": "Contacter le client."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contacter le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Marchandise",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Unité de mesure",
+            "type": "texte",
+            "raison": "Gérer les quantités de stock."
+          },
+          {
+            "libelle": "Stock minimum",
+            "type": "nombre",
+            "raison": "Alerter en cas de stock faible."
+          }
+        ]
+      },
+      {
+        "fiche": "EntreeStock",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité entrée",
+            "type": "nombre",
+            "raison": "Mesurer l’entrée de stock."
+          },
+          {
+            "libelle": "Date d’entrée",
+            "type": "date",
+            "raison": "Suivre les mouvements de stock dans le temps."
+          }
+        ]
+      },
+      {
+        "fiche": "SortieStock",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité sortie",
+            "type": "nombre",
+            "raison": "Mesurer la sortie de stock."
+          },
+          {
+            "libelle": "Date de sortie",
+            "type": "date",
+            "raison": "Suivre les mouvements de stock dans le temps."
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de devis",
+            "type": "texte",
+            "raison": "Identifier le devis."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Suivre la valeur du devis."
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Indiquer jusqu’à quand le devis est valable."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "raison": "Identifier la facture."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Suivre la valeur facturée."
+          },
+          {
+            "libelle": "Date d’échéance",
+            "type": "date",
+            "raison": "Suivre le paiement attendu."
+          }
+        ]
+      },
+      {
+        "fiche": "Chantier",
+        "champs": [
+          {
+            "nom": "avancement",
+            "libelle": "Avancement",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "connaître leur avancement"
+          },
+          {
+            "nom": "delais",
+            "libelle": "Délais",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les délais"
+          },
+          {
+            "nom": "organisationDesDifferentsDomainesDApplication",
+            "libelle": "Organisation des différents domaines d’application",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "l’organisation des différents domaines d’application"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du chantier",
+            "type": "texte",
+            "raison": "Identifier le chantier dans les listes."
+          },
+          {
+            "libelle": "Adresse du chantier",
+            "type": "texte",
+            "raison": "Localiser le chantier."
+          },
+          {
+            "libelle": "Date de début prévue",
+            "type": "date",
+            "raison": "Planifier le chantier."
+          }
+        ]
+      },
+      {
+        "fiche": "RapportChantier",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Contenu du rapport",
+            "type": "texte_long",
+            "raison": "Rédiger le compte rendu ou rapport de chantier."
+          },
+          {
+            "libelle": "Date du rapport",
+            "type": "date",
+            "raison": "Situer le rapport dans le suivi du chantier."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion BTP",
+    "fiches": [
+      {
+        "fiche": "EntreeStock",
+        "verbe_creation": "Entrer en stock",
+        "boutons": {}
+      },
+      {
+        "fiche": "SortieStock",
+        "verbe_creation": "Sortir du stock",
+        "boutons": {}
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Établir un devis",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      },
+      {
+        "fiche": "RapportChantier",
+        "verbe_creation": "Rédiger un rapport",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 907,
+      "jetons_sortie": 1444
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 793,
+      "jetons_sortie": 688
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche RapportChantier : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 1242,
+      "jetons_sortie": 4898
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 2074,
+      "jetons_sortie": 954
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1044,
+      "jetons_sortie": 253
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1157,
+      "jetons_sortie": 1168
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1545,
+      "jetons_sortie": 3051
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 983,
+      "jetons_sortie": 581
+    }
+  ]
+}

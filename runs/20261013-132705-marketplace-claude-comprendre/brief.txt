@@ -1,0 +1,13 @@
+Marketplace avec annonces, paiements, géolocalisation et avis.
+Bonjour, Je recherche un développeur freelance ou une équipe expérimentée pour la création d'une marketplace avec paiement en ligne. Le projet concerne la réalisation d'une plateforme web complète, responsive (ordinateur, tablette et mobile), intégrant notamment :
+- Gestion des comptes utilisateurs
+- Publication et gestion d'annonces
+- Moteur de recherche et géolocalisation
+- Paiement en ligne sécurisé
+- Gestion automatique des commissions
+- Messagerie interne
+- Système d'avis et de notation
+- Tableau de bord utilisateur
+- Interface d'administration complète
+- Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)
+L'objectif est de disposer d'une plateforme professionnelle, évolutive et conçue dès le départ pour pouvoir, dans un second temps, être déclinée en application mobile Android et iOS. Je recherche avant tout une personne ou une équipe ayant déjà réalisé des projets similaires (marketplace, plateforme de réservation, mise en relation, etc.).

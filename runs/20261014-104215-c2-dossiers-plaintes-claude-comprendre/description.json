@@ -1,0 +1,154 @@
+{
+  "app": {
+    "nom": "c2-dossiers-plaintes",
+    "titre": "Suivi des dossiers"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "Responsable de la structure",
+        "label_plural": "Responsables de la structure",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous souhaitons centraliser la gestion des dossiers"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Dossier",
+        "label": "Dossier",
+        "label_plural": "Dossiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": {
+          "field": "status",
+          "initial": "demande_regularisation",
+          "transitions": {
+            "demande_regularisation": [
+              "enregistrement"
+            ],
+            "enregistrement": [
+              "accuse_reception"
+            ],
+            "accuse_reception": [
+              "echange_memoires"
+            ],
+            "echange_memoires": [
+              "convocation_audience"
+            ],
+            "convocation_audience": []
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "demande_regularisation": "demande de régularisation",
+            "enregistrement": "enregistrement",
+            "accuse_reception": "AR",
+            "echange_memoires": "échanges de mémoires",
+            "convocation_audience": "convocation audience"
+          },
+          "citation": "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience"
+        },
+        "citation": "La structure traite des dossiers (plaintes)"
+      },
+      {
+        "name": "EtapeProcedure",
+        "label": "Étape de procédure",
+        "label_plural": "Étapes de procédure",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Dossier",
+        "references": [],
+        "process": null,
+        "citation": "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience, etc"
+      },
+      {
+        "name": "CourrierType",
+        "label": "Courrier type",
+        "label_plural": "Courriers types",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "éditer les courriers types"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Dossier": [
+      {
+        "nom": "reference",
+        "libelle": "Référence du dossier",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EtapeProcedure": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé de l'étape",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CourrierType": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé du courrier type",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Dossier": {
+      "verbe_creation": null,
+      "boutons": {
+        "accuse_reception": "Accuser réception",
+        "convocation_audience": "Convoquer à l'audience",
+        "echange_memoires": "Échanger les mémoires",
+        "enregistrement": "Marquer enregistré"
+      }
+    },
+    "EtapeProcedure": {
+      "verbe_creation": "Ajouter une étape",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

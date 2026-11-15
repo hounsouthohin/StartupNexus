@@ -1,0 +1,287 @@
+{
+  "app": {
+    "nom": "gestion-immo",
+    "titre": "Gestion locative"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire",
+        "label_plural": "Gestionnaires",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Proprietaire",
+        "label": "Propriétaire",
+        "label_plural": "Propriétaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "le reversement des loyers"
+      },
+      {
+        "name": "Bien",
+        "label": "Bien",
+        "label_plural": "Biens",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Proprietaire"
+        ],
+        "citation": "gestionnaire de biens immobilier"
+      },
+      {
+        "name": "Locataire",
+        "label": "Locataire",
+        "label_plural": "Locataires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Bien"
+        ],
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "name": "EncaissementLoyer",
+        "label": "Encaissement de loyer",
+        "label_plural": "Encaissements de loyer",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Locataire",
+          "Bien"
+        ],
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "name": "ReversementLoyer",
+        "label": "Reversement de loyer",
+        "label_plural": "Reversements de loyer",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Proprietaire",
+          "Bien"
+        ],
+        "citation": "le reversement des loyers"
+      },
+      {
+        "name": "Quittance",
+        "label": "Quittance",
+        "label_plural": "Quittances",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Locataire",
+          "EncaissementLoyer"
+        ],
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "name": "ReleveCompte",
+        "label": "Relevé de compte",
+        "label_plural": "Relevés de compte",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte"
+      },
+      {
+        "name": "OperationBancaire",
+        "label": "Opération bancaire",
+        "label_plural": "Opérations bancaires",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "EncaissementLoyer",
+          "ReversementLoyer"
+        ],
+        "citation": "automatiser le rapprochement bancaire"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Proprietaire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Bien": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Locataire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EncaissementLoyer": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ReversementLoyer": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Quittance": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de quittance",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ReleveCompte": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "OperationBancaire": [
+      {
+        "nom": "libelle",
+        "libelle": "Libellé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Bien": {
+      "verbe_creation": "Ajouter un bien",
+      "boutons": {}
+    },
+    "Locataire": {
+      "verbe_creation": "Louer",
+      "boutons": {}
+    },
+    "EncaissementLoyer": {
+      "verbe_creation": "Encaisser le loyer",
+      "boutons": {}
+    },
+    "ReversementLoyer": {
+      "verbe_creation": "Reverser le loyer",
+      "boutons": {}
+    },
+    "Quittance": {
+      "verbe_creation": "Émettre la quittance",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

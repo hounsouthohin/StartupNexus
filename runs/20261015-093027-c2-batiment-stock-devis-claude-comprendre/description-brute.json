@@ -1,0 +1,288 @@
+{
+  "app": {
+    "nom": "c2-batiment-stock-devis",
+    "titre": "Gestion du bâtiment"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes une entreprise générale de bâtiment qui est en cours de création"
+      },
+      {
+        "id": "conducteur_travaux",
+        "label": "conducteur de travaux",
+        "label_plural": "conducteurs de travaux",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "pour nos conducteurs de travaux"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "nos clients professionnels et particuliers"
+      },
+      {
+        "name": "Marchandise",
+        "label": "marchandise",
+        "label_plural": "marchandises",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "marchandises qui serviront à nos chantiers"
+      },
+      {
+        "name": "MouvementStock",
+        "label": "mouvement de stock",
+        "label_plural": "mouvements de stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Marchandise"
+        ],
+        "citation": "contrôler les entrées et les sorties des marchandises"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "réaliser des devis"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "gérer la partie facturation pour nos clients professionnels et particuliers"
+      },
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "conducteur_travaux"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "suivi de nos chantiers"
+      },
+      {
+        "name": "CompteRenduChantier",
+        "label": "compte rendu de chantier",
+        "label_plural": "comptes rendus de chantier",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "C/R, rapports"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Marchandise": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "MouvementStock": [
+      {
+        "nom": "typeMouvement",
+        "libelle": "Type de mouvement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "entree",
+            "libelle": "entrée"
+          },
+          {
+            "code": "sortie",
+            "libelle": "sortie"
+          }
+        ],
+        "origine": "brief",
+        "citation": "les entrées et les sorties"
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Chantier": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du chantier",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "avancement",
+        "libelle": "Avancement",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "connaître leur avancement"
+      },
+      {
+        "nom": "delais",
+        "libelle": "Délais",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les délais"
+      },
+      {
+        "nom": "organisationDomaines",
+        "libelle": "Organisation des domaines d'application",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l’organisation des différents domaines d’application"
+      }
+    ],
+    "CompteRenduChantier": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "MouvementStock": {
+      "verbe_creation": "Ajouter un mouvement",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Établir un devis",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "CompteRenduChantier": {
+      "verbe_creation": "Rédiger un compte rendu",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

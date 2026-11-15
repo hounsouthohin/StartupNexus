@@ -23,7 +23,7 @@ RACINE = Path(__file__).resolve().parents[2]
 
 # où vit chaque partie (fichier, texte qu'on doit y trouver)
 S, MOD, E, D = "usine/traduire/schema.py", "usine/traduire/modele.py", "usine/traduire/ecran.py", "usine/traduire/depart.py"
-DESC, MAT = "usine/description.py", "factory-sprint0/agents/capability_matrix.py"
+DESC, MAT = "usine/description.py", "usine/calculateur/capability_matrix.py"
 V, P, F = "usine/modele-app/components/vues.tsx", "usine/modele-app/components/pieces.tsx", "usine/modele-app/lib/fiche.ts"
 JB = "usine/modele-app/verification/blocs/"
 NOY, CAS, E2E = "usine/modele-app/verification/noyau.mts", "usine/modele-app/verification/cas.mts", "usine/modele-app/e2e/noyau.ts"
@@ -193,7 +193,7 @@ def vocabulaire() -> dict[str, list[str]]:
     """Les mots de vocabulaire, lus DANS LE CODE (les formes strictes), pas recopiés à la main."""
     from ..description import TypeChamp
     from ..matrice import Entity
-    from agents.capability_matrix import AccessException, Cell
+    from ..calculateur.capability_matrix import AccessException, Cell
 
     def args(modele, champ) -> list[str]:
         a = modele.model_fields[champ].annotation

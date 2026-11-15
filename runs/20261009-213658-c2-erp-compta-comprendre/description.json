@@ -1,0 +1,161 @@
+{
+  "app": {
+    "nom": "c2-erp-compta",
+    "titre": "Gestion d’entreprise"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons des free-lances"
+      },
+      {
+        "id": "utilisateur",
+        "label": "Utilisateur",
+        "label_plural": "Utilisateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "utilisée aussi bien par un novice qu’un professionnel du domaine"
+      },
+      {
+        "id": "expert_comptable",
+        "label": "Expert comptable",
+        "label_plural": "Experts comptables",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "la possibilité de rajouter un expert comptable"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "faire de la facturation"
+      },
+      {
+        "name": "EcritureComptable",
+        "label": "écriture comptable",
+        "label_plural": "écritures comptables",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "utilisateur",
+          "expert_comptable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "rajouter un expert comptable"
+      },
+      {
+        "name": "OperationFinanciere",
+        "label": "opération financière",
+        "label_plural": "opérations financières",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "la gestion financière"
+      },
+      {
+        "name": "ArticleStock",
+        "label": "article de stock",
+        "label_plural": "articles de stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "la gestion de stock"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Facture": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EcritureComptable": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "OperationFinanciere": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ArticleStock": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {},
+  "depart": {}
+}

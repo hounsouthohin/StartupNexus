@@ -1,0 +1,496 @@
+{
+  "app": {
+    "nom": "c2-dossiers-maintenance",
+    "titre": "Suivi de maintenance"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire",
+        "label_plural": "Gestionnaires",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "application avec interface web pour gérer les dossiers clients et les interventions de maintenance"
+      }
+    ],
+    "entities": [
+      {
+        "name": "DossierClient",
+        "label": "dossier client",
+        "label_plural": "dossiers clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Installateur",
+          "Mainteneur",
+          "Prestataire"
+        ],
+        "citation": "Possibilité d’affecter plusieurs Installateurs/Mainteneurs/Prestataires à un client"
+      },
+      {
+        "name": "Installateur",
+        "label": "installateur",
+        "label_plural": "installateurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "(*) possibilité de créer une liste et de choisir dans la liste"
+      },
+      {
+        "name": "Mainteneur",
+        "label": "mainteneur",
+        "label_plural": "mainteneurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "(*) possibilité de créer une liste et de choisir dans la liste"
+      },
+      {
+        "name": "Prestataire",
+        "label": "prestataire",
+        "label_plural": "prestataires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "(*) possibilité de créer une liste et de choisir dans la liste"
+      },
+      {
+        "name": "MarqueMateriel",
+        "label": "marque de matériel",
+        "label_plural": "marques de matériel",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Possibilité de créer et modifier les listes de matériel"
+      },
+      {
+        "name": "TypeMateriel",
+        "label": "type de matériel",
+        "label_plural": "types de matériel",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "MarqueMateriel"
+        ],
+        "citation": "Possibilité de créer et modifier les listes de matériel"
+      },
+      {
+        "name": "MaterielInstalle",
+        "label": "matériel installé",
+        "label_plural": "matériels installés",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "DossierClient",
+        "references": [
+          "MarqueMateriel",
+          "TypeMateriel"
+        ],
+        "citation": "Choix en arborescence"
+      },
+      {
+        "name": "PieceJointe",
+        "label": "pièce jointe",
+        "label_plural": "pièces jointes",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "DossierClient",
+        "references": [],
+        "citation": "Affectations de pièces jointes"
+      },
+      {
+        "name": "InterventionMaintenance",
+        "label": "intervention de maintenance",
+        "label_plural": "interventions de maintenance",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "DossierClient",
+          "MaterielInstalle"
+        ],
+        "citation": "gérer les dossiers clients et les interventions de maintenance"
+      },
+      {
+        "name": "FormulaireMaintenance",
+        "label": "formulaire de maintenance",
+        "label_plural": "formulaires de maintenance",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "MaterielInstalle",
+          "InterventionMaintenance"
+        ],
+        "citation": "Réutilisation du formulaire et sauvegarde en fonction des interventions de maintenance"
+      },
+      {
+        "name": "RapportIntervention",
+        "label": "rapport d’intervention",
+        "label_plural": "rapports d’intervention",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "InterventionMaintenance"
+        ],
+        "citation": "Edition et sauvegarde rapport d’intervention"
+      },
+      {
+        "name": "RapportFormation",
+        "label": "rapport de formation",
+        "label_plural": "rapports de formation",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "DossierClient"
+        ],
+        "citation": "Edition et sauvegarde rapport de formation"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "DossierClient": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Attribution d’un numéro"
+      },
+      {
+        "nom": "nom",
+        "libelle": "Nom du client",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, divers, interlocuteurs"
+      },
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, divers, interlocuteurs"
+      },
+      {
+        "nom": "divers",
+        "libelle": "Divers",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, divers, interlocuteurs"
+      },
+      {
+        "nom": "interlocuteurs",
+        "libelle": "Interlocuteurs",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, divers, interlocuteurs"
+      }
+    ],
+    "Installateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      },
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      },
+      {
+        "nom": "interlocuteurs",
+        "libelle": "Interlocuteurs",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      }
+    ],
+    "Mainteneur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      },
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      },
+      {
+        "nom": "interlocuteurs",
+        "libelle": "Interlocuteurs",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      }
+    ],
+    "Prestataire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      },
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      },
+      {
+        "nom": "interlocuteurs",
+        "libelle": "Interlocuteurs",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Nom, adresse, interlocuteurs"
+      }
+    ],
+    "MarqueMateriel": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de la marque",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "TypeMateriel": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du type de matériel",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "MaterielInstalle": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "PieceJointe": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "InterventionMaintenance": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "FormulaireMaintenance": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RapportIntervention": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RapportFormation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "TypeMateriel": {
+      "verbe_creation": "Ajouter un type",
+      "boutons": {}
+    },
+    "MaterielInstalle": {
+      "verbe_creation": "Ajouter du matériel",
+      "boutons": {}
+    },
+    "PieceJointe": {
+      "verbe_creation": "Joindre un fichier",
+      "boutons": {}
+    },
+    "InterventionMaintenance": {
+      "verbe_creation": "Planifier une intervention",
+      "boutons": {}
+    },
+    "FormulaireMaintenance": {
+      "verbe_creation": "Générer le formulaire",
+      "boutons": {}
+    },
+    "RapportIntervention": {
+      "verbe_creation": "Rédiger le rapport",
+      "boutons": {}
+    },
+    "RapportFormation": {
+      "verbe_creation": "Rédiger un rapport de formation",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

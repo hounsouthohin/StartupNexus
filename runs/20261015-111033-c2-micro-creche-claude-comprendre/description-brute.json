@@ -1,0 +1,533 @@
+{
+  "app": {
+    "nom": "c2-micro-creche",
+    "titre": "Gestion de la micro-crèche"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "direction",
+        "label": "Direction",
+        "label_plural": "Directions",
+        "feminine": true,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "id": "personnel",
+        "label": "Membre du personnel",
+        "label_plural": "Membres du personnel",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "direction",
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "id": "parent",
+        "label": "Parent",
+        "label_plural": "Parents",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "direction",
+        "citation": "Création comptes personnel/parents"
+      }
+    ],
+    "entities": [
+      {
+        "name": "ProfilPersonnel",
+        "label": "membre du personnel",
+        "label_plural": "membres du personnel",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "personnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "name": "ProfilParent",
+        "label": "parent",
+        "label_plural": "parents",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "parent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "name": "Enfant",
+        "label": "enfant",
+        "label_plural": "enfants",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "parent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Informations enfants (santé, habitudes"
+      },
+      {
+        "name": "Reservation",
+        "label": "réservation de créneau",
+        "label_plural": "réservations de créneau",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "parent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Enfant"
+        ],
+        "citation": "Réservation de créneaux de garde"
+      },
+      {
+        "name": "Transmission",
+        "label": "transmission",
+        "label_plural": "transmissions",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "parent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "personnel",
+        "parent": null,
+        "references": [
+          "Enfant"
+        ],
+        "citation": "Transmissions quotidiennes"
+      },
+      {
+        "name": "Photo",
+        "label": "photo",
+        "label_plural": "photos",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "parent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "personnel",
+        "parent": null,
+        "references": [],
+        "citation": "Accès sécurisé à des photos"
+      },
+      {
+        "name": "Planning",
+        "label": "planning",
+        "label_plural": "plannings",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "personnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Planning du personnel"
+      },
+      {
+        "name": "Pointage",
+        "label": "pointage",
+        "label_plural": "pointages",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "personnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Suivi des présences et pointages"
+      },
+      {
+        "name": "FicheDePaie",
+        "label": "fiche de paie",
+        "label_plural": "fiches de paie",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "personnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "direction",
+        "parent": null,
+        "references": [],
+        "citation": "Accès aux fiches de paie"
+      },
+      {
+        "name": "SignalementBesoin",
+        "label": "signalement de besoin",
+        "label_plural": "signalements de besoin",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "personnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "ArticleStock"
+        ],
+        "citation": "Signalement de besoins (stocks manquants)"
+      },
+      {
+        "name": "ArticleStock",
+        "label": "article en stock",
+        "label_plural": "articles en stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "direction"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des stocks (ajout, seuils d’alerte)"
+      },
+      {
+        "name": "Document",
+        "label": "document",
+        "label_plural": "documents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "direction"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Envoi de documents/messages"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "personnel",
+        "entity": "Pointage",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Pointage d’arrivée/départ"
+      },
+      {
+        "actor": "personnel",
+        "entity": "FicheDePaie",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Accès aux fiches de paie"
+      },
+      {
+        "actor": "personnel",
+        "entity": "SignalementBesoin",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Signalement de besoins (stocks manquants)"
+      },
+      {
+        "actor": "parent",
+        "entity": "Reservation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Réservation de créneaux de garde"
+      },
+      {
+        "actor": "direction",
+        "entity": "ProfilPersonnel",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "actor": "direction",
+        "entity": "ProfilParent",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création comptes personnel/parents"
+      },
+      {
+        "actor": "direction",
+        "entity": "Pointage",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Suivi des présences et pointages"
+      },
+      {
+        "actor": "direction",
+        "entity": "ArticleStock",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gestion des stocks (ajout"
+      },
+      {
+        "actor": "direction",
+        "entity": "Document",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Envoi de documents/messages"
+      }
+    ]
+  },
+  "champs": {
+    "ProfilPersonnel": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ProfilParent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Enfant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "sante",
+        "libelle": "Informations de santé",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Informations enfants (santé"
+      },
+      {
+        "nom": "habitudes",
+        "libelle": "Habitudes",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Informations enfants (santé, habitudes"
+      }
+    ],
+    "Reservation": [
+      {
+        "nom": "debutCreneau",
+        "libelle": "Début du créneau",
+        "type": "date_heure",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Réservation de créneaux de garde"
+      },
+      {
+        "nom": "finCreneau",
+        "libelle": "Fin du créneau",
+        "type": "date_heure",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Réservation de créneaux de garde"
+      }
+    ],
+    "Transmission": [
+      {
+        "nom": "jour",
+        "libelle": "Jour de la transmission",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Transmissions quotidiennes"
+      }
+    ],
+    "Photo": [
+      {
+        "nom": "titre",
+        "libelle": "Titre",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Planning": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Pointage": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "heureArrivee",
+        "libelle": "Heure d'arrivée",
+        "type": "date_heure",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Pointage d’arrivée/départ"
+      },
+      {
+        "nom": "heureDepart",
+        "libelle": "Heure de départ",
+        "type": "date_heure",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Pointage d’arrivée/départ"
+      }
+    ],
+    "FicheDePaie": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SignalementBesoin": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ArticleStock": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "quantiteEnStock",
+        "libelle": "Quantité en stock",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Gestion des stocks (ajout"
+      },
+      {
+        "nom": "seuilAlerte",
+        "libelle": "Seuil d'alerte",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "seuils d’alerte"
+      }
+    ],
+    "Document": [
+      {
+        "nom": "titre",
+        "libelle": "Titre",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Reservation": {
+      "verbe_creation": "Réserver un créneau",
+      "boutons": {}
+    },
+    "Transmission": {
+      "verbe_creation": "Noter une transmission",
+      "boutons": {}
+    },
+    "SignalementBesoin": {
+      "verbe_creation": "Signaler un besoin",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

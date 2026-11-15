@@ -1,0 +1,26 @@
+Système de gestion pour entreprise de location pour événement
+Bonjour,
+
+Nous avons une entreprise de location de matériel pour événements. Nos clients comprennent des particuliers (fêtes de révélation, 15 ans, mariages, etc.) ainsi que des professionnels (effets pour artistes, fêtes, festivals). Nous avons besoin d'un système intuitif et facile à comprendre pour toute l'équipe qui y travaillera.
+
+- Nous avons besoin d'un CRM pour les données des clients.
+
+- Gestion des stocks en fonction des événements au calendrier (sorties et entrées).
+
+- Gestion des devis pour chaque client ; après confirmation, gestion des contrats.
+
+- Tableau des valeurs pour chaque produit.
+
+- Chaque élément dans le devis doit avoir une photo pour représenter l'effet.
+
+- Gestion de l'équipe pour chaque événement.
+
+- Développer une méthode pour rappeler le mode d'utilisation correct de chaque appareil, ainsi que des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage.
+
+- Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel.
+
+- Gestion des dépenses pour chaque événement et visualisation du profit final.
+
+- Système de filtrage et visualisation simple des rapports mensuels et par événement.
+
+- Calendrier dans le style de Google, avec intégration de données avec notre calendrier actuel sur Apple Calendar.

@@ -1,0 +1,10 @@
+Application web gestion de commandes/stock/ventes/clients
+Bonjour nous recherchons quelqu’un capable de développer une application (très simple) de gestion.
+
+- 1 page dashboard reprenant le total des ventes, les plus gros clients , le nombre de commandes etc
+
+- 1 page de gestion des ventes (ajout/affichage/suppression/modification)
+
+-1 page de gestion des clients (recherche,ajout,suppression,modification)
+
+- 1 page de gestion de stock (recherche,ajout,suppression,modification)

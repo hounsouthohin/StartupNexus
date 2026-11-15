@@ -1,0 +1,15 @@
+{
+  "run": "20261009-211809-union-sportive-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-union-sportive",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261009-211809-union-sportive-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 9,
+    "jetons_entree": 13771,
+    "jetons_sortie": 18864,
+    "dollars": 0.6348,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:21:20"
+}

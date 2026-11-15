@@ -99,13 +99,13 @@ class Budget:
 def client_pour(modele: str):
     from dotenv import load_dotenv
     from openai import OpenAI
-    load_dotenv(Path(__file__).resolve().parents[2] / "factory-sprint0" / ".env")
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
     if modele == "boite":
         return ClientBoite()
     if modele.startswith("gemini"):
         cle = os.getenv("GEMINI_API_KEY")
         if not cle:
-            raise SystemExit("GEMINI_API_KEY absente de factory-sprint0/.env")
+            raise SystemExit("GEMINI_API_KEY absente du fichier .env (racine du dépôt)")
         return OpenAI(api_key=cle, base_url=GEMINI_URL)
     return OpenAI()
 

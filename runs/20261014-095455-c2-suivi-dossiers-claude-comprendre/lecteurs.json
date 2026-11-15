@@ -1,0 +1,283 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion : un CRM de suivi de dossiers avec authentification, deux rôles (administration et client) et un suivi de l'état d'avancement des dossiers. Les besoins documentaires, les notifications et la formation sont hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Génération automatique de documents (contrats, lettres, factures)",
+        "categorie": "document",
+        "citation": "génération automatique de documents (contrats, lettres,"
+      },
+      {
+        "besoin": "Gestion documentaire : ajout et visualisation de documents (pièces jointes), côté administration et côté client",
+        "categorie": "fichiers_photos",
+        "citation": "gestion documentaire (ajout, visualisation"
+      },
+      {
+        "besoin": "Notifications liées aux documents, côté administration et côté client",
+        "categorie": "notification",
+        "citation": "visualisation, notifications)"
+      },
+      {
+        "besoin": "Prestations d'accompagnement : mise en place, formation et documentation utilisateur",
+        "categorie": "autre",
+        "citation": "Mise en place, formation et documentation utilisateur."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Interface d’administration : Authentification"
+      },
+      {
+        "id": "client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier",
+        "libelle_pluriel": "Dossiers",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "client",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "administrateur",
+        "parent": null,
+        "references": [],
+        "citation": "pour un suivi de dossiers ... Interface client : Authentification, suivi de l’état d’avancement"
+      },
+      {
+        "nom": "Document",
+        "libelle": "Document",
+        "libelle_pluriel": "Documents",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Dossier",
+        "references": [],
+        "citation": "génération automatique de documents (contrats, lettres, ... gestion documentaire (ajout, visualisation, notifications)"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Dossier",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d’administration : Authentification, gestion et suivi des ... dossiers"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Document",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d’administration ... factures), gestion documentaire (ajout, visualisation, notifications)"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Document",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface d’administration ... factures), gestion documentaire (ajout, visualisation, notifications)"
+      },
+      {
+        "acteur": "client",
+        "fiche": "Dossier",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      },
+      {
+        "acteur": "client",
+        "fiche": "Document",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement, ... gestion documentaire (ajout, visualisation, notifications)"
+      },
+      {
+        "acteur": "client",
+        "fiche": "Document",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement, ... gestion documentaire (ajout, visualisation, notifications)"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "etatAvancement",
+            "libelle": "État d'avancement",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "suivi de l’état d’avancement"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence du dossier",
+            "type": "texte",
+            "raison": "Un numéro ou une référence aiderait à retrouver un dossier ; le brief n'en parle pas, il faut le demander au client."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Pour résumer l'objet du dossier ; le brief ne la mentionne pas."
+          }
+        ]
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "typeDocument",
+            "libelle": "Type de document",
+            "type": "choix",
+            "obligatoire": false,
+            "valeurs": [
+              "contrat",
+              "lettre",
+              "facture"
+            ],
+            "origine": "brief",
+            "citation": "génération automatique de documents (contrats, lettres, ... factures)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Titre",
+            "type": "texte",
+            "raison": "Pour reconnaître un document dans la liste d'un dossier ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Fichier (lien vers le document)",
+            "type": "url",
+            "raison": "Le brief prévoit l'ajout et la visualisation de documents, mais ne dit pas comment le fichier est enregistré."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Suivi des dossiers",
+    "fiches": [
+      {
+        "fiche": "Document",
+        "verbe_creation": "Ajouter un document",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

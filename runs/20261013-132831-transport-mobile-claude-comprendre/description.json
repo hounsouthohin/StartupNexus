@@ -1,0 +1,297 @@
+{
+  "app": {
+    "nom": "transport-mobile",
+    "titre": "Suivi des livraisons"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "Responsable",
+        "label_plural": "Responsables",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "je souhaite proposer en interne le développement d'une application mobile"
+      },
+      {
+        "id": "chauffeur",
+        "label": "Chauffeur",
+        "label_plural": "Chauffeurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "responsable",
+        "citation": "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chauffeur",
+        "label": "Chauffeur",
+        "label_plural": "Chauffeurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "chauffeur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités"
+      },
+      {
+        "name": "Vehicule",
+        "label": "Véhicule",
+        "label_plural": "Véhicules",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "chauffeur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "la capacité de leurs véhicules"
+      },
+      {
+        "name": "EntrepriseCliente",
+        "label": "Entreprise cliente",
+        "label_plural": "Entreprises clientes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "name": "SousTraitant",
+        "label": "Sous-traitant",
+        "label_plural": "Sous-traitants",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "la difficulté à coordonner nos sous-traitants"
+      },
+      {
+        "name": "Livraison",
+        "label": "Livraison",
+        "label_plural": "Livraisons",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable",
+          "chauffeur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "EntrepriseCliente",
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "demandee",
+          "transitions": {
+            "demandee": [
+              "confirmee"
+            ],
+            "confirmee": []
+          },
+          "initiator": "responsable",
+          "decider": "chauffeur",
+          "steps_by": {},
+          "labels": {
+            "demandee": "demandée",
+            "confirmee": "confirmée"
+          },
+          "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+        },
+        "citation": "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+      },
+      {
+        "name": "DocumentLivraison",
+        "label": "Document de livraison",
+        "label_plural": "Documents de livraison",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Livraison",
+        "references": [],
+        "process": null,
+        "citation": "vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "chauffeur",
+        "entity": "Livraison",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+      },
+      {
+        "actor": "chauffeur",
+        "entity": "Livraison",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "demandee": [
+            "confirmee"
+          ]
+        },
+        "citation": "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires"
+      }
+    ]
+  },
+  "champs": {
+    "Chauffeur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "disponibilites",
+        "libelle": "Disponibilités",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "en fonction de leurs disponibilités"
+      }
+    ],
+    "Vehicule": [
+      {
+        "nom": "immatriculation",
+        "libelle": "Immatriculation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "capacite",
+        "libelle": "Capacité",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la capacité de leurs véhicules"
+      }
+    ],
+    "EntrepriseCliente": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SousTraitant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Livraison": [
+      {
+        "nom": "trajet",
+        "libelle": "Trajet",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "choisir leurs trajets"
+      },
+      {
+        "nom": "horaire",
+        "libelle": "Horaire",
+        "type": "date_heure",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "choisir leurs trajets et horaires"
+      },
+      {
+        "nom": "marchandisesDangereuses",
+        "libelle": "Marchandises dangereuses",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "notamment pour les marchandises dangereuses"
+      }
+    ],
+    "DocumentLivraison": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Livraison": {
+      "verbe_creation": "Demander une livraison",
+      "boutons": {
+        "confirmee": "Confirmer"
+      }
+    },
+    "DocumentLivraison": {
+      "verbe_creation": "Joindre un document",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

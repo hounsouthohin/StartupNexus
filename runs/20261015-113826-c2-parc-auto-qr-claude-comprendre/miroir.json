@@ -1,0 +1,812 @@
+{
+ "titre": "Gestion du parc automobile",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Lecture d'un QR code apposé sur chaque véhicule pour accéder directement à ses fiches",
+   "categorie": "autre",
+   "citation": "Lecture de QR code apposé sur chaque véhicule ... Lorsqu’on scanne, accès direct à toutes les fiches du véhicule"
+  },
+  {
+   "besoin": "Envoi automatique d'e-mails de rappel (entretien, état des lieux, etc.)",
+   "categorie": "notification",
+   "citation": "Envoi automatique d’e-mails (rappel entretien, etat des lieux, etc.)"
+  },
+  {
+   "besoin": "Calcul automatique des frais et du coût global du parc (entretien, réparation, assurance, amortissement)",
+   "categorie": "calcul_statistiques",
+   "citation": "Fiche coût global du parc ... Calcul automatique des frais (entretien, réparation, assurance, amortissement…)"
+  },
+  {
+   "besoin": "Mise à jour automatique d'autres fiches quand un état des lieux est saisi (planning, coût global)",
+   "categorie": "automatisation",
+   "citation": "un état des lieux déclenche une mise à jour du planning ou du coût global"
+  },
+  {
+   "besoin": "Planning (des entretiens / du parc)",
+   "categorie": "planning",
+   "citation": "une mise à jour du planning"
+  },
+  {
+   "besoin": "Tableau de bord global avec indicateurs (alertes, entretiens à venir)",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableau de bord global avec indicateurs (alertes, entretiens à venir, etc.)"
+  },
+  {
+   "besoin": "Alertes automatiques",
+   "categorie": "automatisation",
+   "citation": "automatiser les calculs et alertes"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire de parc",
+   "L'utilisateur"
+  ],
+  "fiches": 7,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire_parc",
+   "libelle": "Le gestionnaire de parc",
+   "devient": "responsable de l'app",
+   "citations": [
+    "un outil complet de gestion de mon parc parc automobile"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Véhicules, Suivis de parc auto, États des lieux d’entrée, États des lieux de sortie, Entretiens, Coûts, Plannings",
+     "cases": [
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Lecture de QR code apposé sur chaque véhicule"
+       ]
+      },
+      {
+       "fiche": "SuiviParc",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Fiche suivi de parc auto"
+       ]
+      },
+      {
+       "fiche": "EtatDesLieuxEntree",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Fiche état des lieux d’entrée"
+       ]
+      },
+      {
+       "fiche": "EtatDesLieuxSortie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Fiche état des lieux de sortie"
+       ]
+      },
+      {
+       "fiche": "Entretien",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "entretiens à venir"
+       ]
+      },
+      {
+       "fiche": "Cout",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Calcul automatique des frais (entretien, réparation, assurance, amortissement"
+       ]
+      },
+      {
+       "fiche": "Planning",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "un état des lieux déclenche une mise à jour du planning"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "utilisateur",
+   "libelle": "L'utilisateur",
+   "devient": "invité par gestionnaire_parc",
+   "citations": [
+    "Connexion sécurisée (multi-utilisateurs)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Véhicules, Suivis de parc auto, États des lieux d’entrée, États des lieux de sortie, Entretiens, Coûts, Plannings",
+     "cases": [
+      {
+       "fiche": "Vehicule",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Lecture de QR code apposé sur chaque véhicule"
+       ]
+      },
+      {
+       "fiche": "SuiviParc",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Fiche suivi de parc auto"
+       ]
+      },
+      {
+       "fiche": "EtatDesLieuxEntree",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Fiche état des lieux d’entrée"
+       ]
+      },
+      {
+       "fiche": "EtatDesLieuxSortie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Fiche état des lieux de sortie"
+       ]
+      },
+      {
+       "fiche": "Entretien",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "entretiens à venir"
+       ]
+      },
+      {
+       "fiche": "Cout",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Calcul automatique des frais (entretien, réparation, assurance, amortissement"
+       ]
+      },
+      {
+       "fiche": "Planning",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "un état des lieux déclenche une mise à jour du planning"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Vehicule",
+   "libelle": "Véhicule",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "immatriculation",
+     "libelle": "Immatriculation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "codeQr",
+     "libelle": "QR code",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "QR code apposé sur chaque véhicule"
+    },
+    {
+     "nom": "etat",
+     "libelle": "État du véhicule",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "l’état de chaque véhicule"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Vehicule:Marque",
+     "libelle": "Marque",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Vehicule:Modèle",
+     "libelle": "Modèle",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Vehicule:Date de mise en circulation",
+     "libelle": "Date de mise en circulation",
+     "type": "date"
+    },
+    {
+     "id": "garder:Vehicule:Kilométrage",
+     "libelle": "Kilométrage",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Vehicule:Prix d'achat",
+     "libelle": "Prix d'achat",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Lecture de QR code apposé sur chaque véhicule"
+   ]
+  },
+  {
+   "fiche": "SuiviParc",
+   "libelle": "Suivi de parc auto",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:SuiviParc:Date du suivi",
+     "libelle": "Date du suivi",
+     "type": "date"
+    },
+    {
+     "id": "garder:SuiviParc:Kilométrage relevé",
+     "libelle": "Kilométrage relevé",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:SuiviParc:Observations",
+     "libelle": "Observations",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Fiche suivi de parc auto"
+   ]
+  },
+  {
+   "fiche": "EtatDesLieuxEntree",
+   "libelle": "État des lieux d’entrée",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EtatDesLieuxEntree:Date et heure de l'état des lieux",
+     "libelle": "Date et heure de l'état des lieux",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:EtatDesLieuxEntree:Kilométrage à l'entrée",
+     "libelle": "Kilométrage à l'entrée",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:EtatDesLieuxEntree:Niveau de carburant",
+     "libelle": "Niveau de carburant",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:EtatDesLieuxEntree:Dommages constatés",
+     "libelle": "Dommages constatés",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:EtatDesLieuxEntree:Nom de la personne présente",
+     "libelle": "Nom de la personne présente",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Fiche état des lieux d’entrée"
+   ]
+  },
+  {
+   "fiche": "EtatDesLieuxSortie",
+   "libelle": "État des lieux de sortie",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EtatDesLieuxSortie:Date et heure de l'état des lieux",
+     "libelle": "Date et heure de l'état des lieux",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:EtatDesLieuxSortie:Kilométrage à la sortie",
+     "libelle": "Kilométrage à la sortie",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:EtatDesLieuxSortie:Niveau de carburant",
+     "libelle": "Niveau de carburant",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:EtatDesLieuxSortie:Dommages constatés",
+     "libelle": "Dommages constatés",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:EtatDesLieuxSortie:Nom de la personne présente",
+     "libelle": "Nom de la personne présente",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Fiche état des lieux de sortie"
+   ]
+  },
+  {
+   "fiche": "Entretien",
+   "libelle": "Entretien",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "dateEntretien",
+     "libelle": "Date de l'entretien",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "entretiens à venir"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Entretien:Type d'entretien",
+     "libelle": "Type d'entretien",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Entretien:Montant de l'entretien",
+     "libelle": "Montant de l'entretien",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Entretien:Garage ou prestataire",
+     "libelle": "Garage ou prestataire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Entretien:Kilométrage lors de l'entretien",
+     "libelle": "Kilométrage lors de l'entretien",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "entretiens à venir"
+   ]
+  },
+  {
+   "fiche": "Cout",
+   "libelle": "Coût",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "typeFrais",
+     "libelle": "Type de frais",
+     "type": "choix parmi : entretien, réparation, assurance, amortissement",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "frais (entretien, réparation, assurance, amortissement"
+    },
+    {
+     "nom": "montant",
+     "libelle": "Montant",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Calcul automatique des frais"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Cout:Date de la dépense",
+     "libelle": "Date de la dépense",
+     "type": "date"
+    },
+    {
+     "id": "garder:Cout:Description",
+     "libelle": "Description",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Cout:Autres types de frais",
+     "libelle": "Autres types de frais",
+     "type": "choix"
+    }
+   ],
+   "citations": [
+    "Calcul automatique des frais (entretien, réparation, assurance, amortissement"
+   ]
+  },
+  {
+   "fiche": "Planning",
+   "libelle": "Planning",
+   "nature": "registry",
+   "relie_a": [
+    "Véhicule"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Planning:Date et heure de début",
+     "libelle": "Date et heure de début",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Planning:Date et heure de fin",
+     "libelle": "Date et heure de fin",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Planning:Conducteur ou utilisateur",
+     "libelle": "Conducteur ou utilisateur",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Planning:Motif",
+     "libelle": "Motif",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "un état des lieux déclenche une mise à jour du planning"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:utilisateur:Vehicule",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les Véhicules, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Suivis de parc auto qu'il voit; clôture : choisit les Véhicules de ses Suivis de parc auto"
+  },
+  {
+   "id": "registre_entier:utilisateur:SuiviParc",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les Suivis de parc auto, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:EtatDesLieuxEntree",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les États des lieux d’entrée, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:EtatDesLieuxSortie",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les États des lieux de sortie, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Entretien",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les Entretiens, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Cout",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les Coûts, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Planning",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les Plannings, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Vehicule:immatriculation",
+     "texte": "Véhicule → « Immatriculation »"
+    },
+    {
+     "id": "nom:SuiviParc:intitule",
+     "texte": "Suivi de parc auto → « Intitulé »"
+    },
+    {
+     "id": "nom:EtatDesLieuxEntree:intitule",
+     "texte": "État des lieux d’entrée → « Intitulé »"
+    },
+    {
+     "id": "nom:EtatDesLieuxSortie:intitule",
+     "texte": "État des lieux de sortie → « Intitulé »"
+    },
+    {
+     "id": "nom:Planning:intitule",
+     "texte": "Planning → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

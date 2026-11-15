@@ -1,0 +1,512 @@
+{
+  "app": {
+    "nom": "c2-nettoyage-industriel",
+    "titre": "Gestion des interventions"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Notre société, est une entreprise de nettoyage industriel"
+      },
+      {
+        "id": "responsable_equipe",
+        "label": "Responsable d'équipe",
+        "label_plural": "Responsables d'équipe",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "Les responsables d’équipes travailleront plutôt depuis un ordinateur (bureau)"
+      },
+      {
+        "id": "agent",
+        "label": "Agent",
+        "label_plural": "Agents",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "Les agents, eux, utiliseront principalement leur smartphone"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Agent",
+        "label": "Agent",
+        "label_plural": "Agents",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "agent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "environ 25 agents qui interviennent sur l’ensemble de la région"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "responsable_equipe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Créer une fiche pour chaque client, avec ses coordonnées"
+      },
+      {
+        "name": "Site",
+        "label": "Site",
+        "label_plural": "Sites",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "responsable_equipe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "de leurs différents sites (adresses, types de locaux, consignes particulières, fréquence de nettoyage)"
+      },
+      {
+        "name": "TypePrestation",
+        "label": "Type de prestation",
+        "label_plural": "Types de prestation",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "qui va où, à quelle heure, pour quel type de prestation"
+      },
+      {
+        "name": "Intervention",
+        "label": "Intervention",
+        "label_plural": "Interventions",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "agent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "responsable_equipe",
+        "parent": null,
+        "references": [
+          "Site",
+          "TypePrestation"
+        ],
+        "citation": "les interventions prévues chaque jour, par site et par personne",
+        "process": {
+          "initial": "prevue",
+          "transitions": {
+            "prevue": [
+              "en_cours"
+            ],
+            "en_cours": [
+              "terminee"
+            ],
+            "terminee": []
+          },
+          "initiator": "responsable_equipe",
+          "decider": "agent",
+          "steps_by": {},
+          "labels": {
+            "prevue": "prévue",
+            "en_cours": "en cours",
+            "terminee": "terminée"
+          },
+          "citation": "de signaler quand ils commencent et quand ils terminent"
+        }
+      },
+      {
+        "name": "Tache",
+        "label": "Tâche",
+        "label_plural": "Tâches",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "éventuellement cocher les tâches faites"
+      },
+      {
+        "name": "Photo",
+        "label": "Photo",
+        "label_plural": "Photos",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "photos avant/après quand c’est nécessaire"
+      },
+      {
+        "name": "Signalement",
+        "label": "Signalement de problème",
+        "label_plural": "Signalements de problème",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "agent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "citation": "permettre à l’agent de nous remonter l’information simplement, avec un commentaire et, si possible, une photo"
+      },
+      {
+        "name": "Absence",
+        "label": "Absence",
+        "label_plural": "Absences",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "responsable_equipe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Agent"
+        ],
+        "citation": "Gérer les absences d’un agent (congé, maladie)"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "agent",
+        "entity": "Intervention",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettre à nos agents, sur le terrain, de voir leurs interventions du jour sur leur téléphone"
+      },
+      {
+        "actor": "agent",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {
+          "prevue": [
+            "en_cours"
+          ],
+          "en_cours": [
+            "terminee"
+          ]
+        },
+        "citation": "de signaler quand ils commencent et quand ils terminent"
+      },
+      {
+        "actor": "agent",
+        "entity": "Tache",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "éventuellement cocher les tâches faites"
+      },
+      {
+        "actor": "agent",
+        "entity": "Photo",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "ajouter des photos si besoin"
+      },
+      {
+        "actor": "agent",
+        "entity": "Signalement",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettre à l’agent de nous remonter l’information simplement, avec un commentaire"
+      }
+    ]
+  },
+  "champs": {
+    "Agent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "coordonnees",
+        "libelle": "Coordonnées",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "avec ses coordonnées"
+      }
+    ],
+    "Site": [
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "leurs différents sites (adresses"
+      },
+      {
+        "nom": "typeLocaux",
+        "libelle": "Type de locaux",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "types de locaux"
+      },
+      {
+        "nom": "consignes",
+        "libelle": "Consignes particulières",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "consignes particulières"
+      },
+      {
+        "nom": "frequence",
+        "libelle": "Fréquence de passage",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "tous_les_jours",
+            "libelle": "tous les jours"
+          },
+          {
+            "code": "une_fois_par_semaine",
+            "libelle": "une fois par semaine"
+          },
+          {
+            "code": "une_fois_par_mois",
+            "libelle": "une fois par mois"
+          },
+          {
+            "code": "ponctuellement_apres_travaux_ou_evenement",
+            "libelle": "ponctuellement après travaux ou événement"
+          }
+        ],
+        "origine": "brief",
+        "citation": "à quelle fréquence nous passons (tous les jours, une fois par semaine, une fois par mois, ou ponctuellement après travaux ou événement)"
+      }
+    ],
+    "TypePrestation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Intervention": [
+      {
+        "nom": "dateHeurePrevue",
+        "libelle": "Date et heure prévues",
+        "type": "date_heure",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les interventions prévues chaque jour"
+      },
+      {
+        "nom": "commentaire",
+        "libelle": "Commentaire",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "cases à cocher, commentaires"
+      }
+    ],
+    "Tache": [
+      {
+        "nom": "faite",
+        "libelle": "Faite",
+        "type": "oui_non",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "cocher les tâches faites"
+      }
+    ],
+    "Photo": [
+      {
+        "nom": "image",
+        "libelle": "Photo (lien vers le fichier)",
+        "type": "url",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "ajouter des photos si besoin"
+      },
+      {
+        "nom": "moment",
+        "libelle": "Avant / après",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "avant",
+            "libelle": "avant"
+          },
+          {
+            "code": "apres",
+            "libelle": "après"
+          }
+        ],
+        "origine": "brief",
+        "citation": "photos avant/après"
+      }
+    ],
+    "Signalement": [
+      {
+        "nom": "typeProbleme",
+        "libelle": "Type de problème",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "accès impossible, dégâts constatés, matériel en panne"
+      },
+      {
+        "nom": "commentaire",
+        "libelle": "Commentaire",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "avec un commentaire"
+      },
+      {
+        "nom": "photo",
+        "libelle": "Photo (lien vers le fichier)",
+        "type": "url",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "si possible, une photo"
+      }
+    ],
+    "Absence": [
+      {
+        "nom": "motif",
+        "libelle": "Motif",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "conge",
+            "libelle": "congé"
+          },
+          {
+            "code": "maladie",
+            "libelle": "maladie"
+          }
+        ],
+        "origine": "brief",
+        "citation": "les absences d’un agent (congé, maladie)"
+      }
+    ]
+  },
+  "ecran": {
+    "Site": {
+      "verbe_creation": "Ajouter un site",
+      "boutons": {}
+    },
+    "Intervention": {
+      "verbe_creation": "Planifier",
+      "boutons": {
+        "en_cours": "Commencer",
+        "terminee": "Terminer"
+      }
+    },
+    "Tache": {
+      "verbe_creation": "Ajouter une tâche",
+      "boutons": {}
+    },
+    "Photo": {
+      "verbe_creation": "Ajouter une photo",
+      "boutons": {}
+    },
+    "Signalement": {
+      "verbe_creation": "Signaler un problème",
+      "boutons": {}
+    },
+    "Absence": {
+      "verbe_creation": "Déclarer une absence",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

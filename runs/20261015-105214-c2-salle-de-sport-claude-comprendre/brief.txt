@@ -1,0 +1,2 @@
+Logiciel de Gestion de salle de sport
+GymPlus est une solution complète de gestion de salles de sport qui centralise la gestion des adhérents, des abonnements, des paiements, des présences et des activités sportives afin d'améliorer l'organisation et l'expérience des utilisateurs.

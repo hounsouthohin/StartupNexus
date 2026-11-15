@@ -1,0 +1,126 @@
+{
+  "app": {
+    "nom": "mesures-terrain",
+    "titre": "Gestion des commandes"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "responsable_des_commandes",
+        "label": "Responsable des commandes",
+        "label_plural": "Responsables des commandes",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "gestion des commandes"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_des_commandes"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "gestion de commande"
+      },
+      {
+        "name": "PlanningLogistique",
+        "label": "planning logistique",
+        "label_plural": "plannings logistiques",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_des_commandes"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": null,
+        "citation": "un planning logistique"
+      },
+      {
+        "name": "Livrable",
+        "label": "livrable",
+        "label_plural": "livrables",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_des_commandes"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": null,
+        "citation": "gestion des livrables"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Commande": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "PlanningLogistique": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Livrable": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "PlanningLogistique": {
+      "verbe_creation": "Planifier la logistique",
+      "boutons": {}
+    },
+    "Livrable": {
+      "verbe_creation": "Ajouter un livrable",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

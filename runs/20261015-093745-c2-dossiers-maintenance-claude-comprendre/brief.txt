@@ -1,0 +1,46 @@
+Création d'une application pour gestion dossiers clients maintenance
+Création d'une application avec interface web pour gérer les dossiers clients et les interventions de maintenance
+
+Aperçu des fonctionnalités souhaitées :
+
+Création dossier client
+
+	Attribution d’un numéro 
+
+	Saisie
+
+		Client	Nom, adresse, divers, interlocuteurs
+
+		Installateur(*)	Nom, adresse, interlocuteurs
+
+		Mainteneur(*)	Nom, adresse, interlocuteurs
+
+		Prestataire(*)	Nom, adresse, interlocuteurs
+
+(*) possibilité de créer une liste et de choisir dans la liste
+
+Possibilité d’affecter plusieurs Installateurs/Mainteneurs/Prestataires à un client
+
+		
+
+		Matériel installé	Choix en arborescence	Marque du matériel/Type de matériel
+
+Possibilité de créer et modifier les listes de matériel
+
+		Pièces jointes	Affectations de pièces jointes
+
+Recherche dossier client
+
+	Recherche multicritères sur tous les champs clients / Champ installateur/mainteneur/prestataire
+
+Maintenance
+
+	A partir du matériel installé, génération d’un formulaire préétabli en fonction du matériel
+
+	Saisie, sauvegarde et édition du formulaire
+
+	Réutilisation du formulaire et sauvegarde en fonction des interventions de maintenance
+
+	Edition et sauvegarde rapport d’intervention
+
+	Edition et sauvegarde rapport de formation

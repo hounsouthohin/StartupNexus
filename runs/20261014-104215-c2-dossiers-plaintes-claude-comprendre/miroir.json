@@ -1,0 +1,291 @@
+{
+ "titre": "Suivi des dossiers",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Génération (édition) de courriers types à partir des dossiers",
+   "categorie": "document",
+   "citation": "édition de courrier ... éditer les courriers types"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le responsable de la structure"
+  ],
+  "fiches": 3,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "responsable",
+   "libelle": "Le responsable de la structure",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous souhaitons centraliser la gestion des dossiers"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Étapes de procédure (dans chaque Dossier)",
+     "cases": [
+      {
+       "fiche": "EtapeProcedure",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Dossier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "La structure traite des dossiers (plaintes)",
+        "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Courriers types",
+     "cases": [
+      {
+       "fiche": "CourrierType",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "éditer les courriers types"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Dossiers : voit tout, en crée, les modifie, les fait passer de « demande de régularisation » à « enregistrement », les fait passer de « enregistrement » à « AR », les fait passer de « AR » à « échanges de mémoires », les fait passer de « échanges de mémoires » à « convocation audience »",
+     "cases": [
+      {
+       "fiche": "Dossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "demande_regularisation": [
+          "enregistrement"
+         ],
+         "enregistrement": [
+          "accuse_reception"
+         ],
+         "accuse_reception": [
+          "echange_memoires"
+         ],
+         "echange_memoires": [
+          "convocation_audience"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "La structure traite des dossiers (plaintes)",
+        "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Dossier",
+   "texte": "Le dossier passe par : « demande de régularisation » → « enregistrement » → « AR » → « échanges de mémoires » → « convocation audience »",
+   "qui": [
+    "Le responsable de la structure fait passer de « demande de régularisation » à « enregistrement »",
+    "Le responsable de la structure fait passer de « enregistrement » à « AR »",
+    "Le responsable de la structure fait passer de « AR » à « échanges de mémoires »",
+    "Le responsable de la structure fait passer de « échanges de mémoires » à « convocation audience »"
+   ],
+   "citations": [
+    "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Dossier",
+   "libelle": "Dossier",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence du dossier",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Dossier:Nom du plaignant",
+     "libelle": "Nom du plaignant",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Dossier:Objet de la plainte",
+     "libelle": "Objet de la plainte",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Dossier:Date de réception de la plainte",
+     "libelle": "Date de réception de la plainte",
+     "type": "date"
+    },
+    {
+     "id": "garder:Dossier:Date d'audience",
+     "libelle": "Date d'audience",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "La structure traite des dossiers (plaintes)"
+   ]
+  },
+  {
+   "fiche": "EtapeProcedure",
+   "libelle": "Étape de procédure",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Dossier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé de l'étape",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EtapeProcedure:Date de l'étape",
+     "libelle": "Date de l'étape",
+     "type": "date"
+    },
+    {
+     "id": "garder:EtapeProcedure:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    },
+    {
+     "id": "garder:EtapeProcedure:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience, etc"
+   ]
+  },
+  {
+   "fiche": "CourrierType",
+   "libelle": "Courrier type",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé du courrier type",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CourrierType:Texte du modèle de courrier",
+     "libelle": "Texte du modèle de courrier",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:CourrierType:Destinataire type",
+     "libelle": "Destinataire type",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "éditer les courriers types"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Dossier:reference",
+     "texte": "Dossier → « Référence du dossier »"
+    },
+    {
+     "id": "nom:EtapeProcedure:intitule",
+     "texte": "Étape de procédure → « Intitulé de l'étape »"
+    },
+    {
+     "id": "nom:CourrierType:intitule",
+     "texte": "Courrier type → « Intitulé du courrier type »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

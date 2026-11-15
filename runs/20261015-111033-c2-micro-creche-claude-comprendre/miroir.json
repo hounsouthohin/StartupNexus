@@ -1,0 +1,870 @@
+{
+ "titre": "Gestion de la micro-crèche",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:pour-autrui] Transmission : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:lien:pour-autrui] Photo : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:lien:pour-autrui] FicheDePaie : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:acteur:invitation] direction / ProfilPersonnel : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)",
+   "[bloc:acteur:invitation] direction / ProfilParent : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-micro...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "acteur:invitation",
+   "lien:pour-autrui"
+  ],
+  "pas_encore": [
+   "La direction crée le compte des membres du personnel : pas encore possible (les invitations arrivent avec la connexion)",
+   "La direction crée le compte des parents : pas encore possible (les invitations arrivent avec la connexion)",
+   "les fiches de paie que la direction saisit pour le membre du personnel : pas encore possible — retirées",
+   "les photos que le membre du personnel saisit pour le parent : pas encore possible — retirées",
+   "les transmissions que le membre du personnel saisit pour le parent : pas encore possible — retirées"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Planning du personnel",
+   "categorie": "planning",
+   "citation": "Planning du personnel"
+  },
+  {
+   "besoin": "Réservation de créneaux de garde par les parents (gestion de créneaux sur un calendrier)",
+   "categorie": "planning",
+   "citation": "Réservation de créneaux de garde"
+  },
+  {
+   "besoin": "Mise à disposition des fiches de paie (documents) pour le personnel",
+   "categorie": "document",
+   "citation": "Accès aux fiches de paie"
+  },
+  {
+   "besoin": "Accès sécurisé des parents à des photos",
+   "categorie": "fichiers_photos",
+   "citation": "Accès sécurisé à des photos"
+  },
+  {
+   "besoin": "Alerte quand un stock passe sous un seuil",
+   "categorie": "automatisation",
+   "citation": "Gestion des stocks (ajout, seuils d’alerte)"
+  },
+  {
+   "besoin": "Envoi de documents par la direction",
+   "categorie": "fichiers_photos",
+   "citation": "Envoi de documents/messages"
+  },
+  {
+   "besoin": "Communication et envoi de messages avec les parents",
+   "categorie": "messagerie",
+   "citation": "la communication avec les parents ... Envoi de documents/messages"
+  },
+  {
+   "besoin": "Application mobile Android/iOS",
+   "categorie": "mobile_hors_ligne",
+   "citation": "Application mobile Android/iOS (cross-platform possible)"
+  },
+  {
+   "besoin": "Double authentification (2FA) optionnelle",
+   "categorie": "autre",
+   "citation": "Authentification sécurisée (2FA optionnelle)"
+  },
+  {
+   "besoin": "Interface multilingue (français, créole)",
+   "categorie": "autre",
+   "citation": "Interface multilingue (français obligatoire, créole souhaité)"
+  },
+  {
+   "besoin": "Back-office de facturation (optionnel)",
+   "categorie": "document",
+   "citation": "Ajout d’un back-office de facturation"
+  },
+  {
+   "besoin": "Back-office de messagerie (optionnel)",
+   "categorie": "messagerie",
+   "citation": "back-office de facturation ou de messagerie"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "La direction",
+   "Le membre du personnel",
+   "Le parent"
+  ],
+  "fiches": 9,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "direction",
+   "libelle": "La direction",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Création comptes personnel/parents"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : pointages",
+     "cases": [
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Suivi des présences et pointages »"
+       ],
+       "citations": [
+        "Suivi des présences et pointages"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : articles en stock, documents",
+     "cases": [
+      {
+       "fiche": "ArticleStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Gestion des stocks (ajout »"
+       ],
+       "citations": [
+        "Gestion des stocks (ajout, seuils d’alerte)",
+        "Gestion des stocks (ajout"
+       ]
+      },
+      {
+       "fiche": "Document",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Envoi de documents/messages »"
+       ],
+       "citations": [
+        "Envoi de documents/messages",
+        "Envoi de documents/messages"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "personnel",
+   "libelle": "Le membre du personnel",
+   "devient": "invité par direction",
+   "citations": [
+    "Création comptes personnel/parents"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : plannings, pointages, signalements de besoin",
+     "cases": [
+      {
+       "fiche": "Planning",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "Planning du personnel"
+       ]
+      },
+      {
+       "fiche": "Pointage",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « Pointage d’arrivée/départ »"
+       ],
+       "citations": [
+        "Suivi des présences et pointages",
+        "Pointage d’arrivée/départ"
+       ]
+      },
+      {
+       "fiche": "SignalementBesoin",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « Signalement de besoins (stocks manquants) »"
+       ],
+       "citations": [
+        "Signalement de besoins (stocks manquants)",
+        "Signalement de besoins (stocks manquants)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : articles en stock",
+     "cases": [
+      {
+       "fiche": "ArticleStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les signalements de besoin qu'il voit",
+        "clôture : choisit les articles en stock de ses signalements de besoin"
+       ],
+       "citations": [
+        "Signalement de besoins (stocks manquants)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son membre du personnel, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilPersonnel",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Création comptes personnel/parents"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "parent",
+   "libelle": "Le parent",
+   "devient": "invité par direction",
+   "citations": [
+    "Création comptes personnel/parents"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : enfants, réservations de créneau",
+     "cases": [
+      {
+       "fiche": "Enfant",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "Informations enfants (santé, habitudes"
+       ]
+      },
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « Réservation de créneaux de garde »"
+       ],
+       "citations": [
+        "Réservation de créneaux de garde",
+        "Réservation de créneaux de garde"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son parent, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilParent",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Création comptes personnel/parents"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "ProfilPersonnel",
+   "libelle": "membre du personnel",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ProfilPersonnel:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ProfilPersonnel:Poste / fonction",
+     "libelle": "Poste / fonction",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ProfilPersonnel:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:ProfilPersonnel:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "Création comptes personnel/parents"
+   ]
+  },
+  {
+   "fiche": "ProfilParent",
+   "libelle": "parent",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ProfilParent:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ProfilParent:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:ProfilParent:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:ProfilParent:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Création comptes personnel/parents"
+   ]
+  },
+  {
+   "fiche": "Enfant",
+   "libelle": "enfant",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "sante",
+     "libelle": "Informations de santé",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Informations enfants (santé"
+    },
+    {
+     "nom": "habitudes",
+     "libelle": "Habitudes",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Informations enfants (santé, habitudes"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Enfant:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Enfant:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Enfant:Allergies",
+     "libelle": "Allergies",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Enfant:Personnes autorisées à récupérer l'enfant",
+     "libelle": "Personnes autorisées à récupérer l'enfant",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Informations enfants (santé, habitudes"
+   ]
+  },
+  {
+   "fiche": "Reservation",
+   "libelle": "réservation de créneau",
+   "nature": "collection",
+   "relie_a": [
+    "enfant"
+   ],
+   "champs": [
+    {
+     "nom": "debutCreneau",
+     "libelle": "Début du créneau",
+     "type": "date et heure",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Réservation de créneaux de garde"
+    },
+    {
+     "nom": "finCreneau",
+     "libelle": "Fin du créneau",
+     "type": "date et heure",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Réservation de créneaux de garde"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Reservation:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Réservation de créneaux de garde"
+   ]
+  },
+  {
+   "fiche": "Planning",
+   "libelle": "planning",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Planning:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:Planning:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    },
+    {
+     "id": "garder:Planning:Horaires",
+     "libelle": "Horaires",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Planning du personnel"
+   ]
+  },
+  {
+   "fiche": "Pointage",
+   "libelle": "pointage",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "heureArrivee",
+     "libelle": "Heure d'arrivée",
+     "type": "date et heure",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Pointage d’arrivée/départ"
+    },
+    {
+     "nom": "heureDepart",
+     "libelle": "Heure de départ",
+     "type": "date et heure",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Pointage d’arrivée/départ"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Pointage:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Suivi des présences et pointages"
+   ]
+  },
+  {
+   "fiche": "SignalementBesoin",
+   "libelle": "signalement de besoin",
+   "nature": "collection",
+   "relie_a": [
+    "article en stock"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:SignalementBesoin:Quantité souhaitée",
+     "libelle": "Quantité souhaitée",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:SignalementBesoin:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:SignalementBesoin:Urgent",
+     "libelle": "Urgent",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "Signalement de besoins (stocks manquants)"
+   ]
+  },
+  {
+   "fiche": "ArticleStock",
+   "libelle": "article en stock",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "quantiteEnStock",
+     "libelle": "Quantité en stock",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Gestion des stocks (ajout"
+    },
+    {
+     "nom": "seuilAlerte",
+     "libelle": "Seuil d'alerte",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "seuils d’alerte"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ArticleStock:Unité",
+     "libelle": "Unité",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ArticleStock:Catégorie",
+     "libelle": "Catégorie",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ArticleStock:Fournisseur",
+     "libelle": "Fournisseur",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Gestion des stocks (ajout, seuils d’alerte)"
+   ]
+  },
+  {
+   "fiche": "Document",
+   "libelle": "document",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "titre",
+     "libelle": "Titre",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Document:Lien du fichier",
+     "libelle": "Lien du fichier",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:Document:Message",
+     "libelle": "Message",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Document:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Envoi de documents/messages"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:personnel:ArticleStock",
+   "sorte": "registre_entier",
+   "texte": "Le membre du personnel verra tous les articles en stock, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les signalements de besoin qu'il voit; clôture : choisit les articles en stock de ses signalements de besoin"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:ProfilPersonnel:nom",
+     "texte": "membre du personnel → « Nom »"
+    },
+    {
+     "id": "nom:ProfilParent:nom",
+     "texte": "parent → « Nom »"
+    },
+    {
+     "id": "nom:Enfant:nom",
+     "texte": "enfant → « Nom »"
+    },
+    {
+     "id": "nom:Planning:intitule",
+     "texte": "planning → « Intitulé »"
+    },
+    {
+     "id": "nom:Pointage:intitule",
+     "texte": "pointage → « Intitulé »"
+    },
+    {
+     "id": "nom:SignalementBesoin:intitule",
+     "texte": "signalement de besoin → « Intitulé »"
+    },
+    {
+     "id": "nom:ArticleStock:nom",
+     "texte": "article en stock → « Nom »"
+    },
+    {
+     "id": "nom:Document:titre",
+     "texte": "document → « Titre »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

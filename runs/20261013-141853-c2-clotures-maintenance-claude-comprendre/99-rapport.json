@@ -1,0 +1,16 @@
+{
+  "run": "20261013-141853-c2-clotures-maintenance-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-clotures-maintenance",
+  "modele": "boite",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- [bloc:portee:designe] client / Equipement : « les siennes » sur une fiche sans propriétaire — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)\n- [bloc:portee:designe] client / PassagePrevu : « les siennes » sur une fiche sans propriétaire — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)\n- [bloc:portee:designe] client / RapportMaintenance : « les siennes » sur une fiche sans propriétaire — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)\n- [bloc:portee:designe] client / DocumentEquipement : « les siennes » sur une fiche sans propriétaire — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-clotu...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "boite",
+    "appels": 8,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-13T14:26:31"
+}

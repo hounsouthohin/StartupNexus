@@ -1,0 +1,239 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion des commandes (mesures scientifiques sur terrain) : des fiches de commande qui suivent un circuit, ce qui relève de la gestion d'une petite structure. Le planning logistique et l'automatisation des livrables sont des besoins hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Planning logistique des commandes et des interventions sur le terrain",
+        "categorie": "planning",
+        "citation": "un planning logistique"
+      },
+      {
+        "besoin": "Automatisation de la gestion des livrables",
+        "categorie": "automatisation",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "Gestionnaire",
+        "libelle_pluriel": "Gestionnaires",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "un logiciel qui faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Commande",
+        "libelle": "commande",
+        "libelle_pluriel": "commandes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "faciliterait la gestion des commandes (mesure scientifiques sur terrain)"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "intervention planifiée",
+        "libelle_pluriel": "interventions planifiées",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "(mesure scientifiques sur terrain) qui inclurait un planning logistique"
+      },
+      {
+        "nom": "Livrable",
+        "libelle": "livrable",
+        "libelle_pluriel": "livrables",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Commande",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Client",
+            "type": "texte",
+            "raison": "Le brief ne dit pas pour qui la commande est passée."
+          },
+          {
+            "libelle": "Type de mesure",
+            "type": "texte",
+            "raison": "Le brief précise que les commandes portent sur des « mesure scientifiques sur terrain », sans dire quelle information enregistrer : à confirmer avec le client."
+          },
+          {
+            "libelle": "Lieu (site de mesure)",
+            "type": "texte",
+            "raison": "Les mesures se font sur le terrain, mais le brief ne dit pas si le lieu est enregistré sur la commande."
+          },
+          {
+            "libelle": "Date souhaitée de réalisation",
+            "type": "date",
+            "raison": "Utile pour le planning logistique, mais le brief ne la cite pas."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief ne parle pas de prix ni de devis."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure prévues",
+            "type": "date_heure",
+            "raison": "Le brief parle d'un « planning logistique » sans dire quelles informations il comporte."
+          },
+          {
+            "libelle": "Lieu d'intervention",
+            "type": "texte",
+            "raison": "Les mesures se font sur le terrain ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Intervenants",
+            "type": "texte",
+            "raison": "Le brief ne dit pas qui réalise l'intervention."
+          },
+          {
+            "libelle": "Matériel nécessaire",
+            "type": "texte_long",
+            "raison": "Utile pour la logistique, mais non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Livrable",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Le brief parle d'une « automatisation de la gestion des livrables » sans citer leurs informations."
+          },
+          {
+            "libelle": "Type de livrable",
+            "type": "texte",
+            "raison": "Le brief ne dit pas quels types de livrables existent (rapport, données brutes, etc.)."
+          },
+          {
+            "libelle": "Lien vers le fichier",
+            "type": "url",
+            "raison": "Le brief ne dit pas comment le livrable est transmis."
+          },
+          {
+            "libelle": "Date de remise",
+            "type": "date",
+            "raison": "Non citée ; n'existe qu'une fois le livrable remis."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des commandes",
+    "fiches": [
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Livrable",
+        "verbe_creation": "Ajouter un livrable",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

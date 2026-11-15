@@ -1,0 +1,16 @@
+{
+  "run": "20261009-215641-c2-batiment-stock-devis-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-batiment-stock-devis",
+  "modele": "gpt-5.5",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- RapportChantier : les fiches enfants arrivent en N1.x (pas dans le squelette) [type=value_error, input_value={'app': {'nom': 'c2-batim...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 8,
+    "jetons_entree": 9745,
+    "jetons_sortie": 13037,
+    "dollars": 0.4398,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:58:51"
+}

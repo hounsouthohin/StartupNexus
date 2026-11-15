@@ -1,0 +1,420 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion des interventions d'un centre de support technique : des fiches d'intervention que l'on crée, modifie et supprime, des comptes utilisateurs avec des permissions différentes (agent, administrateur), et des interventions qui passent par des états (envoyée au centre de traitement, traitée, puis supprimée, commentée ou versée dans une base de connaissances de référence).",
+    "hors_stock": [
+      {
+        "besoin": "Recherche dans les formulaires d'intervention",
+        "categorie": "autre",
+        "citation": "gestion complète des formulaire (recherche"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      },
+      {
+        "id": "agent",
+        "libelle": "Agent",
+        "libelle_pluriel": "Agents",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "cérer des comptes utilisatuers avec des permissions différentes ... un agent peut alors remplir un formulaire"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "une description du problème d'un client"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Agent",
+        "libelle": "Agent",
+        "libelle_pluriel": "Agents",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "agent",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "une fois enregistré dans la base de donnée un agent"
+      },
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "agent",
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "une description du problème d'un client"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "Intervention",
+        "libelle_pluriel": "Interventions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "agent",
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client ... toutes les interventions sont classés par date"
+      },
+      {
+        "nom": "ArticleConnaissance",
+        "libelle": "Article de la base de connaissances",
+        "libelle_pluriel": "Articles de la base de connaissances",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "citation": "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Chaque intervention décrit le problème d'un client du centre de support ; ce client ne se connecte pas, l'équipe l'enregistre et chaque intervention le désigne."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Intervention",
+        "etat_initial": "enregistree",
+        "transitions": {
+          "enregistree": [
+            "envoyee"
+          ],
+          "envoyee": [
+            "traitee"
+          ],
+          "traitee": []
+        },
+        "libelles": {
+          "enregistree": "enregistrée",
+          "envoyee": "envoyée au centre de traitement",
+          "traitee": "traitée"
+        },
+        "initiateur": "agent",
+        "decideur": "agent",
+        "etapes_par": {},
+        "citation": "formulaire peut ensuite être enregistré dans la base,envoyé au centre de traitement pour y être traité ... dès que l'agent a traité une intervention celle ci est marqué comme traité"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "agent",
+        "fiche": "Intervention",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client"
+      },
+      {
+        "acteur": "agent",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "envoyee": [
+            "traitee"
+          ]
+        },
+        "citation": "dès que l'agent a traité une intervention celle ci est marqué comme traité"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Intervention",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "traitee"
+        ],
+        "transitions": {},
+        "citation": "celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier"
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "ArticleConnaissance",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Agent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne dit rien de l'identité de l'agent ; utile pour le distinguer d'un homonyme."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour joindre l'agent au sujet d'une intervention ; non cité dans le brief."
+          },
+          {
+            "libelle": "Service ou équipe",
+            "type": "texte",
+            "raison": "Le brief évoque un centre de traitement sans préciser l'équipe de chaque agent."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour rappeler le client au sujet de son problème ; non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour contacter le client ; non cité dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour un fournisseur de service internet (intervention sur place) ; non citée."
+          },
+          {
+            "libelle": "Numéro de contrat ou d'abonné",
+            "type": "texte",
+            "raison": "Permettrait de retrouver le client chez le fournisseur ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "descriptionProbleme",
+            "libelle": "Description du problème",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "une description du problème d'un client"
+          },
+          {
+            "nom": "commentaire",
+            "libelle": "Commentaire de l'administrateur",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "de la supprimier,commenté"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'intervention",
+            "type": "date",
+            "raison": "Le brief dit que les interventions sont « classés par date » sans préciser s'il s'agit d'une date distincte de la date de création, déjà enregistrée automatiquement."
+          },
+          {
+            "libelle": "Priorité",
+            "type": "choix",
+            "raison": "Utile pour ordonner le traitement au centre ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Catégorie du problème",
+            "type": "texte",
+            "raison": "Aiderait à retrouver les problèmes similaires ; non citée."
+          },
+          {
+            "libelle": "Solution apportée",
+            "type": "texte_long",
+            "raison": "Pour garder trace du traitement de l'intervention ; non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "ArticleConnaissance",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Solution de référence",
+            "type": "texte_long",
+            "raison": "La base de connaissances doit « se servir comme référence en cas de problème similaire » ; le contenu exact n'est pas précisé."
+          },
+          {
+            "libelle": "Mots-clés",
+            "type": "texte",
+            "raison": "Pour retrouver un article lors d'un problème similaire ; non cité."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des interventions",
+    "fiches": [
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Signaler un problème",
+        "boutons": {
+          "envoyee": "Envoyer au traitement",
+          "traitee": "Marquer traitée"
+        }
+      },
+      {
+        "fiche": "ArticleConnaissance",
+        "verbe_creation": "Ajouter à la base de connaissances",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.1.transitions.envoyee : Input should be a valid array"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

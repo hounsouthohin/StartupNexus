@@ -1,0 +1,320 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un portail de suivi de dossiers clients (visa / voyage) pour une agence : des fiches Clients et Dossiers, des clients qui se connectent et ne voient que leur propre dossier, avec un statut et un commentaire. C'est un logiciel de gestion d'une petite structure ; les besoins d'integration Airtable/Softr, de tableau de bord et de televersement de documents sont hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Relier la base Airtable existante (Clients, Dossiers) a Softr",
+        "categorie": "integration",
+        "citation": "Relier Airtable (base de données) à Softr"
+      },
+      {
+        "besoin": "Livrer l'application dans l'outil no-code Softr impose par le client",
+        "categorie": "autre",
+        "citation": "Application Softr fonctionnelle et sécurisée"
+      },
+      {
+        "besoin": "Page tableau de bord pour le client",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableau de bord client"
+      },
+      {
+        "besoin": "Documents du dossier televerses par le client",
+        "categorie": "fichiers_photos",
+        "citation": "documents ... Téléversement des documents par le client"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "Responsable",
+        "libelle_pluriel": "Responsables",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je suis le responsable d’une **agence de voyage et d’assistance visa"
+      },
+      {
+        "id": "client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "devient": "signup",
+        "invite_par": null,
+        "citation": "L’application permettra à mes clients de ... se connecter avec email + mot de passe"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "client",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "se connecter avec email + mot de passe"
+      },
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier",
+        "libelle_pluriel": "Dossiers",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "client",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "responsable",
+        "parent": null,
+        "references": [],
+        "citation": "suivre uniquement leur propre dossier (visa / voyage) ... chaque client voit seulement son dossier"
+      },
+      {
+        "nom": "Document",
+        "libelle": "Document",
+        "libelle_pluriel": "Documents",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Dossier",
+        "references": [],
+        "citation": "Téléversement des documents par le client"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "client",
+        "fiche": "Dossier",
+        "action": "see",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "suivre uniquement leur propre dossier ... chaque client voit seulement son dossier"
+      },
+      {
+        "acteur": "client",
+        "fiche": "Document",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Téléversement des documents par le client"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "email",
+            "libelle": "Email",
+            "type": "email",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "se connecter avec email"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment le client est identifié par son nom (nom seul ou nom et prénom)."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour joindre le client au sujet de son dossier ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Nationalité",
+            "type": "texte",
+            "raison": "Information souvent utile pour une demande de visa ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Dossier",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "typeDossier",
+            "libelle": "Type de dossier",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "visa",
+              "voyage"
+            ],
+            "origine": "brief",
+            "citation": "leur propre dossier (visa / voyage)"
+          },
+          {
+            "nom": "statut",
+            "libelle": "Statut",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Détails du dossier ... statut"
+          },
+          {
+            "nom": "commentaire",
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Détails du dossier ... commentaire"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Pays de destination",
+            "type": "texte",
+            "raison": "Utile pour un dossier de visa ou de voyage ; le brief ne le précise pas."
+          },
+          {
+            "libelle": "Date de départ prévue",
+            "type": "date",
+            "raison": "Utile pour suivre l'avancement d'un dossier de voyage ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Valeurs possibles du statut",
+            "type": "choix",
+            "raison": "Le brief cite un statut sans en énumérer les valeurs ; à demander au client pour en faire une liste fixe."
+          }
+        ]
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom du document",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fichier téléversé",
+            "type": "url",
+            "raison": "Le brief prévoit le téléversement des documents par le client ; il faut confirmer comment le fichier est stocké."
+          },
+          {
+            "libelle": "Type de document",
+            "type": "texte",
+            "raison": "Pour distinguer les pièces (passeport, photo, justificatifs) ; le brief ne les énumère pas."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Suivi des visas",
+    "fiches": [
+      {
+        "fiche": "Document",
+        "verbe_creation": "Téléverser un document",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

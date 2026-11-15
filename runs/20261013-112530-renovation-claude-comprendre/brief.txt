@@ -1,0 +1,17 @@
+Projet logiciel pour notre entreprise de rénovation de bâtiments.
+Nos Besoins Logiciels : L'entreprise recherche un outil qui permette :
+- La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)
+- L'automatisation des tâches répétitives (devis, bons de commande, facturation)
+- Le suivi de l'avancement des chantiers et des marges réalisées
+- Une interface simple, ergonomique et accessible depuis le terrain (mobile)
+- L'amélioration de la communication interne et externe
+Les objectifs et contraintes : L'objectif principal est de concevoir un logiciel ERP léger, centralisé et adapté aux besoins de Gustave Rénovation. Le but principal est de faciliter le suivi de chantier pour les chefs de projet.
+Contraintes identifiées :
+- Déploiement souhaité en moins de 6 mois
+- Utilisation sur téléphone mobile indispensable, utilisable hors ligne
+- Accès sécurisé et différencié par agence et rôle
+L'entreprise attend de l'outil :
+- Une centralisation et automatisation des processus et des données
+- Une visibilité sur les marges et la rentabilité par chantier, ville et globale
+- Une meilleure communication entre les acteurs internes et externes
+- Une simplification du suivi de chantier pour les chefs de projet

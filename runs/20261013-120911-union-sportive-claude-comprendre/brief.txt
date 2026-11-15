@@ -1,0 +1,35 @@
+Gestion d'une base adhérents pour une union sportive.
+L'association recherche un développeur pour concevoir une application web responsive (consultable sur téléphone, tablette et ordinateur) destinée à centraliser toutes nos opérations internes.
+Fonctionnalités attendues :
+Gestion des adhérents :
+- Création, modification, suppression de fiches membres
+- Statut actif/inactif
+- Historique des adhésions et cotisations
+Gestion des adhésions :
+- Enregistrement des adhésions (année, cotisation, dates de validité)
+- Renouvellement automatique ou manuel
+- Vérification du paiement avant activation
+- Export par période
+Gestion des participants :
+- Suivi des inscrits aux activités
+- Lien entre participant, activité et statut d'homologation
+Calendrier d'activités :
+- Affichage public consultable sur tous supports
+- Gestion interne : création, modification, annulation
+Paiements :
+- Saisie manuelle ou intégration d'un module de paiement en ligne
+- Validation d'activité ou d'adhésion uniquement après paiement confirmé
+Homologations :
+- Validation d'une activité uniquement après paiement
+- Historique complet des homologations
+Exports et statistiques :
+- Export CSV/Excel (adhérents, adhésions, activités, homologations)
+- Tableaux de bord de suivi
+Environnement technique souhaité :
+- Application web responsive
+- Technologies ouvertes : PHP/MySQL, Node.js, ou équivalent
+- Interface d'administration avec authentification sécurisée
+- Code commenté et livré intégralement
+- Respect du RGPD
+Livrables attendus : application web fonctionnelle, prête à être hébergée ; code source complet + documentation d'installation ; tests fonctionnels validés ; formation de prise en main.
+Durée estimée : 4 à 6 semaines maximum

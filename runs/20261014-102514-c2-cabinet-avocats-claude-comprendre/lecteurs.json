@@ -1,0 +1,583 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion interne d'un cabinet d'avocats : des fiches (dossiers juridiques, tâches), des personnes avec des rôles (manager, associé, collaborateurs) qui attribuent les dossiers et saisissent leurs tâches. Les besoins avancés (alertes mail, lien avec le logiciel des heures, calcul de charge, machine learning, suivi des forfaits) sont hors stock mais ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Aide automatique à la répartition des dossiers selon les dossiers déjà attribués, les spécialités et l'ancienneté des collaborateurs",
+        "categorie": "automatisation",
+        "citation": "Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués, des spécialités des collaborateurs, de leur ancienneté"
+      },
+      {
+        "besoin": "Lien avec le logiciel existant où sont saisies les heures effectuées",
+        "categorie": "integration",
+        "citation": "les heures ayant été effectuées étant rentrées dans un autre logiciel, nous souhaiterions lier les deux"
+      },
+      {
+        "besoin": "Vue en temps réel de la charge de travail des équipes pour l'associé",
+        "categorie": "calcul_statistiques",
+        "citation": "L'associé est ainsi conscient en temps réel de la charge de travail de ses équipes"
+      },
+      {
+        "besoin": "L'associé ne voit que la charge de « ses » équipes",
+        "categorie": "cloisonnement",
+        "citation": "la charge de travail de ses équipes"
+      },
+      {
+        "besoin": "Alerte par e-mail quand un collaborateur a une charge de travail trop importante",
+        "categorie": "notification",
+        "citation": "système d'alerte mail dès lors qu'un collaborateur possède une charge de travail trop importante"
+      },
+      {
+        "besoin": "Prévision par machine learning de la charge de travail future d'un dossier selon sa typologie",
+        "categorie": "calcul_statistiques",
+        "citation": "Machine learning pour prévoir, selon la typologie de dossier, la charge de travail que celui-ci peut représenter dans l'avenir"
+      },
+      {
+        "besoin": "Suivi des forfaits de facturation (heures déjà facturées par rapport au maximum négocié)",
+        "categorie": "calcul_statistiques",
+        "citation": "suivi des forfait de facturation"
+      },
+      {
+        "besoin": "Alerte quand le nombre d'heures facturées approche du maximum négocié avec le client",
+        "categorie": "notification",
+        "citation": "un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "associe",
+        "libelle": "Associé",
+        "libelle_pluriel": "Associés",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons un prestataire afin de développer un logiciel pour cabinet d'avocats ... L'associé est ainsi conscient en temps réel de la charge de travail de ses équipes"
+      },
+      {
+        "id": "manager",
+        "libelle": "Manager",
+        "libelle_pluriel": "Managers",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "associe",
+        "citation": "Assistance à la répartition des dossiers pour le manager"
+      },
+      {
+        "id": "collaborateur",
+        "libelle": "Collaborateur",
+        "libelle_pluriel": "Collaborateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "associe",
+        "citation": "Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "s'approchent du maximum négocié avec le client"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier juridique",
+        "libelle_pluriel": "Dossiers juridiques",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "manager",
+          "associe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "TypeDossier",
+          "Client",
+          "Collaborateur"
+        ],
+        "citation": "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence ... Assistance à la répartition des dossiers pour le manager"
+      },
+      {
+        "nom": "TypeDossier",
+        "libelle": "Type de dossier",
+        "libelle_pluriel": "Types de dossier",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "associe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "selon la typologie de dossier"
+      },
+      {
+        "nom": "Collaborateur",
+        "libelle": "Profil collaborateur",
+        "libelle_pluriel": "Profils collaborateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "des spécialités des collaborateurs, de leur ancienneté"
+      },
+      {
+        "nom": "Tache",
+        "libelle": "Tâche",
+        "libelle_pluriel": "Tâches",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+      },
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "associe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "du maximum négocié avec le client"
+      },
+      {
+        "nom": "ForfaitFacturation",
+        "libelle": "Forfait de facturation",
+        "libelle_pluriel": "Forfaits de facturation",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "associe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "suivi des forfait de facturation avec un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Le client est celui avec qui le maximum d'heures du forfait de facturation est négocié ; le cabinet tient ces fiches, le client ne se connecte pas."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Dossier",
+        "etat_initial": "a_attribuer",
+        "transitions": {
+          "a_attribuer": [
+            "attribue"
+          ],
+          "attribue": []
+        },
+        "libelles": {
+          "a_attribuer": "à attribuer",
+          "attribue": "attribué"
+        },
+        "initiateur": "manager",
+        "decideur": "manager",
+        "etapes_par": {},
+        "citation": "Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "collaborateur",
+        "fiche": "Tache",
+        "action": "create",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+      },
+      {
+        "acteur": "manager",
+        "fiche": "Dossier",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "a_attribuer": [
+            "attribue"
+          ]
+        },
+        "citation": "Assistance à la répartition des dossiers pour le manager"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "champs": [
+          {
+            "nom": "niveauImportance",
+            "libelle": "Niveau d'importance",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "niveau d'importance"
+          },
+          {
+            "nom": "niveauUrgence",
+            "libelle": "Niveau d'urgence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "niveau d'importance et d'urgence"
+          },
+          {
+            "nom": "chargeTravailPrevue",
+            "libelle": "Charge de travail prévue (heures)",
+            "type": "nombre",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la charge de travail que celui-ci peut représenter"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Intitulé ou référence du dossier",
+            "type": "texte",
+            "raison": "Le brief ne dit pas comment reconnaître un dossier dans une liste."
+          },
+          {
+            "libelle": "Description du dossier",
+            "type": "texte_long",
+            "raison": "Utile pour présenter le dossier au collaborateur à qui il est attribué."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Pourrait servir à évaluer l'urgence ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "TypeDossier",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Préciser ce que recouvre chaque typologie de dossier."
+          },
+          {
+            "libelle": "Charge de travail moyenne (heures)",
+            "type": "nombre",
+            "raison": "Pourrait servir de référence à la prévision de charge par typologie ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Collaborateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "specialites",
+            "libelle": "Spécialités",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "des spécialités des collaborateurs"
+          },
+          {
+            "nom": "anciennete",
+            "libelle": "Ancienneté (années)",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "de leur ancienneté"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Compléter l'identification du collaborateur."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Le brief prévoit des alertes par mail ; à confirmer qui les reçoit."
+          },
+          {
+            "libelle": "Fonction (collaborateur, manager, associé)",
+            "type": "texte",
+            "raison": "Le brief distingue manager, associé et collaborateurs sans dire si c'est une information du profil."
+          },
+          {
+            "libelle": "Équipe",
+            "type": "texte",
+            "raison": "Le brief parle de la charge de travail des équipes de l'associé."
+          },
+          {
+            "libelle": "Seuil de charge de travail",
+            "type": "nombre",
+            "raison": "Définir à partir de quand la charge est « trop importante » et déclenche l'alerte."
+          },
+          {
+            "libelle": "Date d'arrivée au cabinet",
+            "type": "date",
+            "raison": "Permettrait de calculer l'ancienneté automatiquement ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Tache",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Détailler la tâche à effectuer."
+          },
+          {
+            "libelle": "Durée estimée (heures)",
+            "type": "nombre",
+            "raison": "Nécessaire pour mesurer la charge de travail en temps réel ; le brief ne le précise pas."
+          },
+          {
+            "libelle": "Échéance",
+            "type": "date",
+            "raison": "Savoir pour quand la tâche doit être effectuée."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnées du client, non citées dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnées du client, non citées dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Coordonnées du client, non citées dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "ForfaitFacturation",
+        "champs": [
+          {
+            "nom": "heuresFacturees",
+            "libelle": "Heures déjà facturées",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "le nombre d'heures déjà facturées"
+          },
+          {
+            "nom": "heuresMaximum",
+            "libelle": "Nombre d'heures maximum négocié",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "maximum négocié avec le client"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Intitulé du forfait",
+            "type": "texte",
+            "raison": "Distinguer plusieurs forfaits d'un même client."
+          },
+          {
+            "libelle": "Montant du forfait",
+            "type": "montant",
+            "raison": "Le brief ne parle que d'heures, pas de somme d'argent."
+          },
+          {
+            "libelle": "Seuil d'alerte (% du maximum)",
+            "type": "nombre",
+            "raison": "Définir à partir de quand les heures facturées « s'approchent » du maximum."
+          },
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Période couverte par le forfait, non précisée."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Période couverte par le forfait, non précisée."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du cabinet",
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "verbe_creation": "Ouvrir un dossier",
+        "boutons": {
+          "attribue": "Attribuer"
+        }
+      },
+      {
+        "fiche": "ForfaitFacturation",
+        "verbe_creation": "Établir un forfait",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.1.transitions.a_attribuer : Input should be a valid array"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

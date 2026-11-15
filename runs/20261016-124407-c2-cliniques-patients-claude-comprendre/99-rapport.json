@@ -1,0 +1,16 @@
+{
+  "run": "20261016-124407-c2-cliniques-patients-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-cliniques-patients",
+  "modele": "boite",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- [bloc:lien:profil] Medecin : un profil qui désigne une autre fiche (Clinique) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit)\n- [bloc:acteur:invitation] administrateur / Patient : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)\n- [bloc:acteur:invitation] infirmiere / Patient : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)\n- [bloc:acteur:invitation] medecin / Patient : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-clini...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "boite",
+    "appels": 8,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-16T12:57:20"
+}

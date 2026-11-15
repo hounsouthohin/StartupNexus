@@ -1,0 +1,742 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion avec interface web : des dossiers clients (fiches) liés à des installateurs, mainteneurs et prestataires, du matériel installé, et des interventions de maintenance suivies sous forme de formulaires. C'est de la gestion de fiches, donc dans notre périmètre. Quelques besoins sortent du stock et sont listés à part.",
+    "hors_stock": [
+      {
+        "besoin": "Pièces jointes affectées aux dossiers clients",
+        "categorie": "fichiers_photos",
+        "citation": "Affectations de pièces jointes"
+      },
+      {
+        "besoin": "Recherche multicritères sur tous les champs du dossier client et sur les champs installateur/mainteneur/prestataire",
+        "categorie": "autre",
+        "citation": "Recherche multicritères sur tous les champs clients"
+      },
+      {
+        "besoin": "Génération automatique d'un formulaire de maintenance préétabli à partir du matériel installé",
+        "categorie": "automatisation",
+        "citation": "génération d’un formulaire préétabli en fonction du matériel"
+      },
+      {
+        "besoin": "Édition et sauvegarde du rapport d'intervention (document produit)",
+        "categorie": "document",
+        "citation": "Edition et sauvegarde rapport d’intervention"
+      },
+      {
+        "besoin": "Édition et sauvegarde du rapport de formation (document produit)",
+        "categorie": "document",
+        "citation": "Edition et sauvegarde rapport de formation"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "gestionnaire",
+        "libelle_pluriel": "gestionnaires",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "pour gérer les dossiers clients et les interventions de maintenance"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "client",
+        "citation": "Création dossier client"
+      },
+      {
+        "libelle": "installateur",
+        "citation": "Installateur(*)"
+      },
+      {
+        "libelle": "mainteneur",
+        "citation": "Mainteneur(*)"
+      },
+      {
+        "libelle": "prestataire",
+        "citation": "Prestataire(*)"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "DossierClient",
+        "libelle": "dossier client",
+        "libelle_pluriel": "dossiers clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Installateur",
+          "Mainteneur",
+          "Prestataire"
+        ],
+        "citation": "Création dossier client"
+      },
+      {
+        "nom": "Installateur",
+        "libelle": "installateur",
+        "libelle_pluriel": "installateurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Installateur(*)"
+      },
+      {
+        "nom": "Mainteneur",
+        "libelle": "mainteneur",
+        "libelle_pluriel": "mainteneurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Mainteneur(*)"
+      },
+      {
+        "nom": "Prestataire",
+        "libelle": "prestataire",
+        "libelle_pluriel": "prestataires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Prestataire(*)"
+      },
+      {
+        "nom": "TypeMateriel",
+        "libelle": "type de matériel",
+        "libelle_pluriel": "types de matériel",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Possibilité de créer et modifier les listes de matériel"
+      },
+      {
+        "nom": "MaterielInstalle",
+        "libelle": "matériel installé",
+        "libelle_pluriel": "matériels installés",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DossierClient",
+          "TypeMateriel"
+        ],
+        "citation": "Matériel installé"
+      },
+      {
+        "nom": "PieceJointe",
+        "libelle": "pièce jointe",
+        "libelle_pluriel": "pièces jointes",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "DossierClient",
+        "references": [],
+        "citation": "Affectations de pièces jointes"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "intervention de maintenance",
+        "libelle_pluriel": "interventions de maintenance",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DossierClient",
+          "MaterielInstalle"
+        ],
+        "citation": "interventions de maintenance"
+      },
+      {
+        "nom": "FormulaireMaintenance",
+        "libelle": "formulaire de maintenance",
+        "libelle_pluriel": "formulaires de maintenance",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "MaterielInstalle",
+          "Intervention"
+        ],
+        "citation": "formulaire préétabli en fonction du matériel"
+      },
+      {
+        "nom": "RapportIntervention",
+        "libelle": "rapport d'intervention",
+        "libelle_pluriel": "rapports d'intervention",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "citation": "Edition et sauvegarde rapport d’intervention"
+      },
+      {
+        "nom": "RapportFormation",
+        "libelle": "rapport de formation",
+        "libelle_pluriel": "rapports de formation",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "DossierClient"
+        ],
+        "citation": "Edition et sauvegarde rapport de formation"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "client",
+        "fiche": "DossierClient",
+        "raison": "Le client n'a pas de compte : il est représenté par son dossier client (nom, adresse, interlocuteurs) tenu par le gestionnaire."
+      },
+      {
+        "non_utilisateur": "installateur",
+        "fiche": "Installateur",
+        "raison": "Société enregistrée (nom, adresse, interlocuteurs) dans une liste où l'on choisit, rattachée aux dossiers clients."
+      },
+      {
+        "non_utilisateur": "mainteneur",
+        "fiche": "Mainteneur",
+        "raison": "Société enregistrée (nom, adresse, interlocuteurs) dans une liste où l'on choisit, rattachée aux dossiers clients."
+      },
+      {
+        "non_utilisateur": "prestataire",
+        "fiche": "Prestataire",
+        "raison": "Société enregistrée (nom, adresse, interlocuteurs) dans une liste où l'on choisit, rattachée aux dossiers clients."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "DossierClient",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro du dossier",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Attribution d’un numéro"
+          },
+          {
+            "nom": "nom",
+            "libelle": "Nom du client",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, divers, interlocuteurs"
+          },
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, divers, interlocuteurs"
+          },
+          {
+            "nom": "divers",
+            "libelle": "Divers",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, divers, interlocuteurs"
+          },
+          {
+            "nom": "interlocuteurs",
+            "libelle": "Interlocuteurs",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, divers, interlocuteurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Le brief ne donne pas de moyen de contact direct pour le client ; à demander au client."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Le brief ne donne pas d'adresse électronique pour le client ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "Installateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          },
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          },
+          {
+            "nom": "interlocuteurs",
+            "libelle": "Interlocuteurs",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Non cité par le brief ; utile pour joindre l'installateur."
+          }
+        ]
+      },
+      {
+        "fiche": "Mainteneur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          },
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          },
+          {
+            "nom": "interlocuteurs",
+            "libelle": "Interlocuteurs",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Non cité par le brief ; utile pour joindre le mainteneur."
+          }
+        ]
+      },
+      {
+        "fiche": "Prestataire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          },
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          },
+          {
+            "nom": "interlocuteurs",
+            "libelle": "Interlocuteurs",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Nom, adresse, interlocuteurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Non cité par le brief ; utile pour joindre le prestataire."
+          }
+        ]
+      },
+      {
+        "fiche": "TypeMateriel",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom du type de matériel",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "marque",
+            "libelle": "Marque du matériel",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Marque du matériel"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "MaterielInstalle",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de série",
+            "type": "texte",
+            "raison": "Le brief ne dit pas comment identifier un exemplaire précis de matériel installé ; à demander au client."
+          },
+          {
+            "libelle": "Date d'installation",
+            "type": "date",
+            "raison": "Non citée par le brief ; utile pour le suivi de la maintenance."
+          }
+        ]
+      },
+      {
+        "fiche": "PieceJointe",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Le brief parle d'affectation de pièces jointes sans dire quelles informations les accompagnent ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'intervention",
+            "type": "date",
+            "raison": "Le brief parle d'interventions de maintenance sans dire comment les dater ; à demander au client."
+          },
+          {
+            "libelle": "Intervenant",
+            "type": "texte",
+            "raison": "Non cité par le brief ; à demander au client."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Non citée par le brief ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "FormulaireMaintenance",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Contenu saisi",
+            "type": "texte_long",
+            "raison": "Le brief dit que le formulaire est saisi, sauvegardé et réutilisé, sans en détailler les rubriques ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "RapportIntervention",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Contenu du rapport",
+            "type": "texte_long",
+            "raison": "Le brief ne dit pas ce que contient le rapport d'intervention ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "RapportFormation",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de la formation",
+            "type": "date",
+            "raison": "Non citée par le brief ; à demander au client."
+          },
+          {
+            "libelle": "Contenu du rapport",
+            "type": "texte_long",
+            "raison": "Le brief ne dit pas ce que contient le rapport de formation ; à demander au client."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Dossiers clients maintenance",
+    "fiches": [
+      {
+        "fiche": "DossierClient",
+        "verbe_creation": null,
+        "boutons": {}
+      },
+      {
+        "fiche": "MaterielInstalle",
+        "verbe_creation": "Installer du matériel",
+        "boutons": {}
+      },
+      {
+        "fiche": "PieceJointe",
+        "verbe_creation": "Joindre un fichier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier une intervention",
+        "boutons": {}
+      },
+      {
+        "fiche": "FormulaireMaintenance",
+        "verbe_creation": "Remplir le formulaire",
+        "boutons": {}
+      },
+      {
+        "fiche": "RapportIntervention",
+        "verbe_creation": "Rédiger le rapport",
+        "boutons": {}
+      },
+      {
+        "fiche": "RapportFormation",
+        "verbe_creation": "Rédiger un rapport de formation",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

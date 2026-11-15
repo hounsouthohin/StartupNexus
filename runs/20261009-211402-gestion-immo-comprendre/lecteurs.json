@@ -1,0 +1,352 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le projet est présenté comme un logiciel de gestion immobilière pour un gestionnaire de biens ; le cœur reste un logiciel de gestion, même s’il contient plusieurs besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Automatisation de tâches",
+        "categorie": "automatisation",
+        "citation": "d'automatiser des taches"
+      },
+      {
+        "besoin": "Rapprochement bancaire automatisé",
+        "categorie": "automatisation",
+        "citation": "d'automatiser le rapprochement bancaire"
+      },
+      {
+        "besoin": "Encaissement des loyers",
+        "categorie": "paiement",
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "besoin": "Reversement des loyers",
+        "categorie": "paiement",
+        "citation": "le reversement des loyers"
+      },
+      {
+        "besoin": "Envoi automatique de quittances et relevés de compte",
+        "categorie": "notification",
+        "citation": "d'envoyer automatiquement des quittances, relevé de compte etc.."
+      },
+      {
+        "besoin": "Quittances et relevés de compte générés",
+        "categorie": "document",
+        "citation": "quittances, relevé de compte"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "Gestionnaire de biens immobilier",
+        "libelle_pluriel": "Gestionnaires de biens immobilier",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "BienImmobilier",
+        "libelle": "bien immobilier",
+        "libelle_pluriel": "biens immobiliers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestionnaire de biens immobilier"
+      },
+      {
+        "nom": "RapprochementBancaire",
+        "libelle": "rapprochement bancaire",
+        "libelle_pluriel": "rapprochements bancaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "rapprochement bancaire"
+      },
+      {
+        "nom": "Loyer",
+        "libelle": "loyer",
+        "libelle_pluriel": "loyers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "BienImmobilier"
+        ],
+        "citation": "l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "nom": "Quittance",
+        "libelle": "quittance",
+        "libelle_pluriel": "quittances",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Loyer"
+        ],
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "nom": "ReleveDeCompte",
+        "libelle": "relevé de compte",
+        "libelle_pluriel": "relevés de compte",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "BienImmobilier",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte",
+            "raison": "Identifier et localiser le bien immobilier."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Décrire les caractéristiques principales du bien."
+          }
+        ]
+      },
+      {
+        "fiche": "RapprochementBancaire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Période",
+            "type": "texte",
+            "raison": "Identifier la période concernée par le rapprochement bancaire."
+          },
+          {
+            "libelle": "Montant rapproché",
+            "type": "montant",
+            "raison": "Suivre le montant concerné par le rapprochement."
+          }
+        ]
+      },
+      {
+        "fiche": "Loyer",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Indiquer le montant du loyer à encaisser ou reverser."
+          },
+          {
+            "libelle": "Période",
+            "type": "texte",
+            "raison": "Identifier la période de loyer concernée."
+          }
+        ]
+      },
+      {
+        "fiche": "Quittance",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de quittance",
+            "type": "texte",
+            "raison": "Identifier la quittance de manière unique."
+          },
+          {
+            "libelle": "Montant quittancé",
+            "type": "montant",
+            "raison": "Indiquer le montant couvert par la quittance."
+          }
+        ]
+      },
+      {
+        "fiche": "ReleveDeCompte",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Période",
+            "type": "texte",
+            "raison": "Identifier la période couverte par le relevé de compte."
+          },
+          {
+            "libelle": "Solde",
+            "type": "montant",
+            "raison": "Indiquer le solde présenté sur le relevé de compte."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion immobilière",
+    "fiches": [
+      {
+        "fiche": "Loyer",
+        "verbe_creation": "Saisir un loyer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Quittance",
+        "verbe_creation": "Émettre une quittance",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 653,
+      "jetons_sortie": 738
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 539,
+      "jetons_sortie": 318
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 957,
+      "jetons_sortie": 936
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 702,
+      "jetons_sortie": 127
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 815,
+      "jetons_sortie": 367
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1187,
+      "jetons_sortie": 956
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 607,
+      "jetons_sortie": 579
+    }
+  ]
+}

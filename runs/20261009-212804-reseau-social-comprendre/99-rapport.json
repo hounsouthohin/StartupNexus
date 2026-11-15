@@ -1,0 +1,15 @@
+{
+  "run": "20261009-212804-reseau-social-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-reseau-social",
+  "modele": "gpt-5.5",
+  "verdict": "HORS PÉRIMÈTRE (aucune description produite)",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 1,
+    "jetons_entree": 710,
+    "jetons_sortie": 870,
+    "dollars": 0.0297,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:28:15"
+}

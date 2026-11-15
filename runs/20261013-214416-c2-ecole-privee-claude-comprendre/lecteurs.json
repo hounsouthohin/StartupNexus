@@ -1,0 +1,470 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'une petite structure (une école privée) : des fiches d'inscriptions, d'élèves, de parents et de notes de classe. Les paiements mensuels et les documents financiers ou administratifs viennent en plus de ce cœur de gestion. Ils sont listés comme hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion des paiements mensuels (scolarité)",
+        "categorie": "paiement",
+        "citation": "les payements mensuels"
+      },
+      {
+        "besoin": "Documents financiers ou administratifs sur l'élève ou son parent",
+        "categorie": "document",
+        "citation": "tout autres documents financiers ou administratifs concernant l'élève ou son parent"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "Gestionnaire de l'école",
+        "libelle_pluriel": "Gestionnaires de l'école",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "un logiciel me permettant de gérer une école privée"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Élève",
+        "citation": "documents financiers ou administratifs concernant l'élève"
+      },
+      {
+        "libelle": "Parent",
+        "citation": "concernant l'élève ou son parent"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Eleve",
+        "libelle": "élève",
+        "libelle_pluriel": "élèves",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Parent"
+        ],
+        "citation": "concernant l'élève ou son parent"
+      },
+      {
+        "nom": "Parent",
+        "libelle": "parent",
+        "libelle_pluriel": "parents",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'élève ou son parent"
+      },
+      {
+        "nom": "Inscription",
+        "libelle": "inscription",
+        "libelle_pluriel": "inscriptions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Eleve"
+        ],
+        "citation": "tant les inscriptions"
+      },
+      {
+        "nom": "Paiement",
+        "libelle": "paiement mensuel",
+        "libelle_pluriel": "paiements mensuels",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Eleve"
+        ],
+        "citation": "les payements mensuels"
+      },
+      {
+        "nom": "Note",
+        "libelle": "note de classe",
+        "libelle_pluriel": "notes de classe",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Eleve"
+        ],
+        "citation": "le notes de classe"
+      },
+      {
+        "nom": "Document",
+        "libelle": "document administratif ou financier",
+        "libelle_pluriel": "documents administratifs ou financiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Eleve",
+          "Parent"
+        ],
+        "citation": "tout autres documents financiers ou administratifs concernant l'élève ou son parent"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Élève",
+        "fiche": "Eleve",
+        "raison": "Les élèves sont des fiches tenues par le gestionnaire de l'école (inscriptions, notes, paiements, documents les concernant)."
+      },
+      {
+        "non_utilisateur": "Parent",
+        "fiche": "Parent",
+        "raison": "Les parents sont des fiches tenues par le gestionnaire, rattachées à l'élève et concernées par les documents financiers ou administratifs."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Eleve",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise aucune information sur l'élève ; le prénom aide à l'identifier."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Information courante pour un élève, non citée dans le brief."
+          },
+          {
+            "libelle": "Classe",
+            "type": "texte",
+            "raison": "Utile pour les listes et les notes de classe, non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Parent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise aucune information sur le parent."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour contacter le parent, non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter le parent, non cité dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Souvent demandée pour les documents administratifs, non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Inscription",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Année scolaire",
+            "type": "texte",
+            "raison": "Une inscription porte en général sur une année scolaire ; le brief ne le précise pas."
+          },
+          {
+            "libelle": "Classe",
+            "type": "texte",
+            "raison": "Classe dans laquelle l'élève est inscrit, non précisée dans le brief."
+          },
+          {
+            "libelle": "Frais d'inscription",
+            "type": "montant",
+            "raison": "Montant éventuel de l'inscription, non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Paiement",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Somme payée, non précisée dans le brief."
+          },
+          {
+            "libelle": "Mois concerné",
+            "type": "texte",
+            "raison": "Le brief parle de « payements mensuels » sans dire quelles informations sont enregistrées ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Date de paiement",
+            "type": "date",
+            "raison": "Date à laquelle le paiement a été effectué, non citée dans le brief."
+          },
+          {
+            "libelle": "Mode de paiement",
+            "type": "texte",
+            "raison": "Espèces, chèque, virement… non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Note",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Valeur de la note",
+            "type": "nombre",
+            "raison": "La note obtenue ; le brief ne précise ni le barème ni le format."
+          },
+          {
+            "libelle": "Matière",
+            "type": "texte",
+            "raison": "Matière concernée par la note, non citée dans le brief."
+          },
+          {
+            "libelle": "Date de l'évaluation",
+            "type": "date",
+            "raison": "Non citée dans le brief."
+          },
+          {
+            "libelle": "Coefficient",
+            "type": "nombre",
+            "raison": "Utile pour calculer des moyennes, non cité dans le brief."
+          },
+          {
+            "libelle": "Période (trimestre)",
+            "type": "texte",
+            "raison": "Non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "typeDocument",
+            "libelle": "Type de document",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "Financier",
+              "Administratif"
+            ],
+            "origine": "brief",
+            "citation": "documents financiers ou administratifs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Titre",
+            "type": "texte",
+            "raison": "Pour reconnaître le document dans une liste ; non cité dans le brief."
+          },
+          {
+            "libelle": "Fichier ou lien",
+            "type": "url",
+            "raison": "Emplacement du document, non précisé dans le brief."
+          },
+          {
+            "libelle": "Date du document",
+            "type": "date",
+            "raison": "Non citée dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion de l'école",
+    "fiches": [
+      {
+        "fiche": "Eleve",
+        "verbe_creation": "Ajouter un enfant",
+        "boutons": {}
+      },
+      {
+        "fiche": "Inscription",
+        "verbe_creation": "Inscrire",
+        "boutons": {}
+      },
+      {
+        "fiche": "Paiement",
+        "verbe_creation": "Encaisser",
+        "boutons": {}
+      },
+      {
+        "fiche": "Note",
+        "verbe_creation": "Noter",
+        "boutons": {}
+      },
+      {
+        "fiche": "Document",
+        "verbe_creation": "Joindre un document",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

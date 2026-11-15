@@ -1,0 +1,345 @@
+{
+ "titre": "Gestion commerciale",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Tableau de bord affichant le total des ventes",
+   "categorie": "calcul_statistiques",
+   "citation": "1 page dashboard reprenant le total des ventes"
+  },
+  {
+   "besoin": "Classement des plus gros clients sur le tableau de bord",
+   "categorie": "calcul_statistiques",
+   "citation": "les plus gros clients"
+  },
+  {
+   "besoin": "Comptage du nombre de commandes (et autres indicateurs non précisés) sur le tableau de bord",
+   "categorie": "calcul_statistiques",
+   "citation": "le nombre de commandes etc"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant"
+  ],
+  "fiches": 4,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "nous recherchons quelqu’un capable de développer une application"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée, modifie et supprime : clients, ventes, articles en stock",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « 1 page de gestion des clients (recherche,ajout,suppression,modification) »",
+        "exception : « 1 page de gestion des clients (recherche,ajout,suppression,modification) »",
+        "exception : « 1 page de gestion des clients (recherche,ajout,suppression,modification) »",
+        "exception : « 1 page de gestion des clients (recherche,ajout,suppression,modification) »"
+       ],
+       "citations": [
+        "1 page de gestion des clients (recherche,ajout,suppression,modification)",
+        "1 page de gestion des clients (recherche,ajout,suppression,modification)",
+        "1 page de gestion des clients (recherche,ajout,suppression,modification)",
+        "1 page de gestion des clients (recherche,ajout,suppression,modification)",
+        "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+       ]
+      },
+      {
+       "fiche": "Vente",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « 1 page de gestion des ventes (ajout/affichage/suppression/modification) »",
+        "exception : « 1 page de gestion des ventes (ajout/affichage/suppression/modification) »",
+        "exception : « 1 page de gestion des ventes (ajout/affichage/suppression/modification) »",
+        "exception : « 1 page de gestion des ventes (ajout/affichage/suppression/modification) »"
+       ],
+       "citations": [
+        "1 page de gestion des ventes (ajout/affichage/suppression/modification)",
+        "1 page de gestion des ventes (ajout/affichage/suppression/modification)",
+        "1 page de gestion des ventes (ajout/affichage/suppression/modification)",
+        "1 page de gestion des ventes (ajout/affichage/suppression/modification)",
+        "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+       ]
+      },
+      {
+       "fiche": "Article",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « 1 page de gestion de stock (recherche,ajout,suppression,modification) »",
+        "exception : « 1 page de gestion de stock (recherche,ajout,suppression,modification) »",
+        "exception : « 1 page de gestion de stock (recherche,ajout,suppression,modification) »",
+        "exception : « 1 page de gestion de stock (recherche,ajout,suppression,modification) »"
+       ],
+       "citations": [
+        "1 page de gestion de stock (recherche,ajout,suppression,modification)",
+        "1 page de gestion de stock (recherche,ajout,suppression,modification)",
+        "1 page de gestion de stock (recherche,ajout,suppression,modification)",
+        "1 page de gestion de stock (recherche,ajout,suppression,modification)",
+        "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : commandes",
+     "cases": [
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion de commandes/stock/ventes/clients"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+   ]
+  },
+  {
+   "fiche": "Vente",
+   "libelle": "vente",
+   "nature": "registry",
+   "relie_a": [
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Vente:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Vente:Quantité vendue",
+     "libelle": "Quantité vendue",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+   ]
+  },
+  {
+   "fiche": "Commande",
+   "libelle": "commande",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Commande:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Commande:Quantité commandée",
+     "libelle": "Quantité commandée",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Commande:Date de livraison prévue",
+     "libelle": "Date de livraison prévue",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "gestion de commandes/stock/ventes/clients"
+   ]
+  },
+  {
+   "fiche": "Article",
+   "libelle": "article en stock",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Article:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Article:Prix unitaire",
+     "libelle": "Prix unitaire",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Article:Référence article",
+     "libelle": "Référence article",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "client → « Nom »"
+    },
+    {
+     "id": "nom:Vente:reference",
+     "texte": "vente → « Référence »"
+    },
+    {
+     "id": "nom:Commande:reference",
+     "texte": "commande → « Référence »"
+    },
+    {
+     "id": "nom:Article:nom",
+     "texte": "article en stock → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

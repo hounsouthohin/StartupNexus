@@ -1,0 +1,8 @@
+Besoin d'une application pour gerer les congés et absences du personne
+une application réseau 
+
+un tableau de bord ou je peux voir qui est en congé
+
+savoir qui a pris un congé avaloire (circonstanciel) ou annuel
+
+la gestion de 30 jours ouvrable de congé pour chaque agent

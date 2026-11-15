@@ -1,0 +1,382 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'une petite structure (une salle de sport) : il gère des adhérents, des abonnements, des présences et des activités sportives sous forme de fiches. Les paiements font partie de cette gestion. Le brief ne décrit pas une place de marché avec commissions : c'est un besoin hors stock, pas le cœur du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion des paiements des adhérents",
+        "categorie": "paiement",
+        "citation": "des abonnements, des paiements, des présences"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "solution complète de gestion de salles de sport"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Adhérent",
+        "citation": "centralise la gestion des adhérents"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Adherent",
+        "libelle": "Adhérent",
+        "libelle_pluriel": "Adhérents",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion des adhérents"
+      },
+      {
+        "nom": "Abonnement",
+        "libelle": "Abonnement",
+        "libelle_pluriel": "Abonnements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Adherent"
+        ],
+        "citation": "des adhérents, des abonnements"
+      },
+      {
+        "nom": "Paiement",
+        "libelle": "Paiement",
+        "libelle_pluriel": "Paiements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Adherent",
+          "Abonnement"
+        ],
+        "citation": "des abonnements, des paiements"
+      },
+      {
+        "nom": "Presence",
+        "libelle": "Présence",
+        "libelle_pluriel": "Présences",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Adherent",
+          "Activite"
+        ],
+        "citation": "des présences et des activités sportives"
+      },
+      {
+        "nom": "Activite",
+        "libelle": "Activité sportive",
+        "libelle_pluriel": "Activités sportives",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "des activités sportives"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Adhérent",
+        "fiche": "Adherent",
+        "raison": "Le brief dit que l'application centralise « la gestion des adhérents » : le gérant tient leurs fiches, qui sont aussi désignées par les abonnements, les paiements et les présences."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Adherent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas les informations d'un adhérent ; le prénom sert souvent à l'identifier."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour contacter l'adhérent, non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour contacter l'adhérent, non cité dans le brief."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Information courante pour un adhérent de salle de sport, non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Abonnement",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Un abonnement a généralement une période de validité, non précisée dans le brief."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Un abonnement a généralement une période de validité, non précisée dans le brief."
+          },
+          {
+            "libelle": "Tarif",
+            "type": "montant",
+            "raison": "Le prix de l'abonnement n'est pas cité dans le brief."
+          },
+          {
+            "libelle": "Type d'abonnement",
+            "type": "texte",
+            "raison": "Les formules proposées (mensuel, annuel...) ne sont pas énumérées dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Paiement",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "La somme payée n'est pas citée dans le brief."
+          },
+          {
+            "libelle": "Date de paiement",
+            "type": "date",
+            "raison": "La date à laquelle le paiement est effectué n'est pas citée dans le brief."
+          },
+          {
+            "libelle": "Moyen de paiement",
+            "type": "texte",
+            "raison": "Les moyens de paiement acceptés ne sont pas énumérés dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Presence",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure d'arrivée",
+            "type": "date_heure",
+            "raison": "Le moment de la présence n'est pas précisé dans le brief."
+          },
+          {
+            "libelle": "Date et heure de départ",
+            "type": "date_heure",
+            "raison": "Utile pour mesurer la durée de présence, non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Activite",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Le contenu de l'activité sportive n'est pas décrit dans le brief."
+          },
+          {
+            "libelle": "Durée (minutes)",
+            "type": "nombre",
+            "raison": "La durée d'une séance n'est pas citée dans le brief."
+          },
+          {
+            "libelle": "Capacité maximale",
+            "type": "nombre",
+            "raison": "Le nombre de places par activité n'est pas cité dans le brief."
+          },
+          {
+            "libelle": "Coach",
+            "type": "texte",
+            "raison": "L'encadrant de l'activité n'est pas mentionné dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion GymPlus",
+    "fiches": [
+      {
+        "fiche": "Abonnement",
+        "verbe_creation": "Abonner",
+        "boutons": {}
+      },
+      {
+        "fiche": "Paiement",
+        "verbe_creation": "Payer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Presence",
+        "verbe_creation": "Pointer",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

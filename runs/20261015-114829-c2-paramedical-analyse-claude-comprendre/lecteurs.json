@@ -1,0 +1,623 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le client veut un logiciel de gestion des patients pour un cabinet paramédical, donc une petite structure : dossiers patients, partie administrative, anamnèse et examen clinique. Le cœur reste la gestion de fiches. L'usage sur iPad, la saisie sur des dessins du corps, l'analyse et la génération automatiques ainsi que le compte rendu sont des besoins hors stock, pas un autre type de projet.",
+    "hors_stock": [
+      {
+        "besoin": "Utilisation sur iPad pour l'examen clinique, en plus du PC (on ne sait pas encore si c'est une application web adaptée à la tablette ou une application native)",
+        "categorie": "mobile_hors_ligne",
+        "citation": "application métier paramédical web PC + iPad ... iPad pour l’examen clinique"
+      },
+      {
+        "besoin": "Saisie graphique de l'examen sur des dessins du corps humain : points osseux à 3 états et flèches prédéfinies pour indiquer un désalignement",
+        "categorie": "autre",
+        "citation": "l’examen clinique sur dessins humains génériques ... certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+      },
+      {
+        "besoin": "Analyse automatique de la position des points et de la direction des flèches",
+        "categorie": "calcul_statistiques",
+        "citation": "L’application analyse automatiquement la position des points et la direction des flèches"
+      },
+      {
+        "besoin": "Croisement avec les tableaux de correspondance du praticien pour proposer automatiquement des recommandations, des exercices et des corrections de semelles",
+        "categorie": "automatisation",
+        "citation": "fait la corrélation avec mes tableaux de correspondance pour générer automatiquement recommandations, exercices et corrections de semelles"
+      },
+      {
+        "besoin": "Rédaction d'un compte rendu complet et hiérarchisé qui rassemble toutes les informations",
+        "categorie": "document",
+        "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "praticien",
+        "libelle": "Praticien",
+        "libelle_pluriel": "Praticiens",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je souhaite une application métier paramédical web PC + iPad ... mes tableaux de correspondance"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Patient",
+        "citation": "application gestion patient et clinique"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Patient",
+        "libelle": "Patient",
+        "libelle_pluriel": "Patients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "praticien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "application gestion patient et clinique"
+      },
+      {
+        "nom": "Anamnese",
+        "libelle": "Anamnèse",
+        "libelle_pluriel": "Anamnèses",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "praticien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "PC pour l’administratif et l’anamnèse"
+      },
+      {
+        "nom": "ExamenClinique",
+        "libelle": "Examen clinique",
+        "libelle_pluriel": "Examens cliniques",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "praticien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "iPad pour l’examen clinique sur dessins humains génériques"
+      },
+      {
+        "nom": "PointOsseux",
+        "libelle": "Point osseux",
+        "libelle_pluriel": "Points osseux",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "praticien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "dessins humains génériques ... Chaque point osseux"
+      },
+      {
+        "nom": "EtatPointOsseux",
+        "libelle": "État de point osseux",
+        "libelle_pluriel": "États de points osseux",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "ExamenClinique",
+        "references": [
+          "PointOsseux"
+        ],
+        "citation": "Chaque point osseux a 3 états (aligné / gauche / droite)"
+      },
+      {
+        "nom": "FlecheDesalignement",
+        "libelle": "Flèche de désalignement",
+        "libelle_pluriel": "Flèches de désalignement",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "ExamenClinique",
+        "references": [],
+        "citation": "certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+      },
+      {
+        "nom": "TableauCorrespondance",
+        "libelle": "Tableau de correspondance",
+        "libelle_pluriel": "Tableaux de correspondance",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "praticien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "fait la corrélation avec mes tableaux de correspondance"
+      },
+      {
+        "nom": "Recommandation",
+        "libelle": "Recommandation",
+        "libelle_pluriel": "Recommandations",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "ExamenClinique",
+        "references": [
+          "TableauCorrespondance"
+        ],
+        "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+      },
+      {
+        "nom": "CompteRendu",
+        "libelle": "Compte rendu",
+        "libelle_pluriel": "Comptes rendus",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "praticien"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Patient",
+          "Anamnese",
+          "ExamenClinique"
+        ],
+        "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Patient",
+        "fiche": "Patient",
+        "raison": "Le patient ne se connecte pas : sa fiche est tenue par le praticien (gestion patient), et l'anamnèse, l'examen clinique et le compte rendu y renvoient."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Patient",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Identifier le patient avec précision ; le brief ne détaille pas les informations administratives."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Distinguer les homonymes et connaître l'âge du patient."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contacter le patient (partie administrative prévue sur PC)."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Envoyer le compte rendu ou contacter le patient."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Information administrative courante, à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Anamnese",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Motif de consultation",
+            "type": "texte_long",
+            "raison": "Contenu habituel d'une anamnèse ; le brief n'en détaille pas les rubriques."
+          },
+          {
+            "libelle": "Antécédents médicaux",
+            "type": "texte_long",
+            "raison": "Rubrique classique de l'anamnèse, à confirmer avec le client."
+          },
+          {
+            "libelle": "Traitements en cours",
+            "type": "texte_long",
+            "raison": "Rubrique classique de l'anamnèse, à confirmer avec le client."
+          },
+          {
+            "libelle": "Activité physique",
+            "type": "texte_long",
+            "raison": "Utile pour adapter exercices et semelles, à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "ExamenClinique",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'examen",
+            "type": "date",
+            "raison": "L'examen peut avoir lieu à une autre date que sa saisie."
+          },
+          {
+            "libelle": "Observations",
+            "type": "texte_long",
+            "raison": "Notes libres du praticien en complément des dessins."
+          },
+          {
+            "libelle": "Vue du dessin utilisée",
+            "type": "texte",
+            "raison": "Le brief parle de dessins humains génériques sans préciser les vues (face, dos, profil)."
+          }
+        ]
+      },
+      {
+        "fiche": "PointOsseux",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Emplacement sur le dessin",
+            "type": "texte",
+            "raison": "Placer le point sur le dessin humain générique de l'iPad."
+          },
+          {
+            "libelle": "Région du corps",
+            "type": "texte",
+            "raison": "Regrouper les points pour un compte rendu hiérarchisé."
+          },
+          {
+            "libelle": "Ordre d'affichage",
+            "type": "nombre",
+            "raison": "Ordonner les points dans l'examen et le compte rendu."
+          }
+        ]
+      },
+      {
+        "fiche": "EtatPointOsseux",
+        "champs": [
+          {
+            "nom": "position",
+            "libelle": "Position",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "aligné",
+              "gauche",
+              "droite"
+            ],
+            "origine": "brief",
+            "citation": "Chaque point osseux a 3 états (aligné / gauche / droite)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Préciser une observation sur ce point lors de l'examen."
+          }
+        ]
+      },
+      {
+        "fiche": "FlecheDesalignement",
+        "champs": [
+          {
+            "nom": "structure",
+            "libelle": "Structure bilatérale",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+          },
+          {
+            "nom": "direction",
+            "libelle": "Direction",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la direction des flèches"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Liste des directions possibles",
+            "type": "choix",
+            "raison": "Les flèches sont dites prédéfinies mais le brief n'énumère pas les directions ; à demander au client."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Préciser le désalignement observé."
+          }
+        ]
+      },
+      {
+        "fiche": "TableauCorrespondance",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Combinaison de positions et de flèches concernée",
+            "type": "texte_long",
+            "raison": "Décrire la situation qui déclenche la correspondance ; le format des tableaux du client est à obtenir."
+          },
+          {
+            "libelle": "Recommandation associée",
+            "type": "texte_long",
+            "raison": "Texte proposé lorsque la correspondance s'applique."
+          },
+          {
+            "libelle": "Exercices associés",
+            "type": "texte_long",
+            "raison": "Exercices proposés lorsque la correspondance s'applique."
+          },
+          {
+            "libelle": "Correction de semelles associée",
+            "type": "texte_long",
+            "raison": "Correction proposée lorsque la correspondance s'applique."
+          }
+        ]
+      },
+      {
+        "fiche": "Recommandation",
+        "champs": [
+          {
+            "nom": "recommandations",
+            "libelle": "Recommandations",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+          },
+          {
+            "nom": "exercices",
+            "libelle": "Exercices",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+          },
+          {
+            "nom": "correctionsSemelles",
+            "libelle": "Corrections de semelles",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Priorité",
+            "type": "nombre",
+            "raison": "Hiérarchiser les recommandations dans le compte rendu."
+          },
+          {
+            "libelle": "Validée par le praticien",
+            "type": "oui_non",
+            "raison": "Permettre au praticien de confirmer ou écarter une proposition générée automatiquement."
+          }
+        ]
+      },
+      {
+        "fiche": "CompteRendu",
+        "champs": [
+          {
+            "nom": "contenu",
+            "libelle": "Contenu",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Conclusion",
+            "type": "texte_long",
+            "raison": "Synthèse finale du praticien, à confirmer avec le client."
+          },
+          {
+            "libelle": "Date d'envoi au patient",
+            "type": "date",
+            "raison": "Suivre la remise du compte rendu, si le client en a besoin."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Bilan postural",
+    "fiches": [
+      {
+        "fiche": "Anamnese",
+        "verbe_creation": "Faire l'anamnèse",
+        "boutons": {}
+      },
+      {
+        "fiche": "ExamenClinique",
+        "verbe_creation": "Examiner",
+        "boutons": {}
+      },
+      {
+        "fiche": "EtatPointOsseux",
+        "verbe_creation": "Noter un point",
+        "boutons": {}
+      },
+      {
+        "fiche": "FlecheDesalignement",
+        "verbe_creation": "Placer une flèche",
+        "boutons": {}
+      },
+      {
+        "fiche": "Recommandation",
+        "verbe_creation": "Recommander",
+        "boutons": {}
+      },
+      {
+        "fiche": "CompteRendu",
+        "verbe_creation": "Établir le compte rendu",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

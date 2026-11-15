@@ -1,0 +1,427 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Logiciel interne de gestion d'un garage (petite structure de type atelier) : les acteurs de la société suivent un véhicule de la réception au check-up, puis à la réparation et à sa confirmation de fin. Ce sont des fiches, des rôles et un circuit d'états. Les photos et les documents imprimables ou générés sont des besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Photos des pièces dégradées lors du check-up",
+        "categorie": "fichiers_photos",
+        "citation": "photo des pièces qui sont dégradé"
+      },
+      {
+        "besoin": "Rapport de check-up imprimable à présenter au client",
+        "categorie": "document",
+        "citation": "le rapport sera imprimable afin de pouvoir présenter au client le rapport des traveaux"
+      },
+      {
+        "besoin": "Génération d'un document des réparations à effectuer à partir du check-up",
+        "categorie": "document",
+        "citation": "génération d'un document de réparation à effectuer en fonction du checkup"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "j'ai un garage automobile"
+      },
+      {
+        "id": "employe",
+        "libelle": "Employé",
+        "libelle_pluriel": "Employés",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "met en relation tout les acteur de ma société"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "présenter au client le rapport des traveaux"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "employe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "présenter au client le rapport des traveaux"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "Véhicule",
+        "libelle_pluriel": "Véhicules",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "employe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "la réception du véhicule"
+      },
+      {
+        "nom": "Checkup",
+        "libelle": "Check-up",
+        "libelle_pluriel": "Check-ups",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "employe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "un check complet de l'état de la mécanique de la voiture ... le rapport sera imprimable"
+      },
+      {
+        "nom": "PhotoPiece",
+        "libelle": "Photo de pièce",
+        "libelle_pluriel": "Photos de pièces",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Checkup",
+        "references": [],
+        "citation": "photo des pièces qui sont dégradé"
+      },
+      {
+        "nom": "DocumentReparation",
+        "libelle": "Document de réparation",
+        "libelle_pluriel": "Documents de réparation",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "employe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Checkup",
+          "Vehicule"
+        ],
+        "citation": "génération d'un document de réparation à effectuer en fonction du checkup ... confirmation de la fin de la réparation"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Le client du garage ne se connecte pas : l'équipe tient sa fiche pour lui présenter le rapport des travaux."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "DocumentReparation",
+        "etat_initial": "a_effectuer",
+        "transitions": {
+          "a_effectuer": [
+            "terminee"
+          ],
+          "terminee": []
+        },
+        "libelles": {
+          "a_effectuer": "à effectuer",
+          "terminee": "terminée"
+        },
+        "initiateur": "employe",
+        "decideur": "employe",
+        "etapes_par": {},
+        "citation": "génération d'un document de réparation à effectuer en fonction du checkup, confirmation de la fin de la réparation"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise aucune information sur le client ; utile pour l'identifier."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour prévenir le client (fin de réparation), non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour envoyer le rapport au client, non cité dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Souvent utile pour la facturation, non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Vehicule",
+        "champs": [
+          {
+            "nom": "immatriculation",
+            "libelle": "Immatriculation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Marque",
+            "type": "texte",
+            "raison": "Non citée dans le brief ; utile pour décrire le véhicule."
+          },
+          {
+            "libelle": "Modèle",
+            "type": "texte",
+            "raison": "Non cité dans le brief ; utile pour décrire le véhicule."
+          },
+          {
+            "libelle": "Kilométrage",
+            "type": "nombre",
+            "raison": "Non cité dans le brief ; utile lors de la réception et du check-up."
+          },
+          {
+            "libelle": "Date de réception",
+            "type": "date",
+            "raison": "Le brief évoque « la réception du véhicule » sans dire si la date doit être enregistrée."
+          },
+          {
+            "libelle": "Numéro de série (VIN)",
+            "type": "texte",
+            "raison": "Non cité dans le brief ; identifie le véhicule de façon unique."
+          }
+        ]
+      },
+      {
+        "fiche": "Checkup",
+        "champs": [
+          {
+            "nom": "etatMecanique",
+            "libelle": "État de la mécanique",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un check complet de l'état de la mécanique de la voiture"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Kilométrage relevé",
+            "type": "nombre",
+            "raison": "Non cité dans le brief ; utile pour dater l'état du véhicule au moment du check-up."
+          },
+          {
+            "libelle": "Conclusions / recommandations",
+            "type": "texte_long",
+            "raison": "Le brief parle d'un rapport imprimable présenté au client, sans en détailler le contenu."
+          }
+        ]
+      },
+      {
+        "fiche": "PhotoPiece",
+        "champs": [
+          {
+            "nom": "piece",
+            "libelle": "Pièce",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "photo des pièces qui sont dégradé"
+          },
+          {
+            "nom": "photo",
+            "libelle": "Photo",
+            "type": "url",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "photo des pièces"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description de la dégradation",
+            "type": "texte_long",
+            "raison": "Le brief parle de pièces « dégradé » sans dire s'il faut décrire la dégradation."
+          }
+        ]
+      },
+      {
+        "fiche": "DocumentReparation",
+        "champs": [
+          {
+            "nom": "reparationsAEffectuer",
+            "libelle": "Réparations à effectuer",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "document de réparation à effectuer"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Rapport des travaux réalisés",
+            "type": "texte_long",
+            "raison": "Le brief mentionne « le rapport des traveaux » à présenter au client, sans préciser s'il est rattaché au document de réparation."
+          },
+          {
+            "libelle": "Date de fin de réparation",
+            "type": "date",
+            "raison": "Le brief prévoit une « confirmation de la fin de la réparation » ; la date pourrait être enregistrée (facultative avant la fin)."
+          },
+          {
+            "libelle": "Montant estimé",
+            "type": "montant",
+            "raison": "Non cité dans le brief ; utile pour présenter un devis au client."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du garage",
+    "fiches": [
+      {
+        "fiche": "Vehicule",
+        "verbe_creation": "Ajouter un véhicule",
+        "boutons": {}
+      },
+      {
+        "fiche": "Checkup",
+        "verbe_creation": "Faire un check-up",
+        "boutons": {}
+      },
+      {
+        "fiche": "PhotoPiece",
+        "verbe_creation": "Photographier une pièce",
+        "boutons": {}
+      },
+      {
+        "fiche": "DocumentReparation",
+        "verbe_creation": "Générer la réparation",
+        "boutons": {
+          "terminee": "Confirmer la fin"
+        }
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

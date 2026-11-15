@@ -1,0 +1,1832 @@
+{
+ "titre": "Gestion du restaurant",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Historique des connexions des utilisateurs",
+   "categorie": "autre",
+   "citation": "Historique de connexion"
+  },
+  {
+   "besoin": "Plan de salle visuel des tables",
+   "categorie": "autre",
+   "citation": "Plan de salle visuel"
+  },
+  {
+   "besoin": "Envoi automatique des commandes en cuisine, avec impression ou affichage à l'écran",
+   "categorie": "automatisation",
+   "citation": "Envoi automatique en cuisine (impression ou affichage à l’écran)"
+  },
+  {
+   "besoin": "Suivi des stocks en temps réel (quantités calculées)",
+   "categorie": "calcul_statistiques",
+   "citation": "Suivi en temps réel des stocks"
+  },
+  {
+   "besoin": "Alerte quand un stock passe sous un seuil critique",
+   "categorie": "notification",
+   "citation": "Alerte de seuil critique"
+  },
+  {
+   "besoin": "Encaissement par espèces, carte et mobile money",
+   "categorie": "paiement",
+   "citation": "Paiement par espèce, carte, mobile money"
+  },
+  {
+   "besoin": "Facture imprimée ou en PDF",
+   "categorie": "document",
+   "citation": "Facture imprimée ou PDF"
+  },
+  {
+   "besoin": "Diviser l'addition entre plusieurs clients",
+   "categorie": "paiement",
+   "citation": "Possibilité de diviser l’addition"
+  },
+  {
+   "besoin": "Prise de réservation par le public via une interface publique",
+   "categorie": "autre",
+   "citation": "Prise de réservation manuelle ou via une interface publique"
+  },
+  {
+   "besoin": "Confirmation automatique des réservations",
+   "categorie": "automatisation",
+   "citation": "Confirmation automatique"
+  },
+  {
+   "besoin": "Rappel des réservations",
+   "categorie": "notification",
+   "citation": "annulation, rappel"
+  },
+  {
+   "besoin": "Chiffre d'affaires journalier et mensuel",
+   "categorie": "calcul_statistiques",
+   "citation": "Chiffre d'affaires journalier, mensuel"
+  },
+  {
+   "besoin": "Classement des produits les plus vendus",
+   "categorie": "calcul_statistiques",
+   "citation": "Produits les plus vendus"
+  },
+  {
+   "besoin": "Mesure de la performance du personnel",
+   "categorie": "calcul_statistiques",
+   "citation": "Performance du personnel"
+  },
+  {
+   "besoin": "Rapport de stock",
+   "categorie": "calcul_statistiques",
+   "citation": "Rapport de stock"
+  },
+  {
+   "besoin": "Application mobile native",
+   "categorie": "mobile_hors_ligne",
+   "citation": "Mobile : Flutter ou React Native"
+  },
+  {
+   "besoin": "Technologies imposées pour le back-end, le front-end et la base de données",
+   "categorie": "autre",
+   "citation": "Back-end : Laravel (PHP), Node.js ou Django"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le serveur",
+   "Le caissier",
+   "Le cuisinier",
+   "Le livreur"
+  ],
+  "fiches": 14,
+  "circuits": 2
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Tables, Catégories, Produits, Clients, Commandes, Paiements, Factures, Livraisons, Réservations, Fournisseurs, Articles en stock",
+     "cases": [
+      {
+       "fiche": "Table",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+       ]
+      },
+      {
+       "fiche": "Categorie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Catégorisation : entrées, plats, desserts, boissons"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Prise de réservation manuelle ou via une interface publique"
+       ]
+      },
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      },
+      {
+       "fiche": "Paiement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Paiement par espèce, carte, mobile money"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Facture imprimée ou PDF"
+       ]
+      },
+      {
+       "fiche": "Livraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Suivi des livreurs et états de livraison"
+       ]
+      },
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Prise de réservation manuelle ou via une interface publique"
+       ]
+      },
+      {
+       "fiche": "Fournisseur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des fournisseurs"
+       ]
+      },
+      {
+       "fiche": "ArticleStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Suivi en temps réel des stocks"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Variantes (dans chaque Produit), Lignes de commande (dans chaque Commande), Mouvements de stock (dans chaque Article en stock)",
+     "cases": [
+      {
+       "fiche": "Variante",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Produit : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "LigneCommande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Commande : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      },
+      {
+       "fiche": "MouvementStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Article en stock : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Suivi en temps réel des stocks"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "serveur",
+   "libelle": "Le serveur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Tables, Catégories, Produits, Variantes (dans chaque Produit)",
+     "cases": [
+      {
+       "fiche": "Table",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+       ]
+      },
+      {
+       "fiche": "Categorie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Catégorisation : entrées, plats, desserts, boissons"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Variante",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Produit : même visibilité que le parent"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Clients, Commandes",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Prise de réservation manuelle ou via une interface publique"
+       ]
+      },
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Lignes de commande (dans chaque Commande)",
+     "cases": [
+      {
+       "fiche": "LigneCommande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Commande : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Réservations : voit tout, en crée, les modifie, les fait passer de « demandée » à « confirmée » ou « annulée », les fait passer de « confirmée » à « annulée »",
+     "cases": [
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "demandee": [
+          "confirmee",
+          "annulee"
+         ],
+         "confirmee": [
+          "annulee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "Prise de réservation manuelle ou via une interface publique"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "caissier",
+   "libelle": "Le caissier",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Tables, Catégories, Produits, Variantes (dans chaque Produit)",
+     "cases": [
+      {
+       "fiche": "Table",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+       ]
+      },
+      {
+       "fiche": "Categorie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Catégorisation : entrées, plats, desserts, boissons"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Variante",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Produit : même visibilité que le parent"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Clients, Commandes, Paiements, Factures",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Prise de réservation manuelle ou via une interface publique"
+       ]
+      },
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      },
+      {
+       "fiche": "Paiement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Paiement par espèce, carte, mobile money"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Facture imprimée ou PDF"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Lignes de commande (dans chaque Commande)",
+     "cases": [
+      {
+       "fiche": "LigneCommande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Commande : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cuisinier",
+   "libelle": "Le cuisinier",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Tables, Catégories, Produits, Variantes (dans chaque Produit), Clients",
+     "cases": [
+      {
+       "fiche": "Table",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+       ]
+      },
+      {
+       "fiche": "Categorie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Catégorisation : entrées, plats, desserts, boissons"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Variante",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Produit : même visibilité que le parent"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Commandes qu'il voit",
+        "clôture : choisit les Clients de ses Commandes"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Commandes",
+     "cases": [
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Lignes de commande (dans chaque Commande)",
+     "cases": [
+      {
+       "fiche": "LigneCommande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Commande : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Attribution des commandes à une table"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "livreur",
+   "libelle": "Le livreur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Tables, Catégories, Produits, Variantes (dans chaque Produit), Commandes",
+     "cases": [
+      {
+       "fiche": "Table",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+       ]
+      },
+      {
+       "fiche": "Categorie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Catégorisation : entrées, plats, desserts, boissons"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Variante",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Produit : même visibilité que le parent"
+       ],
+       "citations": [
+        "Ajout, modification et désactivation des produits"
+       ]
+      },
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les Livraisons qu'il voit",
+        "clôture : choisit les Commandes de ses Livraisons"
+       ],
+       "citations": [
+        "Suivi des livreurs et états de livraison"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Livraisons : voit tout, en crée, les modifie, les fait passer de « en attente » à « en cours de livraison », les fait passer de « en cours de livraison » à « livrée »",
+     "cases": [
+      {
+       "fiche": "Livraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "en_cours"
+         ],
+         "en_cours": [
+          "livree"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "Suivi des livreurs et états de livraison"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Livraison",
+   "texte": "La livraison passe par : « en attente » → « en cours de livraison » → « livrée »",
+   "qui": [
+    "Le livreur fait passer de « en attente » à « en cours de livraison »",
+    "Le livreur fait passer de « en cours de livraison » à « livrée »"
+   ],
+   "citations": [
+    "Suivi des livreurs et états de livraison"
+   ]
+  },
+  {
+   "fiche": "Reservation",
+   "texte": "La réservation commence « demandée » ; de « demandée », vers « confirmée » ou « annulée » ; de « confirmée », vers « annulée »",
+   "qui": [
+    "Le serveur fait passer de « demandée » à « confirmée » ou « annulée »",
+    "Le serveur fait passer de « confirmée » à « annulée »"
+   ],
+   "citations": [
+    "Prise de réservation manuelle ou via une interface publique"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Table",
+   "libelle": "Table",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de table",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "statut",
+     "libelle": "Statut",
+     "type": "choix parmi : libre, occupée, réservée, en attente de paiement",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Table:Nombre de places",
+     "libelle": "Nombre de places",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Table:Position sur le plan de salle",
+     "libelle": "Position sur le plan de salle",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+   ]
+  },
+  {
+   "fiche": "Categorie",
+   "libelle": "Catégorie",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de la catégorie",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Categorie:Ordre d'affichage dans le menu",
+     "libelle": "Ordre d'affichage dans le menu",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Catégorisation : entrées, plats, desserts, boissons"
+   ]
+  },
+  {
+   "fiche": "Produit",
+   "libelle": "Produit",
+   "nature": "catalog",
+   "relie_a": [
+    "Catégorie"
+   ],
+   "champs": [
+    {
+     "nom": "prix",
+     "libelle": "Prix",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Gestion des prix"
+    },
+    {
+     "nom": "disponible",
+     "libelle": "Disponible",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Gestion des prix, variantes et disponibilités"
+    },
+    {
+     "nom": "actif",
+     "libelle": "Actif (non désactivé)",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "désactivation des produits"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Produit:Nom du produit",
+     "libelle": "Nom du produit",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Produit:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Ajout, modification et désactivation des produits"
+   ]
+  },
+  {
+   "fiche": "Variante",
+   "libelle": "Variante",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Produit"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de la variante",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Variante:Type de variante (ex. cuisson, taille)",
+     "libelle": "Type de variante (ex. cuisson, taille)",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Variante:Supplément de prix",
+     "libelle": "Supplément de prix",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Gestion des prix, variantes et disponibilités"
+   ]
+  },
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Prise de réservation manuelle ou via une interface publique"
+   ]
+  },
+  {
+   "fiche": "Commande",
+   "libelle": "Commande",
+   "nature": "registry",
+   "relie_a": [
+    "Table",
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "typeCommande",
+     "libelle": "Type de commande (hors salle)",
+     "type": "choix parmi : à emporter, livraison",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Commandes à emporter et livraison"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Commande:Nombre de couverts",
+     "libelle": "Nombre de couverts",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Commande:Note pour la cuisine",
+     "libelle": "Note pour la cuisine",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Attribution des commandes à une table"
+   ]
+  },
+  {
+   "fiche": "LigneCommande",
+   "libelle": "Ligne de commande",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Commande",
+    "Produit",
+    "Variante"
+   ],
+   "champs": [
+    {
+     "nom": "quantite",
+     "libelle": "Quantité",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Sélection des plats, quantités"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:LigneCommande:Prix unitaire appliqué",
+     "libelle": "Prix unitaire appliqué",
+     "type": "montant"
+    },
+    {
+     "id": "garder:LigneCommande:Remarque",
+     "libelle": "Remarque",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Sélection des plats, quantités, variantes (ex : cuisson, taille)"
+   ]
+  },
+  {
+   "fiche": "Paiement",
+   "libelle": "Paiement",
+   "nature": "registry",
+   "relie_a": [
+    "Commande"
+   ],
+   "champs": [
+    {
+     "nom": "modePaiement",
+     "libelle": "Mode de paiement",
+     "type": "choix parmi : espèce, carte, mobile money",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Paiement par espèce, carte, mobile money"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Paiement:Montant payé",
+     "libelle": "Montant payé",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Paiement:Référence de transaction",
+     "libelle": "Référence de transaction",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Paiement par espèce, carte, mobile money"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "Facture",
+   "nature": "registry",
+   "relie_a": [
+    "Commande"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de facture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Facture imprimée ou PDF"
+   ]
+  },
+  {
+   "fiche": "Livraison",
+   "libelle": "Livraison",
+   "nature": "registry",
+   "relie_a": [
+    "Commande"
+   ],
+   "champs": [
+    {
+     "nom": "livreur",
+     "libelle": "Livreur",
+     "type": "texte court",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Suivi des livreurs"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Livraison:Adresse de livraison",
+     "libelle": "Adresse de livraison",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Livraison:Téléphone de contact",
+     "libelle": "Téléphone de contact",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Livraison:Frais de livraison",
+     "libelle": "Frais de livraison",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Livraison:Heure de livraison prévue",
+     "libelle": "Heure de livraison prévue",
+     "type": "date et heure"
+    }
+   ],
+   "citations": [
+    "Suivi des livreurs et états de livraison"
+   ]
+  },
+  {
+   "fiche": "Reservation",
+   "libelle": "Réservation",
+   "nature": "registry",
+   "relie_a": [
+    "Client",
+    "Table"
+   ],
+   "champs": [
+    {
+     "nom": "canal",
+     "libelle": "Canal de réservation",
+     "type": "choix parmi : manuelle, interface publique",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Prise de réservation manuelle ou via une interface publique"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Reservation:Date et heure de la réservation",
+     "libelle": "Date et heure de la réservation",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Reservation:Nombre de personnes",
+     "libelle": "Nombre de personnes",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Reservation:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Prise de réservation manuelle ou via une interface publique"
+   ]
+  },
+  {
+   "fiche": "Fournisseur",
+   "libelle": "Fournisseur",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom du fournisseur",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Fournisseur:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Fournisseur:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Fournisseur:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Gestion des fournisseurs"
+   ]
+  },
+  {
+   "fiche": "ArticleStock",
+   "libelle": "Article en stock",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de l'article",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "quantiteEnStock",
+     "libelle": "Quantité en stock",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Suivi en temps réel des stocks"
+    },
+    {
+     "nom": "seuilCritique",
+     "libelle": "Seuil critique",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Alerte de seuil critique"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ArticleStock:Unité de mesure",
+     "libelle": "Unité de mesure",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Suivi en temps réel des stocks"
+   ]
+  },
+  {
+   "fiche": "MouvementStock",
+   "libelle": "Mouvement de stock",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Article en stock",
+    "Fournisseur"
+   ],
+   "champs": [
+    {
+     "nom": "typeMouvement",
+     "libelle": "Type de mouvement",
+     "type": "choix parmi : entrée, sortie",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Historique d’entrée/sortie"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:MouvementStock:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:MouvementStock:Motif",
+     "libelle": "Motif",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Stock et approvisionnement"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:serveur:Client",
+   "sorte": "registre_entier",
+   "texte": "Le serveur verra tous les Clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Commandes qu'il voit; clôture : choisit les Clients de ses Commandes"
+  },
+  {
+   "id": "registre_entier:serveur:Commande",
+   "sorte": "registre_entier",
+   "texte": "Le serveur verra toutes les Commandes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:serveur:Reservation",
+   "sorte": "registre_entier",
+   "texte": "Le serveur verra toutes les Réservations, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Reservation (registre) : l'initiateur (serveur) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "registre_entier:caissier:Client",
+   "sorte": "registre_entier",
+   "texte": "Le caissier verra tous les Clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Commandes qu'il voit; clôture : choisit les Clients de ses Commandes"
+  },
+  {
+   "id": "registre_entier:caissier:Commande",
+   "sorte": "registre_entier",
+   "texte": "Le caissier verra toutes les Commandes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Paiements qu'il voit; clôture : choisit les Commandes de ses Paiements"
+  },
+  {
+   "id": "registre_entier:caissier:Paiement",
+   "sorte": "registre_entier",
+   "texte": "Le caissier verra tous les Paiements, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:caissier:Facture",
+   "sorte": "registre_entier",
+   "texte": "Le caissier verra toutes les Factures, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:cuisinier:Client",
+   "sorte": "registre_entier",
+   "texte": "Le cuisinier verra tous les Clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Commandes qu'il voit; clôture : choisit les Clients de ses Commandes"
+  },
+  {
+   "id": "registre_entier:cuisinier:Commande",
+   "sorte": "registre_entier",
+   "texte": "Le cuisinier verra toutes les Commandes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:livreur:Commande",
+   "sorte": "registre_entier",
+   "texte": "Le livreur verra toutes les Commandes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Livraisons qu'il voit; clôture : choisit les Commandes de ses Livraisons"
+  },
+  {
+   "id": "registre_entier:livreur:Livraison",
+   "sorte": "registre_entier",
+   "texte": "Le livreur verra toutes les Livraisons, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Livraison (registre) : l'initiateur (livreur) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Table:numero",
+     "texte": "Table → « Numéro de table »"
+    },
+    {
+     "id": "nom:Categorie:nom",
+     "texte": "Catégorie → « Nom de la catégorie »"
+    },
+    {
+     "id": "nom:Variante:nom",
+     "texte": "Variante → « Nom de la variante »"
+    },
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "Facture → « Numéro de facture »"
+    },
+    {
+     "id": "nom:Fournisseur:nom",
+     "texte": "Fournisseur → « Nom du fournisseur »"
+    },
+    {
+     "id": "nom:ArticleStock:nom",
+     "texte": "Article en stock → « Nom de l'article »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

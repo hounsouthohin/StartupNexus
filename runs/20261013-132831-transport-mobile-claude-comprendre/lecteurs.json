@@ -1,0 +1,540 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est la gestion des livraisons d'un transporteur : des fiches de livraison et de missions, des chauffeurs et des sous-traitants qui se connectent, des statuts de livraison qui évoluent et des missions confirmées par les chauffeurs. C'est un logiciel de gestion de PME. Le support « application mobile » est une demande hors stock, mais il ne change pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Application mobile pour les chauffeurs",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Création d'application mobile pour transporteur ... le développement d'une application mobile qui centraliserait les informations de livraison"
+      },
+      {
+        "besoin": "Diffusion directe et en temps réel des informations et des statuts de livraison aux chauffeurs",
+        "categorie": "notification",
+        "citation": "les diffuserait directement aux chauffeurs, permettant ainsi une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "Choix des trajets et des horaires par les chauffeurs selon leurs disponibilités et la capacité de leurs véhicules (planning des missions)",
+        "categorie": "planning",
+        "citation": "choisir leurs trajets et horaires en fonction de leurs disponibilités et de la capacité de leurs véhicules"
+      },
+      {
+        "besoin": "Notifications automatiques envoyées lorsqu'une entreprise a une demande de transport",
+        "categorie": "notification",
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "besoin": "Suivi en temps réel des livraisons (localisation, avancement)",
+        "categorie": "autre",
+        "citation": "un suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "Vérification systématique et automatique des documents obligatoires, notamment pour les marchandises dangereuses",
+        "categorie": "automatisation",
+        "citation": "vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses"
+      },
+      {
+        "besoin": "Gestion des documents de transport rattachés aux livraisons (pièces justificatives)",
+        "categorie": "fichiers_photos",
+        "citation": "les documents nécessaires, notamment pour les marchandises dangereuses"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "Responsable",
+        "libelle_pluriel": "Responsables",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "je souhaite proposer en interne le développement d'une application mobile"
+      },
+      {
+        "id": "chauffeur",
+        "libelle": "Chauffeur",
+        "libelle_pluriel": "Chauffeurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "responsable",
+        "citation": "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires ... avec une confirmation des missions en un clic"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Entreprise cliente",
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "libelle": "Sous-traitant",
+        "citation": "la difficulté à coordonner nos sous-traitants"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chauffeur",
+        "libelle": "Chauffeur",
+        "libelle_pluriel": "Chauffeurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "aux chauffeurs la possibilité de choisir leurs trajets et horaires en fonction de leurs disponibilités"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "Véhicule",
+        "libelle_pluriel": "Véhicules",
+        "feminin": false,
+        "nature": "collection",
+        "proprietaire": "chauffeur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la capacité de leurs véhicules"
+      },
+      {
+        "nom": "EntrepriseCliente",
+        "libelle": "Entreprise cliente",
+        "libelle_pluriel": "Entreprises clientes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "nom": "SousTraitant",
+        "libelle": "Sous-traitant",
+        "libelle_pluriel": "Sous-traitants",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la difficulté à coordonner nos sous-traitants"
+      },
+      {
+        "nom": "Livraison",
+        "libelle": "Livraison",
+        "libelle_pluriel": "Livraisons",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable",
+          "chauffeur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "EntrepriseCliente",
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "citation": "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs ... confirmation des missions en un clic ... lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "nom": "DocumentLivraison",
+        "libelle": "Document de livraison",
+        "libelle_pluriel": "Documents de livraison",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Livraison",
+        "references": [],
+        "citation": "vérifierait systématiquement les documents nécessaires, notamment pour les marchandises dangereuses"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Entreprise cliente",
+        "fiche": "EntrepriseCliente",
+        "raison": "Les entreprises qui ont une demande de transport sont enregistrées par le responsable et chaque livraison désigne l'entreprise qui l'a demandée."
+      },
+      {
+        "non_utilisateur": "Sous-traitant",
+        "fiche": "SousTraitant",
+        "raison": "Le brief veut mieux coordonner les sous-traitants : ils sont tenus dans un registre par le responsable. Leur lien exact avec les livraisons ou les chauffeurs est à demander au client."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Livraison",
+        "etat_initial": "demandee",
+        "transitions": {
+          "demandee": [
+            "confirmee"
+          ],
+          "confirmee": []
+        },
+        "libelles": {
+          "demandee": "demandée",
+          "confirmee": "confirmée"
+        },
+        "initiateur": "responsable",
+        "decideur": "chauffeur",
+        "etapes_par": {},
+        "citation": "lorsqu'une entreprise aura une demande de transport à faire ... avec une confirmation des missions en un clic ... une mise à jour en temps réel des statuts de livraison"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "chauffeur",
+        "fiche": "Livraison",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "centraliserait les informations de livraison et les diffuserait directement aux chauffeurs"
+      },
+      {
+        "acteur": "chauffeur",
+        "fiche": "Livraison",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {
+          "demandee": [
+            "confirmee"
+          ]
+        },
+        "citation": "offrirait également aux chauffeurs la possibilité de choisir leurs trajets et horaires ... avec une confirmation des missions en un clic"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Chauffeur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "disponibilites",
+            "libelle": "Disponibilités",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "en fonction de leurs disponibilités"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment identifier un chauffeur au-delà de son nom."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour joindre le chauffeur pendant une livraison ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Vehicule",
+        "champs": [
+          {
+            "nom": "immatriculation",
+            "libelle": "Immatriculation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "capacite",
+            "libelle": "Capacité",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la capacité de leurs véhicules"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Type de véhicule",
+            "type": "texte",
+            "raison": "Pourrait aider à choisir les trajets ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Unité de capacité (kg, m³, palettes)",
+            "type": "texte",
+            "raison": "Le brief cite la capacité sans préciser son unité."
+          }
+        ]
+      },
+      {
+        "fiche": "EntrepriseCliente",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Le brief ne dit rien des informations enregistrées sur l'entreprise."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour contacter l'entreprise au sujet d'une demande de transport ; non cité."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour contacter l'entreprise ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "SousTraitant",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour coordonner les sous-traitants ; le brief ne précise aucune information."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour coordonner les sous-traitants ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Livraison",
+        "champs": [
+          {
+            "nom": "trajet",
+            "libelle": "Trajet",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "choisir leurs trajets"
+          },
+          {
+            "nom": "horaire",
+            "libelle": "Horaire",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "choisir leurs trajets et horaires"
+          },
+          {
+            "nom": "marchandisesDangereuses",
+            "libelle": "Marchandises dangereuses",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "notamment pour les marchandises dangereuses"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse d'enlèvement",
+            "type": "texte_long",
+            "raison": "Le brief parle de trajets sans préciser le point de départ."
+          },
+          {
+            "libelle": "Adresse de livraison",
+            "type": "texte_long",
+            "raison": "Le brief parle de trajets sans préciser la destination."
+          },
+          {
+            "libelle": "Description de la marchandise",
+            "type": "texte_long",
+            "raison": "Non citée, mais utile pour la livraison."
+          },
+          {
+            "libelle": "Poids ou volume de la marchandise",
+            "type": "nombre",
+            "raison": "Pour comparer avec la capacité du véhicule ; non cité."
+          },
+          {
+            "libelle": "Date de livraison effective",
+            "type": "date_heure",
+            "raison": "Pour mesurer les retards, objectif du brief ; non citée."
+          }
+        ]
+      },
+      {
+        "fiche": "DocumentLivraison",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fichier ou lien du document",
+            "type": "url",
+            "raison": "Le brief cite les documents nécessaires sans dire ce qu'ils contiennent."
+          },
+          {
+            "libelle": "Document vérifié",
+            "type": "oui_non",
+            "raison": "Le brief prévoit une vérification systématique des documents ; à confirmer."
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Certains documents (marchandises dangereuses) peuvent expirer ; non cité."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Suivi des livraisons",
+    "fiches": [
+      {
+        "fiche": "Livraison",
+        "verbe_creation": "Demander une livraison",
+        "boutons": {
+          "confirmee": "Confirmer"
+        }
+      },
+      {
+        "fiche": "DocumentLivraison",
+        "verbe_creation": "Joindre un document",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche DocumentLivraison : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

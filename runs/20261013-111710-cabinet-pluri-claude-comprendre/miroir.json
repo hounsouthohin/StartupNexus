@@ -1,0 +1,441 @@
+{
+ "titre": "Gestion du cabinet",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Agenda et gestion des rendez-vous",
+   "categorie": "planning",
+   "citation": "gestion de rdv ... avec agenda"
+  },
+  {
+   "besoin": "Facturation (création de factures)",
+   "categorie": "document",
+   "citation": "facturation"
+  },
+  {
+   "besoin": "Établissement de devis",
+   "categorie": "document",
+   "citation": "devis"
+  },
+  {
+   "besoin": "Partage de chaque dossier par l'administrateur avec les seuls professionnels concernés",
+   "categorie": "partage_fin",
+   "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le professionnel"
+  ],
+  "fiches": 5,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "l'administrateur pourra partager les dossiers"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Dossiers, Rendez-vous, Factures, Devis",
+     "cases": [
+      {
+       "fiche": "Dossier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+       ]
+      },
+      {
+       "fiche": "RendezVous",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion de rdv"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "avec agenda, facturation et devis"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "avec agenda, facturation et devis"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "professionnel",
+   "libelle": "Le professionnel",
+   "devient": "invité par administrateur",
+   "citations": [
+    "que tous les utilisateurs n'aient pas un accès total au logiciel"
+   ],
+   "phrases": [
+    {
+     "texte": "a son Professionnel, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Professionnel",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "les professionnels concernés"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Professionnel",
+   "libelle": "Professionnel",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Professionnel:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Professionnel:Spécialité",
+     "libelle": "Spécialité",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Professionnel:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Professionnel:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "les professionnels concernés"
+   ]
+  },
+  {
+   "fiche": "Dossier",
+   "libelle": "Dossier",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Dossier:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Dossier:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Dossier:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Dossier:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Dossier:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Dossier:Notes",
+     "libelle": "Notes",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+   ]
+  },
+  {
+   "fiche": "RendezVous",
+   "libelle": "Rendez-vous",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "objet",
+     "libelle": "Objet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:RendezVous:Date et heure",
+     "libelle": "Date et heure",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:RendezVous:Durée",
+     "libelle": "Durée",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:RendezVous:Lieu ou salle",
+     "libelle": "Lieu ou salle",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:RendezVous:Notes",
+     "libelle": "Notes",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "gestion de rdv"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "Facture",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Date de facture",
+     "libelle": "Date de facture",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Description des prestations",
+     "libelle": "Description des prestations",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Facture:Date de paiement",
+     "libelle": "Date de paiement",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Mode de paiement",
+     "libelle": "Mode de paiement",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "avec agenda, facturation et devis"
+   ]
+  },
+  {
+   "fiche": "Devis",
+   "libelle": "Devis",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Devis:Date du devis",
+     "libelle": "Date du devis",
+     "type": "date"
+    },
+    {
+     "id": "garder:Devis:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Devis:Description des prestations",
+     "libelle": "Description des prestations",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Devis:Date de validité",
+     "libelle": "Date de validité",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "avec agenda, facturation et devis"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Professionnel:nom",
+     "texte": "Professionnel → « Nom »"
+    },
+    {
+     "id": "nom:Dossier:nom",
+     "texte": "Dossier → « Nom »"
+    },
+    {
+     "id": "nom:RendezVous:objet",
+     "texte": "Rendez-vous → « Objet »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "Facture → « Numéro »"
+    },
+    {
+     "id": "nom:Devis:numero",
+     "texte": "Devis → « Numéro »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

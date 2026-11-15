@@ -1,0 +1,369 @@
+{
+  "app": {
+    "nom": "renovation",
+    "titre": "Gustave Rénovation"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "Chef de projet",
+        "label_plural": "Chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "entities": [
+      {
+        "name": "ProfilAdministrateur",
+        "label": "profil administrateur",
+        "label_plural": "profils administrateur",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      },
+      {
+        "name": "ProfilChefDeProjet",
+        "label": "profil chef de projet",
+        "label_plural": "profils chef de projet",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "chef_de_projet",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "chefs de projet"
+      },
+      {
+        "name": "Agence",
+        "label": "agence",
+        "label_plural": "agences",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "par agence"
+      },
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "centralisation de l'ensemble des données chantiers"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "devis"
+      },
+      {
+        "name": "SuiviChantier",
+        "label": "suivi de chantier",
+        "label_plural": "suivis de chantier",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "suivis"
+      },
+      {
+        "name": "Document",
+        "label": "document",
+        "label_plural": "documents",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "documents"
+      },
+      {
+        "name": "Photo",
+        "label": "photo",
+        "label_plural": "photos",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "photos"
+      },
+      {
+        "name": "BonDeCommande",
+        "label": "bon de commande",
+        "label_plural": "bons de commande",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "bons de commande"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "facturation"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "ProfilAdministrateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ProfilChefDeProjet": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Agence": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Chantier": [
+      {
+        "nom": "avancement",
+        "libelle": "Avancement",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "nom": "margeRealisee",
+        "libelle": "Marge réalisée",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "nom": "rentabilite",
+        "libelle": "Rentabilité",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "nom": "ville",
+        "libelle": "Ville",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SuiviChantier": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Document": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Photo": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "BonDeCommande": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "ProfilAdministrateur": {
+      "verbe_creation": "Ajouter un administrateur",
+      "boutons": {}
+    },
+    "ProfilChefDeProjet": {
+      "verbe_creation": "Ajouter un chef de projet",
+      "boutons": {}
+    },
+    "Chantier": {
+      "verbe_creation": "Créer un chantier",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Créer un devis",
+      "boutons": {}
+    },
+    "SuiviChantier": {
+      "verbe_creation": "Ajouter un suivi",
+      "boutons": {}
+    },
+    "Document": {
+      "verbe_creation": "Ajouter un document",
+      "boutons": {}
+    },
+    "Photo": {
+      "verbe_creation": "Ajouter une photo",
+      "boutons": {}
+    },
+    "BonDeCommande": {
+      "verbe_creation": "Créer un bon de commande",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Créer une facture",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

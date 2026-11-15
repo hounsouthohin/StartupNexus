@@ -1,0 +1,1514 @@
+{
+ "titre": "Interventions techniques",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Horodatage précis des interventions",
+   "categorie": "autre",
+   "citation": "Horodatage précis des interventions (début et fin)"
+  },
+  {
+   "besoin": "Checklist personnalisable selon le type d'intervention",
+   "categorie": "autre",
+   "citation": "Checklist personnalisable selon le type d'intervention"
+  },
+  {
+   "besoin": "Ajout automatique de matériel",
+   "categorie": "automatisation",
+   "citation": "Ajout automatique de matériel"
+  },
+  {
+   "besoin": "Génération instantanée de devis",
+   "categorie": "document",
+   "citation": "génération instantanée de devis"
+  },
+  {
+   "besoin": "Signature électronique du client",
+   "categorie": "autre",
+   "citation": "Signature électronique du client sur tablette"
+  },
+  {
+   "besoin": "Gestion documentaire et classement de fichiers",
+   "categorie": "fichiers_photos",
+   "citation": "Gestion documentaire avec classement des fichiers"
+  },
+  {
+   "besoin": "Moteur de recherche documentaire",
+   "categorie": "autre",
+   "citation": "moteur de recherche"
+  },
+  {
+   "besoin": "Stockage sécurisé de fiches de paie par collaborateur",
+   "categorie": "fichiers_photos",
+   "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+  },
+  {
+   "besoin": "Gestion des codes d'accès digitaux",
+   "categorie": "autre",
+   "citation": "Gestion des codes d'accès digitaux (clavier à code)"
+  },
+  {
+   "besoin": "Documentation technique détaillée",
+   "categorie": "document",
+   "citation": "Documentation technique détaillée"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le membre de l'équipe administrative",
+   "Le collaborateur"
+  ],
+  "fiches": 15,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Notre entreprise spécialisée dans la réparation et l'entretien de portes de garage et niveleurs de quai souhaite se doter d'une application web"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : clients, adresses de chantiers, bons d'intervention, types d'intervention, checklists, matériels, lignes de matériel d'intervention (dans chaque bon d'intervention), devis, documents, codes d'accès digitaux",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      },
+      {
+       "fiche": "AdresseChantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "adresses des chantiers"
+       ]
+      },
+      {
+       "fiche": "BonIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      },
+      {
+       "fiche": "TypeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "type d'intervention"
+       ]
+      },
+      {
+       "fiche": "Checklist",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Checklist personnalisable selon le type d'intervention"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout automatique de matériel"
+       ]
+      },
+      {
+       "fiche": "LigneMaterielIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de bon d'intervention : même visibilité que le parent"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "génération instantanée de devis"
+       ]
+      },
+      {
+       "fiche": "Document",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "Gestion documentaire avec classement des fichiers et moteur de recherche"
+       ]
+      },
+      {
+       "fiche": "CodeAccesDigital",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "Gestion des codes d'accès digitaux (clavier à code)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les profils collaborateurs affichés dans les bons d'intervention qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "ProfilCollaborateur",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "BonIntervention"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les bons d'intervention qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "membre_equipe_administrative",
+   "libelle": "Le membre de l'équipe administrative",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Formation succincte à destination de notre équipe administrative"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : clients, adresses de chantiers, bons d'intervention, types d'intervention, checklists, matériels, devis, documents, codes d'accès digitaux",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      },
+      {
+       "fiche": "AdresseChantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "adresses des chantiers"
+       ]
+      },
+      {
+       "fiche": "BonIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      },
+      {
+       "fiche": "TypeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "type d'intervention"
+       ]
+      },
+      {
+       "fiche": "Checklist",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Checklist personnalisable selon le type d'intervention"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Ajout automatique de matériel"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "génération instantanée de devis"
+       ]
+      },
+      {
+       "fiche": "Document",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion documentaire avec classement des fichiers et moteur de recherche"
+       ]
+      },
+      {
+       "fiche": "CodeAccesDigital",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des codes d'accès digitaux (clavier à code)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : profils collaborateurs",
+     "cases": [
+      {
+       "fiche": "ProfilCollaborateur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les bons d'intervention qu'il voit",
+        "clôture : choisit les profils collaborateurs de ses bons d'intervention"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : lignes de matériel d'intervention (dans chaque bon d'intervention)",
+     "cases": [
+      {
+       "fiche": "LigneMaterielIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de bon d'intervention : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "collaborateur",
+   "libelle": "Le collaborateur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : types d'intervention, checklists, matériels, lignes de matériel d'intervention (dans chaque bon d'intervention)",
+     "cases": [
+      {
+       "fiche": "TypeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "type d'intervention"
+       ]
+      },
+      {
+       "fiche": "Checklist",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Checklist personnalisable selon le type d'intervention"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout automatique de matériel"
+       ]
+      },
+      {
+       "fiche": "LigneMaterielIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de bon d'intervention : même visibilité que le parent"
+       ],
+       "citations": [
+        "Horodatage précis des interventions (début et fin)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : demandes de congés, commandes de matériel, commandes de vêtements professionnels, fiches de paie",
+     "cases": [
+      {
+       "fiche": "DemandeConge",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "demandes de congés"
+       ]
+      },
+      {
+       "fiche": "CommandeMateriel",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "commandes de matériel"
+       ]
+      },
+      {
+       "fiche": "CommandeVetementProfessionnel",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "commandes de matériel et vêtements professionnels"
+       ]
+      },
+      {
+       "fiche": "FichePaie",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "fiches de paie par collaborateur"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les clients affichés dans les bons d'intervention qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "BonIntervention"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les bons d'intervention qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "a son profil collaborateur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilCollaborateur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "collaborateurs"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les adresses de chantiers affichées dans les bons d'intervention qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "AdresseChantier",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "BonIntervention"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les bons d'intervention qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    },
+    {
+     "texte": "Bons d'intervention : voit tout, les fait passer de « début » à « fin »",
+     "cases": [
+      {
+       "fiche": "BonIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "debut": [
+          "fin"
+         ]
+        }
+       },
+       "pourquoi": [
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "Horodatage précis des interventions (début et fin)"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "BonIntervention",
+   "texte": "Le bon d'intervention passe par : « début » → « fin »",
+   "qui": [
+    "Le collaborateur fait passer de « début » à « fin »"
+   ],
+   "citations": [
+    "Horodatage précis des interventions (début et fin)"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+   ]
+  },
+  {
+   "fiche": "ProfilCollaborateur",
+   "libelle": "profil collaborateur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ProfilCollaborateur:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ProfilCollaborateur:Email professionnel",
+     "libelle": "Email professionnel",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "collaborateurs"
+   ]
+  },
+  {
+   "fiche": "AdresseChantier",
+   "libelle": "adresse de chantier",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "adresse",
+     "libelle": "Adresse",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "adresses des chantiers"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:AdresseChantier:Code postal",
+     "libelle": "Code postal",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:AdresseChantier:Ville",
+     "libelle": "Ville",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "adresses des chantiers"
+   ]
+  },
+  {
+   "fiche": "BonIntervention",
+   "libelle": "bon d'intervention",
+   "nature": "registry",
+   "relie_a": [
+    "client",
+    "profil collaborateur",
+    "adresse de chantier",
+    "type d'intervention"
+   ],
+   "champs": [
+    {
+     "nom": "horodatageDebut",
+     "libelle": "Horodatage de début",
+     "type": "date et heure",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Horodatage précis des interventions (début et fin)"
+    },
+    {
+     "nom": "horodatageFin",
+     "libelle": "Horodatage de fin",
+     "type": "date et heure",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Horodatage précis des interventions (début et fin)"
+    },
+    {
+     "nom": "signatureElectroniqueClient",
+     "libelle": "Signature électronique du client",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Signature électronique du client sur tablette"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:BonIntervention:Compte rendu d’intervention",
+     "libelle": "Compte rendu d’intervention",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:BonIntervention:Observations techniques",
+     "libelle": "Observations techniques",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+   ]
+  },
+  {
+   "fiche": "TypeIntervention",
+   "libelle": "type d'intervention",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:TypeIntervention:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "type d'intervention"
+   ]
+  },
+  {
+   "fiche": "Checklist",
+   "libelle": "checklist",
+   "nature": "catalog",
+   "relie_a": [
+    "type d'intervention"
+   ],
+   "champs": [
+    {
+     "nom": "contenu",
+     "libelle": "Contenu de la checklist",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Checklist personnalisable selon le type d'intervention"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Checklist:Nom",
+     "libelle": "Nom",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Checklist personnalisable selon le type d'intervention"
+   ]
+  },
+  {
+   "fiche": "Materiel",
+   "libelle": "matériel",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Materiel:Référence",
+     "libelle": "Référence",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Materiel:Prix unitaire",
+     "libelle": "Prix unitaire",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Ajout automatique de matériel"
+   ]
+  },
+  {
+   "fiche": "LigneMaterielIntervention",
+   "libelle": "ligne de matériel d'intervention",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque bon d'intervention",
+    "matériel"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:LigneMaterielIntervention:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:LigneMaterielIntervention:Prix unitaire appliqué",
+     "libelle": "Prix unitaire appliqué",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Ajout automatique de matériel"
+   ]
+  },
+  {
+   "fiche": "Devis",
+   "libelle": "devis",
+   "nature": "registry",
+   "relie_a": [
+    "bon d'intervention",
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Devis:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Devis:Date du devis",
+     "libelle": "Date du devis",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "génération instantanée de devis"
+   ]
+  },
+  {
+   "fiche": "Document",
+   "libelle": "document",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "classement",
+     "libelle": "Classement",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "classement des fichiers"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Document:Titre du document",
+     "libelle": "Titre du document",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Document:Mots-clés",
+     "libelle": "Mots-clés",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Gestion documentaire avec classement des fichiers et moteur de recherche"
+   ]
+  },
+  {
+   "fiche": "DemandeConge",
+   "libelle": "demande de congé",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DemandeConge:Date de début du congé",
+     "libelle": "Date de début du congé",
+     "type": "date"
+    },
+    {
+     "id": "garder:DemandeConge:Date de fin du congé",
+     "libelle": "Date de fin du congé",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "demandes de congés"
+   ]
+  },
+  {
+   "fiche": "CommandeMateriel",
+   "libelle": "commande de matériel",
+   "nature": "collection",
+   "relie_a": [
+    "matériel"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CommandeMateriel:Quantité commandée",
+     "libelle": "Quantité commandée",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:CommandeMateriel:Date souhaitée de livraison",
+     "libelle": "Date souhaitée de livraison",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "commandes de matériel"
+   ]
+  },
+  {
+   "fiche": "CommandeVetementProfessionnel",
+   "libelle": "commande de vêtement professionnel",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CommandeVetementProfessionnel:Taille",
+     "libelle": "Taille",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:CommandeVetementProfessionnel:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "commandes de matériel et vêtements professionnels"
+   ]
+  },
+  {
+   "fiche": "FichePaie",
+   "libelle": "fiche de paie",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:FichePaie:Mois de paie",
+     "libelle": "Mois de paie",
+     "type": "date"
+    },
+    {
+     "id": "garder:FichePaie:Montant net",
+     "libelle": "Montant net",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "fiches de paie par collaborateur"
+   ]
+  },
+  {
+   "fiche": "CodeAccesDigital",
+   "libelle": "code d'accès digital",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "code",
+     "libelle": "Code d'accès",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "codes d'accès digitaux (clavier à code)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CodeAccesDigital:Description",
+     "libelle": "Description",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:CodeAccesDigital:Date d’expiration",
+     "libelle": "Date d’expiration",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Gestion des codes d'accès digitaux (clavier à code)"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "vu_via:administrateur:ProfilCollaborateur",
+   "sorte": "vu_via",
+   "texte": "L'administrateur verra les profils collaborateurs (ex. nom, coordonnées) affichés dans les bons d'intervention qu'il traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les bons d'intervention qu'il voit"
+  },
+  {
+   "id": "registre_entier:membre_equipe_administrative:Client",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe administrative verra tous les clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Client (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:membre_equipe_administrative:AdresseChantier",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe administrative verra toutes les adresses de chantiers, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité AdresseChantier (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:membre_equipe_administrative:BonIntervention",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe administrative verra tous les bons d'intervention, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité BonIntervention (registre) : il faut au moins un acteur qui le tient (« manager ») ; entité BonIntervention (registre) : l'initiateur (membre_equipe_administrative) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "registre_entier:membre_equipe_administrative:Devis",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe administrative verra tous les devis, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Devis (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:membre_equipe_administrative:Document",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe administrative verra tous les documents, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Document (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:membre_equipe_administrative:CodeAccesDigital",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe administrative verra tous les codes d'accès digitaux, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité CodeAccesDigital (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "vu_via:collaborateur:Client",
+   "sorte": "vu_via",
+   "texte": "Le collaborateur verra les clients (ex. nom, coordonnées) affichés dans les bons d'intervention qu'il traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les bons d'intervention qu'il voit"
+  },
+  {
+   "id": "vu_via:collaborateur:AdresseChantier",
+   "sorte": "vu_via",
+   "texte": "Le collaborateur verra les adresses de chantiers (ex. nom, coordonnées) affichés dans les bons d'intervention qu'il traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les bons d'intervention qu'il voit"
+  },
+  {
+   "id": "registre_entier:collaborateur:BonIntervention",
+   "sorte": "registre_entier",
+   "texte": "Le collaborateur verra tous les bons d'intervention, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : voit ce qu'il modifie"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "client → « Nom »"
+    },
+    {
+     "id": "nom:ProfilCollaborateur:nom",
+     "texte": "profil collaborateur → « Nom »"
+    },
+    {
+     "id": "nom:TypeIntervention:nom",
+     "texte": "type d'intervention → « Nom »"
+    },
+    {
+     "id": "nom:Materiel:nom",
+     "texte": "matériel → « Nom »"
+    },
+    {
+     "id": "nom:LigneMaterielIntervention:intitule",
+     "texte": "ligne de matériel d'intervention → « Intitulé »"
+    },
+    {
+     "id": "nom:Devis:intitule",
+     "texte": "devis → « Intitulé »"
+    },
+    {
+     "id": "nom:DemandeConge:intitule",
+     "texte": "demande de congé → « Intitulé »"
+    },
+    {
+     "id": "nom:CommandeMateriel:intitule",
+     "texte": "commande de matériel → « Intitulé »"
+    },
+    {
+     "id": "nom:CommandeVetementProfessionnel:intitule",
+     "texte": "commande de vêtement professionnel → « Intitulé »"
+    },
+    {
+     "id": "nom:FichePaie:intitule",
+     "texte": "fiche de paie → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

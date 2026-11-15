@@ -1,0 +1,16 @@
+{
+  "run": "20261013-215110-c2-plateforme-educative-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-plateforme-educative",
+  "modele": "boite",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- [bloc:lien:pour-autrui] Note : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)\n- [bloc:lien:pour-autrui] Bulletin : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)\n- [bloc:lien:pour-autrui] Attestation : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)\n- [bloc:lien:pour-autrui] Diplome : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x) [type=value_error, input_value={'app': {'nom': 'c2-plate...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "boite",
+    "appels": 8,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-13T21:57:34"
+}

@@ -1,0 +1,333 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'un atelier de réparation, c'est-à-dire une petite structure. Les besoins cités (bon d'entrée, bon d'intervention, commande de pièce, suivi de machine) correspondent à des fiches, et le suivi passe par des états. Le brief ne demande explicitement rien hors stock. Il faudra voir avec le client si les bons doivent être imprimés ou générés en PDF, et si la commande de pièce doit être reliée à un fournisseur.",
+    "hors_stock": []
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "logiciel de gestion d'atelier de réparation ... J'ai un exemple de soft"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Machine",
+        "libelle": "Machine",
+        "libelle_pluriel": "Machines",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "suivi de machine"
+      },
+      {
+        "nom": "BonEntree",
+        "libelle": "Bon d'entrée",
+        "libelle_pluriel": "Bons d'entrée",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Machine"
+        ],
+        "citation": "gestion d'atelier de réparation : bon d'entrée"
+      },
+      {
+        "nom": "BonIntervention",
+        "libelle": "Bon d'intervention",
+        "libelle_pluriel": "Bons d'intervention",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Machine"
+        ],
+        "citation": "bon d'intervention"
+      },
+      {
+        "nom": "CommandePiece",
+        "libelle": "Commande de pièce",
+        "libelle_pluriel": "Commandes de pièces",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "commande de pièce"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Machine",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Marque",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment identifier une machine ; la marque aide souvent à la reconnaître."
+          },
+          {
+            "libelle": "Modèle",
+            "type": "texte",
+            "raison": "Utile pour commander les bonnes pièces, mais non mentionné dans le brief."
+          },
+          {
+            "libelle": "Numéro de série",
+            "type": "texte",
+            "raison": "Permet de distinguer deux machines identiques pour le suivi ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Nom du client propriétaire",
+            "type": "texte",
+            "raison": "Un atelier de réparation doit en général savoir à qui appartient la machine ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Téléphone du client",
+            "type": "telephone",
+            "raison": "Pour prévenir le client quand la machine est réparée ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "BonEntree",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro du bon",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Panne signalée",
+            "type": "texte_long",
+            "raison": "Le bon d'entrée sert d'ordinaire à noter le problème décrit par le client ; à confirmer."
+          },
+          {
+            "libelle": "Accessoires déposés",
+            "type": "texte_long",
+            "raison": "Souvent noté à l'entrée en atelier, mais non mentionné dans le brief."
+          },
+          {
+            "libelle": "État visuel à l'entrée",
+            "type": "texte_long",
+            "raison": "Utile en cas de litige sur l'état de la machine ; à demander au client."
+          },
+          {
+            "libelle": "Date de restitution prévue",
+            "type": "date",
+            "raison": "Le brief ne dit pas si un délai est annoncé au client."
+          }
+        ]
+      },
+      {
+        "fiche": "BonIntervention",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro du bon",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Travaux réalisés",
+            "type": "texte_long",
+            "raison": "Le contenu d'un bon d'intervention n'est pas décrit dans le brief ; à demander au client."
+          },
+          {
+            "libelle": "Date d'intervention",
+            "type": "date",
+            "raison": "Peut différer de la date de création du bon ; non citée dans le brief."
+          },
+          {
+            "libelle": "Technicien",
+            "type": "texte",
+            "raison": "Pour savoir qui a fait l'intervention ; non mentionné."
+          },
+          {
+            "libelle": "Temps passé (heures)",
+            "type": "nombre",
+            "raison": "Souvent utilisé pour facturer la main-d'oeuvre ; à confirmer."
+          },
+          {
+            "libelle": "Montant facturé",
+            "type": "montant",
+            "raison": "Le brief ne dit pas si l'intervention est chiffrée ou facturée."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandePiece",
+        "champs": [
+          {
+            "nom": "piece",
+            "libelle": "Pièce commandée",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence de la pièce",
+            "type": "texte",
+            "raison": "Utile pour passer commande au fournisseur ; non citée dans le brief."
+          },
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Le brief ne précise pas ce que contient une commande de pièce."
+          },
+          {
+            "libelle": "Fournisseur",
+            "type": "texte",
+            "raison": "Pour savoir auprès de qui la pièce est commandée ; à demander au client."
+          },
+          {
+            "libelle": "Prix d'achat",
+            "type": "montant",
+            "raison": "Utile pour refacturer la pièce ; non mentionné."
+          },
+          {
+            "libelle": "Date de réception prévue",
+            "type": "date",
+            "raison": "Pour savoir quand reprendre la réparation ; non citée dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Atelier de réparation",
+    "fiches": [
+      {
+        "fiche": "BonEntree",
+        "verbe_creation": "Réceptionner",
+        "boutons": {}
+      },
+      {
+        "fiche": "BonIntervention",
+        "verbe_creation": "Intervenir",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

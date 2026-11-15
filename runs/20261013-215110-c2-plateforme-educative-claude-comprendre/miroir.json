@@ -1,0 +1,987 @@
+{
+ "titre": "Gestion de scolarité",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:pour-autrui] Note : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:lien:pour-autrui] Bulletin : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:lien:pour-autrui] Attestation : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:lien:pour-autrui] Diplome : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:portee:designe] enseignant / Note : « les siennes » sur des fiches qu'il ne possède pas (elles sont à « etudiant ») — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-plate...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "lien:pour-autrui",
+   "portee:designe"
+  ],
+  "pas_encore": [
+   "⚠ L'enseignant ne verra pas les Notes qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "les attestations que le secrétaire académique saisit pour l'étudiant : pas encore possible — retirées",
+   "les bulletins que le secrétaire académique saisit pour l'étudiant : pas encore possible — retirées",
+   "les diplômes que le secrétaire académique saisit pour l'étudiant : pas encore possible — retirées",
+   "les notes que l'enseignant saisit pour l'étudiant : pas encore possible — retirées"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Une même solution proposée à plusieurs établissements, dont les données doivent être séparées",
+   "categorie": "cloisonnement",
+   "citation": "Il s’agit d’une solution que je souhaiterais proposer à plusieurs établissements."
+  },
+  {
+   "besoin": "Automatisation des processus d'inscription, de gestion des notes et de délivrance des attestations et diplômes",
+   "categorie": "automatisation",
+   "citation": "Automatiser les processus d’inscription, de gestion des notes, et de délivrance des attestations et diplômes."
+  },
+  {
+   "besoin": "Traçabilité des données académiques (historique des actions, journal)",
+   "categorie": "autre",
+   "citation": "Garantir la traçabilité, la transparence et la sécurité des données académiques."
+  },
+  {
+   "besoin": "Dépôt de pièces jointes au dossier d'inscription (carte d'identité...)",
+   "categorie": "fichiers_photos",
+   "citation": "Upload de documents (carte d’identité…)"
+  },
+  {
+   "besoin": "Analyse des pièces jointes par OCR et IA pour pré-remplir automatiquement les champs du formulaire",
+   "categorie": "automatisation",
+   "citation": "avec analyse des pièces jointes par OCR ... OCR + IA pour pré-remplir automatiquement les champs."
+  },
+  {
+   "besoin": "Formulaire d'inscription dynamique",
+   "categorie": "autre",
+   "citation": "Formulaire dynamique de saisie."
+  },
+  {
+   "besoin": "Calcul automatique des notes (moyennes, résultats)",
+   "categorie": "calcul_statistiques",
+   "citation": "Enregistrement et calcul automatisé des notes."
+  },
+  {
+   "besoin": "Génération de bulletins semestriels et annuels",
+   "categorie": "document",
+   "citation": "Génération de bulletins semestriels/annuels."
+  },
+  {
+   "besoin": "Génération en PDF des attestations et diplômes, téléchargeables par les étudiants",
+   "categorie": "document",
+   "citation": "Génération d’attestations et diplômes avec QR code. ... Génération PDF avec"
+  },
+  {
+   "besoin": "QR code intégré aux documents pour en vérifier l'authenticité",
+   "categorie": "document",
+   "citation": "Intégration d’un QR code pour authentification"
+  },
+  {
+   "besoin": "Signature électronique et système de validation sécurisé",
+   "categorie": "integration",
+   "citation": "Intégration d’une signature électronique et d’un système de validation sécurisé."
+  },
+  {
+   "besoin": "Tableaux de bord pour chaque rôle et tableau de bord synthétique (étudiants inscrits, résultats, documents délivrés)",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableau de bord pour les différents rôles (admin, direction, enseignants, étudiants). ... Tableau de bord synthétique (étudiants inscrits, résultats, documents délivrés)."
+  },
+  {
+   "besoin": "Export des données par la direction",
+   "categorie": "autre",
+   "citation": "supervision des opérations et export des données."
+  },
+  {
+   "besoin": "Notifications aux étudiants (validation du dossier) et rappels d'échéances",
+   "categorie": "notification",
+   "citation": "Notifications (validation, échéances)."
+  },
+  {
+   "besoin": "Archivage sécurisé des données",
+   "categorie": "autre",
+   "citation": "Archivage sécurisé."
+  },
+  {
+   "besoin": "Recherche multicritères (étudiants, filières, années)",
+   "categorie": "autre",
+   "citation": "Recherche multicritères (étudiants, filières, années)."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le membre de la direction",
+   "Le secrétaire académique",
+   "L'enseignant",
+   "L'étudiant"
+  ],
+  "fiches": 7,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Je souhaiterais mettre en place une plate-forme de gestion éducative"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Filières, Matières",
+     "cases": [
+      {
+       "fiche": "Filiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      },
+      {
+       "fiche": "Matiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Évaluations",
+     "cases": [
+      {
+       "fiche": "Evaluation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "Gestion des cours, évaluations, notes et bulletins"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "direction",
+   "libelle": "Le membre de la direction",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Direction : supervision des opérations et export des données"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Filières, Matières",
+     "cases": [
+      {
+       "fiche": "Filiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      },
+      {
+       "fiche": "Matiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "secretaire",
+   "libelle": "Le secrétaire académique",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Secrétariat académique : validation des dossiers, génération de documents"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Filières, Matières, Pièces jointes (dans chaque Inscription)",
+     "cases": [
+      {
+       "fiche": "Filiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      },
+      {
+       "fiche": "Matiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      },
+      {
+       "fiche": "PieceJointe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Inscription : même visibilité que le parent"
+       ],
+       "citations": [
+        "Secrétariat académique : validation des dossiers"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Inscriptions : voit tout, les fait passer de « soumise » à « validée »",
+     "cases": [
+      {
+       "fiche": "Inscription",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "soumise": [
+          "validee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "décideur du processus : voit tout et fait évoluer l'état",
+        "exception : « Secrétariat académique : validation des dossiers »"
+       ],
+       "citations": [
+        "Secrétariat académique : validation des dossiers",
+        "Secrétariat académique : validation des dossiers"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "enseignant",
+   "libelle": "L'enseignant",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Enseignants : saisie des notes et consultation des résultats"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Filières, Matières",
+     "cases": [
+      {
+       "fiche": "Filiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      },
+      {
+       "fiche": "Matiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Évaluations",
+     "cases": [
+      {
+       "fiche": "Evaluation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des cours, évaluations, notes et bulletins"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Enseignant, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Enseignant",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "etudiant",
+   "libelle": "L'étudiant",
+   "devient": "s'inscrit lui-même",
+   "citations": [
+    "Étudiants : inscription, consultation de notes, téléchargement d’attestations"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Filières, Matières",
+     "cases": [
+      {
+       "fiche": "Filiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      },
+      {
+       "fiche": "Matiere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajout/modification des filières, matières, enseignants"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes et crée : Inscriptions",
+     "cases": [
+      {
+       "fiche": "Inscription",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "exception : « Étudiants : inscription »"
+       ],
+       "citations": [
+        "Gestion des inscriptions en ligne",
+        "Étudiants : inscription"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes : Pièces jointes (dans chaque Inscription)",
+     "cases": [
+      {
+       "fiche": "PieceJointe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de Inscription : même visibilité que le parent"
+       ],
+       "citations": [
+        "Gestion des inscriptions en ligne",
+        "Étudiants : inscription"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Étudiant, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Etudiant",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Portail étudiant et interface d’administration"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Inscription",
+   "texte": "L'inscription passe par : « soumise » → « validée »",
+   "qui": [
+    "Le secrétaire académique fait passer de « soumise » à « validée »"
+   ],
+   "citations": [
+    "Secrétariat académique : validation des dossiers"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Etudiant",
+   "libelle": "Étudiant",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Etudiant:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Etudiant:Numéro étudiant",
+     "libelle": "Numéro étudiant",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Etudiant:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Etudiant:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Etudiant:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "Portail étudiant et interface d’administration"
+   ]
+  },
+  {
+   "fiche": "Enseignant",
+   "libelle": "Enseignant",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Enseignant:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Enseignant:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Enseignant:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Enseignant:Grade ou statut",
+     "libelle": "Grade ou statut",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Ajout/modification des filières, matières, enseignants"
+   ]
+  },
+  {
+   "fiche": "Filiere",
+   "libelle": "Filière",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Filiere:Code",
+     "libelle": "Code",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Filiere:Niveau",
+     "libelle": "Niveau",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Filiere:Durée (années)",
+     "libelle": "Durée (années)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Filiere:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Ajout/modification des filières, matières, enseignants"
+   ]
+  },
+  {
+   "fiche": "Matiere",
+   "libelle": "Matière",
+   "nature": "catalog",
+   "relie_a": [
+    "Filière"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Matiere:Code",
+     "libelle": "Code",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Matiere:Coefficient",
+     "libelle": "Coefficient",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Matiere:Crédits ECTS",
+     "libelle": "Crédits ECTS",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Matiere:Semestre",
+     "libelle": "Semestre",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Matiere:Volume horaire",
+     "libelle": "Volume horaire",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Ajout/modification des filières, matières, enseignants"
+   ]
+  },
+  {
+   "fiche": "Inscription",
+   "libelle": "Inscription",
+   "nature": "collection",
+   "relie_a": [
+    "Filière"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Inscription:Année universitaire",
+     "libelle": "Année universitaire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Inscription:Niveau d'études",
+     "libelle": "Niveau d'études",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Inscription:Établissement d'origine",
+     "libelle": "Établissement d'origine",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Inscription:Commentaire de validation",
+     "libelle": "Commentaire de validation",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Gestion des inscriptions en ligne"
+   ]
+  },
+  {
+   "fiche": "PieceJointe",
+   "libelle": "Pièce jointe",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Inscription"
+   ],
+   "champs": [
+    {
+     "nom": "typeDocument",
+     "libelle": "Type de document",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Upload de documents (carte d’identité"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:PieceJointe:Fichier (lien)",
+     "libelle": "Fichier (lien)",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:PieceJointe:Texte extrait par OCR",
+     "libelle": "Texte extrait par OCR",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Upload de documents (carte d’identité"
+   ]
+  },
+  {
+   "fiche": "Evaluation",
+   "libelle": "Évaluation",
+   "nature": "registry",
+   "relie_a": [
+    "Matière"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Evaluation:Date",
+     "libelle": "Date",
+     "type": "date"
+    },
+    {
+     "id": "garder:Evaluation:Type d'évaluation",
+     "libelle": "Type d'évaluation",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Evaluation:Coefficient",
+     "libelle": "Coefficient",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Evaluation:Note maximale",
+     "libelle": "Note maximale",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Gestion des cours, évaluations, notes et bulletins"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:enseignant:Evaluation",
+   "sorte": "registre_entier",
+   "texte": "L'enseignant verra toutes les Évaluations, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Evaluation (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Etudiant:nom",
+     "texte": "Étudiant → « Nom »"
+    },
+    {
+     "id": "nom:Enseignant:nom",
+     "texte": "Enseignant → « Nom »"
+    },
+    {
+     "id": "nom:Filiere:nom",
+     "texte": "Filière → « Nom »"
+    },
+    {
+     "id": "nom:Matiere:nom",
+     "texte": "Matière → « Nom »"
+    },
+    {
+     "id": "nom:Inscription:intitule",
+     "texte": "Inscription → « Intitulé »"
+    },
+    {
+     "id": "nom:Evaluation:intitule",
+     "texte": "Évaluation → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

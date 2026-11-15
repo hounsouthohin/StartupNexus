@@ -1,0 +1,16 @@
+{
+  "run": "20261015-111033-c2-micro-creche-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-micro-creche",
+  "modele": "boite",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- [bloc:lien:pour-autrui] Transmission : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)\n- [bloc:lien:pour-autrui] Photo : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)\n- [bloc:lien:pour-autrui] FicheDePaie : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)\n- [bloc:acteur:invitation] direction / ProfilPersonnel : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)\n- [bloc:acteur:invitation] direction / ProfilParent : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-micro...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "boite",
+    "appels": 8,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-15T11:18:11"
+}

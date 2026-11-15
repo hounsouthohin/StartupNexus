@@ -1,0 +1,678 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion interne pour une entreprise de rénovation : centralisation des données chantiers, suivi de chantier, accès différenciés par rôle/agence et ERP léger.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion de documents et photos associés aux chantiers",
+        "categorie": "fichiers_photos",
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "besoin": "Automatisation des tâches répétitives autour des devis, bons de commande et facturation",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "facturation"
+      },
+      {
+        "besoin": "Suivi des marges réalisées",
+        "categorie": "calcul_statistiques",
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "besoin": "Utilisation mobile sur le terrain",
+        "categorie": "mobile_hors_ligne",
+        "citation": "accessible depuis le terrain (mobile)"
+      },
+      {
+        "besoin": "Communication interne et externe",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe"
+      },
+      {
+        "besoin": "Utilisation hors ligne sur téléphone mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Cloisonnement des accès par agence",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      },
+      {
+        "besoin": "Automatisation des processus",
+        "categorie": "automatisation",
+        "citation": "Une centralisation et automatisation des processus et des données"
+      },
+      {
+        "besoin": "Calculs et visibilité sur marges et rentabilité par chantier, ville et globale",
+        "categorie": "calcul_statistiques",
+        "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Communication entre acteurs internes et externes",
+        "categorie": "messagerie",
+        "citation": "Une meilleure communication entre les acteurs internes et externes"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "Chef de projet",
+        "libelle_pluriel": "Chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "ProfilAdministrateur",
+        "libelle": "profil administrateur",
+        "libelle_pluriel": "profils administrateur",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      },
+      {
+        "nom": "ProfilChefDeProjet",
+        "libelle": "profil chef de projet",
+        "libelle_pluriel": "profils chef de projet",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "chef_de_projet",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "chefs de projet"
+      },
+      {
+        "nom": "Agence",
+        "libelle": "agence",
+        "libelle_pluriel": "agences",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "par agence"
+      },
+      {
+        "nom": "Chantier",
+        "libelle": "chantier",
+        "libelle_pluriel": "chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "centralisation de l'ensemble des données chantiers"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "devis"
+      },
+      {
+        "nom": "SuiviChantier",
+        "libelle": "suivi de chantier",
+        "libelle_pluriel": "suivis de chantier",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "suivis"
+      },
+      {
+        "nom": "Document",
+        "libelle": "document",
+        "libelle_pluriel": "documents",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "documents"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "photo",
+        "libelle_pluriel": "photos",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "photos"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "bon de commande",
+        "libelle_pluriel": "bons de commande",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "bons de commande"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "facturation"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "ProfilAdministrateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Identifier et contacter l’administrateur ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contacter l’administrateur ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "ProfilChefDeProjet",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Identifier et contacter le chef de projet ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contacter le chef de projet sur le terrain ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Agence",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Ville",
+            "type": "texte",
+            "raison": "Situer l’agence ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Localiser l’agence ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Chantier",
+        "champs": [
+          {
+            "nom": "avancement",
+            "libelle": "Avancement",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+          },
+          {
+            "nom": "margeRealisee",
+            "libelle": "Marge réalisée",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+          },
+          {
+            "nom": "rentabilite",
+            "libelle": "Rentabilité",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+          },
+          {
+            "nom": "ville",
+            "libelle": "Ville",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du chantier",
+            "type": "texte",
+            "raison": "Reconnaître le chantier dans les listes ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Adresse du chantier",
+            "type": "texte_long",
+            "raison": "Localiser le chantier ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date de début prévue",
+            "type": "date",
+            "raison": "Planifier le chantier ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date de fin prévue",
+            "type": "date",
+            "raison": "Planifier le chantier ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de devis",
+            "type": "texte",
+            "raison": "Identifier le devis ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Suivre les devis et les marges ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "SuiviChantier",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Compte rendu",
+            "type": "texte_long",
+            "raison": "Décrire le suivi de chantier ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date du suivi",
+            "type": "date",
+            "raison": "Chronologiser les suivis ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Type de document",
+            "type": "texte",
+            "raison": "Classer les documents ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Décrire le document ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Photo",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Décrire la photo ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date de prise de vue",
+            "type": "date",
+            "raison": "Situer la photo dans le suivi du chantier ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "BonDeCommande",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de bon de commande",
+            "type": "texte",
+            "raison": "Identifier le bon de commande ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Suivre les commandes ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "raison": "Identifier la facture ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Suivre la facturation ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date de facture",
+            "type": "date",
+            "raison": "Suivre la facturation ; non précisé dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gustave Rénovation",
+    "fiches": [
+      {
+        "fiche": "ProfilAdministrateur",
+        "verbe_creation": "Ajouter un administrateur",
+        "boutons": {}
+      },
+      {
+        "fiche": "ProfilChefDeProjet",
+        "verbe_creation": "Ajouter un chef de projet",
+        "boutons": {}
+      },
+      {
+        "fiche": "Chantier",
+        "verbe_creation": "Créer un chantier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Créer un devis",
+        "boutons": {}
+      },
+      {
+        "fiche": "SuiviChantier",
+        "verbe_creation": "Ajouter un suivi",
+        "boutons": {}
+      },
+      {
+        "fiche": "Document",
+        "verbe_creation": "Ajouter un document",
+        "boutons": {}
+      },
+      {
+        "fiche": "Photo",
+        "verbe_creation": "Ajouter une photo",
+        "boutons": {}
+      },
+      {
+        "fiche": "BonDeCommande",
+        "verbe_creation": "Créer un bon de commande",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Créer une facture",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 842,
+      "jetons_sortie": 941
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 728,
+      "jetons_sortie": 639
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Devis : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche SuiviChantier : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Document : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Photo : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche BonDeCommande : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Facture : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 1161,
+      "jetons_sortie": 3881
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 2056,
+      "jetons_sortie": 1261
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1006,
+      "jetons_sortie": 308
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1119,
+      "jetons_sortie": 423
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1557,
+      "jetons_sortie": 2867
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1007,
+      "jetons_sortie": 646
+    }
+  ]
+}

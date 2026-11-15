@@ -1,0 +1,16 @@
+{
+  "run": "20261009-202729-formation-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-formation",
+  "modele": "gpt-5.5",
+  "description_refusee": "1 validation error for Description\n  Value error, description refusée :\n- TacheRetroplanning : les fiches enfants arrivent en N1.x (pas dans le squelette) [type=value_error, input_value={'app': {'nom': 'formatio...ns': {}}}, 'depart': {}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error",
+  "verdict": "DESCRIPTION REFUSÉE :   Value error, description refusée :",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 8,
+    "jetons_entree": 8961,
+    "jetons_sortie": 11147,
+    "dollars": 0.3792,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T20:29:17"
+}

@@ -1,0 +1,298 @@
+{
+  "app": {
+    "nom": "c2-restauration-collective",
+    "titre": "Restauration collective"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "pour notre société de restauration collective multi-sites"
+      },
+      {
+        "id": "utilisateur",
+        "label": "Utilisateur",
+        "label_plural": "Utilisateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "gestion des rôles utilisateurs, workflow de validation"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Site",
+        "label": "site",
+        "label_plural": "sites",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "restauration collective multi-sites"
+      },
+      {
+        "name": "Article",
+        "label": "article",
+        "label_plural": "articles",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion des stocks"
+      },
+      {
+        "name": "Achat",
+        "label": "achat",
+        "label_plural": "achats",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Article"
+        ],
+        "citation": "gestion des stocks, achats"
+      },
+      {
+        "name": "Inventaire",
+        "label": "inventaire",
+        "label_plural": "inventaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Article"
+        ],
+        "citation": "achats, inventaires"
+      },
+      {
+        "name": "Recette",
+        "label": "recette",
+        "label_plural": "recettes",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Article"
+        ],
+        "citation": "inventaires, recettes, coût des repas"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "coût des repas, facturation"
+      },
+      {
+        "name": "Depense",
+        "label": "dépense",
+        "label_plural": "dépenses",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "facturation, dépenses"
+      },
+      {
+        "name": "Employe",
+        "label": "employé",
+        "label_plural": "employés",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "dépenses, RH"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Site": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du site",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Article": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de l'article",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Achat": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Inventaire": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Recette": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de la recette",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Depense": [
+      {
+        "nom": "libelle",
+        "libelle": "Libellé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Employe": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Achat": {
+      "verbe_creation": "Acheter",
+      "boutons": {}
+    },
+    "Inventaire": {
+      "verbe_creation": "Inventorier",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "Depense": {
+      "verbe_creation": "Saisir une dépense",
+      "boutons": {}
+    },
+    "Employe": {
+      "verbe_creation": "Embaucher",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

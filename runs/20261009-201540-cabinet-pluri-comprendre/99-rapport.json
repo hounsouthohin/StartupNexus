@@ -1,0 +1,15 @@
+{
+  "run": "20261009-201540-cabinet-pluri-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-cabinet-pluri",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261009-201540-cabinet-pluri-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 7,
+    "jetons_entree": 5223,
+    "jetons_sortie": 3702,
+    "dollars": 0.1372,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T20:16:29"
+}

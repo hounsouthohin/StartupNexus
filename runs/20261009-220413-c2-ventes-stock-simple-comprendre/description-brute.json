@@ -1,0 +1,272 @@
+{
+  "app": {
+    "nom": "c2-ventes-stock-simple",
+    "titre": "Gestion commerciale"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "nous recherchons quelqu’un capable de développer une application (très simple) de gestion"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Vente",
+        "label": "vente",
+        "label_plural": "ventes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "name": "Stock",
+        "label": "stock",
+        "label_plural": "stocks",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "gestion de commandes/stock/ventes/clients"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Vente",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Vente",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Vente",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Vente",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Client",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Client",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Client",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Client",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Stock",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Stock",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Stock",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Stock",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      }
+    ]
+  },
+  "champs": {
+    "Vente": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Stock": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Commande": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Vente": {
+      "verbe_creation": "Enregistrer une vente",
+      "boutons": {}
+    },
+    "Commande": {
+      "verbe_creation": "Commander",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

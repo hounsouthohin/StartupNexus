@@ -1,0 +1,278 @@
+{
+ "titre": "Gestion des congés",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Tableau de bord pour voir d'un coup d'œil qui est en congé",
+   "categorie": "calcul_statistiques",
+   "citation": "un tableau de bord ou je peux voir qui est en congé"
+  },
+  {
+   "besoin": "Calcul du solde de 30 jours ouvrables de congé par agent (décompte des jours ouvrables pris et restants)",
+   "categorie": "calcul_statistiques",
+   "citation": "la gestion de 30 jours ouvrable de congé pour chaque agent"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire du personnel"
+  ],
+  "fiches": 3,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire du personnel",
+   "devient": "responsable de l'app",
+   "citations": [
+    "un tableau de bord ou je peux voir qui est en congé"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : agents, types de congé, congés",
+     "cases": [
+      {
+       "fiche": "Agent",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "30 jours ouvrable de congé pour chaque agent"
+       ]
+      },
+      {
+       "fiche": "TypeConge",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "un congé avaloire (circonstanciel) ou annuel"
+       ]
+      },
+      {
+       "fiche": "Conge",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « je peux voir qui est en congé »"
+       ],
+       "citations": [
+        "savoir qui a pris un congé avaloire (circonstanciel) ou annuel",
+        "je peux voir qui est en congé"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Agent",
+   "libelle": "agent",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "joursCongeOuvrables",
+     "libelle": "Jours ouvrables de congé",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "30 jours ouvrable de congé pour chaque agent"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Agent:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Agent:Matricule",
+     "libelle": "Matricule",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Agent:Service",
+     "libelle": "Service",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Agent:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Agent:Jours de congé restants",
+     "libelle": "Jours de congé restants",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "30 jours ouvrable de congé pour chaque agent"
+   ]
+  },
+  {
+   "fiche": "TypeConge",
+   "libelle": "type de congé",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:TypeConge:Décompté des 30 jours ouvrables",
+     "libelle": "Décompté des 30 jours ouvrables",
+     "type": "oui / non"
+    },
+    {
+     "id": "garder:TypeConge:Nombre de jours maximum",
+     "libelle": "Nombre de jours maximum",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "un congé avaloire (circonstanciel) ou annuel"
+   ]
+  },
+  {
+   "fiche": "Conge",
+   "libelle": "congé",
+   "nature": "registry",
+   "relie_a": [
+    "agent",
+    "type de congé"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Conge:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:Conge:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    },
+    {
+     "id": "garder:Conge:Nombre de jours ouvrables",
+     "libelle": "Nombre de jours ouvrables",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Conge:Motif",
+     "libelle": "Motif",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "savoir qui a pris un congé avaloire (circonstanciel) ou annuel"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Agent:nom",
+     "texte": "agent → « Nom »"
+    },
+    {
+     "id": "nom:TypeConge:nom",
+     "texte": "type de congé → « Nom »"
+    },
+    {
+     "id": "nom:Conge:intitule",
+     "texte": "congé → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

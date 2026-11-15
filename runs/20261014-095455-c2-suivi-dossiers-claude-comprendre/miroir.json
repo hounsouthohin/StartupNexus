@@ -1,0 +1,107 @@
+{
+ "titre": "Suivi des dossiers",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:pour-autrui] Dossier : fiches saisies pour quelqu'un d'autre — arrivent avec l'écran « choisir la personne » (N1.x)",
+   "[bloc:portee:designe] client / Document : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-suivi...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "lien:pour-autrui",
+   "portee:designe"
+  ],
+  "pas_encore": [
+   "⚠ Le client ne verra pas les Documents qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "les dossiers que l'administrateur saisit pour le client : pas encore possible — retirées"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Génération automatique de documents (contrats, lettres, factures)",
+   "categorie": "document",
+   "citation": "génération automatique de documents (contrats, lettres,"
+  },
+  {
+   "besoin": "Gestion documentaire : ajout et visualisation de documents (pièces jointes), côté administration et côté client",
+   "categorie": "fichiers_photos",
+   "citation": "gestion documentaire (ajout, visualisation"
+  },
+  {
+   "besoin": "Notifications liées aux documents, côté administration et côté client",
+   "categorie": "notification",
+   "citation": "visualisation, notifications)"
+  },
+  {
+   "besoin": "Prestations d'accompagnement : mise en place, formation et documentation utilisateur",
+   "categorie": "autre",
+   "citation": "Mise en place, formation et documentation utilisateur."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le client"
+  ],
+  "fiches": 0,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Interface d’administration : Authentification"
+   ],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "client",
+   "libelle": "Le client",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Interface client : Authentification, suivi de l’état d’avancement"
+   ],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [],
+ "questions": [
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

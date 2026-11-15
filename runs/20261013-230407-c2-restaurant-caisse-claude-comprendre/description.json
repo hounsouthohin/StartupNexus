@@ -1,0 +1,678 @@
+{
+  "app": {
+    "nom": "c2-restaurant-caisse",
+    "titre": "Gestion du restaurant"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "serveur",
+        "label": "Serveur",
+        "label_plural": "Serveurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "caissier",
+        "label": "Caissier",
+        "label_plural": "Caissiers",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "cuisinier",
+        "label": "Cuisinier",
+        "label_plural": "Cuisiniers",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "livreur",
+        "label": "Livreur",
+        "label_plural": "Livreurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Table",
+        "label": "Table",
+        "label_plural": "Tables",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+      },
+      {
+        "name": "Categorie",
+        "label": "Catégorie",
+        "label_plural": "Catégories",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Catégorisation : entrées, plats, desserts, boissons"
+      },
+      {
+        "name": "Produit",
+        "label": "Produit",
+        "label_plural": "Produits",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Categorie"
+        ],
+        "process": null,
+        "citation": "Ajout, modification et désactivation des produits"
+      },
+      {
+        "name": "Variante",
+        "label": "Variante",
+        "label_plural": "Variantes",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Produit",
+        "references": [],
+        "process": null,
+        "citation": "Gestion des prix, variantes et disponibilités"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "serveur",
+          "caissier"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Prise de réservation manuelle ou via une interface publique"
+      },
+      {
+        "name": "Commande",
+        "label": "Commande",
+        "label_plural": "Commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "serveur",
+          "cuisinier",
+          "caissier",
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Table",
+          "Client"
+        ],
+        "process": null,
+        "citation": "Attribution des commandes à une table"
+      },
+      {
+        "name": "LigneCommande",
+        "label": "Ligne de commande",
+        "label_plural": "Lignes de commande",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Commande",
+        "references": [
+          "Produit",
+          "Variante"
+        ],
+        "process": null,
+        "citation": "Sélection des plats, quantités, variantes (ex : cuisson, taille)"
+      },
+      {
+        "name": "Paiement",
+        "label": "Paiement",
+        "label_plural": "Paiements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "caissier",
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": null,
+        "citation": "Paiement par espèce, carte, mobile money"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "caissier",
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": null,
+        "citation": "Facture imprimée ou PDF"
+      },
+      {
+        "name": "Livraison",
+        "label": "Livraison",
+        "label_plural": "Livraisons",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "livreur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "en_attente",
+          "transitions": {
+            "en_attente": [
+              "en_cours"
+            ],
+            "en_cours": [
+              "livree"
+            ],
+            "livree": []
+          },
+          "initiator": "livreur",
+          "decider": "livreur",
+          "steps_by": {},
+          "labels": {
+            "en_attente": "en attente",
+            "en_cours": "en cours de livraison",
+            "livree": "livrée"
+          },
+          "citation": "Suivi des livreurs et états de livraison"
+        },
+        "citation": "Suivi des livreurs et états de livraison"
+      },
+      {
+        "name": "Reservation",
+        "label": "Réservation",
+        "label_plural": "Réservations",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "serveur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Table"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "demandee",
+          "transitions": {
+            "demandee": [
+              "confirmee",
+              "annulee"
+            ],
+            "confirmee": [
+              "annulee"
+            ],
+            "annulee": []
+          },
+          "initiator": "serveur",
+          "decider": "serveur",
+          "steps_by": {},
+          "labels": {
+            "demandee": "demandée",
+            "confirmee": "confirmée",
+            "annulee": "annulée"
+          },
+          "citation": "Prise de réservation manuelle ou via une interface publique"
+        },
+        "citation": "Prise de réservation manuelle ou via une interface publique"
+      },
+      {
+        "name": "Fournisseur",
+        "label": "Fournisseur",
+        "label_plural": "Fournisseurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Gestion des fournisseurs"
+      },
+      {
+        "name": "ArticleStock",
+        "label": "Article en stock",
+        "label_plural": "Articles en stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Suivi en temps réel des stocks"
+      },
+      {
+        "name": "MouvementStock",
+        "label": "Mouvement de stock",
+        "label_plural": "Mouvements de stock",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "ArticleStock",
+        "references": [
+          "Fournisseur"
+        ],
+        "process": null,
+        "citation": "Stock et approvisionnement"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Table": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de table",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "statut",
+        "libelle": "Statut",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "libre",
+            "libelle": "libre"
+          },
+          {
+            "code": "occupee",
+            "libelle": "occupée"
+          },
+          {
+            "code": "reservee",
+            "libelle": "réservée"
+          },
+          {
+            "code": "en_attente_de_paiement",
+            "libelle": "en attente de paiement"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+      }
+    ],
+    "Categorie": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de la catégorie",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Produit": [
+      {
+        "nom": "prix",
+        "libelle": "Prix",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Gestion des prix"
+      },
+      {
+        "nom": "disponible",
+        "libelle": "Disponible",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Gestion des prix, variantes et disponibilités"
+      },
+      {
+        "nom": "actif",
+        "libelle": "Actif (non désactivé)",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "désactivation des produits"
+      }
+    ],
+    "Variante": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de la variante",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Commande": [
+      {
+        "nom": "typeCommande",
+        "libelle": "Type de commande (hors salle)",
+        "type": "choix",
+        "obligatoire": false,
+        "valeurs": [
+          {
+            "code": "a_emporter",
+            "libelle": "à emporter"
+          },
+          {
+            "code": "livraison",
+            "libelle": "livraison"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Commandes à emporter et livraison"
+      }
+    ],
+    "LigneCommande": [
+      {
+        "nom": "quantite",
+        "libelle": "Quantité",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Sélection des plats, quantités"
+      }
+    ],
+    "Paiement": [
+      {
+        "nom": "modePaiement",
+        "libelle": "Mode de paiement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "espece",
+            "libelle": "espèce"
+          },
+          {
+            "code": "carte",
+            "libelle": "carte"
+          },
+          {
+            "code": "mobile_money",
+            "libelle": "mobile money"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Paiement par espèce, carte, mobile money"
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Livraison": [
+      {
+        "nom": "livreur",
+        "libelle": "Livreur",
+        "type": "texte",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Suivi des livreurs"
+      }
+    ],
+    "Reservation": [
+      {
+        "nom": "canal",
+        "libelle": "Canal de réservation",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "manuelle",
+            "libelle": "manuelle"
+          },
+          {
+            "code": "interface_publique",
+            "libelle": "interface publique"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Prise de réservation manuelle ou via une interface publique"
+      }
+    ],
+    "Fournisseur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du fournisseur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ArticleStock": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de l'article",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "quantiteEnStock",
+        "libelle": "Quantité en stock",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Suivi en temps réel des stocks"
+      },
+      {
+        "nom": "seuilCritique",
+        "libelle": "Seuil critique",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Alerte de seuil critique"
+      }
+    ],
+    "MouvementStock": [
+      {
+        "nom": "typeMouvement",
+        "libelle": "Type de mouvement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "entree",
+            "libelle": "entrée"
+          },
+          {
+            "code": "sortie",
+            "libelle": "sortie"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Historique d’entrée/sortie"
+      }
+    ]
+  },
+  "ecran": {
+    "Produit": {
+      "verbe_creation": "Ajouter un produit",
+      "boutons": {}
+    },
+    "Variante": {
+      "verbe_creation": "Ajouter une variante",
+      "boutons": {}
+    },
+    "Commande": {
+      "verbe_creation": "Prendre commande",
+      "boutons": {}
+    },
+    "LigneCommande": {
+      "verbe_creation": "Ajouter à la commande",
+      "boutons": {}
+    },
+    "Paiement": {
+      "verbe_creation": "Encaisser",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "Livraison": {
+      "verbe_creation": "Faire livrer",
+      "boutons": {
+        "en_cours": "Mettre en livraison",
+        "livree": "Marquer livrée"
+      }
+    },
+    "Reservation": {
+      "verbe_creation": "Réserver",
+      "boutons": {
+        "annulee": "Annuler",
+        "confirmee": "Confirmer"
+      }
+    },
+    "MouvementStock": {
+      "verbe_creation": "Saisir un mouvement",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

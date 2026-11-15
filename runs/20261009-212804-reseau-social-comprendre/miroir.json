@@ -1,0 +1,71 @@
+{
+ "perimetre": "hors",
+ "raison": "Le cœur du projet est un réseau social, explicitement demandé : « Création d'un réseau social » et « créer un réseau social ».",
+ "hors_stock": [
+  {
+   "besoin": "Réseau social",
+   "categorie": "autre",
+   "citation": "Création d'un réseau social"
+  },
+  {
+   "besoin": "Fil de publications général",
+   "categorie": "autre",
+   "citation": "Interface générale avec l'ensemble des publications"
+  },
+  {
+   "besoin": "Filtre sur l'interface générale",
+   "categorie": "autre",
+   "citation": "Filtre sur l'interface générale"
+  },
+  {
+   "besoin": "Sous-communautés",
+   "categorie": "autre",
+   "citation": "Création de sous-communautés"
+  },
+  {
+   "besoin": "Messagerie privée",
+   "categorie": "messagerie",
+   "citation": "Messagerie privée"
+  },
+  {
+   "besoin": "Sondages",
+   "categorie": "autre",
+   "citation": "Système de sondages"
+  },
+  {
+   "besoin": "Publication de médias",
+   "categorie": "fichiers_photos",
+   "citation": "Publication de photos, vidéos et GIF"
+  },
+  {
+   "besoin": "Classement des utilisateurs",
+   "categorie": "calcul_statistiques",
+   "citation": "Classement pour référencer les utilisateurs"
+  },
+  {
+   "besoin": "Récompenses avec achat de cadeaux",
+   "categorie": "paiement",
+   "citation": "Système de récompenses avec achat de cadeaux"
+  },
+  {
+   "besoin": "Boost de publications",
+   "categorie": "autre",
+   "citation": "Possibilité de booster les publications"
+  },
+  {
+   "besoin": "Suivi d'un utilisateur",
+   "categorie": "autre",
+   "citation": "Option de suivre un utilisateur"
+  },
+  {
+   "besoin": "Notifications",
+   "categorie": "notification",
+   "citation": "Système de notifications"
+  },
+  {
+   "besoin": "Espace blog avec partage à la communauté",
+   "categorie": "autre",
+   "citation": "espace blog où des articles seront postés et partagés à la communauté"
+  }
+ ]
+}

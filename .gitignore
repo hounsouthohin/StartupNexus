@@ -1,25 +1,19 @@
 .env
 __pycache__/
 *.pyc
+.pytest_cache/
 
-# Projets générés extraits (artefacts de build — ne pas tracker)
-_batch*_extracted/
+# Restes verrouillés de l'ancienne usine : dossiers vides de pytest, à supprimer en administrateur (USINE.md §3)
+factory-sprint0/
 
-# Dossiers temporaires Docker/Python (permission denied)
-factory-sprint0/tmp*/
-factory-sprint0/.pytest_tmp/
-factory-sprint0/tmp_pytest/
-factory-sprint0/tmp_pytest_local/
-factory-sprint0/tmp_pytest_s46/
-factory-sprint0/tests_tmp/
-factory-sprint0/generated-projects/
-factory-sprint0/personal-blog/
-
-# Logs de runs
+# Le fichier où Arthur colle les réponses de Claude en ligne (rangé dans archives/ une fois traité)
 sorties.md
 
-# Usine d'assemblage : fabrications (une app complète par run) et dépendances du squelette
-runs/
+# Usine : les fabrications (une app complète par dossier) sont jetables et se refabriquent.
+# Les LECTURES (…-comprendre) sont gardées et versionnées : payées (gpt) ou lues par la session isolée,
+# l'usine les reprend sans repayer.
+runs/*
+!runs/*-comprendre/
 usine/modele-app/node_modules/
 usine/modele-app/.next/
 

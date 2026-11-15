@@ -1,0 +1,761 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion interne pour un commerce de meubles : fiches commandes clients, commandes fournisseurs, produits avec prix, stocks, livraisons, avec un administrateur qui peut supprimer des données. Facturation, encaissements, calcul des stocks, programmation des livraisons, usage en intranet et application smartphone sont des besoins hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Facturation des clients (factures produites à partir des commandes)",
+        "categorie": "document",
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "besoin": "Suivi des encaissements clients (paiements reçus)",
+        "categorie": "paiement",
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "besoin": "Gestion des stocks : calcul des quantités selon les entrées, les sorties et les réservations en contremarque",
+        "categorie": "calcul_statistiques",
+        "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+      },
+      {
+        "besoin": "Programmation des livraisons clients, complètes ou partielles",
+        "categorie": "planning",
+        "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+      },
+      {
+        "besoin": "Utilisation du logiciel en intranet (hébergement sur le réseau interne)",
+        "categorie": "autre",
+        "citation": "Utilisation du logiciel en intranet"
+      },
+      {
+        "besoin": "Application smartphone pour utiliser le logiciel",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Utilisation du logiciel depuis smartphone, développement d'une application."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "logiciel de gestion interne, pour notre commerce ... Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "libelle": "Fournisseur",
+        "citation": "commandes fournisseurs lié à nos commandes clients"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "nom": "Fournisseur",
+        "libelle": "Fournisseur",
+        "libelle_pluriel": "Fournisseurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "commandes fournisseurs lié à nos commandes clients"
+      },
+      {
+        "nom": "Produit",
+        "libelle": "Référence produit",
+        "libelle_pluriel": "Références produits",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Base de données de nos références produits, avec prix."
+      },
+      {
+        "nom": "CommandeClient",
+        "libelle": "Commande client",
+        "libelle_pluriel": "Commandes clients",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Produit"
+        ],
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "CommandeClient"
+        ],
+        "citation": "commandes et facturations clients"
+      },
+      {
+        "nom": "Encaissement",
+        "libelle": "Encaissement",
+        "libelle_pluriel": "Encaissements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "nom": "CommandeFournisseur",
+        "libelle": "Commande fournisseur",
+        "libelle_pluriel": "Commandes fournisseurs",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Fournisseur",
+          "CommandeClient"
+        ],
+        "citation": "commandes fournisseurs lié à nos commandes clients"
+      },
+      {
+        "nom": "MouvementStock",
+        "libelle": "Mouvement de stock",
+        "libelle_pluriel": "Mouvements de stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Produit",
+          "CommandeClient"
+        ],
+        "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+      },
+      {
+        "nom": "Livraison",
+        "libelle": "Livraison",
+        "libelle_pluriel": "Livraisons",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CommandeClient",
+          "Client"
+        ],
+        "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Les clients du commerce ne se connectent pas : ce sont des fiches tenues par l'administrateur, désignées par les commandes, factures, encaissements et livraisons."
+      },
+      {
+        "non_utilisateur": "Fournisseur",
+        "fiche": "Fournisseur",
+        "raison": "Les fournisseurs ne se connectent pas : ce sont des fiches tenues par l'administrateur, désignées par les commandes fournisseurs."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Livraison",
+        "etat_initial": "programmee",
+        "transitions": {
+          "programmee": [
+            "complete",
+            "partielle"
+          ],
+          "complete": [],
+          "partielle": []
+        },
+        "libelles": {
+          "programmee": "programmée",
+          "complete": "complète",
+          "partielle": "partielle"
+        },
+        "initiateur": "administrateur",
+        "decideur": "administrateur",
+        "etapes_par": {},
+        "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "administrateur",
+        "fiche": "Client",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Fournisseur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Produit",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "CommandeClient",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Facture",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Encaissement",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "CommandeFournisseur",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "MouvementStock",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      },
+      {
+        "acteur": "administrateur",
+        "fiche": "Livraison",
+        "action": "delete",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données."
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne dit rien des informations d'un client ; utile pour identifier un particulier."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour joindre le client, notamment pour programmer une livraison."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour envoyer les factures ou confirmations de commande."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Nécessaire pour la facturation et les livraisons, mais non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Fournisseur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour contacter le fournisseur au sujet des commandes."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour transmettre les commandes fournisseurs."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Coordonnées du fournisseur, non citées dans le brief."
+          },
+          {
+            "libelle": "Délai de livraison habituel (jours)",
+            "type": "nombre",
+            "raison": "Utile pour anticiper les livraisons clients liées aux commandes fournisseurs."
+          }
+        ]
+      },
+      {
+        "fiche": "Produit",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "prix",
+            "libelle": "Prix",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "nos références produits, avec prix"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Code référence",
+            "type": "texte",
+            "raison": "Le brief parle de « références produits » sans préciser s'il existe un code interne."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Pour décrire le meuble (matière, coloris, finition)."
+          },
+          {
+            "libelle": "Dimensions",
+            "type": "texte",
+            "raison": "Information courante pour un meuble, non citée dans le brief."
+          },
+          {
+            "libelle": "Prix d'achat",
+            "type": "montant",
+            "raison": "Le brief cite un prix sans préciser s'il s'agit du prix de vente seul."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandeClient",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de commande",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Nombre d'exemplaires commandés du produit, non cité dans le brief."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Utile pour la facturation et le suivi des encaissements."
+          },
+          {
+            "libelle": "Acompte versé",
+            "type": "montant",
+            "raison": "Pratique courante dans le commerce de meubles, à confirmer avec le client."
+          },
+          {
+            "libelle": "Date de livraison souhaitée",
+            "type": "date",
+            "raison": "Pour préparer la programmation des livraisons."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant TTC",
+            "type": "montant",
+            "raison": "Le brief ne précise pas les informations d'une facture."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Pour suivre les encaissements attendus."
+          }
+        ]
+      },
+      {
+        "fiche": "Encaissement",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Somme encaissée, non citée dans le brief."
+          },
+          {
+            "libelle": "Mode de paiement",
+            "type": "texte",
+            "raison": "Espèces, carte, chèque, virement… à faire préciser par le client."
+          },
+          {
+            "libelle": "Date d'encaissement",
+            "type": "date",
+            "raison": "Peut différer de la date de saisie."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandeFournisseur",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de commande fournisseur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de livraison prévue",
+            "type": "date",
+            "raison": "Pour savoir quand la marchandise destinée au client arrivera."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Coût de la commande fournisseur, non cité dans le brief."
+          },
+          {
+            "libelle": "Référence chez le fournisseur",
+            "type": "texte",
+            "raison": "Numéro de confirmation donné par le fournisseur."
+          }
+        ]
+      },
+      {
+        "fiche": "MouvementStock",
+        "champs": [
+          {
+            "nom": "typeMouvement",
+            "libelle": "Type de mouvement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "entrée",
+              "sortie",
+              "réservation contremarque"
+            ],
+            "origine": "brief",
+            "citation": "suivi des stocks, entrée/sortie/ réservation contremarque"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Nombre d'articles entrés, sortis ou réservés, non cité dans le brief."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Pour préciser le motif du mouvement."
+          }
+        ]
+      },
+      {
+        "fiche": "Livraison",
+        "champs": [
+          {
+            "nom": "dateLivraison",
+            "libelle": "Date de livraison prévue",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Programmation des Livraisons clients"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse de livraison",
+            "type": "texte_long",
+            "raison": "Peut différer de l'adresse du client."
+          },
+          {
+            "libelle": "Créneau horaire",
+            "type": "texte",
+            "raison": "Utile pour programmer la livraison avec le client."
+          },
+          {
+            "libelle": "Remarques",
+            "type": "texte_long",
+            "raison": "Contraintes d'accès, étage, montage…"
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du magasin",
+    "fiches": [
+      {
+        "fiche": "CommandeClient",
+        "verbe_creation": "Commander",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Encaissement",
+        "verbe_creation": "Encaisser",
+        "boutons": {}
+      },
+      {
+        "fiche": "CommandeFournisseur",
+        "verbe_creation": "Commander au fournisseur",
+        "boutons": {}
+      },
+      {
+        "fiche": "MouvementStock",
+        "verbe_creation": "Mouvementer le stock",
+        "boutons": {}
+      },
+      {
+        "fiche": "Livraison",
+        "verbe_creation": "Programmer la livraison",
+        "boutons": {
+          "complete": "Marquer complète",
+          "partielle": "Marquer partielle"
+        }
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

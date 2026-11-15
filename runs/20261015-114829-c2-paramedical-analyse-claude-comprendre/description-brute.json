@@ -1,0 +1,349 @@
+{
+  "app": {
+    "nom": "c2-paramedical-analyse",
+    "titre": "Bilan postural"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "praticien",
+        "label": "Praticien",
+        "label_plural": "Praticiens",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Je souhaite une application métier paramédical web PC + iPad"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Patient",
+        "label": "Patient",
+        "label_plural": "Patients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "praticien"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "application gestion patient et clinique"
+      },
+      {
+        "name": "Anamnese",
+        "label": "Anamnèse",
+        "label_plural": "Anamnèses",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "praticien"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "PC pour l’administratif et l’anamnèse"
+      },
+      {
+        "name": "ExamenClinique",
+        "label": "Examen clinique",
+        "label_plural": "Examens cliniques",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "praticien"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "iPad pour l’examen clinique sur dessins humains génériques"
+      },
+      {
+        "name": "PointOsseux",
+        "label": "Point osseux",
+        "label_plural": "Points osseux",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "praticien"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "dessins humains génériques"
+      },
+      {
+        "name": "EtatPointOsseux",
+        "label": "État de point osseux",
+        "label_plural": "États de points osseux",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "ExamenClinique",
+        "references": [
+          "PointOsseux"
+        ],
+        "citation": "Chaque point osseux a 3 états (aligné / gauche / droite)"
+      },
+      {
+        "name": "FlecheDesalignement",
+        "label": "Flèche de désalignement",
+        "label_plural": "Flèches de désalignement",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "ExamenClinique",
+        "references": [],
+        "citation": "certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+      },
+      {
+        "name": "TableauCorrespondance",
+        "label": "Tableau de correspondance",
+        "label_plural": "Tableaux de correspondance",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "praticien"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "fait la corrélation avec mes tableaux de correspondance"
+      },
+      {
+        "name": "Recommandation",
+        "label": "Recommandation",
+        "label_plural": "Recommandations",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "ExamenClinique",
+        "references": [
+          "TableauCorrespondance"
+        ],
+        "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+      },
+      {
+        "name": "CompteRendu",
+        "label": "Compte rendu",
+        "label_plural": "Comptes rendus",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "praticien"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Patient",
+          "Anamnese",
+          "ExamenClinique"
+        ],
+        "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Patient": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Anamnese": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ExamenClinique": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "PointOsseux": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EtatPointOsseux": [
+      {
+        "nom": "position",
+        "libelle": "Position",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "aligne",
+            "libelle": "aligné"
+          },
+          {
+            "code": "gauche",
+            "libelle": "gauche"
+          },
+          {
+            "code": "droite",
+            "libelle": "droite"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Chaque point osseux a 3 états (aligné / gauche / droite)"
+      }
+    ],
+    "FlecheDesalignement": [
+      {
+        "nom": "structure",
+        "libelle": "Structure bilatérale",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "certaines structures bilatérales utilisent des flèches prédéfinies pour indiquer désalignement"
+      },
+      {
+        "nom": "direction",
+        "libelle": "Direction",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la direction des flèches"
+      }
+    ],
+    "TableauCorrespondance": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Recommandation": [
+      {
+        "nom": "recommandations",
+        "libelle": "Recommandations",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+      },
+      {
+        "nom": "exercices",
+        "libelle": "Exercices",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+      },
+      {
+        "nom": "correctionsSemelles",
+        "libelle": "Corrections de semelles",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "générer automatiquement recommandations, exercices et corrections de semelles"
+      }
+    ],
+    "CompteRendu": [
+      {
+        "nom": "contenu",
+        "libelle": "Contenu",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "toutes les infos sont mis en commun pour éditer un compte rendu complet et hiérarchisé"
+      }
+    ]
+  },
+  "ecran": {
+    "Anamnese": {
+      "verbe_creation": "Faire l'anamnèse",
+      "boutons": {}
+    },
+    "ExamenClinique": {
+      "verbe_creation": "Examiner",
+      "boutons": {}
+    },
+    "EtatPointOsseux": {
+      "verbe_creation": "Noter un point",
+      "boutons": {}
+    },
+    "FlecheDesalignement": {
+      "verbe_creation": "Placer une flèche",
+      "boutons": {}
+    },
+    "Recommandation": {
+      "verbe_creation": "Recommander",
+      "boutons": {}
+    },
+    "CompteRendu": {
+      "verbe_creation": "Établir le compte rendu",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

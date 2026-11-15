@@ -1,0 +1,469 @@
+{
+ "titre": "Gestion des interventions",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Recherche dans les formulaires d'intervention",
+   "categorie": "autre",
+   "citation": "gestion complète des formulaire (recherche"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "L'agent"
+  ],
+  "fiches": 4,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Clients, Articles de la base de connaissances",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "une description du problème d'un client"
+       ]
+      },
+      {
+       "fiche": "ArticleConnaissance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)",
+        "exception : « l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base »"
+       ],
+       "citations": [
+        "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire",
+        "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Interventions : voit tout, en crée, les modifie, les supprime quand elles sont « traitée »",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [
+         "traitee"
+        ],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier »"
+       ],
+       "citations": [
+        "un agent peut alors remplir un formulaire contenant une description du problème d'un client",
+        "celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "agent",
+   "libelle": "L'agent",
+   "devient": "invité par administrateur",
+   "citations": [
+    "cérer des comptes utilisatuers avec des permissions différentes"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Clients",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "une description du problème d'un client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Articles de la base de connaissances",
+     "cases": [
+      {
+       "fiche": "ArticleConnaissance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Agent, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Agent",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "une fois enregistré dans la base de donnée un agent"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Interventions : voit tout, en crée, les modifie, les fait passer de « enregistrée » à « envoyée au centre de traitement », les fait passer de « envoyée au centre de traitement » à « traitée »",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "enregistree": [
+          "envoyee"
+         ],
+         "envoyee": [
+          "traitee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « un agent peut alors remplir un formulaire contenant une description du problème d'un client »",
+        "exception : « dès que l'agent a traité une intervention celle ci est marqué comme traité »"
+       ],
+       "citations": [
+        "un agent peut alors remplir un formulaire contenant une description du problème d'un client",
+        "formulaire peut ensuite être enregistré dans la base,envoyé au centre de traitement pour y être traité",
+        "un agent peut alors remplir un formulaire contenant une description du problème d'un client",
+        "dès que l'agent a traité une intervention celle ci est marqué comme traité"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Intervention",
+   "texte": "L'intervention passe par : « enregistrée » → « envoyée au centre de traitement » → « traitée »",
+   "qui": [
+    "L'agent fait passer de « enregistrée » à « envoyée au centre de traitement »",
+    "L'agent fait passer de « envoyée au centre de traitement » à « traitée »"
+   ],
+   "citations": [
+    "formulaire peut ensuite être enregistré dans la base,envoyé au centre de traitement pour y être traité"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Agent",
+   "libelle": "Agent",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Agent:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Agent:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Agent:Service ou équipe",
+     "libelle": "Service ou équipe",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "une fois enregistré dans la base de donnée un agent"
+   ]
+  },
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Client:Numéro de contrat ou d'abonné",
+     "libelle": "Numéro de contrat ou d'abonné",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "une description du problème d'un client"
+   ]
+  },
+  {
+   "fiche": "Intervention",
+   "libelle": "Intervention",
+   "nature": "registry",
+   "relie_a": [
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "descriptionProbleme",
+     "libelle": "Description du problème",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "une description du problème d'un client"
+    },
+    {
+     "nom": "commentaire",
+     "libelle": "Commentaire de l'administrateur",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "de la supprimier,commenté"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Intervention:Date de l'intervention",
+     "libelle": "Date de l'intervention",
+     "type": "date"
+    },
+    {
+     "id": "garder:Intervention:Priorité",
+     "libelle": "Priorité",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Intervention:Catégorie du problème",
+     "libelle": "Catégorie du problème",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Intervention:Solution apportée",
+     "libelle": "Solution apportée",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "un agent peut alors remplir un formulaire contenant une description du problème d'un client"
+   ]
+  },
+  {
+   "fiche": "ArticleConnaissance",
+   "libelle": "Article de la base de connaissances",
+   "nature": "catalog",
+   "relie_a": [
+    "Intervention"
+   ],
+   "champs": [
+    {
+     "nom": "titre",
+     "libelle": "Titre",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ArticleConnaissance:Solution de référence",
+     "libelle": "Solution de référence",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:ArticleConnaissance:Mots-clés",
+     "libelle": "Mots-clés",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:agent:Client",
+   "sorte": "registre_entier",
+   "texte": "L'agent verra tous les Clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les Interventions qu'il voit; clôture : choisit les Clients de ses Interventions"
+  },
+  {
+   "id": "registre_entier:agent:Intervention",
+   "sorte": "registre_entier",
+   "texte": "L'agent verra toutes les Interventions, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Intervention (registre) : l'initiateur (agent) doit être parmi ceux qui le tiennent"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Agent:nom",
+     "texte": "Agent → « Nom »"
+    },
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:ArticleConnaissance:titre",
+     "texte": "Article de la base de connaissances → « Titre »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

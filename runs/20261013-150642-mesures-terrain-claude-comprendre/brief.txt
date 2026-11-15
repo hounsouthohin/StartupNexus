@@ -1,0 +1,2 @@
+Création d'un logiciel de gestion de commande.
+pour la création d'un logiciel qui faciliterait la gestion des commandes (mesure scientifiques sur terrain) qui inclurait un planning logistique, une automatisation de la gestion des livrables, etc

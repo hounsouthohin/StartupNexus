@@ -1,0 +1,175 @@
+{
+  "app": {
+    "nom": "c2-suivi-dossiers",
+    "titre": "Suivi des dossiers"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Interface d’administration : Authentification"
+      },
+      {
+        "id": "client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Dossier",
+        "label": "Dossier",
+        "label_plural": "Dossiers",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "client",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "administrateur",
+        "parent": null,
+        "references": [],
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      },
+      {
+        "name": "Document",
+        "label": "Document",
+        "label_plural": "Documents",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Dossier",
+        "references": [],
+        "citation": "gestion documentaire (ajout, visualisation, notifications)"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Dossier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d’administration : Authentification, gestion et suivi des"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Document",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "factures), gestion documentaire (ajout, visualisation, notifications)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Document",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "factures), gestion documentaire (ajout, visualisation, notifications)"
+      },
+      {
+        "actor": "client",
+        "entity": "Dossier",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      },
+      {
+        "actor": "client",
+        "entity": "Document",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      },
+      {
+        "actor": "client",
+        "entity": "Document",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface client : Authentification, suivi de l’état d’avancement"
+      }
+    ]
+  },
+  "champs": {
+    "Dossier": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "etatAvancement",
+        "libelle": "État d'avancement",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "suivi de l’état d’avancement"
+      }
+    ],
+    "Document": [
+      {
+        "nom": "typeDocument",
+        "libelle": "Type de document",
+        "type": "choix",
+        "obligatoire": false,
+        "valeurs": [
+          {
+            "code": "contrat",
+            "libelle": "contrat"
+          },
+          {
+            "code": "lettre",
+            "libelle": "lettre"
+          },
+          {
+            "code": "facture",
+            "libelle": "facture"
+          }
+        ],
+        "origine": "brief",
+        "citation": "génération automatique de documents (contrats, lettres"
+      }
+    ]
+  },
+  "ecran": {
+    "Document": {
+      "verbe_creation": "Ajouter un document",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

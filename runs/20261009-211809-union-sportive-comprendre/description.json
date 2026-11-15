@@ -1,0 +1,574 @@
+{
+  "app": {
+    "nom": "union-sportive",
+    "titre": "Union sportive"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur de l'association",
+        "label_plural": "Administrateurs de l'association",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Interface d'administration avec authentification sécurisée"
+      }
+    ],
+    "entities": [
+      {
+        "name": "ProfilAdministrateur",
+        "label": "profil administrateur",
+        "label_plural": "profils administrateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "name": "Adherent",
+        "label": "adhérent",
+        "label_plural": "adhérents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": {
+          "field": "status",
+          "initial": "actif",
+          "transitions": {
+            "actif": [
+              "inactif"
+            ],
+            "inactif": [
+              "actif"
+            ]
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "actif": "actif",
+            "inactif": "inactif"
+          },
+          "citation": "Statut actif/inactif"
+        },
+        "citation": "Création, modification, suppression de fiches membres"
+      },
+      {
+        "name": "Adhesion",
+        "label": "adhésion",
+        "label_plural": "adhésions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Adherent"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "enregistree",
+          "transitions": {
+            "enregistree": [
+              "activee"
+            ],
+            "activee": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "enregistree": "enregistrée",
+            "activee": "activée"
+          },
+          "citation": "Vérification du paiement avant activation"
+        },
+        "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+      },
+      {
+        "name": "Participant",
+        "label": "participant",
+        "label_plural": "participants",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Gestion des participants :\n- Suivi des inscrits aux activités"
+      },
+      {
+        "name": "Activite",
+        "label": "activité",
+        "label_plural": "activités",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": true,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": {
+          "field": "status",
+          "initial": "creee",
+          "transitions": {
+            "creee": [
+              "annulee"
+            ],
+            "annulee": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "creee": "créée",
+            "annulee": "annulée"
+          },
+          "citation": "Gestion interne : création, modification, annulation"
+        },
+        "citation": "Calendrier d'activités :\n- Affichage public consultable sur tous supports\n- Gestion interne : création, modification, annulation"
+      },
+      {
+        "name": "ParticipationActivite",
+        "label": "participation à une activité",
+        "label_plural": "participations à une activité",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Participant",
+          "Activite"
+        ],
+        "process": null,
+        "citation": "Suivi des inscrits aux activités\n- Lien entre participant, activité et statut d'homologation"
+      },
+      {
+        "name": "Paiement",
+        "label": "paiement",
+        "label_plural": "paiements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Adhesion",
+          "Activite"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "saisi",
+          "transitions": {
+            "saisi": [
+              "confirme"
+            ],
+            "confirme": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "saisi": "saisi",
+            "confirme": "confirmé"
+          },
+          "citation": "Saisie manuelle ou intégration d'un module de paiement en ligne\n- Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+        },
+        "citation": "Paiements :\n- Saisie manuelle ou intégration d'un module de paiement en ligne\n- Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+      },
+      {
+        "name": "Homologation",
+        "label": "homologation",
+        "label_plural": "homologations",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "ParticipationActivite"
+        ],
+        "process": null,
+        "citation": "Homologations :\n- Validation d'une activité uniquement après paiement\n- Historique complet des homologations"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Adherent",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Adherent",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Adherent",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Adhesion",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Activite",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Activite",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Activite",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "creee": [
+            "annulee"
+          ]
+        },
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "visitor",
+        "entity": "Activite",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Affichage public consultable sur tous supports"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Paiement",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Saisie manuelle ou intégration d'un module de paiement en ligne"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Adhesion",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "enregistree": [
+            "activee"
+          ]
+        },
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Activite",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Adhesion",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Activite",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Homologation",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Adhesion",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface d'administration avec authentification sécurisée"
+      }
+    ]
+  },
+  "champs": {
+    "ProfilAdministrateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Adherent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Adhesion": [
+      {
+        "nom": "annee",
+        "libelle": "Année",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+      },
+      {
+        "nom": "cotisation",
+        "libelle": "Cotisation",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+      },
+      {
+        "nom": "dateDebutValidite",
+        "libelle": "Date de début de validité",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+      },
+      {
+        "nom": "dateFinValidite",
+        "libelle": "Date de fin de validité",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+      },
+      {
+        "nom": "modeRenouvellement",
+        "libelle": "Mode de renouvellement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "automatique",
+            "libelle": "automatique"
+          },
+          {
+            "code": "manuel",
+            "libelle": "manuel"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Renouvellement automatique ou manuel"
+      }
+    ],
+    "Participant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Activite": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ParticipationActivite": [
+      {
+        "nom": "statutHomologation",
+        "libelle": "Statut d'homologation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Lien entre participant, activité et statut d'homologation"
+      }
+    ],
+    "Paiement": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Homologation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Adherent": {
+      "verbe_creation": null,
+      "boutons": {
+        "actif": "Activer",
+        "inactif": "Désactiver"
+      }
+    },
+    "Adhesion": {
+      "verbe_creation": "Enregistrer une adhésion",
+      "boutons": {
+        "activee": "Activer"
+      }
+    },
+    "Activite": {
+      "verbe_creation": null,
+      "boutons": {
+        "annulee": "Annuler"
+      }
+    },
+    "ParticipationActivite": {
+      "verbe_creation": "Inscrire",
+      "boutons": {}
+    },
+    "Paiement": {
+      "verbe_creation": "Saisir un paiement",
+      "boutons": {
+        "confirme": "Confirmer"
+      }
+    },
+    "Homologation": {
+      "verbe_creation": "Homologuer",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

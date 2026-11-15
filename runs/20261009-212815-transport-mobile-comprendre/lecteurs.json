@@ -1,0 +1,67 @@
+{
+  "perimetre": {
+    "perimetre": "hors",
+    "raison": "Le cœur du projet est une application mobile de transport avec communication et suivi en temps réel, ce qui sort de notre périmètre même s'il contient des éléments de gestion de livraisons et de statuts.",
+    "hors_stock": [
+      {
+        "besoin": "Application mobile",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Création d'application mobile pour transporteur"
+      },
+      {
+        "besoin": "Diffusion directe d'informations aux chauffeurs",
+        "categorie": "notification",
+        "citation": "les diffuserait directement aux chauffeurs"
+      },
+      {
+        "besoin": "Mise à jour en temps réel des statuts de livraison",
+        "categorie": "autre",
+        "citation": "une mise à jour en temps réel des statuts de livraison"
+      },
+      {
+        "besoin": "Choix de trajets et horaires selon disponibilités",
+        "categorie": "planning",
+        "citation": "choisir leurs trajets et horaires en fonction de leurs disponibilités"
+      },
+      {
+        "besoin": "Prise en compte de la capacité des véhicules",
+        "categorie": "calcul_statistiques",
+        "citation": "en fonction de leurs disponibilités et de la capacité de leurs véhicules"
+      },
+      {
+        "besoin": "Confirmation de missions en un clic",
+        "categorie": "automatisation",
+        "citation": "avec une confirmation des missions en un clic"
+      },
+      {
+        "besoin": "Notifications automatiques",
+        "categorie": "notification",
+        "citation": "des notifications automatiques qui se déclencherais lorsqu'une entreprise aura une demande de transport à faire"
+      },
+      {
+        "besoin": "Suivi en temps réel des livraisons",
+        "categorie": "autre",
+        "citation": "un suivi en temps réel des livraisons"
+      },
+      {
+        "besoin": "Vérification systématique de documents nécessaires",
+        "categorie": "automatisation",
+        "citation": "vérifierait systématiquement les documents nécessaires"
+      },
+      {
+        "besoin": "Gestion de documents nécessaires",
+        "categorie": "fichiers_photos",
+        "citation": "les documents nécessaires, notamment pour les marchandises dangereuses"
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 867,
+      "jetons_sortie": 885
+    }
+  ]
+}

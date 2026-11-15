@@ -1,0 +1,20 @@
+{"etape": "Lecteur 5 — périmètre et hors stock", "numero": 1, "resume": "", "statut": "debut", "t": 1.33}
+{"etape": "Lecteur 5 — périmètre et hors stock", "numero": 1, "resume": "accepté · 0.028 $ cumulés · 9 s", "statut": "fait", "duree": 9.4}
+{"etape": "Lecteur 1 — acteurs", "numero": 2, "resume": "", "statut": "debut", "t": 10.73}
+{"etape": "Lecteur 1 — acteurs", "numero": 2, "resume": "accepté · 0.054 $ cumulés · 9 s", "statut": "fait", "duree": 9.3}
+{"etape": "Lecteur 2 — fiches", "numero": 3, "resume": "", "statut": "debut", "t": 20.07}
+{"etape": "Lecteur 2 — fiches", "numero": 3, "resume": "accepté (1 réponse(s) refusée(s) avant) · 0.233 $ cumulés · 50 s", "statut": "fait", "duree": 50.0}
+{"etape": "Lecteur 3 — circuits", "numero": 4, "resume": "", "statut": "debut", "t": 70.11}
+{"etape": "Lecteur 3 — circuits", "numero": 4, "resume": "accepté (1 réponse(s) refusée(s) avant) · 0.277 $ cumulés · 13 s", "statut": "fait", "duree": 12.7}
+{"etape": "Lecteur 4 — droits explicites", "numero": 5, "resume": "", "statut": "debut", "t": 82.81}
+{"etape": "Lecteur 4 — droits explicites", "numero": 5, "resume": "accepté · 0.480 $ cumulés · 54 s", "statut": "fait", "duree": 53.8}
+{"etape": "Calculer la matrice (et revoir les droits si un acteur devient aveugle)", "numero": 6, "resume": "", "statut": "debut", "t": 136.66}
+{"etape": "Calculer la matrice (et revoir les droits si un acteur devient aveugle)", "numero": 6, "resume": "3 rôles, 9 fiches", "statut": "fait", "duree": 0.0}
+{"etape": "Lecteur 6 — champs", "numero": 7, "resume": "", "statut": "debut", "t": 136.68}
+{"etape": "Lecteur 6 — champs", "numero": 7, "resume": "accepté · 0.683 $ cumulés · 63 s", "statut": "fait", "duree": 62.6}
+{"etape": "Lecteur 7 — libellés d'écran", "numero": 8, "resume": "", "statut": "debut", "t": 199.33}
+{"etape": "Lecteur 7 — libellés d'écran", "numero": 8, "resume": "accepté · 0.707 $ cumulés · 7 s", "statut": "fait", "duree": 6.9}
+{"etape": "Assembler et contrôler la description", "numero": 9, "resume": "", "statut": "debut", "t": 206.25}
+{"etape": "Assembler et contrôler la description", "numero": 9, "resume": "refusée (voir 99-rapport.json)", "statut": "fait", "duree": 0.0}
+{"etape": "Écrire le miroir (ce que l'app fera, ce qu'il faut demander)", "numero": 10, "resume": "", "statut": "debut", "t": 206.26}
+{"etape": "Écrire le miroir (ce que l'app fera, ce qu'il faut demander)", "numero": 10, "resume": "8 question(s)", "statut": "fait", "duree": 0.0}

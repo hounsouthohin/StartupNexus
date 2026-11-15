@@ -1,0 +1,275 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'entreprise (type ERP) avec des utilisateurs de profils différents, dont un expert comptable à rajouter : c'est de la gestion, donc dans notre périmètre. Plusieurs besoins métier (facturation, comptabilité, finance, stock, saisie automatique, version hybride) dépassent toutefois notre stock actuel et sont listés comme hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Facturation (émission de factures)",
+        "categorie": "document",
+        "citation": "faire de la facturation"
+      },
+      {
+        "besoin": "Comptabilité (calculs et écritures comptables)",
+        "categorie": "calcul_statistiques",
+        "citation": "la comptabilité"
+      },
+      {
+        "besoin": "Gestion financière (suivi et calculs financiers)",
+        "categorie": "calcul_statistiques",
+        "citation": "la gestion financière"
+      },
+      {
+        "besoin": "Gestion de stock (suivi des quantités et mouvements)",
+        "categorie": "autre",
+        "citation": "la gestion de stock"
+      },
+      {
+        "besoin": "Saisie automatique",
+        "categorie": "automatisation",
+        "citation": "une option de saisie automatique"
+      },
+      {
+        "besoin": "Version hybride (mobile) dans un second temps",
+        "categorie": "mobile_hors_ligne",
+        "citation": "puis hybride plus tard"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "administrateur",
+        "libelle_pluriel": "administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous recherchons des free-lances"
+      },
+      {
+        "id": "expert_comptable",
+        "libelle": "expert comptable",
+        "libelle_pluriel": "experts comptables",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "la possibilité de rajouter un expert comptable"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "de la facturation"
+      },
+      {
+        "nom": "EcritureComptable",
+        "libelle": "écriture comptable",
+        "libelle_pluriel": "écritures comptables",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la comptabilité"
+      },
+      {
+        "nom": "ArticleStock",
+        "libelle": "article en stock",
+        "libelle_pluriel": "articles en stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion de stock"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Le brief parle de facturation sans dire quelles informations figurent sur une facture ; on demandera au client le montant à enregistrer."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Utile pour le suivi des paiements et la gestion financière ; le brief ne la mentionne pas."
+          },
+          {
+            "libelle": "Taux de TVA",
+            "type": "nombre",
+            "raison": "Probablement nécessaire pour lier facturation et comptabilité ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "EcritureComptable",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé de l'écriture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'écriture",
+            "type": "date",
+            "raison": "Une écriture comptable est datée ; le brief ne précise pas cette information."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Somme enregistrée par l'écriture ; non citée dans le brief."
+          },
+          {
+            "libelle": "Compte comptable",
+            "type": "texte",
+            "raison": "Numéro ou nom du compte concerné ; à demander au client, notamment pour le rôle de l'expert comptable."
+          }
+        ]
+      },
+      {
+        "fiche": "ArticleStock",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation de l'article",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence",
+            "type": "texte",
+            "raison": "Code permettant d'identifier l'article dans le stock ; non cité dans le brief."
+          },
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "La gestion de stock suppose de connaître la quantité disponible ; le brief ne la détaille pas."
+          },
+          {
+            "libelle": "Prix unitaire",
+            "type": "montant",
+            "raison": "Utile pour valoriser le stock et alimenter la facturation ; à confirmer avec le client."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion d'entreprise",
+    "fiches": []
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

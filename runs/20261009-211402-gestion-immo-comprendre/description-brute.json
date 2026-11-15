@@ -1,0 +1,179 @@
+{
+  "app": {
+    "nom": "gestion-immo",
+    "titre": "Gestion immobilière"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire de biens immobilier",
+        "label_plural": "Gestionnaires de biens immobilier",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "entities": [
+      {
+        "name": "BienImmobilier",
+        "label": "bien immobilier",
+        "label_plural": "biens immobiliers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestionnaire de biens immobilier"
+      },
+      {
+        "name": "RapprochementBancaire",
+        "label": "rapprochement bancaire",
+        "label_plural": "rapprochements bancaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "rapprochement bancaire"
+      },
+      {
+        "name": "Loyer",
+        "label": "loyer",
+        "label_plural": "loyers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "BienImmobilier"
+        ],
+        "citation": "l'encaissement des loyers, le reversement des loyers"
+      },
+      {
+        "name": "Quittance",
+        "label": "quittance",
+        "label_plural": "quittances",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Loyer"
+        ],
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "name": "ReleveDeCompte",
+        "label": "relevé de compte",
+        "label_plural": "relevés de compte",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "BienImmobilier": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RapprochementBancaire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Loyer": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Quittance": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ReleveDeCompte": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Loyer": {
+      "verbe_creation": "Saisir un loyer",
+      "boutons": {}
+    },
+    "Quittance": {
+      "verbe_creation": "Émettre une quittance",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

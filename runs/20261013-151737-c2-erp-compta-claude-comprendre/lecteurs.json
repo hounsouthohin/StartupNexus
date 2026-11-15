@@ -1,0 +1,306 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est une application web de gestion d'entreprise de type ERP (fiches, gestion de stock, plusieurs utilisateurs dont un expert comptable qu'on peut ajouter avec un rôle) : c'est un logiciel de gestion, donc dans le périmètre. La facturation, la comptabilité, la gestion financière, la saisie automatique et la future version hybride (mobile) sont des besoins hors stock. Le brief ne dit pas comment la gestion de stock doit marcher (simples fiches articles ou calcul automatique des quantités) : il faudra le demander au client.",
+    "hors_stock": [
+      {
+        "besoin": "Facturation (création et édition des factures)",
+        "categorie": "document",
+        "citation": "faire de la facturation"
+      },
+      {
+        "besoin": "Comptabilité",
+        "categorie": "calcul_statistiques",
+        "citation": "la comptabilité"
+      },
+      {
+        "besoin": "Gestion financière",
+        "categorie": "calcul_statistiques",
+        "citation": "la gestion financière"
+      },
+      {
+        "besoin": "Option de saisie automatique",
+        "categorie": "automatisation",
+        "citation": "avec une option de saisie automatique"
+      },
+      {
+        "besoin": "Version hybride (mobile) de l'application dans un second temps",
+        "categorie": "mobile_hors_ligne",
+        "citation": "dans un premier temps puis hybride plus tard"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Création d’une application de gestion d’entreprise ... Nous recherchons des free-lances pour la conception d’une application web"
+      },
+      {
+        "id": "expert_comptable",
+        "libelle": "Expert comptable",
+        "libelle_pluriel": "Experts comptables",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "la possibilité de rajouter un expert comptable"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "permettra de faire de la facturation"
+      },
+      {
+        "nom": "EcritureComptable",
+        "libelle": "Écriture comptable",
+        "libelle_pluriel": "Écritures comptables",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "expert_comptable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la comptabilité ... la possibilité de rajouter un expert comptable"
+      },
+      {
+        "nom": "Article",
+        "libelle": "Article en stock",
+        "libelle_pluriel": "Articles en stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion de stock"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de facture",
+            "type": "date",
+            "raison": "Le brief ne précise pas la date à laquelle la facture est émise."
+          },
+          {
+            "libelle": "Client facturé",
+            "type": "texte",
+            "raison": "Le brief ne dit pas à qui la facture est adressée."
+          },
+          {
+            "libelle": "Montant hors taxes",
+            "type": "montant",
+            "raison": "Le brief ne précise pas les montants enregistrés sur la facture."
+          },
+          {
+            "libelle": "Montant TTC",
+            "type": "montant",
+            "raison": "Le brief ne précise pas si le montant toutes taxes comprises doit être enregistré."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Le brief ne dit pas s'il faut suivre la date limite de paiement."
+          }
+        ]
+      },
+      {
+        "fiche": "EcritureComptable",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé de l'écriture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'écriture",
+            "type": "date",
+            "raison": "Le brief ne précise pas la date comptable de l'opération."
+          },
+          {
+            "libelle": "Numéro de compte",
+            "type": "texte",
+            "raison": "Le brief ne dit pas sur quel compte du plan comptable l'écriture est passée."
+          },
+          {
+            "libelle": "Montant au débit",
+            "type": "montant",
+            "raison": "Le brief ne précise pas comment les montants au débit sont saisis."
+          },
+          {
+            "libelle": "Montant au crédit",
+            "type": "montant",
+            "raison": "Le brief ne précise pas comment les montants au crédit sont saisis."
+          },
+          {
+            "libelle": "Journal",
+            "type": "texte",
+            "raison": "Le brief ne dit pas si les écritures sont classées par journal (ventes, achats, banque...)."
+          },
+          {
+            "libelle": "Pièce justificative",
+            "type": "texte",
+            "raison": "Le brief ne dit pas s'il faut indiquer la référence de la pièce justificative."
+          }
+        ]
+      },
+      {
+        "fiche": "Article",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence",
+            "type": "texte",
+            "raison": "Le brief ne dit pas si les articles ont une référence ou un code."
+          },
+          {
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "raison": "Le brief parle de gestion de stock sans préciser comment les quantités sont suivies."
+          },
+          {
+            "libelle": "Prix unitaire de vente",
+            "type": "montant",
+            "raison": "Le brief ne précise pas le prix de vente des articles."
+          },
+          {
+            "libelle": "Prix d'achat",
+            "type": "montant",
+            "raison": "Le brief ne dit pas si le coût d'achat doit être enregistré."
+          },
+          {
+            "libelle": "Seuil d'alerte de stock",
+            "type": "nombre",
+            "raison": "Le brief ne dit pas s'il faut une alerte quand le stock devient bas."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion d'entreprise",
+    "fiches": []
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

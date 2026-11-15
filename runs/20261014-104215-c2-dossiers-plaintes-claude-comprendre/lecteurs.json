@@ -1,0 +1,295 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion de dossiers (plaintes) pour une structure : centraliser les dossiers et suivre leur avancement à travers les étapes d'une procédure, ce qui correspond à des fiches et un circuit d'états. Seule l'édition de courriers types sort du stock.",
+    "hors_stock": [
+      {
+        "besoin": "Génération (édition) de courriers types à partir des dossiers",
+        "categorie": "document",
+        "citation": "édition de courrier ... éditer les courriers types"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "Responsable de la structure",
+        "libelle_pluriel": "Responsables de la structure",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "La structure traite des dossiers (plaintes) ... Nous souhaitons centraliser la gestion des dossiers"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier",
+        "libelle_pluriel": "Dossiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "La structure traite des dossiers (plaintes)"
+      },
+      {
+        "nom": "EtapeProcedure",
+        "libelle": "Étape de procédure",
+        "libelle_pluriel": "Étapes de procédure",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Dossier",
+        "references": [],
+        "citation": "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience, etc...) ... suivre l'avancement de chaque dossier"
+      },
+      {
+        "nom": "CourrierType",
+        "libelle": "Courrier type",
+        "libelle_pluriel": "Courriers types",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "éditer les courriers types"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Dossier",
+        "etat_initial": "demande_regularisation",
+        "transitions": {
+          "demande_regularisation": [
+            "enregistrement"
+          ],
+          "enregistrement": [
+            "accuse_reception"
+          ],
+          "accuse_reception": [
+            "echange_memoires"
+          ],
+          "echange_memoires": [
+            "convocation_audience"
+          ],
+          "convocation_audience": []
+        },
+        "libelles": {
+          "demande_regularisation": "demande de régularisation",
+          "enregistrement": "enregistrement",
+          "accuse_reception": "AR",
+          "echange_memoires": "échanges de mémoires",
+          "convocation_audience": "convocation audience"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience ... suivre l'avancement de chaque dossier"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence du dossier",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du plaignant",
+            "type": "texte",
+            "raison": "Le brief parle de plaintes sans dire qui les dépose ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Objet de la plainte",
+            "type": "texte_long",
+            "raison": "Utile pour décrire le dossier et remplir les courriers types, mais le brief ne le cite pas."
+          },
+          {
+            "libelle": "Date de réception de la plainte",
+            "type": "date",
+            "raison": "Elle peut être différente de la date de saisie ; à demander au client."
+          },
+          {
+            "libelle": "Date d'audience",
+            "type": "date",
+            "raison": "Le brief cite une étape « convocation audience » sans dire si sa date est enregistrée."
+          }
+        ]
+      },
+      {
+        "fiche": "EtapeProcedure",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé de l'étape",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'étape",
+            "type": "date",
+            "raison": "Utile pour suivre l'avancement du dossier dans le temps ; le brief ne la cite pas."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Certaines étapes (échanges de mémoires, régularisation) peuvent avoir un délai ; à confirmer."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Pour noter le détail de l'étape ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "CourrierType",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé du courrier type",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Texte du modèle de courrier",
+            "type": "texte_long",
+            "raison": "Nécessaire pour éditer les courriers types, mais le brief ne dit pas comment le modèle est enregistré."
+          },
+          {
+            "libelle": "Destinataire type",
+            "type": "texte",
+            "raison": "Un courrier peut viser le plaignant, une partie adverse ou une autre personne ; à demander au client."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Suivi des dossiers",
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "verbe_creation": null,
+        "boutons": {
+          "accuse_reception": "Accuser réception",
+          "convocation_audience": "Convoquer à l'audience",
+          "echange_memoires": "Échanger les mémoires",
+          "enregistrement": "Marquer enregistré"
+        }
+      },
+      {
+        "fiche": "EtapeProcedure",
+        "verbe_creation": "Ajouter une étape",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche EtapeProcedure : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

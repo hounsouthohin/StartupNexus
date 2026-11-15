@@ -1,0 +1,595 @@
+{
+ "titre": "Gestion formation",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Rétroplanning / planning d'organisation des sessions",
+   "categorie": "planning",
+   "citation": "il y a un rétroplanning d'organisation de la session"
+  },
+  {
+   "besoin": "Convocation téléphonique",
+   "categorie": "notification",
+   "citation": "convocation téléphonique"
+  },
+  {
+   "besoin": "Envoi de contrats",
+   "categorie": "document",
+   "citation": "envoi contrat"
+  },
+  {
+   "besoin": "Planification avec formateur et salle",
+   "categorie": "planning",
+   "citation": "planifier la date avec le formateur et la salle"
+  },
+  {
+   "besoin": "Facturation",
+   "categorie": "document",
+   "citation": "la facturation"
+  },
+  {
+   "besoin": "Établissement d'un bilan pour l'entité de base",
+   "categorie": "calcul_statistiques",
+   "citation": "l'établissement d'un bilan pour l'entité de base"
+  },
+  {
+   "besoin": "Gestion comptable associée",
+   "categorie": "autre",
+   "citation": "on a besoin d'une gestion comptable associée"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le responsable de l'organisme de formation"
+  ],
+  "fiches": 10,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "responsable_organisme_formation",
+   "libelle": "Le responsable de l'organisme de formation",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : entités, stagiaires, formateurs, salles, affectations à une session, factures, bilans, opérations comptables",
+     "cases": [
+      {
+       "fiche": "Entite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "une entité nous envoie des stagiaires"
+       ]
+      },
+      {
+       "fiche": "Stagiaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "une entité nous envoie des stagiaires"
+       ]
+      },
+      {
+       "fiche": "Formateur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "planifier la date avec le formateur et la salle"
+       ]
+      },
+      {
+       "fiche": "Salle",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "planifier la date avec le formateur et la salle"
+       ]
+      },
+      {
+       "fiche": "AffectationSession",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « des stagiaires que nous répartissons sur des sessions de formation »"
+       ],
+       "citations": [
+        "des stagiaires que nous répartissons sur des sessions de formation",
+        "des stagiaires que nous répartissons sur des sessions de formation"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "puis la facturation"
+       ]
+      },
+      {
+       "fiche": "Bilan",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "l'établissement d'un bilan pour l'entité de base"
+       ]
+      },
+      {
+       "fiche": "OperationComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion comptable associée"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : tâches de rétroplanning (dans chaque session de formation)",
+     "cases": [
+      {
+       "fiche": "TacheRetroplanning",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de session de formation : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "des sessions de formation",
+        "il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Sessions de formation : voit tout, en crée, les modifie, les fait passer de « convocation téléphonique » à « envoi contrat », les fait passer de « envoi contrat » à « planifier la date », les fait passer de « planifier la date » à « facturation », les fait passer de « facturation » à « établissement d'un bilan »",
+     "cases": [
+      {
+       "fiche": "SessionFormation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "convocation_telephonique": [
+          "envoi_contrat"
+         ],
+         "envoi_contrat": [
+          "planifier_date"
+         ],
+         "planifier_date": [
+          "facturation"
+         ],
+         "facturation": [
+          "etablissement_bilan"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "des sessions de formation",
+        "il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "SessionFormation",
+   "texte": "La session de formation passe par : « convocation téléphonique » → « envoi contrat » → « planifier la date » → « facturation » → « établissement d'un bilan »",
+   "qui": [
+    "Le responsable de l'organisme de formation fait passer de « convocation téléphonique » à « envoi contrat »",
+    "Le responsable de l'organisme de formation fait passer de « envoi contrat » à « planifier la date »",
+    "Le responsable de l'organisme de formation fait passer de « planifier la date » à « facturation »",
+    "Le responsable de l'organisme de formation fait passer de « facturation » à « établissement d'un bilan »"
+   ],
+   "citations": [
+    "il y a un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Entite",
+   "libelle": "entité",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "une entité nous envoie des stagiaires"
+   ]
+  },
+  {
+   "fiche": "Stagiaire",
+   "libelle": "stagiaire",
+   "nature": "registry",
+   "relie_a": [
+    "entité"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "une entité nous envoie des stagiaires"
+   ]
+  },
+  {
+   "fiche": "Formateur",
+   "libelle": "formateur",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "planifier la date avec le formateur et la salle"
+   ]
+  },
+  {
+   "fiche": "Salle",
+   "libelle": "salle",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "planifier la date avec le formateur et la salle"
+   ]
+  },
+  {
+   "fiche": "SessionFormation",
+   "libelle": "session de formation",
+   "nature": "registry",
+   "relie_a": [
+    "formateur",
+    "salle"
+   ],
+   "champs": [
+    {
+     "nom": "date",
+     "libelle": "Date",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "planifier la date avec le formateur et la salle"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "des sessions de formation"
+   ]
+  },
+  {
+   "fiche": "AffectationSession",
+   "libelle": "affectation à une session",
+   "nature": "registry",
+   "relie_a": [
+    "stagiaire",
+    "session de formation"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "des stagiaires que nous répartissons sur des sessions de formation"
+   ]
+  },
+  {
+   "fiche": "TacheRetroplanning",
+   "libelle": "tâche de rétroplanning",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque session de formation"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "convocation téléphonique, envoi contrat, planifier la date"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "un rétroplanning d'organisation de la session"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "puis la facturation"
+   ]
+  },
+  {
+   "fiche": "Bilan",
+   "libelle": "bilan",
+   "nature": "registry",
+   "relie_a": [
+    "entité",
+    "session de formation"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "l'établissement d'un bilan pour l'entité de base"
+   ]
+  },
+  {
+   "fiche": "OperationComptable",
+   "libelle": "opération comptable",
+   "nature": "registry",
+   "relie_a": [
+    "facture"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion comptable associée"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Entite:nom",
+     "texte": "entité → « Nom »"
+    },
+    {
+     "id": "nom:Stagiaire:nom",
+     "texte": "stagiaire → « Nom »"
+    },
+    {
+     "id": "nom:Formateur:nom",
+     "texte": "formateur → « Nom »"
+    },
+    {
+     "id": "nom:Salle:nom",
+     "texte": "salle → « Nom »"
+    },
+    {
+     "id": "nom:AffectationSession:nom",
+     "texte": "affectation à une session → « Nom »"
+    },
+    {
+     "id": "nom:Facture:nom",
+     "texte": "facture → « Nom »"
+    },
+    {
+     "id": "nom:Bilan:nom",
+     "texte": "bilan → « Nom »"
+    },
+    {
+     "id": "nom:OperationComptable:nom",
+     "texte": "opération comptable → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

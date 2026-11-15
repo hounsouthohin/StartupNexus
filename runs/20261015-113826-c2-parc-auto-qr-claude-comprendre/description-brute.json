@@ -1,0 +1,319 @@
+{
+  "app": {
+    "nom": "c2-parc-auto-qr",
+    "titre": "Gestion du parc automobile"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire_parc",
+        "label": "Gestionnaire de parc",
+        "label_plural": "Gestionnaires de parc",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "un outil complet de gestion de mon parc parc automobile"
+      },
+      {
+        "id": "utilisateur",
+        "label": "Utilisateur",
+        "label_plural": "Utilisateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gestionnaire_parc",
+        "citation": "Connexion sécurisée (multi-utilisateurs)"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Vehicule",
+        "label": "Véhicule",
+        "label_plural": "Véhicules",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Lecture de QR code apposé sur chaque véhicule"
+      },
+      {
+        "name": "SuiviParc",
+        "label": "Suivi de parc auto",
+        "label_plural": "Suivis de parc auto",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche suivi de parc auto"
+      },
+      {
+        "name": "EtatDesLieuxEntree",
+        "label": "État des lieux d’entrée",
+        "label_plural": "États des lieux d’entrée",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche état des lieux d’entrée"
+      },
+      {
+        "name": "EtatDesLieuxSortie",
+        "label": "État des lieux de sortie",
+        "label_plural": "États des lieux de sortie",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche état des lieux de sortie"
+      },
+      {
+        "name": "Entretien",
+        "label": "Entretien",
+        "label_plural": "Entretiens",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "entretiens à venir"
+      },
+      {
+        "name": "Cout",
+        "label": "Coût",
+        "label_plural": "Coûts",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Calcul automatique des frais (entretien, réparation, assurance, amortissement"
+      },
+      {
+        "name": "Planning",
+        "label": "Planning",
+        "label_plural": "Plannings",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "un état des lieux déclenche une mise à jour du planning"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Vehicule": [
+      {
+        "nom": "immatriculation",
+        "libelle": "Immatriculation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "codeQr",
+        "libelle": "QR code",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "QR code apposé sur chaque véhicule"
+      },
+      {
+        "nom": "etat",
+        "libelle": "État du véhicule",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l’état de chaque véhicule"
+      }
+    ],
+    "SuiviParc": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EtatDesLieuxEntree": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EtatDesLieuxSortie": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Entretien": [
+      {
+        "nom": "dateEntretien",
+        "libelle": "Date de l'entretien",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "entretiens à venir"
+      }
+    ],
+    "Cout": [
+      {
+        "nom": "typeFrais",
+        "libelle": "Type de frais",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "entretien",
+            "libelle": "entretien"
+          },
+          {
+            "code": "reparation",
+            "libelle": "réparation"
+          },
+          {
+            "code": "assurance",
+            "libelle": "assurance"
+          },
+          {
+            "code": "amortissement",
+            "libelle": "amortissement"
+          }
+        ],
+        "origine": "brief",
+        "citation": "frais (entretien, réparation, assurance, amortissement"
+      },
+      {
+        "nom": "montant",
+        "libelle": "Montant",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Calcul automatique des frais"
+      }
+    ],
+    "Planning": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "SuiviParc": {
+      "verbe_creation": "Ajouter un suivi",
+      "boutons": {}
+    },
+    "EtatDesLieuxEntree": {
+      "verbe_creation": "Faire l'état d'entrée",
+      "boutons": {}
+    },
+    "EtatDesLieuxSortie": {
+      "verbe_creation": "Faire l'état de sortie",
+      "boutons": {}
+    },
+    "Entretien": {
+      "verbe_creation": "Programmer un entretien",
+      "boutons": {}
+    },
+    "Cout": {
+      "verbe_creation": "Saisir un coût",
+      "boutons": {}
+    },
+    "Planning": {
+      "verbe_creation": "Planifier",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

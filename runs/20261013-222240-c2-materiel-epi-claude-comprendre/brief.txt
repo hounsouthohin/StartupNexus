@@ -1,0 +1,10 @@
+Gestion matériel epi montagne et amortissement
+application de saisie des matériels, date de fabrication, fin de vie et amortissements de la valeur en fonction des années.
+
+saisie des vérifications pour chaque matériel. édition d'une fiche de suivie individuelle
+
+visualisation des stocks, valeurs, montant d'amortissement par exercice pour la compta.
+
+alerte péremption et vérification à la date
+
+merci

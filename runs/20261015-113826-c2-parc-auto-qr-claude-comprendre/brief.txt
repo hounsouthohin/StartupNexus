@@ -1,0 +1,68 @@
+Développement d’un système de gestion de parc avec fiches + QR Co
+Bonjour,
+
+Je recherche un développeur pour créer un outil complet de gestion de mon parc parc automobile, composé d’une dizaine de fiches interconnectées, comprenant notamment :
+
+📄 Fiches à créer
+
+Fiche suivi de parc auto
+
+Fiche état des lieux d’entrée
+
+Fiche état des lieux de sortie
+
+Fiche coût global du parc
+
+Autres fiches complémentaires utiles à la gestion
+
+(le contenu des fieches est founis pas nos services)
+
+🔍 Fonctionnalités principales
+
+Lecture de QR code apposé sur chaque véhicule
+
+→ Lorsqu’on scanne, accès direct à toutes les fiches du véhicule
+
+Envoi automatique d’e-mails (rappel entretien, etat des lieux, etc.)
+
+Calcul automatique des frais (entretien, réparation, assurance, amortissement…)
+
+Interaction entre fiches
+
+→ Exemple : un état des lieux déclenche une mise à jour du planning ou du coût global
+
+Tableau de bord global avec indicateurs (alertes, entretiens à venir, etc.)
+
+Connexion sécurisée (multi-utilisateurs)
+
+🎯 Objectif
+
+Avoir un système simple d’utilisation permettant de :
+
+suivre en temps réel l’état de chaque véhicule,
+
+centraliser toutes les informations,
+
+automatiser les calculs et alertes,
+
+limiter les erreurs humaines.
+
+💡 Technologies acceptées
+
+Au choix du développeur :
+
+📅 Délai souhaité
+
+À déterminer ensemble.
+
+💰 Budget
+
+À proposer selon votre solution technique et vos références.
+
+Merci d’indiquer :
+
+vos expériences sur projets similaires,
+
+une estimation du coût,
+
+un délai de réalisation.

@@ -1,0 +1,1053 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion d'interventions pour une PME : bons d'intervention avec clients, collaborateurs et adresses de chantiers, checklists par type d'intervention, demandes de congés et commandes de matériel et de vêtements. Ce sont des fiches, des rôles et des demandes qui passent par des états. Plusieurs besoins annexes sont hors stock (devis générés, signature, fichiers, recherche, codes d'accès).",
+    "hors_stock": [
+      {
+        "besoin": "Horodatage précis du début et de la fin de chaque intervention",
+        "categorie": "automatisation",
+        "citation": "Horodatage précis des interventions (début et fin)"
+      },
+      {
+        "besoin": "Ajout automatique du matériel sur l'intervention",
+        "categorie": "automatisation",
+        "citation": "Ajout automatique de matériel"
+      },
+      {
+        "besoin": "Génération instantanée d'un devis à partir du matériel",
+        "categorie": "document",
+        "citation": "génération instantanée de devis"
+      },
+      {
+        "besoin": "Signature électronique du client sur tablette",
+        "categorie": "autre",
+        "citation": "Signature électronique du client sur tablette"
+      },
+      {
+        "besoin": "Gestion documentaire avec classement de fichiers",
+        "categorie": "fichiers_photos",
+        "citation": "Gestion documentaire avec classement des fichiers"
+      },
+      {
+        "besoin": "Moteur de recherche dans les documents",
+        "categorie": "autre",
+        "citation": "moteur de recherche"
+      },
+      {
+        "besoin": "Stockage sécurisé des fiches de paie (fichiers) pour chaque collaborateur",
+        "categorie": "fichiers_photos",
+        "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+      },
+      {
+        "besoin": "Gestion des codes d'accès des claviers à code : à préciser avec le client s'il s'agit d'enregistrer les codes ou de piloter les claviers (lien avec un objet connecté)",
+        "categorie": "integration",
+        "citation": "Gestion des codes d'accès digitaux (clavier à code)"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "dirigeant",
+        "libelle": "Dirigeant",
+        "libelle_pluriel": "Dirigeants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Notre entreprise spécialisée dans la réparation et l'entretien de portes de garage"
+      },
+      {
+        "id": "employe_administratif",
+        "libelle": "Employé administratif",
+        "libelle_pluriel": "Employés administratifs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "dirigeant",
+        "citation": "Formation succincte à destination de notre équipe administrative"
+      },
+      {
+        "id": "collaborateur",
+        "libelle": "Collaborateur",
+        "libelle_pluriel": "Collaborateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "dirigeant",
+        "citation": "Gestion intégrée des demandes de congés ... Stockage sécurisé des fiches de paie par collaborateur"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "Signature électronique du client sur tablette"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Collaborateur",
+        "libelle": "Collaborateur",
+        "libelle_pluriel": "Collaborateurs",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+      },
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers)"
+      },
+      {
+        "nom": "Chantier",
+        "libelle": "Chantier",
+        "libelle_pluriel": "Chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "adresses des chantiers"
+      },
+      {
+        "nom": "TypeIntervention",
+        "libelle": "Type d'intervention",
+        "libelle_pluriel": "Types d'intervention",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Checklist personnalisable selon le type d'intervention"
+      },
+      {
+        "nom": "PointChecklist",
+        "libelle": "Point de checklist",
+        "libelle_pluriel": "Points de checklist",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "TypeIntervention",
+        "references": [],
+        "citation": "Checklist personnalisable selon le type d'intervention (remplaçant les fichiers Excel)"
+      },
+      {
+        "nom": "BonIntervention",
+        "libelle": "Bon d'intervention",
+        "libelle_pluriel": "Bons d'intervention",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif",
+          "collaborateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Chantier",
+          "Collaborateur",
+          "TypeIntervention"
+        ],
+        "citation": "Création et gestion des bons d'intervention (clients, collaborateurs, adresses des chantiers) ... Horodatage précis des interventions (début et fin) ... Signature électronique du client sur tablette"
+      },
+      {
+        "nom": "LigneChecklist",
+        "libelle": "Ligne de checklist",
+        "libelle_pluriel": "Lignes de checklist",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "BonIntervention",
+        "references": [
+          "PointChecklist"
+        ],
+        "citation": "Checklist personnalisable selon le type d'intervention"
+      },
+      {
+        "nom": "Materiel",
+        "libelle": "Matériel",
+        "libelle_pluriel": "Matériels",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout automatique de matériel avec génération instantanée de devis"
+      },
+      {
+        "nom": "LigneMateriel",
+        "libelle": "Ligne de matériel",
+        "libelle_pluriel": "Lignes de matériel",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "BonIntervention",
+        "references": [
+          "Materiel"
+        ],
+        "citation": "Ajout automatique de matériel"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "Devis",
+        "libelle_pluriel": "Devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif",
+          "collaborateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "BonIntervention",
+          "Client"
+        ],
+        "citation": "génération instantanée de devis"
+      },
+      {
+        "nom": "CategorieDocument",
+        "libelle": "Catégorie de documents",
+        "libelle_pluriel": "Catégories de documents",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "classement des fichiers"
+      },
+      {
+        "nom": "Document",
+        "libelle": "Document",
+        "libelle_pluriel": "Documents",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "CategorieDocument"
+        ],
+        "citation": "Gestion documentaire avec classement des fichiers et moteur de recherche"
+      },
+      {
+        "nom": "DemandeConge",
+        "libelle": "Demande de congés",
+        "libelle_pluriel": "Demandes de congés",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion intégrée des demandes de congés"
+      },
+      {
+        "nom": "CommandeMateriel",
+        "libelle": "Commande de matériel",
+        "libelle_pluriel": "Commandes de matériel",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Materiel"
+        ],
+        "citation": "commandes de matériel"
+      },
+      {
+        "nom": "CommandeVetement",
+        "libelle": "Commande de vêtements professionnels",
+        "libelle_pluriel": "Commandes de vêtements professionnels",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "commandes de matériel et vêtements professionnels"
+      },
+      {
+        "nom": "FichePaie",
+        "libelle": "Fiche de paie",
+        "libelle_pluriel": "Fiches de paie",
+        "feminin": true,
+        "nature": "collection",
+        "proprietaire": "collaborateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": "employe_administratif",
+        "parent": null,
+        "references": [],
+        "citation": "Stockage sécurisé des fiches de paie par collaborateur"
+      },
+      {
+        "nom": "CodeAcces",
+        "libelle": "Code d'accès",
+        "libelle_pluriel": "Codes d'accès",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant",
+          "employe_administratif"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des codes d'accès digitaux (clavier à code)"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Les clients sont enregistrés par l'équipe et désignés par les bons d'intervention et les devis ; ils ne se connectent pas (ils signent seulement sur la tablette du collaborateur)."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "DemandeConge",
+        "etat_initial": "demandee",
+        "transitions": {
+          "demandee": [
+            "acceptee",
+            "refusee"
+          ],
+          "acceptee": [],
+          "refusee": []
+        },
+        "libelles": {
+          "demandee": "demandée",
+          "acceptee": "acceptée",
+          "refusee": "refusée"
+        },
+        "initiateur": "collaborateur",
+        "decideur": "dirigeant",
+        "etapes_par": {},
+        "citation": "Gestion intégrée des demandes de congés"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Collaborateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment identifier un collaborateur ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour joindre un technicien en intervention ; non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour l'envoi des fiches de paie ou des réponses aux demandes ; non cité dans le brief."
+          },
+          {
+            "libelle": "Poste / fonction",
+            "type": "texte",
+            "raison": "Distinguer techniciens et équipe administrative ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse de facturation",
+            "type": "texte_long",
+            "raison": "Nécessaire pour les devis ; le brief ne cite que les adresses des chantiers."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Contact du client ; non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Envoi des devis et bons signés ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Chantier",
+        "champs": [
+          {
+            "nom": "adresse",
+            "libelle": "Adresse",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "adresses des chantiers"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du chantier / site",
+            "type": "texte",
+            "raison": "Reconnaître un site quand un client en a plusieurs ; non cité dans le brief."
+          },
+          {
+            "libelle": "Contact sur place",
+            "type": "texte",
+            "raison": "Personne à prévenir lors de l'intervention ; non cité dans le brief."
+          },
+          {
+            "libelle": "Équipements installés (portes, niveleurs de quai)",
+            "type": "texte_long",
+            "raison": "L'activité porte sur des portes de garage et niveleurs de quai ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "TypeIntervention",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Préciser le contenu du type d'intervention (réparation, entretien...) ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "PointChecklist",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé du point",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Ordre d'affichage",
+            "type": "nombre",
+            "raison": "Reproduire l'ordre des checklists Excel actuelles ; non cité dans le brief."
+          },
+          {
+            "libelle": "Point obligatoire",
+            "type": "oui_non",
+            "raison": "Savoir si le point doit être coché avant de clôturer le bon ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "BonIntervention",
+        "champs": [
+          {
+            "nom": "debut",
+            "libelle": "Début de l'intervention",
+            "type": "date_heure",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Horodatage précis des interventions (début et fin)"
+          },
+          {
+            "nom": "fin",
+            "libelle": "Fin de l'intervention",
+            "type": "date_heure",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Horodatage précis des interventions (début et fin)"
+          },
+          {
+            "nom": "signatureClient",
+            "libelle": "Signature électronique du client",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Signature électronique du client sur tablette"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Numéro du bon",
+            "type": "texte",
+            "raison": "Référencer le bon auprès du client et sur le devis ; non cité dans le brief."
+          },
+          {
+            "libelle": "Compte rendu des travaux",
+            "type": "texte_long",
+            "raison": "Décrire ce qui a été fait sur place ; non cité dans le brief."
+          },
+          {
+            "libelle": "Nom du signataire",
+            "type": "texte",
+            "raison": "Identifier la personne qui signe pour le client ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "LigneChecklist",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fait",
+            "type": "oui_non",
+            "raison": "Cocher le point lors de l'intervention ; non cité dans le brief."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Noter une anomalie constatée sur le point ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Materiel",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Référence",
+            "type": "texte",
+            "raison": "Identifier la pièce chez le fournisseur ; non cité dans le brief."
+          },
+          {
+            "libelle": "Prix unitaire",
+            "type": "montant",
+            "raison": "Indispensable à la génération automatique du devis ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Unité",
+            "type": "texte",
+            "raison": "Pièce, mètre, heure... ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "LigneMateriel",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Calculer le devis à partir du matériel ajouté ; non cité dans le brief."
+          },
+          {
+            "libelle": "Prix unitaire appliqué",
+            "type": "montant",
+            "raison": "Figer le prix au moment du devis ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant total HT",
+            "type": "montant",
+            "raison": "Résultat de la génération du devis ; non cité dans le brief."
+          },
+          {
+            "libelle": "Taux de TVA",
+            "type": "nombre",
+            "raison": "Calcul du TTC ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Durée de validité de l'offre ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "CategorieDocument",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "titre",
+            "libelle": "Titre",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fichier (lien)",
+            "type": "url",
+            "raison": "Le document correspond à un fichier classé ; le mode de stockage est à préciser avec le client."
+          },
+          {
+            "libelle": "Mots-clés",
+            "type": "texte",
+            "raison": "Alimenter le moteur de recherche ; non cité dans le brief."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Améliorer la recherche documentaire ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "DemandeConge",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Période demandée ; non citée dans le brief."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Période demandée ; non citée dans le brief."
+          },
+          {
+            "libelle": "Type de congé",
+            "type": "texte",
+            "raison": "Congés payés, RTT, sans solde... ; la liste est à demander au client."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Précision du collaborateur ou motif du refus ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandeMateriel",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Quantité de matériel commandée ; non citée dans le brief."
+          },
+          {
+            "libelle": "Date de livraison souhaitée",
+            "type": "date",
+            "raison": "Planifier la réception ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "CommandeVetement",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Article",
+            "type": "texte",
+            "raison": "Type de vêtement professionnel commandé ; non cité dans le brief."
+          },
+          {
+            "libelle": "Taille",
+            "type": "texte",
+            "raison": "Indispensable pour un vêtement ; non citée dans le brief."
+          },
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Nombre de pièces commandées ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "FichePaie",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Mois concerné",
+            "type": "date",
+            "raison": "Retrouver une fiche de paie par période ; non cité dans le brief."
+          },
+          {
+            "libelle": "Fichier (lien)",
+            "type": "url",
+            "raison": "Le bulletin est un document stocké ; le mode de stockage sécurisé est à préciser avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "CodeAcces",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "code",
+            "libelle": "Code",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "codes d'accès digitaux"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Emplacement du clavier",
+            "type": "texte",
+            "raison": "Savoir quelle porte ou quel site ouvre le code ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de fin de validité",
+            "type": "date",
+            "raison": "Les codes d'accès peuvent être changés ; non cité dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des interventions",
+    "fiches": [
+      {
+        "fiche": "Chantier",
+        "verbe_creation": "Ajouter un chantier",
+        "boutons": {}
+      },
+      {
+        "fiche": "PointChecklist",
+        "verbe_creation": "Ajouter un point",
+        "boutons": {}
+      },
+      {
+        "fiche": "BonIntervention",
+        "verbe_creation": "Planifier une intervention",
+        "boutons": {}
+      },
+      {
+        "fiche": "LigneChecklist",
+        "verbe_creation": "Cocher un point",
+        "boutons": {}
+      },
+      {
+        "fiche": "LigneMateriel",
+        "verbe_creation": "Ajouter du matériel",
+        "boutons": {}
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Générer le devis",
+        "boutons": {}
+      },
+      {
+        "fiche": "Document",
+        "verbe_creation": "Déposer un document",
+        "boutons": {}
+      },
+      {
+        "fiche": "DemandeConge",
+        "verbe_creation": null,
+        "boutons": {
+          "acceptee": "Accepter",
+          "refusee": "Refuser"
+        }
+      },
+      {
+        "fiche": "CommandeMateriel",
+        "verbe_creation": "Commander",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche PointChecklist : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche LigneChecklist : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche LigneMateriel : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,0 +1,977 @@
+{
+ "titre": "Gestion restauration",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:profil] ProfilAdministrateur : un profil qui désigne une autre fiche (RoleUtilisateur) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit)",
+   "[bloc:lien:profil] ProfilUtilisateur : un profil qui désigne une autre fiche (RoleUtilisateur) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-resta...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "lien:profil"
+  ],
+  "pas_encore": [
+   "relier chaque profil administrateur à rôle utilisateur : pas encore possible — lien retiré",
+   "relier chaque profil utilisateur à rôle utilisateur : pas encore possible — lien retiré"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Gestion de stock / achats / inventaires avec logique métier de quantités",
+   "categorie": "calcul_statistiques",
+   "citation": "gestion des stocks, achats, inventaires"
+  },
+  {
+   "besoin": "Calcul du coût des repas",
+   "categorie": "calcul_statistiques",
+   "citation": "coût des repas"
+  },
+  {
+   "besoin": "Facturation",
+   "categorie": "document",
+   "citation": "facturation"
+  },
+  {
+   "besoin": "Tableaux de bord consolidés",
+   "categorie": "calcul_statistiques",
+   "citation": "tableaux de bord consolidés"
+  },
+  {
+   "besoin": "Reporting détaillé",
+   "categorie": "calcul_statistiques",
+   "citation": "reporting détaillé par site et au niveau global"
+  },
+  {
+   "besoin": "Exports Excel/PDF",
+   "categorie": "document",
+   "citation": "exports Excel/PDF"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "L'utilisateur"
+  ],
+  "fiches": 12,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "notre société de restauration collective multi-sites"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : rôles utilisateurs, sites, stocks, achats, inventaires, recettes, coûts des repas, factures, dépenses, dossiers RH",
+     "cases": [
+      {
+       "fiche": "RoleUtilisateur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des rôles utilisateurs"
+       ]
+      },
+      {
+       "fiche": "Site",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "restauration collective multi-sites"
+       ]
+      },
+      {
+       "fiche": "Stock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des stocks"
+       ]
+      },
+      {
+       "fiche": "Achat",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "achats"
+       ]
+      },
+      {
+       "fiche": "Inventaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "inventaires"
+       ]
+      },
+      {
+       "fiche": "Recette",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "recettes"
+       ]
+      },
+      {
+       "fiche": "CoutRepas",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "coût des repas"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "facturation"
+       ]
+      },
+      {
+       "fiche": "Depense",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "dépenses"
+       ]
+      },
+      {
+       "fiche": "DossierRh",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "RH"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil administrateur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilAdministrateur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "gestion des rôles utilisateurs"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "utilisateur",
+   "libelle": "L'utilisateur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "avec gestion des rôles utilisateurs"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : rôles utilisateurs, sites",
+     "cases": [
+      {
+       "fiche": "RoleUtilisateur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "gestion des rôles utilisateurs"
+       ]
+      },
+      {
+       "fiche": "Site",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "restauration collective multi-sites"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : stocks, achats, inventaires, recettes, coûts des repas, factures, dépenses, dossiers RH",
+     "cases": [
+      {
+       "fiche": "Stock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des stocks"
+       ]
+      },
+      {
+       "fiche": "Achat",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "achats"
+       ]
+      },
+      {
+       "fiche": "Inventaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "inventaires"
+       ]
+      },
+      {
+       "fiche": "Recette",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "recettes"
+       ]
+      },
+      {
+       "fiche": "CoutRepas",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "coût des repas"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "facturation"
+       ]
+      },
+      {
+       "fiche": "Depense",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "dépenses"
+       ]
+      },
+      {
+       "fiche": "DossierRh",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "RH"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil utilisateur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilUtilisateur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "gestion des rôles utilisateurs"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "ProfilAdministrateur",
+   "libelle": "profil administrateur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion des rôles utilisateurs"
+   ]
+  },
+  {
+   "fiche": "ProfilUtilisateur",
+   "libelle": "profil utilisateur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion des rôles utilisateurs"
+   ]
+  },
+  {
+   "fiche": "RoleUtilisateur",
+   "libelle": "rôle utilisateur",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion des rôles utilisateurs"
+   ]
+  },
+  {
+   "fiche": "Site",
+   "libelle": "site",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "restauration collective multi-sites"
+   ]
+  },
+  {
+   "fiche": "Stock",
+   "libelle": "stock",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion des stocks"
+   ]
+  },
+  {
+   "fiche": "Achat",
+   "libelle": "achat",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "achats"
+   ]
+  },
+  {
+   "fiche": "Inventaire",
+   "libelle": "inventaire",
+   "nature": "registry",
+   "relie_a": [
+    "site",
+    "stock"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "inventaires"
+   ]
+  },
+  {
+   "fiche": "Recette",
+   "libelle": "recette",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "recettes"
+   ]
+  },
+  {
+   "fiche": "CoutRepas",
+   "libelle": "coût des repas",
+   "nature": "registry",
+   "relie_a": [
+    "site",
+    "recette"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "coût des repas"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "facturation"
+   ]
+  },
+  {
+   "fiche": "Depense",
+   "libelle": "dépense",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "dépenses"
+   ]
+  },
+  {
+   "fiche": "DossierRh",
+   "libelle": "dossier RH",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "RH"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:utilisateur:Stock",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les stocks, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les inventaires qu'il voit; clôture : choisit les stocks de ses inventaires"
+  },
+  {
+   "id": "registre_entier:utilisateur:Achat",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les achats, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Inventaire",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les inventaires, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Recette",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les recettes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les coûts des repas qu'il voit; clôture : choisit les recettes de ses coûts des repas"
+  },
+  {
+   "id": "registre_entier:utilisateur:CoutRepas",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les coûts des repas, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Facture",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les factures, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Depense",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les dépenses, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:DossierRh",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les dossiers RH, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:ProfilAdministrateur:nom",
+     "texte": "profil administrateur → « Nom »"
+    },
+    {
+     "id": "nom:ProfilUtilisateur:nom",
+     "texte": "profil utilisateur → « Nom »"
+    },
+    {
+     "id": "nom:RoleUtilisateur:nom",
+     "texte": "rôle utilisateur → « Nom »"
+    },
+    {
+     "id": "nom:Site:nom",
+     "texte": "site → « Nom »"
+    },
+    {
+     "id": "nom:Stock:nom",
+     "texte": "stock → « Nom »"
+    },
+    {
+     "id": "nom:Achat:nom",
+     "texte": "achat → « Nom »"
+    },
+    {
+     "id": "nom:Inventaire:nom",
+     "texte": "inventaire → « Nom »"
+    },
+    {
+     "id": "nom:Recette:nom",
+     "texte": "recette → « Nom »"
+    },
+    {
+     "id": "nom:CoutRepas:nom",
+     "texte": "coût des repas → « Nom »"
+    },
+    {
+     "id": "nom:Facture:nom",
+     "texte": "facture → « Nom »"
+    },
+    {
+     "id": "nom:Depense:nom",
+     "texte": "dépense → « Nom »"
+    },
+    {
+     "id": "nom:DossierRh:nom",
+     "texte": "dossier RH → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

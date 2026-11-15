@@ -1,0 +1,229 @@
+{
+  "app": {
+    "nom": "c2-garage-automobile",
+    "titre": "Gestion du garage"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "j'ai un garage automobile"
+      },
+      {
+        "id": "employe",
+        "label": "Employé",
+        "label_plural": "Employés",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "met en relation tout les acteur de ma société"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "employe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "présenter au client le rapport des traveaux"
+      },
+      {
+        "name": "Vehicule",
+        "label": "Véhicule",
+        "label_plural": "Véhicules",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "employe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "la réception du véhicule"
+      },
+      {
+        "name": "Checkup",
+        "label": "Check-up",
+        "label_plural": "Check-ups",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "employe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "un check complet de l'état de la mécanique de la voiture"
+      },
+      {
+        "name": "PhotoPiece",
+        "label": "Photo de pièce",
+        "label_plural": "Photos de pièces",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Checkup",
+        "references": [],
+        "citation": "photo des pièces qui sont dégradé"
+      },
+      {
+        "name": "DocumentReparation",
+        "label": "Document de réparation",
+        "label_plural": "Documents de réparation",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "employe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Checkup",
+          "Vehicule"
+        ],
+        "citation": "génération d'un document de réparation à effectuer en fonction du checkup",
+        "process": {
+          "initial": "a_effectuer",
+          "transitions": {
+            "a_effectuer": [
+              "terminee"
+            ],
+            "terminee": []
+          },
+          "initiator": "employe",
+          "decider": "employe",
+          "steps_by": {},
+          "labels": {
+            "a_effectuer": "à effectuer",
+            "terminee": "terminée"
+          },
+          "citation": "génération d'un document de réparation à effectuer en fonction du checkup, confirmation de la fin de la réparation"
+        }
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Vehicule": [
+      {
+        "nom": "immatriculation",
+        "libelle": "Immatriculation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Checkup": [
+      {
+        "nom": "etatMecanique",
+        "libelle": "État de la mécanique",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un check complet de l'état de la mécanique de la voiture"
+      }
+    ],
+    "PhotoPiece": [
+      {
+        "nom": "piece",
+        "libelle": "Pièce",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "photo des pièces qui sont dégradé"
+      },
+      {
+        "nom": "photo",
+        "libelle": "Photo",
+        "type": "url",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "photo des pièces"
+      }
+    ],
+    "DocumentReparation": [
+      {
+        "nom": "reparationsAEffectuer",
+        "libelle": "Réparations à effectuer",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "document de réparation à effectuer"
+      }
+    ]
+  },
+  "ecran": {
+    "Vehicule": {
+      "verbe_creation": "Ajouter un véhicule",
+      "boutons": {}
+    },
+    "Checkup": {
+      "verbe_creation": "Faire un check-up",
+      "boutons": {}
+    },
+    "PhotoPiece": {
+      "verbe_creation": "Photographier une pièce",
+      "boutons": {}
+    },
+    "DocumentReparation": {
+      "verbe_creation": "Générer la réparation",
+      "boutons": {
+        "terminee": "Confirmer la fin"
+      }
+    }
+  },
+  "depart": {}
+}

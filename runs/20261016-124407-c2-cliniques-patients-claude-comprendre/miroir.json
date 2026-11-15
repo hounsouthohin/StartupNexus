@@ -1,0 +1,1520 @@
+{
+ "titre": "Gestion des cliniques",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:profil] Medecin : un profil qui désigne une autre fiche (Clinique) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit)",
+   "[bloc:acteur:invitation] administrateur / Patient : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)",
+   "[bloc:acteur:invitation] infirmiere / Patient : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5)",
+   "[bloc:acteur:invitation] medecin / Patient : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-clini...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "acteur:invitation",
+   "lien:profil"
+  ],
+  "pas_encore": [
+   "relier chaque médecin à clinique : pas encore possible — lien retiré",
+   "L'administrateur de la clinique crée le compte des patients : pas encore possible (les invitations arrivent avec la connexion)",
+   "L'infirmière crée le compte des patients : pas encore possible (les invitations arrivent avec la connexion)",
+   "Le médecin crée le compte des patients : pas encore possible (les invitations arrivent avec la connexion)"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Prise de rendez-vous en fonction de la disponibilité des médecins",
+   "categorie": "planning",
+   "citation": "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+  },
+  {
+   "besoin": "Gestion des jours fériés dans l'agenda",
+   "categorie": "planning",
+   "citation": "Ajoutez des jours fériés"
+  },
+  {
+   "besoin": "Calendrier du médecin dans son tableau de bord",
+   "categorie": "planning",
+   "citation": "Tableau de bord avec un calendrier pour le médecin"
+  },
+  {
+   "besoin": "Vue des événements importants de la journée pour la réceptionniste",
+   "categorie": "planning",
+   "citation": "Aperçu rapide des événements importants de la journée"
+  },
+  {
+   "besoin": "Calendrier tenu par la réceptionniste avec les événements et avis importants",
+   "categorie": "planning",
+   "citation": "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+  },
+  {
+   "besoin": "Rappels de rendez-vous",
+   "categorie": "notification",
+   "citation": "la réceptionniste définit des rappels de rendez-vous"
+  },
+  {
+   "besoin": "Notifications par e-mail aux médecins",
+   "categorie": "notification",
+   "citation": "définit la notification par e-mail pour les médecins"
+  },
+  {
+   "besoin": "Alertes par SMS sur les événements importants",
+   "categorie": "notification",
+   "citation": "Des alertes de notification sont envoyées parla plateforme sur les événements importants marqués"
+  },
+  {
+   "besoin": "Lien avec le service SMS Twilio",
+   "categorie": "integration",
+   "citation": "Notification SMS (Twilio)"
+  },
+  {
+   "besoin": "Tableau de bord général",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableau de bord : permet de visualiser les modules importants de l'hôpital"
+  },
+  {
+   "besoin": "Génération de rapports pour la gestion et la direction",
+   "categorie": "calcul_statistiques",
+   "citation": "permet d'exploiter les données en générant des rapports pour la gestion ... Accéder et gérer les rapports pour la direction"
+  },
+  {
+   "besoin": "Impression des ordonnances",
+   "categorie": "document",
+   "citation": "obtenez une liste complète des ordonnances de médicaments à un seul endroit et imprimez-la pour votre référence"
+  },
+  {
+   "besoin": "Génération et impression de factures pour les patients",
+   "categorie": "document",
+   "citation": "Impression de la facture : générez une facture pour les patients"
+  },
+  {
+   "besoin": "Plusieurs cliniques gérées dans la même plateforme, chacune avec ses données",
+   "categorie": "cloisonnement",
+   "citation": "Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+  },
+  {
+   "besoin": "Activation ou désactivation des modules selon les besoins",
+   "categorie": "autre",
+   "citation": "sélectionnez et basculez pour activer un module particulier ou le désactiver selon vos besoins"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur de la clinique",
+   "Le médecin",
+   "L'infirmière",
+   "La réceptionniste",
+   "Le patient"
+  ],
+  "fiches": 11,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur de la clinique",
+   "devient": "responsable de l'app",
+   "citations": [
+    "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout et modifie : patients, rendez-vous",
+     "cases": [
+      {
+       "fiche": "Patient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients »",
+        "exception : « L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients »",
+        "exception : « L'administrateur de la clinique peut accuser réception de l'inscription du patient »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients",
+        "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients",
+        "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+       ]
+      },
+      {
+       "fiche": "RendezVous",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « L'administrateur de la clinique / l'infirmière »",
+        "exception : « L'administrateur de la clinique / l'infirmière »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique / l'infirmière",
+        "L'administrateur de la clinique / l'infirmière"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : cliniques, notes sur l'état du patient, ordonnances, factures",
+     "cases": [
+      {
+       "fiche": "Clinique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+       ]
+      },
+      {
+       "fiche": "NoteEtatPatient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « L'administrateur de la clinique / l'infirmière »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients",
+        "L'administrateur de la clinique / l'infirmière"
+       ]
+      },
+      {
+       "fiche": "Ordonnance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gérer la prescription des patients"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "générez une facture pour les patients"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : jours fériés, rappels de rendez-vous, événements",
+     "cases": [
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajoutez des jours fériés"
+       ]
+      },
+      {
+       "fiche": "RappelRendezVous",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "la réceptionniste définit des rappels de rendez-vous"
+       ]
+      },
+      {
+       "fiche": "Evenement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les médecins affichés dans les rendez-vous qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "Medecin",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "RendezVous"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rendez-vous qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "medecin",
+   "libelle": "Le médecin",
+   "devient": "invité par administrateur",
+   "citations": [
+    "Le médecin peut gérer les données des patients"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout et modifie : patients",
+     "cases": [
+      {
+       "fiche": "Patient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Le médecin peut gérer les données des patients »",
+        "exception : « Le médecin peut gérer les données des patients »"
+       ],
+       "citations": [
+        "Le médecin peut gérer les données des patients",
+        "Le médecin peut gérer les données des patients"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : cliniques, jours fériés",
+     "cases": [
+      {
+       "fiche": "Clinique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+       ]
+      },
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajoutez des jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : disponibilités",
+     "cases": [
+      {
+       "fiche": "Disponibilite",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "prendre rendez-vous avec un médecin selon sa disponibilité"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : ordonnances",
+     "cases": [
+      {
+       "fiche": "Ordonnance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Gérer la prescription des patients »",
+        "exception : « Gérer la prescription des patients »",
+        "exception : « Gérer la prescription des patients »"
+       ],
+       "citations": [
+        "Gérer la prescription des patients",
+        "Gérer la prescription des patients",
+        "Gérer la prescription des patients",
+        "Gérer la prescription des patients"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son médecin, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Medecin",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "infirmiere",
+   "libelle": "L'infirmière",
+   "devient": "invité par administrateur",
+   "citations": [
+    "l'infirmière peuvent gérer les données des patients"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout et modifie : patients, rendez-vous",
+     "cases": [
+      {
+       "fiche": "Patient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients »",
+        "exception : « L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients",
+        "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+       ]
+      },
+      {
+       "fiche": "RendezVous",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « L'administrateur de la clinique / l'infirmière »",
+        "exception : « L'administrateur de la clinique / l'infirmière »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique / l'infirmière",
+        "L'administrateur de la clinique / l'infirmière"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : cliniques, jours fériés",
+     "cases": [
+      {
+       "fiche": "Clinique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+       ]
+      },
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajoutez des jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : notes sur l'état du patient, ordonnances",
+     "cases": [
+      {
+       "fiche": "NoteEtatPatient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « L'administrateur de la clinique / l'infirmière »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients",
+        "L'administrateur de la clinique / l'infirmière"
+       ]
+      },
+      {
+       "fiche": "Ordonnance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gérer la prescription des patients"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "voit les médecins affichés dans les rendez-vous qu'il consulte (sans page à part)",
+     "cases": [
+      {
+       "fiche": "Medecin",
+       "droits": {
+        "see": "none",
+        "see_via": [
+         "RendezVous"
+        ],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rendez-vous qu'il voit"
+       ],
+       "citations": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "receptionniste",
+   "libelle": "La réceptionniste",
+   "devient": "invité par administrateur",
+   "citations": [
+    "la réceptionniste définit des rappels de rendez-vous"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : cliniques, rendez-vous",
+     "cases": [
+      {
+       "fiche": "Clinique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+       ]
+      },
+      {
+       "fiche": "RendezVous",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rappels de rendez-vous qu'il voit",
+        "clôture : choisit les rendez-vous de ses rappels de rendez-vous"
+       ],
+       "citations": [
+        "la réceptionniste définit des rappels de rendez-vous"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : jours fériés, rappels de rendez-vous, événements",
+     "cases": [
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Ajoutez des jours fériés"
+       ]
+      },
+      {
+       "fiche": "RappelRendezVous",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « la réceptionniste définit des rappels de rendez-vous »"
+       ],
+       "citations": [
+        "la réceptionniste définit des rappels de rendez-vous",
+        "la réceptionniste définit des rappels de rendez-vous"
+       ]
+      },
+      {
+       "fiche": "Evenement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Aperçu rapide des événements importants de la journée »",
+        "exception : « Mettez à jour et gérez le calendrier avec les événements et avis importants »",
+        "exception : « Mettez à jour et gérez le calendrier avec les événements et avis importants »"
+       ],
+       "citations": [
+        "Mettez à jour et gérez le calendrier avec les événements et avis importants",
+        "Aperçu rapide des événements importants de la journée",
+        "Mettez à jour et gérez le calendrier avec les événements et avis importants",
+        "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "patient",
+   "libelle": "Le patient",
+   "devient": "s'inscrit lui-même",
+   "citations": [
+    "Permet au patient de s'inscrire"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : médecins, cliniques, jours fériés",
+     "cases": [
+      {
+       "fiche": "Medecin",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les rendez-vous qu'il voit",
+        "clôture : choisit les médecins de ses rendez-vous"
+       ],
+       "citations": [
+        "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+       ]
+      },
+      {
+       "fiche": "Clinique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+       ]
+      },
+      {
+       "fiche": "JourFerie",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "Ajoutez des jours fériés"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : rendez-vous",
+     "cases": [
+      {
+       "fiche": "RendezVous",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité »"
+       ],
+       "citations": [
+        "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité",
+        "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son patient, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Patient",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement",
+        "exception : « Permet au patient de s'inscrire »"
+       ],
+       "citations": [
+        "L'administrateur de la clinique peut accuser réception de l'inscription du patient",
+        "Permet au patient de s'inscrire"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Patient",
+   "libelle": "patient",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "receptionInscriptionAccusee",
+     "libelle": "Réception de l'inscription accusée",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "accuser réception de l'inscription du patient"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Patient:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Patient:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Patient:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Patient:E-mail",
+     "libelle": "E-mail",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Patient:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+   ]
+  },
+  {
+   "fiche": "Medecin",
+   "libelle": "médecin",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "notificationEmail",
+     "libelle": "Notification par e-mail",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "définit la notification par e-mail pour les médecins"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Medecin:Nom",
+     "libelle": "Nom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Medecin:E-mail",
+     "libelle": "E-mail",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Medecin:Spécialité",
+     "libelle": "Spécialité",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Medecin:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+   ]
+  },
+  {
+   "fiche": "Clinique",
+   "libelle": "clinique",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Clinique:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Clinique:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Clinique:Modules activés",
+     "libelle": "Modules activés",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+   ]
+  },
+  {
+   "fiche": "RendezVous",
+   "libelle": "rendez-vous",
+   "nature": "collection",
+   "relie_a": [
+    "médecin",
+    "clinique"
+   ],
+   "champs": [
+    {
+     "nom": "prive",
+     "libelle": "Privé",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "le rendez-vous de chaque médecin peut être gardé privé"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:RendezVous:Date et heure",
+     "libelle": "Date et heure",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:RendezVous:Motif",
+     "libelle": "Motif",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:RendezVous:Durée",
+     "libelle": "Durée",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+   ]
+  },
+  {
+   "fiche": "Disponibilite",
+   "libelle": "disponibilité",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Disponibilite:Début",
+     "libelle": "Début",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Disponibilite:Fin",
+     "libelle": "Fin",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Disponibilite:Jour de la semaine",
+     "libelle": "Jour de la semaine",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "prendre rendez-vous avec un médecin selon sa disponibilité"
+   ]
+  },
+  {
+   "fiche": "JourFerie",
+   "libelle": "jour férié",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:JourFerie:Date",
+     "libelle": "Date",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Ajoutez des jours fériés"
+   ]
+  },
+  {
+   "fiche": "RappelRendezVous",
+   "libelle": "rappel de rendez-vous",
+   "nature": "registry",
+   "relie_a": [
+    "rendez-vous"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:RappelRendezVous:Date et heure d'envoi",
+     "libelle": "Date et heure d'envoi",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:RappelRendezVous:Canal (SMS, e-mail)",
+     "libelle": "Canal (SMS, e-mail)",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:RappelRendezVous:Message",
+     "libelle": "Message",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "la réceptionniste définit des rappels de rendez-vous"
+   ]
+  },
+  {
+   "fiche": "Evenement",
+   "libelle": "événement",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "important",
+     "libelle": "Important",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "les événements importants marqués"
+    },
+    {
+     "nom": "date",
+     "libelle": "Date",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "événements importants de la journée"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Evenement:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Evenement:Nature (événement ou avis)",
+     "libelle": "Nature (événement ou avis)",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Evenement:Heure",
+     "libelle": "Heure",
+     "type": "date et heure"
+    }
+   ],
+   "citations": [
+    "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+   ]
+  },
+  {
+   "fiche": "NoteEtatPatient",
+   "libelle": "note sur l'état du patient",
+   "nature": "registry",
+   "relie_a": [
+    "patient"
+   ],
+   "champs": [
+    {
+     "nom": "etat",
+     "libelle": "État du patient",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Prendre note de l'état du patient"
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+   ]
+  },
+  {
+   "fiche": "Ordonnance",
+   "libelle": "ordonnance",
+   "nature": "registry",
+   "relie_a": [
+    "patient"
+   ],
+   "champs": [
+    {
+     "nom": "medicaments",
+     "libelle": "Médicaments",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des ordonnances de médicaments"
+    },
+    {
+     "nom": "statut",
+     "libelle": "Statut",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Statut de l'ordonnance"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Ordonnance:Posologie",
+     "libelle": "Posologie",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Ordonnance:Durée du traitement",
+     "libelle": "Durée du traitement",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Gérer la prescription des patients"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [
+    "patient"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Détail des prestations",
+     "libelle": "Détail des prestations",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Facture:Payée",
+     "libelle": "Payée",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "générez une facture pour les patients"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "vu_via:administrateur:Medecin",
+   "sorte": "vu_via",
+   "texte": "L'administrateur de la clinique verra les médecins (ex. nom, coordonnées) affichés dans les rendez-vous qu'il traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rendez-vous qu'il voit"
+  },
+  {
+   "id": "registre_entier:medecin:Ordonnance",
+   "sorte": "registre_entier",
+   "texte": "Le médecin verra toutes les ordonnances, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "vu_via:infirmiere:Medecin",
+   "sorte": "vu_via",
+   "texte": "L'infirmière verra les médecins (ex. nom, coordonnées) affichés dans les rendez-vous qu'elle traite — est-ce acceptable ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rendez-vous qu'il voit"
+  },
+  {
+   "id": "registre_entier:infirmiere:NoteEtatPatient",
+   "sorte": "registre_entier",
+   "texte": "L'infirmière verra toutes les notes sur l'état du patient, pas seulement celles qui la concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:infirmiere:Ordonnance",
+   "sorte": "registre_entier",
+   "texte": "L'infirmière verra toutes les ordonnances, pas seulement celles qui la concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:receptionniste:RappelRendezVous",
+   "sorte": "registre_entier",
+   "texte": "La réceptionniste verra tous les rappels de rendez-vous, pas seulement ceux qui la concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité RappelRendezVous (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:receptionniste:Evenement",
+   "sorte": "registre_entier",
+   "texte": "La réceptionniste verra tous les événements, pas seulement ceux qui la concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Evenement (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Patient:nom",
+     "texte": "patient → « Nom »"
+    },
+    {
+     "id": "nom:Clinique:nom",
+     "texte": "clinique → « Nom »"
+    },
+    {
+     "id": "nom:Disponibilite:intitule",
+     "texte": "disponibilité → « Intitulé »"
+    },
+    {
+     "id": "nom:JourFerie:nom",
+     "texte": "jour férié → « Nom »"
+    },
+    {
+     "id": "nom:RappelRendezVous:intitule",
+     "texte": "rappel de rendez-vous → « Intitulé »"
+    },
+    {
+     "id": "nom:Evenement:intitule",
+     "texte": "événement → « Intitulé »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "facture → « Numéro »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

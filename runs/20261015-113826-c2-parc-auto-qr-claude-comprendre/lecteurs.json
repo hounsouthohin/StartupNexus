@@ -1,0 +1,594 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion de parc automobile pour une structure : des fiches interconnectées (suivi de parc, états des lieux d'entrée et de sortie, coût global) et des utilisateurs qui se connectent. Les autres besoins (QR code, e-mails automatiques, calculs, tableau de bord, planning, automatisations) viennent en plus et sont listés comme hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Lecture d'un QR code apposé sur chaque véhicule pour accéder directement à ses fiches",
+        "categorie": "autre",
+        "citation": "Lecture de QR code apposé sur chaque véhicule ... Lorsqu’on scanne, accès direct à toutes les fiches du véhicule"
+      },
+      {
+        "besoin": "Envoi automatique d'e-mails de rappel (entretien, état des lieux, etc.)",
+        "categorie": "notification",
+        "citation": "Envoi automatique d’e-mails (rappel entretien, etat des lieux, etc.)"
+      },
+      {
+        "besoin": "Calcul automatique des frais et du coût global du parc (entretien, réparation, assurance, amortissement)",
+        "categorie": "calcul_statistiques",
+        "citation": "Fiche coût global du parc ... Calcul automatique des frais (entretien, réparation, assurance, amortissement…)"
+      },
+      {
+        "besoin": "Mise à jour automatique d'autres fiches quand un état des lieux est saisi (planning, coût global)",
+        "categorie": "automatisation",
+        "citation": "un état des lieux déclenche une mise à jour du planning ou du coût global"
+      },
+      {
+        "besoin": "Planning (des entretiens / du parc)",
+        "categorie": "planning",
+        "citation": "une mise à jour du planning"
+      },
+      {
+        "besoin": "Tableau de bord global avec indicateurs (alertes, entretiens à venir)",
+        "categorie": "calcul_statistiques",
+        "citation": "Tableau de bord global avec indicateurs (alertes, entretiens à venir, etc.)"
+      },
+      {
+        "besoin": "Alertes automatiques",
+        "categorie": "automatisation",
+        "citation": "automatiser les calculs et alertes"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire_parc",
+        "libelle": "Gestionnaire de parc",
+        "libelle_pluriel": "Gestionnaires de parc",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "un outil complet de gestion de mon parc parc automobile"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "Utilisateur",
+        "libelle_pluriel": "Utilisateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gestionnaire_parc",
+        "citation": "Connexion sécurisée (multi-utilisateurs)"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Vehicule",
+        "libelle": "Véhicule",
+        "libelle_pluriel": "Véhicules",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Lecture de QR code apposé sur chaque véhicule"
+      },
+      {
+        "nom": "SuiviParc",
+        "libelle": "Suivi de parc auto",
+        "libelle_pluriel": "Suivis de parc auto",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche suivi de parc auto"
+      },
+      {
+        "nom": "EtatDesLieuxEntree",
+        "libelle": "État des lieux d’entrée",
+        "libelle_pluriel": "États des lieux d’entrée",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche état des lieux d’entrée"
+      },
+      {
+        "nom": "EtatDesLieuxSortie",
+        "libelle": "État des lieux de sortie",
+        "libelle_pluriel": "États des lieux de sortie",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche état des lieux de sortie"
+      },
+      {
+        "nom": "Entretien",
+        "libelle": "Entretien",
+        "libelle_pluriel": "Entretiens",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "rappel entretien ... entretiens à venir"
+      },
+      {
+        "nom": "Cout",
+        "libelle": "Coût",
+        "libelle_pluriel": "Coûts",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "Fiche coût global du parc ... Calcul automatique des frais (entretien, réparation, assurance, amortissement…)"
+      },
+      {
+        "nom": "Planning",
+        "libelle": "Planning",
+        "libelle_pluriel": "Plannings",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire_parc",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Vehicule"
+        ],
+        "citation": "un état des lieux déclenche une mise à jour du planning"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Vehicule",
+        "champs": [
+          {
+            "nom": "immatriculation",
+            "libelle": "Immatriculation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "codeQr",
+            "libelle": "QR code",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "QR code apposé sur chaque véhicule"
+          },
+          {
+            "nom": "etat",
+            "libelle": "État du véhicule",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "l’état de chaque véhicule"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Marque",
+            "type": "texte",
+            "raison": "Pour identifier le véhicule ; le brief ne la cite pas (le contenu des fiches doit être fourni par vos services)."
+          },
+          {
+            "libelle": "Modèle",
+            "type": "texte",
+            "raison": "Pour identifier le véhicule ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de mise en circulation",
+            "type": "date",
+            "raison": "Utile pour planifier les entretiens et calculer l'amortissement ; non citée."
+          },
+          {
+            "libelle": "Kilométrage",
+            "type": "nombre",
+            "raison": "Utile au suivi et aux rappels d'entretien ; non cité."
+          },
+          {
+            "libelle": "Prix d'achat",
+            "type": "montant",
+            "raison": "Nécessaire au calcul de l'amortissement mentionné dans le brief ; non cité comme information du véhicule."
+          }
+        ]
+      },
+      {
+        "fiche": "SuiviParc",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date du suivi",
+            "type": "date",
+            "raison": "Le brief ne précise pas le contenu de cette fiche (fourni par vos services) ; à confirmer."
+          },
+          {
+            "libelle": "Kilométrage relevé",
+            "type": "nombre",
+            "raison": "Utile au suivi en temps réel des véhicules ; non cité."
+          },
+          {
+            "libelle": "Observations",
+            "type": "texte_long",
+            "raison": "Pour noter les remarques du suivi ; non citées."
+          }
+        ]
+      },
+      {
+        "fiche": "EtatDesLieuxEntree",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure de l'état des lieux",
+            "type": "date_heure",
+            "raison": "Le contenu de la fiche doit être fourni par vos services ; information habituelle d'un état des lieux."
+          },
+          {
+            "libelle": "Kilométrage à l'entrée",
+            "type": "nombre",
+            "raison": "Information habituelle d'un état des lieux ; non citée."
+          },
+          {
+            "libelle": "Niveau de carburant",
+            "type": "texte",
+            "raison": "Information habituelle d'un état des lieux ; non citée."
+          },
+          {
+            "libelle": "Dommages constatés",
+            "type": "texte_long",
+            "raison": "Pour décrire l'état du véhicule à l'entrée ; non cités."
+          },
+          {
+            "libelle": "Nom de la personne présente",
+            "type": "texte",
+            "raison": "Pour savoir qui a réalisé ou signé l'état des lieux ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "EtatDesLieuxSortie",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure de l'état des lieux",
+            "type": "date_heure",
+            "raison": "Le contenu de la fiche doit être fourni par vos services ; information habituelle d'un état des lieux."
+          },
+          {
+            "libelle": "Kilométrage à la sortie",
+            "type": "nombre",
+            "raison": "Information habituelle d'un état des lieux ; non citée."
+          },
+          {
+            "libelle": "Niveau de carburant",
+            "type": "texte",
+            "raison": "Information habituelle d'un état des lieux ; non citée."
+          },
+          {
+            "libelle": "Dommages constatés",
+            "type": "texte_long",
+            "raison": "Pour décrire l'état du véhicule à la sortie ; non cités."
+          },
+          {
+            "libelle": "Nom de la personne présente",
+            "type": "texte",
+            "raison": "Pour savoir qui a réalisé ou signé l'état des lieux ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Entretien",
+        "champs": [
+          {
+            "nom": "dateEntretien",
+            "libelle": "Date de l'entretien",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "entretiens à venir"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Type d'entretien",
+            "type": "texte",
+            "raison": "Pour distinguer vidange, révision, contrôle technique, etc. ; non cité."
+          },
+          {
+            "libelle": "Montant de l'entretien",
+            "type": "montant",
+            "raison": "Le brief parle du calcul des frais d'entretien, mais ne dit pas si le montant est saisi sur l'entretien ou sur la fiche Coût."
+          },
+          {
+            "libelle": "Garage ou prestataire",
+            "type": "texte",
+            "raison": "Pour savoir qui a réalisé l'entretien ; non cité."
+          },
+          {
+            "libelle": "Kilométrage lors de l'entretien",
+            "type": "nombre",
+            "raison": "Utile pour programmer le prochain entretien ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "Cout",
+        "champs": [
+          {
+            "nom": "typeFrais",
+            "libelle": "Type de frais",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "entretien",
+              "réparation",
+              "assurance",
+              "amortissement"
+            ],
+            "origine": "brief",
+            "citation": "frais (entretien, réparation, assurance, amortissement…)"
+          },
+          {
+            "nom": "montant",
+            "libelle": "Montant",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Calcul automatique des frais"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de la dépense",
+            "type": "date",
+            "raison": "Pour suivre les coûts dans le temps ; non citée."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte",
+            "raison": "Pour préciser la nature de la dépense ; non citée."
+          },
+          {
+            "libelle": "Autres types de frais",
+            "type": "choix",
+            "raison": "La liste du brief se termine par « … » : il faut confirmer la liste complète des types de frais."
+          }
+        ]
+      },
+      {
+        "fiche": "Planning",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure de début",
+            "type": "date_heure",
+            "raison": "Un planning a normalement une période ; non citée."
+          },
+          {
+            "libelle": "Date et heure de fin",
+            "type": "date_heure",
+            "raison": "Un planning a normalement une période ; non citée."
+          },
+          {
+            "libelle": "Conducteur ou utilisateur",
+            "type": "texte",
+            "raison": "Pour savoir à qui le véhicule est attribué ; non cité."
+          },
+          {
+            "libelle": "Motif",
+            "type": "texte",
+            "raison": "Pour préciser l'usage prévu du véhicule ; non cité."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du parc automobile",
+    "fiches": [
+      {
+        "fiche": "SuiviParc",
+        "verbe_creation": "Ajouter un suivi",
+        "boutons": {}
+      },
+      {
+        "fiche": "EtatDesLieuxEntree",
+        "verbe_creation": "Faire l'état d'entrée",
+        "boutons": {}
+      },
+      {
+        "fiche": "EtatDesLieuxSortie",
+        "verbe_creation": "Faire l'état de sortie",
+        "boutons": {}
+      },
+      {
+        "fiche": "Entretien",
+        "verbe_creation": "Programmer un entretien",
+        "boutons": {}
+      },
+      {
+        "fiche": "Cout",
+        "verbe_creation": "Saisir un coût",
+        "boutons": {}
+      },
+      {
+        "fiche": "Planning",
+        "verbe_creation": "Planifier",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,8 +1,0 @@
-[
-  {
-    "project_name": "recipe-manager",
-    "brief": {
-      "description": "Une application de gestion de recettes de cuisine. Je crée des recettes avec un titre, une description, un temps de préparation (en minutes), un niveau de difficulté (facile, moyen, difficile) et une catégorie de cuisine (italienne, asiatique, française, autre). Chaque recette peut être en brouillon ou publiée. Les recettes publiées sont visibles par tout le monde sur une page publique. Je peux aussi ajouter des ingrédients à chaque recette — chaque ingrédient a un nom, une quantité et une unité. Je gère tout depuis mon tableau de bord privé."
-    }
-  }
-]

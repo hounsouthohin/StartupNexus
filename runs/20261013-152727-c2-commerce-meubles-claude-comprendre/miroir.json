@@ -1,0 +1,708 @@
+{
+ "titre": "Gestion du magasin",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Facturation des clients (factures produites à partir des commandes)",
+   "categorie": "document",
+   "citation": "Gestion et Suivi des commandes et facturations clients"
+  },
+  {
+   "besoin": "Suivi des encaissements clients (paiements reçus)",
+   "categorie": "paiement",
+   "citation": "Gestion et suivi des encaissements clients"
+  },
+  {
+   "besoin": "Gestion des stocks : calcul des quantités selon les entrées, les sorties et les réservations en contremarque",
+   "categorie": "calcul_statistiques",
+   "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+  },
+  {
+   "besoin": "Programmation des livraisons clients, complètes ou partielles",
+   "categorie": "planning",
+   "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+  },
+  {
+   "besoin": "Utilisation du logiciel en intranet (hébergement sur le réseau interne)",
+   "categorie": "autre",
+   "citation": "Utilisation du logiciel en intranet"
+  },
+  {
+   "besoin": "Application smartphone pour utiliser le logiciel",
+   "categorie": "mobile_hors_ligne",
+   "citation": "Utilisation du logiciel depuis smartphone, développement d'une application."
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur"
+  ],
+  "fiches": 9,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Clients, Fournisseurs, Références produits, Commandes clients, Factures, Encaissements, Commandes fournisseurs, Mouvements de stock",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "Gestion et suivi des encaissements clients",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "Fournisseur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "commandes fournisseurs lié à nos commandes clients",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "Base de données de nos références produits, avec prix",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "CommandeClient",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "Gestion et Suivi des commandes et facturations clients",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "commandes et facturations clients",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "Encaissement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "Gestion et suivi des encaissements clients",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "CommandeFournisseur",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "commandes fournisseurs lié à nos commandes clients",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      },
+      {
+       "fiche": "MouvementStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Livraisons : voit tout, en crée, les modifie, les supprime, les fait passer de « programmée » à « complète » ou « partielle »",
+     "cases": [
+      {
+       "fiche": "Livraison",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {
+         "programmee": [
+          "complete",
+          "partielle"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Liberté d'intervention en tant qu'administrateur sur la suppression de données »"
+       ],
+       "citations": [
+        "Programmation des Livraisons clients ( complété ou partielle )",
+        "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Livraison",
+   "texte": "La livraison commence « programmée » ; de « programmée », vers « complète » ou « partielle »",
+   "qui": [
+    "L'administrateur fait passer de « programmée » à « complète » ou « partielle »"
+   ],
+   "citations": [
+    "Programmation des Livraisons clients ( complété ou partielle )"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "Client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Gestion et suivi des encaissements clients"
+   ]
+  },
+  {
+   "fiche": "Fournisseur",
+   "libelle": "Fournisseur",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Fournisseur:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Fournisseur:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Fournisseur:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Fournisseur:Délai de livraison habituel (jours)",
+     "libelle": "Délai de livraison habituel (jours)",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "commandes fournisseurs lié à nos commandes clients"
+   ]
+  },
+  {
+   "fiche": "Produit",
+   "libelle": "Référence produit",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "designation",
+     "libelle": "Désignation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "prix",
+     "libelle": "Prix",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "nos références produits, avec prix"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Produit:Code référence",
+     "libelle": "Code référence",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Produit:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Produit:Dimensions",
+     "libelle": "Dimensions",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Produit:Prix d'achat",
+     "libelle": "Prix d'achat",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Base de données de nos références produits, avec prix"
+   ]
+  },
+  {
+   "fiche": "CommandeClient",
+   "libelle": "Commande client",
+   "nature": "registry",
+   "relie_a": [
+    "Client",
+    "Référence produit"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de commande",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CommandeClient:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:CommandeClient:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    },
+    {
+     "id": "garder:CommandeClient:Acompte versé",
+     "libelle": "Acompte versé",
+     "type": "montant"
+    },
+    {
+     "id": "garder:CommandeClient:Date de livraison souhaitée",
+     "libelle": "Date de livraison souhaitée",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Gestion et Suivi des commandes et facturations clients"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "Facture",
+   "nature": "registry",
+   "relie_a": [
+    "Client",
+    "Commande client"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de facture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Montant TTC",
+     "libelle": "Montant TTC",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "commandes et facturations clients"
+   ]
+  },
+  {
+   "fiche": "Encaissement",
+   "libelle": "Encaissement",
+   "nature": "registry",
+   "relie_a": [
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Encaissement:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Encaissement:Mode de paiement",
+     "libelle": "Mode de paiement",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Encaissement:Date d'encaissement",
+     "libelle": "Date d'encaissement",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Gestion et suivi des encaissements clients"
+   ]
+  },
+  {
+   "fiche": "CommandeFournisseur",
+   "libelle": "Commande fournisseur",
+   "nature": "registry",
+   "relie_a": [
+    "Fournisseur",
+    "Commande client"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de commande fournisseur",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CommandeFournisseur:Date de livraison prévue",
+     "libelle": "Date de livraison prévue",
+     "type": "date"
+    },
+    {
+     "id": "garder:CommandeFournisseur:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:CommandeFournisseur:Référence chez le fournisseur",
+     "libelle": "Référence chez le fournisseur",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "commandes fournisseurs lié à nos commandes clients"
+   ]
+  },
+  {
+   "fiche": "MouvementStock",
+   "libelle": "Mouvement de stock",
+   "nature": "registry",
+   "relie_a": [
+    "Référence produit",
+    "Commande client"
+   ],
+   "champs": [
+    {
+     "nom": "typeMouvement",
+     "libelle": "Type de mouvement",
+     "type": "choix parmi : entrée, sortie, réservation contremarque",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "suivi des stocks, entrée/sortie/ réservation contremarque"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:MouvementStock:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:MouvementStock:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+   ]
+  },
+  {
+   "fiche": "Livraison",
+   "libelle": "Livraison",
+   "nature": "registry",
+   "relie_a": [
+    "Commande client",
+    "Client"
+   ],
+   "champs": [
+    {
+     "nom": "dateLivraison",
+     "libelle": "Date de livraison prévue",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Programmation des Livraisons clients"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Livraison:Adresse de livraison",
+     "libelle": "Adresse de livraison",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Livraison:Créneau horaire",
+     "libelle": "Créneau horaire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Livraison:Remarques",
+     "libelle": "Remarques",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Programmation des Livraisons clients ( complété ou partielle )"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "Client → « Nom »"
+    },
+    {
+     "id": "nom:Fournisseur:nom",
+     "texte": "Fournisseur → « Nom »"
+    },
+    {
+     "id": "nom:Produit:designation",
+     "texte": "Référence produit → « Désignation »"
+    },
+    {
+     "id": "nom:CommandeClient:numero",
+     "texte": "Commande client → « Numéro de commande »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "Facture → « Numéro de facture »"
+    },
+    {
+     "id": "nom:Encaissement:reference",
+     "texte": "Encaissement → « Référence »"
+    },
+    {
+     "id": "nom:CommandeFournisseur:numero",
+     "texte": "Commande fournisseur → « Numéro de commande fournisseur »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,316 @@
+{
+  "app": {
+    "nom": "c2-support-interventions",
+    "titre": "Gestion interventions"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur possède le choix"
+      },
+      {
+        "id": "agent",
+        "label": "agent",
+        "label_plural": "agents",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "un agent peut alors remplir un formulaire"
+      }
+    ],
+    "entities": [
+      {
+        "name": "CompteAgent",
+        "label": "compte agent",
+        "label_plural": "comptes agents",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "agent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "on peut s'enregister et cérer des comptes utilisatuers avec des permissions différentes"
+      },
+      {
+        "name": "CompteAdministrateur",
+        "label": "compte administrateur",
+        "label_plural": "comptes administrateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "on peut s'enregister et cérer des comptes utilisatuers avec des permissions différentes"
+      },
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "agent"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "description du problème d'un client"
+      },
+      {
+        "name": "Intervention",
+        "label": "intervention",
+        "label_plural": "interventions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "agent",
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "enregistre",
+          "transitions": {
+            "enregistre": [
+              "envoye"
+            ],
+            "envoye": [
+              "traite"
+            ],
+            "traite": [
+              "supprime",
+              "commente",
+              "mis_en_knowledge_base"
+            ],
+            "supprime": [],
+            "commente": [],
+            "mis_en_knowledge_base": []
+          },
+          "initiator": "agent",
+          "decider": "agent",
+          "steps_by": {
+            "traite": "administrateur"
+          },
+          "labels": {
+            "enregistre": "enregistré",
+            "envoye": "envoyé",
+            "traite": "traité",
+            "supprime": "supprimé",
+            "commente": "commenté",
+            "mis_en_knowledge_base": "mis dans une knowledge base"
+          },
+          "citation": "dès que l'agent a traité une intervention celle ci est marqué comme traité et l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+        },
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client ,ce  formulaire peut ensuite être enregistré dans la base"
+      },
+      {
+        "name": "EntreeKnowledgeBase",
+        "label": "entrée de knowledge base",
+        "label_plural": "entrées de knowledge base",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Intervention"
+        ],
+        "process": null,
+        "citation": "mettre dans une knowledge base pour se servir comme référence en cas de problème similaire"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "agent",
+        "entity": "Intervention",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un agent peut alors remplir un formulaire contenant une description du problème d'un client"
+      },
+      {
+        "actor": "agent",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "envoye": [
+            "traite"
+          ]
+        },
+        "citation": "l'agent a traité une intervention celle ci est marqué comme traité"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Intervention",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "traite"
+        ],
+        "transitions": {},
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "traite"
+        ],
+        "transitions": {
+          "traite": [
+            "commente"
+          ]
+        },
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Intervention",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "traite"
+        ],
+        "transitions": {
+          "traite": [
+            "mis_en_knowledge_base"
+          ]
+        },
+        "citation": "l'administrateur possède le choix soit de la supprimier,commenté ou mettre dans une knowledge base"
+      }
+    ]
+  },
+  "champs": {
+    "CompteAgent": [
+      {
+        "nom": "permissions",
+        "libelle": "Permissions",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "comptes utilisatuers avec des permissions différentes"
+      }
+    ],
+    "CompteAdministrateur": [
+      {
+        "nom": "permissions",
+        "libelle": "Permissions",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "comptes utilisatuers avec des permissions différentes"
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Intervention": [
+      {
+        "nom": "descriptionProbleme",
+        "libelle": "Description du problème",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "formulaire contenant une description du problème d'un client"
+      },
+      {
+        "nom": "date",
+        "libelle": "Date",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "interventions sont classés par date"
+      },
+      {
+        "nom": "commentaire",
+        "libelle": "Commentaire",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "commenté"
+      }
+    ],
+    "EntreeKnowledgeBase": [
+      {
+        "nom": "titre",
+        "libelle": "Titre",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Intervention": {
+      "verbe_creation": "Créer une intervention",
+      "boutons": {
+        "commente": "Commenter",
+        "envoye": "Envoyer",
+        "mis_en_knowledge_base": "Mettre en knowledge base",
+        "supprime": "Supprimer",
+        "traite": "Marquer traité"
+      }
+    },
+    "EntreeKnowledgeBase": {
+      "verbe_creation": "Ajouter à la knowledge base",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

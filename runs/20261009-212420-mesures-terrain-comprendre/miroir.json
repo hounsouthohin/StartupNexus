@@ -1,0 +1,209 @@
+{
+ "titre": "Gestion des commandes",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Planning logistique",
+   "categorie": "planning",
+   "citation": "un planning logistique"
+  },
+  {
+   "besoin": "Automatisation de la gestion des livrables",
+   "categorie": "automatisation",
+   "citation": "une automatisation de la gestion des livrables"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le responsable des commandes"
+  ],
+  "fiches": 3,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "responsable_des_commandes",
+   "libelle": "Le responsable des commandes",
+   "devient": "responsable de l'app",
+   "citations": [
+    "gestion des commandes"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : commandes, plannings logistiques, livrables",
+     "cases": [
+      {
+       "fiche": "Commande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion de commande"
+       ]
+      },
+      {
+       "fiche": "PlanningLogistique",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "un planning logistique"
+       ]
+      },
+      {
+       "fiche": "Livrable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des livrables"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Commande",
+   "libelle": "commande",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion de commande"
+   ]
+  },
+  {
+   "fiche": "PlanningLogistique",
+   "libelle": "planning logistique",
+   "nature": "registry",
+   "relie_a": [
+    "commande"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "un planning logistique"
+   ]
+  },
+  {
+   "fiche": "Livrable",
+   "libelle": "livrable",
+   "nature": "registry",
+   "relie_a": [
+    "commande"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "gestion des livrables"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Commande:intitule",
+     "texte": "commande → « Intitulé »"
+    },
+    {
+     "id": "nom:PlanningLogistique:intitule",
+     "texte": "planning logistique → « Intitulé »"
+    },
+    {
+     "id": "nom:Livrable:intitule",
+     "texte": "livrable → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

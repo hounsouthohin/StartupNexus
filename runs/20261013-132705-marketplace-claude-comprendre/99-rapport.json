@@ -1,0 +1,15 @@
+{
+  "run": "20261013-132705-marketplace-claude-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-marketplace",
+  "modele": "boite",
+  "verdict": "HORS PÉRIMÈTRE (aucune description produite)",
+  "depense": {
+    "modele": "boite",
+    "appels": 1,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-13T13:27:56"
+}

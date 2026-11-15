@@ -1,0 +1,15 @@
+{
+  "run": "20261009-212754-marketplace-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-marketplace",
+  "modele": "gpt-5.5",
+  "verdict": "HORS PÉRIMÈTRE (aucune description produite)",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 1,
+    "jetons_entree": 788,
+    "jetons_sortie": 817,
+    "dollars": 0.0284,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:28:04"
+}

@@ -1,0 +1,400 @@
+{
+  "app": {
+    "nom": "c2-flotte-assurance",
+    "titre": "Gestion de flotte"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes un cabinet d’assurance"
+      },
+      {
+        "id": "souscripteur",
+        "label": "Souscripteur",
+        "label_plural": "Souscripteurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "mettre à disposition de nos clients un outils de gestion de leur parc auto"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "administrateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Identifiant et mot de passe"
+      },
+      {
+        "name": "Souscripteur",
+        "label": "souscripteur",
+        "label_plural": "souscripteurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "souscripteur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "name": "Contrat",
+        "label": "contrat",
+        "label_plural": "contrats",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "souscripteur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "administrateur",
+        "parent": null,
+        "references": [],
+        "citation": "Qui détient 1 ou plusieurs contrats"
+      },
+      {
+        "name": "Vehicule",
+        "label": "véhicule",
+        "label_plural": "véhicules",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Contrat",
+        "references": [],
+        "citation": "permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation)"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Souscripteur",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Souscripteur",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Souscripteur",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Contrat",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Contrat",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Contrat",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création / modification / suppression : de souscripteur et de flotte"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Vehicule",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Avec possibilité d’import fichier excel pour alimenter la flotte"
+      },
+      {
+        "actor": "souscripteur",
+        "entity": "Vehicule",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation)"
+      },
+      {
+        "actor": "souscripteur",
+        "entity": "Vehicule",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation)"
+      },
+      {
+        "actor": "souscripteur",
+        "entity": "Vehicule",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "possibilité de filtrer l’affichage des véhicules si sortis ou non"
+      }
+    ]
+  },
+  "champs": {
+    "Administrateur": [
+      {
+        "nom": "identifiant",
+        "libelle": "Identifiant",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Identifiant et mot de passe"
+      },
+      {
+        "nom": "motDePasse",
+        "libelle": "Mot de passe",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Identifiant et mot de passe"
+      },
+      {
+        "nom": "email",
+        "libelle": "Adresse email",
+        "type": "email",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Adresse email"
+      }
+    ],
+    "Souscripteur": [
+      {
+        "nom": "raisonSociale",
+        "libelle": "Raison sociale",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Raison sociale"
+      },
+      {
+        "nom": "identifiant",
+        "libelle": "Identifiant",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "identifiant"
+      },
+      {
+        "nom": "motDePasse",
+        "libelle": "Mot de passe",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "mot de passe"
+      },
+      {
+        "nom": "adresse",
+        "libelle": "Adresse",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Adresse"
+      },
+      {
+        "nom": "codePostal",
+        "libelle": "Code postal",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Code postal"
+      },
+      {
+        "nom": "ville",
+        "libelle": "Ville",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Ville"
+      },
+      {
+        "nom": "email",
+        "libelle": "Email",
+        "type": "email",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "email"
+      }
+    ],
+    "Contrat": [
+      {
+        "nom": "numeroContrat",
+        "libelle": "Numéro de contrat",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Numéro de contrat"
+      },
+      {
+        "nom": "echeance",
+        "libelle": "Échéance",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Echéance"
+      }
+    ],
+    "Vehicule": [
+      {
+        "nom": "immatriculation",
+        "libelle": "Immatriculation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Immatriculation"
+      },
+      {
+        "nom": "marque",
+        "libelle": "Marque",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Marque"
+      },
+      {
+        "nom": "modele",
+        "libelle": "Modèle",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Modèle"
+      },
+      {
+        "nom": "categorie",
+        "libelle": "Catégorie",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "voiture_a",
+            "libelle": "Voiture : A"
+          },
+          {
+            "code": "moto_b",
+            "libelle": "Moto : B"
+          },
+          {
+            "code": "camion_c",
+            "libelle": "Camion : C"
+          },
+          {
+            "code": "tracteur_c",
+            "libelle": "Tracteur : C"
+          },
+          {
+            "code": "autobus_ou_autocar_e",
+            "libelle": "Autobus ou autocar : E"
+          },
+          {
+            "code": "remorque_f",
+            "libelle": "Remorque : F"
+          },
+          {
+            "code": "autre_e",
+            "libelle": "Autre : E"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Voiture : A"
+      },
+      {
+        "nom": "dateEntree",
+        "libelle": "Date d'entrée",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Date d’entrée"
+      },
+      {
+        "nom": "dateSortie",
+        "libelle": "Date de sortie",
+        "type": "date",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Date de sortie"
+      }
+    ]
+  },
+  "ecran": {
+    "Vehicule": {
+      "verbe_creation": "Ajouter un véhicule",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

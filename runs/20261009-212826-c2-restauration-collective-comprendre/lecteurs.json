@@ -1,0 +1,592 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est une application web de gestion interne pour une société, avec base centralisée, rôles utilisateurs et workflow de validation.",
+    "hors_stock": [
+      {
+        "besoin": "Gestion de stock / achats / inventaires avec logique métier de quantités",
+        "categorie": "calcul_statistiques",
+        "citation": "gestion des stocks, achats, inventaires"
+      },
+      {
+        "besoin": "Calcul du coût des repas",
+        "categorie": "calcul_statistiques",
+        "citation": "coût des repas"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "facturation"
+      },
+      {
+        "besoin": "Tableaux de bord consolidés",
+        "categorie": "calcul_statistiques",
+        "citation": "tableaux de bord consolidés"
+      },
+      {
+        "besoin": "Reporting détaillé",
+        "categorie": "calcul_statistiques",
+        "citation": "reporting détaillé par site et au niveau global"
+      },
+      {
+        "besoin": "Exports Excel/PDF",
+        "categorie": "document",
+        "citation": "exports Excel/PDF"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre société de restauration collective multi-sites"
+      },
+      {
+        "id": "utilisateur",
+        "libelle": "Utilisateur",
+        "libelle_pluriel": "Utilisateurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "avec gestion des rôles utilisateurs"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "ProfilAdministrateur",
+        "libelle": "profil administrateur",
+        "libelle_pluriel": "profils administrateur",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "administrateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "RoleUtilisateur"
+        ],
+        "citation": "gestion des rôles utilisateurs"
+      },
+      {
+        "nom": "ProfilUtilisateur",
+        "libelle": "profil utilisateur",
+        "libelle_pluriel": "profils utilisateur",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "utilisateur",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "RoleUtilisateur"
+        ],
+        "citation": "gestion des rôles utilisateurs"
+      },
+      {
+        "nom": "RoleUtilisateur",
+        "libelle": "rôle utilisateur",
+        "libelle_pluriel": "rôles utilisateurs",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion des rôles utilisateurs"
+      },
+      {
+        "nom": "Site",
+        "libelle": "site",
+        "libelle_pluriel": "sites",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "restauration collective multi-sites"
+      },
+      {
+        "nom": "Stock",
+        "libelle": "stock",
+        "libelle_pluriel": "stocks",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "gestion des stocks"
+      },
+      {
+        "nom": "Achat",
+        "libelle": "achat",
+        "libelle_pluriel": "achats",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "achats"
+      },
+      {
+        "nom": "Inventaire",
+        "libelle": "inventaire",
+        "libelle_pluriel": "inventaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Stock"
+        ],
+        "citation": "inventaires"
+      },
+      {
+        "nom": "Recette",
+        "libelle": "recette",
+        "libelle_pluriel": "recettes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "recettes"
+      },
+      {
+        "nom": "CoutRepas",
+        "libelle": "coût des repas",
+        "libelle_pluriel": "coûts des repas",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site",
+          "Recette"
+        ],
+        "citation": "coût des repas"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "facturation"
+      },
+      {
+        "nom": "Depense",
+        "libelle": "dépense",
+        "libelle_pluriel": "dépenses",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "dépenses"
+      },
+      {
+        "nom": "DossierRh",
+        "libelle": "dossier RH",
+        "libelle_pluriel": "dossiers RH",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "utilisateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Site"
+        ],
+        "citation": "RH"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "ProfilAdministrateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "ProfilUtilisateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "RoleUtilisateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Site",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Stock",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Achat",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Inventaire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Recette",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "CoutRepas",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Depense",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "DossierRh",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion restauration",
+    "fiches": [
+      {
+        "fiche": "ProfilAdministrateur",
+        "verbe_creation": "Créer un profil administrateur",
+        "boutons": {}
+      },
+      {
+        "fiche": "ProfilUtilisateur",
+        "verbe_creation": "Créer un profil utilisateur",
+        "boutons": {}
+      },
+      {
+        "fiche": "Stock",
+        "verbe_creation": "Gérer le stock",
+        "boutons": {}
+      },
+      {
+        "fiche": "Achat",
+        "verbe_creation": "Saisir un achat",
+        "boutons": {}
+      },
+      {
+        "fiche": "Inventaire",
+        "verbe_creation": "Réaliser un inventaire",
+        "boutons": {}
+      },
+      {
+        "fiche": "Recette",
+        "verbe_creation": "Créer une recette",
+        "boutons": {}
+      },
+      {
+        "fiche": "CoutRepas",
+        "verbe_creation": "Calculer le coût des repas",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Créer une facture",
+        "boutons": {}
+      },
+      {
+        "fiche": "Depense",
+        "verbe_creation": "Saisir une dépense",
+        "boutons": {}
+      },
+      {
+        "fiche": "DossierRh",
+        "verbe_creation": "Créer un dossier RH",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 735,
+      "jetons_sortie": 708
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 621,
+      "jetons_sortie": 561
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1049,
+      "jetons_sortie": 3511
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 932,
+      "jetons_sortie": 93
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1045,
+      "jetons_sortie": 159
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1515,
+      "jetons_sortie": 1096
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 977,
+      "jetons_sortie": 744
+    }
+  ]
+}

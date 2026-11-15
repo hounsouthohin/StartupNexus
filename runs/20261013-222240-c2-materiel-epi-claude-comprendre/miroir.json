@@ -1,0 +1,265 @@
+{
+ "titre": "Gestion EPI montagne",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Calcul automatique de l'amortissement de la valeur de chaque matériel selon les années",
+   "categorie": "calcul_statistiques",
+   "citation": "amortissements de la valeur en fonction des années"
+  },
+  {
+   "besoin": "Édition (document généré) d'une fiche de suivi individuelle par matériel",
+   "categorie": "document",
+   "citation": "édition d'une fiche de suivie individuelle"
+  },
+  {
+   "besoin": "Vue de synthèse des stocks et des valeurs, avec le montant d'amortissement par exercice comptable, pour la comptabilité",
+   "categorie": "calcul_statistiques",
+   "citation": "visualisation des stocks, valeurs, montant d'amortissement par exercice pour la compta"
+  },
+  {
+   "besoin": "Alertes à date pour la péremption du matériel et pour les vérifications à faire",
+   "categorie": "notification",
+   "citation": "alerte péremption et vérification à la date"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gestionnaire du matériel"
+  ],
+  "fiches": 2,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gestionnaire",
+   "libelle": "Le gestionnaire du matériel",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Gestion matériel epi montagne et amortissement"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Matériels",
+     "cases": [
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « application de saisie des matériels »",
+        "exception : « visualisation des stocks, valeurs »"
+       ],
+       "citations": [
+        "saisie des matériels, date de fabrication, fin de vie",
+        "application de saisie des matériels",
+        "visualisation des stocks, valeurs"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : Vérifications (dans chaque Matériel)",
+     "cases": [
+      {
+       "fiche": "Verification",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « saisie des vérifications pour chaque matériel »",
+        "enfant de Matériel : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "saisie des vérifications pour chaque matériel",
+        "saisie des matériels, date de fabrication, fin de vie",
+        "application de saisie des matériels",
+        "visualisation des stocks, valeurs"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Materiel",
+   "libelle": "Matériel",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "designation",
+     "libelle": "Désignation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "dateFabrication",
+     "libelle": "Date de fabrication",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "date de fabrication"
+    },
+    {
+     "nom": "dateFinVie",
+     "libelle": "Date de fin de vie",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "fin de vie"
+    },
+    {
+     "nom": "valeur",
+     "libelle": "Valeur",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "amortissements de la valeur"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Materiel:Numéro de série",
+     "libelle": "Numéro de série",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Materiel:Marque / modèle",
+     "libelle": "Marque / modèle",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Materiel:Catégorie de matériel",
+     "libelle": "Catégorie de matériel",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Materiel:Date d'achat / de mise en service",
+     "libelle": "Date d'achat / de mise en service",
+     "type": "date"
+    },
+    {
+     "id": "garder:Materiel:Durée d'amortissement (années)",
+     "libelle": "Durée d'amortissement (années)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Materiel:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Materiel:Date de prochaine vérification",
+     "libelle": "Date de prochaine vérification",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "saisie des matériels, date de fabrication, fin de vie"
+   ]
+  },
+  {
+   "fiche": "Verification",
+   "libelle": "Vérification",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque Matériel"
+   ],
+   "champs": [
+    {
+     "nom": "dateVerification",
+     "libelle": "Date de vérification",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "vérification à la date"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Verification:Résultat (conforme / non conforme)",
+     "libelle": "Résultat (conforme / non conforme)",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Verification:Vérificateur",
+     "libelle": "Vérificateur",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Verification:Observations",
+     "libelle": "Observations",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Verification:Date de la prochaine vérification",
+     "libelle": "Date de la prochaine vérification",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "saisie des vérifications pour chaque matériel"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Materiel:designation",
+     "texte": "Matériel → « Désignation »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

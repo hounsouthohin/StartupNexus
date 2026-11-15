@@ -1,0 +1,1986 @@
+{
+ "titre": "Gestion POSE",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:portee:designe] client / Equipement : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] client / PassagePrevu : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] client / RapportMaintenance : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit)",
+   "[bloc:portee:designe] client / DocumentEquipement : « les siennes » sur des fiches qu'il ne possède pas (sans propriétaire) — « celles qui le désignent » arrive en N1.3 (bloc pas encore construit) [type=value_error, input_value={'app': {'nom': 'c2-clotu...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "portee:designe"
+  ],
+  "pas_encore": [
+   "⚠ Le client (collectivité) ne verra pas les équipements qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le client (collectivité) ne verra pas les passages prévus qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le client (collectivité) ne verra pas les rapports de maintenance qui le concernent (voir celles qui le désignent : pas encore possible)",
+   "⚠ Le client (collectivité) ne verra pas les documents d'équipement qui le concernent (voir celles qui le désignent : pas encore possible)"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Site internet vitrine présentant l'activité de l'entreprise",
+   "categorie": "autre",
+   "citation": "Créer un site représentatif de l'activité de notre entreprise moderne, épurée, classe ou serait présenté notre activité"
+  },
+  {
+   "besoin": "Application mobile native iOS et Android en plus de l'interface web",
+   "categorie": "mobile_hors_ligne",
+   "citation": "Accès interface web et via application ... accessible via une application mobile (iOS, Android)"
+  },
+  {
+   "besoin": "Suivi des accès individuels (traçabilité de qui se connecte et fait quoi)",
+   "categorie": "autre",
+   "citation": "accès individuels avec possibilité de suivi"
+  },
+  {
+   "besoin": "Interface multilingue",
+   "categorie": "autre",
+   "citation": "multilingue"
+  },
+  {
+   "besoin": "Consultation des plannings par le client dans son portail",
+   "categorie": "planning",
+   "citation": "consulter leurs équipements, plannings et rapports"
+  },
+  {
+   "besoin": "Notifications automatiques au client pour les interventions réalisées",
+   "categorie": "notification",
+   "citation": "notifications automatiques pour informer des interventions réalisées"
+  },
+  {
+   "besoin": "Exports des rapports en Excel et PDF",
+   "categorie": "document",
+   "citation": "exportations possibles (Excel, PDF)"
+  },
+  {
+   "besoin": "Planning prévisionnel des passages visible par le client",
+   "categorie": "planning",
+   "citation": "Planning prévisionnel de passage"
+  },
+  {
+   "besoin": "Documents joints aux équipements (certificats, notices, fiches techniques)",
+   "categorie": "fichiers_photos",
+   "citation": "listing des équipements avec documentations"
+  },
+  {
+   "besoin": "Tableau de bord global par mois, par équipe et par client",
+   "categorie": "calcul_statistiques",
+   "citation": "tableau de bord global (par mois, par équipe, par client)"
+  },
+  {
+   "besoin": "Statistiques et reporting sur le temps passé, les coûts et les interventions",
+   "categorie": "calcul_statistiques",
+   "citation": "statistiques et reporting (temps passé, coûts, interventions)"
+  },
+  {
+   "besoin": "Chat intégré type WhatsApp par chantier ou par client",
+   "categorie": "messagerie",
+   "citation": "chat intégré type WhatsApp, par chantier ou par client"
+  },
+  {
+   "besoin": "Notifications liées aux échanges",
+   "categorie": "notification",
+   "citation": "notifications et échanges documentés"
+  },
+  {
+   "besoin": "Envoi de photos HD, fichiers et messages vocaux dans les échanges",
+   "categorie": "fichiers_photos",
+   "citation": "photos HD, fichiers, messages vocaux"
+  },
+  {
+   "besoin": "Historique des discussions",
+   "categorie": "messagerie",
+   "citation": "historisation des discussions"
+  },
+  {
+   "besoin": "Traduction vocale",
+   "categorie": "autre",
+   "citation": "utilisation de la traduction vocale"
+  },
+  {
+   "besoin": "Réservation de matériel par les techniciens (disponibilité)",
+   "categorie": "planning",
+   "citation": "réserver matériels"
+  },
+  {
+   "besoin": "Planning du personnel avec vue par chantier et par équipe",
+   "categorie": "planning",
+   "citation": "Organisation du planning du personnel ... vue par chantier/par équipe"
+  },
+  {
+   "besoin": "Gestion des ressources matérielles dans le planning",
+   "categorie": "planning",
+   "citation": "gestion des ressources matérielles"
+  },
+  {
+   "besoin": "Paramétrage et filtres personnalisables par l'utilisateur",
+   "categorie": "autre",
+   "citation": "paramétrage et filtres personnalisables"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant",
+   "Le technicien",
+   "Le chargé de dépôt",
+   "Le client (collectivité)"
+  ],
+  "fiches": 19,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Voit tout : activités",
+     "cases": [
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "catalogue public : visible des visiteurs",
+        "exception : « site internet accessible à tous »"
+       ],
+       "citations": [
+        "ou serait présenté notre activité",
+        "site internet accessible à tous"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "La société POSE, spécialisée dans la pose de clôtures, portails et aires de jeux, souhaite mettre en place"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : clients, demandes d'intervention, matériels",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les sites qu'il voit",
+        "clôture : choisit les clients de ses sites"
+       ],
+       "citations": [
+        "Gestion des sites"
+       ]
+      },
+      {
+       "fiche": "DemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les interventions qu'il voit",
+        "clôture : choisit les demandes d'intervention de ses interventions"
+       ],
+       "citations": [
+        "informer des interventions réalisées"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "gestion des ressources matérielles"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : activités, sites, équipements, chantiers, équipes, affectations, catégories d'intervention, interventions, rapports de maintenance, passages prévus, discussions",
+     "cases": [
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "ou serait présenté notre activité"
+       ]
+      },
+      {
+       "fiche": "Site",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des sites"
+       ]
+      },
+      {
+       "fiche": "Equipement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "listing des équipements avec documentations"
+       ]
+      },
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "le suivi et la conduite des chantiers"
+       ]
+      },
+      {
+       "fiche": "Equipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "affectation des équipes"
+       ]
+      },
+      {
+       "fiche": "Affectation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Organisation du planning du personnel"
+       ]
+      },
+      {
+       "fiche": "CategorieIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      },
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "informer des interventions réalisées"
+       ]
+      },
+      {
+       "fiche": "RapportMaintenance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+       ]
+      },
+      {
+       "fiche": "PassagePrevu",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Planning prévisionnel de passage"
+       ]
+      },
+      {
+       "fiche": "Discussion",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : documents d'équipement (dans chaque équipement), messages (dans chaque discussion)",
+     "cases": [
+      {
+       "fiche": "DocumentEquipement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de équipement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "listing des équipements avec documentations"
+       ]
+      },
+      {
+       "fiche": "Message",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de discussion : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Demandes de devis : voit tout, les fait passer de « rouge » à « orange », les fait passer de « orange » à « vert »",
+     "cases": [
+      {
+       "fiche": "DemandeDevis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "rouge": [
+          "orange"
+         ],
+         "orange": [
+          "vert"
+         ]
+        }
+       },
+       "pourquoi": [
+        "décideur du processus : voit tout et fait évoluer l'état"
+       ],
+       "citations": [
+        "suivi des demandes (rouge, orange, vert)"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "technicien",
+   "libelle": "Le technicien",
+   "devient": "invité par gerant",
+   "citations": [
+    "possibilité pour nos techniciens d’envoyer des commandes"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : clients, activités, chantiers, équipes, catégories d'intervention, demandes d'intervention, matériels",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les interventions qu'il voit",
+        "clôture : choisit les clients de ses interventions"
+       ],
+       "citations": [
+        "informer des interventions réalisées"
+       ]
+      },
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "ou serait présenté notre activité"
+       ]
+      },
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les discussions qu'il voit",
+        "clôture : choisit les chantiers de ses discussions"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      },
+      {
+       "fiche": "Equipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les interventions qu'il voit",
+        "clôture : choisit les équipes de ses interventions"
+       ],
+       "citations": [
+        "informer des interventions réalisées"
+       ]
+      },
+      {
+       "fiche": "CategorieIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      },
+      {
+       "fiche": "DemandeIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les interventions qu'il voit",
+        "clôture : choisit les demandes d'intervention de ses interventions"
+       ],
+       "citations": [
+        "informer des interventions réalisées"
+       ]
+      },
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les bons de commande qu'il voit",
+        "clôture : choisit les matériels de ses bons de commande"
+       ],
+       "citations": [
+        "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : interventions, rapports de maintenance, discussions",
+     "cases": [
+      {
+       "fiche": "Intervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "informer des interventions réalisées"
+       ]
+      },
+      {
+       "fiche": "RapportMaintenance",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+       ]
+      },
+      {
+       "fiche": "Discussion",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : messages (dans chaque discussion)",
+     "cases": [
+      {
+       "fiche": "Message",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de discussion : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "chat intégré type WhatsApp, par chantier ou par client"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : bons de commande, réservations de matériel",
+     "cases": [
+      {
+       "fiche": "BonDeCommande",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt »"
+       ],
+       "citations": [
+        "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt",
+        "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+       ]
+      },
+      {
+       "fiche": "ReservationMateriel",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens",
+        "exception : « possibilité pour nos techniciens »"
+       ],
+       "citations": [
+        "et de réserver matériels",
+        "possibilité pour nos techniciens"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "charge_de_depot",
+   "libelle": "Le chargé de dépôt",
+   "devient": "invité par gerant",
+   "citations": [
+    "envoyer des commandes à notre chargé de dépôt"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : activités, catégories d'intervention",
+     "cases": [
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "ou serait présenté notre activité"
+       ]
+      },
+      {
+       "fiche": "CategorieIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : matériels",
+     "cases": [
+      {
+       "fiche": "Materiel",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des ressources matérielles"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "client",
+   "libelle": "Le client (collectivité)",
+   "devient": "invité par gerant",
+   "citations": [
+    "portail client dédié pour consulter leurs équipements, plannings et rapports"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : activités, catégories d'intervention",
+     "cases": [
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "ou serait présenté notre activité"
+       ]
+      },
+      {
+       "fiche": "CategorieIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "classé par catégorie"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : demandes d'intervention",
+     "cases": [
+      {
+       "fiche": "DemandeIntervention",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "Demande d’intervention"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes et crée : demandes de devis",
+     "cases": [
+      {
+       "fiche": "DemandeDevis",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "exception : « suivi des demandes (rouge, orange, vert) »"
+       ],
+       "citations": [
+        "suivi des demandes (rouge, orange, vert)",
+        "suivi des demandes (rouge, orange, vert)"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son client, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "PROFIL PERSONNALISE (soit à nos clients (collectivités, communes)"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "DemandeDevis",
+   "texte": "La demande de devis passe par : « rouge » → « orange » → « vert »",
+   "qui": [
+    "Le gérant fait passer de « rouge » à « orange »",
+    "Le gérant fait passer de « orange » à « vert »"
+   ],
+   "citations": [
+    "suivi des demandes (rouge, orange, vert)"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Client",
+   "libelle": "client",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Type de client (collectivité, commune)",
+     "libelle": "Type de client (collectivité, commune)",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Client:Email de contact",
+     "libelle": "Email de contact",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Langue préférée",
+     "libelle": "Langue préférée",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "PROFIL PERSONNALISE (soit à nos clients (collectivités, communes)"
+   ]
+  },
+  {
+   "fiche": "Activite",
+   "libelle": "activité",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Activite:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Activite:Photo",
+     "libelle": "Photo",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "ou serait présenté notre activité"
+   ]
+  },
+  {
+   "fiche": "Site",
+   "libelle": "site",
+   "nature": "registry",
+   "relie_a": [
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Site:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Site:Commune",
+     "libelle": "Commune",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Gestion des sites"
+   ]
+  },
+  {
+   "fiche": "Equipement",
+   "libelle": "équipement",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "typeEquipement",
+     "libelle": "Type d'équipement",
+     "type": "choix parmi : jeux, agrès, panneaux, sols, clôtures",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "état du patrimoine (jeux, agrès, panneaux, sols, clôtures)"
+    },
+    {
+     "nom": "etat",
+     "libelle": "État",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Etat des équipements"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Equipement:Nom ou désignation",
+     "libelle": "Nom ou désignation",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Equipement:Date d'installation",
+     "libelle": "Date d'installation",
+     "type": "date"
+    },
+    {
+     "id": "garder:Equipement:Fabricant ou référence produit",
+     "libelle": "Fabricant ou référence produit",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Equipement:Valeurs possibles de l'état",
+     "libelle": "Valeurs possibles de l'état",
+     "type": "choix"
+    }
+   ],
+   "citations": [
+    "listing des équipements avec documentations"
+   ]
+  },
+  {
+   "fiche": "DocumentEquipement",
+   "libelle": "document d'équipement",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque équipement"
+   ],
+   "champs": [
+    {
+     "nom": "typeDocument",
+     "libelle": "Type de document",
+     "type": "choix parmi : certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "documentations (certificat de conformité, notice de montage, fiche technique, fiche produit, notice d’entretien)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DocumentEquipement:Fichier du document",
+     "libelle": "Fichier du document",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:DocumentEquipement:Date de validité",
+     "libelle": "Date de validité",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "certificat de conformité, notice de montage, fiche technique, fiche produit"
+   ]
+  },
+  {
+   "fiche": "Chantier",
+   "libelle": "chantier",
+   "nature": "registry",
+   "relie_a": [
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Chantier:Adresse du chantier",
+     "libelle": "Adresse du chantier",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Chantier:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:Chantier:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    },
+    {
+     "id": "garder:Chantier:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "le suivi et la conduite des chantiers"
+   ]
+  },
+  {
+   "fiche": "Equipe",
+   "libelle": "équipe",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Equipe:Chef d'équipe",
+     "libelle": "Chef d'équipe",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "affectation des équipes"
+   ]
+  },
+  {
+   "fiche": "Affectation",
+   "libelle": "affectation",
+   "nature": "registry",
+   "relie_a": [
+    "équipe",
+    "chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Affectation:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:Affectation:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    },
+    {
+     "id": "garder:Affectation:Consignes",
+     "libelle": "Consignes",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Organisation du planning du personnel"
+   ]
+  },
+  {
+   "fiche": "CategorieIntervention",
+   "libelle": "catégorie d'intervention",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CategorieIntervention:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "classé par catégorie"
+   ]
+  },
+  {
+   "fiche": "DemandeIntervention",
+   "libelle": "demande d'intervention",
+   "nature": "collection",
+   "relie_a": [
+    "catégorie d'intervention"
+   ],
+   "champs": [
+    {
+     "nom": "objet",
+     "libelle": "Objet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DemandeIntervention:Description du problème",
+     "libelle": "Description du problème",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:DemandeIntervention:Urgente",
+     "libelle": "Urgente",
+     "type": "oui / non"
+    },
+    {
+     "id": "garder:DemandeIntervention:Photo",
+     "libelle": "Photo",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "Demande d’intervention"
+   ]
+  },
+  {
+   "fiche": "Intervention",
+   "libelle": "intervention",
+   "nature": "registry",
+   "relie_a": [
+    "demande d'intervention",
+    "équipe",
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "tempsPasse",
+     "libelle": "Temps passé (heures)",
+     "type": "nombre",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "statistiques et reporting (temps passé, coûts, interventions)"
+    },
+    {
+     "nom": "cout",
+     "libelle": "Coût",
+     "type": "montant",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "temps passé, couts, interventions"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Intervention:Date de réalisation",
+     "libelle": "Date de réalisation",
+     "type": "date"
+    },
+    {
+     "id": "garder:Intervention:Description des travaux",
+     "libelle": "Description des travaux",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "informer des interventions réalisées"
+   ]
+  },
+  {
+   "fiche": "RapportMaintenance",
+   "libelle": "rapport de maintenance",
+   "nature": "registry",
+   "relie_a": [
+    "client",
+    "intervention"
+   ],
+   "champs": [
+    {
+     "nom": "typeMaintenance",
+     "libelle": "Type de maintenance",
+     "type": "choix parmi : préventive, corrective, urgence",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "rapports de maintenance (préventive, corrective, urgence)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:RapportMaintenance:Compte rendu",
+     "libelle": "Compte rendu",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:RapportMaintenance:Date du rapport",
+     "libelle": "Date du rapport",
+     "type": "date"
+    },
+    {
+     "id": "garder:RapportMaintenance:Fichier du rapport",
+     "libelle": "Fichier du rapport",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "bibliothèque de rapports de maintenance (préventive, corrective, urgence)"
+   ]
+  },
+  {
+   "fiche": "PassagePrevu",
+   "libelle": "passage prévu",
+   "nature": "registry",
+   "relie_a": [
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "datePassage",
+     "libelle": "Date de passage prévue",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Planning prévisionnel de passage"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:PassagePrevu:Objet du passage",
+     "libelle": "Objet du passage",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Planning prévisionnel de passage"
+   ]
+  },
+  {
+   "fiche": "DemandeDevis",
+   "libelle": "demande de devis",
+   "nature": "collection",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "objet",
+     "libelle": "Objet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "reponse",
+     "libelle": "Réponse",
+     "type": "texte long",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "réponses aux demandes de devis"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:DemandeDevis:Description de la demande",
+     "libelle": "Description de la demande",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:DemandeDevis:Montant du devis",
+     "libelle": "Montant du devis",
+     "type": "montant"
+    },
+    {
+     "id": "garder:DemandeDevis:Fichier du devis",
+     "libelle": "Fichier du devis",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "suivi des demandes (rouge, orange, vert)"
+   ]
+  },
+  {
+   "fiche": "Discussion",
+   "libelle": "discussion",
+   "nature": "registry",
+   "relie_a": [
+    "chantier",
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "sujet",
+     "libelle": "Sujet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [],
+   "citations": [
+    "chat intégré type WhatsApp, par chantier ou par client"
+   ]
+  },
+  {
+   "fiche": "Message",
+   "libelle": "message",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque discussion"
+   ],
+   "champs": [
+    {
+     "nom": "photo",
+     "libelle": "Photo HD",
+     "type": "lien web",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "échanges documentés (photos HD, fichiers, messages vocaux)"
+    },
+    {
+     "nom": "fichier",
+     "libelle": "Fichier",
+     "type": "lien web",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "échanges documentés (photos HD, fichiers, messages vocaux)"
+    },
+    {
+     "nom": "messageVocal",
+     "libelle": "Message vocal",
+     "type": "lien web",
+     "obligatoire": false,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "échanges documentés (photos HD, fichiers, messages vocaux)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Message:Texte du message",
+     "libelle": "Texte du message",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Message:Traduction",
+     "libelle": "Traduction",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "échanges documentés (photos HD, fichiers, messages vocaux)"
+   ]
+  },
+  {
+   "fiche": "Materiel",
+   "libelle": "matériel",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Materiel:Référence",
+     "libelle": "Référence",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Materiel:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "gestion des ressources matérielles"
+   ]
+  },
+  {
+   "fiche": "BonDeCommande",
+   "libelle": "bon de commande",
+   "nature": "collection",
+   "relie_a": [
+    "matériel"
+   ],
+   "champs": [
+    {
+     "nom": "objet",
+     "libelle": "Objet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:BonDeCommande:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:BonDeCommande:Date souhaitée",
+     "libelle": "Date souhaitée",
+     "type": "date"
+    },
+    {
+     "id": "garder:BonDeCommande:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "possibilité pour nos techniciens d’envoyer des commandes à notre chargé de dépôt"
+   ]
+  },
+  {
+   "fiche": "ReservationMateriel",
+   "libelle": "réservation de matériel",
+   "nature": "collection",
+   "relie_a": [
+    "matériel"
+   ],
+   "champs": [
+    {
+     "nom": "objet",
+     "libelle": "Objet",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ReservationMateriel:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:ReservationMateriel:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    },
+    {
+     "id": "garder:ReservationMateriel:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "et de réserver matériels"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "visiteur:visitor:Activite",
+   "sorte": "visiteur",
+   "texte": "Les visiteurs sans compte pourront consulter toutes les activités — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:technicien:Chantier",
+   "sorte": "registre_entier",
+   "texte": "Le technicien verra tous les chantiers, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les discussions qu'il voit; clôture : choisit les chantiers de ses discussions"
+  },
+  {
+   "id": "registre_entier:technicien:Equipe",
+   "sorte": "registre_entier",
+   "texte": "Le technicien verra toutes les équipes, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les interventions qu'il voit; clôture : choisit les équipes de ses interventions"
+  },
+  {
+   "id": "registre_entier:technicien:Intervention",
+   "sorte": "registre_entier",
+   "texte": "Le technicien verra toutes les interventions, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les rapports de maintenance qu'il voit; clôture : choisit les interventions de ses rapports de maintenance"
+  },
+  {
+   "id": "registre_entier:technicien:RapportMaintenance",
+   "sorte": "registre_entier",
+   "texte": "Le technicien verra tous les rapports de maintenance, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:technicien:Discussion",
+   "sorte": "registre_entier",
+   "texte": "Le technicien verra toutes les discussions, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:technicien:Materiel",
+   "sorte": "registre_entier",
+   "texte": "Le technicien verra tous les matériels, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les bons de commande qu'il voit; clôture : choisit les matériels de ses bons de commande"
+  },
+  {
+   "id": "registre_entier:charge_de_depot:Materiel",
+   "sorte": "registre_entier",
+   "texte": "Le chargé de dépôt verra tous les matériels, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Materiel (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Client:nom",
+     "texte": "client → « Nom »"
+    },
+    {
+     "id": "nom:Activite:intitule",
+     "texte": "activité → « Intitulé »"
+    },
+    {
+     "id": "nom:Site:nom",
+     "texte": "site → « Nom »"
+    },
+    {
+     "id": "nom:Chantier:nom",
+     "texte": "chantier → « Nom »"
+    },
+    {
+     "id": "nom:Equipe:nom",
+     "texte": "équipe → « Nom »"
+    },
+    {
+     "id": "nom:Affectation:intitule",
+     "texte": "affectation → « Intitulé »"
+    },
+    {
+     "id": "nom:CategorieIntervention:nom",
+     "texte": "catégorie d'intervention → « Nom »"
+    },
+    {
+     "id": "nom:DemandeIntervention:objet",
+     "texte": "demande d'intervention → « Objet »"
+    },
+    {
+     "id": "nom:DemandeDevis:objet",
+     "texte": "demande de devis → « Objet »"
+    },
+    {
+     "id": "nom:Discussion:sujet",
+     "texte": "discussion → « Sujet »"
+    },
+    {
+     "id": "nom:Materiel:nom",
+     "texte": "matériel → « Nom »"
+    },
+    {
+     "id": "nom:BonDeCommande:objet",
+     "texte": "bon de commande → « Objet »"
+    },
+    {
+     "id": "nom:ReservationMateriel:objet",
+     "texte": "réservation de matériel → « Objet »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "voir_tous:client:Equipement",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le client (collectivité) doit-il voir TOUS les équipements ?"
+  },
+  {
+   "id": "voir_tous:client:PassagePrevu",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le client (collectivité) doit-il voir TOUS les passages prévus ?"
+  },
+  {
+   "id": "voir_tous:client:RapportMaintenance",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le client (collectivité) doit-il voir TOUS les rapports de maintenance ?"
+  },
+  {
+   "id": "voir_tous:client:DocumentEquipement",
+   "sorte": "voir_tous",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "« Seulement ceux qui le concernent » n'est pas encore possible : le client (collectivité) doit-il voir TOUS les documents d'équipement ?"
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

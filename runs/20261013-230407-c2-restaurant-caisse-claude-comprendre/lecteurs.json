@@ -1,0 +1,1059 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'un restaurant : des fiches (commandes, tables, produits du menu, stocks, fournisseurs, réservations, livraisons), des comptes avec des rôles (Administrateur, Serveur, Caissier, Cuisinier, Livreur) et des statuts (tables, livraisons). Le paiement, les factures, les statistiques et l'application mobile sont des besoins d'appoint, listés comme hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Historique des connexions des utilisateurs",
+        "categorie": "autre",
+        "citation": "Historique de connexion"
+      },
+      {
+        "besoin": "Plan de salle visuel des tables",
+        "categorie": "autre",
+        "citation": "Plan de salle visuel"
+      },
+      {
+        "besoin": "Envoi automatique des commandes en cuisine, avec impression ou affichage à l'écran",
+        "categorie": "automatisation",
+        "citation": "Envoi automatique en cuisine (impression ou affichage à l’écran)"
+      },
+      {
+        "besoin": "Suivi des stocks en temps réel (quantités calculées)",
+        "categorie": "calcul_statistiques",
+        "citation": "Suivi en temps réel des stocks"
+      },
+      {
+        "besoin": "Alerte quand un stock passe sous un seuil critique",
+        "categorie": "notification",
+        "citation": "Alerte de seuil critique"
+      },
+      {
+        "besoin": "Encaissement par espèces, carte et mobile money",
+        "categorie": "paiement",
+        "citation": "Paiement par espèce, carte, mobile money"
+      },
+      {
+        "besoin": "Facture imprimée ou en PDF",
+        "categorie": "document",
+        "citation": "Facture imprimée ou PDF"
+      },
+      {
+        "besoin": "Diviser l'addition entre plusieurs clients",
+        "categorie": "paiement",
+        "citation": "Possibilité de diviser l’addition"
+      },
+      {
+        "besoin": "Prise de réservation par le public via une interface publique",
+        "categorie": "autre",
+        "citation": "Prise de réservation manuelle ou via une interface publique"
+      },
+      {
+        "besoin": "Confirmation automatique des réservations",
+        "categorie": "automatisation",
+        "citation": "Confirmation automatique"
+      },
+      {
+        "besoin": "Rappel des réservations",
+        "categorie": "notification",
+        "citation": "annulation, rappel"
+      },
+      {
+        "besoin": "Chiffre d'affaires journalier et mensuel",
+        "categorie": "calcul_statistiques",
+        "citation": "Chiffre d'affaires journalier, mensuel"
+      },
+      {
+        "besoin": "Classement des produits les plus vendus",
+        "categorie": "calcul_statistiques",
+        "citation": "Produits les plus vendus"
+      },
+      {
+        "besoin": "Mesure de la performance du personnel",
+        "categorie": "calcul_statistiques",
+        "citation": "Performance du personnel"
+      },
+      {
+        "besoin": "Rapport de stock",
+        "categorie": "calcul_statistiques",
+        "citation": "Rapport de stock"
+      },
+      {
+        "besoin": "Application mobile native",
+        "categorie": "mobile_hors_ligne",
+        "citation": "Mobile : Flutter ou React Native"
+      },
+      {
+        "besoin": "Technologies imposées pour le back-end, le front-end et la base de données",
+        "categorie": "autre",
+        "citation": "Back-end : Laravel (PHP), Node.js ou Django"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "serveur",
+        "libelle": "Serveur",
+        "libelle_pluriel": "Serveurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "caissier",
+        "libelle": "Caissier",
+        "libelle_pluriel": "Caissiers",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "cuisinier",
+        "libelle": "Cuisinier",
+        "libelle_pluriel": "Cuisiniers",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      },
+      {
+        "id": "livreur",
+        "libelle": "Livreur",
+        "libelle_pluriel": "Livreurs",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "Création de comptes (Administrateur, Serveur, Caissier, Cuisinier, Livreur)"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Client",
+        "citation": "Prise de réservation manuelle ou via une interface publique"
+      },
+      {
+        "libelle": "Fournisseur",
+        "citation": "Gestion des fournisseurs"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Table",
+        "libelle": "Table",
+        "libelle_pluriel": "Tables",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Plan de salle visuel ... Statut des tables (libre, occupée, réservée, en attente de paiement)"
+      },
+      {
+        "nom": "Categorie",
+        "libelle": "Catégorie",
+        "libelle_pluriel": "Catégories",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Catégorisation : entrées, plats, desserts, boissons"
+      },
+      {
+        "nom": "Produit",
+        "libelle": "Produit",
+        "libelle_pluriel": "Produits",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Categorie"
+        ],
+        "citation": "Ajout, modification et désactivation des produits ... Gestion des prix, variantes et disponibilités"
+      },
+      {
+        "nom": "Variante",
+        "libelle": "Variante",
+        "libelle_pluriel": "Variantes",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Produit",
+        "references": [],
+        "citation": "variantes (ex : cuisson, taille) ... Gestion des prix, variantes et disponibilités"
+      },
+      {
+        "nom": "Client",
+        "libelle": "Client",
+        "libelle_pluriel": "Clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "serveur",
+          "caissier"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Commandes à emporter et livraison ... Prise de réservation manuelle ou via une interface publique"
+      },
+      {
+        "nom": "Commande",
+        "libelle": "Commande",
+        "libelle_pluriel": "Commandes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "serveur",
+          "cuisinier",
+          "caissier",
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Table",
+          "Client"
+        ],
+        "citation": "Attribution des commandes à une table ... Gestion des commandes hors salle ... Historique des commandes"
+      },
+      {
+        "nom": "LigneCommande",
+        "libelle": "Ligne de commande",
+        "libelle_pluriel": "Lignes de commande",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Commande",
+        "references": [
+          "Produit",
+          "Variante"
+        ],
+        "citation": "Sélection des plats, quantités, variantes (ex : cuisson, taille)"
+      },
+      {
+        "nom": "Paiement",
+        "libelle": "Paiement",
+        "libelle_pluriel": "Paiements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "caissier",
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "Paiement par espèce, carte, mobile money ... Possibilité de diviser l’addition"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "caissier",
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "Facture imprimée ou PDF"
+      },
+      {
+        "nom": "Livraison",
+        "libelle": "Livraison",
+        "libelle_pluriel": "Livraisons",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "livreur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "Suivi des livreurs et états de livraison"
+      },
+      {
+        "nom": "Reservation",
+        "libelle": "Réservation",
+        "libelle_pluriel": "Réservations",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur",
+          "serveur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Table"
+        ],
+        "citation": "Prise de réservation manuelle ou via une interface publique ... Confirmation automatique, annulation, rappel"
+      },
+      {
+        "nom": "Fournisseur",
+        "libelle": "Fournisseur",
+        "libelle_pluriel": "Fournisseurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Gestion des fournisseurs"
+      },
+      {
+        "nom": "ArticleStock",
+        "libelle": "Article en stock",
+        "libelle_pluriel": "Articles en stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Suivi en temps réel des stocks ... Alerte de seuil critique"
+      },
+      {
+        "nom": "MouvementStock",
+        "libelle": "Mouvement de stock",
+        "libelle_pluriel": "Mouvements de stock",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "ArticleStock",
+        "references": [
+          "Fournisseur"
+        ],
+        "citation": "Stock et approvisionnement ... Historique d’entrée/sortie"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Le client ne se connecte pas ; l'équipe garde ses coordonnées pour les réservations et les commandes à emporter ou en livraison (le brief ne parle pas explicitement d'un fichier clients, à confirmer avec le client)."
+      },
+      {
+        "non_utilisateur": "Fournisseur",
+        "fiche": "Fournisseur",
+        "raison": "Le brief demande la gestion des fournisseurs, tenue par l'équipe pour l'approvisionnement du stock."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Reservation",
+        "etat_initial": "demandee",
+        "transitions": {
+          "demandee": [
+            "confirmee",
+            "annulee"
+          ],
+          "confirmee": [
+            "annulee"
+          ],
+          "annulee": []
+        },
+        "libelles": {
+          "demandee": "demandée",
+          "confirmee": "confirmée",
+          "annulee": "annulée"
+        },
+        "initiateur": "serveur",
+        "decideur": "serveur",
+        "etapes_par": {},
+        "citation": "Prise de réservation manuelle ou via une interface publique ... Confirmation automatique, annulation, rappel"
+      },
+      {
+        "fiche": "Livraison",
+        "etat_initial": "en_attente",
+        "transitions": {
+          "en_attente": [
+            "en_cours"
+          ],
+          "en_cours": [
+            "livree"
+          ],
+          "livree": []
+        },
+        "libelles": {
+          "en_attente": "en attente",
+          "en_cours": "en cours de livraison",
+          "livree": "livrée"
+        },
+        "initiateur": "livreur",
+        "decideur": "livreur",
+        "etapes_par": {},
+        "citation": "Suivi des livreurs et états de livraison"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Table",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de table",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "statut",
+            "libelle": "Statut",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "libre",
+              "occupée",
+              "réservée",
+              "en attente de paiement"
+            ],
+            "origine": "brief",
+            "citation": "Statut des tables (libre, occupée, réservée, en attente de paiement)"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nombre de places",
+            "type": "nombre",
+            "raison": "Utile pour attribuer une table à une réservation ; le brief ne le précise pas."
+          },
+          {
+            "libelle": "Position sur le plan de salle",
+            "type": "texte",
+            "raison": "Le brief demande un plan de salle visuel, sans dire comment placer chaque table."
+          }
+        ]
+      },
+      {
+        "fiche": "Categorie",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de la catégorie",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Ordre d'affichage dans le menu",
+            "type": "nombre",
+            "raison": "Permettrait d'afficher entrées, plats, desserts et boissons dans un ordre choisi ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Produit",
+        "champs": [
+          {
+            "nom": "prix",
+            "libelle": "Prix",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Gestion des prix"
+          },
+          {
+            "nom": "disponible",
+            "libelle": "Disponible",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Gestion des prix, variantes et disponibilités"
+          },
+          {
+            "nom": "actif",
+            "libelle": "Actif (non désactivé)",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "désactivation des produits"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du produit",
+            "type": "texte",
+            "raison": "Indispensable pour reconnaître le produit sur le menu et à la prise de commande ; le brief ne le cite pas explicitement."
+          },
+          {
+            "libelle": "Description",
+            "type": "texte_long",
+            "raison": "Utile pour le menu et l'interface publique ; non mentionnée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Variante",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de la variante",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Type de variante (ex. cuisson, taille)",
+            "type": "texte",
+            "raison": "Le brief donne cuisson et taille comme exemples de variantes, sans fixer de liste."
+          },
+          {
+            "libelle": "Supplément de prix",
+            "type": "montant",
+            "raison": "Une variante (ex. grande taille) peut changer le prix ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Utile pour la confirmation, le rappel des réservations et la livraison."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Utile pour la confirmation automatique et l'envoi de la facture PDF."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour les commandes en livraison."
+          }
+        ]
+      },
+      {
+        "fiche": "Commande",
+        "champs": [
+          {
+            "nom": "typeCommande",
+            "libelle": "Type de commande (hors salle)",
+            "type": "choix",
+            "obligatoire": false,
+            "valeurs": [
+              "à emporter",
+              "livraison"
+            ],
+            "origine": "brief",
+            "citation": "Commandes à emporter et livraison"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nombre de couverts",
+            "type": "nombre",
+            "raison": "Utile pour les commandes en salle ; non mentionné dans le brief."
+          },
+          {
+            "libelle": "Note pour la cuisine",
+            "type": "texte_long",
+            "raison": "Pour transmettre des précisions avec l'envoi en cuisine ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "LigneCommande",
+        "champs": [
+          {
+            "nom": "quantite",
+            "libelle": "Quantité",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Sélection des plats, quantités"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prix unitaire appliqué",
+            "type": "montant",
+            "raison": "Conserver le prix au moment de la commande, même si le prix du produit change ensuite."
+          },
+          {
+            "libelle": "Remarque",
+            "type": "texte",
+            "raison": "Précision libre pour la cuisine (sans sel, etc.) ; non mentionnée."
+          }
+        ]
+      },
+      {
+        "fiche": "Paiement",
+        "champs": [
+          {
+            "nom": "modePaiement",
+            "libelle": "Mode de paiement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "espèce",
+              "carte",
+              "mobile money"
+            ],
+            "origine": "brief",
+            "citation": "Paiement par espèce, carte, mobile money"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant payé",
+            "type": "montant",
+            "raison": "Nécessaire pour diviser l'addition en plusieurs paiements ; le brief ne le cite pas explicitement."
+          },
+          {
+            "libelle": "Référence de transaction",
+            "type": "texte",
+            "raison": "Utile pour les paiements par carte ou mobile money ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Montant facturé, utile pour la facture imprimée ou PDF ; non précisé dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Livraison",
+        "champs": [
+          {
+            "nom": "livreur",
+            "libelle": "Livreur",
+            "type": "texte",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Suivi des livreurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse de livraison",
+            "type": "texte_long",
+            "raison": "Indispensable pour livrer ; non mentionnée dans le brief."
+          },
+          {
+            "libelle": "Téléphone de contact",
+            "type": "telephone",
+            "raison": "Pour joindre le client pendant la livraison."
+          },
+          {
+            "libelle": "Frais de livraison",
+            "type": "montant",
+            "raison": "À confirmer avec le client."
+          },
+          {
+            "libelle": "Heure de livraison prévue",
+            "type": "date_heure",
+            "raison": "Utile pour le suivi des livraisons ; non mentionnée."
+          }
+        ]
+      },
+      {
+        "fiche": "Reservation",
+        "champs": [
+          {
+            "nom": "canal",
+            "libelle": "Canal de réservation",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "manuelle",
+              "interface publique"
+            ],
+            "origine": "brief",
+            "citation": "Prise de réservation manuelle ou via une interface publique"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure de la réservation",
+            "type": "date_heure",
+            "raison": "Indispensable pour une réservation et pour le rappel ; le brief ne la cite pas."
+          },
+          {
+            "libelle": "Nombre de personnes",
+            "type": "nombre",
+            "raison": "Utile pour choisir la table ; non mentionné."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Demandes particulières du client ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Fournisseur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom du fournisseur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour contacter le fournisseur lors d'un approvisionnement."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour passer commande auprès du fournisseur."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Coordonnées du fournisseur ; non mentionnées."
+          }
+        ]
+      },
+      {
+        "fiche": "ArticleStock",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de l'article",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "quantiteEnStock",
+            "libelle": "Quantité en stock",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Suivi en temps réel des stocks"
+          },
+          {
+            "nom": "seuilCritique",
+            "libelle": "Seuil critique",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Alerte de seuil critique"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Unité de mesure",
+            "type": "texte",
+            "raison": "Préciser si la quantité est en kg, litres, pièces… ; non mentionnée."
+          }
+        ]
+      },
+      {
+        "fiche": "MouvementStock",
+        "champs": [
+          {
+            "nom": "typeMouvement",
+            "libelle": "Type de mouvement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "entrée",
+              "sortie"
+            ],
+            "origine": "brief",
+            "citation": "Historique d’entrée/sortie"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Quantité entrée ou sortie du stock ; indispensable mais pas citée explicitement."
+          },
+          {
+            "libelle": "Motif",
+            "type": "texte",
+            "raison": "Raison du mouvement (livraison fournisseur, perte, consommation…) ; à confirmer."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du restaurant",
+    "fiches": [
+      {
+        "fiche": "Produit",
+        "verbe_creation": "Ajouter un produit",
+        "boutons": {}
+      },
+      {
+        "fiche": "Variante",
+        "verbe_creation": "Ajouter une variante",
+        "boutons": {}
+      },
+      {
+        "fiche": "Commande",
+        "verbe_creation": "Prendre commande",
+        "boutons": {}
+      },
+      {
+        "fiche": "LigneCommande",
+        "verbe_creation": "Ajouter à la commande",
+        "boutons": {}
+      },
+      {
+        "fiche": "Paiement",
+        "verbe_creation": "Encaisser",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Livraison",
+        "verbe_creation": "Faire livrer",
+        "boutons": {
+          "en_cours": "Mettre en livraison",
+          "livree": "Marquer livrée"
+        }
+      },
+      {
+        "fiche": "Reservation",
+        "verbe_creation": "Réserver",
+        "boutons": {
+          "annulee": "Annuler",
+          "confirmee": "Confirmer"
+        }
+      },
+      {
+        "fiche": "MouvementStock",
+        "verbe_creation": "Saisir un mouvement",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche Variante : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche LigneCommande : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche MouvementStock : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [
+        "circuit Table : la fiche est un « catalog », qui ne change pas d'état (seule une collection ou un registre a un circuit) — ne liste pas ce circuit",
+        "circuit Produit : la fiche est un « catalog », qui ne change pas d'état (seule une collection ou un registre a un circuit) — ne liste pas ce circuit",
+        "circuit Livraison : sur un registre, l'initiateur est l'un de ceux qui le tiennent : ['administrateur', 'livreur']"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droit visitor/Reservation/create : le visiteur (personne SANS compte) ne peut recevoir un droit que sur une fiche publique ; « Reservation » ne l'est pas d'après la liste des fiches. Retire ce droit (« visitor » ne veut pas dire « les utilisateurs »)."
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

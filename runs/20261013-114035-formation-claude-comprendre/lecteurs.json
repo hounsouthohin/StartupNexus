@@ -1,0 +1,749 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion d'un organisme de formation : des fiches (entités, stagiaires, sessions de formation), une répartition des stagiaires sur des sessions et une organisation de session qui passe par des étapes. C'est bien la gestion d'une petite structure. Le planning, la facturation, le bilan et la comptabilité sont des besoins hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Rétroplanning d'organisation de chaque session (échéancier des étapes à mener)",
+        "categorie": "planning",
+        "citation": "il y a un rétroplanning d'organisation de la session"
+      },
+      {
+        "besoin": "Planifier la date d'une session en fonction du formateur et de la salle (calendrier, disponibilités)",
+        "categorie": "planning",
+        "citation": "planifier la date avec le formateur et la salle"
+      },
+      {
+        "besoin": "Envoi d'un contrat (document à produire et à transmettre)",
+        "categorie": "document",
+        "citation": "envoi contrat"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "puis la facturation"
+      },
+      {
+        "besoin": "Établissement d'un bilan pour l'entité qui envoie les stagiaires",
+        "categorie": "document",
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "besoin": "Gestion comptable associée",
+        "categorie": "autre",
+        "citation": "on a besoin d'une gestion comptable associée"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable",
+        "libelle": "Responsable de l'organisme de formation",
+        "libelle_pluriel": "Responsables de l'organisme de formation",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Entité prescriptrice",
+        "citation": "une entité nous envoie des stagiaires ... un bilan pour l'entité de base"
+      },
+      {
+        "libelle": "Stagiaire",
+        "citation": "des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "libelle": "Formateur",
+        "citation": "planifier la date avec le formateur et la salle"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "EntitePrescriptrice",
+        "libelle": "entité prescriptrice",
+        "libelle_pluriel": "entités prescriptrices",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "nom": "Stagiaire",
+        "libelle": "stagiaire",
+        "libelle_pluriel": "stagiaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "EntitePrescriptrice"
+        ],
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "nom": "Formateur",
+        "libelle": "formateur",
+        "libelle_pluriel": "formateurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur"
+      },
+      {
+        "nom": "Salle",
+        "libelle": "salle",
+        "libelle_pluriel": "salles",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "avec le formateur et la salle"
+      },
+      {
+        "nom": "SessionFormation",
+        "libelle": "session de formation",
+        "libelle_pluriel": "sessions de formation",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Formateur",
+          "Salle"
+        ],
+        "citation": "sur des sessions de formation ... planifier la date avec le formateur et la salle"
+      },
+      {
+        "nom": "Affectation",
+        "libelle": "affectation à une session",
+        "libelle_pluriel": "affectations aux sessions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Stagiaire",
+          "SessionFormation"
+        ],
+        "citation": "des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "nom": "EtapeRetroplanning",
+        "libelle": "étape du rétroplanning",
+        "libelle_pluriel": "étapes du rétroplanning",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "SessionFormation",
+        "references": [],
+        "citation": "un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "SessionFormation",
+          "EntitePrescriptrice"
+        ],
+        "citation": "puis la facturation"
+      },
+      {
+        "nom": "Bilan",
+        "libelle": "bilan",
+        "libelle_pluriel": "bilans",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "SessionFormation",
+          "EntitePrescriptrice"
+        ],
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "nom": "EcritureComptable",
+        "libelle": "écriture comptable",
+        "libelle_pluriel": "écritures comptables",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "on a besoin d'une gestion comptable associée"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Entité prescriptrice",
+        "fiche": "EntitePrescriptrice",
+        "raison": "L'entité qui envoie les stagiaires est enregistrée par le responsable ; elle reçoit le bilan."
+      },
+      {
+        "non_utilisateur": "Stagiaire",
+        "fiche": "Stagiaire",
+        "raison": "Les stagiaires envoyés par l'entité sont enregistrés puis répartis sur des sessions (fiche Affectation)."
+      },
+      {
+        "non_utilisateur": "Formateur",
+        "fiche": "Formateur",
+        "raison": "Le formateur est une fiche tenue par le responsable, désignée par la session de formation lors de la planification."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "SessionFormation",
+        "etat_initial": "convocation",
+        "transitions": {
+          "convocation": [
+            "envoi_contrat"
+          ],
+          "envoi_contrat": [
+            "planification"
+          ],
+          "planification": [
+            "facturation"
+          ],
+          "facturation": [
+            "bilan"
+          ],
+          "bilan": []
+        },
+        "libelles": {
+          "convocation": "convocation téléphonique",
+          "envoi_contrat": "envoi du contrat",
+          "planification": "planification (date, formateur, salle)",
+          "facturation": "facturation",
+          "bilan": "bilan établi"
+        },
+        "initiateur": "responsable",
+        "decideur": "responsable",
+        "etapes_par": {},
+        "citation": "convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle... puis la facturation et l'établissement d'un bilan"
+      }
+    ]
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "EntitePrescriptrice",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Le brief ne précise pas les coordonnées de l'entité, utiles pour lui envoyer factures et bilans."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour contacter l'entité et lui transmettre le bilan ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée de contact non citée dans le brief."
+          },
+          {
+            "libelle": "Nom du contact",
+            "type": "texte",
+            "raison": "Interlocuteur au sein de l'entité ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Stagiaire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Pour identifier le stagiaire ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Le brief parle d'une convocation téléphonique, mais ne dit pas que le numéro est enregistré sur la fiche du stagiaire."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Pour l'envoi du contrat ; non cité dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Pour l'envoi postal du contrat ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Formateur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Pour identifier le formateur ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour planifier la date de la session avec lui ; non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnée de contact non citée dans le brief."
+          },
+          {
+            "libelle": "Domaines de formation",
+            "type": "texte",
+            "raison": "Pour savoir quelles sessions il peut animer ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "Salle",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Capacité",
+            "type": "nombre",
+            "raison": "Pour vérifier qu'une salle peut accueillir les stagiaires d'une session ; non cité dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte",
+            "raison": "Lieu de la salle, utile pour la convocation ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "SessionFormation",
+        "champs": [
+          {
+            "nom": "date",
+            "libelle": "Date",
+            "type": "date",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "planifier la date"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Intitulé de la formation",
+            "type": "texte",
+            "raison": "Pour reconnaître la session dans une liste ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Une session peut durer plusieurs jours ; le brief ne parle que de « la date »."
+          },
+          {
+            "libelle": "Durée (heures)",
+            "type": "nombre",
+            "raison": "Souvent nécessaire pour le contrat et la facturation ; non cité."
+          },
+          {
+            "libelle": "Nombre de places",
+            "type": "nombre",
+            "raison": "Pour limiter la répartition des stagiaires ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "Affectation",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Convocation téléphonique faite",
+            "type": "oui_non",
+            "raison": "Le brief cite la convocation téléphonique comme étape de la session ; à savoir si elle se suit stagiaire par stagiaire."
+          },
+          {
+            "libelle": "Contrat envoyé",
+            "type": "oui_non",
+            "raison": "Le brief cite l'envoi du contrat ; à savoir s'il se suit par stagiaire."
+          },
+          {
+            "libelle": "Présence",
+            "type": "oui_non",
+            "raison": "Utile pour le bilan transmis à l'entité ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "EtapeRetroplanning",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date prévue",
+            "type": "date",
+            "raison": "Un rétroplanning fixe en principe une échéance par étape ; non cité dans le brief."
+          },
+          {
+            "libelle": "Réalisée",
+            "type": "oui_non",
+            "raison": "Pour suivre l'avancement du rétroplanning ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Date de réalisation",
+            "type": "date",
+            "raison": "Pour savoir quand l'étape a été faite ; non cité."
+          },
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Notes sur l'étape ; à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief cite la facturation sans préciser les informations de la facture."
+          },
+          {
+            "libelle": "Date d'émission",
+            "type": "date",
+            "raison": "Mention habituelle d'une facture ; non citée dans le brief."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Pour suivre les paiements ; à demander au client."
+          },
+          {
+            "libelle": "Payée",
+            "type": "oui_non",
+            "raison": "Pour le suivi comptable ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Bilan",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Contenu du bilan",
+            "type": "texte_long",
+            "raison": "Le brief cite l'établissement d'un bilan pour l'entité sans en préciser le contenu."
+          },
+          {
+            "libelle": "Date d'envoi à l'entité",
+            "type": "date",
+            "raison": "Pour savoir quand le bilan a été transmis ; non cité."
+          }
+        ]
+      },
+      {
+        "fiche": "EcritureComptable",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'écriture",
+            "type": "date",
+            "raison": "Le brief demande une gestion comptable sans en préciser les informations."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Information de base d'une écriture comptable ; non citée."
+          },
+          {
+            "libelle": "Compte",
+            "type": "texte",
+            "raison": "Compte comptable concerné ; à demander au client."
+          },
+          {
+            "libelle": "Sens (débit ou crédit)",
+            "type": "texte",
+            "raison": "Valeurs à confirmer avec le client."
+          },
+          {
+            "libelle": "Référence de la pièce",
+            "type": "texte",
+            "raison": "Lien avec la facture ou le justificatif ; non cité."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des formations",
+    "fiches": [
+      {
+        "fiche": "Stagiaire",
+        "verbe_creation": "Ajouter un stagiaire",
+        "boutons": {}
+      },
+      {
+        "fiche": "SessionFormation",
+        "verbe_creation": "Programmer une session",
+        "boutons": {
+          "envoi_contrat": "Envoyer le contrat",
+          "planification": "Planifier",
+          "facturation": "Passer en facturation",
+          "bilan": "Marquer bilan établi"
+        }
+      },
+      {
+        "fiche": "Affectation",
+        "verbe_creation": "Affecter à une session",
+        "boutons": {}
+      },
+      {
+        "fiche": "EtapeRetroplanning",
+        "verbe_creation": "Ajouter une étape",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Émettre une facture",
+        "boutons": {}
+      },
+      {
+        "fiche": "Bilan",
+        "verbe_creation": "Rédiger le bilan",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche EtapeRetroplanning : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,0 +1,763 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion interne d'une conciergerie : des fiches (villas, réservations, interventions de ménage, rapports), des acteurs avec des rôles (la gérante, les équipes ou intervenants), une intervention qui passe par des états (disponible, attribuée à l'intervenant qui la prend, rapport rempli par l'équipe puis complété par la gérante). C'est donc dans le périmètre. Le planning façon calendrier, les couleurs, les photos, le PDF, la transmission au propriétaire et le temps réel sont des besoins hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Vue planning de type calendrier : villas en ligne, dates en colonne, réservations affichées en bandes colorées",
+        "categorie": "planning",
+        "citation": "Le planning sera inspiré du calendrier Airbnb ... les réservations affichées sous forme de bandes colorées"
+      },
+      {
+        "besoin": "Couleur de la réservation selon son état (couleur « Disponible ») puis selon l'équipe affectée, changée automatiquement sur le planning",
+        "categorie": "planning",
+        "citation": "la réservation change automatiquement de couleur et prend la couleur de l'équipe concernée"
+      },
+      {
+        "besoin": "Photos obligatoires de chaque pièce et des points stratégiques dans le rapport d'intervention",
+        "categorie": "fichiers_photos",
+        "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+      },
+      {
+        "besoin": "Génération automatique du rapport d'intervention en PDF (travail des équipes, observations, photos)",
+        "categorie": "document",
+        "citation": "Le rapport est ensuite automatiquement généré en PDF"
+      },
+      {
+        "besoin": "Transmission du rapport au propriétaire, qui n'est pas utilisateur de l'application (le moyen d'envoi n'est pas précisé)",
+        "categorie": "notification",
+        "citation": "afin d'être transmis au propriétaire"
+      },
+      {
+        "besoin": "Suivi en temps réel des réservations, des équipes affectées et de la qualité des prestations",
+        "categorie": "autre",
+        "citation": "suivre en temps réel les réservations, les équipes affectées et la qualité des prestations"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant de la conciergerie",
+        "libelle_pluriel": "Gérants de la conciergerie",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Je souhaite développer une application interne, exclusivement destinée à la gestion de mes équipes de ménage. ... je complète le rapport avec les informations relevées lors de mon accueil des voyageurs"
+      },
+      {
+        "id": "intervenant",
+        "libelle": "Intervenant de ménage",
+        "libelle_pluriel": "Intervenants de ménage",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "Les équipes peuvent cliquer sur \"Je prends cette intervention\". Le premier intervenant qui se positionne est automatiquement affecté au ménage."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Propriétaire",
+        "citation": "Le rapport est ensuite automatiquement généré en PDF afin d'être transmis au propriétaire."
+      },
+      {
+        "libelle": "Voyageur",
+        "citation": "les informations relevées lors de mon accueil des voyageurs"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Villa",
+        "libelle": "Villa",
+        "libelle_pluriel": "Villas",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Proprietaire"
+        ],
+        "citation": "les villas en ligne"
+      },
+      {
+        "nom": "Proprietaire",
+        "libelle": "Propriétaire",
+        "libelle_pluriel": "Propriétaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "afin d'être transmis au propriétaire"
+      },
+      {
+        "nom": "Equipe",
+        "libelle": "Équipe",
+        "libelle_pluriel": "Équipes",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "prend la couleur de l'équipe concernée"
+      },
+      {
+        "nom": "Intervenant",
+        "libelle": "Intervenant",
+        "libelle_pluriel": "Intervenants",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "intervenant",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Equipe"
+        ],
+        "citation": "le nom de l'intervenant ou de l'équipe"
+      },
+      {
+        "nom": "Reservation",
+        "libelle": "Réservation",
+        "libelle_pluriel": "Réservations",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "intervenant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Villa"
+        ],
+        "citation": "Chaque réservation indique : ... les dates du séjour"
+      },
+      {
+        "nom": "Intervention",
+        "libelle": "Intervention",
+        "libelle_pluriel": "Interventions",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "intervenant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Reservation",
+          "Equipe"
+        ],
+        "citation": "Fiche intervention après chaque ménage ... l'équipe complète un rapport comprenant ... je complète le rapport avec les informations relevées lors de mon accueil des voyageurs"
+      },
+      {
+        "nom": "PointControle",
+        "libelle": "Point de contrôle",
+        "libelle_pluriel": "Points de contrôle",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs...)"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "Photo",
+        "libelle_pluriel": "Photos",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Intervention",
+        "references": [],
+        "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Propriétaire",
+        "fiche": "Proprietaire",
+        "raison": "Le rapport PDF de chaque intervention lui est transmis : le gérant tient la fiche du propriétaire de chaque villa (coordonnées à confirmer avec le client)."
+      },
+      {
+        "non_utilisateur": "Voyageur",
+        "fiche": null,
+        "raison": "Le brief n'enregistre que le nombre de voyageurs dans la réservation et leurs remarques dans le rapport, pas de fiche individuelle par voyageur."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Intervention",
+        "etat_initial": "disponible",
+        "transitions": {
+          "disponible": [
+            "attribuee"
+          ],
+          "attribuee": [
+            "realisee"
+          ],
+          "realisee": [
+            "completee"
+          ],
+          "completee": []
+        },
+        "libelles": {
+          "disponible": "disponible",
+          "attribuee": "attribuée",
+          "realisee": "réalisée (rapport de l'équipe rempli)",
+          "completee": "complétée par le gérant"
+        },
+        "initiateur": "gerant",
+        "decideur": "intervenant",
+        "etapes_par": {
+          "realisee": "gerant"
+        },
+        "citation": "Lorsqu'un ménage est disponible ... Une fois la mission attribuée ... À la fin du ménage, l'équipe complète un rapport ... Après le ménage, je complète le rapport"
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "intervenant",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "disponible"
+        ],
+        "transitions": {
+          "disponible": [
+            "attribuee"
+          ]
+        },
+        "citation": "Lorsqu'un ménage est disponible ... Les équipes peuvent cliquer sur \"Je prends cette intervention\""
+      },
+      {
+        "acteur": "intervenant",
+        "fiche": "Intervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "À la fin du ménage, l'équipe complète un rapport"
+      },
+      {
+        "acteur": "intervenant",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "own",
+        "pendant_etats": [
+          "attribuee"
+        ],
+        "transitions": {
+          "attribuee": [
+            "realisee"
+          ]
+        },
+        "citation": "À la fin du ménage, l'équipe complète un rapport"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Intervention",
+        "action": "edit",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Après le ménage, je complète le rapport"
+      },
+      {
+        "acteur": "gerant",
+        "fiche": "Intervention",
+        "action": "transition",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [
+          "realisee"
+        ],
+        "transitions": {
+          "realisee": [
+            "completee"
+          ]
+        },
+        "citation": "Après le ménage, je complète le rapport"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Villa",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de la villa",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Le brief ne précise pas où se trouve la villa ; utile pour les équipes de ménage."
+          },
+          {
+            "libelle": "Nombre de chambres",
+            "type": "nombre",
+            "raison": "Pourrait aider à estimer la durée du ménage ; le brief n'en parle pas."
+          }
+        ]
+      },
+      {
+        "fiche": "Proprietaire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Le rapport PDF est transmis au propriétaire ; il faut savoir à quelle adresse l'envoyer."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour joindre le propriétaire ; le brief ne le précise pas."
+          }
+        ]
+      },
+      {
+        "fiche": "Equipe",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de l'équipe",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "le nom de l'intervenant ou de l'équipe"
+          },
+          {
+            "nom": "couleur",
+            "libelle": "Couleur sur le planning",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "prend la couleur de l'équipe concernée"
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Intervenant",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "le nom de l'intervenant"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne cite que le nom de l'intervenant."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour joindre l'intervenant affecté à un ménage ; le brief n'en parle pas."
+          }
+        ]
+      },
+      {
+        "fiche": "Reservation",
+        "champs": [
+          {
+            "nom": "dateArrivee",
+            "libelle": "Date d'arrivée",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les dates du séjour"
+          },
+          {
+            "nom": "dateDepart",
+            "libelle": "Date de départ",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les dates du séjour"
+          },
+          {
+            "nom": "heureArrivee",
+            "libelle": "Heure d'arrivée",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les horaires d'arrivée et de départ"
+          },
+          {
+            "nom": "heureDepart",
+            "libelle": "Heure de départ",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "les horaires d'arrivée et de départ"
+          },
+          {
+            "nom": "nombreVoyageurs",
+            "libelle": "Nombre de voyageurs",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "le nombre de voyageurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du voyageur principal",
+            "type": "texte",
+            "raison": "Le gérant accueille les voyageurs ; le brief ne dit pas s'il faut enregistrer leur nom."
+          },
+          {
+            "libelle": "Référence de la réservation (Airbnb)",
+            "type": "texte",
+            "raison": "Le planning s'inspire d'Airbnb ; une référence permettrait de faire le lien avec la réservation d'origine."
+          }
+        ]
+      },
+      {
+        "fiche": "Intervention",
+        "champs": [
+          {
+            "nom": "dateIntervention",
+            "libelle": "Date de l'intervention",
+            "type": "date",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la date de l'intervention"
+          },
+          {
+            "nom": "heureDebut",
+            "libelle": "Heure de début",
+            "type": "texte",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "l'heure de début et de fin"
+          },
+          {
+            "nom": "heureFin",
+            "libelle": "Heure de fin",
+            "type": "texte",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "l'heure de début et de fin"
+          },
+          {
+            "nom": "anomalies",
+            "libelle": "Anomalies signalées",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "le signalement des anomalies éventuelles"
+          },
+          {
+            "nom": "commentaires",
+            "libelle": "Commentaires",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "un espace de commentaires"
+          },
+          {
+            "nom": "etatLogement",
+            "libelle": "État du logement (accueil)",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "état du logement"
+          },
+          {
+            "nom": "remarquesVoyageurs",
+            "libelle": "Remarques des voyageurs",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "remarques des voyageurs"
+          },
+          {
+            "nom": "dysfonctionnements",
+            "libelle": "Dysfonctionnements",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "éventuels dysfonctionnements"
+          },
+          {
+            "nom": "informationsImportantes",
+            "libelle": "Informations importantes",
+            "type": "texte_long",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "informations importantes"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date d'envoi du rapport au propriétaire",
+            "type": "date",
+            "raison": "Le rapport PDF est transmis au propriétaire ; garder la date d'envoi aiderait au suivi, mais le brief n'en parle pas."
+          }
+        ]
+      },
+      {
+        "fiche": "PointControle",
+        "champs": [
+          {
+            "nom": "zone",
+            "libelle": "Pièce ou zone contrôlée",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "une checklist de contrôle (cuisine, salon, chambres, salles de bain, extérieurs...)"
+          },
+          {
+            "nom": "controle",
+            "libelle": "Contrôlé",
+            "type": "oui_non",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "une checklist de contrôle"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Remarque sur le point",
+            "type": "texte",
+            "raison": "Pour préciser un problème sur une pièce précise ; le brief ne le demande pas."
+          }
+        ]
+      },
+      {
+        "fiche": "Photo",
+        "champs": [
+          {
+            "nom": "emplacement",
+            "libelle": "Pièce ou point photographié",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "des photos obligatoires de chaque pièce et des points stratégiques"
+          },
+          {
+            "nom": "fichier",
+            "libelle": "Photo (lien du fichier)",
+            "type": "url",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "des photos obligatoires"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Légende",
+            "type": "texte",
+            "raison": "Pour décrire ce que montre la photo dans le PDF ; le brief ne le précise pas."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Ménages Villas Victoria",
+    "fiches": [
+      {
+        "fiche": "Villa",
+        "verbe_creation": "Ajouter une villa",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervenant",
+        "verbe_creation": "Ajouter un intervenant",
+        "boutons": {}
+      },
+      {
+        "fiche": "Reservation",
+        "verbe_creation": "Réserver",
+        "boutons": {}
+      },
+      {
+        "fiche": "Intervention",
+        "verbe_creation": "Planifier le ménage",
+        "boutons": {
+          "attribuee": "Prendre l'intervention",
+          "realisee": "Marquer réalisée",
+          "completee": "Compléter le rapport"
+        }
+      },
+      {
+        "fiche": "PointControle",
+        "verbe_creation": "Ajouter un point de contrôle",
+        "boutons": {}
+      },
+      {
+        "fiche": "Photo",
+        "verbe_creation": "Ajouter une photo",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche PointControle : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Photo : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [
+        "droits.0.transitions.disponible : Input should be a valid array",
+        "droits.2.transitions.attribuee : Input should be a valid array",
+        "droits.4.transitions.realisee : Input should be a valid array"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

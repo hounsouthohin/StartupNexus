@@ -1,0 +1,51 @@
+{
+ "perimetre": "hors",
+ "raison": "Le coeur du projet est une place de marché (« la création d'une marketplace avec paiement en ligne ») avec paiements, commissions, messagerie, avis et une future application mobile. Ce n'est pas un logiciel de gestion d'une petite structure.",
+ "hors_stock": [
+  {
+   "besoin": "Paiement en ligne sécurisé",
+   "categorie": "paiement",
+   "citation": "Paiement en ligne sécurisé"
+  },
+  {
+   "besoin": "Calcul et prélèvement automatique des commissions de la plateforme",
+   "categorie": "paiement",
+   "citation": "Gestion automatique des commissions"
+  },
+  {
+   "besoin": "Messagerie interne entre utilisateurs",
+   "categorie": "messagerie",
+   "citation": "Messagerie interne"
+  },
+  {
+   "besoin": "Moteur de recherche sur les annonces",
+   "categorie": "autre",
+   "citation": "Moteur de recherche"
+  },
+  {
+   "besoin": "Géolocalisation des annonces",
+   "categorie": "autre",
+   "citation": "Moteur de recherche et géolocalisation"
+  },
+  {
+   "besoin": "Système d'avis et de notation",
+   "categorie": "autre",
+   "citation": "Système d'avis et de notation"
+  },
+  {
+   "besoin": "Tableau de bord utilisateur",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableau de bord utilisateur"
+  },
+  {
+   "besoin": "Site multilingue (espagnol, français, anglais, avec d'autres langues plus tard)",
+   "categorie": "autre",
+   "citation": "Site multilingue (espagnol, français, anglais, avec possibilité d'ajouter d'autres langues ultérieurement)"
+  },
+  {
+   "besoin": "Déclinaison future en application mobile native Android et iOS",
+   "categorie": "mobile_hors_ligne",
+   "citation": "être déclinée en application mobile Android et iOS"
+  }
+ ]
+}

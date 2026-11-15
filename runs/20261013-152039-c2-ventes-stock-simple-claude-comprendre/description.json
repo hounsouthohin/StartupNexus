@@ -1,0 +1,270 @@
+{
+  "app": {
+    "nom": "c2-ventes-stock-simple",
+    "titre": "Gestion commerciale"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "nous recherchons quelqu’un capable de développer une application"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "name": "Vente",
+        "label": "vente",
+        "label_plural": "ventes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": null,
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "name": "Commande",
+        "label": "commande",
+        "label_plural": "commandes",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "gestion de commandes/stock/ventes/clients"
+      },
+      {
+        "name": "Article",
+        "label": "article en stock",
+        "label_plural": "articles en stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "gerant",
+        "entity": "Vente",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Vente",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Vente",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Vente",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des ventes (ajout/affichage/suppression/modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Client",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion des clients (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Article",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Article",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Article",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      },
+      {
+        "actor": "gerant",
+        "entity": "Article",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "1 page de gestion de stock (recherche,ajout,suppression,modification)"
+      }
+    ]
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Vente": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Commande": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Article": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Vente": {
+      "verbe_creation": "Vendre",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

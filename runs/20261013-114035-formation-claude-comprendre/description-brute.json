@@ -1,0 +1,377 @@
+{
+  "app": {
+    "nom": "formation",
+    "titre": "Gestion des formations"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "Responsable de l'organisme de formation",
+        "label_plural": "Responsables de l'organisme de formation",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous souhaitons créer un \"logiciel\" de gestion de notre activité"
+      }
+    ],
+    "entities": [
+      {
+        "name": "EntitePrescriptrice",
+        "label": "entité prescriptrice",
+        "label_plural": "entités prescriptrices",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "name": "Stagiaire",
+        "label": "stagiaire",
+        "label_plural": "stagiaires",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "EntitePrescriptrice"
+        ],
+        "citation": "une entité nous envoie des stagiaires"
+      },
+      {
+        "name": "Formateur",
+        "label": "formateur",
+        "label_plural": "formateurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "planifier la date avec le formateur"
+      },
+      {
+        "name": "Salle",
+        "label": "salle",
+        "label_plural": "salles",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "avec le formateur et la salle"
+      },
+      {
+        "name": "SessionFormation",
+        "label": "session de formation",
+        "label_plural": "sessions de formation",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Formateur",
+          "Salle"
+        ],
+        "citation": "planifier la date avec le formateur et la salle",
+        "process": {
+          "initial": "convocation",
+          "transitions": {
+            "convocation": [
+              "envoi_contrat"
+            ],
+            "envoi_contrat": [
+              "planification"
+            ],
+            "planification": [
+              "facturation"
+            ],
+            "facturation": [
+              "bilan"
+            ],
+            "bilan": []
+          },
+          "initiator": "responsable",
+          "decider": "responsable",
+          "steps_by": {},
+          "labels": {
+            "convocation": "convocation téléphonique",
+            "envoi_contrat": "envoi du contrat",
+            "planification": "planification (date, formateur, salle)",
+            "facturation": "facturation",
+            "bilan": "bilan établi"
+          },
+          "citation": "convocation téléphonique, envoi contrat, planifier la date avec le formateur et la salle"
+        }
+      },
+      {
+        "name": "Affectation",
+        "label": "affectation à une session",
+        "label_plural": "affectations aux sessions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Stagiaire",
+          "SessionFormation"
+        ],
+        "citation": "des stagiaires que nous répartissons sur des sessions de formation"
+      },
+      {
+        "name": "EtapeRetroplanning",
+        "label": "étape du rétroplanning",
+        "label_plural": "étapes du rétroplanning",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "SessionFormation",
+        "references": [],
+        "citation": "un rétroplanning d'organisation de la session : convocation téléphonique, envoi contrat"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "SessionFormation",
+          "EntitePrescriptrice"
+        ],
+        "citation": "puis la facturation"
+      },
+      {
+        "name": "Bilan",
+        "label": "bilan",
+        "label_plural": "bilans",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "SessionFormation",
+          "EntitePrescriptrice"
+        ],
+        "citation": "l'établissement d'un bilan pour l'entité de base"
+      },
+      {
+        "name": "EcritureComptable",
+        "label": "écriture comptable",
+        "label_plural": "écritures comptables",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "on a besoin d'une gestion comptable associée"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "EntitePrescriptrice": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Stagiaire": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Formateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Salle": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SessionFormation": [
+      {
+        "nom": "date",
+        "libelle": "Date",
+        "type": "date",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "planifier la date"
+      }
+    ],
+    "Affectation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EtapeRetroplanning": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Bilan": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EcritureComptable": [
+      {
+        "nom": "libelle",
+        "libelle": "Libellé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Stagiaire": {
+      "verbe_creation": "Ajouter un stagiaire",
+      "boutons": {}
+    },
+    "SessionFormation": {
+      "verbe_creation": "Programmer une session",
+      "boutons": {
+        "envoi_contrat": "Envoyer le contrat",
+        "planification": "Planifier",
+        "facturation": "Passer en facturation",
+        "bilan": "Marquer bilan établi"
+      }
+    },
+    "Affectation": {
+      "verbe_creation": "Affecter à une session",
+      "boutons": {}
+    },
+    "EtapeRetroplanning": {
+      "verbe_creation": "Ajouter une étape",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Émettre une facture",
+      "boutons": {}
+    },
+    "Bilan": {
+      "verbe_creation": "Rédiger le bilan",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

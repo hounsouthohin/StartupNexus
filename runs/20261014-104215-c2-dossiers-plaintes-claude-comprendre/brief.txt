@@ -1,0 +1,2 @@
+Recherche développeur BDD pour suivi de dossier et édition de courrier
+La structure traite des dossiers (plaintes) suivant une procédure ( demande de régularisation, enregistrement, AR, échanges de mémoires, convocation audience, etc...). Nous souhaitons centraliser la gestion des dossiers pour suivre l'avancement de chaque dossier et éditer les courriers types.

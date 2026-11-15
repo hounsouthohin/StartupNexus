@@ -1,0 +1,241 @@
+{
+  "app": {
+    "nom": "c2-ecole-privee",
+    "titre": "Gestion de l'école"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire de l'école",
+        "label_plural": "Gestionnaires de l'école",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "un logiciel me permettant de gérer une école privée"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Eleve",
+        "label": "élève",
+        "label_plural": "élèves",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Parent"
+        ],
+        "process": null,
+        "citation": "concernant l'élève ou son parent"
+      },
+      {
+        "name": "Parent",
+        "label": "parent",
+        "label_plural": "parents",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "l'élève ou son parent"
+      },
+      {
+        "name": "Inscription",
+        "label": "inscription",
+        "label_plural": "inscriptions",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Eleve"
+        ],
+        "process": null,
+        "citation": "tant les inscriptions"
+      },
+      {
+        "name": "Paiement",
+        "label": "paiement mensuel",
+        "label_plural": "paiements mensuels",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Eleve"
+        ],
+        "process": null,
+        "citation": "les payements mensuels"
+      },
+      {
+        "name": "Note",
+        "label": "note de classe",
+        "label_plural": "notes de classe",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Eleve"
+        ],
+        "process": null,
+        "citation": "le notes de classe"
+      },
+      {
+        "name": "Document",
+        "label": "document administratif ou financier",
+        "label_plural": "documents administratifs ou financiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Eleve",
+          "Parent"
+        ],
+        "process": null,
+        "citation": "tout autres documents financiers ou administratifs concernant l'élève ou son parent"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Eleve": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Parent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Inscription": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Paiement": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Note": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Document": [
+      {
+        "nom": "typeDocument",
+        "libelle": "Type de document",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "financier",
+            "libelle": "Financier"
+          },
+          {
+            "code": "administratif",
+            "libelle": "Administratif"
+          }
+        ],
+        "origine": "brief",
+        "citation": "documents financiers ou administratifs"
+      }
+    ]
+  },
+  "ecran": {
+    "Eleve": {
+      "verbe_creation": "Ajouter un enfant",
+      "boutons": {}
+    },
+    "Inscription": {
+      "verbe_creation": "Inscrire",
+      "boutons": {}
+    },
+    "Paiement": {
+      "verbe_creation": "Encaisser",
+      "boutons": {}
+    },
+    "Note": {
+      "verbe_creation": "Noter",
+      "boutons": {}
+    },
+    "Document": {
+      "verbe_creation": "Joindre un document",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

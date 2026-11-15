@@ -1,0 +1,601 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion (ERP léger) pour une entreprise de rénovation : centraliser les données des chantiers et faciliter leur suivi par les chefs de projet, avec des accès différenciés par rôle. Il reste donc dans le périmètre, même si plusieurs besoins sont hors stock (mobile hors ligne, automatisations, facturation, marges, communication, cloisonnement par agence, photos et documents).",
+    "hors_stock": [
+      {
+        "besoin": "Joindre des documents et des photos aux chantiers",
+        "categorie": "fichiers_photos",
+        "citation": "devis, suivis, documents, photos"
+      },
+      {
+        "besoin": "Automatiser les tâches répétitives et les processus",
+        "categorie": "automatisation",
+        "citation": "L'automatisation des tâches répétitives ... Une centralisation et automatisation des processus et des données"
+      },
+      {
+        "besoin": "Produire des devis, des bons de commande et des factures",
+        "categorie": "document",
+        "citation": "devis, bons de commande, facturation"
+      },
+      {
+        "besoin": "Calculer et suivre les marges et la rentabilité par chantier, par ville et au global",
+        "categorie": "calcul_statistiques",
+        "citation": "des marges réalisées ... Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+      },
+      {
+        "besoin": "Utiliser l'outil sur téléphone mobile depuis le terrain, y compris hors ligne",
+        "categorie": "mobile_hors_ligne",
+        "citation": "accessible depuis le terrain (mobile) ... Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+      },
+      {
+        "besoin": "Communiquer entre les acteurs internes et externes",
+        "categorie": "messagerie",
+        "citation": "L'amélioration de la communication interne et externe ... Une meilleure communication entre les acteurs internes et externes"
+      },
+      {
+        "besoin": "Cloisonner les accès par agence",
+        "categorie": "cloisonnement",
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "dirigeant",
+        "libelle": "Dirigeant",
+        "libelle_pluriel": "Dirigeants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "libelle": "Chef de projet",
+        "libelle_pluriel": "Chefs de projet",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "dirigeant",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Acteur externe",
+        "citation": "communication entre les acteurs internes et externes"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Chantier",
+        "libelle": "Chantier",
+        "libelle_pluriel": "Chantiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées ... faciliter le suivi de chantier pour les chefs de projet"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "Devis",
+        "libelle_pluriel": "Devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "SuiviChantier",
+        "libelle": "Suivi de chantier",
+        "libelle_pluriel": "Suivis de chantier",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "Document",
+        "libelle": "Document",
+        "libelle_pluriel": "Documents",
+        "feminin": false,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "Photo",
+        "libelle": "Photo",
+        "libelle_pluriel": "Photos",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "nom": "BonDeCommande",
+        "libelle": "Bon de commande",
+        "libelle_pluriel": "Bons de commande",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "chef_de_projet"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "nom": "Agence",
+        "libelle": "Agence",
+        "libelle_pluriel": "Agences",
+        "feminin": true,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "dirigeant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Acteur externe",
+        "fiche": null,
+        "raison": "Le brief parle seulement de communication avec des acteurs externes (« Une meilleure communication entre les acteurs internes et externes ») sans dire qui ils sont (clients, sous-traitants, fournisseurs…) ni qu'ils doivent être enregistrés comme fiches : à demander au client."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Chantier",
+        "champs": [
+          {
+            "nom": "ville",
+            "libelle": "Ville",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la rentabilité par chantier, ville et globale"
+          },
+          {
+            "nom": "avancement",
+            "libelle": "Avancement (%)",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Le suivi de l'avancement des chantiers"
+          },
+          {
+            "nom": "margeRealisee",
+            "libelle": "Marge réalisée",
+            "type": "montant",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "des marges réalisées ... les marges et la rentabilité par chantier"
+          },
+          {
+            "nom": "rentabilite",
+            "libelle": "Rentabilité (%)",
+            "type": "nombre",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "la rentabilité par chantier, ville et globale"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom du chantier",
+            "type": "texte",
+            "raison": "Reconnaître le chantier dans une liste : le brief ne cite aucun nom ni aucune référence"
+          },
+          {
+            "libelle": "Adresse du chantier",
+            "type": "texte_long",
+            "raison": "Le brief cite la ville mais pas l'adresse précise des travaux"
+          },
+          {
+            "libelle": "Client",
+            "type": "texte",
+            "raison": "Le brief ne dit pas pour qui le chantier est réalisé"
+          },
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Utile pour suivre l'avancement, non cité dans le brief"
+          },
+          {
+            "libelle": "Date de fin prévue",
+            "type": "date",
+            "raison": "Utile pour suivre l'avancement, non cité dans le brief"
+          },
+          {
+            "libelle": "Budget prévu",
+            "type": "montant",
+            "raison": "Permettrait de calculer la marge, non cité dans le brief"
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro du devis",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant HT",
+            "type": "montant",
+            "raison": "Le brief ne précise pas le contenu d'un devis"
+          },
+          {
+            "libelle": "Description des travaux",
+            "type": "texte_long",
+            "raison": "Le brief ne précise pas le contenu d'un devis"
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Usuel pour un devis, non cité dans le brief"
+          }
+        ]
+      },
+      {
+        "fiche": "SuiviChantier",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date du suivi",
+            "type": "date",
+            "raison": "Le brief ne précise pas ce qu'enregistre un suivi"
+          },
+          {
+            "libelle": "Avancement constaté (%)",
+            "type": "nombre",
+            "raison": "Le brief parle du suivi de l'avancement, à confirmer s'il est noté à chaque suivi"
+          },
+          {
+            "libelle": "Observations",
+            "type": "texte_long",
+            "raison": "Le brief ne précise pas ce qu'enregistre un suivi"
+          }
+        ]
+      },
+      {
+        "fiche": "Document",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom du document",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Lien vers le fichier",
+            "type": "url",
+            "raison": "Le brief ne précise pas comment le document est stocké"
+          },
+          {
+            "libelle": "Type de document",
+            "type": "texte",
+            "raison": "Le brief ne précise pas les catégories de documents"
+          }
+        ]
+      },
+      {
+        "fiche": "Photo",
+        "champs": [
+          {
+            "nom": "legende",
+            "libelle": "Légende",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Lien vers l'image",
+            "type": "url",
+            "raison": "Le brief ne précise pas comment la photo est stockée"
+          },
+          {
+            "libelle": "Date de prise de vue",
+            "type": "date",
+            "raison": "Utile pour le suivi de chantier, non cité dans le brief"
+          }
+        ]
+      },
+      {
+        "fiche": "BonDeCommande",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro du bon de commande",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Fournisseur",
+            "type": "texte",
+            "raison": "Le brief ne précise pas à qui la commande est passée"
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Le brief ne précise pas le contenu d'un bon de commande"
+          },
+          {
+            "libelle": "Date de livraison souhaitée",
+            "type": "date",
+            "raison": "Usuel pour une commande, non cité dans le brief"
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant TTC",
+            "type": "montant",
+            "raison": "Le brief ne précise pas le contenu d'une facture"
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Usuel pour une facture, non cité dans le brief"
+          },
+          {
+            "libelle": "Date de paiement",
+            "type": "date",
+            "raison": "Utile pour suivre la rentabilité, non cité dans le brief"
+          }
+        ]
+      },
+      {
+        "fiche": "Agence",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom de l'agence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Ville",
+            "type": "texte",
+            "raison": "Le brief ne précise pas où se situe chaque agence"
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Non cité dans le brief"
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Non cité dans le brief"
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Suivi des chantiers",
+    "fiches": [
+      {
+        "fiche": "Chantier",
+        "verbe_creation": "Ouvrir un chantier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Établir un devis",
+        "boutons": {}
+      },
+      {
+        "fiche": "SuiviChantier",
+        "verbe_creation": "Noter l'avancement",
+        "boutons": {}
+      },
+      {
+        "fiche": "Document",
+        "verbe_creation": "Joindre un document",
+        "boutons": {}
+      },
+      {
+        "fiche": "Photo",
+        "verbe_creation": "Prendre une photo",
+        "boutons": {}
+      },
+      {
+        "fiche": "BonDeCommande",
+        "verbe_creation": "Commander",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

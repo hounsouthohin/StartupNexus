@@ -1,0 +1,173 @@
+{
+  "app": {
+    "nom": "cabinet-pluri",
+    "titre": "Gestion du cabinet"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "id": "professionnel",
+        "label": "Professionnel",
+        "label_plural": "Professionnels",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Professionnel",
+        "label": "Professionnel",
+        "label_plural": "Professionnels",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "professionnel",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "les professionnels concernés"
+      },
+      {
+        "name": "Dossier",
+        "label": "Dossier",
+        "label_plural": "Dossiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      },
+      {
+        "name": "RendezVous",
+        "label": "Rendez-vous",
+        "label_plural": "Rendez-vous",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion de rdv"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "avec agenda, facturation et devis"
+      },
+      {
+        "name": "Devis",
+        "label": "Devis",
+        "label_plural": "Devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "avec agenda, facturation et devis"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Professionnel": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Dossier": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RendezVous": [
+      {
+        "nom": "objet",
+        "libelle": "Objet",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {},
+  "depart": {}
+}

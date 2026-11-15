@@ -1,0 +1,320 @@
+{
+  "app": {
+    "nom": "mediatheque",
+    "titre": "Médiathèque associative"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "gestionnaire de la médiathèque",
+        "label_plural": "gestionnaires de la médiathèque",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Je gère une médiathèque associative"
+      },
+      {
+        "id": "adherent",
+        "label": "adhérent",
+        "label_plural": "adhérents",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gestionnaire",
+        "citation": "Après connexion, un adhérent gère son profil"
+      },
+      {
+        "id": "bibliothecaire",
+        "label": "bibliothécaire",
+        "label_plural": "bibliothécaires",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gestionnaire",
+        "citation": "Le ou la bibliothécaire, en revanche, voit tous les emprunts"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Ouvrage",
+        "label": "ouvrage",
+        "label_plural": "ouvrages",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": true,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "le catalogue public des ouvrages : chaque ouvrage a un titre, un auteur, un résumé (texte long), un genre (roman, essai, bande dessinée, jeunesse) et une année de publication"
+      },
+      {
+        "name": "ProfilAdherent",
+        "label": "profil adhérent",
+        "label_plural": "profils adhérents",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "adherent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Après connexion, un adhérent gère son profil (nom, email, téléphone)"
+      },
+      {
+        "name": "Emprunt",
+        "label": "emprunt",
+        "label_plural": "emprunts",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "adherent",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Ouvrage",
+          "ProfilAdherent"
+        ],
+        "citation": "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage : un emprunt concerne un ouvrage, a une date de demande et un état",
+        "process": {
+          "initial": "demande",
+          "transitions": {
+            "demande": [
+              "accepte",
+              "refuse"
+            ],
+            "accepte": [
+              "rendu"
+            ],
+            "refuse": [],
+            "rendu": []
+          },
+          "initiator": "adherent",
+          "decider": "bibliothecaire",
+          "steps_by": {},
+          "labels": {
+            "demande": "demandé",
+            "accepte": "accepté",
+            "refuse": "refusé",
+            "rendu": "rendu"
+          },
+          "citation": "Le ou la bibliothécaire, en revanche, voit tous les emprunts de tous les adhérents et est la seule personne à pouvoir accepter, refuser ou marquer un emprunt comme rendu ; un adhérent ne fait que demander et suivre"
+        }
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "visitor",
+        "entity": "Ouvrage",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Les visiteurs, sans se connecter, peuvent parcourir le catalogue public des ouvrages"
+      },
+      {
+        "actor": "adherent",
+        "entity": "ProfilAdherent",
+        "action": "edit",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un adhérent gère son profil"
+      },
+      {
+        "actor": "adherent",
+        "entity": "Emprunt",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "un adhérent gère son profil (nom, email, téléphone) et demande à emprunter un ouvrage"
+      },
+      {
+        "actor": "adherent",
+        "entity": "Emprunt",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Un adhérent ne voit que ses propres emprunts"
+      },
+      {
+        "actor": "bibliothecaire",
+        "entity": "Emprunt",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "voit tous les emprunts de tous les adhérents"
+      },
+      {
+        "actor": "bibliothecaire",
+        "entity": "Emprunt",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "demande"
+        ],
+        "transitions": {
+          "demande": [
+            "accepte"
+          ]
+        },
+        "citation": "Un emprunt commence en demandé, puis il est soit accepté"
+      },
+      {
+        "actor": "bibliothecaire",
+        "entity": "Emprunt",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "demande"
+        ],
+        "transitions": {
+          "demande": [
+            "refuse"
+          ]
+        },
+        "citation": "Un emprunt commence en demandé, puis il est soit accepté, soit refusé"
+      },
+      {
+        "actor": "bibliothecaire",
+        "entity": "Emprunt",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [
+          "accepte"
+        ],
+        "transitions": {
+          "accepte": [
+            "rendu"
+          ]
+        },
+        "citation": "un emprunt accepté passe ensuite à rendu"
+      }
+    ]
+  },
+  "champs": {
+    "Ouvrage": [
+      {
+        "nom": "titre",
+        "libelle": "Titre",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "chaque ouvrage a un titre"
+      },
+      {
+        "nom": "auteur",
+        "libelle": "Auteur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un auteur"
+      },
+      {
+        "nom": "resume",
+        "libelle": "Résumé",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un résumé (texte long)"
+      },
+      {
+        "nom": "genre",
+        "libelle": "Genre",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "roman",
+            "libelle": "roman"
+          },
+          {
+            "code": "essai",
+            "libelle": "essai"
+          },
+          {
+            "code": "bande_dessinee",
+            "libelle": "bande dessinée"
+          },
+          {
+            "code": "jeunesse",
+            "libelle": "jeunesse"
+          }
+        ],
+        "origine": "brief",
+        "citation": "un genre (roman, essai, bande dessinée, jeunesse)"
+      },
+      {
+        "nom": "anneePublication",
+        "libelle": "Année de publication",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "une année de publication"
+      }
+    ],
+    "ProfilAdherent": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un adhérent gère son profil (nom, email, téléphone)"
+      },
+      {
+        "nom": "email",
+        "libelle": "Email",
+        "type": "email",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un adhérent gère son profil (nom, email, téléphone)"
+      },
+      {
+        "nom": "telephone",
+        "libelle": "Téléphone",
+        "type": "telephone",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "un adhérent gère son profil (nom, email, téléphone)"
+      }
+    ],
+    "Emprunt": []
+  },
+  "ecran": {
+    "Emprunt": {
+      "verbe_creation": "Emprunter",
+      "boutons": {
+        "accepte": "Accepter",
+        "refuse": "Refuser",
+        "rendu": "Marquer rendu"
+      }
+    }
+  },
+  "depart": {}
+}

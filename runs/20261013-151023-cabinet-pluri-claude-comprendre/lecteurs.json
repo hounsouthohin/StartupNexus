@@ -1,0 +1,370 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion de cabinet pluridisciplinaire, avec plusieurs utilisateurs, un administrateur et des accès limités selon les personnes. Il entre donc dans notre périmètre. L'agenda, la facturation, les devis et le partage de dossiers au cas par cas sortent de notre stock.",
+    "hors_stock": [
+      {
+        "besoin": "Agenda et gestion des rendez-vous",
+        "categorie": "planning",
+        "citation": "gestion de rdv... avec agenda"
+      },
+      {
+        "besoin": "Facturation",
+        "categorie": "document",
+        "citation": "avec agenda, facturation"
+      },
+      {
+        "besoin": "Devis",
+        "categorie": "document",
+        "citation": "facturation et devis"
+      },
+      {
+        "besoin": "Partage des dossiers, un par un, par l'administrateur avec les professionnels concernés",
+        "categorie": "partage_fin",
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "administrateur",
+        "libelle": "Administrateur",
+        "libelle_pluriel": "Administrateurs",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "l'administrateur pourra partager les dossiers"
+      },
+      {
+        "id": "professionnel",
+        "libelle": "Professionnel",
+        "libelle_pluriel": "Professionnels",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "administrateur",
+        "citation": "partager les dossiers avec les professionnels concernés ... que tous les utilisateurs n'aient pas un accès total au logiciel"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Dossier",
+        "libelle": "Dossier",
+        "libelle_pluriel": "Dossiers",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données"
+      },
+      {
+        "nom": "RendezVous",
+        "libelle": "Rendez-vous",
+        "libelle_pluriel": "Rendez-vous",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Dossier"
+        ],
+        "citation": "Logiciel multi-utilisateurs de gestion de rdv ... avec agenda"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "Facture",
+        "libelle_pluriel": "Factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Dossier"
+        ],
+        "citation": "avec agenda, facturation et devis"
+      },
+      {
+        "nom": "Devis",
+        "libelle": "Devis",
+        "libelle_pluriel": "Devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "administrateur"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Dossier"
+        ],
+        "citation": "gestion de rdv, facturation et devis"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom du dossier",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne dit pas à qui ou à quoi correspond un dossier (patient, client) : à confirmer avec le client."
+          },
+          {
+            "libelle": "Date de naissance",
+            "type": "date",
+            "raison": "Utile dans un cabinet pour distinguer deux dossiers au même nom, mais non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnées utiles pour la prise de rendez-vous, non citées dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Coordonnées utiles pour l'envoi des factures et devis, non citées dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Souvent nécessaire sur une facture ou un devis, non citée dans le brief."
+          },
+          {
+            "libelle": "Notes",
+            "type": "texte_long",
+            "raison": "Informations libres sur le dossier, à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "RendezVous",
+        "champs": [
+          {
+            "nom": "objet",
+            "libelle": "Objet du rendez-vous",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure",
+            "type": "date_heure",
+            "raison": "Le brief mentionne un agenda mais ne précise pas les informations d'un rendez-vous."
+          },
+          {
+            "libelle": "Durée (minutes)",
+            "type": "nombre",
+            "raison": "Utile pour l'agenda, non citée dans le brief."
+          },
+          {
+            "libelle": "Professionnel",
+            "type": "texte",
+            "raison": "Le cabinet est pluridisciplinaire : savoir avec quel professionnel a lieu le rendez-vous, à confirmer."
+          },
+          {
+            "libelle": "Notes",
+            "type": "texte_long",
+            "raison": "Remarques libres sur le rendez-vous, non citées dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de facture",
+            "type": "date",
+            "raison": "Le brief mentionne la facturation sans détailler le contenu d'une facture."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Information essentielle d'une facture, non citée dans le brief."
+          },
+          {
+            "libelle": "Description des prestations",
+            "type": "texte_long",
+            "raison": "Détail de ce qui est facturé, non cité dans le brief."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Délai de paiement, à confirmer avec le client."
+          },
+          {
+            "libelle": "Mode de paiement",
+            "type": "texte",
+            "raison": "Non cité dans le brief, à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro du devis",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Information essentielle d'un devis, non citée dans le brief."
+          },
+          {
+            "libelle": "Description des prestations",
+            "type": "texte_long",
+            "raison": "Détail de ce qui est proposé, non cité dans le brief."
+          },
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Durée de validité du devis, à confirmer avec le client."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion du cabinet",
+    "fiches": [
+      {
+        "fiche": "Dossier",
+        "verbe_creation": null,
+        "boutons": {}
+      },
+      {
+        "fiche": "RendezVous",
+        "verbe_creation": "Prendre rendez-vous",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Établir un devis",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

@@ -1,0 +1,325 @@
+{
+  "app": {
+    "nom": "renovation",
+    "titre": "Suivi des chantiers"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "dirigeant",
+        "label": "Dirigeant",
+        "label_plural": "Dirigeants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "notre entreprise de rénovation de bâtiments"
+      },
+      {
+        "id": "chef_de_projet",
+        "label": "Chef de projet",
+        "label_plural": "Chefs de projet",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "dirigeant",
+        "citation": "faciliter le suivi de chantier pour les chefs de projet"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Chantier",
+        "label": "Chantier",
+        "label_plural": "Chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Agence"
+        ],
+        "process": null,
+        "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+      },
+      {
+        "name": "Devis",
+        "label": "Devis",
+        "label_plural": "Devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "process": null,
+        "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "SuiviChantier",
+        "label": "Suivi de chantier",
+        "label_plural": "Suivis de chantier",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "process": null,
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Document",
+        "label": "Document",
+        "label_plural": "Documents",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "process": null,
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "Photo",
+        "label": "Photo",
+        "label_plural": "Photos",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "process": null,
+        "citation": "données chantiers (devis, suivis, documents, photos)"
+      },
+      {
+        "name": "BonDeCommande",
+        "label": "Bon de commande",
+        "label_plural": "Bons de commande",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "process": null,
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "chef_de_projet"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Chantier"
+        ],
+        "process": null,
+        "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+      },
+      {
+        "name": "Agence",
+        "label": "Agence",
+        "label_plural": "Agences",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "dirigeant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Accès sécurisé et différencié par agence et rôle"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Chantier": [
+      {
+        "nom": "ville",
+        "libelle": "Ville",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la rentabilité par chantier, ville et globale"
+      },
+      {
+        "nom": "avancement",
+        "libelle": "Avancement (%)",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Le suivi de l'avancement des chantiers"
+      },
+      {
+        "nom": "margeRealisee",
+        "libelle": "Marge réalisée",
+        "type": "montant",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les marges et la rentabilité par chantier"
+      },
+      {
+        "nom": "rentabilite",
+        "libelle": "Rentabilité (%)",
+        "type": "nombre",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la rentabilité par chantier, ville et globale"
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro du devis",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SuiviChantier": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Document": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du document",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Photo": [
+      {
+        "nom": "legende",
+        "libelle": "Légende",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "BonDeCommande": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro du bon de commande",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Agence": [
+      {
+        "nom": "nom",
+        "libelle": "Nom de l'agence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Chantier": {
+      "verbe_creation": "Ouvrir un chantier",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Établir un devis",
+      "boutons": {}
+    },
+    "SuiviChantier": {
+      "verbe_creation": "Noter l'avancement",
+      "boutons": {}
+    },
+    "Document": {
+      "verbe_creation": "Joindre un document",
+      "boutons": {}
+    },
+    "Photo": {
+      "verbe_creation": "Prendre une photo",
+      "boutons": {}
+    },
+    "BonDeCommande": {
+      "verbe_creation": "Commander",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

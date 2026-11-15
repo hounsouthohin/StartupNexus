@@ -1,0 +1,533 @@
+{
+  "app": {
+    "nom": "c2-plateforme-educative",
+    "titre": "Gestion de scolarité"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Je souhaiterais mettre en place une plate-forme de gestion éducative"
+      },
+      {
+        "id": "direction",
+        "label": "Membre de la direction",
+        "label_plural": "Membres de la direction",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Direction : supervision des opérations et export des données"
+      },
+      {
+        "id": "secretaire",
+        "label": "Secrétaire académique",
+        "label_plural": "Secrétaires académiques",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Secrétariat académique : validation des dossiers, génération de documents"
+      },
+      {
+        "id": "enseignant",
+        "label": "Enseignant",
+        "label_plural": "Enseignants",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Enseignants : saisie des notes et consultation des résultats"
+      },
+      {
+        "id": "etudiant",
+        "label": "Étudiant",
+        "label_plural": "Étudiants",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "Étudiants : inscription, consultation de notes, téléchargement d’attestations"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Etudiant",
+        "label": "Étudiant",
+        "label_plural": "Étudiants",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "etudiant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Portail étudiant et interface d’administration"
+      },
+      {
+        "name": "Enseignant",
+        "label": "Enseignant",
+        "label_plural": "Enseignants",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "enseignant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout/modification des filières, matières, enseignants"
+      },
+      {
+        "name": "Filiere",
+        "label": "Filière",
+        "label_plural": "Filières",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajout/modification des filières, matières, enseignants"
+      },
+      {
+        "name": "Matiere",
+        "label": "Matière",
+        "label_plural": "Matières",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Filiere"
+        ],
+        "citation": "Ajout/modification des filières, matières, enseignants"
+      },
+      {
+        "name": "Inscription",
+        "label": "Inscription",
+        "label_plural": "Inscriptions",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "etudiant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Filiere"
+        ],
+        "citation": "Gestion des inscriptions en ligne",
+        "process": {
+          "initial": "soumise",
+          "transitions": {
+            "soumise": [
+              "validee"
+            ],
+            "validee": []
+          },
+          "initiator": "etudiant",
+          "decider": "secretaire",
+          "steps_by": {},
+          "labels": {
+            "soumise": "soumise",
+            "validee": "validée"
+          },
+          "citation": "Secrétariat académique : validation des dossiers"
+        }
+      },
+      {
+        "name": "PieceJointe",
+        "label": "Pièce jointe",
+        "label_plural": "Pièces jointes",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Inscription",
+        "references": [],
+        "citation": "Upload de documents (carte d’identité"
+      },
+      {
+        "name": "Evaluation",
+        "label": "Évaluation",
+        "label_plural": "Évaluations",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "enseignant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Matiere"
+        ],
+        "citation": "Gestion des cours, évaluations, notes et bulletins"
+      },
+      {
+        "name": "Note",
+        "label": "Note",
+        "label_plural": "Notes",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "etudiant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "enseignant",
+        "parent": null,
+        "references": [
+          "Evaluation"
+        ],
+        "citation": "Enseignants : saisie des notes et consultation des résultats"
+      },
+      {
+        "name": "Bulletin",
+        "label": "Bulletin",
+        "label_plural": "Bulletins",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "etudiant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "secretaire",
+        "parent": null,
+        "references": [],
+        "citation": "Génération de bulletins semestriels/annuels"
+      },
+      {
+        "name": "Attestation",
+        "label": "Attestation",
+        "label_plural": "Attestations",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "etudiant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "secretaire",
+        "parent": null,
+        "references": [],
+        "citation": "Génération d’attestations et diplômes avec QR code"
+      },
+      {
+        "name": "Diplome",
+        "label": "Diplôme",
+        "label_plural": "Diplômes",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "etudiant",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "secretaire",
+        "parent": null,
+        "references": [],
+        "citation": "Génération d’attestations et diplômes avec QR code"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "etudiant",
+        "entity": "Inscription",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Étudiants : inscription"
+      },
+      {
+        "actor": "etudiant",
+        "entity": "Note",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Étudiants : inscription, consultation de notes"
+      },
+      {
+        "actor": "etudiant",
+        "entity": "Attestation",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "consultation de notes, téléchargement d’attestations"
+      },
+      {
+        "actor": "etudiant",
+        "entity": "Bulletin",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Accès aux documents (bulletins, attestations)"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Inscription",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "soumise": [
+            "validee"
+          ]
+        },
+        "citation": "Secrétariat académique : validation des dossiers"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Attestation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Secrétariat académique : validation des dossiers, génération de documents"
+      },
+      {
+        "actor": "secretaire",
+        "entity": "Bulletin",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Secrétariat académique : validation des dossiers, génération de documents"
+      },
+      {
+        "actor": "enseignant",
+        "entity": "Note",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Enseignants : saisie des notes"
+      },
+      {
+        "actor": "enseignant",
+        "entity": "Note",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Enseignants : saisie des notes et consultation des résultats"
+      }
+    ]
+  },
+  "champs": {
+    "Etudiant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Enseignant": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Filiere": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Matiere": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Inscription": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "PieceJointe": [
+      {
+        "nom": "typeDocument",
+        "libelle": "Type de document",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Upload de documents (carte d’identité"
+      }
+    ],
+    "Evaluation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Note": [
+      {
+        "nom": "valeur",
+        "libelle": "Valeur",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "saisie des notes"
+      }
+    ],
+    "Bulletin": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "periodicite",
+        "libelle": "Périodicité",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "semestriel",
+            "libelle": "semestriel"
+          },
+          {
+            "code": "annuel",
+            "libelle": "annuel"
+          }
+        ],
+        "origine": "brief",
+        "citation": "bulletins semestriels/annuels"
+      }
+    ],
+    "Attestation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "qrCode",
+        "libelle": "QR code d'authentification",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "attestations et diplômes avec QR code"
+      }
+    ],
+    "Diplome": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "qrCode",
+        "libelle": "QR code d'authentification",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "attestations et diplômes avec QR code"
+      }
+    ]
+  },
+  "ecran": {
+    "Matiere": {
+      "verbe_creation": "Ajouter une matière",
+      "boutons": {}
+    },
+    "Inscription": {
+      "verbe_creation": "S'inscrire",
+      "boutons": {
+        "validee": "Valider"
+      }
+    },
+    "PieceJointe": {
+      "verbe_creation": "Joindre une pièce",
+      "boutons": {}
+    },
+    "Evaluation": {
+      "verbe_creation": "Programmer une évaluation",
+      "boutons": {}
+    },
+    "Note": {
+      "verbe_creation": "Saisir une note",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

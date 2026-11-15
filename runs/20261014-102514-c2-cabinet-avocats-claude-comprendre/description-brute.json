@@ -1,0 +1,313 @@
+{
+  "app": {
+    "nom": "c2-cabinet-avocats",
+    "titre": "Gestion du cabinet"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "associe",
+        "label": "Associé",
+        "label_plural": "Associés",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons un prestataire afin de développer un logiciel pour cabinet d'avocats"
+      },
+      {
+        "id": "manager",
+        "label": "Manager",
+        "label_plural": "Managers",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "associe",
+        "citation": "Assistance à la répartition des dossiers pour le manager"
+      },
+      {
+        "id": "collaborateur",
+        "label": "Collaborateur",
+        "label_plural": "Collaborateurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "associe",
+        "citation": "Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Dossier",
+        "label": "Dossier juridique",
+        "label_plural": "Dossiers juridiques",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "manager",
+          "associe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "TypeDossier",
+          "Client",
+          "Collaborateur"
+        ],
+        "citation": "pour chaque dossier juridique, classement en fonction du niveau d'importance et d'urgence",
+        "process": {
+          "initial": "a_attribuer",
+          "transitions": {
+            "a_attribuer": [
+              "attribue"
+            ],
+            "attribue": []
+          },
+          "initiator": "manager",
+          "decider": "manager",
+          "steps_by": {},
+          "labels": {
+            "a_attribuer": "à attribuer",
+            "attribue": "attribué"
+          },
+          "citation": "Assistance à la répartition des dossiers pour le manager en fonction des dossiers déjà attribués"
+        }
+      },
+      {
+        "name": "TypeDossier",
+        "label": "Type de dossier",
+        "label_plural": "Types de dossier",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "associe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "selon la typologie de dossier"
+      },
+      {
+        "name": "Collaborateur",
+        "label": "Profil collaborateur",
+        "label_plural": "Profils collaborateurs",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "des spécialités des collaborateurs, de leur ancienneté"
+      },
+      {
+        "name": "Tache",
+        "label": "Tâche",
+        "label_plural": "Tâches",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "collaborateur",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "associe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "du maximum négocié avec le client"
+      },
+      {
+        "name": "ForfaitFacturation",
+        "label": "Forfait de facturation",
+        "label_plural": "Forfaits de facturation",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "associe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "suivi des forfait de facturation avec un système d'alertes dès lors que le nombre d'heures déjà facturées s'approchent du maximum négocié avec le client"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "collaborateur",
+        "entity": "Tache",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Interface permettant à tous les collaborateurs de rentrer en temps réel leurs tâches à effectuer"
+      },
+      {
+        "actor": "manager",
+        "entity": "Dossier",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "a_attribuer": [
+            "attribue"
+          ]
+        },
+        "citation": "Assistance à la répartition des dossiers pour le manager"
+      }
+    ]
+  },
+  "champs": {
+    "Dossier": [
+      {
+        "nom": "niveauImportance",
+        "libelle": "Niveau d'importance",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "niveau d'importance"
+      },
+      {
+        "nom": "niveauUrgence",
+        "libelle": "Niveau d'urgence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "niveau d'importance et d'urgence"
+      },
+      {
+        "nom": "chargeTravailPrevue",
+        "libelle": "Charge de travail prévue (heures)",
+        "type": "nombre",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la charge de travail que celui-ci peut représenter"
+      }
+    ],
+    "TypeDossier": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Collaborateur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "specialites",
+        "libelle": "Spécialités",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "des spécialités des collaborateurs"
+      },
+      {
+        "nom": "anciennete",
+        "libelle": "Ancienneté (années)",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "de leur ancienneté"
+      }
+    ],
+    "Tache": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ForfaitFacturation": [
+      {
+        "nom": "heuresFacturees",
+        "libelle": "Heures déjà facturées",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le nombre d'heures déjà facturées"
+      },
+      {
+        "nom": "heuresMaximum",
+        "libelle": "Nombre d'heures maximum négocié",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "maximum négocié avec le client"
+      }
+    ]
+  },
+  "ecran": {
+    "Dossier": {
+      "verbe_creation": "Ouvrir un dossier",
+      "boutons": {
+        "attribue": "Attribuer"
+      }
+    },
+    "ForfaitFacturation": {
+      "verbe_creation": "Établir un forfait",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

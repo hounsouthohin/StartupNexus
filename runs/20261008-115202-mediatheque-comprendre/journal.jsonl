@@ -1,0 +1,10 @@
+{"etape": "Lecteur 5 — périmètre et hors stock", "numero": 1, "resume": "", "statut": "debut", "t": 3.29}
+{"etape": "Lecteur 5 — périmètre et hors stock", "numero": 1, "resume": "accepté · 0.001 $ cumulés · 4 s", "statut": "fait", "duree": 4.1}
+{"etape": "Lecteur 1 — acteurs", "numero": 2, "resume": "", "statut": "debut", "t": 7.4}
+{"etape": "Lecteur 1 — acteurs", "numero": 2, "resume": "accepté · 0.003 $ cumulés · 2 s", "statut": "fait", "duree": 2.3}
+{"etape": "Lecteur 2 — fiches", "numero": 3, "resume": "", "statut": "debut", "t": 9.72}
+{"etape": "Lecteur 2 — fiches", "numero": 3, "resume": "accepté (2 réponse(s) refusée(s) avant) · 0.012 $ cumulés · 8 s", "statut": "fait", "duree": 7.9}
+{"etape": "Lecteur 3 — circuits", "numero": 4, "resume": "", "statut": "debut", "t": 17.6}
+{"etape": "Lecteur 3 — circuits", "numero": 4, "resume": "accepté (1 réponse(s) refusée(s) avant) · 0.016 $ cumulés · 4 s", "statut": "fait", "duree": 3.8}
+{"etape": "Lecteur 4 — droits explicites", "numero": 5, "resume": "", "statut": "debut", "t": 21.37}
+{"etape": "Lecteur 4 — droits explicites", "numero": 5, "resume": "refusé 3 fois · 0.026 $ cumulés · 9 s", "statut": "fait", "duree": 8.7}

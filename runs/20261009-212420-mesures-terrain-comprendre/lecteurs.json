@@ -1,0 +1,213 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion de commandes.",
+    "hors_stock": [
+      {
+        "besoin": "Planning logistique",
+        "categorie": "planning",
+        "citation": "un planning logistique"
+      },
+      {
+        "besoin": "Automatisation de la gestion des livrables",
+        "categorie": "automatisation",
+        "citation": "une automatisation de la gestion des livrables"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "responsable_des_commandes",
+        "libelle": "Responsable des commandes",
+        "libelle_pluriel": "Responsables des commandes",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "gestion des commandes"
+      }
+    ],
+    "non_utilisateurs": []
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Commande",
+        "libelle": "commande",
+        "libelle_pluriel": "commandes",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_des_commandes"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "gestion de commande"
+      },
+      {
+        "nom": "PlanningLogistique",
+        "libelle": "planning logistique",
+        "libelle_pluriel": "plannings logistiques",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_des_commandes"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "un planning logistique"
+      },
+      {
+        "nom": "Livrable",
+        "libelle": "livrable",
+        "libelle_pluriel": "livrables",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "responsable_des_commandes"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Commande"
+        ],
+        "citation": "gestion des livrables"
+      }
+    ],
+    "correspondances": []
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Commande",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "PlanningLogistique",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      },
+      {
+        "fiche": "Livrable",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": []
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des commandes",
+    "fiches": [
+      {
+        "fiche": "PlanningLogistique",
+        "verbe_creation": "Planifier la logistique",
+        "boutons": {}
+      },
+      {
+        "fiche": "Livrable",
+        "verbe_creation": "Ajouter un livrable",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 617,
+      "jetons_sortie": 190
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 503,
+      "jetons_sortie": 294
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 923,
+      "jetons_sortie": 767
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 614,
+      "jetons_sortie": 57
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 727,
+      "jetons_sortie": 120
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 1071,
+      "jetons_sortie": 684
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 479,
+      "jetons_sortie": 265
+    }
+  ]
+}

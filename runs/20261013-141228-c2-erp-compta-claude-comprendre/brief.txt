@@ -1,0 +1,2 @@
+Création d’une application de gestion d’entreprise
+Nous recherchons des free-lances pour la conception d’une application web dans un premier temps puis hybride plus tard type ERP. L’application devra permettra de faire de la facturation, la comptabilité, la gestion financière, la gestion de stock qui pourra être utilisée aussi bien par un novice qu’un professionnel du domaine avec une option de saisie automatique et la possibilité de rajouter un expert comptable

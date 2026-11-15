@@ -1,0 +1,184 @@
+{
+  "app": {
+    "nom": "c2-portail-visa",
+    "titre": "Suivi des visas"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "responsable",
+        "label": "Responsable",
+        "label_plural": "Responsables",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Je suis le responsable d’une **agence de voyage et d’assistance visa"
+      },
+      {
+        "id": "client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "L’application permettra à mes clients de"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "client",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "se connecter avec email + mot de passe"
+      },
+      {
+        "name": "Dossier",
+        "label": "Dossier",
+        "label_plural": "Dossiers",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "client",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "responsable",
+        "parent": null,
+        "references": [],
+        "citation": "suivre uniquement leur propre dossier (visa / voyage)"
+      },
+      {
+        "name": "Document",
+        "label": "Document",
+        "label_plural": "Documents",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Dossier",
+        "references": [],
+        "citation": "Téléversement des documents par le client"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "client",
+        "entity": "Dossier",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "chaque client voit seulement son dossier"
+      },
+      {
+        "actor": "client",
+        "entity": "Document",
+        "action": "create",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Téléversement des documents par le client"
+      }
+    ]
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "email",
+        "libelle": "Email",
+        "type": "email",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "se connecter avec email"
+      }
+    ],
+    "Dossier": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "typeDossier",
+        "libelle": "Type de dossier",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "visa",
+            "libelle": "visa"
+          },
+          {
+            "code": "voyage",
+            "libelle": "voyage"
+          }
+        ],
+        "origine": "brief",
+        "citation": "leur propre dossier (visa / voyage)"
+      },
+      {
+        "nom": "statut",
+        "libelle": "Statut",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Détails du dossier"
+      },
+      {
+        "nom": "commentaire",
+        "libelle": "Commentaire",
+        "type": "texte_long",
+        "obligatoire": false,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Détails du dossier"
+      }
+    ],
+    "Document": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du document",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Document": {
+      "verbe_creation": "Téléverser un document",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

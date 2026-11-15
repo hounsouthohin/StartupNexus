@@ -1,0 +1,690 @@
+{
+  "app": {
+    "nom": "c2-cliniques-patients",
+    "titre": "Gestion des cliniques"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur de la clinique",
+        "label_plural": "administrateurs de la clinique",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+      },
+      {
+        "id": "medecin",
+        "label": "médecin",
+        "label_plural": "médecins",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "id": "infirmiere",
+        "label": "infirmière",
+        "label_plural": "infirmières",
+        "feminine": true,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "id": "receptionniste",
+        "label": "réceptionniste",
+        "label_plural": "réceptionnistes",
+        "feminine": true,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "id": "patient",
+        "label": "patient",
+        "label_plural": "patients",
+        "feminine": false,
+        "becomes": "signup",
+        "invited_by": null,
+        "citation": "Permet au patient de s'inscrire"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Patient",
+        "label": "patient",
+        "label_plural": "patients",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "patient",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+      },
+      {
+        "name": "Medecin",
+        "label": "médecin",
+        "label_plural": "médecins",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "medecin",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Clinique"
+        ],
+        "citation": "Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+      },
+      {
+        "name": "Clinique",
+        "label": "clinique",
+        "label_plural": "cliniques",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Multiclinique : Gestion de plusieurs cliniques/hôpitaux pour les médecins"
+      },
+      {
+        "name": "RendezVous",
+        "label": "rendez-vous",
+        "label_plural": "rendez-vous",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "patient",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Medecin",
+          "Clinique"
+        ],
+        "citation": "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+      },
+      {
+        "name": "Disponibilite",
+        "label": "disponibilité",
+        "label_plural": "disponibilités",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "medecin",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "prendre rendez-vous avec un médecin selon sa disponibilité"
+      },
+      {
+        "name": "JourFerie",
+        "label": "jour férié",
+        "label_plural": "jours fériés",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "receptionniste"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Ajoutez des jours fériés"
+      },
+      {
+        "name": "RappelRendezVous",
+        "label": "rappel de rendez-vous",
+        "label_plural": "rappels de rendez-vous",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "receptionniste"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "RendezVous"
+        ],
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "name": "Evenement",
+        "label": "événement",
+        "label_plural": "événements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "receptionniste"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+      },
+      {
+        "name": "NoteEtatPatient",
+        "label": "note sur l'état du patient",
+        "label_plural": "notes sur l'état du patient",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur",
+          "infirmiere"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "name": "Ordonnance",
+        "label": "ordonnance",
+        "label_plural": "ordonnances",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "medecin",
+          "administrateur",
+          "infirmiere"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "Gérer la prescription des patients"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Patient"
+        ],
+        "citation": "générez une facture pour les patients"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "receptionniste",
+        "entity": "RappelRendezVous",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "la réceptionniste définit des rappels de rendez-vous"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Patient",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Patient",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Patient",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "actor": "infirmiere",
+        "entity": "Patient",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "actor": "infirmiere",
+        "entity": "Patient",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "actor": "infirmiere",
+        "entity": "Patient",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière peuvent gérer les données des patients"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "NoteEtatPatient",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière"
+      },
+      {
+        "actor": "infirmiere",
+        "entity": "NoteEtatPatient",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "RendezVous",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "RendezVous",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière"
+      },
+      {
+        "actor": "infirmiere",
+        "entity": "RendezVous",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière"
+      },
+      {
+        "actor": "infirmiere",
+        "entity": "RendezVous",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique / l'infirmière"
+      },
+      {
+        "actor": "medecin",
+        "entity": "Patient",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "actor": "medecin",
+        "entity": "Patient",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "actor": "medecin",
+        "entity": "Patient",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le médecin peut gérer les données des patients"
+      },
+      {
+        "actor": "medecin",
+        "entity": "Ordonnance",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gérer la prescription des patients"
+      },
+      {
+        "actor": "medecin",
+        "entity": "Ordonnance",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gérer la prescription des patients"
+      },
+      {
+        "actor": "medecin",
+        "entity": "Ordonnance",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Gérer la prescription des patients"
+      },
+      {
+        "actor": "receptionniste",
+        "entity": "Evenement",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Aperçu rapide des événements importants de la journée"
+      },
+      {
+        "actor": "receptionniste",
+        "entity": "Evenement",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+      },
+      {
+        "actor": "receptionniste",
+        "entity": "Evenement",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Mettez à jour et gérez le calendrier avec les événements et avis importants"
+      },
+      {
+        "actor": "patient",
+        "entity": "Patient",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Permet au patient de s'inscrire"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Patient",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "L'administrateur de la clinique peut accuser réception de l'inscription du patient"
+      },
+      {
+        "actor": "patient",
+        "entity": "RendezVous",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Le patient peut prendre rendez-vous avec un médecin selon sa disponibilité"
+      }
+    ]
+  },
+  "champs": {
+    "Patient": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "receptionInscriptionAccusee",
+        "libelle": "Réception de l'inscription accusée",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "accuser réception de l'inscription du patient"
+      }
+    ],
+    "Medecin": [
+      {
+        "nom": "notificationEmail",
+        "libelle": "Notification par e-mail",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "définit la notification par e-mail pour les médecins"
+      }
+    ],
+    "Clinique": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RendezVous": [
+      {
+        "nom": "prive",
+        "libelle": "Privé",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "le rendez-vous de chaque médecin peut être gardé privé"
+      }
+    ],
+    "Disponibilite": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "JourFerie": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "RappelRendezVous": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Evenement": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "important",
+        "libelle": "Important",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les événements importants marqués"
+      },
+      {
+        "nom": "date",
+        "libelle": "Date",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "événements importants de la journée"
+      }
+    ],
+    "NoteEtatPatient": [
+      {
+        "nom": "etat",
+        "libelle": "État du patient",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Prendre note de l'état du patient"
+      }
+    ],
+    "Ordonnance": [
+      {
+        "nom": "medicaments",
+        "libelle": "Médicaments",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "des ordonnances de médicaments"
+      },
+      {
+        "nom": "statut",
+        "libelle": "Statut",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Statut de l'ordonnance"
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "Medecin": {
+      "verbe_creation": "Ajouter un médecin",
+      "boutons": {}
+    },
+    "RendezVous": {
+      "verbe_creation": "Prendre rendez-vous",
+      "boutons": {}
+    },
+    "RappelRendezVous": {
+      "verbe_creation": "Programmer un rappel",
+      "boutons": {}
+    },
+    "NoteEtatPatient": {
+      "verbe_creation": "Noter l'état",
+      "boutons": {}
+    },
+    "Ordonnance": {
+      "verbe_creation": "Prescrire",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

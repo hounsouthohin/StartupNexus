@@ -71,6 +71,38 @@ class _serveur:
         self.f.close()
 
 
+def auditer(app: Path, log: Path, env: dict | None = None) -> dict:
+    """(13 nov, registre n° 60) Les failles CONNUES des dépendances de l'app, d'après le registre npm (`npm audit`,
+    l'outil établi ; on ne tient aucune liste à la main). Lu dans le fichier de verrouillage, sans rien installer.
+    Une faille critique arrête la fabrication (voir l'étape 5) ; une haute est inscrite au rapport. Sans réseau,
+    l'audit est dit « non fait » : jamais un « accepté » silencieux. Prouvé par usine/preuve_audit.py."""
+    import os
+    res = subprocess.run("npm audit --package-lock-only --json", cwd=app, shell=True, capture_output=True, text=True,
+                         encoding="utf-8", errors="replace", env={**os.environ, **(env or {})})
+    log.write_text(f"$ npm audit --package-lock-only --json\n\n{res.stdout}\n{res.stderr}", encoding="utf-8")
+    try:
+        donnees = json.loads(res.stdout)
+        compte = donnees["metadata"]["vulnerabilities"]
+    except (ValueError, KeyError, TypeError):
+        erreur = ""
+        try:
+            erreur = (json.loads(res.stdout).get("error") or {}).get("summary", "")
+        except ValueError:
+            pass
+        return {"fait": False, "raison": (erreur or res.stderr.strip() or "réponse illisible").splitlines()[0][:200]}
+    paquets = donnees.get("vulnerabilities") or {}
+    return {"fait": True, **{n: compte.get(n, 0) for n in ("critical", "high", "moderate", "low")},
+            "paquets_critiques": sorted(p for p, v in paquets.items() if v.get("severity") == "critical"),
+            "paquets_hauts": sorted(p for p, v in paquets.items() if v.get("severity") == "high")}
+
+
+def resume_audit(a: dict) -> str:
+    if not a["fait"]:
+        return f"audit des failles NON FAIT ({a['raison']})"
+    hautes = f" ({', '.join(a['paquets_hauts'])})" if a["paquets_hauts"] else ""
+    return f"failles connues : {a['critical']} critique(s), {a['high']} haute(s){hautes}, {a['moderate']} moyenne(s)"
+
+
 MARQUE = ".usine-installation-complete"   # posée après une installation réussie, retirée AVANT toute suppression
 
 
@@ -170,9 +202,16 @@ def _fabriquer(chemin_description: Path, brut: dict, run: Path) -> Path:
         nb = sum(1 for p in app.rglob("*") if p.is_file())
         e["resume"] = f"{nb} fichiers ; {len(produits)} produits, le reste fixe"
 
+    verdicts = {}
     with journal.etape("Installer les dépendances (versions figées)") as e:
+        audit = auditer(app, run / "logs" / "audit.log")
+        verdicts["audit"] = resume_audit(audit)
+        if audit["fait"] and audit["critical"]:
+            raise RuntimeError(f"faille CRITIQUE connue dans les dépendances du squelette : "
+                               f"{', '.join(audit['paquets_critiques'])} (détail : logs/audit.log) — monter leur version "
+                               f"dans usine/modele-app (registre n° 60)")
         installer(app, run / "logs" / "installer.log")
-        e["resume"] = "installé depuis le fichier de verrouillage du squelette"
+        e["resume"] = f"installé depuis le fichier de verrouillage du squelette ; {verdicts['audit']}"
 
     with journal.etape("Générer le code d'accès et créer la base") as e:
         _cmd("npx zen generate --schema zenstack/schema.zmodel -o zenstack --silent", app, run / "logs" / "generer.log")
@@ -194,7 +233,6 @@ def _fabriquer(chemin_description: Path, brut: dict, run: Path) -> Path:
         _cmd("npx next build", app, run / "logs" / "construire.log", env={"NEXT_TELEMETRY_DISABLED": "1"})
         e["resume"] = "compilée sans erreur"
 
-    verdicts = {}
     with journal.etape("Vérifier les règles (testeur par rôle, sur la base)") as e:
         sortie = _cmd("npx tsx --env-file=.env.local verification/testeur.mts", app, run / "logs" / "regles.log")
         bilan = next((l.strip() for l in sortie.splitlines() if "conformes" in l), "")

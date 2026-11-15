@@ -1,0 +1,506 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Il s'agit d'un logiciel de gestion interne pour une PME (société d'autocars avec chauffeurs) : fiches clients, chauffeurs, véhicules, courses. Le cœur du projet n'est ni une place de marché, ni un réseau social, ni une application mobile native, ni un site vitrine. Le planning et le suivi de facturation, très présents dans la demande, sont hors stock mais ne font pas sortir le projet du périmètre.",
+    "hors_stock": [
+      {
+        "besoin": "Vue planning des chauffeurs avec leurs amplitudes",
+        "categorie": "planning",
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs"
+      },
+      {
+        "besoin": "Calcul et affichage des temps de pause obligatoires prévus par la loi",
+        "categorie": "calcul_statistiques",
+        "citation": "affichant les temps de pauses obligatoires demandés par la loi"
+      },
+      {
+        "besoin": "Codes couleurs par chauffeur et par véhicule dans le planning",
+        "categorie": "planning",
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "besoin": "Suivi automatique de la facturation",
+        "categorie": "automatisation",
+        "citation": "Suivi de facturation automatique"
+      },
+      {
+        "besoin": "Envoi des programmes aux chauffeurs directement depuis le logiciel",
+        "categorie": "notification",
+        "citation": "Possibilité d'envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "besoin": "Transmission des données de facturation au logiciel EBP pour établir les factures proforma",
+        "categorie": "integration",
+        "citation": "Transmission depuis le logiciel des données pour facturation au logiciel EBP pour établir les factures proforma"
+      },
+      {
+        "besoin": "Calcul du reste dû ou de l'avoir en cours sur la fiche client",
+        "categorie": "calcul_statistiques",
+        "citation": "reste dû ou avoir en cours"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "Gérant",
+        "libelle_pluriel": "Gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Logiciel de gestion pour société tourisme luxe autocars + chauffeurs."
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Chauffeur",
+        "citation": "envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "libelle": "Client",
+        "citation": "Création de fiches clients pour les réguliers"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Création de fiches clients pour les réguliers comprenant l'intégralité des informations"
+      },
+      {
+        "nom": "Chauffeur",
+        "libelle": "chauffeur",
+        "libelle_pluriel": "chauffeurs",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs ... envoyer directement depuis le logiciel les programmes aux chauffeurs"
+      },
+      {
+        "nom": "Vehicule",
+        "libelle": "véhicule",
+        "libelle_pluriel": "véhicules",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Codes couleurs par chauffeurs et par véhicules"
+      },
+      {
+        "nom": "Course",
+        "libelle": "course",
+        "libelle_pluriel": "courses",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Chauffeur",
+          "Vehicule"
+        ],
+        "citation": "Établissement de planning comprenant les amplitudes chauffeurs ... courses précédentes"
+      },
+      {
+        "nom": "Facture",
+        "libelle": "facture",
+        "libelle_pluriel": "factures",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Course"
+        ],
+        "citation": "Suivi de facturation automatique ... reste dû ou avoir en cours"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Chauffeur",
+        "fiche": "Chauffeur",
+        "raison": "Les chauffeurs ne se connectent pas : le gérant tient leurs fiches pour le planning et leur envoie les programmes."
+      },
+      {
+        "non_utilisateur": "Client",
+        "fiche": "Client",
+        "raison": "Le brief demande des fiches clients tenues par la société (coordonnées, courses précédentes, reste dû ou avoir)."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "gerant",
+        "fiche": "Client",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Création de fiches clients pour les réguliers"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "coordonnees",
+            "libelle": "Coordonnées",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "fiches clients pour les réguliers comprenant l'intégralité des informations (coordonnées"
+          },
+          {
+            "nom": "resteDu",
+            "libelle": "Reste dû",
+            "type": "montant",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "reste dû ou avoir en cours"
+          },
+          {
+            "nom": "avoirEnCours",
+            "libelle": "Avoir en cours",
+            "type": "montant",
+            "obligatoire": false,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "reste dû ou avoir en cours"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Client régulier",
+            "type": "oui_non",
+            "raison": "Le brief parle de fiches clients « pour les réguliers » : faut-il distinguer les clients réguliers des clients ponctuels ?"
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Les coordonnées ne sont pas détaillées : faut-il un champ téléphone séparé ?"
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Les coordonnées ne sont pas détaillées : faut-il un champ email séparé ?"
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Les coordonnées ne sont pas détaillées : faut-il une adresse séparée (utile pour la facturation) ?"
+          }
+        ]
+      },
+      {
+        "fiche": "Chauffeur",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "couleur",
+            "libelle": "Couleur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Codes couleurs par chauffeurs"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Pour identifier complètement le chauffeur."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Le brief veut envoyer les programmes aux chauffeurs depuis le logiciel : par SMS ?"
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Le brief veut envoyer les programmes aux chauffeurs depuis le logiciel : par email ?"
+          },
+          {
+            "libelle": "Numéro de permis / carte conducteur",
+            "type": "texte",
+            "raison": "Souvent nécessaire pour le transport de voyageurs ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Vehicule",
+        "champs": [
+          {
+            "nom": "immatriculation",
+            "libelle": "Immatriculation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "couleur",
+            "libelle": "Couleur",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Codes couleurs par chauffeurs et par véhicules"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Marque et modèle",
+            "type": "texte",
+            "raison": "Pour décrire le véhicule dans le planning."
+          },
+          {
+            "libelle": "Nombre de places",
+            "type": "nombre",
+            "raison": "Utile pour choisir l'autocar adapté à une course."
+          },
+          {
+            "libelle": "Date du prochain contrôle technique",
+            "type": "date",
+            "raison": "Suivi courant d'une flotte d'autocars ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Course",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date et heure de début",
+            "type": "date_heure",
+            "raison": "Nécessaire pour établir le planning et calculer les amplitudes chauffeurs et les temps de pause."
+          },
+          {
+            "libelle": "Date et heure de fin",
+            "type": "date_heure",
+            "raison": "Nécessaire pour établir le planning et calculer les amplitudes chauffeurs et les temps de pause."
+          },
+          {
+            "libelle": "Lieu de prise en charge",
+            "type": "texte",
+            "raison": "Information habituelle d'une course, utile au programme envoyé au chauffeur."
+          },
+          {
+            "libelle": "Destination",
+            "type": "texte",
+            "raison": "Information habituelle d'une course, utile au programme envoyé au chauffeur."
+          },
+          {
+            "libelle": "Nombre de passagers",
+            "type": "nombre",
+            "raison": "Utile pour choisir le véhicule."
+          },
+          {
+            "libelle": "Prix",
+            "type": "montant",
+            "raison": "Le brief demande un suivi de facturation automatique et la transmission des données pour facturation à EBP."
+          },
+          {
+            "libelle": "Programme / instructions pour le chauffeur",
+            "type": "texte_long",
+            "raison": "Le brief veut envoyer les programmes aux chauffeurs depuis le logiciel."
+          }
+        ]
+      },
+      {
+        "fiche": "Facture",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de facture",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant HT",
+            "type": "montant",
+            "raison": "Le brief demande un suivi de facturation sans préciser les montants enregistrés."
+          },
+          {
+            "libelle": "Montant TTC",
+            "type": "montant",
+            "raison": "Le brief demande un suivi de facturation sans préciser les montants enregistrés."
+          },
+          {
+            "libelle": "Montant réglé",
+            "type": "montant",
+            "raison": "Pour suivre le reste dû ou l'avoir en cours du client."
+          },
+          {
+            "libelle": "Date d'échéance",
+            "type": "date",
+            "raison": "Utile au suivi de facturation."
+          },
+          {
+            "libelle": "Facture proforma",
+            "type": "oui_non",
+            "raison": "Le brief mentionne l'établissement de factures proforma via EBP."
+          },
+          {
+            "libelle": "Date de transmission à EBP",
+            "type": "date",
+            "raison": "Le brief demande de transmettre les données de facturation au logiciel EBP."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Planning autocars",
+    "fiches": [
+      {
+        "fiche": "Course",
+        "verbe_creation": "Planifier",
+        "boutons": {}
+      },
+      {
+        "fiche": "Facture",
+        "verbe_creation": "Facturer",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

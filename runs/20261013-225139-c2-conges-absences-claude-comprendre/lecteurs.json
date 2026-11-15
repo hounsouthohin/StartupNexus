@@ -1,0 +1,296 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le cœur du projet est un logiciel de gestion interne pour une structure : gérer les congés et absences du personnel, avec des fiches de congé par agent et un type de congé (circonstanciel ou annuel). Cela correspond à notre périmètre. Le tableau de bord et le décompte des jours restent hors stock.",
+    "hors_stock": [
+      {
+        "besoin": "Tableau de bord pour voir d'un coup d'œil qui est en congé",
+        "categorie": "calcul_statistiques",
+        "citation": "un tableau de bord ou je peux voir qui est en congé"
+      },
+      {
+        "besoin": "Calcul du solde de 30 jours ouvrables de congé par agent (décompte des jours ouvrables pris et restants)",
+        "categorie": "calcul_statistiques",
+        "citation": "la gestion de 30 jours ouvrable de congé pour chaque agent"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "Gestionnaire du personnel",
+        "libelle_pluriel": "Gestionnaires du personnel",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "un tableau de bord ou je peux voir qui est en congé"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Agent",
+        "citation": "gerer les congés et absences du personne ... la gestion de 30 jours ouvrable de congé pour chaque agent"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Agent",
+        "libelle": "agent",
+        "libelle_pluriel": "agents",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "30 jours ouvrable de congé pour chaque agent"
+      },
+      {
+        "nom": "TypeConge",
+        "libelle": "type de congé",
+        "libelle_pluriel": "types de congé",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "un congé avaloire (circonstanciel) ou annuel"
+      },
+      {
+        "nom": "Conge",
+        "libelle": "congé",
+        "libelle_pluriel": "congés",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Agent",
+          "TypeConge"
+        ],
+        "citation": "gerer les congés et absences du personne ... savoir qui a pris un congé avaloire (circonstanciel) ou annuel"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Agent",
+        "fiche": "Agent",
+        "raison": "Les agents ne se connectent pas : le gestionnaire du personnel tient leurs fiches, avec leurs 30 jours ouvrables de congé chacun."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "gestionnaire",
+        "fiche": "Conge",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "je peux voir qui est en congé"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Agent",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "joursCongeOuvrables",
+            "libelle": "Jours ouvrables de congé",
+            "type": "nombre",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "30 jours ouvrable de congé pour chaque agent"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne cite que le droit à congé de l'agent ; le prénom aiderait à l'identifier."
+          },
+          {
+            "libelle": "Matricule",
+            "type": "texte",
+            "raison": "Un numéro d'agent permettrait de distinguer des homonymes ; à confirmer avec le client."
+          },
+          {
+            "libelle": "Service",
+            "type": "texte",
+            "raison": "Utile pour le tableau de bord (qui est en congé, par service) ; non cité dans le brief."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "L'application est en réseau ; un email permettrait de contacter ou de notifier l'agent. Non cité."
+          },
+          {
+            "libelle": "Jours de congé restants",
+            "type": "nombre",
+            "raison": "Le brief parle de gérer 30 jours ouvrables par agent ; le client dira s'il veut suivre le solde restant."
+          }
+        ]
+      },
+      {
+        "fiche": "TypeConge",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Décompté des 30 jours ouvrables",
+            "type": "oui_non",
+            "raison": "Le brief distingue congé avaloire (circonstanciel) et annuel ; à confirmer quels types sont déduits du droit annuel."
+          },
+          {
+            "libelle": "Nombre de jours maximum",
+            "type": "nombre",
+            "raison": "Un congé circonstanciel a souvent une durée limitée ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Conge",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début",
+            "type": "date",
+            "raison": "Nécessaire pour voir sur le tableau de bord qui est en congé ; le brief ne la cite pas."
+          },
+          {
+            "libelle": "Date de fin",
+            "type": "date",
+            "raison": "Nécessaire pour savoir jusqu'à quand l'agent est en congé ; non citée."
+          },
+          {
+            "libelle": "Nombre de jours ouvrables",
+            "type": "nombre",
+            "raison": "Pour décompter le congé des 30 jours ouvrables de l'agent ; non cité pour le congé lui-même."
+          },
+          {
+            "libelle": "Motif",
+            "type": "texte_long",
+            "raison": "Utile pour un congé circonstanciel ; non cité dans le brief."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion des congés",
+    "fiches": [
+      {
+        "fiche": "Conge",
+        "verbe_creation": "Poser un congé",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

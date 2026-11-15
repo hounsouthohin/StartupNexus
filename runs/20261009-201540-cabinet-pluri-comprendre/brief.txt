@@ -1,0 +1,2 @@
+Logiciel multi-utilisateurs de gestion de rdv, facturation et devis.
+je souhaiterais développer un logiciel de gestion de cabinet pluridisciplinaire, avec agenda, facturation et devis. l'administrateur pourra partager les dossiers avec les professionnels concernés afin d'assurer une confidentialité des données et que tous les utilisateurs n'aient pas un accès total au logiciel

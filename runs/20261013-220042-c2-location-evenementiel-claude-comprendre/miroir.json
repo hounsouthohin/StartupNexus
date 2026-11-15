@@ -1,0 +1,1075 @@
+{
+ "titre": "Location événementielle",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Suivi des quantités en stock selon les sorties et entrées de matériel liées aux événements",
+   "categorie": "calcul_statistiques",
+   "citation": "Gestion des stocks en fonction des événements au calendrier (sorties et entrées)"
+  },
+  {
+   "besoin": "Photo pour chaque élément du devis",
+   "categorie": "fichiers_photos",
+   "citation": "Chaque élément dans le devis doit avoir une photo pour représenter l'effet"
+  },
+  {
+   "besoin": "Rappel à l'équipe de montage du bon mode d'utilisation de chaque appareil et des consignes de finition (s'il s'agit de rappels envoyés et pas seulement de fiches de consignes, à confirmer avec le client)",
+   "categorie": "notification",
+   "citation": "Développer une méthode pour rappeler le mode d'utilisation correct de chaque appareil"
+  },
+  {
+   "besoin": "Vidéos de test, d'installation et de finition du matériel, à déposer obligatoirement par l'équipe",
+   "categorie": "fichiers_photos",
+   "citation": "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+  },
+  {
+   "besoin": "Calcul du profit final de chaque événement à partir des dépenses",
+   "categorie": "calcul_statistiques",
+   "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final"
+  },
+  {
+   "besoin": "Rapports mensuels et par événement, avec filtres",
+   "categorie": "calcul_statistiques",
+   "citation": "Système de filtrage et visualisation simple des rapports mensuels et par événement"
+  },
+  {
+   "besoin": "Vue calendrier des événements, dans le style de Google Agenda",
+   "categorie": "planning",
+   "citation": "Calendrier dans le style de Google"
+  },
+  {
+   "besoin": "Synchronisation des données avec le calendrier Apple Calendar déjà utilisé",
+   "categorie": "integration",
+   "citation": "intégration de données avec notre calendrier actuel sur Apple Calendar"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant",
+   "Le membre de l'équipe"
+  ],
+  "fiches": 12,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous avons une entreprise de location de matériel pour événements"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : membres de l'équipe",
+     "cases": [
+      {
+       "fiche": "MembreEquipe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les affectations de l'équipe qu'il voit",
+        "clôture : choisit les membres de l'équipe de ses affectations de l'équipe"
+       ],
+       "citations": [
+        "Gestion de l'équipe pour chaque événement"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : clients, produits, événements, mouvements de stock, contrats, vidéos, dépenses",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Nous avons besoin d'un CRM pour les données des clients"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "rappeler le mode d'utilisation correct de chaque appareil"
+       ]
+      },
+      {
+       "fiche": "Evenement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      },
+      {
+       "fiche": "MouvementStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier (sorties et entrées)"
+       ]
+      },
+      {
+       "fiche": "Contrat",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "après confirmation, gestion des contrats"
+       ]
+      },
+      {
+       "fiche": "Video",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+       ]
+      },
+      {
+       "fiche": "Depense",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des dépenses pour chaque événement et visualisation du profit final"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : lignes de devis (dans chaque devis), affectations de l'équipe (dans chaque événement), instructions de finition (dans chaque événement)",
+     "cases": [
+      {
+       "fiche": "LigneDevis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de devis : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Gestion des devis pour chaque client",
+        "Gestion des devis pour chaque client ; après confirmation, gestion des contrats"
+       ]
+      },
+      {
+       "fiche": "Affectation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de événement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      },
+      {
+       "fiche": "InstructionFinition",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de événement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Devis : voit tout, en crée, les modifie, les fait passer de « en attente » à « confirmé »",
+     "cases": [
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "confirme"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre"
+       ],
+       "citations": [
+        "Gestion des devis pour chaque client",
+        "Gestion des devis pour chaque client ; après confirmation, gestion des contrats"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "membre_equipe",
+   "libelle": "Le membre de l'équipe",
+   "devient": "invité par gerant",
+   "citations": [
+    "Exiger que l'équipe réalise des vidéos de test du matériel"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : clients, produits",
+     "cases": [
+      {
+       "fiche": "Client",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "clôture : affiché dans les événements qu'il voit",
+        "clôture : choisit les clients de ses événements"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      },
+      {
+       "fiche": "Produit",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "rappeler le mode d'utilisation correct de chaque appareil"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : événements, vidéos",
+     "cases": [
+      {
+       "fiche": "Evenement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      },
+      {
+       "fiche": "Video",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Exiger que l'équipe réalise des vidéos de test du matériel »"
+       ],
+       "citations": [
+        "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel",
+        "Exiger que l'équipe réalise des vidéos de test du matériel"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : affectations de l'équipe (dans chaque événement), instructions de finition (dans chaque événement)",
+     "cases": [
+      {
+       "fiche": "Affectation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de événement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      },
+      {
+       "fiche": "InstructionFinition",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage »",
+        "enfant de événement : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage",
+        "Gestion des stocks en fonction des événements au calendrier"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son membre de l'équipe, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "MembreEquipe",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "toute l'équipe qui y travaillera"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Devis",
+   "texte": "Le devis passe par : « en attente » → « confirmé »",
+   "qui": [
+    "Le gérant fait passer de « en attente » à « confirmé »"
+   ],
+   "citations": [
+    "Gestion des devis pour chaque client ; après confirmation, gestion des contrats"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "MembreEquipe",
+   "libelle": "membre de l'équipe",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:MembreEquipe:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:MembreEquipe:Fonction (ex. montage)",
+     "libelle": "Fonction (ex. montage)",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "toute l'équipe qui y travaillera"
+   ]
+  },
+  {
+   "fiche": "Client",
+   "libelle": "client",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "typeClient",
+     "libelle": "Type de client",
+     "type": "choix parmi : particulier, professionnel",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Nos clients comprennent des particuliers"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Client:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Client:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Client:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Client:Raison sociale",
+     "libelle": "Raison sociale",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Nous avons besoin d'un CRM pour les données des clients"
+   ]
+  },
+  {
+   "fiche": "Produit",
+   "libelle": "produit",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "valeur",
+     "libelle": "Valeur",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Tableau des valeurs pour chaque produit"
+    },
+    {
+     "nom": "modeUtilisation",
+     "libelle": "Mode d'utilisation",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "rappeler le mode d'utilisation correct de chaque appareil"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Produit:Photo",
+     "libelle": "Photo",
+     "type": "lien web"
+    },
+    {
+     "id": "garder:Produit:Quantité totale en stock",
+     "libelle": "Quantité totale en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Produit:Catégorie",
+     "libelle": "Catégorie",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "rappeler le mode d'utilisation correct de chaque appareil"
+   ]
+  },
+  {
+   "fiche": "Evenement",
+   "libelle": "événement",
+   "nature": "registry",
+   "relie_a": [
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "dateEvenement",
+     "libelle": "Date de l'événement",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "événements au calendrier"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Evenement:Nom de l'événement",
+     "libelle": "Nom de l'événement",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Evenement:Lieu",
+     "libelle": "Lieu",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Evenement:Heures de début et de fin",
+     "libelle": "Heures de début et de fin",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Evenement:Type d'événement",
+     "libelle": "Type d'événement",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Gestion des stocks en fonction des événements au calendrier"
+   ]
+  },
+  {
+   "fiche": "MouvementStock",
+   "libelle": "mouvement de stock",
+   "nature": "registry",
+   "relie_a": [
+    "produit",
+    "événement"
+   ],
+   "champs": [
+    {
+     "nom": "sens",
+     "libelle": "Sens du mouvement",
+     "type": "choix parmi : sortie, entrée",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "sorties et entrées"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:MouvementStock:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:MouvementStock:Date du mouvement",
+     "libelle": "Date du mouvement",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Gestion des stocks en fonction des événements au calendrier (sorties et entrées)"
+   ]
+  },
+  {
+   "fiche": "Devis",
+   "libelle": "devis",
+   "nature": "registry",
+   "relie_a": [
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Devis:Date de validité",
+     "libelle": "Date de validité",
+     "type": "date"
+    },
+    {
+     "id": "garder:Devis:Remise",
+     "libelle": "Remise",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Gestion des devis pour chaque client"
+   ]
+  },
+  {
+   "fiche": "LigneDevis",
+   "libelle": "ligne de devis",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque devis",
+    "produit"
+   ],
+   "champs": [
+    {
+     "nom": "photo",
+     "libelle": "Photo",
+     "type": "lien web",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Chaque élément dans le devis doit avoir une photo"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:LigneDevis:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:LigneDevis:Prix unitaire",
+     "libelle": "Prix unitaire",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Chaque élément dans le devis doit avoir une photo pour représenter l'effet"
+   ]
+  },
+  {
+   "fiche": "Contrat",
+   "libelle": "contrat",
+   "nature": "registry",
+   "relie_a": [
+    "devis",
+    "client"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Contrat:Date de signature",
+     "libelle": "Date de signature",
+     "type": "date"
+    },
+    {
+     "id": "garder:Contrat:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Contrat:Acompte",
+     "libelle": "Acompte",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Contrat:Document signé",
+     "libelle": "Document signé",
+     "type": "lien web"
+    }
+   ],
+   "citations": [
+    "après confirmation, gestion des contrats"
+   ]
+  },
+  {
+   "fiche": "Affectation",
+   "libelle": "affectation de l'équipe",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque événement",
+    "membre de l'équipe"
+   ],
+   "champs": [
+    {
+     "nom": "role",
+     "libelle": "Rôle",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Affectation:Heure d'arrivée",
+     "libelle": "Heure d'arrivée",
+     "type": "date et heure"
+    }
+   ],
+   "citations": [
+    "Gestion de l'équipe pour chaque événement"
+   ]
+  },
+  {
+   "fiche": "InstructionFinition",
+   "libelle": "instruction de finition",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque événement"
+   ],
+   "champs": [
+    {
+     "nom": "contenu",
+     "libelle": "Instructions de finition",
+     "type": "texte long",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des instructions pour les finitions lors de l'événement"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:InstructionFinition:Titre",
+     "libelle": "Titre",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:InstructionFinition:Ordre",
+     "libelle": "Ordre",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage"
+   ]
+  },
+  {
+   "fiche": "Video",
+   "libelle": "vidéo",
+   "nature": "registry",
+   "relie_a": [
+    "événement",
+    "produit"
+   ],
+   "champs": [
+    {
+     "nom": "typeVideo",
+     "libelle": "Type de vidéo",
+     "type": "choix parmi : test, installation, finition",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+    },
+    {
+     "nom": "lienVideo",
+     "libelle": "Lien de la vidéo",
+     "type": "lien web",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "l'équipe réalise des vidéos"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Video:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+   ]
+  },
+  {
+   "fiche": "Depense",
+   "libelle": "dépense",
+   "nature": "registry",
+   "relie_a": [
+    "événement"
+   ],
+   "champs": [
+    {
+     "nom": "montant",
+     "libelle": "Montant",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Depense:Libellé",
+     "libelle": "Libellé",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Depense:Date de la dépense",
+     "libelle": "Date de la dépense",
+     "type": "date"
+    },
+    {
+     "id": "garder:Depense:Catégorie",
+     "libelle": "Catégorie",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Gestion des dépenses pour chaque événement et visualisation du profit final"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:membre_equipe:Client",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe verra tous les clients, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les événements qu'il voit; clôture : choisit les clients de ses événements"
+  },
+  {
+   "id": "registre_entier:membre_equipe:Evenement",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe verra tous les événements, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : il doit les voir quand même — clôture : affiché dans les vidéos qu'il voit; clôture : choisit les événements de ses vidéos"
+  },
+  {
+   "id": "registre_entier:membre_equipe:Video",
+   "sorte": "registre_entier",
+   "texte": "Le membre de l'équipe verra toutes les vidéos, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:MembreEquipe:nom",
+     "texte": "membre de l'équipe → « Nom »"
+    },
+    {
+     "id": "nom:Client:nom",
+     "texte": "client → « Nom »"
+    },
+    {
+     "id": "nom:Produit:nom",
+     "texte": "produit → « Nom »"
+    },
+    {
+     "id": "nom:Devis:reference",
+     "texte": "devis → « Référence »"
+    },
+    {
+     "id": "nom:Contrat:reference",
+     "texte": "contrat → « Référence »"
+    },
+    {
+     "id": "nom:Affectation:role",
+     "texte": "affectation de l'équipe → « Rôle »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

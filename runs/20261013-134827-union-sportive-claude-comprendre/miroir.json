@@ -1,0 +1,722 @@
+{
+ "titre": "Union sportive",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Paiement en ligne via un module intégré",
+   "categorie": "paiement",
+   "citation": "intégration d'un module de paiement en ligne"
+  },
+  {
+   "besoin": "Validation d'une adhésion ou d'une activité bloquée tant que le paiement n'est pas confirmé",
+   "categorie": "paiement",
+   "citation": "Vérification du paiement avant activation ... Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+  },
+  {
+   "besoin": "Renouvellement automatique des adhésions",
+   "categorie": "automatisation",
+   "citation": "Renouvellement automatique ou manuel"
+  },
+  {
+   "besoin": "Vue calendrier des activités, consultable aussi par le public",
+   "categorie": "planning",
+   "citation": "Calendrier d'activités"
+  },
+  {
+   "besoin": "Exports CSV/Excel des données, filtrables par période",
+   "categorie": "autre",
+   "citation": "Export par période ... Export CSV/Excel (adhérents, adhésions, activités, homologations)"
+  },
+  {
+   "besoin": "Tableaux de bord de suivi",
+   "categorie": "calcul_statistiques",
+   "citation": "Tableaux de bord de suivi"
+  },
+  {
+   "besoin": "Conformité RGPD (conservation, droits des personnes)",
+   "categorie": "autre",
+   "citation": "Respect du RGPD"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur"
+  ],
+  "fiches": 7,
+  "circuits": 4
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Voit tout : Activités",
+     "cases": [
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "catalogue public : visible des visiteurs",
+        "exception : « Affichage public consultable sur tous supports »"
+       ],
+       "citations": [
+        "Gestion interne : création, modification, annulation",
+        "Affichage public consultable sur tous supports"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Interface d'administration avec authentification sécurisée"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Activités, Participants, Inscriptions aux activités",
+     "cases": [
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)",
+        "exception : « Gestion interne : création, modification, annulation »",
+        "exception : « Gestion interne : création, modification, annulation »"
+       ],
+       "citations": [
+        "Gestion interne : création, modification, annulation",
+        "Gestion interne : création, modification, annulation",
+        "Gestion interne : création, modification, annulation"
+       ]
+      },
+      {
+       "fiche": "Participant",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "Suivi des inscrits aux activités"
+       ]
+      },
+      {
+       "fiche": "Inscription",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "exception : « Suivi des inscrits aux activités »"
+       ],
+       "citations": [
+        "Lien entre participant, activité et statut d'homologation",
+        "Suivi des inscrits aux activités"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Adhérents : voit tout, en crée, les modifie, les supprime, les fait passer de « actif » à « inactif », les fait passer de « inactif » à « actif »",
+     "cases": [
+      {
+       "fiche": "Adherent",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {
+         "actif": [
+          "inactif"
+         ],
+         "inactif": [
+          "actif"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Création, modification, suppression de fiches membres »",
+        "exception : « Création, modification, suppression de fiches membres »",
+        "exception : « Création, modification, suppression de fiches membres »"
+       ],
+       "citations": [
+        "Création, modification, suppression de fiches membres",
+        "Statut actif/inactif",
+        "Création, modification, suppression de fiches membres",
+        "Création, modification, suppression de fiches membres",
+        "Création, modification, suppression de fiches membres"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Adhésions : voit tout, en crée, les modifie, les fait passer de « en attente de paiement » à « active »",
+     "cases": [
+      {
+       "fiche": "Adhesion",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente_paiement": [
+          "active"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Enregistrement des adhésions »",
+        "exception : « Validation d'activité ou d'adhésion uniquement après paiement confirmé »"
+       ],
+       "citations": [
+        "Enregistrement des adhésions (année, cotisation, dates de validité)",
+        "Validation d'activité ou d'adhésion uniquement après paiement confirmé",
+        "Enregistrement des adhésions",
+        "Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Paiements : voit tout, en crée, les modifie, les fait passer de « en attente » à « confirmé »",
+     "cases": [
+      {
+       "fiche": "Paiement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "confirme"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Saisie manuelle »"
+       ],
+       "citations": [
+        "Validation d'activité ou d'adhésion uniquement après paiement confirmé",
+        "Saisie manuelle ou intégration d'un module de paiement en ligne",
+        "Saisie manuelle"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Homologations : voit tout, en crée, les modifie, les fait passer de « en attente » à « validée »",
+     "cases": [
+      {
+       "fiche": "Homologation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "en_attente": [
+          "validee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)",
+        "fait évoluer l'état des fiches du registre",
+        "exception : « Validation d'une activité uniquement après paiement »"
+       ],
+       "citations": [
+        "Validation d'une activité uniquement après paiement",
+        "Validation d'une activité uniquement après paiement"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Adherent",
+   "texte": "L'adhérent passe par : « actif » → « inactif »",
+   "qui": [
+    "L'administrateur fait passer de « actif » à « inactif »",
+    "L'administrateur fait passer de « inactif » à « actif »"
+   ],
+   "citations": [
+    "Statut actif/inactif"
+   ]
+  },
+  {
+   "fiche": "Adhesion",
+   "texte": "L'adhésion passe par : « en attente de paiement » → « active »",
+   "qui": [
+    "L'administrateur fait passer de « en attente de paiement » à « active »"
+   ],
+   "citations": [
+    "Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+   ]
+  },
+  {
+   "fiche": "Paiement",
+   "texte": "Le paiement passe par : « en attente » → « confirmé »",
+   "qui": [
+    "L'administrateur fait passer de « en attente » à « confirmé »"
+   ],
+   "citations": [
+    "Saisie manuelle ou intégration d'un module de paiement en ligne"
+   ]
+  },
+  {
+   "fiche": "Homologation",
+   "texte": "L'homologation passe par : « en attente » → « validée »",
+   "qui": [
+    "L'administrateur fait passer de « en attente » à « validée »"
+   ],
+   "citations": [
+    "Validation d'une activité uniquement après paiement"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Adherent",
+   "libelle": "Adhérent",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Adherent:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Adherent:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    },
+    {
+     "id": "garder:Adherent:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Adherent:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Adherent:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Adherent:Consentement RGPD",
+     "libelle": "Consentement RGPD",
+     "type": "oui / non"
+    }
+   ],
+   "citations": [
+    "Création, modification, suppression de fiches membres"
+   ]
+  },
+  {
+   "fiche": "Adhesion",
+   "libelle": "Adhésion",
+   "nature": "registry",
+   "relie_a": [
+    "Adhérent"
+   ],
+   "champs": [
+    {
+     "nom": "annee",
+     "libelle": "Année",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+    },
+    {
+     "nom": "cotisation",
+     "libelle": "Cotisation",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+    },
+    {
+     "nom": "dateDebutValidite",
+     "libelle": "Date de début de validité",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+    },
+    {
+     "nom": "dateFinValidite",
+     "libelle": "Date de fin de validité",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Enregistrement des adhésions (année, cotisation, dates de validité)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Adhesion:Mode de renouvellement",
+     "libelle": "Mode de renouvellement",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Adhesion:Catégorie d'adhésion",
+     "libelle": "Catégorie d'adhésion",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Enregistrement des adhésions (année, cotisation, dates de validité)"
+   ]
+  },
+  {
+   "fiche": "Activite",
+   "libelle": "Activité",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Activite:Date et heure",
+     "libelle": "Date et heure",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Activite:Lieu",
+     "libelle": "Lieu",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Activite:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Activite:Tarif",
+     "libelle": "Tarif",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Activite:Annulée",
+     "libelle": "Annulée",
+     "type": "oui / non"
+    },
+    {
+     "id": "garder:Activite:Nombre de places",
+     "libelle": "Nombre de places",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Gestion interne : création, modification, annulation"
+   ]
+  },
+  {
+   "fiche": "Participant",
+   "libelle": "Participant",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Participant:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Participant:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Participant:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Participant:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Suivi des inscrits aux activités"
+   ]
+  },
+  {
+   "fiche": "Inscription",
+   "libelle": "Inscription à une activité",
+   "nature": "registry",
+   "relie_a": [
+    "Participant",
+    "Activité"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Inscription:Remarque",
+     "libelle": "Remarque",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Lien entre participant, activité et statut d'homologation"
+   ]
+  },
+  {
+   "fiche": "Paiement",
+   "libelle": "Paiement",
+   "nature": "registry",
+   "relie_a": [
+    "Adhésion",
+    "Inscription à une activité"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Paiement:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Paiement:Date de paiement",
+     "libelle": "Date de paiement",
+     "type": "date"
+    },
+    {
+     "id": "garder:Paiement:Mode de paiement",
+     "libelle": "Mode de paiement",
+     "type": "choix"
+    },
+    {
+     "id": "garder:Paiement:Référence de transaction en ligne",
+     "libelle": "Référence de transaction en ligne",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Validation d'activité ou d'adhésion uniquement après paiement confirmé"
+   ]
+  },
+  {
+   "fiche": "Homologation",
+   "libelle": "Homologation",
+   "nature": "registry",
+   "relie_a": [
+    "Inscription à une activité",
+    "Paiement"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Homologation:Date d'homologation",
+     "libelle": "Date d'homologation",
+     "type": "date"
+    },
+    {
+     "id": "garder:Homologation:Numéro d'homologation",
+     "libelle": "Numéro d'homologation",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Homologation:Commentaire",
+     "libelle": "Commentaire",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "Validation d'une activité uniquement après paiement"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "visiteur:visitor:Activite",
+   "sorte": "visiteur",
+   "texte": "Les visiteurs sans compte pourront consulter toutes les Activités — d'accord ? (si certains ne doivent pas être visibles, par exemple des brouillons, répondez non)",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Adherent:nom",
+     "texte": "Adhérent → « Nom »"
+    },
+    {
+     "id": "nom:Activite:intitule",
+     "texte": "Activité → « Intitulé »"
+    },
+    {
+     "id": "nom:Participant:nom",
+     "texte": "Participant → « Nom »"
+    },
+    {
+     "id": "nom:Inscription:reference",
+     "texte": "Inscription à une activité → « Référence »"
+    },
+    {
+     "id": "nom:Paiement:reference",
+     "texte": "Paiement → « Référence »"
+    },
+    {
+     "id": "nom:Homologation:reference",
+     "texte": "Homologation → « Référence »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

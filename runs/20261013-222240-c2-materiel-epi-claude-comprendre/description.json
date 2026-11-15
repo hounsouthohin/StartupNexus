@@ -1,0 +1,145 @@
+{
+  "app": {
+    "nom": "c2-materiel-epi",
+    "titre": "Gestion EPI montagne"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gestionnaire",
+        "label": "Gestionnaire du matériel",
+        "label_plural": "Gestionnaires du matériel",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Gestion matériel epi montagne et amortissement"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Materiel",
+        "label": "Matériel",
+        "label_plural": "Matériels",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gestionnaire"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "saisie des matériels, date de fabrication, fin de vie"
+      },
+      {
+        "name": "Verification",
+        "label": "Vérification",
+        "label_plural": "Vérifications",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Materiel",
+        "references": [],
+        "process": null,
+        "citation": "saisie des vérifications pour chaque matériel"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "gestionnaire",
+        "entity": "Materiel",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "application de saisie des matériels"
+      },
+      {
+        "actor": "gestionnaire",
+        "entity": "Verification",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "saisie des vérifications pour chaque matériel"
+      },
+      {
+        "actor": "gestionnaire",
+        "entity": "Materiel",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "visualisation des stocks, valeurs"
+      }
+    ]
+  },
+  "champs": {
+    "Materiel": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "dateFabrication",
+        "libelle": "Date de fabrication",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "date de fabrication"
+      },
+      {
+        "nom": "dateFinVie",
+        "libelle": "Date de fin de vie",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "fin de vie"
+      },
+      {
+        "nom": "valeur",
+        "libelle": "Valeur",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "amortissements de la valeur"
+      }
+    ],
+    "Verification": [
+      {
+        "nom": "dateVerification",
+        "libelle": "Date de vérification",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "vérification à la date"
+      }
+    ]
+  },
+  "ecran": {
+    "Verification": {
+      "verbe_creation": "Vérifier",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

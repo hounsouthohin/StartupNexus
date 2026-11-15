@@ -1,0 +1,337 @@
+{
+  "app": {
+    "nom": "c2-batiment-stock-devis",
+    "titre": "Gestion BTP"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "Gérant",
+        "label_plural": "Gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous sommes une entreprise générale de bâtiment"
+      },
+      {
+        "id": "conducteur_travaux",
+        "label": "Conducteur de travaux",
+        "label_plural": "Conducteurs de travaux",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "pour nos conducteurs de travaux"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Marchandise",
+        "label": "Marchandise",
+        "label_plural": "Marchandises",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "des marchandises qui serviront à nos chantiers (sac de colle à carrelage, ciment, parpaing"
+      },
+      {
+        "name": "MouvementStock",
+        "label": "Mouvement de stock",
+        "label_plural": "Mouvements de stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Marchandise",
+          "Chantier"
+        ],
+        "process": null,
+        "citation": "contrôler les entrées et les sorties des marchandises qui serviront à nos chantiers"
+      },
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "nos clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+      },
+      {
+        "name": "Devis",
+        "label": "Devis",
+        "label_plural": "Devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": null,
+        "citation": "proposer la possibilité d’établir un devis en ligne à nos clients particuliers"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": null,
+        "citation": "gérer la partie facturation pour nos clients professionnels et particuliers"
+      },
+      {
+        "name": "Chantier",
+        "label": "Chantier",
+        "label_plural": "Chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "conducteur_travaux"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "le suivi de nos chantiers (afin de connaître leur avancement, les délais"
+      },
+      {
+        "name": "RapportChantier",
+        "label": "Rapport de chantier",
+        "label_plural": "Rapports de chantier",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [
+          "Chantier"
+        ],
+        "process": null,
+        "citation": ") pour nos conducteurs de travaux"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "conducteur_travaux",
+        "entity": "Chantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "pour le suivi de nos chantiers (afin de connaître leur avancement"
+      }
+    ]
+  },
+  "champs": {
+    "Marchandise": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "MouvementStock": [
+      {
+        "nom": "sens",
+        "libelle": "Sens du mouvement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "entree",
+            "libelle": "entrée"
+          },
+          {
+            "code": "sortie",
+            "libelle": "sortie"
+          }
+        ],
+        "origine": "brief",
+        "citation": "les entrées et les sorties des marchandises"
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "typeClient",
+        "libelle": "Type de client",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "professionnel",
+            "libelle": "professionnel"
+          },
+          {
+            "code": "particulier",
+            "libelle": "particulier"
+          }
+        ],
+        "origine": "brief",
+        "citation": "nos clients professionnels et particuliers"
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Chantier": [
+      {
+        "nom": "nom",
+        "libelle": "Nom du chantier",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "avancement",
+        "libelle": "Avancement (%)",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "connaître leur avancement"
+      },
+      {
+        "nom": "delai",
+        "libelle": "Délai (date de fin prévue)",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les délais"
+      },
+      {
+        "nom": "organisationDomaines",
+        "libelle": "Organisation des domaines d'application",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l’organisation des différents domaines d’application"
+      }
+    ],
+    "RapportChantier": [
+      {
+        "nom": "typeRapport",
+        "libelle": "Type de document",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "c_r",
+            "libelle": "C/R"
+          },
+          {
+            "code": "rapport",
+            "libelle": "rapport"
+          }
+        ],
+        "origine": "brief",
+        "citation": "C/R, rapports"
+      }
+    ]
+  },
+  "ecran": {
+    "MouvementStock": {
+      "verbe_creation": "Saisir un mouvement",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Établir un devis",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "RapportChantier": {
+      "verbe_creation": "Rédiger un rapport",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

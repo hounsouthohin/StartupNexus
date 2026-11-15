@@ -1,0 +1,34 @@
+Entreprise générale de bâtiment, gestion de projet informatique
+Nous sommes une entreprise générale de bâtiment qui est en cours de création.
+
+Notre domaine d’activité s’étend du gros œuvre (maçonnerie, structure du bâtiment) au 2nd œuvre (carrelage, électricité…).
+
+Nous aimerions développer une application de gestion qui permettra de gérer notre activité.
+
+Le projet doit commencer dans l’immédiat.
+
+Nous avons besoin d’un prestataire expérimenté afin de mettre en place notre futur système de gestion.
+
+Les besoins de notre projet :
+
+ 
+
+1ère Phase :
+
+1 - La création d’une application de gestion des stock (pour mieux contrôler les entrées et les sorties des marchandises qui serviront à nos chantiers (sac de colle à carrelage, ciment, parpaing…)
+
+ 
+
+2 - La création d’un outil pour réaliser des devis, et gérer la partie facturation pour nos clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)
+
+3 - Création d’un site internet (afin de mettre en avant notre savoir-faire, et proposer la possibilité d’établir un devis en ligne à nos clients particuliers).
+
+  
+
+2ème Phase : (Janvier 2023)
+
+La création d’une application (web et mobile) pour le suivi de nos chantiers (afin de connaître leur avancement, les délais, l’organisation des différents domaines d’application, C/R, rapports,…) pour nos conducteurs de travaux.
+
+Démarrage du projet :
+
+Le plus tôt possible

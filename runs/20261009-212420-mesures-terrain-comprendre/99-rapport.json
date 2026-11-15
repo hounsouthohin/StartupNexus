@@ -1,0 +1,15 @@
+{
+  "run": "20261009-212420-mesures-terrain-comprendre",
+  "brief": "factory-sprint0/harness/briefs_reels/apprentissage/briefs.json#appr-mesures-terrain",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261009-212420-mesures-terrain-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 7,
+    "jetons_entree": 4934,
+    "jetons_sortie": 2377,
+    "dollars": 0.096,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-09T21:24:50"
+}

@@ -1,0 +1,499 @@
+{
+ "titre": "Réservations CrossFit",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:acteur:invitation] coach / Adherent : créer le compte d'une autre personne, c'est l'inviter — arrive avec la connexion et l'équipe (N1.5) [type=value_error, input_value={'app': {'nom': 'c2-cross...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "acteur:invitation"
+  ],
+  "pas_encore": [
+   "Le coach crée le compte des Adhérents : pas encore possible (les invitations arrivent avec la connexion)"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Vue emploi du temps (planning des créneaux) consultable en temps réel par le coach et par les adhérents",
+   "categorie": "planning",
+   "citation": "Le client doit avoir une visualisation en temps réel de l’emploie du temps ... L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle"
+  },
+  {
+   "besoin": "Comptage des adhérents inscrits à chaque créneau",
+   "categorie": "calcul_statistiques",
+   "citation": "une visualisation globale sur le nombre d’adhérents à chaque créneaux"
+  },
+  {
+   "besoin": "Limite de 15 places par créneau et calcul des places disponibles",
+   "categorie": "calcul_statistiques",
+   "citation": "Le client choisi son ou ses créneaux selon les places disponibles ... 15 personnes par créneaux maximum"
+  },
+  {
+   "besoin": "Liste d'attente gérée automatiquement quand un créneau est complet",
+   "categorie": "automatisation",
+   "citation": "Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète"
+  },
+  {
+   "besoin": "Annulation interdite moins de 2 heures avant la séance (règle liée à l'heure)",
+   "categorie": "autre",
+   "citation": "2H max avant la séance pour pouvoir l’annuler"
+  },
+  {
+   "besoin": "Limite d'un créneau par jour et par adhérent (à confirmer, le brief dit aussi « son ou ses créneaux »)",
+   "categorie": "autre",
+   "citation": "Il choisi un créneaux par jour ( 6 créneaux par jour)"
+  },
+  {
+   "besoin": "Indicateur de couleur vert/rouge selon que l'adhérent a payé et est en situation régulière (suivi des paiements)",
+   "categorie": "autre",
+   "citation": "vert si le client a payé et est en situation régulière et rouge à l’inverse"
+  },
+  {
+   "besoin": "Notification de rappel au coach 2 jours avant l'échéance de l'abonnement d'un adhérent",
+   "categorie": "notification",
+   "citation": "Le coach reçoit une notification de l’application ... 2 jours avant la fin de sa date d’anniversaire"
+  },
+  {
+   "besoin": "Notification au coach quand un adhérent annule une séance",
+   "categorie": "notification",
+   "citation": "L’administrateur est notifier si le client annule une séance"
+  },
+  {
+   "besoin": "Message de relance automatique au coach et à l'adhérent à l'échéance de l'abonnement",
+   "categorie": "notification",
+   "citation": "L’application relance l’administrateur tout comme le client avec un message lorsque que la date d’anniversaire (date d’inscription) arrive à échéance"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le coach",
+   "L'adhérent"
+  ],
+  "fiches": 4,
+  "circuits": 1
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "coach",
+   "libelle": "Le coach",
+   "devient": "responsable de l'app",
+   "citations": [
+    "l’un pour les 2 coach (espace Admin)"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout et supprime : Adhérents",
+     "cases": [
+      {
+       "fiche": "Adherent",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Le coach veut avoir une visualisation sur chaque adhérents de sa salle de crossfit »",
+        "exception : « il faut que le coach puisse ajouter et supprimer les clients »"
+       ],
+       "citations": [
+        "Le coach veut avoir une visualisation sur chaque adhérents de sa salle de crossfit",
+        "il faut que le coach puisse ajouter et supprimer les clients"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : Créneaux",
+     "cases": [
+      {
+       "fiche": "Creneau",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)",
+        "exception : « L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle »"
+       ],
+       "citations": [
+        "Le client doit avoir une visualisation en temps réel de l’emploie du temps",
+        "L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : Réservations",
+     "cases": [
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "exception : « Le coach veut avoir une visualisation globale sur le nombre d’adhérents à chaque créneaux (qui sera présent à quelle séance) »"
+       ],
+       "citations": [
+        "Le coach veut avoir une visualisation globale sur le nombre d’adhérents à chaque créneaux (qui sera présent à quelle séance)"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "adherent",
+   "libelle": "L'adhérent",
+   "devient": "s'inscrit lui-même",
+   "citations": [
+    "l’un pour les adhérents de la salle de crossfit"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : Créneaux",
+     "cases": [
+      {
+       "fiche": "Creneau",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "exception : « Le client doit avoir une visualisation en temps réel de l’emploie du temps »"
+       ],
+       "citations": [
+        "Le client doit avoir une visualisation en temps réel de l’emploie du temps",
+        "Le client doit avoir une visualisation en temps réel de l’emploie du temps"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit seulement les siennes, crée et modifie : Inscriptions en liste d'attente",
+     "cases": [
+      {
+       "fiche": "InscriptionAttente",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage collection : le propriétaire crée et modifie les siens"
+       ],
+       "citations": [
+        "Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son Adhérent, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "Adherent",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement",
+        "exception : « Le client devra crée un compte »"
+       ],
+       "citations": [
+        "Le client devra crée un compte en entrant les informations ci dessous",
+        "Le client devra crée un compte"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Réservations : voit seulement les siennes, en crée, les fait passer de « inscrite » à « annulée »",
+     "cases": [
+      {
+       "fiche": "Reservation",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {
+         "inscrite": [
+          "annulee"
+         ]
+        }
+       },
+       "pourquoi": [
+        "préréglage collection + processus : l'initiateur crée et suit les siens",
+        "le propriétaire fait évoluer l'état de ses propres éléments",
+        "exception : « Le client choisi son ou ses créneaux selon les places disponibles »",
+        "exception : « 2H max avant la séance pour pouvoir l’annuler »"
+       ],
+       "citations": [
+        "Le client choisi son ou ses créneaux selon les places disponibles",
+        "2H max avant la séance pour pouvoir l’annuler",
+        "Le client choisi son ou ses créneaux selon les places disponibles",
+        "2H max avant la séance pour pouvoir l’annuler"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [
+  {
+   "fiche": "Reservation",
+   "texte": "La réservation passe par : « inscrite » → « annulée »",
+   "qui": [
+    "L'adhérent fait passer de « inscrite » à « annulée »"
+   ],
+   "citations": [
+    "2H max avant la séance pour pouvoir l’annuler"
+   ]
+  }
+ ],
+ "fiches": [
+  {
+   "fiche": "Adherent",
+   "libelle": "Adhérent",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "nom et prénom"
+    },
+    {
+     "nom": "prenom",
+     "libelle": "Prénom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "nom et prénom"
+    },
+    {
+     "nom": "typeAbonnement",
+     "libelle": "Type d'abonnement",
+     "type": "choix parmi : séance, semaine, mois",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "type d’abonnement (séance , semaine ou mois)"
+    },
+    {
+     "nom": "dateAnniversaireAbonnement",
+     "libelle": "Date d'anniversaire de l'abonnement",
+     "type": "date",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "date d’anniversaire de l’abonnement (le jour ou le client paie son abonnement)"
+    },
+    {
+     "nom": "situationReguliere",
+     "libelle": "En situation régulière (a payé)",
+     "type": "oui / non",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "la régularité (vert si le client a payé et est en situation régulière et rouge à l’inverse)"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Adherent:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Adherent:Montant de l'abonnement",
+     "libelle": "Montant de l'abonnement",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "Le client devra crée un compte en entrant les informations ci dessous"
+   ]
+  },
+  {
+   "fiche": "Creneau",
+   "libelle": "Créneau",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    },
+    {
+     "nom": "nombrePlacesMax",
+     "libelle": "Nombre de places maximum",
+     "type": "nombre",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "15 personnes par créneaux maximum"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Creneau:Date et heure de début",
+     "libelle": "Date et heure de début",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Creneau:Durée (minutes)",
+     "libelle": "Durée (minutes)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Creneau:Coach",
+     "libelle": "Coach",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "Le client doit avoir une visualisation en temps réel de l’emploie du temps"
+   ]
+  },
+  {
+   "fiche": "Reservation",
+   "libelle": "Réservation",
+   "nature": "collection",
+   "relie_a": [
+    "Créneau"
+   ],
+   "champs": [],
+   "propositions": [
+    {
+     "id": "garder:Reservation:Date de la séance",
+     "libelle": "Date de la séance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "Le client choisi son ou ses créneaux selon les places disponibles"
+   ]
+  },
+  {
+   "fiche": "InscriptionAttente",
+   "libelle": "Inscription en liste d'attente",
+   "nature": "collection",
+   "relie_a": [
+    "Créneau"
+   ],
+   "champs": [],
+   "propositions": [
+    {
+     "id": "garder:InscriptionAttente:Rang dans la liste d'attente",
+     "libelle": "Rang dans la liste d'attente",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Creneau:intitule",
+     "texte": "Créneau → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

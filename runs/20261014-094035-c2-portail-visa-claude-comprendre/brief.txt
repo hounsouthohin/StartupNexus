@@ -1,0 +1,94 @@
+PORTAL CLIENT SUIVI DE DEMANDE DE VISA
+DÉTAIL DU PROJET – APPLICATION CLIENT (SIMPLE)
+
+🔹 Présentation
+
+Je suis le responsable d’une **agence de voyage et d’assistance visa
+
+Je souhaite mettre en place une application simple de suivi des dossiers clients
+
+L’application permettra à mes clients de :
+
+* se connecter avec email + mot de passe
+
+* suivre uniquement leur propre dossier (visa / voyage)
+
+🔹 Objectif du projet
+
+Relier Airtable (base de données) à Softr afin de créer un **portail client sécurisé**.
+
+🔹 Ce qui existe déjà
+
+* Une base Airtable avec :
+
+* Clients
+
+* Dossiers
+
+* Une application Softr avec l’authentification activée
+
+🔹 Fonctionnalités demandées (simples)
+
+* Connexion client sécurisée (login)
+
+* Filtrage des données :
+
+* chaque client voit seulement son dossier
+
+* Pages à créer :
+
+1. Tableau de bord client
+
+2. Mes dossiers (liste)
+
+3. Détails du dossier :
+
+* statut
+
+* commentaire
+
+* documents
+
+* Téléversement des documents par le client
+
+🔹 Technologie
+
+* Airtable
+
+* Softr
+
+* No-code
+
+🔹 Livrable attendu
+
+* Application Softr fonctionnelle et sécurisée
+
+* Données bien filtrées par utilisateur
+
+* Brève explication pour gérer l’application
+
+🔹 Conditions
+
+* Projet à prix fixe
+
+* Durée estimée : 2 à 4 semaines
+
+* Communication en français ou anglais
+
+Pour candidater
+
+Merci d’indiquer:
+
+* Vos expériences avec Airtable / Softr
+
+* Un exemple de projet similaire
+
+* Votre délai de réalisation
+
+Je cherche une solution simple. Pas de développement complexe, juste la connexion Airtable ↔ Softr avec un portail client
+
+Budget indicatif : Moins de 500 €
+
+Publication : 17 décembre 2025 à 15h17
+
+Profils recherchés : Développeur spécifique , Consultant SaaS , Développeur no code

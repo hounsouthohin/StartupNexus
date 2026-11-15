@@ -1,0 +1,540 @@
+{
+  "app": {
+    "nom": "c2-location-evenementiel",
+    "titre": "Location événementielle"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "label_plural": "gérants",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous avons une entreprise de location de matériel pour événements"
+      },
+      {
+        "id": "membre_equipe",
+        "label": "membre de l'équipe",
+        "label_plural": "membres de l'équipe",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "gerant",
+        "citation": "Exiger que l'équipe réalise des vidéos de test du matériel"
+      }
+    ],
+    "entities": [
+      {
+        "name": "MembreEquipe",
+        "label": "membre de l'équipe",
+        "label_plural": "membres de l'équipe",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "membre_equipe",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "toute l'équipe qui y travaillera"
+      },
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Nous avons besoin d'un CRM pour les données des clients"
+      },
+      {
+        "name": "Produit",
+        "label": "produit",
+        "label_plural": "produits",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "rappeler le mode d'utilisation correct de chaque appareil"
+      },
+      {
+        "name": "Evenement",
+        "label": "événement",
+        "label_plural": "événements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant",
+          "membre_equipe"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": null,
+        "citation": "Gestion des stocks en fonction des événements au calendrier"
+      },
+      {
+        "name": "MouvementStock",
+        "label": "mouvement de stock",
+        "label_plural": "mouvements de stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Produit",
+          "Evenement"
+        ],
+        "process": null,
+        "citation": "Gestion des stocks en fonction des événements au calendrier (sorties et entrées)"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "en_attente",
+          "transitions": {
+            "en_attente": [
+              "confirme"
+            ],
+            "confirme": []
+          },
+          "initiator": "gerant",
+          "decider": "gerant",
+          "steps_by": {},
+          "labels": {
+            "en_attente": "en attente",
+            "confirme": "confirmé"
+          },
+          "citation": "Gestion des devis pour chaque client ; après confirmation, gestion des contrats"
+        },
+        "citation": "Gestion des devis pour chaque client"
+      },
+      {
+        "name": "LigneDevis",
+        "label": "ligne de devis",
+        "label_plural": "lignes de devis",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Devis",
+        "references": [
+          "Produit"
+        ],
+        "process": null,
+        "citation": "Chaque élément dans le devis doit avoir une photo pour représenter l'effet"
+      },
+      {
+        "name": "Contrat",
+        "label": "contrat",
+        "label_plural": "contrats",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Devis",
+          "Client"
+        ],
+        "process": null,
+        "citation": "après confirmation, gestion des contrats"
+      },
+      {
+        "name": "Affectation",
+        "label": "affectation de l'équipe",
+        "label_plural": "affectations de l'équipe",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Evenement",
+        "references": [
+          "MembreEquipe"
+        ],
+        "process": null,
+        "citation": "Gestion de l'équipe pour chaque événement"
+      },
+      {
+        "name": "InstructionFinition",
+        "label": "instruction de finition",
+        "label_plural": "instructions de finition",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Evenement",
+        "references": [],
+        "process": null,
+        "citation": "des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage"
+      },
+      {
+        "name": "Video",
+        "label": "vidéo",
+        "label_plural": "vidéos",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "membre_equipe",
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Evenement",
+          "Produit"
+        ],
+        "process": null,
+        "citation": "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+      },
+      {
+        "name": "Depense",
+        "label": "dépense",
+        "label_plural": "dépenses",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "gerant"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Evenement"
+        ],
+        "process": null,
+        "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "membre_equipe",
+        "entity": "Video",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Exiger que l'équipe réalise des vidéos de test du matériel"
+      },
+      {
+        "actor": "membre_equipe",
+        "entity": "InstructionFinition",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage"
+      }
+    ]
+  },
+  "champs": {
+    "MembreEquipe": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "typeClient",
+        "libelle": "Type de client",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "particulier",
+            "libelle": "particulier"
+          },
+          {
+            "code": "professionnel",
+            "libelle": "professionnel"
+          }
+        ],
+        "origine": "brief",
+        "citation": "Nos clients comprennent des particuliers"
+      }
+    ],
+    "Produit": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "valeur",
+        "libelle": "Valeur",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Tableau des valeurs pour chaque produit"
+      },
+      {
+        "nom": "modeUtilisation",
+        "libelle": "Mode d'utilisation",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "rappeler le mode d'utilisation correct de chaque appareil"
+      }
+    ],
+    "Evenement": [
+      {
+        "nom": "dateEvenement",
+        "libelle": "Date de l'événement",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "événements au calendrier"
+      }
+    ],
+    "MouvementStock": [
+      {
+        "nom": "sens",
+        "libelle": "Sens du mouvement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "sortie",
+            "libelle": "sortie"
+          },
+          {
+            "code": "entree",
+            "libelle": "entrée"
+          }
+        ],
+        "origine": "brief",
+        "citation": "sorties et entrées"
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "LigneDevis": [
+      {
+        "nom": "photo",
+        "libelle": "Photo",
+        "type": "url",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Chaque élément dans le devis doit avoir une photo"
+      }
+    ],
+    "Contrat": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Affectation": [
+      {
+        "nom": "role",
+        "libelle": "Rôle",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "InstructionFinition": [
+      {
+        "nom": "contenu",
+        "libelle": "Instructions de finition",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "des instructions pour les finitions lors de l'événement"
+      }
+    ],
+    "Video": [
+      {
+        "nom": "typeVideo",
+        "libelle": "Type de vidéo",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "test",
+            "libelle": "test"
+          },
+          {
+            "code": "installation",
+            "libelle": "installation"
+          },
+          {
+            "code": "finition",
+            "libelle": "finition"
+          }
+        ],
+        "origine": "brief",
+        "citation": "des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+      },
+      {
+        "nom": "lienVideo",
+        "libelle": "Lien de la vidéo",
+        "type": "url",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l'équipe réalise des vidéos"
+      }
+    ],
+    "Depense": [
+      {
+        "nom": "montant",
+        "libelle": "Montant",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final"
+      }
+    ]
+  },
+  "ecran": {
+    "Evenement": {
+      "verbe_creation": "Planifier un événement",
+      "boutons": {}
+    },
+    "MouvementStock": {
+      "verbe_creation": "Saisir un mouvement",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Établir un devis",
+      "boutons": {
+        "confirme": "Confirmer"
+      }
+    },
+    "LigneDevis": {
+      "verbe_creation": "Ajouter au devis",
+      "boutons": {}
+    },
+    "Contrat": {
+      "verbe_creation": "Rédiger un contrat",
+      "boutons": {}
+    },
+    "Affectation": {
+      "verbe_creation": "Affecter",
+      "boutons": {}
+    },
+    "InstructionFinition": {
+      "verbe_creation": "Ajouter une instruction",
+      "boutons": {}
+    },
+    "Video": {
+      "verbe_creation": "Déposer une vidéo",
+      "boutons": {}
+    },
+    "Depense": {
+      "verbe_creation": "Noter une dépense",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

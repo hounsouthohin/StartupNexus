@@ -1,0 +1,15 @@
+{
+  "run": "20261008-204857-mediatheque-comprendre",
+  "brief": "factory-sprint0/scripts/test_full_pipeline.json#mediatheque",
+  "modele": "gpt-5.5",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261008-204857-mediatheque-comprendre\\description.json",
+  "depense": {
+    "modele": "gpt-5.5",
+    "appels": 3,
+    "jetons_entree": 4827,
+    "jetons_sortie": 3816,
+    "dollars": 0.1386,
+    "plafond": 0.15
+  },
+  "fini": "2026-10-08T20:49:34"
+}

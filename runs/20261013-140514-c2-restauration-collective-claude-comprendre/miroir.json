@@ -1,0 +1,812 @@
+{
+ "titre": "Restauration collective",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Calcul du coût des repas",
+   "categorie": "calcul_statistiques",
+   "citation": "coût des repas"
+  },
+  {
+   "besoin": "Facturation",
+   "categorie": "document",
+   "citation": "facturation"
+  },
+  {
+   "besoin": "Tableaux de bord consolidés",
+   "categorie": "calcul_statistiques",
+   "citation": "tableaux de bord consolidés"
+  },
+  {
+   "besoin": "Reporting détaillé par site et au niveau global",
+   "categorie": "calcul_statistiques",
+   "citation": "reporting détaillé par site et au niveau global"
+  },
+  {
+   "besoin": "Exports Excel et PDF",
+   "categorie": "document",
+   "citation": "des exports Excel/PDF sont requis"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "L'utilisateur"
+  ],
+  "fiches": 8,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "pour notre société de restauration collective multi-sites"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : sites, articles, achats, inventaires, recettes, factures, dépenses, employés",
+     "cases": [
+      {
+       "fiche": "Site",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "restauration collective multi-sites"
+       ]
+      },
+      {
+       "fiche": "Article",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la gestion des stocks"
+       ]
+      },
+      {
+       "fiche": "Achat",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des stocks, achats"
+       ]
+      },
+      {
+       "fiche": "Inventaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "achats, inventaires"
+       ]
+      },
+      {
+       "fiche": "Recette",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "inventaires, recettes, coût des repas"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "coût des repas, facturation"
+       ]
+      },
+      {
+       "fiche": "Depense",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "facturation, dépenses"
+       ]
+      },
+      {
+       "fiche": "Employe",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "dépenses, RH"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "utilisateur",
+   "libelle": "L'utilisateur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "gestion des rôles utilisateurs, workflow de validation"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : sites, articles, recettes",
+     "cases": [
+      {
+       "fiche": "Site",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "restauration collective multi-sites"
+       ]
+      },
+      {
+       "fiche": "Article",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "la gestion des stocks"
+       ]
+      },
+      {
+       "fiche": "Recette",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "inventaires, recettes, coût des repas"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : achats, inventaires, factures, dépenses",
+     "cases": [
+      {
+       "fiche": "Achat",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion des stocks, achats"
+       ]
+      },
+      {
+       "fiche": "Inventaire",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "achats, inventaires"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "coût des repas, facturation"
+       ]
+      },
+      {
+       "fiche": "Depense",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "facturation, dépenses"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Site",
+   "libelle": "site",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom du site",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Site:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Site:Responsable du site",
+     "libelle": "Responsable du site",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "restauration collective multi-sites"
+   ]
+  },
+  {
+   "fiche": "Article",
+   "libelle": "article",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de l'article",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Article:Unité de mesure",
+     "libelle": "Unité de mesure",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Article:Prix unitaire",
+     "libelle": "Prix unitaire",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Article:Seuil de stock minimum",
+     "libelle": "Seuil de stock minimum",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Article:Catégorie",
+     "libelle": "Catégorie",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "la gestion des stocks"
+   ]
+  },
+  {
+   "fiche": "Achat",
+   "libelle": "achat",
+   "nature": "registry",
+   "relie_a": [
+    "site",
+    "article"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Achat:Date d'achat",
+     "libelle": "Date d'achat",
+     "type": "date"
+    },
+    {
+     "id": "garder:Achat:Fournisseur",
+     "libelle": "Fournisseur",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Achat:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Achat:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "gestion des stocks, achats"
+   ]
+  },
+  {
+   "fiche": "Inventaire",
+   "libelle": "inventaire",
+   "nature": "registry",
+   "relie_a": [
+    "site",
+    "article"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Inventaire:Date de l'inventaire",
+     "libelle": "Date de l'inventaire",
+     "type": "date"
+    },
+    {
+     "id": "garder:Inventaire:Quantité comptée",
+     "libelle": "Quantité comptée",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Inventaire:Écart constaté",
+     "libelle": "Écart constaté",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "achats, inventaires"
+   ]
+  },
+  {
+   "fiche": "Recette",
+   "libelle": "recette",
+   "nature": "catalog",
+   "relie_a": [
+    "article"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom de la recette",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Recette:Nombre de portions",
+     "libelle": "Nombre de portions",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Recette:Coût par portion",
+     "libelle": "Coût par portion",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Recette:Instructions de préparation",
+     "libelle": "Instructions de préparation",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "inventaires, recettes, coût des repas"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro de facture",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Client facturé",
+     "libelle": "Client facturé",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Facture:Date de facture",
+     "libelle": "Date de facture",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Date d'échéance",
+     "libelle": "Date d'échéance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "coût des repas, facturation"
+   ]
+  },
+  {
+   "fiche": "Depense",
+   "libelle": "dépense",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "libelle",
+     "libelle": "Libellé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Depense:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Depense:Date de la dépense",
+     "libelle": "Date de la dépense",
+     "type": "date"
+    },
+    {
+     "id": "garder:Depense:Catégorie",
+     "libelle": "Catégorie",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Depense:Justificatif",
+     "libelle": "Justificatif",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "facturation, dépenses"
+   ]
+  },
+  {
+   "fiche": "Employe",
+   "libelle": "employé",
+   "nature": "registry",
+   "relie_a": [
+    "site"
+   ],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Employe:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Employe:Poste",
+     "libelle": "Poste",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Employe:Date d'embauche",
+     "libelle": "Date d'embauche",
+     "type": "date"
+    },
+    {
+     "id": "garder:Employe:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Employe:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    }
+   ],
+   "citations": [
+    "dépenses, RH"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:utilisateur:Achat",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les achats, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Inventaire",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les inventaires, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Facture",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les factures, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:Depense",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les dépenses, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Site:nom",
+     "texte": "site → « Nom du site »"
+    },
+    {
+     "id": "nom:Article:nom",
+     "texte": "article → « Nom de l'article »"
+    },
+    {
+     "id": "nom:Achat:reference",
+     "texte": "achat → « Référence »"
+    },
+    {
+     "id": "nom:Inventaire:intitule",
+     "texte": "inventaire → « Intitulé »"
+    },
+    {
+     "id": "nom:Recette:nom",
+     "texte": "recette → « Nom de la recette »"
+    },
+    {
+     "id": "nom:Facture:numero",
+     "texte": "facture → « Numéro de facture »"
+    },
+    {
+     "id": "nom:Depense:libelle",
+     "texte": "dépense → « Libellé »"
+    },
+    {
+     "id": "nom:Employe:nom",
+     "texte": "employé → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

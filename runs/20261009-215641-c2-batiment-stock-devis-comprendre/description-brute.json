@@ -1,0 +1,339 @@
+{
+  "app": {
+    "nom": "c2-batiment-stock-devis",
+    "titre": "Gestion BTP"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous aimerions développer une application de gestion qui permettra de gérer notre activité"
+      },
+      {
+        "id": "conducteur_de_travaux",
+        "label": "Conducteur de travaux",
+        "label_plural": "Conducteurs de travaux",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "pour nos conducteurs de travaux"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "client",
+        "label_plural": "clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+      },
+      {
+        "name": "Marchandise",
+        "label": "marchandise",
+        "label_plural": "marchandises",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "marchandises qui serviront à nos chantiers (sac de colle à carrelage, ciment, parpaing"
+      },
+      {
+        "name": "EntreeStock",
+        "label": "entrée de stock",
+        "label_plural": "entrées de stock",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Marchandise"
+        ],
+        "citation": "contrôler les entrées et les sorties des marchandises"
+      },
+      {
+        "name": "SortieStock",
+        "label": "sortie de stock",
+        "label_plural": "sorties de stock",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Marchandise",
+          "Chantier"
+        ],
+        "citation": "sorties des marchandises qui serviront à nos chantiers"
+      },
+      {
+        "name": "Devis",
+        "label": "devis",
+        "label_plural": "devis",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": true,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "établir un devis en ligne à nos clients particuliers"
+      },
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "gérer la partie facturation pour nos clients professionnels et particuliers"
+      },
+      {
+        "name": "Chantier",
+        "label": "chantier",
+        "label_plural": "chantiers",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "conducteur_de_travaux"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "suivi de nos chantiers"
+      },
+      {
+        "name": "RapportChantier",
+        "label": "rapport de chantier",
+        "label_plural": "rapports de chantier",
+        "feminine": false,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "Chantier",
+        "references": [],
+        "citation": "C/R, rapports"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "conducteur_de_travaux",
+        "entity": "Chantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "pour le suivi de nos chantiers (afin de connaître leur avancement, les délais"
+      },
+      {
+        "actor": "conducteur_de_travaux",
+        "entity": "RapportChantier",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": ") pour nos conducteurs de travaux"
+      }
+    ]
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "typeClient",
+        "libelle": "Type de client",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "professionnels",
+            "libelle": "professionnels"
+          },
+          {
+            "code": "particuliers",
+            "libelle": "particuliers"
+          },
+          {
+            "code": "petits_promoteurs_immobiliers",
+            "libelle": "petits promoteurs immobiliers"
+          }
+        ],
+        "origine": "brief",
+        "citation": "clients professionnels et particuliers (également petits promoteurs immobiliers et clients particuliers)"
+      }
+    ],
+    "Marchandise": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EntreeStock": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "SortieStock": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Devis": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Chantier": [
+      {
+        "nom": "avancement",
+        "libelle": "Avancement",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "connaître leur avancement"
+      },
+      {
+        "nom": "delais",
+        "libelle": "Délais",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "les délais"
+      },
+      {
+        "nom": "organisationDesDifferentsDomainesDApplication",
+        "libelle": "Organisation des différents domaines d’application",
+        "type": "texte_long",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l’organisation des différents domaines d’application"
+      }
+    ],
+    "RapportChantier": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {
+    "EntreeStock": {
+      "verbe_creation": "Entrer en stock",
+      "boutons": {}
+    },
+    "SortieStock": {
+      "verbe_creation": "Sortir du stock",
+      "boutons": {}
+    },
+    "Devis": {
+      "verbe_creation": "Établir un devis",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "RapportChantier": {
+      "verbe_creation": "Rédiger un rapport",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

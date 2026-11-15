@@ -1,0 +1,633 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "C'est un logiciel de gestion pour un gestionnaire de biens immobiliers (une petite structure), donc c'est dans le périmètre. Mais presque tout ce que le brief demande est hors stock : automatisations, lien avec la banque, encaissement et reversement des loyers, documents générés et envoyés. Le brief ne décrit ni les fiches ni les rôles, et son « etc.. » annonce d'autres tâches non précisées : il faudra demander tout cela au client.",
+    "hors_stock": [
+      {
+        "besoin": "Automatiser des tâches (c'est l'objectif principal du brief)",
+        "categorie": "automatisation",
+        "citation": "créer un logiciel permettant d'automatiser des taches"
+      },
+      {
+        "besoin": "Rapprochement bancaire automatique (il faut un lien avec les données de la banque)",
+        "categorie": "integration",
+        "citation": "automatiser le rapprochement bancaire"
+      },
+      {
+        "besoin": "Encaissement des loyers",
+        "categorie": "paiement",
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "besoin": "Reversement des loyers",
+        "categorie": "paiement",
+        "citation": "le reversement des loyers"
+      },
+      {
+        "besoin": "Production des quittances de loyer",
+        "categorie": "document",
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "besoin": "Envoi automatique des quittances",
+        "categorie": "notification",
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "besoin": "Production et envoi des relevés de compte",
+        "categorie": "document",
+        "citation": "relevé de compte etc.."
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gestionnaire",
+        "libelle": "Gestionnaire",
+        "libelle_pluriel": "Gestionnaires",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous sommes gestionnaire de biens immobilier"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "Locataire",
+        "citation": "l'encaissement des loyers ... d'envoyer automatiquement des quittances"
+      },
+      {
+        "libelle": "Propriétaire",
+        "citation": "le reversement des loyers ... relevé de compte"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "Proprietaire",
+        "libelle": "Propriétaire",
+        "libelle_pluriel": "Propriétaires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "le reversement des loyers"
+      },
+      {
+        "nom": "Bien",
+        "libelle": "Bien",
+        "libelle_pluriel": "Biens",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Proprietaire"
+        ],
+        "citation": "gestionnaire de biens immobilier"
+      },
+      {
+        "nom": "Locataire",
+        "libelle": "Locataire",
+        "libelle_pluriel": "Locataires",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Bien"
+        ],
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "nom": "EncaissementLoyer",
+        "libelle": "Encaissement de loyer",
+        "libelle_pluriel": "Encaissements de loyer",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Locataire",
+          "Bien"
+        ],
+        "citation": "l'encaissement des loyers"
+      },
+      {
+        "nom": "ReversementLoyer",
+        "libelle": "Reversement de loyer",
+        "libelle_pluriel": "Reversements de loyer",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Proprietaire",
+          "Bien"
+        ],
+        "citation": "le reversement des loyers"
+      },
+      {
+        "nom": "Quittance",
+        "libelle": "Quittance",
+        "libelle_pluriel": "Quittances",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Locataire",
+          "EncaissementLoyer"
+        ],
+        "citation": "envoyer automatiquement des quittances"
+      },
+      {
+        "nom": "ReleveCompte",
+        "libelle": "Relevé de compte",
+        "libelle_pluriel": "Relevés de compte",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "relevé de compte"
+      },
+      {
+        "nom": "OperationBancaire",
+        "libelle": "Opération bancaire",
+        "libelle_pluriel": "Opérations bancaires",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gestionnaire"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "EncaissementLoyer",
+          "ReversementLoyer"
+        ],
+        "citation": "automatiser le rapprochement bancaire"
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "Locataire",
+        "fiche": "Locataire",
+        "raison": "Le gestionnaire tient la liste des locataires dont il encaisse les loyers et à qui il envoie les quittances."
+      },
+      {
+        "non_utilisateur": "Propriétaire",
+        "fiche": "Proprietaire",
+        "raison": "Le gestionnaire tient la liste des propriétaires des biens gérés, à qui il reverse les loyers."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": []
+  },
+  "droits": {
+    "droits": []
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "Proprietaire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Le brief ne précise pas comment identifier un propriétaire (personne physique ou société)."
+          },
+          {
+            "libelle": "Adresse email",
+            "type": "email",
+            "raison": "Utile pour envoyer automatiquement les relevés de compte ; non cité dans le brief."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée de contact usuelle, non citée dans le brief."
+          },
+          {
+            "libelle": "Adresse postale",
+            "type": "texte_long",
+            "raison": "Coordonnée usuelle, non citée dans le brief."
+          },
+          {
+            "libelle": "IBAN",
+            "type": "texte",
+            "raison": "Nécessaire au reversement des loyers ; à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Bien",
+        "champs": [
+          {
+            "nom": "designation",
+            "libelle": "Désignation",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Le brief ne décrit pas les biens gérés."
+          },
+          {
+            "libelle": "Type de bien",
+            "type": "choix",
+            "raison": "Appartement, maison, local… : les valeurs sont à demander au client."
+          },
+          {
+            "libelle": "Surface (m²)",
+            "type": "nombre",
+            "raison": "Information usuelle d'un bien, non citée."
+          },
+          {
+            "libelle": "Montant du loyer",
+            "type": "montant",
+            "raison": "Le brief parle d'encaisser des loyers sans dire où le montant est fixé (bien ou bail)."
+          },
+          {
+            "libelle": "Montant des charges",
+            "type": "montant",
+            "raison": "Souvent distinct du loyer sur les quittances ; à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Locataire",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Prénom",
+            "type": "texte",
+            "raison": "Identification du locataire, non citée dans le brief."
+          },
+          {
+            "libelle": "Adresse email",
+            "type": "email",
+            "raison": "Utile pour envoyer automatiquement les quittances ; non cité."
+          },
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Coordonnée de contact usuelle, non citée."
+          },
+          {
+            "libelle": "Date d'entrée dans le logement",
+            "type": "date",
+            "raison": "Début du bail, non cité dans le brief."
+          },
+          {
+            "libelle": "Dépôt de garantie",
+            "type": "montant",
+            "raison": "Information usuelle de gestion locative, à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "EncaissementLoyer",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant encaissé",
+            "type": "montant",
+            "raison": "Le brief cite l'encaissement des loyers sans en détailler le contenu."
+          },
+          {
+            "libelle": "Date d'encaissement",
+            "type": "date",
+            "raison": "Non citée dans le brief."
+          },
+          {
+            "libelle": "Période concernée",
+            "type": "texte",
+            "raison": "Mois de loyer réglé, à confirmer avec le client."
+          },
+          {
+            "libelle": "Mode de paiement",
+            "type": "choix",
+            "raison": "Virement, prélèvement, chèque… : valeurs à demander au client."
+          }
+        ]
+      },
+      {
+        "fiche": "ReversementLoyer",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Montant reversé",
+            "type": "montant",
+            "raison": "Le brief cite le reversement des loyers sans en détailler le contenu."
+          },
+          {
+            "libelle": "Date de reversement",
+            "type": "date",
+            "raison": "Non citée dans le brief."
+          },
+          {
+            "libelle": "Honoraires de gestion déduits",
+            "type": "montant",
+            "raison": "Usuel pour un gestionnaire de biens ; à confirmer."
+          },
+          {
+            "libelle": "Période concernée",
+            "type": "texte",
+            "raison": "Mois concerné par le reversement, à confirmer."
+          }
+        ]
+      },
+      {
+        "fiche": "Quittance",
+        "champs": [
+          {
+            "nom": "numero",
+            "libelle": "Numéro de quittance",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Période",
+            "type": "texte",
+            "raison": "Mois couvert par la quittance, non cité dans le brief."
+          },
+          {
+            "libelle": "Montant du loyer",
+            "type": "montant",
+            "raison": "Mention usuelle d'une quittance, non citée."
+          },
+          {
+            "libelle": "Montant des charges",
+            "type": "montant",
+            "raison": "Mention usuelle d'une quittance, non citée."
+          },
+          {
+            "libelle": "Date d'envoi",
+            "type": "date",
+            "raison": "Le brief veut un envoi automatique des quittances ; utile pour le suivi."
+          }
+        ]
+      },
+      {
+        "fiche": "ReleveCompte",
+        "champs": [
+          {
+            "nom": "intitule",
+            "libelle": "Intitulé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de début de période",
+            "type": "date",
+            "raison": "Le brief cite les relevés de compte sans en décrire le contenu."
+          },
+          {
+            "libelle": "Date de fin de période",
+            "type": "date",
+            "raison": "Non citée dans le brief."
+          },
+          {
+            "libelle": "Solde",
+            "type": "montant",
+            "raison": "Information usuelle d'un relevé, à confirmer."
+          },
+          {
+            "libelle": "Date d'envoi",
+            "type": "date",
+            "raison": "Le brief veut un envoi automatique ; utile pour le suivi."
+          }
+        ]
+      },
+      {
+        "fiche": "OperationBancaire",
+        "champs": [
+          {
+            "nom": "libelle",
+            "libelle": "Libellé",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de l'opération",
+            "type": "date",
+            "raison": "Nécessaire au rapprochement bancaire ; non citée."
+          },
+          {
+            "libelle": "Montant",
+            "type": "montant",
+            "raison": "Nécessaire au rapprochement bancaire ; non cité."
+          },
+          {
+            "libelle": "Sens (débit / crédit)",
+            "type": "choix",
+            "raison": "Valeurs non énumérées dans le brief, à confirmer."
+          },
+          {
+            "libelle": "Rapprochée",
+            "type": "oui_non",
+            "raison": "Le brief veut automatiser le rapprochement bancaire ; à confirmer."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Gestion locative",
+    "fiches": [
+      {
+        "fiche": "Bien",
+        "verbe_creation": "Ajouter un bien",
+        "boutons": {}
+      },
+      {
+        "fiche": "Locataire",
+        "verbe_creation": "Louer",
+        "boutons": {}
+      },
+      {
+        "fiche": "EncaissementLoyer",
+        "verbe_creation": "Encaisser le loyer",
+        "boutons": {}
+      },
+      {
+        "fiche": "ReversementLoyer",
+        "verbe_creation": "Reverser le loyer",
+        "boutons": {}
+      },
+      {
+        "fiche": "Quittance",
+        "verbe_creation": "Émettre la quittance",
+        "boutons": {}
+      },
+      {
+        "fiche": "OperationBancaire",
+        "verbe_creation": null,
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

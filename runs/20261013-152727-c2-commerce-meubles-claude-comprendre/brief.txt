@@ -1,0 +1,26 @@
+Création d'un logiciel de gestion pour commerce de meubles
+Nous recherchons un prestataire capable de développé un logiciel de gestion interne, pour notre commerce.
+
+L'idée est de pouvoir centralisé toutes les fonctionnalités nécessaire sur un seul outils.
+
+Nous besoins sont les suivants :
+
+Gestion et Suivi des commandes et facturations clients
+
+Gestion et suivi des encaissements clients
+
+Gestion et Suivi  des commandes fournisseurs lié à nos commandes clients
+
+Gestion et suivi des stocks, entrée/sortie/ réservation contremarque
+
+Programmation des Livraisons clients ( complété ou partielle )
+
+Base de données de nos références produits, avec prix.
+
+Utilisation du logiciel en intranet [ avec possibilité de retour arrière sur page ]
+
+Utilisation du logiciel depuis smartphone, développement d'une application.
+
+Liberté d'intervention en tant qu'administrateur sur la suppression de données.
+
+Nous avons actuellement un logiciel avec lequel nous travaillons, mais pour lequel il manque plusieurs atouts majeur et simplification à apporter.

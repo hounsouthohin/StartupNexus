@@ -1,0 +1,76 @@
+Intranet de gestion de flotte automobile
+CREATION OUTIL DE GESTION FLOTTE AUTO
+
+Interface php/mysql pouvant être installé sur hébergement mutualisé OVH.
+
+Nous sommes un cabinet d’assurance, et nous souhaitons mettre à disposition de nos clients un outils de gestion de leur parc auto.
+
+L’outil doit être un intranet pour permettre au client de gérer une flotte de véhicule (ajout/retrait/modification immatriculation), et permettre d’imprimer une carte verte (vie génération pdf). Lors de chaque action (sauf impression carte verte), un mail doit être envoyé à l’agence et au client.
+
+Les informations à retenir sont les suivantes :
+
+Pour l’administrateur :
+
+-	Identifiant et mot de passe
+
+-	Adresse email
+
+-	Création / modification / suppression : de souscripteur et de flotte
+
+-	Avec possibilité d’import fichier excel pour alimenter la flotte
+
+Pour chaque souscripteur :
+
+-	identifiant
+
+-	mot de passe
+
+-	Raison sociale
+
+-	Adresse
+
+-	Code postal
+
+-	Ville
+
+-	email
+
+Qui détient 1 ou plusieurs contrats
+
+-	Numéro de contrat
+
+-	Echéance
+
+-	 avec possibilité export parc sur excel
+
+-	 possibilité de filtrer l’affichage des véhicules si sortis ou non
+
+Avec 1 ou plusieurs immatriculations
+
+-	Immatriculation
+
+-	Marque
+
+-	Modèle
+
+-	Catégorie
+
+o	Voiture : A
+
+o	Moto : B
+
+o	Camion : C
+
+o	Tracteur : C
+
+o	Autobus ou autocar : E
+
+o	Remorque : F
+
+o	Autre : E
+
+-	Date d’entrée
+
+-	Date de sortie
+
+La carte verte doit contenir les infos suivantes (voir PDF joint)

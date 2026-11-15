@@ -1,0 +1,15 @@
+{
+  "run": "20261014-100656-c2-dossiers-maintenance-claude-comprendre",
+  "brief": "usine/corpus/briefs.json#c2-dossiers-maintenance",
+  "modele": "boite",
+  "verdict": "DESCRIPTION PRÊTE : python -m usine fabriquer runs\\20261014-100656-c2-dossiers-maintenance-claude-comprendre\\description.json",
+  "depense": {
+    "modele": "boite",
+    "appels": 8,
+    "jetons_entree": 0,
+    "jetons_sortie": 0,
+    "dollars": 0.0,
+    "plafond": 2.0
+  },
+  "fini": "2026-10-14T10:17:39"
+}

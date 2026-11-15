@@ -1,0 +1,856 @@
+{
+  "perimetre": {
+    "perimetre": "dans",
+    "raison": "Le coeur du projet est un logiciel de gestion pour une petite entreprise de location de matériel événementiel : fiches clients (CRM), produits, devis puis contrats après confirmation, équipe affectée à chaque événement, utilisé par toute l'équipe. Le calendrier, les photos et vidéos, le calcul de stock et de profit, les rapports et le lien avec Apple Calendar sont des besoins hors stock, mais ils ne changent pas la nature du projet.",
+    "hors_stock": [
+      {
+        "besoin": "Suivi des quantités en stock selon les sorties et entrées de matériel liées aux événements",
+        "categorie": "calcul_statistiques",
+        "citation": "Gestion des stocks en fonction des événements au calendrier (sorties et entrées)"
+      },
+      {
+        "besoin": "Photo pour chaque élément du devis",
+        "categorie": "fichiers_photos",
+        "citation": "Chaque élément dans le devis doit avoir une photo pour représenter l'effet"
+      },
+      {
+        "besoin": "Rappel à l'équipe de montage du bon mode d'utilisation de chaque appareil et des consignes de finition (s'il s'agit de rappels envoyés et pas seulement de fiches de consignes, à confirmer avec le client)",
+        "categorie": "notification",
+        "citation": "Développer une méthode pour rappeler le mode d'utilisation correct de chaque appareil"
+      },
+      {
+        "besoin": "Vidéos de test, d'installation et de finition du matériel, à déposer obligatoirement par l'équipe",
+        "categorie": "fichiers_photos",
+        "citation": "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+      },
+      {
+        "besoin": "Calcul du profit final de chaque événement à partir des dépenses",
+        "categorie": "calcul_statistiques",
+        "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final"
+      },
+      {
+        "besoin": "Rapports mensuels et par événement, avec filtres",
+        "categorie": "calcul_statistiques",
+        "citation": "Système de filtrage et visualisation simple des rapports mensuels et par événement"
+      },
+      {
+        "besoin": "Vue calendrier des événements, dans le style de Google Agenda",
+        "categorie": "planning",
+        "citation": "Calendrier dans le style de Google"
+      },
+      {
+        "besoin": "Synchronisation des données avec le calendrier Apple Calendar déjà utilisé",
+        "categorie": "integration",
+        "citation": "intégration de données avec notre calendrier actuel sur Apple Calendar"
+      }
+    ]
+  },
+  "acteurs": {
+    "acteurs": [
+      {
+        "id": "gerant",
+        "libelle": "gérant",
+        "libelle_pluriel": "gérants",
+        "feminin": false,
+        "devient": "bootstrap",
+        "invite_par": null,
+        "citation": "Nous avons une entreprise de location de matériel pour événements"
+      },
+      {
+        "id": "membre_equipe",
+        "libelle": "membre de l'équipe",
+        "libelle_pluriel": "membres de l'équipe",
+        "feminin": false,
+        "devient": "invited",
+        "invite_par": "gerant",
+        "citation": "facile à comprendre pour toute l'équipe qui y travaillera ... Exiger que l'équipe réalise des vidéos de test du matériel"
+      }
+    ],
+    "non_utilisateurs": [
+      {
+        "libelle": "client",
+        "citation": "Nous avons besoin d'un CRM pour les données des clients"
+      }
+    ]
+  },
+  "fiches": {
+    "fiches": [
+      {
+        "nom": "MembreEquipe",
+        "libelle": "membre de l'équipe",
+        "libelle_pluriel": "membres de l'équipe",
+        "feminin": false,
+        "nature": "profile",
+        "proprietaire": "membre_equipe",
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "toute l'équipe qui y travaillera"
+      },
+      {
+        "nom": "Client",
+        "libelle": "client",
+        "libelle_pluriel": "clients",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Nous avons besoin d'un CRM pour les données des clients."
+      },
+      {
+        "nom": "Produit",
+        "libelle": "produit",
+        "libelle_pluriel": "produits",
+        "feminin": false,
+        "nature": "catalog",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [],
+        "citation": "Tableau des valeurs pour chaque produit. ... rappeler le mode d'utilisation correct de chaque appareil"
+      },
+      {
+        "nom": "Evenement",
+        "libelle": "événement",
+        "libelle_pluriel": "événements",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant",
+          "membre_equipe"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Gestion des stocks en fonction des événements au calendrier"
+      },
+      {
+        "nom": "MouvementStock",
+        "libelle": "mouvement de stock",
+        "libelle_pluriel": "mouvements de stock",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Produit",
+          "Evenement"
+        ],
+        "citation": "Gestion des stocks en fonction des événements au calendrier (sorties et entrées)."
+      },
+      {
+        "nom": "Devis",
+        "libelle": "devis",
+        "libelle_pluriel": "devis",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "citation": "Gestion des devis pour chaque client"
+      },
+      {
+        "nom": "LigneDevis",
+        "libelle": "ligne de devis",
+        "libelle_pluriel": "lignes de devis",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Devis",
+        "references": [
+          "Produit"
+        ],
+        "citation": "Chaque élément dans le devis doit avoir une photo pour représenter l'effet."
+      },
+      {
+        "nom": "Contrat",
+        "libelle": "contrat",
+        "libelle_pluriel": "contrats",
+        "feminin": false,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Devis",
+          "Client"
+        ],
+        "citation": "après confirmation, gestion des contrats."
+      },
+      {
+        "nom": "Affectation",
+        "libelle": "affectation de l'équipe",
+        "libelle_pluriel": "affectations de l'équipe",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Evenement",
+        "references": [
+          "MembreEquipe"
+        ],
+        "citation": "Gestion de l'équipe pour chaque événement."
+      },
+      {
+        "nom": "InstructionFinition",
+        "libelle": "instruction de finition",
+        "libelle_pluriel": "instructions de finition",
+        "feminin": true,
+        "nature": "child",
+        "proprietaire": null,
+        "gestionnaires": [],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": "Evenement",
+        "references": [],
+        "citation": "des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage."
+      },
+      {
+        "nom": "Video",
+        "libelle": "vidéo",
+        "libelle_pluriel": "vidéos",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "membre_equipe",
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Evenement",
+          "Produit"
+        ],
+        "citation": "Exiger que l'équipe réalise des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel."
+      },
+      {
+        "nom": "Depense",
+        "libelle": "dépense",
+        "libelle_pluriel": "dépenses",
+        "feminin": true,
+        "nature": "registry",
+        "proprietaire": null,
+        "gestionnaires": [
+          "gerant"
+        ],
+        "publique": false,
+        "publication": false,
+        "saisie_par": null,
+        "parent": null,
+        "references": [
+          "Evenement"
+        ],
+        "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final."
+      }
+    ],
+    "correspondances": [
+      {
+        "non_utilisateur": "client",
+        "fiche": "Client",
+        "raison": "Les clients (particuliers et professionnels) ne se connectent pas ; l'entreprise tient leurs données dans le CRM."
+      }
+    ]
+  },
+  "circuits": {
+    "circuits": [
+      {
+        "fiche": "Devis",
+        "etat_initial": "en_attente",
+        "transitions": {
+          "en_attente": [
+            "confirme"
+          ],
+          "confirme": []
+        },
+        "libelles": {
+          "en_attente": "en attente",
+          "confirme": "confirmé"
+        },
+        "initiateur": "gerant",
+        "decideur": "gerant",
+        "etapes_par": {},
+        "citation": "Gestion des devis pour chaque client ; après confirmation, gestion des contrats."
+      }
+    ]
+  },
+  "droits": {
+    "droits": [
+      {
+        "acteur": "membre_equipe",
+        "fiche": "Video",
+        "action": "create",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "Exiger que l'équipe réalise des vidéos de test du matériel"
+      },
+      {
+        "acteur": "membre_equipe",
+        "fiche": "InstructionFinition",
+        "action": "see",
+        "autorise": true,
+        "portee": "all",
+        "pendant_etats": [],
+        "transitions": {},
+        "citation": "des instructions pour les finitions lors de l'événement, destinées à l'équipe de montage"
+      }
+    ]
+  },
+  "champs": {
+    "fiches": [
+      {
+        "fiche": "MembreEquipe",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Pour joindre le membre de l'équipe avant ou pendant un événement ; le brief n'en parle pas."
+          },
+          {
+            "libelle": "Fonction (ex. montage)",
+            "type": "texte",
+            "raison": "Le brief mentionne une équipe de montage ; à confirmer si chaque membre a une fonction fixe."
+          }
+        ]
+      },
+      {
+        "fiche": "Client",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "typeClient",
+            "libelle": "Type de client",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "particulier",
+              "professionnel"
+            ],
+            "origine": "brief",
+            "citation": "Nos clients comprennent des particuliers ... ainsi que des professionnels"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Téléphone",
+            "type": "telephone",
+            "raison": "Le brief demande un CRM pour les données des clients sans préciser lesquelles."
+          },
+          {
+            "libelle": "Email",
+            "type": "email",
+            "raison": "Donnée de contact habituelle d'un CRM, non citée dans le brief."
+          },
+          {
+            "libelle": "Adresse",
+            "type": "texte_long",
+            "raison": "Utile pour les devis et contrats, non citée dans le brief."
+          },
+          {
+            "libelle": "Raison sociale",
+            "type": "texte",
+            "raison": "Pour les clients professionnels, à confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "Produit",
+        "champs": [
+          {
+            "nom": "nom",
+            "libelle": "Nom",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          },
+          {
+            "nom": "valeur",
+            "libelle": "Valeur",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Tableau des valeurs pour chaque produit"
+          },
+          {
+            "nom": "modeUtilisation",
+            "libelle": "Mode d'utilisation",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "rappeler le mode d'utilisation correct de chaque appareil"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Photo",
+            "type": "url",
+            "raison": "Le brief demande une photo pour représenter l'effet de chaque élément du devis ; elle pourrait être enregistrée une seule fois sur le produit puis reprise dans les devis."
+          },
+          {
+            "libelle": "Quantité totale en stock",
+            "type": "nombre",
+            "raison": "Le brief demande une gestion des stocks sans préciser si la quantité possédée est enregistrée sur le produit."
+          },
+          {
+            "libelle": "Catégorie",
+            "type": "texte",
+            "raison": "Pour filtrer le catalogue ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Evenement",
+        "champs": [
+          {
+            "nom": "dateEvenement",
+            "libelle": "Date de l'événement",
+            "type": "date",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "événements au calendrier"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Nom de l'événement",
+            "type": "texte",
+            "raison": "Pour reconnaître l'événement dans une liste ou dans le calendrier ; non cité dans le brief."
+          },
+          {
+            "libelle": "Lieu",
+            "type": "texte",
+            "raison": "Utile pour l'équipe de montage ; non cité dans le brief."
+          },
+          {
+            "libelle": "Heures de début et de fin",
+            "type": "date_heure",
+            "raison": "Le brief veut un calendrier de type Google synchronisé avec Apple Calendar, ce qui suppose peut-être des horaires."
+          },
+          {
+            "libelle": "Type d'événement",
+            "type": "texte",
+            "raison": "Le brief donne des exemples (fêtes de révélation, 15 ans, mariages, festivals, etc.) mais pas de liste fermée."
+          }
+        ]
+      },
+      {
+        "fiche": "MouvementStock",
+        "champs": [
+          {
+            "nom": "sens",
+            "libelle": "Sens du mouvement",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "sortie",
+              "entrée"
+            ],
+            "origine": "brief",
+            "citation": "sorties et entrées"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Nombre d'unités du produit qui sortent ou rentrent ; non précisé dans le brief."
+          },
+          {
+            "libelle": "Date du mouvement",
+            "type": "date",
+            "raison": "La date réelle de sortie ou de retour peut différer de la date de saisie."
+          }
+        ]
+      },
+      {
+        "fiche": "Devis",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de validité",
+            "type": "date",
+            "raison": "Courant pour un devis ; non cité dans le brief."
+          },
+          {
+            "libelle": "Remise",
+            "type": "montant",
+            "raison": "À confirmer avec le client."
+          }
+        ]
+      },
+      {
+        "fiche": "LigneDevis",
+        "champs": [
+          {
+            "nom": "photo",
+            "libelle": "Photo",
+            "type": "url",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Chaque élément dans le devis doit avoir une photo"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Quantité",
+            "type": "nombre",
+            "raison": "Nombre d'unités louées du produit ; non cité dans le brief."
+          },
+          {
+            "libelle": "Prix unitaire",
+            "type": "montant",
+            "raison": "Pour calculer le total du devis ; le brief ne précise pas s'il reprend la valeur du produit."
+          }
+        ]
+      },
+      {
+        "fiche": "Contrat",
+        "champs": [
+          {
+            "nom": "reference",
+            "libelle": "Référence",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Date de signature",
+            "type": "date",
+            "raison": "Non citée dans le brief."
+          },
+          {
+            "libelle": "Montant total",
+            "type": "montant",
+            "raison": "Utile pour calculer le profit final de l'événement demandé dans le brief."
+          },
+          {
+            "libelle": "Acompte",
+            "type": "montant",
+            "raison": "Courant dans la location pour événements ; à confirmer."
+          },
+          {
+            "libelle": "Document signé",
+            "type": "url",
+            "raison": "Pour conserver le contrat signé ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Affectation",
+        "champs": [
+          {
+            "nom": "role",
+            "libelle": "Rôle",
+            "type": "texte",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "necessaire",
+            "citation": ""
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Heure d'arrivée",
+            "type": "date_heure",
+            "raison": "Pour organiser l'équipe sur l'événement ; non citée dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "InstructionFinition",
+        "champs": [
+          {
+            "nom": "contenu",
+            "libelle": "Instructions de finition",
+            "type": "texte_long",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "des instructions pour les finitions lors de l'événement"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Titre",
+            "type": "texte",
+            "raison": "Pour reconnaître chaque instruction dans une liste ; non cité dans le brief."
+          },
+          {
+            "libelle": "Ordre",
+            "type": "nombre",
+            "raison": "Pour classer les étapes de finition ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Video",
+        "champs": [
+          {
+            "nom": "typeVideo",
+            "libelle": "Type de vidéo",
+            "type": "choix",
+            "obligatoire": true,
+            "valeurs": [
+              "test",
+              "installation",
+              "finition"
+            ],
+            "origine": "brief",
+            "citation": "des vidéos de test du matériel, ainsi que des vidéos d'installation et de finition du matériel"
+          },
+          {
+            "nom": "lienVideo",
+            "libelle": "Lien de la vidéo",
+            "type": "url",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "l'équipe réalise des vidéos"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Commentaire",
+            "type": "texte_long",
+            "raison": "Pour signaler un problème constaté lors du test ; non cité dans le brief."
+          }
+        ]
+      },
+      {
+        "fiche": "Depense",
+        "champs": [
+          {
+            "nom": "montant",
+            "libelle": "Montant",
+            "type": "montant",
+            "obligatoire": true,
+            "valeurs": [],
+            "origine": "brief",
+            "citation": "Gestion des dépenses pour chaque événement et visualisation du profit final"
+          }
+        ],
+        "propositions": [
+          {
+            "libelle": "Libellé",
+            "type": "texte",
+            "raison": "Pour reconnaître la dépense dans une liste ; non cité dans le brief."
+          },
+          {
+            "libelle": "Date de la dépense",
+            "type": "date",
+            "raison": "Utile pour les rapports mensuels demandés ; non citée dans le brief."
+          },
+          {
+            "libelle": "Catégorie",
+            "type": "texte",
+            "raison": "Pour filtrer les rapports ; le brief ne donne pas de liste de catégories."
+          }
+        ]
+      }
+    ]
+  },
+  "libelles": {
+    "titre": "Location événementielle",
+    "fiches": [
+      {
+        "fiche": "Evenement",
+        "verbe_creation": "Planifier un événement",
+        "boutons": {}
+      },
+      {
+        "fiche": "MouvementStock",
+        "verbe_creation": "Saisir un mouvement",
+        "boutons": {}
+      },
+      {
+        "fiche": "Devis",
+        "verbe_creation": "Établir un devis",
+        "boutons": {
+          "confirme": "Confirmer"
+        }
+      },
+      {
+        "fiche": "LigneDevis",
+        "verbe_creation": "Ajouter au devis",
+        "boutons": {}
+      },
+      {
+        "fiche": "Contrat",
+        "verbe_creation": "Rédiger un contrat",
+        "boutons": {}
+      },
+      {
+        "fiche": "Affectation",
+        "verbe_creation": "Affecter",
+        "boutons": {}
+      },
+      {
+        "fiche": "InstructionFinition",
+        "verbe_creation": "Ajouter une instruction",
+        "boutons": {}
+      },
+      {
+        "fiche": "Video",
+        "verbe_creation": "Déposer une vidéo",
+        "boutons": {}
+      },
+      {
+        "fiche": "Depense",
+        "verbe_creation": "Noter une dépense",
+        "boutons": {}
+      }
+    ]
+  },
+  "journal": [
+    {
+      "lecteur": "SortiePerimetre",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieActeurs",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 1,
+      "erreurs": [
+        "fiche LigneDevis : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche Affectation : « gestionnaires » seulement pour un catalog ou un registry",
+        "fiche InstructionFinition : « gestionnaires » seulement pour un catalog ou un registry"
+      ],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieFiches",
+      "essai": 2,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieCircuits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieDroits",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieChamps",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    },
+    {
+      "lecteur": "SortieLibelles",
+      "essai": 1,
+      "erreurs": [],
+      "jetons_entree": 0,
+      "jetons_sortie": 0
+    }
+  ]
+}

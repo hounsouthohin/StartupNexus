@@ -1,0 +1,342 @@
+{
+ "titre": "Atelier de réparation",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [],
+ "en_bref": {
+  "roles": [
+   "Le gérant"
+  ],
+  "fiches": 4,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "logiciel de gestion d'atelier de réparation"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Machines, Bons d'entrée, Bons d'intervention, Commandes de pièces",
+     "cases": [
+      {
+       "fiche": "Machine",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "suivi de machine"
+       ]
+      },
+      {
+       "fiche": "BonEntree",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "gestion d'atelier de réparation : bon d'entrée"
+       ]
+      },
+      {
+       "fiche": "BonIntervention",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "bon d'intervention"
+       ]
+      },
+      {
+       "fiche": "CommandePiece",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "commande de pièce"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Machine",
+   "libelle": "Machine",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "designation",
+     "libelle": "Désignation",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Machine:Marque",
+     "libelle": "Marque",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Machine:Modèle",
+     "libelle": "Modèle",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Machine:Numéro de série",
+     "libelle": "Numéro de série",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Machine:Nom du client propriétaire",
+     "libelle": "Nom du client propriétaire",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Machine:Téléphone du client",
+     "libelle": "Téléphone du client",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "suivi de machine"
+   ]
+  },
+  {
+   "fiche": "BonEntree",
+   "libelle": "Bon d'entrée",
+   "nature": "registry",
+   "relie_a": [
+    "Machine"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro du bon",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:BonEntree:Panne signalée",
+     "libelle": "Panne signalée",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:BonEntree:Accessoires déposés",
+     "libelle": "Accessoires déposés",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:BonEntree:État visuel à l'entrée",
+     "libelle": "État visuel à l'entrée",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:BonEntree:Date de restitution prévue",
+     "libelle": "Date de restitution prévue",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "gestion d'atelier de réparation : bon d'entrée"
+   ]
+  },
+  {
+   "fiche": "BonIntervention",
+   "libelle": "Bon d'intervention",
+   "nature": "registry",
+   "relie_a": [
+    "Machine"
+   ],
+   "champs": [
+    {
+     "nom": "numero",
+     "libelle": "Numéro du bon",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:BonIntervention:Travaux réalisés",
+     "libelle": "Travaux réalisés",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:BonIntervention:Date d'intervention",
+     "libelle": "Date d'intervention",
+     "type": "date"
+    },
+    {
+     "id": "garder:BonIntervention:Technicien",
+     "libelle": "Technicien",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:BonIntervention:Temps passé (heures)",
+     "libelle": "Temps passé (heures)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:BonIntervention:Montant facturé",
+     "libelle": "Montant facturé",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "bon d'intervention"
+   ]
+  },
+  {
+   "fiche": "CommandePiece",
+   "libelle": "Commande de pièce",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "piece",
+     "libelle": "Pièce commandée",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:CommandePiece:Référence de la pièce",
+     "libelle": "Référence de la pièce",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:CommandePiece:Quantité",
+     "libelle": "Quantité",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:CommandePiece:Fournisseur",
+     "libelle": "Fournisseur",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:CommandePiece:Prix d'achat",
+     "libelle": "Prix d'achat",
+     "type": "montant"
+    },
+    {
+     "id": "garder:CommandePiece:Date de réception prévue",
+     "libelle": "Date de réception prévue",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "commande de pièce"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Machine:designation",
+     "texte": "Machine → « Désignation »"
+    },
+    {
+     "id": "nom:BonEntree:numero",
+     "texte": "Bon d'entrée → « Numéro du bon »"
+    },
+    {
+     "id": "nom:BonIntervention:numero",
+     "texte": "Bon d'intervention → « Numéro du bon »"
+    },
+    {
+     "id": "nom:CommandePiece:piece",
+     "texte": "Commande de pièce → « Pièce commandée »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

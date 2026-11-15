@@ -1,0 +1,962 @@
+{
+ "titre": "Gustave Rénovation",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": {
+  "raisons": [
+   "[bloc:lien:profil] ProfilAdministrateur : un profil qui désigne une autre fiche (Agence) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit)",
+   "[bloc:lien:profil] ProfilChefDeProjet : un profil qui désigne une autre fiche (Agence) arrive en N1.3 (bloc « lien depuis un profil » pas encore construit) [type=value_error, input_value={'app': {'nom': 'renovati...ns': {}}}, 'depart': {}}, input_type=dict]",
+   "For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+  ],
+  "blocs": [
+   "lien:profil"
+  ],
+  "pas_encore": [
+   "relier chaque profil administrateur à agence : pas encore possible — lien retiré",
+   "relier chaque profil chef de projet à agence : pas encore possible — lien retiré"
+  ],
+  "elargit": [],
+  "rien_ne_se_construit": false
+ },
+ "hors_stock": [
+  {
+   "besoin": "Gestion de documents et photos associés aux chantiers",
+   "categorie": "fichiers_photos",
+   "citation": "La centralisation de l'ensemble des données chantiers (devis, suivis, documents, photos)"
+  },
+  {
+   "besoin": "Automatisation des tâches répétitives autour des devis, bons de commande et facturation",
+   "categorie": "automatisation",
+   "citation": "L'automatisation des tâches répétitives (devis, bons de commande, facturation)"
+  },
+  {
+   "besoin": "Facturation",
+   "categorie": "document",
+   "citation": "facturation"
+  },
+  {
+   "besoin": "Suivi des marges réalisées",
+   "categorie": "calcul_statistiques",
+   "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+  },
+  {
+   "besoin": "Utilisation mobile sur le terrain",
+   "categorie": "mobile_hors_ligne",
+   "citation": "accessible depuis le terrain (mobile)"
+  },
+  {
+   "besoin": "Communication interne et externe",
+   "categorie": "messagerie",
+   "citation": "L'amélioration de la communication interne et externe"
+  },
+  {
+   "besoin": "Utilisation hors ligne sur téléphone mobile",
+   "categorie": "mobile_hors_ligne",
+   "citation": "Utilisation sur téléphone mobile indispensable, utilisable hors ligne"
+  },
+  {
+   "besoin": "Cloisonnement des accès par agence",
+   "categorie": "cloisonnement",
+   "citation": "Accès sécurisé et différencié par agence et rôle"
+  },
+  {
+   "besoin": "Automatisation des processus",
+   "categorie": "automatisation",
+   "citation": "Une centralisation et automatisation des processus et des données"
+  },
+  {
+   "besoin": "Calculs et visibilité sur marges et rentabilité par chantier, ville et globale",
+   "categorie": "calcul_statistiques",
+   "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+  },
+  {
+   "besoin": "Communication entre acteurs internes et externes",
+   "categorie": "messagerie",
+   "citation": "Une meilleure communication entre les acteurs internes et externes"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "Le chef de projet"
+  ],
+  "fiches": 10,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "notre entreprise de rénovation de bâtiments"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : agences",
+     "cases": [
+      {
+       "fiche": "Agence",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "par agence"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout : chantiers, devis (dans chaque chantier), suivis de chantier (dans chaque chantier), documents (dans chaque chantier), photos (dans chaque chantier), bons de commande (dans chaque chantier), factures (dans chaque chantier)",
+     "cases": [
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "SuiviChantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Document",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Photo",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "BonDeCommande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil administrateur, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilAdministrateur",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "Accès sécurisé et différencié par agence et rôle"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "chef_de_projet",
+   "libelle": "Le chef de projet",
+   "devient": "invité par administrateur",
+   "citations": [
+    "faciliter le suivi de chantier pour les chefs de projet"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : agences",
+     "cases": [
+      {
+       "fiche": "Agence",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés"
+       ],
+       "citations": [
+        "par agence"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée et modifie : chantiers",
+     "cases": [
+      {
+       "fiche": "Chantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "Voit tout, crée, modifie et supprime : devis (dans chaque chantier), suivis de chantier (dans chaque chantier), documents (dans chaque chantier), photos (dans chaque chantier), bons de commande (dans chaque chantier), factures (dans chaque chantier)",
+     "cases": [
+      {
+       "fiche": "Devis",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "SuiviChantier",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Document",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Photo",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "BonDeCommande",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      },
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": true,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "enfant de chantier : même visibilité que le parent, géré par qui gère le parent"
+       ],
+       "citations": [
+        "centralisation de l'ensemble des données chantiers"
+       ]
+      }
+     ]
+    },
+    {
+     "texte": "a son profil chef de projet, créé automatiquement, qu'il peut modifier",
+     "cases": [
+      {
+       "fiche": "ProfilChefDeProjet",
+       "droits": {
+        "see": "own",
+        "see_via": [],
+        "create": "auto",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage profil : sa propre fiche, créée automatiquement"
+       ],
+       "citations": [
+        "chefs de projet"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "ProfilAdministrateur",
+   "libelle": "profil administrateur",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ProfilAdministrateur:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:ProfilAdministrateur:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "Accès sécurisé et différencié par agence et rôle"
+   ]
+  },
+  {
+   "fiche": "ProfilChefDeProjet",
+   "libelle": "profil chef de projet",
+   "nature": "profile",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ProfilChefDeProjet:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:ProfilChefDeProjet:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    }
+   ],
+   "citations": [
+    "chefs de projet"
+   ]
+  },
+  {
+   "fiche": "Agence",
+   "libelle": "agence",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Agence:Ville",
+     "libelle": "Ville",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Agence:Adresse",
+     "libelle": "Adresse",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "par agence"
+   ]
+  },
+  {
+   "fiche": "Chantier",
+   "libelle": "chantier",
+   "nature": "registry",
+   "relie_a": [
+    "agence"
+   ],
+   "champs": [
+    {
+     "nom": "avancement",
+     "libelle": "Avancement",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+    },
+    {
+     "nom": "margeRealisee",
+     "libelle": "Marge réalisée",
+     "type": "montant",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Le suivi de l'avancement des chantiers et des marges réalisées"
+    },
+    {
+     "nom": "rentabilite",
+     "libelle": "Rentabilité",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+    },
+    {
+     "nom": "ville",
+     "libelle": "Ville",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "brief",
+     "origine_texte": "cité dans votre brief",
+     "citation": "Une visibilité sur les marges et la rentabilité par chantier, ville et globale"
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Chantier:Nom du chantier",
+     "libelle": "Nom du chantier",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Chantier:Adresse du chantier",
+     "libelle": "Adresse du chantier",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Chantier:Date de début prévue",
+     "libelle": "Date de début prévue",
+     "type": "date"
+    },
+    {
+     "id": "garder:Chantier:Date de fin prévue",
+     "libelle": "Date de fin prévue",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "centralisation de l'ensemble des données chantiers"
+   ]
+  },
+  {
+   "fiche": "Devis",
+   "libelle": "devis",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Devis:Numéro de devis",
+     "libelle": "Numéro de devis",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Devis:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "devis"
+   ]
+  },
+  {
+   "fiche": "SuiviChantier",
+   "libelle": "suivi de chantier",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:SuiviChantier:Compte rendu",
+     "libelle": "Compte rendu",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:SuiviChantier:Date du suivi",
+     "libelle": "Date du suivi",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "suivis"
+   ]
+  },
+  {
+   "fiche": "Document",
+   "libelle": "document",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Document:Type de document",
+     "libelle": "Type de document",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Document:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "documents"
+   ]
+  },
+  {
+   "fiche": "Photo",
+   "libelle": "photo",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Photo:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Photo:Date de prise de vue",
+     "libelle": "Date de prise de vue",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "photos"
+   ]
+  },
+  {
+   "fiche": "BonDeCommande",
+   "libelle": "bon de commande",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:BonDeCommande:Numéro de bon de commande",
+     "libelle": "Numéro de bon de commande",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:BonDeCommande:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "bons de commande"
+   ]
+  },
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "child",
+   "relie_a": [
+    "dans chaque chantier"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Numéro de facture",
+     "libelle": "Numéro de facture",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Facture:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Facture:Date de facture",
+     "libelle": "Date de facture",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "facturation"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:chef_de_projet:Chantier",
+   "sorte": "registre_entier",
+   "texte": "Le chef de projet verra tous les chantiers, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Chantier (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:ProfilAdministrateur:nom",
+     "texte": "profil administrateur → « Nom »"
+    },
+    {
+     "id": "nom:ProfilChefDeProjet:nom",
+     "texte": "profil chef de projet → « Nom »"
+    },
+    {
+     "id": "nom:Agence:nom",
+     "texte": "agence → « Nom »"
+    },
+    {
+     "id": "nom:Devis:intitule",
+     "texte": "devis → « Intitulé »"
+    },
+    {
+     "id": "nom:SuiviChantier:intitule",
+     "texte": "suivi de chantier → « Intitulé »"
+    },
+    {
+     "id": "nom:Document:intitule",
+     "texte": "document → « Intitulé »"
+    },
+    {
+     "id": "nom:Photo:intitule",
+     "texte": "photo → « Intitulé »"
+    },
+    {
+     "id": "nom:BonDeCommande:intitule",
+     "texte": "bon de commande → « Intitulé »"
+    },
+    {
+     "id": "nom:Facture:intitule",
+     "texte": "facture → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  },
+  {
+   "id": "accepter_proposition",
+   "sorte": "proposition",
+   "reponses": [
+    "oui",
+    "non"
+   ],
+   "texte": "Acceptez-vous de construire le reste, sans ce qui n'est pas encore possible ?"
+  }
+ ]
+}

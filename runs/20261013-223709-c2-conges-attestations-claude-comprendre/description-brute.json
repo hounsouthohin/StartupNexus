@@ -1,0 +1,793 @@
+{
+  "app": {
+    "nom": "c2-conges-attestations",
+    "titre": "Congés et pointage"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "responsable_rh",
+        "label": "Responsable RH",
+        "label_plural": "Responsables RH",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)"
+      },
+      {
+        "id": "employe_rh",
+        "label": "Employé RH",
+        "label_plural": "Employés RH",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "responsable_rh",
+        "citation": "Création de nouveaux comptes"
+      },
+      {
+        "id": "employe",
+        "label": "Employé",
+        "label_plural": "Employés",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "employe_rh",
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "id": "decideur",
+        "label": "Décideur",
+        "label_plural": "Décideurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "employe_rh",
+        "citation": "Confirmer les demandes de congé"
+      },
+      {
+        "id": "directeur",
+        "label": "Directeur",
+        "label_plural": "Directeurs",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "employe_rh",
+        "citation": "Confirmer les demandes d'attestation"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Employe",
+        "label": "Employé",
+        "label_plural": "Employés",
+        "feminine": false,
+        "nature": "profile",
+        "owner": "employe",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Consultation des informations personnelles"
+      },
+      {
+        "name": "Solde",
+        "label": "Solde",
+        "label_plural": "Soldes",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "employe",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": "employe_rh",
+        "parent": null,
+        "references": [],
+        "citation": "Modification des soldes de congé et de maladie"
+      },
+      {
+        "name": "DemandeConge",
+        "label": "Demande de congé",
+        "label_plural": "Demandes de congé",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "employe",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Confirmer les demandes de congé",
+        "process": {
+          "initial": "en_attente",
+          "transitions": {
+            "en_attente": [
+              "acceptee",
+              "refusee"
+            ],
+            "acceptee": [],
+            "refusee": []
+          },
+          "initiator": "employe",
+          "decider": "decideur",
+          "steps_by": {},
+          "labels": {
+            "en_attente": "en attente",
+            "acceptee": "acceptée",
+            "refusee": "refusée"
+          },
+          "citation": "Acceptation / refus d'une demande"
+        }
+      },
+      {
+        "name": "DemandeAttestation",
+        "label": "Demande d'attestation",
+        "label_plural": "Demandes d'attestation",
+        "feminine": true,
+        "nature": "collection",
+        "owner": "employe",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "demande d'obtenir une attestation ( travail , salaire .. )",
+        "process": {
+          "initial": "en_attente",
+          "transitions": {
+            "en_attente": [
+              "acceptee",
+              "refusee"
+            ],
+            "acceptee": [],
+            "refusee": []
+          },
+          "initiator": "employe",
+          "decider": "directeur",
+          "steps_by": {},
+          "labels": {
+            "en_attente": "en attente",
+            "acceptee": "acceptée",
+            "refusee": "refusée"
+          },
+          "citation": "Confirmer les demandes d'attestation"
+        }
+      },
+      {
+        "name": "Attestation",
+        "label": "Attestation",
+        "label_plural": "Attestations",
+        "feminine": true,
+        "nature": "child",
+        "owner": null,
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": "DemandeAttestation",
+        "references": [],
+        "citation": "Génération automatique des attestations signés électroniquement"
+      },
+      {
+        "name": "Pointage",
+        "label": "Pointage",
+        "label_plural": "Pointages",
+        "feminine": false,
+        "nature": "collection",
+        "owner": "employe",
+        "manager": null,
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "Accès à la pointeuse et gêner des statistiques liés aux retards"
+      },
+      {
+        "name": "JourFerie",
+        "label": "Jour férié",
+        "label_plural": "Jours fériés",
+        "feminine": false,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "employe_rh",
+          "responsable_rh"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "en retranchant automatique les jours fériés"
+      },
+      {
+        "name": "EvenementHistorique",
+        "label": "Événement d'historique",
+        "label_plural": "Événements d'historique",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "responsable_rh"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Employe",
+          "Solde"
+        ],
+        "citation": "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "employe",
+        "entity": "Employe",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation des informations personnelles"
+      },
+      {
+        "actor": "employe",
+        "entity": "Solde",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation des informations personnelles, solde de congé et solde de maladies"
+      },
+      {
+        "actor": "employe",
+        "entity": "DemandeConge",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "employe",
+        "entity": "DemandeAttestation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation ( travail , salaire .. )"
+      },
+      {
+        "actor": "employe",
+        "entity": "Pointage",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation de l'historique des retards"
+      },
+      {
+        "actor": "decideur",
+        "entity": "Employe",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"employé"
+      },
+      {
+        "actor": "decideur",
+        "entity": "Solde",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation des informations personnelles, solde de congé et solde de maladies"
+      },
+      {
+        "actor": "decideur",
+        "entity": "DemandeConge",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "decideur",
+        "entity": "DemandeAttestation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "decideur",
+        "entity": "Pointage",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"employé"
+      },
+      {
+        "actor": "decideur",
+        "entity": "DemandeConge",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "en_attente": [
+            "acceptee"
+          ]
+        },
+        "citation": "Confirmer les demandes de congé"
+      },
+      {
+        "actor": "directeur",
+        "entity": "Employe",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Décideur"
+      },
+      {
+        "actor": "directeur",
+        "entity": "Solde",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation des informations personnelles, solde de congé et solde de maladies"
+      },
+      {
+        "actor": "directeur",
+        "entity": "DemandeConge",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "directeur",
+        "entity": "DemandeAttestation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "directeur",
+        "entity": "Pointage",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Décideur"
+      },
+      {
+        "actor": "directeur",
+        "entity": "DemandeConge",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "en_attente": [
+            "acceptee"
+          ]
+        },
+        "citation": "Il a les fonctionnalités de l'accès \"Décideur"
+      },
+      {
+        "actor": "directeur",
+        "entity": "DemandeAttestation",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "en_attente": [
+            "acceptee"
+          ]
+        },
+        "citation": "Confirmer les demandes d'attestation"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "Employe",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Décideur"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "Solde",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation des informations personnelles, solde de congé et solde de maladies"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "DemandeConge",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "DemandeAttestation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "Pointage",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Décideur"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "DemandeConge",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "en_attente": [
+            "acceptee"
+          ]
+        },
+        "citation": "Il a les fonctionnalités de l'accès \"Décideur"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "Employe",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Création de nouveaux comptes"
+      },
+      {
+        "actor": "employe_rh",
+        "entity": "Solde",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Modification des soldes de congé et de maladie"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "Employe",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Employé RH"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "Solde",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation des informations personnelles, solde de congé et solde de maladies"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "DemandeConge",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "DemandeAttestation",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Demande de congé et demande d'obtenir une attestation"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "Pointage",
+        "action": "see",
+        "allow": true,
+        "scope": "own",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Employé RH"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "DemandeConge",
+        "action": "transition",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {
+          "en_attente": [
+            "acceptee"
+          ]
+        },
+        "citation": "Il a les fonctionnalités de l'accès \"Employé RH"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "Employe",
+        "action": "create",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Employé RH"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "Solde",
+        "action": "edit",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Il a les fonctionnalités de l'accès \"Employé RH"
+      },
+      {
+        "actor": "responsable_rh",
+        "entity": "EvenementHistorique",
+        "action": "see",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Consultation de l'historique ( changements des soldes , ajouts et suppression des comptes)"
+      }
+    ]
+  },
+  "champs": {
+    "Employe": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Solde": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "soldeConge",
+        "libelle": "Solde de congé",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "solde de congé"
+      },
+      {
+        "nom": "soldeMaladie",
+        "libelle": "Solde de maladie",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "solde de maladies"
+      }
+    ],
+    "DemandeConge": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "dateDebut",
+        "libelle": "Date de début",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "dates donnés par le demandeur"
+      },
+      {
+        "nom": "dateFin",
+        "libelle": "Date de fin",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "dates donnés par le demandeur"
+      },
+      {
+        "nom": "duree",
+        "libelle": "Durée du congé (jours)",
+        "type": "nombre",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "la durée du congé demandé"
+      }
+    ],
+    "DemandeAttestation": [
+      {
+        "nom": "intitule",
+        "libelle": "Intitulé",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "typeAttestation",
+        "libelle": "Type d'attestation",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "travail",
+            "libelle": "travail"
+          },
+          {
+            "code": "salaire",
+            "libelle": "salaire"
+          }
+        ],
+        "origine": "brief",
+        "citation": "attestation ( travail , salaire .. )"
+      }
+    ],
+    "Attestation": [
+      {
+        "nom": "signatureElectronique",
+        "libelle": "Signature électronique",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "attestations signés électroniquement"
+      }
+    ],
+    "Pointage": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "enRetard",
+        "libelle": "En retard",
+        "type": "oui_non",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "l'historique des retards"
+      }
+    ],
+    "JourFerie": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EvenementHistorique": [
+      {
+        "nom": "typeEvenement",
+        "libelle": "Type d'événement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "changement_des_soldes",
+            "libelle": "changement des soldes"
+          },
+          {
+            "code": "ajout_de_compte",
+            "libelle": "ajout de compte"
+          },
+          {
+            "code": "suppression_de_compte",
+            "libelle": "suppression de compte"
+          }
+        ],
+        "origine": "brief",
+        "citation": "changements des soldes , ajouts et suppression des comptes"
+      }
+    ]
+  },
+  "ecran": {
+    "DemandeConge": {
+      "verbe_creation": null,
+      "boutons": {
+        "acceptee": "Accepter",
+        "refusee": "Refuser"
+      }
+    },
+    "DemandeAttestation": {
+      "verbe_creation": null,
+      "boutons": {
+        "acceptee": "Accepter",
+        "refusee": "Refuser"
+      }
+    },
+    "Attestation": {
+      "verbe_creation": "Générer l'attestation",
+      "boutons": {}
+    }
+  },
+  "depart": {}
+}

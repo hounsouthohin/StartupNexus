@@ -1,0 +1,119 @@
+{
+  "app": {
+    "nom": "c2-erp-compta",
+    "titre": "Gestion d'entreprise"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "administrateur",
+        "label_plural": "administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Nous recherchons des free-lances"
+      },
+      {
+        "id": "expert_comptable",
+        "label": "expert comptable",
+        "label_plural": "experts comptables",
+        "feminine": false,
+        "becomes": "invited",
+        "invited_by": "administrateur",
+        "citation": "la possibilité de rajouter un expert comptable"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Facture",
+        "label": "facture",
+        "label_plural": "factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "de la facturation"
+      },
+      {
+        "name": "EcritureComptable",
+        "label": "écriture comptable",
+        "label_plural": "écritures comptables",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "la comptabilité"
+      },
+      {
+        "name": "ArticleStock",
+        "label": "article en stock",
+        "label_plural": "articles en stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "citation": "la gestion de stock"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "EcritureComptable": [
+      {
+        "nom": "libelle",
+        "libelle": "Libellé de l'écriture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "ArticleStock": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation de l'article",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ]
+  },
+  "ecran": {},
+  "depart": {}
+}

@@ -1,0 +1,46 @@
+Application Réservation COACH SPORTIF
+Application réservation sport 
+
+Caractéristique de l’application :
+
+L’application contient deux espaces distinct , l’un pour les 2 coach (espace Admin) et l’un pour les adhérents de la salle de crossfit 
+
+Espace Admin : 
+
+Une catégorie « emploie du temps » et une catégorie « adhérents » distinct 
+
+Le coach veut avoir une visualisation globale sur le nombre d’adhérents à chaque créneaux (qui sera présent à quelle séance) 
+
+Le coach veut avoir une visualisation sur chaque adhérents de sa salle de crossfit 
+
+Dans l’espaces « adhérents » il faut que le coach puisse ajouter et supprimer les clients . Il y a 4 variantes : nom et prénom , type d’abonnement (séance , semaine ou mois) , date d’anniversaire de l’abonnement (le jour ou le client paie son abonnement) et la régularité (vert si le client a payé et est en situation régulière et rouge à l’inverse) 
+
+Le coach reçoit une notification de l’application le prévenant qu’un adhérent doit relancer son paiement 2 jours avant la fin de sa date d’anniversaire afin à ce que le coach puisse prévenir le client de vive voix 
+
+Espace client :
+
+Le client devra crée un compte en entrant les informations ci dessous (nom et prénom , type d’abonnement , date anniversaire de l’abonnement , situation irrégulière ou non)
+
+Le client doit avoir une visualisation en temps réel de l’emploie du temps 
+
+Il choisi un créneaux par jour ( 6 créneaux par jour) et s’inscrit sur celui souhaiter 
+
+Fonctionnement de l’application :
+
+le client s’inscrit et a accès à l’emploi du temps de la salle 
+
+Le client choisi son ou ses créneaux selon les places disponibles 
+
+L’administrateur dispose d’une visualisation en temps réel sur l’emploi du temps de la salle 
+
+L’administrateur est notifier si le client annule une séance 
+
+L’application relance l’administrateur tout comme le client avec un message lorsque que la date d’anniversaire (date d’inscription) arrive à échéance ce qui signifie que le client doit régler 
+
+Contrainte de l’application :
+
+15 personnes par créneaux maximum 
+
+Liste d’attente pour les personnes voulant s’inscrire à une séance qui est déjà complète (15 personnes déjà inscrit) 
+
+2H max avant la séance pour pouvoir l’annuler

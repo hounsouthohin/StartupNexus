@@ -1,0 +1,511 @@
+{
+ "titre": "Gestion d’entreprise",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Application hybride plus tard",
+   "categorie": "mobile_hors_ligne",
+   "citation": "application web dans un premier temps puis hybride plus tard"
+  },
+  {
+   "besoin": "Facturation",
+   "categorie": "document",
+   "citation": "faire de la facturation"
+  },
+  {
+   "besoin": "Comptabilité",
+   "categorie": "calcul_statistiques",
+   "citation": "la comptabilité"
+  },
+  {
+   "besoin": "Gestion financière",
+   "categorie": "calcul_statistiques",
+   "citation": "la gestion financière"
+  },
+  {
+   "besoin": "Gestion de stock avec calculs de quantités/mouvements",
+   "categorie": "calcul_statistiques",
+   "citation": "la gestion de stock"
+  },
+  {
+   "besoin": "Saisie automatique",
+   "categorie": "automatisation",
+   "citation": "une option de saisie automatique"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "L'administrateur",
+   "L'utilisateur",
+   "L'expert comptable"
+  ],
+  "fiches": 4,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "administrateur",
+   "libelle": "L'administrateur",
+   "devient": "responsable de l'app",
+   "citations": [
+    "Nous recherchons des free-lances"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout : factures, écritures comptables, opérations financières, articles de stock",
+     "cases": [
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "faire de la facturation"
+       ]
+      },
+      {
+       "fiche": "EcritureComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "rajouter un expert comptable"
+       ]
+      },
+      {
+       "fiche": "OperationFinanciere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "la gestion financière"
+       ]
+      },
+      {
+       "fiche": "ArticleStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "no",
+        "create_while": [],
+        "edit": false,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "responsable de l'app : voit les registres de l'équipe (lecture)"
+       ],
+       "citations": [
+        "la gestion de stock"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "utilisateur",
+   "libelle": "L'utilisateur",
+   "devient": "invité par administrateur",
+   "citations": [
+    "utilisée aussi bien par un novice qu’un professionnel du domaine"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : factures, écritures comptables, opérations financières, articles de stock",
+     "cases": [
+      {
+       "fiche": "Facture",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "faire de la facturation"
+       ]
+      },
+      {
+       "fiche": "EcritureComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "rajouter un expert comptable"
+       ]
+      },
+      {
+       "fiche": "OperationFinanciere",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la gestion financière"
+       ]
+      },
+      {
+       "fiche": "ArticleStock",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la gestion de stock"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "expert_comptable",
+   "libelle": "L'expert comptable",
+   "devient": "invité par administrateur",
+   "citations": [
+    "la possibilité de rajouter un expert comptable"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : écritures comptables",
+     "cases": [
+      {
+       "fiche": "EcritureComptable",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "rajouter un expert comptable"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Facture",
+   "libelle": "facture",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Facture:Numéro de facture",
+     "libelle": "Numéro de facture",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Facture:Date de facture",
+     "libelle": "Date de facture",
+     "type": "date"
+    },
+    {
+     "id": "garder:Facture:Montant total",
+     "libelle": "Montant total",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "faire de la facturation"
+   ]
+  },
+  {
+   "fiche": "EcritureComptable",
+   "libelle": "écriture comptable",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:EcritureComptable:Libellé comptable",
+     "libelle": "Libellé comptable",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:EcritureComptable:Date d’écriture",
+     "libelle": "Date d’écriture",
+     "type": "date"
+    },
+    {
+     "id": "garder:EcritureComptable:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    }
+   ],
+   "citations": [
+    "rajouter un expert comptable"
+   ]
+  },
+  {
+   "fiche": "OperationFinanciere",
+   "libelle": "opération financière",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:OperationFinanciere:Date de l’opération",
+     "libelle": "Date de l’opération",
+     "type": "date"
+    },
+    {
+     "id": "garder:OperationFinanciere:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:OperationFinanciere:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    }
+   ],
+   "citations": [
+    "la gestion financière"
+   ]
+  },
+  {
+   "fiche": "ArticleStock",
+   "libelle": "article de stock",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:ArticleStock:Référence",
+     "libelle": "Référence",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:ArticleStock:Quantité en stock",
+     "libelle": "Quantité en stock",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:ArticleStock:Seuil d’alerte",
+     "libelle": "Seuil d’alerte",
+     "type": "nombre"
+    }
+   ],
+   "citations": [
+    "la gestion de stock"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "registre_entier:utilisateur:Facture",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les factures, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité Facture (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:utilisateur:EcritureComptable",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les écritures comptables, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "registre_entier:utilisateur:OperationFinanciere",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra toutes les opérations financières, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité OperationFinanciere (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:utilisateur:ArticleStock",
+   "sorte": "registre_entier",
+   "texte": "L'utilisateur verra tous les articles de stock, pas seulement ceux qui le concernent — d'accord ?",
+   "reponses": [
+    "oui"
+   ],
+   "impossible": "impossible : entité ArticleStock (registre) : il faut au moins un acteur qui le tient (« manager »)"
+  },
+  {
+   "id": "registre_entier:expert_comptable:EcritureComptable",
+   "sorte": "registre_entier",
+   "texte": "L'expert comptable verra toutes les écritures comptables, pas seulement celles qui le concernent — d'accord ?",
+   "reponses": [
+    "oui",
+    "non"
+   ]
+  },
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Facture:intitule",
+     "texte": "facture → « Intitulé »"
+    },
+    {
+     "id": "nom:EcritureComptable:intitule",
+     "texte": "écriture comptable → « Intitulé »"
+    },
+    {
+     "id": "nom:OperationFinanciere:intitule",
+     "texte": "opération financière → « Intitulé »"
+    },
+    {
+     "id": "nom:ArticleStock:intitule",
+     "texte": "article de stock → « Intitulé »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}

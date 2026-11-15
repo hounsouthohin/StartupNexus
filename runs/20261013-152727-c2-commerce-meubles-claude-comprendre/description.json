@@ -1,0 +1,465 @@
+{
+  "app": {
+    "nom": "c2-commerce-meubles",
+    "titre": "Gestion du magasin"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "administrateur",
+        "label": "Administrateur",
+        "label_plural": "Administrateurs",
+        "feminine": false,
+        "becomes": "bootstrap",
+        "invited_by": null,
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Client",
+        "label": "Client",
+        "label_plural": "Clients",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "name": "Fournisseur",
+        "label": "Fournisseur",
+        "label_plural": "Fournisseurs",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "commandes fournisseurs lié à nos commandes clients"
+      },
+      {
+        "name": "Produit",
+        "label": "Référence produit",
+        "label_plural": "Références produits",
+        "feminine": true,
+        "nature": "catalog",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [],
+        "process": null,
+        "citation": "Base de données de nos références produits, avec prix"
+      },
+      {
+        "name": "CommandeClient",
+        "label": "Commande client",
+        "label_plural": "Commandes clients",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "Produit"
+        ],
+        "process": null,
+        "citation": "Gestion et Suivi des commandes et facturations clients"
+      },
+      {
+        "name": "Facture",
+        "label": "Facture",
+        "label_plural": "Factures",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client",
+          "CommandeClient"
+        ],
+        "process": null,
+        "citation": "commandes et facturations clients"
+      },
+      {
+        "name": "Encaissement",
+        "label": "Encaissement",
+        "label_plural": "Encaissements",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Client"
+        ],
+        "process": null,
+        "citation": "Gestion et suivi des encaissements clients"
+      },
+      {
+        "name": "CommandeFournisseur",
+        "label": "Commande fournisseur",
+        "label_plural": "Commandes fournisseurs",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Fournisseur",
+          "CommandeClient"
+        ],
+        "process": null,
+        "citation": "commandes fournisseurs lié à nos commandes clients"
+      },
+      {
+        "name": "MouvementStock",
+        "label": "Mouvement de stock",
+        "label_plural": "Mouvements de stock",
+        "feminine": false,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "Produit",
+          "CommandeClient"
+        ],
+        "process": null,
+        "citation": "Gestion et suivi des stocks, entrée/sortie/ réservation contremarque"
+      },
+      {
+        "name": "Livraison",
+        "label": "Livraison",
+        "label_plural": "Livraisons",
+        "feminine": true,
+        "nature": "registry",
+        "owner": null,
+        "manager": [
+          "administrateur"
+        ],
+        "public": false,
+        "publication": false,
+        "entered_by": null,
+        "parent": null,
+        "references": [
+          "CommandeClient",
+          "Client"
+        ],
+        "process": {
+          "field": "status",
+          "initial": "programmee",
+          "transitions": {
+            "programmee": [
+              "complete",
+              "partielle"
+            ],
+            "complete": [],
+            "partielle": []
+          },
+          "initiator": "administrateur",
+          "decider": "administrateur",
+          "steps_by": {},
+          "labels": {
+            "programmee": "programmée",
+            "complete": "complète",
+            "partielle": "partielle"
+          },
+          "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+        },
+        "citation": "Programmation des Livraisons clients ( complété ou partielle )"
+      }
+    ],
+    "exceptions": [
+      {
+        "actor": "administrateur",
+        "entity": "Client",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Fournisseur",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Produit",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "CommandeClient",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Facture",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Encaissement",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "CommandeFournisseur",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "MouvementStock",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      },
+      {
+        "actor": "administrateur",
+        "entity": "Livraison",
+        "action": "delete",
+        "allow": true,
+        "scope": "all",
+        "while_states": [],
+        "transitions": {},
+        "citation": "Liberté d'intervention en tant qu'administrateur sur la suppression de données"
+      }
+    ]
+  },
+  "champs": {
+    "Client": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Fournisseur": [
+      {
+        "nom": "nom",
+        "libelle": "Nom",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Produit": [
+      {
+        "nom": "designation",
+        "libelle": "Désignation",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      },
+      {
+        "nom": "prix",
+        "libelle": "Prix",
+        "type": "montant",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "nos références produits, avec prix"
+      }
+    ],
+    "CommandeClient": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de commande",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Facture": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de facture",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "Encaissement": [
+      {
+        "nom": "reference",
+        "libelle": "Référence",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "CommandeFournisseur": [
+      {
+        "nom": "numero",
+        "libelle": "Numéro de commande fournisseur",
+        "type": "texte",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "necessaire",
+        "citation": ""
+      }
+    ],
+    "MouvementStock": [
+      {
+        "nom": "typeMouvement",
+        "libelle": "Type de mouvement",
+        "type": "choix",
+        "obligatoire": true,
+        "valeurs": [
+          {
+            "code": "entree",
+            "libelle": "entrée"
+          },
+          {
+            "code": "sortie",
+            "libelle": "sortie"
+          },
+          {
+            "code": "reservation_contremarque",
+            "libelle": "réservation contremarque"
+          }
+        ],
+        "origine": "brief",
+        "citation": "suivi des stocks, entrée/sortie/ réservation contremarque"
+      }
+    ],
+    "Livraison": [
+      {
+        "nom": "dateLivraison",
+        "libelle": "Date de livraison prévue",
+        "type": "date",
+        "obligatoire": true,
+        "valeurs": [],
+        "origine": "brief",
+        "citation": "Programmation des Livraisons clients"
+      }
+    ]
+  },
+  "ecran": {
+    "CommandeClient": {
+      "verbe_creation": "Commander",
+      "boutons": {}
+    },
+    "Facture": {
+      "verbe_creation": "Facturer",
+      "boutons": {}
+    },
+    "Encaissement": {
+      "verbe_creation": "Encaisser",
+      "boutons": {}
+    },
+    "CommandeFournisseur": {
+      "verbe_creation": "Commander au fournisseur",
+      "boutons": {}
+    },
+    "MouvementStock": {
+      "verbe_creation": "Mouvementer le stock",
+      "boutons": {}
+    },
+    "Livraison": {
+      "verbe_creation": "Programmer la livraison",
+      "boutons": {
+        "complete": "Marquer complète",
+        "partielle": "Marquer partielle"
+      }
+    }
+  },
+  "depart": {}
+}

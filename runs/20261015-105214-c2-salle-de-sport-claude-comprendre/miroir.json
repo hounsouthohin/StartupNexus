@@ -1,0 +1,389 @@
+{
+ "titre": "Gestion GymPlus",
+ "perimetre": "dans",
+ "critique": null,
+ "refus": null,
+ "hors_stock": [
+  {
+   "besoin": "Gestion des paiements des adhérents",
+   "categorie": "paiement",
+   "citation": "des abonnements, des paiements, des présences"
+  }
+ ],
+ "en_bref": {
+  "roles": [
+   "Le gérant"
+  ],
+  "fiches": 5,
+  "circuits": 0
+ },
+ "roles": [
+  {
+   "id": "visitor",
+   "libelle": "Le visiteur (sans compte)",
+   "devient": "",
+   "citations": [],
+   "phrases": [
+    {
+     "texte": "Ne voit rien",
+     "cases": []
+    }
+   ]
+  },
+  {
+   "id": "gerant",
+   "libelle": "Le gérant",
+   "devient": "responsable de l'app",
+   "citations": [
+    "solution complète de gestion de salles de sport"
+   ],
+   "phrases": [
+    {
+     "texte": "Voit tout, crée et modifie : Adhérents, Abonnements, Paiements, Présences, Activités sportives",
+     "cases": [
+      {
+       "fiche": "Adherent",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "la gestion des adhérents"
+       ]
+      },
+      {
+       "fiche": "Abonnement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "des adhérents, des abonnements"
+       ]
+      },
+      {
+       "fiche": "Paiement",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "des abonnements, des paiements"
+       ]
+      },
+      {
+       "fiche": "Presence",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "tient le registre (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "des présences et des activités sportives"
+       ]
+      },
+      {
+       "fiche": "Activite",
+       "droits": {
+        "see": "all",
+        "see_via": [],
+        "create": "yes",
+        "create_while": [],
+        "edit": true,
+        "edit_while": [],
+        "delete": false,
+        "delete_while": [],
+        "transitions": {}
+       },
+       "pourquoi": [
+        "préréglage catalogue : visible de tous les connectés",
+        "gestionnaire du catalogue (supprimer : seulement si le brief le dit)"
+       ],
+       "citations": [
+        "des activités sportives"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "circuits": [],
+ "fiches": [
+  {
+   "fiche": "Adherent",
+   "libelle": "Adhérent",
+   "nature": "registry",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Adherent:Prénom",
+     "libelle": "Prénom",
+     "type": "texte court"
+    },
+    {
+     "id": "garder:Adherent:Email",
+     "libelle": "Email",
+     "type": "e-mail"
+    },
+    {
+     "id": "garder:Adherent:Téléphone",
+     "libelle": "Téléphone",
+     "type": "téléphone"
+    },
+    {
+     "id": "garder:Adherent:Date de naissance",
+     "libelle": "Date de naissance",
+     "type": "date"
+    }
+   ],
+   "citations": [
+    "la gestion des adhérents"
+   ]
+  },
+  {
+   "fiche": "Abonnement",
+   "libelle": "Abonnement",
+   "nature": "registry",
+   "relie_a": [
+    "Adhérent"
+   ],
+   "champs": [
+    {
+     "nom": "intitule",
+     "libelle": "Intitulé",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Abonnement:Date de début",
+     "libelle": "Date de début",
+     "type": "date"
+    },
+    {
+     "id": "garder:Abonnement:Date de fin",
+     "libelle": "Date de fin",
+     "type": "date"
+    },
+    {
+     "id": "garder:Abonnement:Tarif",
+     "libelle": "Tarif",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Abonnement:Type d'abonnement",
+     "libelle": "Type d'abonnement",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "des adhérents, des abonnements"
+   ]
+  },
+  {
+   "fiche": "Paiement",
+   "libelle": "Paiement",
+   "nature": "registry",
+   "relie_a": [
+    "Adhérent",
+    "Abonnement"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Paiement:Montant",
+     "libelle": "Montant",
+     "type": "montant"
+    },
+    {
+     "id": "garder:Paiement:Date de paiement",
+     "libelle": "Date de paiement",
+     "type": "date"
+    },
+    {
+     "id": "garder:Paiement:Moyen de paiement",
+     "libelle": "Moyen de paiement",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "des abonnements, des paiements"
+   ]
+  },
+  {
+   "fiche": "Presence",
+   "libelle": "Présence",
+   "nature": "registry",
+   "relie_a": [
+    "Adhérent",
+    "Activité sportive"
+   ],
+   "champs": [
+    {
+     "nom": "reference",
+     "libelle": "Référence",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Presence:Date et heure d'arrivée",
+     "libelle": "Date et heure d'arrivée",
+     "type": "date et heure"
+    },
+    {
+     "id": "garder:Presence:Date et heure de départ",
+     "libelle": "Date et heure de départ",
+     "type": "date et heure"
+    }
+   ],
+   "citations": [
+    "des présences et des activités sportives"
+   ]
+  },
+  {
+   "fiche": "Activite",
+   "libelle": "Activité sportive",
+   "nature": "catalog",
+   "relie_a": [],
+   "champs": [
+    {
+     "nom": "nom",
+     "libelle": "Nom",
+     "type": "texte court",
+     "obligatoire": true,
+     "origine": "necessaire",
+     "origine_texte": "choisi par nous (le brief n'en disait rien)",
+     "citation": ""
+    }
+   ],
+   "propositions": [
+    {
+     "id": "garder:Activite:Description",
+     "libelle": "Description",
+     "type": "texte long"
+    },
+    {
+     "id": "garder:Activite:Durée (minutes)",
+     "libelle": "Durée (minutes)",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Activite:Capacité maximale",
+     "libelle": "Capacité maximale",
+     "type": "nombre"
+    },
+    {
+     "id": "garder:Activite:Coach",
+     "libelle": "Coach",
+     "type": "texte court"
+    }
+   ],
+   "citations": [
+    "des activités sportives"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "noms",
+   "sorte": "noms",
+   "texte": "Votre brief ne disait pas comment reconnaître certaines fiches ; nous avons choisi :",
+   "details": [
+    {
+     "id": "nom:Adherent:nom",
+     "texte": "Adhérent → « Nom »"
+    },
+    {
+     "id": "nom:Abonnement:intitule",
+     "texte": "Abonnement → « Intitulé »"
+    },
+    {
+     "id": "nom:Paiement:reference",
+     "texte": "Paiement → « Référence »"
+    },
+    {
+     "id": "nom:Presence:reference",
+     "texte": "Présence → « Référence »"
+    },
+    {
+     "id": "nom:Activite:nom",
+     "texte": "Activité sportive → « Nom »"
+    }
+   ],
+   "reponses": [
+    "oui",
+    "<nouveau nom>"
+   ]
+  }
+ ]
+}
