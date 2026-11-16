@@ -90,6 +90,10 @@ Deux conséquences :
 - **Un juge n'est cru qu'une fois prouvé**, par des sabotages (on casse exprès, il doit le voir) et par des témoins
   (l'app intacte, il doit dire conforme). Un juge qui hésite est mis à l'écart.
 - **Une IA n'est jamais l'oracle** de ce qui a été produit. Elle peut donner un avis, jamais un verdict.
+- **Un verdict porte ses empreintes** (relecture du 16 nov) : celles du juge, de l'app jugée, de la description, des
+  données de départ et du navigateur. Un résultat sans empreinte, ou d'une autre version, ne compte pas.
+- **Un juge refuse de juger** une description dont l'empreinte ne concorde pas avec celle que la porte a enregistrée à
+  la validation.
 - **Les juges sont la constitution de l'usine.** C'est le seul code où une erreur passe en silence. Chaque juge a donc
   sa fiche « ce que je vérifie / ce que je ne vérifie pas », validée par Arthur, et son code est gardé court.
 - **Ce sont les juges qui cochent les tâches de l'agent**, pas l'agent lui-même.
@@ -133,6 +137,7 @@ pas de l'IA · chaque fichier sait de quelle case il vient.
 | `usine/preuve_regles.mts`, `usine/preuve_ecrans.py` | les preuves des juges par sabotage | voir `usine/ESSAIS.md` |
 | `usine/preuve_audit.py` | la preuve du contrôle des failles connues (étape 5 de la fabrication) | `python -m usine.preuve_audit` |
 | `conception/` | **les dossiers de conception**, un par pièce, relus avant de développer | `conception/LISEZMOI.md` |
+| `conception/carte-de-l-usine.html` | **la carte visuelle de l'usine** (schémas), mise à jour à chaque fin de travail | https://claude.ai/artifact/8ynHYQ1riEst6F4FjhJEYh |
 | `usine/repetition.py`, `usine/mesures/` | rejouer des lots de briefs ; mesures contre des grilles écrites d'avance | `python -m usine.repetition --chaine-reelle [--corpus usine/corpus]` |
 | `usine/briefs_reels/` | 5 premiers vrais briefs ; lot d'**apprentissage** (10, avec sa grille et les sorties de l'étude 05) ; lot d'**examen** (10, **à ne pas ouvrir**) | — |
 | `usine/corpus/` | corpus 2 : 33 vrais briefs, règle de choix et périmètre attendu écrits avant | — |
@@ -239,7 +244,13 @@ Les trois apps d'octobre servent de terrain :
 d'Arthur.
 - **L'essai de la boîte** : ✔ **réussi** le 14 nov.
 - **L'essai de l'agent constructeur** : prêt ; il demande qu'Arthur ouvre une session.
-- **L'essai du juge d'écrans** : prêt.
+- **L'essai du juge d'écrans** : ✔ **réussi** le 16 nov. L'inspecteur tient (6/6 sabotages, 0 hésitation, rejeu
+  prouvé). Mais les écrans ne sont reconnaissables qu'avec un **contrat d'accessibilité**, qui passe en priorité ; son
+  contenu est dans le compte rendu.
+- **Le contrat d'accessibilité** : [dossier](conception/contrat-accessibilite.md) écrit le 16 nov, **relu le 16 nov**
+  par Claude en ligne et une IA d'un autre fournisseur (OK avec corrections, unanime), corrections intégrées. Taille
+  **critique** (relu aussi après). Dix règles et 15 sabotages : tout nom qu'un juge cherche vient de la description et
+  est montré au miroir. **Attend le « go » d'Arthur.**
 
 L'essai de la boîte et celui du juge d'écrans sont indépendants ; l'essai de l'agent constructeur a besoin de
 l'atelier.
@@ -279,7 +290,22 @@ verrou PostgreSQL par app, la preuve par coupures (on le tue au hasard, il repre
 - le **banc de qualification** : détection par famille, zéro faux positif sur les témoins, zéro hésitation, vitesse,
   limites écrites. Les seuils sont fixés avant de lancer ;
 - le **banc des moteurs** : 3 ou 4 tâches, chacune jouée plusieurs fois, une partie cachée. Toute modification des
-  consignes, du modèle, du moteur ou des outils le repasse.
+  consignes, du modèle, du moteur ou des outils le repasse ;
+- **le vrai juge d'écrans**, admis avec ses propres preuves. Ce que la relecture du 16 nov demande pour lui :
+  - un témoin du rejeu pour une **modification** (pas seulement des créations et une confirmation) ;
+  - la preuve que la session interdite est bien reconnue par le serveur avant le rejeu (une page qui affiche
+    l'identifiant de la personne connectée) ;
+  - la preuve de la classe « présent mais inutilisable », avec un témoin proche : un bouton désactivé à bon droit
+    (tant qu'un champ obligatoire est vide) ne doit pas être signalé ;
+  - des données de départ qui respectent les règles de l'app : préparées par sa couche de données plutôt que par du
+    SQL brut, ou vérifiées contre ses invariants ;
+  - l'isolement des données si les parcours tournent en parallèle (une base par fil, ou rester l'un après l'autre) ;
+  - aucune donnée réelle dans les traces (les « films » contiennent la page, les requêtes et leur contenu) ;
+  - des parcours propres, avec leur oracle, pour les écrans riches (recette des capacités) ;
+- **l'essai des sabotages proposés par l'IA** (inconnue n° 11, placé ici par Arthur le 16 nov) : l'IA propose des
+  sabotages pour l'app mixte sans voir les 6 faits main, on les applique, on compare. Elle propose, une preuve tranche,
+  le résultat est figé : jamais dans le verdict. Rien n'en dépend avant : le juge lit un fichier de sabotages, qu'il
+  soit écrit à la main ou proposé.
 
 ### Étape 4 — Première capacité : les tableaux de bord
 
@@ -330,13 +356,14 @@ Chaque inconnue a son essai, sa durée maximale et la décision écrite **avant*
 | 1 | ~~L'atelier fermé tient-il sur ce PC ?~~ | l'essai de la boîte | 2 jours | **fermée le 14 nov : oui** (20/20 cycles, 0,9 s pour monter et jeter, construction en 35 s, 11/11 sabotages refusés ; reste à voir le redémarrage du PC) |
 | 2 | Claude Code, enfermé dans l'atelier, construit-il assez bien et assez vite, sans épuiser l'abonnement ? | l'essai de l'agent constructeur | 2 jours | non → l'artisan par l'API, avec un budget par tâche |
 | 3 | ~~mini-swe-agent coupe-t-il les sorties longues ?~~ | lecture de son code | 1 h | **fermée le 14 nov : oui**, par sa configuration (au-delà de 10 000 caractères, le début et la fin seulement) |
-| 4 | Le juge d'écrans tient-il sur des écrans d'agent ? | l'essai du juge d'écrans | 2 jours | non → contrat d'accessibilité avant la chaîne complète |
+| 4 | ~~Le juge d'écrans tient-il sur des écrans d'agent ?~~ | l'essai du juge d'écrans | 2 jours | **fermée le 16 nov : faisable, pas encore admis** (reformulé après la relecture). Un inspecteur sans IA peut jouer ces parcours, et certaines interdictions, sur des apps construites différemment, **à condition que les noms soient définis d'avance** : sur nos propres écrans, aucun parcours autorisé n'a réussi sans repli. → **le contrat d'accessibilité passe en priorité** ; le vrai juge sera admis à l'étape des juges, avec ses propres preuves |
 | 5 | Quelle taille de tâche pour l'agent ? | banc des moteurs (étape 3) | — | la plus grosse qui finit sans dépasser le contexte mesuré |
 | 6 | Masquer les vieilles sorties suffit-il ? | courbe de taille du contexte (étapes 2 et 3) | — | non → repartir à neuf avec un résumé de l'orchestrateur, avant toute compaction |
 | 7 | Le miroir attrape-t-il les erreurs de lecture ? | double lecture comparée (désaccord = question), puis le premier vrai client | — | non → le miroir passe avant les capacités |
 | 8 | L'abonnement permet-il un usage d'agent aussi intensif ? | **risque accepté par Arthur (14 nov)** ; mesuré à l'essai de l'agent constructeur | — | limites atteintes ou gênantes → l'agent par l'API |
 | 9 | La Loi 25 permet-elle d'envoyer une demande anonymisée à un fournisseur hors Québec ? | un juriste | avant le 1er client | non → modèle local pour ces clients |
 | 10 | ~~Next.js 16.4.6 fonctionne-t-il avec ZenStack 3.9.7 ?~~ | la montée de Next.js | ½ jour | **fermée le 13 nov : oui** (3 exemples au vert, preuves par sabotage inchangées) |
+| 11 | *(hypothèse du 16 nov, question d'Arthur sur la rigidité ; essai placé à l'étape des juges)* **L'IA peut-elle servir d'articulation souple autour des juges, sans entrer dans le verdict ?** Le motif : elle **propose** (sabotages d'une capacité, missions des écrans riches, carte d'un écran d'agent, explication d'un échec), une **preuve tranche** (programme, ou client au miroir), le résultat est **figé** dans un fichier relu ; ce qui revient souvent devient une règle (registre). Une adaptation sert à juger une interdiction seulement après que le jumeau permis l'a prouvée. Précédents : Meta, tests générés par IA guidés par des défauts inventés (article de 2025) ; Playwright, ses agents de test depuis la version 1.56 (son « réparateur » = juge assoupli en silence : interdit pendant un jugement) | l'IA propose des sabotages pour l'app mixte **sans voir les 6 faits main** (la clé de correction), on les applique, on compare | 1 jour | oui (elle retrouve l'essentiel des familles, peu de propositions fausses) → sabotages et missions des bords proposés par l'IA à chaque nouvelle capacité ; non → faits main pour l'instant |
 
 ---
 
@@ -374,6 +401,8 @@ assoupli**. La convergence a décru : 4 défauts par app nouvelle au début, pui
 | # | Date | Correction | Nature | Trouvée par | Générale ? | Juge |
 |---|---|---|---|---|---|---|
 | 60 | 13 nov | Next.js 16.4.0 vulnérable (2 critiques, 1 haute) : toute fabrication s'arrêtait à la construction. Next a sa propre garde, mais pas les autres bibliothèques (zod, hono avaient aussi des failles) → montée en 16.4.6 et versions correctives ; **l'étape 5 audite le fichier de verrouillage avant d'installer** (`npm audit`) : une faille critique arrête la fabrication, une haute est inscrite au rapport, sans réseau « non fait » (jamais un « accepté » silencieux). Preuve `python -m usine.preuve_audit` 3/3 ; 3 exemples au vert ; sabotages d'écran 8/8 ; règles 35/41 avec effet (identique à octobre) | dépendance vulnérable ; l'usine ne surveillait pas ses propres dépendances | `next build` (fabrication de contrôle du ménage) | oui | nouveau contrôle (prouvé) |
+| 61 | 16 nov | **Les noms des boutons ne passent pas par le miroir, et le bouton de création n'a pas de nom dans la description.** *(Diagnostic corrigé le 16 nov au soir. J'avais écrit « le verbe de création validé n'est jamais affiché » ; c'était faux sur deux points : le « verbe de création » de la description nomme le bouton de création **en un clic** depuis une fiche liée (« Emprunter » sur un livre), pas le bouton du formulaire ; et le miroir ne montre **aucun** nom de bouton, donc le client ne valide rien.)* Le bouton du formulaire est fabriqué par une règle de grammaire dans `usine/traduire/ecran.py` (« Nouveau / Nouvel / Nouvelle + nom »), fausse devant un h aspiré (« Nouvel hangar »). Un juge extérieur ne peut pas tirer ce nom de la source validée. **À corriger** avec le contrat d'accessibilité ([dossier](conception/contrat-accessibilite.md)) | défaut de l'usine (noms d'écran hors de la description et hors du miroir) | l'inspecteur d'écrans (essai) | oui | — |
+| 62 | 16 nov | **Les boutons de connexion simulée du squelette ne portent pas l'identifiant de la personne** (« personne 1 », pas « gerant_1 ») : un juge extérieur ne peut pas se connecter par le nom. **À corriger** avec le contrat d'accessibilité ([dossier](conception/contrat-accessibilite.md)) | défaut de l'usine (squelette) | l'inspecteur d'écrans (essai) | oui | — |
 
 ---
 
@@ -389,4 +418,7 @@ assoupli**. La convergence a décru : 4 défauts par app nouvelle au début, pui
 | 14 nov 2026 | **L'artisan est Claude Code lui-même**, enfermé dans l'atelier ; mini-swe-agent attend l'API ; la boîte aux lettres des lecteurs reste à petit volume | relecture des essais : nourrir un autre agent avec l'abonnement sort de l'« usage ordinaire » prévu par les conditions (vérifié sur la page officielle) |
 | 14 nov 2026 | **L'atelier tourne dans Docker Desktop**, avec son démarrage automatique coché, et sans aucun réseau ; la distribution Linux dédiée passe en repli | la panne « Docker ne redémarre pas » n'était qu'un réglage désactivé : moins de pièces, moins de pannes |
 | 14 nov 2026 | **L'essai de la boîte est réussi** : l'atelier (Docker Desktop, sans réseau, base dedans, app en lecture seule) tient sur ce PC. Démarrage automatique de Docker activé ; mises à jour figées ; base de l'usine en redémarrage automatique | les seuils écrits d'avance sont tous atteints ([compte rendu](conception/essai-boite.md)) |
+| 16 nov 2026 | **L'essai du juge d'écrans est réussi** : l'inspecteur sans IA tient (51/51 sur nos écrans avec replis déclarés, 6/6 sabotages dans la bonne classe, rejeu prouvé, 0 hésitation). **Le contrat d'accessibilité devient prioritaire**, avant la chaîne complète ; corrections n° 61 et 62 à faire avec lui | les seuils et la décision écrits d'avance ([compte rendu](conception/essai-juge-ecrans.md)) |
+| 16 nov 2026 | **Relecture du contrat d'accessibilité et du compte rendu du juge d'écrans** par deux IA (Claude en ligne et un autre fournisseur) : le contrat passe à OK avec corrections (dix règles, taille critique) ; l'essai du juge d'écrans prouve une faisabilité, pas une admission ; il est **rejoué sur une seule version**, avec empreintes et un passage sans aucun repli. Deux règles des juges ajoutées (§2.3 : empreintes, refus de juger) | relecture archivée (`archives/echanges-2026-11/relecture-contrat-et-juge-ecrans-2026-11-16.md`) ; « go » d'Arthur pour le rejeu et la mise à jour du plan |
+| 16 nov 2026 | **L'IA comme articulation souple, jamais dans le verdict** : elle propose, une preuve tranche, le résultat est figé ; ce qui revient souvent devient une règle. Hypothèse (inconnue n° 11), essai placé à l'étape des juges | question d'Arthur sur la rigidité des scripts et des règles fixes |
 | 14 nov 2026 | **Des noms, pas des codes ; des mots simples ; toujours le « pourquoi »** (dossiers renommés, section « En mots simples » en tête de chaque dossier) | demandé par Arthur : les codes et le jargon gênaient sa compréhension |

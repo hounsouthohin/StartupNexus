@@ -21,8 +21,13 @@ C'est la règle de l'usine appliquée à l'usine elle-même : celui qui construi
 4. **Arthur décide** : « go », ou non.
 5. Claude Code développe : la preuve d'abord, puis le code, en restant dans la taille annoncée. S'il la dépasse, il
    s'arrête et rend compte.
-6. Claude Code écrit la partie **Après** : ce qui a été fait, les écarts, les preuves, et ce qu'Arthur peut voir
-   lui-même.
+6. Claude Code écrit la partie **Après** :
+   - ce qui a été fait, les écarts et les preuves ;
+   - **comment ça marche et comment c'est fait**, en mots simples ;
+   - ce qu'Arthur peut voir lui-même ;
+   - **ce que ça change pour la suite** : les tâches à réviser, et si une relecture extérieure est utile.
+   Il le redit en quelques lignes dans la conversation, et **met à jour la carte visuelle**
+   (`carte-de-l-usine.html`, publiée sur https://claude.ai/artifact/8ynHYQ1riEst6F4FjhJEYh).
 7. Pour une pièce critique, le relecteur juge aussi la partie Après.
 8. Arthur clôt le dossier.
 

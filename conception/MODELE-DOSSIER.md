@@ -59,11 +59,17 @@ Ce qui a changé en route, et pourquoi.
 ### 11. Les résultats des preuves
 Les chiffres, contre les seuils écrits d'avance ; les commandes pour les rejouer.
 
-### 12. Ce qu'Arthur peut voir lui-même
+### 12. Comment ça marche, et comment c'est fait (en mots simples)
+Quelques phrases : le fonctionnement, puis la façon dont c'est construit. Les outils sont nommés (Docker, npm,
+Playwright…), chacun avec une image simple. Pas de détail inutile.
+
+### 13. Ce qu'Arthur peut voir lui-même
 Une commande à lancer, et ce qu'il doit observer.
 
-### 13. Ce qui reste
-Les corrections inscrites au registre (`USINE.md` §7), les inconnues ouvertes ou fermées, la suite.
+### 14. Ce que ça change pour la suite
+- Les tâches suivantes à réviser, s'il le faut, et pourquoi.
+- Une relecture extérieure est-elle utile, avant ou après la prochaine pièce ?
+- Les corrections inscrites au registre (`USINE.md` §7), les inconnues ouvertes ou fermées.
 
 ## Petit lexique
 Les quelques termes techniques du dossier, chacun en une phrase simple.

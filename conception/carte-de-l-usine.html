@@ -1,0 +1,723 @@
+<title>Carte de l'usine à apps</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Mise en page : une seule colonne de lecture, des planches (schémas) qui peuvent défiler seules en largeur sur téléphone. */
+:root {
+  --bg: #f3f6f7; --surface: #ffffff; --fg: #15212a; --fg2: #3a4955; --muted: #687884; --line: #c3cdd4;
+  --accent: #1d6a86;
+  --ok: #2b7a4b; --ok-bg: #e3f2e8;
+  --es: #a96400; --es-bg: #fcefd9;
+  --af: #7b8792; --af-bg: #f3f6f7;
+  --non: #b0271f;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "Cascadia Mono", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10171d; --surface: #17212a; --fg: #e3e9ed; --fg2: #b6c2ca; --muted: #8796a2; --line: #34444f;
+  --accent: #62b4d3; --ok: #5cc287; --ok-bg: #15301f; --es: #e7a23f; --es-bg: #392811; --af: #8796a2; --af-bg: #10171d;
+  --non: #f0736b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10171d; --surface: #17212a; --fg: #e3e9ed; --fg2: #b6c2ca; --muted: #8796a2; --line: #34444f;
+  --accent: #62b4d3; --ok: #5cc287; --ok-bg: #15301f; --es: #e7a23f; --es-bg: #392811; --af: #8796a2; --af-bg: #10171d;
+  --non: #f0736b; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.page { max-width: 1040px; margin: 0 auto; padding-block: 32px 64px; display: flex; flex-direction: column; gap: 44px; }
+header { display: flex; flex-direction: column; gap: 10px; }
+h1 { font-size: 30px; line-height: 1.15; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h2 { font-size: 20px; margin: 0; text-wrap: balance; }
+.etiquette { font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.chapeau { max-width: 68ch; color: var(--fg2); margin: 0; }
+.legende { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 13px; color: var(--fg2); }
+.legende span { display: inline-flex; align-items: center; gap: 7px; }
+.pastille { width: 22px; height: 14px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+.p-ok { background: var(--ok-bg); border-color: var(--ok); }
+.p-es { background: var(--es-bg); border-color: var(--es); }
+.p-af { background: var(--af-bg); border-color: var(--af); border-style: dashed; }
+.p-non { width: 22px; height: 0; border-top: 2px dashed var(--non); display: inline-block; }
+
+section { display: flex; flex-direction: column; gap: 14px; }
+section > p { margin: 0; max-width: 70ch; color: var(--fg2); }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px 18px 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.planche { overflow-x: auto; }
+.planche svg { display: block; width: 100%; min-width: 760px; height: auto; }
+figcaption { font-size: 13.5px; color: var(--fg2); max-width: 75ch; }
+code, .m { font-family: var(--mono); font-size: 0.88em; }
+
+/* les dessins prennent leurs couleurs des mêmes jetons que la page : ils suivent le thème clair ou sombre */
+svg .n { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .ok { fill: var(--ok-bg); stroke: var(--ok); stroke-width: 1.5; }
+svg .es { fill: var(--es-bg); stroke: var(--es); stroke-width: 1.5; }
+svg .af { fill: var(--af-bg); stroke: var(--af); stroke-width: 1.5; stroke-dasharray: 6 4; }
+svg .zone { fill: none; stroke: var(--line); stroke-width: 1.5; }
+svg .zone-ok { fill: none; stroke: var(--ok); stroke-width: 2.2; }
+svg .t { fill: var(--fg); font-family: var(--sans); font-size: 13px; font-weight: 600; }
+svg .s { fill: var(--fg2); font-family: var(--sans); font-size: 11.5px; }
+svg .m { fill: var(--fg2); font-family: var(--mono); font-size: 11px; }
+svg .lab { fill: var(--muted); font-family: var(--sans); font-size: 11px; }
+svg .lab-non { fill: var(--non); font-family: var(--sans); font-size: 11px; font-weight: 600; }
+svg .lab-acc { fill: var(--accent); font-family: var(--sans); font-size: 12px; font-weight: 600; }
+svg .fl { stroke: var(--fg2); stroke-width: 1.5; fill: none; }
+svg .no { stroke: var(--non); stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
+svg .x { fill: var(--non); font-family: var(--sans); font-size: 15px; font-weight: 700; }
+svg .pointe { fill: var(--fg2); }
+svg .pointe-non { fill: var(--non); }
+svg .pointe-acc { fill: var(--accent); }
+svg .acc { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+svg .j-ok { fill: var(--ok); } svg .j-es { fill: var(--es); } svg .j-af { fill: var(--bg); stroke: var(--af); stroke-width: 1.5; stroke-dasharray: 3 2; }
+svg .rail { stroke: var(--line); stroke-width: 3; }
+
+.chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.chiffre { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.chiffre b { font-size: 22px; font-variant-numeric: tabular-nums; color: var(--ok); }
+.chiffre span { font-size: 13px; color: var(--fg2); }
+.classes { display: flex; flex-wrap: wrap; gap: 8px; }
+.classes span { font-size: 12.5px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg2); }
+.classes span b { color: var(--fg); font-weight: 600; }
+.lieux { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.lieu { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.lieu h3 { margin: 0; font-size: 15px; }
+.lieu ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.lieu li { display: grid; grid-template-columns: minmax(0, 13.5em) minmax(0, 1fr); gap: 10px; font-size: 13.5px; }
+.lieu li code { color: var(--accent); overflow-wrap: anywhere; }
+.lieu li span { color: var(--fg2); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 520px) { h1 { font-size: 25px; } .lieu li { grid-template-columns: 1fr; gap: 0; } }
+</style>
+
+<div class="page">
+
+<header>
+  <div class="etiquette">StartupNexus · état au 16 novembre 2026, soir</div>
+  <h1>Carte de l'usine à apps</h1>
+  <p class="chapeau">Les schémas de ce qu'on construit : par où passe une demande, qui écrit quoi dans une app, ce que
+  fait la fabrication pas à pas, l'atelier fermé de l'agent, les deux essais en cours, la méthode et le plan. Cette
+  carte est mise à jour à chaque fin de travail.</p>
+  <div class="legende" aria-label="Légende des couleurs">
+    <span><i class="pastille p-ok"></i>existe, et prouvé</span>
+    <span><i class="pastille p-es"></i>en essai</span>
+    <span><i class="pastille p-af"></i>à construire</span>
+    <span><i class="p-non"></i>passage interdit</span>
+  </div>
+</header>
+
+<!-- 1. LA CHAÎNE ─────────────────────────────────────────────────────────────── -->
+<section>
+  <h2>Le chemin d'une demande</h2>
+  <p>De la demande du client à l'app livrée. L'IA n'intervient qu'à deux endroits : les lecteurs (au début) et
+  l'artisan (pour les écrans riches). Tout le reste est fait par des programmes prévisibles.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 350" role="img" aria-label="La chaîne de l'usine : demande, lecteurs IA, description, miroir, calculateur, assembleur, artisan IA, juges, livraison, app livrée ; un défaut renvoie à l'artisan, deux fois au plus.">
+      <defs>
+        <marker id="p1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <!-- rangée 1 -->
+      <rect class="n"  x="11"  y="36" width="150" height="78" rx="6"/>
+      <text class="t" x="86"  y="64" text-anchor="middle">Demande du client</text>
+      <text class="s" x="86"  y="84" text-anchor="middle">ses mots,</text>
+      <text class="s" x="86"  y="100" text-anchor="middle">en texte libre</text>
+
+      <rect class="ok" x="213" y="36" width="150" height="78" rx="6"/>
+      <text class="t" x="288" y="64" text-anchor="middle">Lecteurs IA</text>
+      <text class="s" x="288" y="84" text-anchor="middle">7 questions,</text>
+      <text class="s" x="288" y="100" text-anchor="middle">réponses contrôlées</text>
+
+      <rect class="ok" x="415" y="36" width="150" height="78" rx="6"/>
+      <text class="t" x="490" y="64" text-anchor="middle">Description</text>
+      <text class="s" x="490" y="84" text-anchor="middle">une fiche aux</text>
+      <text class="s" x="490" y="100" text-anchor="middle">cases fixes</text>
+
+      <rect class="ok" x="617" y="36" width="150" height="78" rx="6"/>
+      <text class="t" x="692" y="64" text-anchor="middle">Miroir + porte</text>
+      <text class="s" x="692" y="84" text-anchor="middle">le client lit en</text>
+      <text class="s" x="692" y="100" text-anchor="middle">phrases et valide</text>
+
+      <rect class="ok" x="819" y="36" width="150" height="78" rx="6"/>
+      <text class="t" x="894" y="64" text-anchor="middle">Calculateur</text>
+      <text class="s" x="894" y="84" text-anchor="middle">qui a le droit</text>
+      <text class="s" x="894" y="100" text-anchor="middle">de faire quoi</text>
+
+      <line class="fl" x1="163" y1="75" x2="209" y2="75" marker-end="url(#p1)"/><text class="lab" x="187" y="67" text-anchor="middle">lue par</text>
+      <line class="fl" x1="365" y1="75" x2="411" y2="75" marker-end="url(#p1)"/><text class="lab" x="389" y="67" text-anchor="middle">écrivent</text>
+      <line class="fl" x1="567" y1="75" x2="613" y2="75" marker-end="url(#p1)"/><text class="lab" x="591" y="67" text-anchor="middle">en phrases</text>
+      <line class="fl" x1="769" y1="75" x2="815" y2="75" marker-end="url(#p1)"/><text class="lab" x="793" y="67" text-anchor="middle">validée</text>
+
+      <path class="fl" d="M894 116 V160 H86 V202" marker-end="url(#p1)"/>
+      <text class="lab" x="490" y="153" text-anchor="middle">la matrice des droits</text>
+
+      <!-- rangée 2 -->
+      <rect class="ok" x="11"  y="206" width="150" height="78" rx="6"/>
+      <text class="t" x="86"  y="234" text-anchor="middle">Assembleur</text>
+      <text class="s" x="86"  y="254" text-anchor="middle">squelette fixe</text>
+      <text class="s" x="86"  y="270" text-anchor="middle">+ fichiers calculés</text>
+
+      <rect class="es" x="213" y="206" width="150" height="78" rx="6"/>
+      <text class="t" x="288" y="234" text-anchor="middle">Artisan IA</text>
+      <text class="s" x="288" y="254" text-anchor="middle">écrans riches,</text>
+      <text class="s" x="288" y="270" text-anchor="middle">dans l'atelier</text>
+
+      <rect class="es" x="415" y="206" width="150" height="78" rx="6"/>
+      <text class="t" x="490" y="234" text-anchor="middle">Juges</text>
+      <text class="s" x="490" y="254" text-anchor="middle">droits : faits</text>
+      <text class="s" x="490" y="270" text-anchor="middle">inspecteur : essai réussi</text>
+
+      <rect class="af" x="617" y="206" width="150" height="78" rx="6"/>
+      <text class="t" x="692" y="234" text-anchor="middle">Livraison</text>
+      <text class="s" x="692" y="254" text-anchor="middle">vrais comptes, mise</text>
+      <text class="s" x="692" y="270" text-anchor="middle">en ligne, sauvegardes</text>
+
+      <rect class="n"  x="819" y="206" width="150" height="78" rx="39"/>
+      <text class="t" x="894" y="240" text-anchor="middle">App livrée</text>
+      <text class="s" x="894" y="258" text-anchor="middle">chez le client</text>
+
+      <line class="fl" x1="163" y1="245" x2="209" y2="245" marker-end="url(#p1)"/><text class="lab" x="187" y="237" text-anchor="middle">cœur posé</text>
+      <line class="fl" x1="365" y1="245" x2="411" y2="245" marker-end="url(#p1)"/><text class="lab" x="389" y="237" text-anchor="middle">app finie</text>
+      <line class="fl" x1="567" y1="245" x2="613" y2="245" marker-end="url(#p1)"/><text class="lab" x="591" y="237" text-anchor="middle">conforme</text>
+      <line class="fl" x1="769" y1="245" x2="815" y2="245" marker-end="url(#p1)"/><text class="lab" x="793" y="237" text-anchor="middle">en ligne</text>
+
+      <path class="fl" d="M490 286 V312 H288 V290" marker-end="url(#p1)"/>
+      <text class="lab" x="389" y="332" text-anchor="middle">un défaut trouvé : l'artisan corrige, 2 fois au plus, puis un humain</text>
+    </svg>
+    </div>
+    <figcaption>Vert : déjà construit et prouvé en octobre (lecteurs, miroir, calculateur, assembleur, juges des droits).
+    Orange : ce que les essais de novembre préparent (l'artisan IA et le juge de ses écrans). Pointillé : la livraison,
+    à construire au premier vrai client.</figcaption>
+  </figure>
+</section>
+
+<!-- 2. LES TROIS ZONES ───────────────────────────────────────────────────────── -->
+<section>
+  <h2>Qui écrit quoi dans une app</h2>
+  <p>Une app est faite de trois couches. Le principe : ce qui peut faire fuir des données ou de l'argent est posé par
+  un programme et verrouillé ; l'IA ne travaille que sur ce qui se voit et se vérifie.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 940 300" role="img" aria-label="Les trois zones d'une app : le cœur posé par l'assembleur, les déclarations compilées par l'usine, les bords écrits par l'artisan IA, qui ne peut pas modifier le cœur.">
+      <defs>
+        <marker id="p2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="q2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe-non" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <text class="lab" x="470" y="20" text-anchor="middle">UNE APP</text>
+      <rect class="es" x="320" y="30" width="300" height="66" rx="6"/>
+      <text class="t" x="470" y="54" text-anchor="middle">Les bords</text>
+      <text class="s" x="470" y="72" text-anchor="middle">écrans riches, design, documents</text>
+      <text class="m" x="470" y="88" text-anchor="middle">dossier sur-mesure/</text>
+
+      <rect class="af" x="320" y="106" width="300" height="66" rx="6"/>
+      <text class="t" x="470" y="130" text-anchor="middle">Les déclarations</text>
+      <text class="s" x="470" y="148" text-anchor="middle">formules, indicateurs, règles métier</text>
+      <text class="s" x="470" y="164" text-anchor="middle">(viendront avec les capacités)</text>
+
+      <rect class="ok" x="320" y="182" width="300" height="96" rx="6"/>
+      <text class="t" x="470" y="210" text-anchor="middle">Le cœur</text>
+      <text class="s" x="470" y="230" text-anchor="middle">données · droits · porte · juges · argent</text>
+      <text class="s" x="470" y="250" text-anchor="middle">posé par un programme,</text>
+      <text class="s" x="470" y="266" text-anchor="middle">jamais par une IA</text>
+
+      <rect class="n" x="40" y="198" width="180" height="64" rx="6"/>
+      <text class="t" x="130" y="224" text-anchor="middle">L'assembleur</text>
+      <text class="s" x="130" y="243" text-anchor="middle">un programme</text>
+      <line class="fl" x1="222" y1="230" x2="316" y2="230" marker-end="url(#p2)"/>
+      <text class="lab" x="268" y="222" text-anchor="middle">pose</text>
+
+      <rect class="n" x="40" y="114" width="180" height="50" rx="6"/>
+      <text class="t" x="130" y="135" text-anchor="middle">L'usine</text>
+      <text class="s" x="130" y="153" text-anchor="middle">contrôle et compile</text>
+      <line class="fl" x1="222" y1="139" x2="316" y2="139" marker-end="url(#p2)"/>
+      <text class="lab" x="268" y="131" text-anchor="middle">compile</text>
+
+      <rect class="es" x="720" y="34" width="180" height="60" rx="6"/>
+      <text class="t" x="810" y="58" text-anchor="middle">L'artisan IA</text>
+      <text class="s" x="810" y="77" text-anchor="middle">Claude Code</text>
+      <line class="fl" x1="718" y1="63" x2="624" y2="63" marker-end="url(#p2)"/>
+      <text class="lab" x="671" y="55" text-anchor="middle">écrit</text>
+
+      <path class="no" d="M810 96 V230 H628" marker-end="url(#q2)"/>
+      <text class="x" x="719" y="235" text-anchor="middle">✕</text>
+      <text class="lab-non" x="719" y="254" text-anchor="middle">ne peut pas modifier</text>
+    </svg>
+    </div>
+    <figcaption>L'artisan lit le cœur, mais ne peut pas le modifier : les fichiers du cœur sont en lecture seule dans
+    l'atelier, et leurs empreintes sont comparées avant et après chaque tâche. S'il a besoin d'une table ou d'un droit,
+    il le demande ; il ne le crée pas.</figcaption>
+  </figure>
+</section>
+
+<!-- 3. SOUS LE CAPOT : FABRIQUER ─────────────────────────────────────────────── -->
+<section>
+  <h2>Sous le capot : ce que fait la fabrication</h2>
+  <p>La commande <code>python -m usine fabriquer</code> transforme une description validée en app qui tourne, en dix
+  étapes. Les durées sont celles de la médiathèque, fabriquée le 13 novembre.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 300" role="img" aria-label="Les dix étapes de la fabrication, avec leur durée : lire, calculer, traduire, assembler, contrôler les failles et installer, base neuve, données de départ, construire, juge des règles, juge des écrans.">
+      <defs>
+        <marker id="p3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <g>
+        <rect class="ok" x="11"  y="30" width="170" height="86" rx="6"/>
+        <text class="m" x="23" y="48">1</text><text class="t" x="96" y="66" text-anchor="middle">Lire et contrôler</text>
+        <text class="s" x="96" y="84" text-anchor="middle">la description</text><text class="m" x="96" y="104" text-anchor="middle">≈ 0 s</text>
+
+        <rect class="ok" x="208" y="30" width="170" height="86" rx="6"/>
+        <text class="m" x="220" y="48">2</text><text class="t" x="293" y="66" text-anchor="middle">Calculer</text>
+        <text class="s" x="293" y="84" text-anchor="middle">la matrice des droits</text><text class="m" x="293" y="104" text-anchor="middle">≈ 0 s</text>
+
+        <rect class="ok" x="405" y="30" width="170" height="86" rx="6"/>
+        <text class="m" x="417" y="48">3</text><text class="t" x="490" y="66" text-anchor="middle">Traduire</text>
+        <text class="s" x="490" y="84" text-anchor="middle">→ 7 fichiers calculés</text><text class="m" x="490" y="104" text-anchor="middle">≈ 0 s</text>
+
+        <rect class="ok" x="602" y="30" width="170" height="86" rx="6"/>
+        <text class="m" x="614" y="48">4</text><text class="t" x="687" y="66" text-anchor="middle">Assembler</text>
+        <text class="s" x="687" y="84" text-anchor="middle">squelette fixe + 7 fichiers</text><text class="m" x="687" y="104" text-anchor="middle">0,1 s</text>
+
+        <rect class="ok" x="799" y="30" width="170" height="86" rx="6"/>
+        <text class="m" x="811" y="48">5</text><text class="t" x="884" y="66" text-anchor="middle">Failles + installer</text>
+        <text class="s" x="884" y="84" text-anchor="middle">contrôle, bibliothèques</text><text class="m" x="884" y="104" text-anchor="middle">61 s</text>
+
+        <line class="fl" x1="183" y1="73" x2="204" y2="73" marker-end="url(#p3)"/>
+        <line class="fl" x1="380" y1="73" x2="401" y2="73" marker-end="url(#p3)"/>
+        <line class="fl" x1="577" y1="73" x2="598" y2="73" marker-end="url(#p3)"/>
+        <line class="fl" x1="774" y1="73" x2="795" y2="73" marker-end="url(#p3)"/>
+        <path class="fl" d="M884 118 V150 H96 V180" marker-end="url(#p3)"/>
+
+        <rect class="ok" x="11"  y="184" width="170" height="86" rx="6"/>
+        <text class="m" x="23" y="202">6</text><text class="t" x="96" y="220" text-anchor="middle">Accès + base neuve</text>
+        <text class="s" x="96" y="238" text-anchor="middle">code d'accès, tables</text><text class="m" x="96" y="258" text-anchor="middle">10 s</text>
+
+        <rect class="ok" x="208" y="184" width="170" height="86" rx="6"/>
+        <text class="m" x="220" y="202">7</text><text class="t" x="293" y="220" text-anchor="middle">Données de départ</text>
+        <text class="s" x="293" y="238" text-anchor="middle">fiches de démonstration</text><text class="m" x="293" y="258" text-anchor="middle">3 s</text>
+
+        <rect class="ok" x="405" y="184" width="170" height="86" rx="6"/>
+        <text class="m" x="417" y="202">8</text><text class="t" x="490" y="220" text-anchor="middle">Construire l'app</text>
+        <text class="s" x="490" y="238" text-anchor="middle">compilation, typage</text><text class="m" x="490" y="258" text-anchor="middle">31 s</text>
+
+        <rect class="ok" x="602" y="184" width="170" height="86" rx="6"/>
+        <text class="m" x="614" y="202">9</text><text class="t" x="687" y="220" text-anchor="middle">Juge des règles</text>
+        <text class="s" x="687" y="238" text-anchor="middle">120 cas sur 120</text><text class="m" x="687" y="258" text-anchor="middle">5 s</text>
+
+        <rect class="ok" x="799" y="184" width="170" height="86" rx="6"/>
+        <text class="m" x="811" y="202">10</text><text class="t" x="884" y="220" text-anchor="middle">Juge des écrans</text>
+        <text class="s" x="884" y="238" text-anchor="middle">11 passés, 1 sauté</text><text class="m" x="884" y="258" text-anchor="middle">27 s</text>
+
+        <line class="fl" x1="183" y1="227" x2="204" y2="227" marker-end="url(#p3)"/>
+        <line class="fl" x1="380" y1="227" x2="401" y2="227" marker-end="url(#p3)"/>
+        <line class="fl" x1="577" y1="227" x2="598" y2="227" marker-end="url(#p3)"/>
+        <line class="fl" x1="774" y1="227" x2="795" y2="227" marker-end="url(#p3)"/>
+      </g>
+      <text class="lab" x="490" y="293" text-anchor="middle">environ 2 min 20 s au total ; une étape qui échoue arrête tout, et le journal dit pourquoi</text>
+    </svg>
+    </div>
+    <figcaption>Les étapes 1 à 4 ne prennent presque rien : ce sont des calculs. L'app est faite d'un <b>squelette
+    fixe</b>, écrit et testé une fois (<code>usine/modele-app/</code>), et de <b>7 fichiers calculés</b> pour cette app :
+    le schéma et ses règles d'accès, la notice des écrans, les droits d'écran, les rôles, les données de départ, et les
+    copies que lisent les juges. L'étape 5 contrôle les failles connues depuis le 13 novembre.</figcaption>
+  </figure>
+</section>
+
+<!-- 4. L'ATELIER ──────────────────────────────────────────────────────────────── -->
+<section>
+  <h2>L'atelier fermé de l'agent</h2>
+  <p>L'artisan IA et les juges travaillent dans un atelier fermé à clé : un mini-ordinateur jetable, fabriqué par
+  Docker. L'atelier voit l'app, sa propre base et un navigateur, et rien d'autre.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 1080 430" role="img" aria-label="L'atelier dans Docker Desktop, sur le PC : l'app y est montée en lecture seule, l'atelier a sa propre base et Chromium ; il ne joint ni internet, ni la base de l'usine, ni le reste du PC ; les commandes y entrent de l'extérieur.">
+      <defs>
+        <marker id="p4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="q4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe-non" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="zone" x="10" y="10" width="860" height="410" rx="10"/>
+      <text class="t" x="26" y="33">Ton PC (Windows)</text>
+
+      <rect class="n" x="30" y="60" width="190" height="110" rx="6"/>
+      <text class="t" x="125" y="86" text-anchor="middle">Fichiers du PC</text>
+      <text class="s" x="125" y="108" text-anchor="middle">l'app (une copie)</text>
+      <text class="s" x="125" y="126" text-anchor="middle">la clé de l'usine (.env)</text>
+      <text class="s" x="125" y="144" text-anchor="middle">tes dossiers</text>
+
+      <rect class="n" x="30" y="262" width="190" height="72" rx="6"/>
+      <text class="t" x="125" y="290" text-anchor="middle">L'artisan ou le testeur</text>
+      <text class="s" x="125" y="310" text-anchor="middle">travaille dehors</text>
+
+      <rect class="zone" x="250" y="44" width="600" height="362" rx="8" stroke-dasharray="6 4"/>
+      <text class="t" x="266" y="66">Docker Desktop : un Linux caché</text>
+
+      <rect class="n" x="264" y="318" width="160" height="66" rx="6"/>
+      <text class="t" x="344" y="344" text-anchor="middle">Base de l'usine</text>
+      <text class="m" x="344" y="364" text-anchor="middle">temporal-postgresql</text>
+
+      <rect class="zone-ok" x="490" y="80" width="345" height="304" rx="8"/>
+      <text class="t" x="506" y="104">L'atelier (un tirage du moule)</text>
+      <rect class="n" x="506" y="118" width="150" height="56" rx="6"/>
+      <text class="t" x="581" y="142" text-anchor="middle">L'app</text><text class="s" x="581" y="160" text-anchor="middle">en lecture seule</text>
+      <rect class="n" x="670" y="118" width="150" height="56" rx="6"/>
+      <text class="t" x="745" y="142" text-anchor="middle">Sa base</text><text class="s" x="745" y="160" text-anchor="middle">à lui, en mémoire</text>
+      <rect class="n" x="506" y="186" width="150" height="56" rx="6"/>
+      <text class="t" x="581" y="210" text-anchor="middle">Chromium</text><text class="s" x="581" y="228" text-anchor="middle">pour essayer l'app</text>
+      <rect class="n" x="670" y="186" width="150" height="56" rx="6"/>
+      <text class="t" x="745" y="210" text-anchor="middle">Zones en mémoire</text><text class="s" x="745" y="228" text-anchor="middle">ce que l'app construit</text>
+      <text class="t" x="506" y="276">Les verrous</text>
+      <text class="s" x="506" y="296">• aucune carte réseau</text>
+      <text class="s" x="506" y="314">• un utilisateur sans aucun privilège</text>
+      <text class="s" x="506" y="332">• plafonds : mémoire, processus, disque</text>
+      <text class="s" x="506" y="350">• jeté après chaque tâche</text>
+
+      <rect class="n" x="905" y="170" width="160" height="56" rx="6"/>
+      <text class="t" x="985" y="203" text-anchor="middle">Internet</text>
+
+      <!-- ce qui passe -->
+      <line class="fl" x1="222" y1="146" x2="502" y2="146" marker-end="url(#p4)"/>
+      <text class="lab" x="362" y="138" text-anchor="middle">l'app, montée en lecture seule</text>
+      <line class="fl" x1="222" y1="298" x2="486" y2="298" marker-end="url(#p4)"/>
+      <text class="lab" x="354" y="290" text-anchor="middle">commandes envoyées (docker exec)</text>
+
+      <!-- ce qui ne passe pas -->
+      <line class="no" x1="490" y1="98" x2="226" y2="98" marker-end="url(#q4)"/>
+      <text class="x" x="358" y="103" text-anchor="middle">✕</text>
+      <text class="lab-non" x="358" y="88" text-anchor="middle">le reste du PC : invisible</text>
+      <line class="no" x1="490" y1="362" x2="428" y2="362" marker-end="url(#q4)"/>
+      <text class="x" x="459" y="367" text-anchor="middle">✕</text>
+      <text class="lab-non" x="457" y="398" text-anchor="middle">injoignable</text>
+      <line class="no" x1="835" y1="198" x2="901" y2="198" marker-end="url(#q4)"/>
+      <text class="x" x="868" y="203" text-anchor="middle">✕</text>
+      <text class="lab-non" x="868" y="248" text-anchor="middle">aucun réseau</text>
+    </svg>
+    </div>
+    <figcaption>Ce qui passe (traits pleins) : l'app, vue en lecture seule, et les commandes envoyées de l'extérieur.
+    Ce qui ne passe pas (rouge) : internet, la base de l'usine, le reste du PC. Chaque « ✕ » a été vérifié par une
+    tentative d'évasion le 14 novembre.</figcaption>
+  </figure>
+
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 150" role="img" aria-label="Comment on obtient un atelier : une recette texte, un moule commun construit une fois, un étage par app, puis des tirages prêts en une seconde.">
+      <defs>
+        <marker id="p5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="n"  x="4"   y="20" width="194" height="96" rx="6"/>
+      <text class="t" x="101" y="48" text-anchor="middle">La recette</text>
+      <text class="m" x="101" y="68" text-anchor="middle">Dockerfile</text>
+      <text class="s" x="101" y="88" text-anchor="middle">un texte : quoi installer</text>
+      <rect class="ok" x="262" y="20" width="194" height="96" rx="6"/>
+      <text class="t" x="359" y="48" text-anchor="middle">Le moule commun</text>
+      <text class="s" x="359" y="68" text-anchor="middle">Node, bibliothèques, Chromium,</text>
+      <text class="s" x="359" y="86" text-anchor="middle">PostgreSQL · 3,3 Go</text>
+      <text class="m" x="359" y="104" text-anchor="middle">5 min, une seule fois</text>
+      <rect class="ok" x="520" y="20" width="194" height="96" rx="6"/>
+      <text class="t" x="617" y="48" text-anchor="middle">L'étage de l'app</text>
+      <text class="s" x="617" y="68" text-anchor="middle">ses tables et ses données</text>
+      <text class="s" x="617" y="86" text-anchor="middle">de démonstration</text>
+      <text class="m" x="617" y="104" text-anchor="middle">30 s par app</text>
+      <rect class="ok" x="778" y="20" width="194" height="96" rx="6"/>
+      <text class="t" x="875" y="48" text-anchor="middle">Les ateliers</text>
+      <text class="s" x="875" y="68" text-anchor="middle">des tirages du moule</text>
+      <text class="s" x="875" y="86" text-anchor="middle">jetés après usage</text>
+      <text class="m" x="875" y="104" text-anchor="middle">prêts en 1 s</text>
+      <line class="fl" x1="200" y1="68" x2="258" y2="68" marker-end="url(#p5)"/>
+      <text class="lab" x="229" y="52" text-anchor="middle">Docker</text><text class="lab" x="229" y="88" text-anchor="middle">construit</text>
+      <line class="fl" x1="458" y1="68" x2="516" y2="68" marker-end="url(#p5)"/>
+      <text class="lab" x="487" y="52" text-anchor="middle">+ une</text><text class="lab" x="487" y="88" text-anchor="middle">app</text>
+      <line class="fl" x1="716" y1="68" x2="774" y2="68" marker-end="url(#p5)"/>
+      <text class="lab" x="745" y="52" text-anchor="middle">Docker</text><text class="lab" x="745" y="88" text-anchor="middle">tire</text>
+      <text class="lab" x="490" y="142" text-anchor="middle">tout ce qui demande internet se fait ici, à la construction du moule ; jamais dans l'atelier</text>
+    </svg>
+    </div>
+    <figcaption>D'où vient un atelier. On écrit la recette une fois ; Docker en tire un moule, puis un étage par app
+    avec ses données déjà chargées. C'est pour cela qu'un atelier est prêt, base comprise, en une seconde.</figcaption>
+  </figure>
+
+  <div class="chiffres" aria-label="Résultats de l'essai de la boîte">
+    <div class="chiffre"><b>20 / 20</b><span>ateliers montés, utilisés, jetés, sans erreur</span></div>
+    <div class="chiffre"><b>0,9 s</b><span>pour monter et jeter un atelier, base prête</span></div>
+    <div class="chiffre"><b>35 s</b><span>pour construire l'app dedans (31 s sous Windows)</span></div>
+    <div class="chiffre"><b>11 / 11</b><span>tentatives d'évasion refusées</span></div>
+  </div>
+</section>
+
+<!-- 5. LES DEUX ESSAIS EN COURS ──────────────────────────────────────────────── -->
+<section>
+  <h2>Essai réussi : l'inspecteur d'écrans</h2>
+  <p>Un juge qui vérifie les écrans faits par un agent, sans connaître leur code. Il reçoit des missions écrites
+  comme des données, et les joue comme un humain, en cherchant les boutons par ce qui est écrit dessus.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 310" role="img" aria-label="L'inspecteur lit un parcours, clique dans l'app comme un humain et vérifie la base, le tout dans un atelier neuf, puis rend un verdict avec sa preuve.">
+      <defs>
+        <marker id="p6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="n" x="10" y="40" width="250" height="200" rx="6"/>
+      <text class="t" x="26" y="66">Un parcours (une donnée)</text>
+      <text class="m" x="26" y="92">qui    : gerant_1</text>
+      <text class="m" x="26" y="112">où     : le menu « Devis »</text>
+      <text class="m" x="26" y="132">objet  : le devis ESSAI-7Q2</text>
+      <text class="m" x="26" y="152">geste  : bouton « Confirmer »</text>
+      <text class="m" x="26" y="172">écran  : « Confirmé » s'affiche</text>
+      <text class="m" x="26" y="192">base   : l'état devient confirmé</text>
+      <text class="m" x="26" y="212">interdit : membre_equipe_1</text>
+
+      <rect class="zone-ok" x="320" y="30" width="650" height="200" rx="8"/>
+      <text class="t" x="336" y="54">Un atelier neuf</text>
+      <rect class="es" x="346" y="100" width="210" height="80" rx="6"/>
+      <text class="t" x="451" y="126" text-anchor="middle">L'inspecteur</text>
+      <text class="s" x="451" y="146" text-anchor="middle">Playwright, sans IA</text>
+      <text class="s" x="451" y="164" text-anchor="middle">trouve par les noms visibles</text>
+      <rect class="n" x="780" y="54" width="170" height="64" rx="6"/>
+      <text class="t" x="865" y="80" text-anchor="middle">L'app</text>
+      <text class="s" x="865" y="100" text-anchor="middle">faite par l'agent</text>
+      <rect class="n" x="780" y="146" width="170" height="64" rx="6"/>
+      <text class="t" x="865" y="172" text-anchor="middle">Sa base</text>
+      <text class="s" x="865" y="192" text-anchor="middle">remise à zéro à chaque fois</text>
+
+      <line class="fl" x1="262" y1="140" x2="342" y2="140" marker-end="url(#p6)"/>
+      <text class="lab" x="302" y="132" text-anchor="middle">lit</text>
+      <line class="fl" x1="558" y1="124" x2="776" y2="88" marker-end="url(#p6)"/>
+      <text class="lab" x="672" y="96" text-anchor="middle">clique, comme un humain</text>
+      <line class="fl" x1="558" y1="156" x2="776" y2="178" marker-end="url(#p6)"/>
+      <text class="lab" x="672" y="186" text-anchor="middle">vérifie ce qui est enregistré</text>
+
+      <line class="fl" x1="451" y1="182" x2="451" y2="250" marker-end="url(#p6)"/>
+      <rect class="n" x="346" y="254" width="210" height="48" rx="6"/>
+      <text class="t" x="451" y="274" text-anchor="middle">Verdict + preuve</text>
+      <text class="s" x="451" y="292" text-anchor="middle">capture d'écran, film du parcours</text>
+    </svg>
+    </div>
+    <figcaption>Pour une interdiction, il fait deux choses : vérifier que le bouton est absent pour la personne
+    interdite, puis rejouer la requête de la personne autorisée avec la session de l'interdite. La base ne doit pas
+    bouger. Ce rejeu est lui-même prouvé : rejoué par la personne autorisée, il doit réussir.</figcaption>
+  </figure>
+  <div class="chiffres" aria-label="Résultats de l'essai de l'inspecteur d'écrans">
+    <div class="chiffre"><b>51 / 51</b><span>parcours justes sur nos écrans (app mixte), aux 3 passes, avec deux replis déclarés</span></div>
+    <div class="chiffre"><b>6 / 6</b><span>sabotages attrapés, chacun dans la bonne catégorie</span></div>
+    <div class="chiffre"><b>15 / 15</b><span>rejeux prouvés avant d'être crus (9 + 6)</span></div>
+    <div class="chiffre"><b>0</b><span>hésitation sur 3 passes, pour les trois apps</span></div>
+  </div>
+  <div class="classes" aria-label="Comment l'inspecteur classe un échec">
+    <span><b>introuvable</b> : le nom attendu n'est pas à l'écran</span>
+    <span><b>ambigu</b> : deux éléments portent le même nom</span>
+    <span><b>inutilisable</b> : présent, mais grisé ou caché</span>
+    <span><b>comportement faux</b> : l'écran ou la base ne suit pas</span>
+    <span><b>interdiction violée</b> : un geste interdit réussit</span>
+    <span><b>environnement</b> : la page ne charge pas</span>
+  </div>
+</section>
+
+<section>
+  <h2>Ce que l'essai a appris : le contrat d'accessibilité</h2>
+  <p>L'inspecteur tient, mais il ne reconnaît un écran que si cet écran nomme ses éléments d'une façon prévue. Même
+  nos propres écrans ne le font pas encore. Voici ce que chaque écran devra nommer, et pourquoi.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 360" role="img" aria-label="Un écran et les six noms que le contrat d'accessibilité impose : connexion, menu, titre de fiche, bouton de création, champs, et règles ajoutées passées par le miroir.">
+      <defs>
+        <marker id="p9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <!-- l'écran -->
+      <rect class="n" x="20" y="20" width="440" height="320" rx="8"/>
+      <rect class="zone" x="20" y="20" width="440" height="40" rx="8"/>
+      <text class="m" x="36" y="45">Clients · Événements · Devis · Contrats</text>
+      <rect class="es" x="344" y="28" width="104" height="24" rx="4"/>
+      <text class="s" x="396" y="45" text-anchor="middle">gerant_1</text>
+      <text class="t" x="36" y="88">Devis</text>
+      <rect class="es" x="300" y="72" width="148" height="26" rx="4"/>
+      <text class="s" x="374" y="90" text-anchor="middle">Établir un devis</text>
+      <rect class="zone" x="36" y="108" width="412" height="30" rx="4"/>
+      <text class="s" x="48" y="128">ESSAI-Devis</text><text class="s" x="300" y="128">en attente</text>
+      <rect class="zone" x="36" y="142" width="412" height="30" rx="4"/>
+      <text class="s" x="48" y="162">DV-2026-014</text><text class="s" x="300" y="162">confirmé</text>
+      <rect class="zone" x="36" y="190" width="412" height="130" rx="4"/>
+      <text class="t" x="48" y="212">Nouveau devis</text>
+      <text class="s" x="48" y="238">Référence</text><rect class="n" x="150" y="224" width="280" height="22" rx="3"/>
+      <text class="s" x="48" y="268">Client</text><rect class="n" x="150" y="254" width="280" height="22" rx="3"/>
+      <text class="s" x="48" y="298">Remise</text><rect class="n" x="150" y="284" width="280" height="22" rx="3"/>
+
+      <!-- les règles -->
+      <text class="t" x="540" y="40">1. La connexion contient l'identifiant</text>
+      <text class="s" x="540" y="57">sinon, impossible de jouer « gerant_1 » (nos boutons : « personne 1 »)</text>
+      <text class="t" x="540" y="92">2. Le menu porte le nom de la fiche</text>
+      <text class="s" x="540" y="109">« Devis », comme dans la description validée</text>
+      <text class="t" x="540" y="144">3. Chaque fiche a un champ titre</text>
+      <text class="s" x="540" y="161">déclaré, affiché dans la liste, qui ouvre la fiche</text>
+      <text class="t" x="540" y="196">4. La création porte le verbe validé</text>
+      <text class="s" x="540" y="213">« Établir un devis » (l'usine affiche « Nouveau devis »)</text>
+      <text class="t" x="540" y="248">5. Chaque champ est nommé par son libellé</text>
+      <text class="s" x="540" y="265">« Client », « Remise » : ce que le client a validé</text>
+      <text class="t" x="540" y="300">6. Une règle ajoutée passe par le miroir</text>
+      <text class="s" x="540" y="317">« seulement les devis confirmés » : à faire valider</text>
+
+      <line class="fl" x1="532" y1="44" x2="452" y2="40" marker-end="url(#p9)"/>
+      <line class="fl" x1="532" y1="96" x2="220" y2="56" marker-end="url(#p9)"/>
+      <line class="fl" x1="532" y1="148" x2="132" y2="124" marker-end="url(#p9)"/>
+      <line class="fl" x1="532" y1="200" x2="452" y2="88" marker-end="url(#p9)"/>
+      <line class="fl" x1="532" y1="252" x2="96" y2="264" marker-end="url(#p9)"/>
+    </svg>
+    </div>
+    <figcaption>En orange : ce que l'usine affiche aujourd'hui autrement que prévu. La connexion et le bouton de création
+    sont deux défauts de l'usine, trouvés par l'inspecteur et inscrits au registre. Ce contrat passe maintenant avant la
+    chaîne complète.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Essai prêt : l'artisan enfermé</h2>
+  <p>L'artisan IA est Claude Code lui-même, dans une session que tu ouvres. Il travaille sur ton PC, mais ses mains
+  sont liées : il ne modifie que les écrans, et tout ce qu'il lance passe par l'atelier.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 330" role="img" aria-label="L'artisan : il lit l'app, modifie seulement les écrans, ne peut ni toucher le cœur ni aller sur internet, et ne lance que quatre commandes exactes, qui passent par l'atelier.">
+      <defs>
+        <marker id="p7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="q7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe-non" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="n" x="10" y="124" width="150" height="74" rx="6"/>
+      <text class="t" x="85" y="152" text-anchor="middle">Toi</text>
+      <text class="s" x="85" y="171" text-anchor="middle">ouvres la session,</text>
+      <text class="s" x="85" y="187" text-anchor="middle">tapes une phrase</text>
+      <line class="fl" x1="162" y1="161" x2="226" y2="161" marker-end="url(#p7)"/>
+      <text class="lab" x="194" y="153" text-anchor="middle">« Lis TACHE.md »</text>
+
+      <rect class="es" x="230" y="116" width="200" height="90" rx="6"/>
+      <text class="t" x="330" y="146" text-anchor="middle">L'artisan</text>
+      <text class="s" x="330" y="166" text-anchor="middle">Claude Code,</text>
+      <text class="s" x="330" y="184" text-anchor="middle">sur ton PC</text>
+
+      <rect class="ok" x="560" y="16" width="220" height="50" rx="6"/>
+      <text class="t" x="670" y="37" text-anchor="middle">Lire l'app</text><text class="s" x="670" y="55" text-anchor="middle">toute la copie</text>
+      <rect class="ok" x="560" y="82" width="220" height="50" rx="6"/>
+      <text class="t" x="670" y="103" text-anchor="middle">Modifier les écrans</text><text class="m" x="670" y="121" text-anchor="middle">app/ · components/</text>
+      <rect class="n" x="560" y="148" width="220" height="62" rx="6"/>
+      <text class="t" x="670" y="169" text-anchor="middle">Le cœur</text><text class="s" x="670" y="186" text-anchor="middle">schéma, droits, accès</text>
+      <text class="s" x="670" y="202" text-anchor="middle">gardé par les empreintes</text>
+      <rect class="n" x="560" y="226" width="220" height="44" rx="6"/>
+      <text class="t" x="670" y="253" text-anchor="middle">Internet, autres commandes</text>
+
+      <line class="fl" x1="432" y1="146" x2="556" y2="42" marker-end="url(#p7)"/>
+      <text class="lab" x="478" y="86" text-anchor="middle">lit</text>
+      <line class="fl" x1="432" y1="156" x2="556" y2="107" marker-end="url(#p7)"/>
+      <text class="lab" x="498" y="113" text-anchor="middle">modifie</text>
+      <line class="no" x1="432" y1="170" x2="556" y2="179" marker-end="url(#q7)"/>
+      <text class="x" x="494" y="180" text-anchor="middle">✕</text>
+      <line class="no" x1="432" y1="186" x2="556" y2="248" marker-end="url(#q7)"/>
+      <text class="x" x="494" y="222" text-anchor="middle">✕</text>
+
+      <rect class="ok" x="820" y="96" width="150" height="110" rx="8"/>
+      <text class="t" x="895" y="128" text-anchor="middle">L'atelier</text>
+      <text class="s" x="895" y="148" text-anchor="middle">construit, teste,</text>
+      <text class="s" x="895" y="164" text-anchor="middle">lance l'app,</text>
+      <text class="s" x="895" y="180" text-anchor="middle">sans réseau</text>
+      <path class="fl" d="M330 208 V296 H895 V210" marker-end="url(#p7)"/>
+      <text class="lab-acc" x="612" y="318" text-anchor="middle">4 commandes exactes : vérifier · construire · démarrer · journal</text>
+    </svg>
+    </div>
+    <figcaption>Tout ce qui n'est pas permis est refusé sans même te demander. La garde finale : l'empreinte de chaque
+    fichier du cœur est relevée avant et après la tâche ; une seule différence, et l'essai s'arrête. Avant que tu
+    ouvres la session, ces réglages seront relus par Claude en ligne.</figcaption>
+  </figure>
+</section>
+
+<!-- 6. LA MÉTHODE ─────────────────────────────────────────────────────────────── -->
+<section>
+  <h2>Comment on construit chaque pièce</h2>
+  <p>La même boucle pour chaque pièce. Elle sert à ce que tu gardes la main sans lire le code, et à ce que rien ne
+  soit cru sans preuve.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 180" role="img" aria-label="La méthode : dossier en mots simples, relecture extérieure, ton accord, preuve écrite d'abord, code, compte rendu, puis révision de la suite.">
+      <defs>
+        <marker id="p8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="n" x="6"   y="24" width="138" height="72" rx="6"/><text class="t" x="75"  y="54" text-anchor="middle">Le dossier</text><text class="s" x="75"  y="74" text-anchor="middle">en mots simples</text>
+      <rect class="n" x="172" y="24" width="138" height="72" rx="6"/><text class="t" x="241" y="54" text-anchor="middle">La relecture</text><text class="s" x="241" y="74" text-anchor="middle">Claude en ligne</text>
+      <rect class="n" x="338" y="24" width="138" height="72" rx="6"/><text class="t" x="407" y="54" text-anchor="middle">Ton « go »</text><text class="s" x="407" y="74" text-anchor="middle">tu décides</text>
+      <rect class="n" x="504" y="24" width="138" height="72" rx="6"/><text class="t" x="573" y="54" text-anchor="middle">La preuve d'abord</text><text class="s" x="573" y="74" text-anchor="middle">sabotages, témoins</text>
+      <rect class="n" x="670" y="24" width="138" height="72" rx="6"/><text class="t" x="739" y="54" text-anchor="middle">Le code</text><text class="s" x="739" y="74" text-anchor="middle">dans la taille dite</text>
+      <rect class="n" x="836" y="24" width="138" height="72" rx="6"/><text class="t" x="905" y="54" text-anchor="middle">Le compte rendu</text><text class="s" x="905" y="74" text-anchor="middle">comment ça marche</text>
+      <line class="fl" x1="146" y1="60" x2="168" y2="60" marker-end="url(#p8)"/>
+      <line class="fl" x1="312" y1="60" x2="334" y2="60" marker-end="url(#p8)"/>
+      <line class="fl" x1="478" y1="60" x2="500" y2="60" marker-end="url(#p8)"/>
+      <line class="fl" x1="644" y1="60" x2="666" y2="60" marker-end="url(#p8)"/>
+      <line class="fl" x1="810" y1="60" x2="832" y2="60" marker-end="url(#p8)"/>
+      <path class="fl" d="M905 98 V136 H75 V102" marker-end="url(#p8)"/>
+      <text class="lab" x="490" y="156" text-anchor="middle">révision de la suite, puis le dossier de la pièce suivante</text>
+    </svg>
+    </div>
+    <figcaption>Une petite pièce n'a pas de relecteur ; une pièce critique (juges, atelier, droits) est relue avant et
+    après. Un seul tour de relecture, et seuls les points bloquants arrêtent le travail.</figcaption>
+  </figure>
+</section>
+
+<!-- 7. OÙ ON EN EST ───────────────────────────────────────────────────────────── -->
+<section>
+  <h2>Où on en est dans le plan</h2>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 170" role="img" aria-label="Le plan en sept étapes : le poste est fait, les trois essais sont en cours, les cinq étapes suivantes sont à venir.">
+      <line class="rail" x1="80" y1="56" x2="900" y2="56"/>
+      <text class="lab-acc" x="217" y="24" text-anchor="middle">tu es ici</text>
+      <path class="pointe-acc" d="M211 30 L223 30 L217 39 z"/>
+      <circle class="j-ok" cx="80"  cy="56" r="11"/>
+      <circle class="j-es" cx="217" cy="56" r="11"/>
+      <circle class="j-af" cx="353" cy="56" r="11"/>
+      <circle class="j-af" cx="490" cy="56" r="11"/>
+      <circle class="j-af" cx="627" cy="56" r="11"/>
+      <circle class="j-af" cx="763" cy="56" r="11"/>
+      <circle class="j-af" cx="900" cy="56" r="11"/>
+      <text class="t" x="80"  y="94" text-anchor="middle">Le poste</text>
+      <text class="s" x="80"  y="112" text-anchor="middle">ménage, Next.js,</text><text class="s" x="80" y="128" text-anchor="middle">Docker automatique</text>
+      <text class="t" x="217" y="94" text-anchor="middle">Trois essais</text>
+      <text class="s" x="217" y="112" text-anchor="middle">atelier, inspecteur : réussis</text><text class="s" x="217" y="128" text-anchor="middle">artisan : prêt</text>
+      <text class="t" x="353" y="94" text-anchor="middle">Chaîne complète</text>
+      <text class="s" x="353" y="112" text-anchor="middle">une seule commande</text><text class="s" x="353" y="128" text-anchor="middle">va au bout</text>
+      <text class="t" x="490" y="94" text-anchor="middle">Qualifier les juges</text>
+      <text class="s" x="490" y="112" text-anchor="middle">sabotages, témoins,</text><text class="s" x="490" y="128" text-anchor="middle">seuils écrits d'avance</text>
+      <text class="t" x="627" y="94" text-anchor="middle">Tableaux de bord</text>
+      <text class="s" x="627" y="112" text-anchor="middle">la première</text><text class="s" x="627" y="128" text-anchor="middle">capacité</text>
+      <text class="t" x="763" y="94" text-anchor="middle">L'évolution</text>
+      <text class="s" x="763" y="112" text-anchor="middle">changer une app</text><text class="s" x="763" y="128" text-anchor="middle">sans rien perdre</text>
+      <text class="t" x="900" y="94" text-anchor="middle">Premier client</text>
+      <text class="s" x="900" y="112" text-anchor="middle">en vrai, accueilli</text><text class="s" x="900" y="128" text-anchor="middle">en personne</text>
+    </svg>
+    </div>
+    <figcaption>Le plan complet, avec la question, la démonstration et le critère d'arrêt de chaque étape, est dans
+    <code>USINE.md</code>.</figcaption>
+  </figure>
+</section>
+
+<!-- 8. OÙ VIVENT LES CHOSES ───────────────────────────────────────────────────── -->
+<section>
+  <h2>Où vivent les choses</h2>
+  <div class="lieux">
+    <div class="lieu">
+      <h3>Dans le dépôt <span class="m">StartupNexus</span></h3>
+      <ul>
+        <li><code>USINE.md</code><span>le plan : règles, étapes, inconnues, registre des corrections</span></li>
+        <li><code>usine/</code><span>le code de l'usine : lecteurs, miroir, calculateur, assembleur, juges</span></li>
+        <li><code>usine/modele-app/</code><span>le squelette fixe des apps, et les juges livrés avec</span></li>
+        <li><code>conception/</code><span>un dossier par pièce, et cette carte</span></li>
+        <li><code>conception-technique.md</code><span>comment chaque mécanisme se construit</span></li>
+        <li><code>runs/</code><span>les lectures de briefs gardées ; les apps fabriquées y passent</span></li>
+        <li><code>archives/</code><span>l'ancien plan, les échanges de novembre</span></li>
+      </ul>
+    </div>
+    <div class="lieu">
+      <h3>Hors du dépôt</h3>
+      <ul>
+        <li><code>essais/boite/</code><span>l'essai de l'atelier : la recette, les mesures, les résultats</span></li>
+        <li><code>essais/juge-ecrans/</code><span>l'essai de l'inspecteur : les trois apps copiées, leurs moules</span></li>
+        <li><code>lecteur-isole/</code><span>la boîte aux lettres des lecteurs (une session Claude isolée)</span></li>
+        <li><code>poc-agents/</code>, <code>poc-a0/</code><span>les apps d'octobre : l'app mixte, l'app de l'agent, l'app du brief seul</span></li>
+        <li>Docker Desktop<span>la base de l'usine, et les moules des ateliers</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>Carte tenue par Claude Code, mise à jour à chaque fin de travail. Dernière mise à jour : 16 novembre 2026,
+après l'essai réussi de l'inspecteur d'écrans.</footer>
+
+</div>

@@ -1,7 +1,7 @@
 # L'essai de la boîte : un atelier fermé pour l'agent tient-il sur ce PC ?
 
-> **Taille** : moyen (essai jetable) · **Statut** : **fini le 14 nov : l'atelier tient** (un seul point reste à voir :
-> le redémarrage du PC)
+> **Taille** : moyen (essai jetable) · **Statut** : **fini : l'atelier tient** (14 nov ; redémarrage du PC vérifié le
+> 16 nov)
 > **Dates** : écrit le 14 nov 2026 · relu le 14 nov · révisé le 14 nov · seconde lecture le 14 nov · lancé le 14 nov
 
 ## Avant : la conception
@@ -237,7 +237,7 @@ c'est moins de pannes, et c'est plus facile à comprendre. La distribution dédi
 | Docker Desktop, la base de l'usine et l'atelier ensemble | aucun conflit | ✔ aucun conflit ; machine virtuelle à 3,6 Go de mémoire |
 | Disque virtuel de Docker | noté | 11,1 Go après l'essai, stable entre le début et la fin des mesures (la taille d'avant les images n'a pas été relevée) |
 | **Sabotages** | 11/11 refusés | ✔ **11/11 refusés, chacun pour la bonne raison** (détail ci-dessous) |
-| Après un redémarrage du PC, Docker et la base reviennent seuls | oui | **à voir** au prochain redémarrage (réglages en place et vérifiés) |
+| Après un redémarrage du PC, Docker et la base reviennent seuls | oui | ✔ **vérifié le 16 nov** : session ouverte à 10 h 25, Docker Desktop démarré seul à 10 h 26, base de l'usine en marche sans rien faire |
 
 Les sabotages, un par un :
 1. Écrire dans l'app : « système de fichiers en lecture seule ».
@@ -256,12 +256,38 @@ Les sabotages, un par un :
 Pour rejouer : dans `C:\Users\BAMBARA Arthur\essais\boite\`, lancer
 `python essai.py temoins`, puis `cycles`, `sabotages` et `sabotages-revus`.
 
-### 12. Ce qu'Arthur peut voir lui-même
+### 12. Comment ça marche, et comment c'est fait (en mots simples)
+- **Le moule et l'atelier.** Docker fabrique des mini-ordinateurs Linux jetables. On écrit d'abord une **recette**
+  (`Dockerfile`) : partir d'un Linux avec Node, y installer PostgreSQL, les bibliothèques exactes du squelette et
+  Chromium. Docker en tire un **moule** (l'image), construit une fois. Chaque atelier est un **tirage** du moule : il
+  sort en une seconde, et on le jette après usage.
+- **Deux étages de moule** : un moule commun à toutes les apps, et un petit étage par app, avec ses tables et ses
+  données de démonstration déjà chargées. C'est pour cela que l'atelier démarre en une seconde, base prête.
+- **Les verrous** : ce sont des options de Docker au moment de sortir l'atelier :
+  - pas de carte réseau ;
+  - l'app vue en lecture seule ;
+  - un utilisateur ordinaire, sans privilège ;
+  - des plafonds de mémoire et de processus ;
+  - des disques en mémoire, petits et effacés à la fin.
+- **La mesure** : un petit programme Python (`essai.py`) joue le rôle du testeur. Il sort des ateliers, y envoie des
+  commandes de l'extérieur (`docker exec`), chronomètre, puis tente les 11 évasions et note pour chacune la raison du
+  refus. Tout est écrit dans `resultats.json`.
+
+### 13. Ce qu'Arthur peut voir lui-même
 - **Au prochain redémarrage du PC** : sans rien faire, Docker Desktop démarre, et la commande `docker ps` montre
   `temporal-postgresql` en marche. C'est le dernier point de l'essai.
 - `resultats.json`, dans le dossier d'essai : chaque mesure, chaque sabotage et sa raison.
 
-### 13. Ce qui reste
+### 14. Ce que ça change pour la suite
+- **L'essai du juge d'écrans, révisé** : il tournera **dans un atelier**, et non sur le PC. L'atelier sait déjà faire
+  tout ce qu'il faut : l'app, sa base et Chromium y sont, sans réseau. C'est la règle « les juges tournent dans un
+  atelier neuf » appliquée dès l'essai, et la base de l'usine n'est plus touchée. Il faudra un étage de moule par app
+  essayée (l'app mixte, l'app de l'agent, l'app du brief seul).
+- **L'essai de l'agent constructeur** : il lui faut l'étage de moule de l'app de l'agent (ses tables et ses données) et
+  les quatre commandes `atelier …`, dont le typage avec la bonne option.
+- **Relecture extérieure** : pas nécessaire pour ce compte rendu. Les mesures sont nettes, et les deux tests que j'ai
+  corrigés sont décrits. La relecture utile sera celle des **réglages de la session de l'artisan**, avant qu'Arthur
+  ne l'ouvre : c'est là que se joue la sécurité de l'essai suivant.
 - **Inconnue n° 1 fermée** : l'atelier fermé tient sur ce PC, sans réseau, rapide, sans conflit. La distribution Linux
   dédiée n'est pas nécessaire.
 - Non vérifié : que les disques en mémoire comptent bien dans le plafond de mémoire. Ce n'est pas bloquant : le
