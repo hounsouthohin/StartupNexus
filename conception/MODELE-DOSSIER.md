@@ -57,7 +57,17 @@ Les fichiers créés ou modifiés (chemins).
 Ce qui a changé en route, et pourquoi.
 
 ### 11. Les résultats des preuves
-Les chiffres, contre les seuils écrits d'avance ; les commandes pour les rejouer.
+Les chiffres, contre les seuils écrits d'avance ; les commandes pour les rejouer. Quatre règles (17 nov, après
+l'essai du juge d'écrans, où j'avais annoncé « 51/51 » alors qu'aucun parcours autorisé ne réussissait sans
+contournement) :
+- **le chiffre en tête est toujours la mesure stricte**, sans aucun contournement ;
+- **✔ seulement si le seuil est atteint sans contournement** ; sinon ✗, même si « ça marche avec » ;
+- **chaque contournement est compté par la machine**, élément par élément, pas estimé par moi ;
+- **tous les résultats viennent d'une même version**, prouvée par leurs empreintes ; après une correction, on rejoue
+  tout.
+
+### 11 bis. Ce qui n'est pas prouvé
+La liste franche de ce que l'essai ne montre pas, et de ce que je ne sais pas. Une section vide doit être justifiée.
 
 ### 12. Comment ça marche, et comment c'est fait (en mots simples)
 Quelques phrases : le fonctionnement, puis la façon dont c'est construit. Les outils sont nommés (Docker, npm,

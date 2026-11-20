@@ -1,0 +1,46 @@
+{
+  "format": 2,
+  "app": {
+    "nom": "essai-textes-obligatoires",
+    "titre": "Essai des textes obligatoires"
+  },
+  "acces": {
+    "actors": [
+      {
+        "id": "gerant",
+        "label": "gérant",
+        "becomes": "bootstrap"
+      }
+    ],
+    "entities": [
+      {
+        "name": "Contact",
+        "label": "contact",
+        "label_plural": "contacts",
+        "nature": "catalog",
+        "manager": [
+          "gerant"
+        ],
+        "citation": "app d'essai (contrat des noms à l'écran, morceau 12) : les cinq sortes de texte, chacune une fois obligatoire et une fois facultative"
+      }
+    ],
+    "exceptions": []
+  },
+  "champs": {
+    "Contact": [
+      { "nom": "nom", "libelle": "Nom", "type": "texte", "obligatoire": true },
+      { "nom": "surnom", "libelle": "Surnom", "type": "texte", "obligatoire": false },
+      { "nom": "presentation", "libelle": "Présentation", "type": "texte_long", "obligatoire": true },
+      { "nom": "remarque", "libelle": "Remarque", "type": "texte_long", "obligatoire": false },
+      { "nom": "email", "libelle": "E-mail", "type": "email", "obligatoire": true },
+      { "nom": "emailSecours", "libelle": "E-mail de secours", "type": "email", "obligatoire": false },
+      { "nom": "telephone", "libelle": "Téléphone", "type": "telephone", "obligatoire": true },
+      { "nom": "telephoneSecours", "libelle": "Téléphone de secours", "type": "telephone", "obligatoire": false },
+      { "nom": "site", "libelle": "Site", "type": "url", "obligatoire": true },
+      { "nom": "siteSecours", "libelle": "Site de secours", "type": "url", "obligatoire": false }
+    ]
+  },
+  "ecran": {
+    "Contact": { "creation": "Nouveau contact", "titre": "nom" }
+  }
+}

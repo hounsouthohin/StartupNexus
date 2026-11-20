@@ -163,7 +163,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <rect class="es" x="415" y="206" width="150" height="78" rx="6"/>
       <text class="t" x="490" y="234" text-anchor="middle">Juges</text>
       <text class="s" x="490" y="254" text-anchor="middle">droits : faits</text>
-      <text class="s" x="490" y="270" text-anchor="middle">inspecteur : essai réussi</text>
+      <text class="s" x="490" y="270" text-anchor="middle">inspecteur : faisable, pas admis</text>
 
       <rect class="af" x="617" y="206" width="150" height="78" rx="6"/>
       <text class="t" x="692" y="234" text-anchor="middle">Livraison</text>
@@ -390,8 +390,10 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     </svg>
     </div>
     <figcaption>Ce qui passe (traits pleins) : l'app, vue en lecture seule, et les commandes envoyées de l'extérieur.
-    Ce qui ne passe pas (rouge) : internet, la base de l'usine, le reste du PC. Chaque « ✕ » a été vérifié par une
-    tentative d'évasion le 14 novembre.</figcaption>
+    Ce qui ne passe pas (rouge) : internet, la base de l'usine, le reste du PC. Chaque « ✕ » a été essayé par une
+    tentative d'évasion le 14 novembre. Mais Codex a relevé le 19 novembre que le script comptait toute erreur comme un
+    refus : <b>onze indicateurs d'échec sont enregistrés, qui ne démontrent pas tous un refus effectif ni sa
+    raison</b>. L'atelier sera qualifié dans la chaîne complète.</figcaption>
   </figure>
 
   <figure>
@@ -436,13 +438,13 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     <div class="chiffre"><b>20 / 20</b><span>ateliers montés, utilisés, jetés, sans erreur</span></div>
     <div class="chiffre"><b>0,9 s</b><span>pour monter et jeter un atelier, base prête</span></div>
     <div class="chiffre"><b>35 s</b><span>pour construire l'app dedans (31 s sous Windows)</span></div>
-    <div class="chiffre"><b>11 / 11</b><span>tentatives d'évasion refusées</span></div>
+    <div class="chiffre"><b>11</b><span>indicateurs d'échec aux tentatives d'évasion ; pas tous des refus prouvés (vérification de Codex, 19 nov)</span></div>
   </div>
 </section>
 
 <!-- 5. LES DEUX ESSAIS EN COURS ──────────────────────────────────────────────── -->
 <section>
-  <h2>Essai réussi : l'inspecteur d'écrans</h2>
+  <h2>L'inspecteur d'écrans : faisable, pas encore admis</h2>
   <p>Un juge qui vérifie les écrans faits par un agent, sans connaître leur code. Il reçoit des missions écrites
   comme des données, et les joue comme un humain, en cherchant les boutons par ce qui est écrit dessus.</p>
   <figure>
@@ -492,11 +494,14 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     bouger. Ce rejeu est lui-même prouvé : rejoué par la personne autorisée, il doit réussir.</figcaption>
   </figure>
   <div class="chiffres" aria-label="Résultats de l'essai de l'inspecteur d'écrans">
-    <div class="chiffre"><b>51 / 51</b><span>parcours justes sur nos écrans (app mixte), aux 3 passes, avec deux replis déclarés</span></div>
-    <div class="chiffre"><b>6 / 6</b><span>sabotages attrapés, chacun dans la bonne catégorie</span></div>
-    <div class="chiffre"><b>15 / 15</b><span>rejeux prouvés avant d'être crus (9 + 6)</span></div>
-    <div class="chiffre"><b>0</b><span>hésitation sur 3 passes, pour les trois apps</span></div>
+    <div class="chiffre"><b>0 / 51</b><span>parcours réussis sur nos écrans <b>sans aucun contournement</b> (avec six replis : 51 / 51)</span></div>
+    <div class="chiffre"><b>6 / 6</b><span>sabotages attrapés à chaque passe, aussi au ralenti (5 prévus, 1 de remplacement)</span></div>
+    <div class="chiffre"><b>3</b><span>défauts de délai trouvés par le rejeu et corrigés ; deux pouvaient faire croire une interdiction respectée</span></div>
+    <div class="chiffre"><b>0</b><span>hésitation sur 3 passes ; mêmes verdicts avec un navigateur ralenti trois fois</span></div>
   </div>
+  <p><b>Ce que ça veut dire.</b> L'inspecteur sait jouer des parcours et distinguer les classes de défauts, une fois les
+  éléments trouvés. Mais sans noms imposés, il ne trouve rien, même sur nos propres écrans. Le 16 novembre, j'avais
+  annoncé « 51 / 51 » : c'était trop beau. La relecture et le rejeu sur une seule version l'ont corrigé.</p>
   <div class="classes" aria-label="Comment l'inspecteur classe un échec">
     <span><b>introuvable</b> : le nom attendu n'est pas à l'écran</span>
     <span><b>ambigu</b> : deux éléments portent le même nom</span>
@@ -508,12 +513,12 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 </section>
 
 <section>
-  <h2>Ce que l'essai a appris : le contrat d'accessibilité</h2>
+  <h2>Ce que l'essai a appris : le contrat des noms à l'écran</h2>
   <p>L'inspecteur tient, mais il ne reconnaît un écran que si cet écran nomme ses éléments d'une façon prévue. Même
   nos propres écrans ne le font pas encore. Voici ce que chaque écran devra nommer, et pourquoi.</p>
   <figure>
     <div class="planche">
-    <svg viewBox="0 0 980 360" role="img" aria-label="Un écran et les six noms que le contrat d'accessibilité impose : connexion, menu, titre de fiche, bouton de création, champs, et règles ajoutées passées par le miroir.">
+    <svg viewBox="0 0 980 360" role="img" aria-label="Un écran et les six noms que le contrat des noms à l'écran impose : connexion, menu, titre de fiche, bouton de création, champs, et règles ajoutées passées par le miroir.">
       <defs>
         <marker id="p9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
       </defs>
@@ -559,7 +564,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     </div>
     <figcaption>En orange : ce que l'usine affiche aujourd'hui autrement que prévu. La connexion et le bouton de création
     sont deux défauts de l'usine, trouvés par l'inspecteur et inscrits au registre. Ce contrat passe maintenant avant la
-    chaîne complète.</figcaption>
+    chaîne complète. Après la relecture et le rejeu, il compte onze règles (dont « la page dit quand elle a fini de
+    charger ») et seize sabotages.</figcaption>
   </figure>
 </section>
 
@@ -632,7 +638,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <marker id="p8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
       </defs>
       <rect class="n" x="6"   y="24" width="138" height="72" rx="6"/><text class="t" x="75"  y="54" text-anchor="middle">Le dossier</text><text class="s" x="75"  y="74" text-anchor="middle">en mots simples</text>
-      <rect class="n" x="172" y="24" width="138" height="72" rx="6"/><text class="t" x="241" y="54" text-anchor="middle">La relecture</text><text class="s" x="241" y="74" text-anchor="middle">Claude en ligne</text>
+      <rect class="n" x="172" y="24" width="138" height="72" rx="6"/><text class="t" x="241" y="54" text-anchor="middle">La vérification</text><text class="s" x="241" y="74" text-anchor="middle">par l'autre agent</text>
       <rect class="n" x="338" y="24" width="138" height="72" rx="6"/><text class="t" x="407" y="54" text-anchor="middle">Ton « go »</text><text class="s" x="407" y="74" text-anchor="middle">tu décides</text>
       <rect class="n" x="504" y="24" width="138" height="72" rx="6"/><text class="t" x="573" y="54" text-anchor="middle">La preuve d'abord</text><text class="s" x="573" y="74" text-anchor="middle">sabotages, témoins</text>
       <rect class="n" x="670" y="24" width="138" height="72" rx="6"/><text class="t" x="739" y="54" text-anchor="middle">Le code</text><text class="s" x="739" y="74" text-anchor="middle">dans la taille dite</text>
@@ -646,8 +652,95 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <text class="lab" x="490" y="156" text-anchor="middle">révision de la suite, puis le dossier de la pièce suivante</text>
     </svg>
     </div>
-    <figcaption>Une petite pièce n'a pas de relecteur ; une pièce critique (juges, atelier, droits) est relue avant et
-    après. Un seul tour de relecture, et seuls les points bloquants arrêtent le travail.</figcaption>
+    <figcaption>Depuis le 19 novembre, celui qui construit une pièce n'est jamais celui qui la vérifie : l'un des deux
+    agents est l'auteur, l'autre le vérificateur, et ils alternent. Une petite pièce n'a pas de vérificateur ; une pièce
+    critique (juges, atelier, droits) est vérifiée avant et après. Claude en ligne devient facultatif.</figcaption>
+  </figure>
+</section>
+
+<!-- 6 bis. DEUX AGENTS ─────────────────────────────────────────────────────────── -->
+<section>
+  <h2>Deux agents, un dialogue écrit</h2>
+  <p>Depuis le 19 novembre, deux agents de deux fournisseurs différents travaillent dans le même dépôt :
+  <b>aucun n'est le chef</b>. Quand une décision compte, ils en discutent par écrit, et te rendent une synthèse :
+  leurs accords, leurs désaccords, et ce que tu dois trancher.</p>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 260" role="img" aria-label="Arthur au-dessus, le dossier dialogue au milieu, Claude Code et Codex en bas : chacun lit et écrit dans le dialogue, Arthur pose les questions et reçoit la synthèse.">
+      <defs>
+        <marker id="p10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="es" x="380" y="8" width="220" height="56" rx="6"/>
+      <text class="t" x="490" y="32" text-anchor="middle">Arthur</text>
+      <text class="s" x="490" y="52" text-anchor="middle">décide ; seul à donner des ordres</text>
+
+      <rect class="zone-ok" x="280" y="106" width="420" height="62" rx="8"/>
+      <text class="t" x="490" y="130" text-anchor="middle">dialogue/ : un fichier par sujet</text>
+      <text class="s" x="490" y="152" text-anchor="middle">positions indépendantes → 3 tours au plus → synthèse</text>
+
+      <line class="fl" x1="455" y1="66" x2="455" y2="102" marker-end="url(#p10)"/>
+      <text class="lab" x="445" y="90" text-anchor="end">« lis le fil »</text>
+      <line class="fl" x1="525" y1="104" x2="525" y2="68" marker-end="url(#p10)"/>
+      <text class="lab" x="535" y="90">synthèse</text>
+
+      <rect class="n" x="60" y="196" width="230" height="56" rx="6"/>
+      <text class="t" x="175" y="220" text-anchor="middle">Claude Code</text>
+      <text class="s" x="175" y="240" text-anchor="middle">Anthropic</text>
+      <rect class="n" x="690" y="196" width="230" height="56" rx="6"/>
+      <text class="t" x="805" y="220" text-anchor="middle">Codex</text>
+      <text class="s" x="805" y="240" text-anchor="middle">OpenAI</text>
+
+      <line class="fl" x1="250" y1="194" x2="330" y2="172" marker-start="url(#p10)" marker-end="url(#p10)"/>
+      <text class="lab" x="270" y="176" text-anchor="end">lit / écrit</text>
+      <line class="fl" x1="730" y1="194" x2="650" y2="172" marker-start="url(#p10)" marker-end="url(#p10)"/>
+      <text class="lab" x="710" y="176">lit / écrit</text>
+      <line class="fl" x1="294" y1="232" x2="686" y2="232" stroke-dasharray="5 5"/>
+      <text class="lab" x="490" y="224" text-anchor="middle">même dépôt, mêmes règles : AGENTS.md</text>
+    </svg>
+    </div>
+    <figcaption>Chaque affirmation dit si elle a été <b>lue</b>, <b>rapportée</b> ou <b>rejouée</b>. Chacun coche
+    lui-même la synthèse : pas de validation silencieuse. Un seul agent à la fois modifie le code (le « stylo »). Dès
+    son arrivée, Codex a relevé cinq constats sur les textes de Claude Code, et ils ont été corrigés.</figcaption>
+  </figure>
+
+  <h3>Le regard neuf de Codex : la même usine, renforcée à ses jointures</h3>
+  <figure>
+    <div class="planche">
+    <svg viewBox="0 0 980 200" role="img" aria-label="La chaîne de l'usine, de la description à l'évolution, avec cinq renforts : les exemples du client à l'aveugle au miroir, les chemins d'accès de l'artisan, les juges qualifiés par famille, le résultat inconnu après une panne, et les écritures vérifiées pendant une évolution.">
+      <defs>
+        <marker id="p11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="pointe" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="n" x="10"  y="74" width="120" height="46" rx="6"/><text class="t" x="70"  y="102" text-anchor="middle">Description</text>
+      <rect class="es" x="148" y="74" width="120" height="46" rx="6"/><text class="t" x="208" y="102" text-anchor="middle">Miroir</text>
+      <rect class="n" x="286" y="74" width="120" height="46" rx="6"/><text class="t" x="346" y="102" text-anchor="middle">Cœur calculé</text>
+      <rect class="es" x="424" y="74" width="120" height="46" rx="6"/><text class="t" x="484" y="102" text-anchor="middle">Artisan</text>
+      <rect class="es" x="562" y="74" width="120" height="46" rx="6"/><text class="t" x="622" y="102" text-anchor="middle">Juges</text>
+      <rect class="n" x="700" y="74" width="120" height="46" rx="6"/><text class="t" x="760" y="102" text-anchor="middle">Livraison</text>
+      <rect class="es" x="838" y="74" width="120" height="46" rx="6"/><text class="t" x="898" y="102" text-anchor="middle">Évolution</text>
+      <line class="fl" x1="132" y1="97" x2="144" y2="97" marker-end="url(#p11)"/>
+      <line class="fl" x1="270" y1="97" x2="282" y2="97" marker-end="url(#p11)"/>
+      <line class="fl" x1="408" y1="97" x2="420" y2="97" marker-end="url(#p11)"/>
+      <line class="fl" x1="546" y1="97" x2="558" y2="97" marker-end="url(#p11)"/>
+      <line class="fl" x1="684" y1="97" x2="696" y2="97" marker-end="url(#p11)"/>
+      <line class="fl" x1="822" y1="97" x2="834" y2="97" marker-end="url(#p11)"/>
+      <text class="lab" x="208" y="30" text-anchor="middle">① le client répond d'abord,</text>
+      <text class="lab" x="208" y="46" text-anchor="middle">sans voir le calcul</text>
+      <line class="fl" x1="208" y1="52" x2="208" y2="70" marker-end="url(#p11)"/>
+      <text class="lab" x="622" y="30" text-anchor="middle">③ chaque juge prouvé</text>
+      <text class="lab" x="622" y="46" text-anchor="middle">famille par famille</text>
+      <line class="fl" x1="622" y1="52" x2="622" y2="70" marker-end="url(#p11)"/>
+      <text class="lab" x="898" y="30" text-anchor="middle">⑤ valeurs et droits vérifiés</text>
+      <text class="lab" x="898" y="46" text-anchor="middle">pendant le changement</text>
+      <line class="fl" x1="898" y1="52" x2="898" y2="70" marker-end="url(#p11)"/>
+      <line class="fl" x1="484" y1="142" x2="484" y2="124" marker-end="url(#p11)"/>
+      <text class="lab" x="484" y="158" text-anchor="middle">② chaque chemin d'accès essayé</text>
+      <text class="lab" x="490" y="188" text-anchor="middle">④ après une panne : « résultat inconnu », jamais de relance silencieuse</text>
+    </svg>
+    </div>
+    <figcaption>En orange : là où un renfort s'accroche. Ce sont cinq <b>hypothèses</b>, inscrites au plan le 19 novembre
+    (inconnues n° 12 à 16) : rien n'est encore essayé. Le renfort ① est le plus important, parce qu'il peut attraper
+    « la bonne app pour le mauvais besoin », ce qu'aucun juge ne voit. La croissance se mesurera sur la première
+    capacité.</figcaption>
   </figure>
 </section>
 
@@ -670,7 +763,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <text class="t" x="80"  y="94" text-anchor="middle">Le poste</text>
       <text class="s" x="80"  y="112" text-anchor="middle">ménage, Next.js,</text><text class="s" x="80" y="128" text-anchor="middle">Docker automatique</text>
       <text class="t" x="217" y="94" text-anchor="middle">Trois essais</text>
-      <text class="s" x="217" y="112" text-anchor="middle">atelier, inspecteur : réussis</text><text class="s" x="217" y="128" text-anchor="middle">artisan : prêt</text>
+      <text class="s" x="217" y="112" text-anchor="middle">atelier, inspecteur : faisables</text><text class="s" x="217" y="128" text-anchor="middle">artisan : à protéger</text>
       <text class="t" x="353" y="94" text-anchor="middle">Chaîne complète</text>
       <text class="s" x="353" y="112" text-anchor="middle">une seule commande</text><text class="s" x="353" y="128" text-anchor="middle">va au bout</text>
       <text class="t" x="490" y="94" text-anchor="middle">Qualifier les juges</text>
@@ -717,7 +810,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
   </div>
 </section>
 
-<footer>Carte tenue par Claude Code, mise à jour à chaque fin de travail. Dernière mise à jour : 16 novembre 2026,
-après l'essai réussi de l'inspecteur d'écrans.</footer>
+<footer>Carte tenue par Claude Code, mise à jour à chaque fin de travail. Dernière mise à jour : 19 novembre 2026,
+après l'arrivée de Codex et le regard neuf sur le concept.</footer>
 
 </div>

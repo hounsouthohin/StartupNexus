@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { QuerySettingsProvider, useClientQueries } from '@zenstackhq/tanstack-query/react';
 import { useRouter } from 'next/navigation';
 import { createContext, useContext, useState } from 'react';
-import { Bouton, Details, Formulaire, Tableau } from '@/components/vues';
+import { Bouton, Details, Formulaire, Tableau, lireChemin, titreDe } from '@/components/vues';
 import type { Role } from '@/lib/droits';
 import type { Lien } from '@/lib/fiche';
 import { NOTICE, type NomFiche } from '@/lib/notice';
@@ -41,20 +41,41 @@ export function SiAutorise(props: { fiche: NomFiche; action: Action; etat?: stri
 function useModele(fiche: NomFiche): any {
     return (useClientQueries(schema) as Record<string, unknown>)[NOTICE[fiche].modele];
 }
-const inclure = (fiche: NomFiche) => Object.fromEntries((NOTICE[fiche].liens ?? []).map((l) => [l.nom, true]));
+// les fiches liées, et (contrat des noms à l'écran) la fiche que la fiche liée désigne quand son titre en vient
+// (« book.title » : un seul niveau)
+const inclureAffiche = (affiche: string) => (affiche.includes('.') ? { include: { [affiche.split('.')[0]]: true } } : true);
+const inclure = (fiche: NomFiche) => Object.fromEntries((NOTICE[fiche].liens ?? []).map((l) => [l.nom, inclureAffiche(l.affiche)]));
+const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// (contrat des noms à l'écran, règle 11) L'ÉTAT D'UNE ZONE DE DONNÉES, pour la machine : chargement, prêt, erreur.
+// Une erreur s'affiche comme une erreur, JAMAIS comme une liste vide ; une liste vide et prête dit « Aucun élément ».
+type EtatZone = 'chargement' | 'pret' | 'erreur';
+const etatZone = (q: { isLoading: boolean; isError: boolean }): EtatZone => (q.isLoading ? 'chargement' : q.isError ? 'erreur' : 'pret');
+function Zone(props: { zone: 'liste' | 'fiche' | 'choix'; fiche: string; etat: EtatZone; erreur?: unknown; className?: string; children?: React.ReactNode }) {
+    return (
+        <section data-zone={props.zone} data-fiche={props.fiche} data-etat={props.etat} aria-busy={props.etat === 'chargement'}
+            className={props.className}>
+            {props.etat === 'chargement' ? <p data-chargement="">Chargement…</p>
+                : props.etat === 'erreur' ? <p className="text-red-700" role="alert">Erreur de chargement : {String((props.erreur as Error)?.message ?? props.erreur ?? '')}</p>
+                : props.children}
+        </section>
+    );
+}
 
 type ActionLigne = { libelle: string; cree: string; lien: string };
 
 export function ListeDeFiches({ fiche, lienDetail }: { fiche: NomFiche; lienDetail?: string }) {
     const n = NOTICE[fiche];
     const m = useModele(fiche);
-    const { data, isLoading } = m.useFindMany({ include: inclure(fiche), orderBy: n.tri ? { [n.tri.champ]: n.tri.sens } : undefined });
+    const q = m.useFindMany({ include: inclure(fiche), orderBy: n.tri ? { [n.tri.champ]: n.tri.sens } : undefined });
+    const { data } = q;
     const [message, setMessage] = useState('');
     const [refus, setRefus] = useState('');
     const [creation, setCreation] = useState(false);
-    if (isLoading) return <p>Chargement…</p>;
+    // (contrat, zone « liste ») elle enveloppe le titre, le bouton de création, le formulaire et les lignes ; elle
+    // existe pendant le chargement
     return (
-        <section>
+        <Zone zone="liste" fiche={fiche} etat={etatZone(q)} erreur={q.error}>
             <div className="mb-4 flex items-center justify-between gap-4">
                 <h1 className="text-2xl font-semibold">{n.titre}</h1>
                 {n.creation && (
@@ -79,7 +100,7 @@ export function ListeDeFiches({ fiche, lienDetail }: { fiche: NomFiche; lienDeta
                         <BoutonCreer action={a} ligneId={l.id} onFait={(t) => { setRefus(''); setMessage(t); }} onRefus={setRefus} />
                     </SiAutorise>
                 ))} />
-        </section>
+        </Zone>
     );
 }
 
@@ -101,23 +122,31 @@ function BoutonCreer({ action, ligneId, onFait, onRefus }: {
 
 // (N1.2) La liste de choix d'une fiche liée : seulement les fiches que la personne a le droit de voir
 // (le serveur refuse de toute façon les autres — clôture, à la création comme à la modification).
-function ChoixLien({ lien, valeur }: { lien: Lien; valeur: string }) {
-    const { data, isLoading } = useModele(lien.cible as NomFiche).useFindMany();
-    // data-chargement : le formulaire ne part pas tant qu'une liste de choix charge (sinon le lien partait vide)
-    if (isLoading) return <p className="text-slate-500" data-chargement="">Chargement…</p>;
-    const lignes: Record<string, unknown>[] = data ?? [];
-    if (!lignes.length && !valeur) return <p className="text-red-700">Aucun(e) {lien.libelle.toLowerCase()} à choisir.</p>;
+function ChoixLien({ lien, valeur, id }: { lien: Lien; valeur: string; id: string }) {
+    // (contrat) une fiche liée se montre par son titre ; s'il vient d'une fiche qu'elle désigne, on l'inclut
+    const champ = lien.affiche.includes('.') ? lien.affiche.split('.')[0] : null;
+    const q = useModele(lien.cible as NomFiche).useFindMany(champ ? { include: { [champ]: true } } : undefined);
+    const lignes: Record<string, unknown>[] = q.data ?? [];
+    const etat = etatZone(q);
     // en modification, la valeur actuelle reste proposée même si la personne ne voit pas la fiche liée :
     // sinon l'enregistrement changerait le lien sans qu'elle l'ait voulu
     const cachee = !!valeur && !lignes.some((l) => String(l.id) === valeur);
     return (
-        <select name={lien.fk} required defaultValue={valeur || String(lignes[0].id)} className="mt-1 block w-full rounded border p-2">
-            {cachee && <option value={valeur}>— inchangé —</option>}
-            {lignes.map((l) => <option key={String(l.id)} value={String(l.id)}>{String(l[lien.affiche] ?? l.id)}</option>)}
-        </select>
+        // (contrat, zone « choix ») data-fiche = la fiche CIBLE ; data-chargement : le formulaire ne part pas tant qu'une
+        // liste de choix charge (sinon le lien partait vide)
+        <Zone zone="choix" fiche={lien.cible} etat={etat} erreur={q.error}>
+            {etat === 'pret' && !lignes.length && !valeur ? (
+                <p className="text-red-700">Aucun(e) {lien.libelle.toLowerCase()} à choisir.</p>
+            ) : (
+                <select id={id} name={lien.fk} required defaultValue={valeur || String(lignes[0]?.id ?? '')} className="mt-1 block w-full rounded border p-2">
+                    {cachee && <option value={valeur}>— inchangé —</option>}
+                    {lignes.map((l) => <option key={String(l.id)} value={String(l.id)}>{String(lireChemin(l, lien.affiche) ?? l.id)}</option>)}
+                </select>
+            )}
+        </Zone>
     );
 }
-const choixLien = (lien: Lien, valeur: string) => <ChoixLien lien={lien} valeur={valeur} />;
+const choixLien = (lien: Lien, valeur: string, id: string) => <ChoixLien lien={lien} valeur={valeur} id={id} />;
 
 // (N1.2) Le formulaire de création d'une fiche (ses champs, et ses fiches liées à choisir).
 function CreationFiche({ fiche, onCree }: { fiche: NomFiche; onCree: () => void }) {
@@ -133,17 +162,23 @@ function CreationFiche({ fiche, onCree }: { fiche: NomFiche; onCree: () => void 
 export function FicheDetail({ fiche, id }: { fiche: NomFiche; id: string }) {
     const n = NOTICE[fiche];
     const m = useModele(fiche);
-    const { data, isLoading } = m.useFindUnique({
+    const q = m.useFindUnique({
         where: { id },
         include: { ...inclure(fiche), ...Object.fromEntries((n.designee_par ?? []).map((d) => [d.relation, { select: { id: true } }])) },
     });
+    const { data } = q;
     const maj = m.useUpdate();
     const supp = m.useDelete();
     const router = useRouter();
     const [modification, setModification] = useState(false);
     const [confirmer, setConfirmer] = useState(false);
-    if (isLoading) return <p>Chargement…</p>;
-    if (!data) return <p className="text-red-700">Introuvable (ou vous n&apos;y avez pas accès).</p>;
+    // (contrat, zone « fiche ») elle enveloppe toute la page de la fiche ; une fiche absente ou interdite est un état
+    // PRÊT (la réponse est arrivée : rien à montrer), une panne est une ERREUR
+    if (!data) return (
+        <Zone zone="fiche" fiche={fiche} etat={etatZone(q)} erreur={q.error}>
+            <p className="text-red-700">Introuvable (ou vous n&apos;y avez pas accès).</p>
+        </Zone>
+    );
     const etat = n.etat ? String(data[n.etat.champ]) : undefined;
     // intégrité : une fiche que d'autres désignent ne se supprime pas — l'écran dit pourquoi
     const utilisee = (n.designee_par ?? [])
@@ -151,8 +186,9 @@ export function FicheDetail({ fiche, id }: { fiche: NomFiche; id: string }) {
         .filter((x) => x.nombre > 0)
         .map((x) => `${x.nombre} ${x.nombre > 1 ? x.d.libelle : x.d.libelle_un}`);
     return (
-        <section className="space-y-4">
-            <h1 className="text-2xl font-semibold">{n.libelle}</h1>
+        <Zone zone="fiche" fiche={fiche} etat="pret" className="space-y-4">
+            {/* (contrat, règle 3) le repère d'une fiche : sa sorte ET son titre (« Ouvrage : Le Petit Prince ») */}
+            <h1 className="text-2xl font-semibold">{n.titreFiche ? `${majuscule(n.libelle)} : ${titreDe(n, data)}` : n.libelle}</h1>
             <Details fiche={n} ligne={data} />
             {/* les décisions du circuit (data-bloc : les tests d'écran les distinguent des autres boutons) */}
             <div className="flex gap-2" data-bloc="decision">
@@ -199,7 +235,7 @@ export function FicheDetail({ fiche, id }: { fiche: NomFiche; id: string }) {
                     <Lignes parent={fiche} parentId={id} etatParent={etat} enfant={enfant} />
                 </SiAutorise>
             ))}
-        </section>
+        </Zone>
     );
 }
 

@@ -1,4 +1,5 @@
 {
+  "format": 2,
   "app": {
     "nom": "union-sportive",
     "titre": "Union sportive"
@@ -310,7 +311,7 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ],
@@ -319,7 +320,7 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ],
@@ -328,7 +329,7 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ],
@@ -337,7 +338,7 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ],
@@ -346,7 +347,7 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ],
@@ -355,7 +356,7 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ],
@@ -364,11 +365,19 @@
         "nom": "nom",
         "libelle": "Nom",
         "type": "texte",
-        "obligatoire": false,
+        "obligatoire": true,
         "origine": "necessaire"
       }
     ]
   },
-  "ecran": {},
+  "ecran": {
+    "Adherent": { "creation": "Nouvel adhérent", "titre": "nom" },
+    "Adhesion": { "creation": "Nouvelle adhésion", "titre": "nom" },
+    "Participant": { "creation": "Nouveau participant", "titre": "nom" },
+    "Activite": { "creation": "Nouvelle activité", "titre": "nom" },
+    "InscriptionActivite": { "creation": "Nouvelle inscription à une activité", "titre": "nom" },
+    "Paiement": { "creation": "Nouveau paiement", "titre": "nom" },
+    "Homologation": { "creation": "Nouvelle homologation", "titre": "nom" }
+  },
   "depart": {}
 }

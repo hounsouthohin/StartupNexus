@@ -1,8 +1,8 @@
 # Les dossiers de conception (depuis le 13 novembre 2026)
 
 **Pourquoi.** Arthur ne relit pas le code ligne par ligne. Chaque pièce de l'usine est d'abord décrite dans un **dossier**
-écrit en français simple ; un **relecteur extérieur** (Claude en ligne, parfois une IA d'un autre fournisseur) le juge ;
-on ne développe qu'après. Une fois le travail fini, le même dossier reçoit son **compte rendu**, avec les preuves.
+écrit en français simple ; l'autre agent le vérifie ; on ne développe qu'après la décision d'Arthur. Une fois le travail
+fini, le même dossier reçoit son **compte rendu**, avec les preuves.
 C'est la règle de l'usine appliquée à l'usine elle-même : celui qui construit ne se juge pas.
 
 **Les fichiers.**
@@ -14,40 +14,43 @@ C'est la règle de l'usine appliquée à l'usine elle-même : celui qui construi
 - `../conception-technique.md` reste la carte d'ensemble. On la met à jour quand un dossier change la conception.
 
 **Le cycle.**
-1. Claude Code écrit la partie **Avant** du dossier.
-2. Arthur la donne au relecteur, avec `CONSIGNE-RELECTEUR.md`, et colle sa réponse dans `sorties.md` (racine).
-3. Claude Code répond point par point dans la partie **Relecture** : accepté, ou refusé avec la raison. Il corrige
-   le dossier.
+1. L'**auteur**, l'un des deux agents désigné par Arthur ou proposé dans un fil, écrit la partie **Avant** du dossier.
+2. L'autre agent, **vérificateur**, relit le dossier avant le code et écrit ses constats dans le fil. Claude en ligne
+   est facultatif ; `CONSIGNE-RELECTEUR.md` peut servir pour une relecture extérieure.
+3. L'auteur répond point par point dans la partie **Relecture** : accepté, ou refusé avec la raison. Il corrige le
+   dossier.
 4. **Arthur décide** : « go », ou non.
-5. Claude Code développe : la preuve d'abord, puis le code, en restant dans la taille annoncée. S'il la dépasse, il
+5. L'auteur développe : la preuve d'abord, puis le code, en restant dans la taille annoncée. S'il la dépasse, il
    s'arrête et rend compte.
-6. Claude Code écrit la partie **Après** :
+6. L'auteur écrit la partie **Après** :
    - ce qui a été fait, les écarts et les preuves ;
    - **comment ça marche et comment c'est fait**, en mots simples ;
    - ce qu'Arthur peut voir lui-même ;
    - **ce que ça change pour la suite** : les tâches à réviser, et si une relecture extérieure est utile.
    Il le redit en quelques lignes dans la conversation, et **met à jour la carte visuelle**
    (`carte-de-l-usine.html`, publiée sur https://claude.ai/artifact/8ynHYQ1riEst6F4FjhJEYh).
-7. Pour une pièce critique, le relecteur juge aussi la partie Après.
+7. Le vérificateur vérifie les preuves après, en les rejouant si besoin. Pour un juge, la vérification par l'autre
+   fournisseur est obligatoire.
 8. Arthur clôt le dossier.
 
 **Proportionné, pour ne pas tourner sans fin.**
 
-| Taille | Exemples | Dossier | Relecteur extérieur |
+| Taille | Exemples | Dossier | Vérification par l'autre agent |
 |---|---|---|---|
-| **Petit** | montée de version corrective, petite correction de classe, outil de confort | parties Avant et Après courtes | non : Arthur valide seul |
-| **Moyen** | essai jetable, outil de mesure | complet | sur la partie Avant |
-| **Critique** | juges, boîte, droits, orchestrateur, assembleur, capacités, sécurité | complet ; pour un juge, son code est joint à la partie Après | sur l'Avant **et** l'Après ; pour un juge, au moins une fois par une IA d'un autre fournisseur |
+| **Petit** | montée de version corrective, petite correction de classe, outil de confort | parties Avant et Après courtes | **facultative** : Arthur valide seul, ou demande une vérification |
+| **Moyen** | essai jetable, outil de mesure | complet | dossier avant **et** preuves après, dans le même fil (décision d'Arthur du 19 nov : c'est la vérification après coup qui a démasqué le « 51/51 » de l'essai du juge d'écrans) |
+| **Critique** | juges, boîte, droits, orchestrateur, assembleur, capacités, sécurité | complet ; pour un juge, son code est joint à la partie Après | dossier avant et preuves après ; pour un juge, autre fournisseur obligatoire |
 
 Trois règles d'arrêt :
-- **un seul tour de relecture** ; un second seulement si le verdict est « À REVOIR » ; ensuite, Arthur tranche ;
+- **un fil de vérification**, avec les positions et trois tours au plus ; une correction de fait, une réponse à une
+  question de fait et la vérification d'une correction demandée ne comptent pas comme des tours. Un risque bloquant
+  nouveau peut toujours être signalé à Arthur en une ligne ;
 - **seuls les points BLOQUANTS empêchent de développer**. Les points « à corriger » se font pendant le développement.
   Les suggestions vont au registre des inconnues ou attendent ;
 - le relecteur **juge le dossier**. Il ne refait ni la vision ni le plan.
 
 **Ce qu'un dossier ne contient jamais** : une clé ou un mot de passe, une donnée de client, le contenu du lot d'examen.
 
-**Une limite à connaître.** Claude en ligne est de la même famille que Claude Code. Ils peuvent partager les mêmes
-angles morts. Pour les juges, qui sont le seul code où une erreur passe en silence, au moins une relecture se fait par
-une IA d'un autre fournisseur. Et quoi qu'en dise le relecteur, **ce sont les preuves (sabotages, témoins, seuils
-écrits d'avance) qui font foi, pas les avis**.
+**Une limite à connaître.** Même de deux fournisseurs, les agents peuvent partager des angles morts. Pour les juges,
+la vérification par l'autre fournisseur est obligatoire. **Ce sont les preuves (sabotages, témoins, seuils écrits
+d'avance) qui font foi, pas les avis.**

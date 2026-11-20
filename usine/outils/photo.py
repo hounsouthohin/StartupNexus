@@ -20,7 +20,8 @@ for l in json.loads((R / "runs" / rep / "repetition.json").read_text(encoding="u
     run_c = derniere_comprehension(l)
     src = next((run_c / f for f in ("description.json", "description-brute.json") if (run_c / f).exists()), None)
     if src:
-        b = json.loads(src.read_text(encoding="utf-8")); accepter_propositions(b, run_c); sources.append((l["brief"], b))
+        from usine.comprendre.completion import charger_lecture     # (format 2) lecture ancienne complétée
+        b = charger_lecture(src); accepter_propositions(b, run_c); sources.append((l["brief"], b))
 for nom, brut in sources:
     retire = []
     for _ in range(3):

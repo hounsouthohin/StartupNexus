@@ -17,7 +17,8 @@ export default function Accueil() {
                         <span className="w-56 font-medium first-letter:uppercase">{LIBELLE_ROLE[r] ?? r}</span>
                         {[1, 2].map((n) => (
                             <form key={n} method="post" action={`/connexion/${r}_${n}:${r}?vers=/`}>
-                                <button className="underline">personne {n}</button>
+                                {/* (contrat des noms à l'écran, règle 1) l'identifiant de la personne, en mot entier */}
+                                <button className="underline">{`personne ${n} · ${r}_${n}`}</button>
                             </form>
                         ))}
                     </div>

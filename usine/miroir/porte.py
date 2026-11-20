@@ -22,6 +22,7 @@ from ..description import Description
 
 DROITS = ("registre_entier", "tout_le_monde", "vu_via", "visiteur", "voir_tous")
 ESSAI = "essai — non validée par un client"
+VALIDEE = "validée par le client"
 
 
 class PorteFermee(RuntimeError):
@@ -30,6 +31,11 @@ class PorteFermee(RuntimeError):
 
 def _empreinte(chemin: Path) -> str:
     return hashlib.sha256(chemin.read_bytes()).hexdigest() if chemin.exists() else ""
+
+
+def ecrire_description(desc: Description, chemin: Path) -> None:
+    """La seule façon d'écrire une description (la validation ET la fabrication) : mêmes octets, même empreinte."""
+    chemin.write_text(desc.model_dump_json(indent=2), encoding="utf-8")
 
 
 def a_valider(mi: dict) -> list[str]:
@@ -49,22 +55,34 @@ def a_valider(mi: dict) -> list[str]:
     return raisons
 
 
+VUE = "miroir.md"      # la vue présentée au client (lue à deux)
+
+
 def valider(run: Path, client: str, concepteur: str) -> list[str]:
-    """Valide le miroir de cette lecture ; renvoie [] si c'est fait, sinon pourquoi c'est refusé."""
-    from .contenu import depuis_run
+    """Valide le miroir de cette lecture ; renvoie [] si c'est fait, sinon pourquoi c'est refusé.
+    (contrat des noms à l'écran, morceau 5) La vue empreintée doit être celle qui DÉCOULE de la description validée : la
+    porte la régénère et la compare à la vue présentée (`miroir.md`) ; une vue tirée d'une autre version est refusée."""
+    from .contenu import depuis_run, en_markdown
     mi = depuis_run(run)
     raisons = a_valider(mi)
     if raisons:
         return raisons
+    vue = run / VUE
+    if not vue.exists():
+        return [f"la vue du miroir n'a pas été présentée ({VUE} absent) : python -m usine.miroir {run}"]
+    if vue.read_text(encoding="utf-8") != en_markdown(mi):
+        return [f"la vue présentée ({VUE}) ne découle pas de cette description (une autre version, ou modifiée) : "
+                f"régénérez-la (python -m usine.miroir {run}) et relisez-la avec le client"]
     try:
         desc = Description.model_validate(mi["_courant"])
     except (ValidationError, ValueError) as x:
         return [f"la description ne passe pas les contrôles : {str(x).splitlines()[1:2]}"]
     chemin = run / "description-validee.json"
-    chemin.write_text(desc.model_dump_json(indent=2), encoding="utf-8")
+    ecrire_description(desc, chemin)
     (run / "validation.json").write_text(json.dumps({
         "description": chemin.name, "empreinte": _empreinte(chemin),
         "reponses_empreinte": _empreinte(run / "reponses.json"),
+        "vue": VUE, "vue_empreinte": _empreinte(vue),
         "client": client, "concepteur": concepteur, "quand": datetime.now().isoformat(timespec="seconds"),
         "reponses": len(mi.get("reponses", []))}, ensure_ascii=False, indent=1), encoding="utf-8")
     return []
@@ -96,4 +114,25 @@ def verifier(chemin: Path) -> dict:
         raise PorteFermee("la description a été modifiée depuis sa validation — à revalider")
     if _empreinte(chemin.parent / "reponses.json") != val["reponses_empreinte"]:
         raise PorteFermee("des réponses ont changé depuis la validation — à revalider")
+    # (contrat des noms à l'écran) la vue que le client a lue : une validation d'avant cette règle n'en a pas l'empreinte
+    if not val.get("vue_empreinte"):
+        raise PorteFermee("validation d'avant le contrat des noms à l'écran (sans l'empreinte de la vue) — à revalider")
+    if _empreinte(chemin.parent / val["vue"]) != val["vue_empreinte"]:
+        raise PorteFermee("la vue du miroir a été modifiée depuis sa validation — à revalider")
     return val
+
+
+def validation_du_run(description: Path, client: dict | None) -> dict:
+    """(contrat des noms à l'écran, morceau 5) La validation écrite dans le dossier d'une fabrication. Elle désigne la
+    description EXACTE que lisent le traducteur et le juge (`01-description.json`) et porte l'empreinte de ses octets.
+    - Un essai de l'usine (`client` absent) est marqué `essai: true` et « essai — non validée par un client » : jamais
+      confondu avec un accord de client.
+    - Une app de client doit être, à l'octet près, la description que le client a validée ; sinon la porte se ferme."""
+    empreinte = _empreinte(description)
+    if client is None:
+        return {"statut": ESSAI, "essai": True, "description": description.name, "empreinte": empreinte}
+    if empreinte != client["empreinte"]:
+        raise PorteFermee("la description fabriquée n'est pas, à l'octet près, celle que le client a validée")
+    return {"statut": VALIDEE, "essai": False, "description": description.name, "empreinte": empreinte,
+            "client": client["client"], "concepteur": client["concepteur"], "quand": client["quand"],
+            "validee": {k: client[k] for k in ("description", "empreinte", "reponses_empreinte", "vue", "vue_empreinte")}}

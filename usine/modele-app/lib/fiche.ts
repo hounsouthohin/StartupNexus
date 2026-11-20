@@ -22,7 +22,10 @@ export type Fiche<T = Record<string, unknown>> = {
     tri?: { champ: Extract<keyof T, string>; sens: 'asc' | 'desc' };
     etat?: { champ: Extract<keyof T, string>; initial: string; libelles: Record<string, string>; boutons: Record<string, string> };
     actionsLigne?: { libelle: string; cree: string; lien: string }[];
-    creation?: { libelle: string };       // (N1.2) le bouton du formulaire de création
+    creation?: { libelle: string };       // (N1.2) le bouton du formulaire de création — (contrat) nom tiré de la description
+    // (contrat des noms à l'écran, 20 nov 2026) ce qui reconnaît la fiche : un de ses champs, ou le champ d'une fiche
+    // qu'elle désigne (`lien`). Premier morceau d'une ligne de liste, lien vers la fiche, et titre de sa page.
+    titreFiche?: { champ: string; lien?: string };
     designee_par?: { relation: string; libelle: string; libelle_un: string }[];   // (N1.2) qui peut la désigner (intégrité)
     parent?: { fiche: string; fk: string };                                          // (N1.3) une ligne : son parent
     enfants?: { fiche: string; fk: string; libelle: string; libelle_un: string }[];  // (N1.3) les lignes de cette fiche

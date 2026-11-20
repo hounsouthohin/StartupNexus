@@ -241,6 +241,11 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
         ecran = {f.fiche: {"verbe_creation": f.verbe_creation, "boutons": f.boutons}
                  for f in libelles.fiches if f.verbe_creation or f.boutons}
         brut = {"app": {"nom": nom, "titre": libelles.titre}, "acces": data, "champs": champs, "ecran": ecran, "depart": {}}
+        # (format 2, contrat des noms à l'écran) la complétion : le nom du bouton de création et le titre de chaque fiche
+        # principale, AVANT le miroir (qui les montre au client) ; jamais deviné plus loin
+        from .completion import completer
+        brut, ajouts = completer(brut)
+        rapport["completion"] = ajouts
         (run / "description-brute.json").write_text(json.dumps(brut, ensure_ascii=False, indent=2), encoding="utf-8")
         try:
             desc = Description.model_validate(brut)

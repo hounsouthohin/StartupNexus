@@ -32,6 +32,60 @@ def le(label: str, fem: bool = False) -> str:
     return f"l'{label}" if label[:1].lower() in "aeiouyhéèêàâîôû" else f"{'la' if fem else 'le'} {label}"
 
 
+def du(label: str, fem: bool = False) -> str:
+    return f"de l'{label}" if label[:1].lower() in "aeiouyhéèêàâîôû" else f"{'de la' if fem else 'du'} {label}"
+
+
+# (contrat des noms à l'écran, morceau 4) LE BLOC « À L'ÉCRAN » de chaque fiche : les noms que l'app montrera, calculés
+# par le traducteur (usine/traduire/ecran.py, noms_a_l_ecran) — le client valide exactement ce qui sera affiché.
+# Une ligne par sorte d'action ; le contrôle de couverture cherche chaque nom à SA ligne, dans le bloc de SA fiche.
+A_L_ECRAN = {"menu": "menu et titre de la liste", "creation": "bouton de création", "titre": "titre d'une fiche",
+             "etape": "boutons d'étape", "clic": "création en un clic"}
+
+
+def _marque(ou: str, nom: str) -> str:
+    """Comment un nom est écrit dans sa ligne (le titre d'une fiche est « Sorte : » suivi de son titre)."""
+    return f"« {nom} : »" if ou == "titre" else f"« {nom} »"
+
+
+def attendus_a_l_ecran(desc: Description, m) -> list[tuple[str, str, str]]:
+    """(fiche, sorte d'action, nom) : tous les noms que l'app montrera, recalculés depuis la description."""
+    from ..traduire.ecran import noms_a_l_ecran
+    out = []
+    for fiche, n in noms_a_l_ecran(desc, m).items():
+        out += [(fiche, "menu", n["menu"]), (fiche, "creation", n["creation"])]
+        if n["titre"]:
+            out.append((fiche, "titre", n["titre"]["sorte"]))
+        out += [(fiche, "etape", b) for b in n["etapes"].values()]
+        out += [(fiche, "clic", c["libelle"]) for c in n["clics"]]
+    return out
+
+
+def _a_l_ecran(desc: Description, m) -> dict[str, list[dict]]:
+    """Les lignes du bloc « À l'écran » de chaque fiche principale (ni profil ni ligne : hors du contrat)."""
+    from ..traduire.ecran import noms_a_l_ecran
+    ent = {e.name: e for e in desc.acces.entities}
+    out = {}
+    for fiche, n in noms_a_l_ecran(desc, m).items():
+        lignes = [{"ou": "menu", "noms": [n["menu"]], "texte": _marque("menu", n["menu"])},
+                  {"ou": "creation", "noms": [n["creation"]], "texte": _marque("creation", n["creation"])
+                   + ("" if n["creation_visible"] else " (aucun rôle n'en crée pour l'instant : le bouton n'apparaît pas)")}]
+        t = n["titre"]
+        if t:
+            v = ent[t["via"]] if t["via"] else None
+            lignes.append({"ou": "titre", "noms": [t["sorte"]], "texte": f"{_marque('titre', t['sorte'])} puis le champ « {t['champ']} »"
+                           + (f" {du(v.label, v.feminine)} désigné{'e' if v.feminine else ''}" if v else "")})
+        if n["etapes"]:
+            etats = ent[fiche].process.labels if ent[fiche].process else {}
+            lignes.append({"ou": "etape", "noms": list(n["etapes"].values()),
+                           "texte": ", ".join(f"{_marque('etape', b)} (vers « {etats.get(s, s)} »)" for s, b in n["etapes"].items())})
+        if n["clics"]:
+            lignes.append({"ou": "clic", "noms": [c["libelle"] for c in n["clics"]],
+                           "texte": ", ".join(f"{_marque('clic', c['libelle'])}, sur chaque {ent[c['depuis']].label}" for c in n["clics"])})
+        out[fiche] = lignes
+    return out
+
+
 def _type(c: dict) -> str:
     if c["type"] == "choix" and c.get("valeurs"):
         return "choix parmi : " + ", ".join(v["libelle"] for v in c["valeurs"])
@@ -131,12 +185,13 @@ def _circuits(m, decl: AccessDeclaration) -> list[dict]:
     return out
 
 
-def _fiches(decl: AccessDeclaration, champs: dict, propositions: dict) -> list[dict]:
+def _fiches(decl: AccessDeclaration, champs: dict, propositions: dict, ecran: dict | None = None) -> list[dict]:
     ent = {e.name: e for e in decl.entities}
     out = []
     for e in decl.entities:
         relie = ([f"dans chaque {ent[e.parent].label}"] if e.parent else []) + [ent[r].label for r in e.references if r in ent]
         out.append({"fiche": e.name, "libelle": e.label, "nature": e.nature, "relie_a": relie,
+                    "a_l_ecran": (ecran or {}).get(e.name, []),
                     "champs": [{"nom": c["nom"], "libelle": c["libelle"], "type": _type(c), "obligatoire": c["obligatoire"],
                                 "origine": c["origine"], "origine_texte": ORIGINES[c["origine"]], "citation": c.get("citation", "")}
                                for c in champs.get(e.name, [])],
@@ -187,8 +242,10 @@ def construire(brut: dict, hors_stock: list[dict], propositions: dict, critique:
                          "rien_ne_se_construit": p["reste_refuse"]} if p["texte"] else None),
               "hors_stock": [{"besoin": h["besoin"], "categorie": h["categorie"], "citation": h.get("citation", "")} for h in hors_stock]}
     try:
-        decl = Description.model_validate(courant).acces
+        desc = Description.model_validate(courant)
+        decl = desc.acces
     except (ValidationError, ValueError):
+        desc = None                   # refusée : rien de ce qu'elle décrit ne s'affichera, donc pas de bloc « À l'écran »
         try:
             decl = AccessDeclaration(**courant["acces"])
         except (ValidationError, ValueError):
@@ -213,7 +270,8 @@ def construire(brut: dict, hors_stock: list[dict], propositions: dict, critique:
                 q["reponses"], q["impossible"] = [x for x in q["reponses"] if x != OPERANTE[q["sorte"]]], r["message"]
     return {**miroir, "en_bref": {"roles": [r["libelle"] for r in roles if r["id"] != VISITOR],
                                   "fiches": len(decl.entities), "circuits": sum(1 for e in decl.entities if e.process)},
-            "roles": roles, "circuits": _circuits(m, decl), "fiches": _fiches(decl, champs, propositions),
+            "roles": roles, "circuits": _circuits(m, decl),
+            "fiches": _fiches(decl, champs, propositions, _a_l_ecran(desc, m) if desc else None),
             "questions": qs,
             "_courant": courant, "_brut": brut, "_propositions": propositions, "_hors_stock": hors_stock}
 
@@ -255,6 +313,44 @@ def couverture(miroir: dict) -> list[str]:
     manque += [f"hors stock « {h['besoin']} »" for h in miroir["_hors_stock"] if h["besoin"] not in vus]
     if bool(refus(miroir["_brut"])) != bool(miroir["refus"]):
         manque.append("refus de la description (montré ≠ réel)")
+    return manque + couverture_ecran(miroir)
+
+
+def _entete_fiche(f: dict) -> str:
+    """Le début de la ligne qui ouvre le bloc d'une fiche dans la vue (« - **Emprunt** : »)."""
+    return f"- **{f['libelle'].capitalize()}** :"
+
+
+def couverture_ecran(miroir: dict, texte: str | None = None, attendus: list[tuple[str, str, str]] | None = None) -> list[str]:
+    """(contrat des noms à l'écran, morceau 4) Chaque nom que l'app montrera figure dans LA VUE DU CLIENT (avant le volet
+    concepteur), dans le bloc de SA fiche, à la ligne de SON action — jamais « quelque part dans le texte ».
+    `texte` : la vue à contrôler (par défaut, celle que le miroir produit) ; `attendus` : (fiche, action, nom), par défaut
+    recalculés depuis la description par le calcul même du traducteur (pas lus dans le miroir)."""
+    if miroir.get("perimetre") == "hors" or "_courant" not in miroir:
+        return []
+    try:
+        desc = Description.model_validate(miroir["_courant"])
+    except (ValidationError, ValueError):
+        return []                     # refusée : rien ne se fabrique depuis elle, aucun nom ne s'affichera
+    if attendus is None:
+        attendus = attendus_a_l_ecran(desc, compute_matrix(desc.acces))
+    vue = (texte if texte is not None else en_markdown(miroir)).split("\n---\n")[0].split("\n")
+    fiches = {f["fiche"]: f for f in miroir["fiches"]}
+    manque = []
+    for fiche, ou, nom in attendus:
+        f = fiches.get(fiche)
+        debuts = [i for i, l in enumerate(vue) if f and l.startswith(_entete_fiche(f))]
+        if len(debuts) != 1:
+            manque.append(f"à l'écran : le bloc de la fiche {fiche} est {'absent' if not debuts else 'en double'} dans la vue")
+            continue
+        bloc = []
+        for l in vue[debuts[0] + 1:]:
+            if not l.startswith("  "):
+                break
+            bloc.append(l)
+        lignes = [l for l in bloc if l.startswith(f"    - {A_L_ECRAN[ou]} :")]
+        if len(lignes) != 1 or _marque(ou, nom) not in lignes[0]:
+            manque.append(f"à l'écran : {fiche} — {A_L_ECRAN[ou]} {_marque(ou, nom)} absent de sa ligne, dans le bloc de sa fiche")
     return manque
 
 
@@ -285,9 +381,12 @@ def en_markdown(mi: dict) -> str:
         champs = " · ".join(f"{c['libelle']} ({c['type']}{'' if c['obligatoire'] else ', facultatif'})"
                             + ("" if c["origine"] == "brief" else " ◦ " + ("choisi par nous" if c["origine"] == "necessaire" else "proposé, accepté"))
                             for c in f["champs"]) or "aucune information (seulement ses liens)"
-        L.append(f"- **{f['libelle'].capitalize()}** : {champs}")
+        L.append(f"{_entete_fiche(f)} {champs}")
         if f["relie_a"]:
             L.append(f"  - relié à : {', '.join(f['relie_a'])}")
+        if f.get("a_l_ecran"):                       # (contrat des noms à l'écran) ce que l'app affichera, mot pour mot
+            L.append("  - à l'écran :")
+            L += [f"    - {A_L_ECRAN[x['ou']]} : {x['texte']}" for x in f["a_l_ecran"]]
         if f["propositions"]:
             L.append("  - proposé (à cocher) : " + " · ".join(f"☐ {p['libelle']} ({p['type']})" for p in f["propositions"]))
     if mi["questions"]:
@@ -333,7 +432,9 @@ def depuis_run(run: Path) -> dict:
     hors = per.get("hors_stock", [])
     if per.get("perimetre") == "hors":
         return construire_hors(per.get("raison", ""), hors)
-    brut = json.loads((run / "description-brute.json").read_text(encoding="utf-8"))
+    # (format 2) une lecture d'avant le contrat des noms à l'écran est complétée au chargement (comprendre/completion.py)
+    from ..comprendre.completion import charger_lecture
+    brut = charger_lecture(run / "description-brute.json")
     props = {f["fiche"]: f["propositions"] for f in ((lect.get("champs") or {}).get("fiches") or []) if f.get("propositions")}
     from .reponses import appliquer, lire               # (N1.4b) la description à jour = lecture + réponses
     reps = lire(run)

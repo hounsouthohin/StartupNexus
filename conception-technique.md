@@ -125,7 +125,9 @@ plan, pas de l'IA », comme le dit notre règle de circulation n° 6.
 
 ### Comment on prouve qu'il marche
 
-- On coupe une construction au milieu, on la relance, et l'on vérifie qu'elle repart au bon endroit sans rien repayer.
+- On coupe une construction au milieu, on la relance, et l'on vérifie qu'elle repart au bon endroit sans repayer ce qui
+  est déjà fait. *(Précisé le 19 nov, relevé par Codex : un appel extérieur dont la réponse s'est perdue a un
+  « résultat inconnu ». On le rapproche ou on demande, jamais une relance silencieuse.)*
 - On rejoue une construction figée, et l'on vérifie qu'elle donne les mêmes verdicts.
 - Un faux agent (qui rend toujours la même réponse) et un faux juge (qui refuse toujours) vérifient que les décisions
   sont les bonnes : corriger deux fois, puis s'arrêter et demander à un humain.
@@ -213,7 +215,7 @@ Tout ce que l'agent reçoit est **généré par l'usine**, versionné, et entre 
    Le code de l'agent est ainsi vérifié par le compilateur contre la Description du jour : si la Description change,
    le compilateur montre exactement ce qui casse.
 4. **L'`AGENTS.md` généré** :
-   - les conventions (noms, contrat d'accessibilité, points d'extension) ;
+   - les conventions (noms, contrat des noms à l'écran, points d'extension) ;
    - **la seule façon d'accéder aux données** : le client ZenStack lié à la personne connectée (*Prouvé* : `dbFor(user)`
      existe déjà dans le squelette), avec lequel les droits s'appliquent d'eux-mêmes ;
    - la documentation des capacités utilisées par cette app, et seulement celles-là ;
@@ -434,7 +436,7 @@ boucles de correction.
   trouve l'objet et l'action **par rôle et par nom** (le libellé validé de la Description), agit, puis vérifie le
   résultat visible à l'écran et le résultat métier **dans la base**.
 - **Classer les échecs mécaniquement** :
-  - un élément introuvable veut dire que le contrat d'accessibilité n'est pas respecté : c'est un défaut de l'app, mais
+  - un élément introuvable veut dire que le contrat des noms à l'écran n'est pas respecté : c'est un défaut de l'app, mais
     d'une autre famille que la logique métier ;
   - deux éléments trouvés, le mode strict de Playwright s'arrête : c'est une ambiguïté ;
   - un délai dépassé ou une panne de navigateur relève de l'environnement, et l'on rejoue une fois ;
@@ -883,8 +885,10 @@ Une tâche part d'un commit et rend un commit, ou rien.
 **Le juge par modèle** (Avis, l'idée la plus forte de la recherche) : fast-check (**Prouvé** : génère des entrées, réduit
 un échec à son plus petit contre-exemple, rejoue par graine, sait tester par modèle) tire au hasard des suites d'actions
 faites par des rôles différents. Par exemple : créer, faire passer une étape, retirer un rôle, puis modifier. Après
-chaque action, il compare la base au modèle. Il trouve **par construction** la famille que notre juge des règles rate :
-modifier ses fiches après avoir perdu son rôle.
+chaque action, il compare la base au modèle. Il **doit** trouver la famille que notre juge des règles rate : modifier
+ses fiches après avoir perdu son rôle. *(Précisé le 19 nov, relevé par Codex : j'avais écrit « par construction ». Un
+tirage au hasard ne garantit pas de rencontrer une suite rare. C'est à démontrer, avec la suite nécessaire, un
+sabotage qui a un effet prouvé, des témoins, et un budget de recherche fixé d'avance.)*
 
 Ce qu'on ajoute aux données d'essai et à la stabilité :
 - **Données d'essai** : générées depuis la Description ; combinaisons **par paires** quand les dimensions se multiplient
@@ -1065,7 +1069,7 @@ Décisions proposées par la recherche, avec mes nuances :
 6. **Seul ce qui se mesure devient un juge** : contraste et étiquettes accessibles, pas de défilement horizontal sur
    téléphone, respect du système de design, temps de chargement.
 
-Le contrat d'accessibilité et le design vont ensemble : des éléments bien nommés rendent l'app accessible **et**
+Le contrat des noms à l'écran et le design vont ensemble : des éléments bien nommés rendent l'app accessible **et**
 testable par le moteur de parcours. Une limite à accepter : les apps seront propres et cohérentes, mais elles se
 ressembleront. Un design unique est une demande de « bord », chiffrée à part.
 

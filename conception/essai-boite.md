@@ -228,6 +228,18 @@ c'est moins de pannes, et c'est plus facile à comprendre. La distribution dédi
 
 ### 11. Les résultats des preuves (contre les seuils écrits d'avance)
 
+> **Correction du 19 nov, après la vérification de Codex en lecture**
+> ([fil](../dialogue/2026-11-19-verification-essai-boite.md)).
+> - **Ce qui tient** : les cycles, la construction et les témoins concordent avec les fichiers bruts.
+> - **Ce qui ne tient pas** :
+>   - « chacun pour la bonne raison » est trop fort. Le script compte toute erreur comme un refus (`essai.py`, ligne
+>     209), et le test des processus revu accepte tout maximum compris entre 1 et 512 ;
+>   - le réseau n'a été essayé que sur les adresses listées ;
+>   - les résultats mêlent une passe d'origine et deux sabotages refaits, sans empreinte.
+> - **Bilan** (la formulation de Codex) : **onze indicateurs d'échec sont enregistrés ; ils ne démontrent pas tous un
+>   refus effectif par la protection, ni sa raison.** Rien ne prouve une seule version. Les chiffres de faisabilité
+>   concordent avec les fichiers historiques. Décision d'Arthur : l'atelier sera qualifié dans la chaîne complète.
+
 | Mesure | Seuil | Résultat |
 |---|---|---|
 | Témoins : écrire en mémoire, compiler, construire, base et données, app dans Chromium | tous | ✔ **4/4**, plus « seulement la boucle locale » comme carte réseau |

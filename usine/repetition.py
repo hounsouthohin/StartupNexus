@@ -137,7 +137,9 @@ def fabriquer_depuis(run_c: Path, projet: str, attendu: str, dossier: Path, clie
     source = next((run_c / f for f in ("description.json", "description-brute.json") if (run_c / f).exists()), None)
     if source is None:
         return ligne
-    brut = json.loads(source.read_text(encoding="utf-8"))
+    # (format 2) une lecture d'avant le contrat des noms à l'écran est complétée au chargement
+    from .comprendre.completion import charger_lecture
+    brut = charger_lecture(source)
     ligne["champs"] = sum(len(c) for c in brut["champs"].values())
     if client_simule:
         ligne["client_simule"] = accepter_propositions(brut, run_c)

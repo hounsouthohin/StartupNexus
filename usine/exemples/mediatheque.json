@@ -1,4 +1,5 @@
 {
+  "format": 2,
   "app": { "nom": "mediatheque", "titre": "Médiathèque" },
   "acces": {
     "actors": [
@@ -38,9 +39,12 @@
     "Borrowing": []
   },
   "ecran": {
+    "Book": { "creation": "Nouvel ouvrage", "titre": "title" },
     "Borrowing": {
       "verbe_creation": "Emprunter",
-      "boutons": { "accepted": "Accepter", "refused": "Refuser", "returned": "Marquer rendu" }
+      "boutons": { "accepted": "Accepter", "refused": "Refuser", "returned": "Marquer rendu" },
+      "creation": "Nouvel emprunt",
+      "titre": "Book"
     }
   },
   "depart": {

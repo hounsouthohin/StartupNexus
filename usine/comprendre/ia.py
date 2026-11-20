@@ -96,16 +96,21 @@ class Budget:
                 "jetons_sortie": self.sortie, "dollars": round(self.depense, 4), "plafond": self.plafond}
 
 
+# (19 nov 2026, décision d'Arthur) les clés vivent HORS du dépôt, pour qu'aucun agent qui travaille dans le dépôt ne les
+# lise par mégarde : le chemin vient de STARTUPNEXUS_SECRETS, sinon ~/.secrets/startupnexus.env
+SECRETS = Path(os.getenv("STARTUPNEXUS_SECRETS") or Path.home() / ".secrets" / "startupnexus.env")
+
+
 def client_pour(modele: str):
     from dotenv import load_dotenv
     from openai import OpenAI
-    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+    load_dotenv(SECRETS)
     if modele == "boite":
         return ClientBoite()
     if modele.startswith("gemini"):
         cle = os.getenv("GEMINI_API_KEY")
         if not cle:
-            raise SystemExit("GEMINI_API_KEY absente du fichier .env (racine du dépôt)")
+            raise SystemExit(f"GEMINI_API_KEY absente du fichier des clés ({SECRETS}, hors du dépôt)")
         return OpenAI(api_key=cle, base_url=GEMINI_URL)
     return OpenAI()
 

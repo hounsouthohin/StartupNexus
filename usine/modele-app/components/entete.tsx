@@ -15,7 +15,7 @@ export function Entete({ role, personne }: { role: Role; personne?: string }) {
             </nav>
             <span className="ml-auto rounded bg-slate-100 px-2 py-1 text-xs">
                 connecté en : <b>{LIBELLE_ROLE[role] ?? role}</b>
-                {personne && role !== 'visitor' ? ` (personne ${personne.split('_').pop()})` : ''}
+                {personne && role !== 'visitor' ? ` (personne ${personne.split('_').pop()} · ${personne})` : ''}
             </span>
         </header>
     );

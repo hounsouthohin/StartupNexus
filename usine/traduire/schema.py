@@ -217,7 +217,12 @@ def modele(f: FicheApp, m: Matrix, fiches: dict[str, FicheApp]) -> str:
         suppression = "Cascade" if l.parent else "Restrict"
         lignes.append(f"    {l.nom} {l.cible} @relation(fields: [{l.fk}], references: [{l.ref}], onDelete: {suppression})")
     for c in f.champs:
-        lignes.append(f"    {c.nom} {ztype(e.name, c)}{'' if c.obligatoire else '?'}")
+        # (contrat des noms à l'écran, morceau 12 ; registre n° 63) un texte OBLIGATOIRE n'est jamais vide : la classe
+        # entière, tous les champs obligatoires qui sont des textes dans la base. Les espaces sont retirés PUIS un
+        # caractère au moins est exigé — dans cet ordre, car ZenStack 3.9.7 applique ces règles dans l'ordre écrit
+        # (@zenstackhq/zod) : dans l'autre ordre, « ␣␣␣ » passerait la longueur avant d'être vidé.
+        regle = " @trim @length(1)" if c.obligatoire and ZTYPE.get(c.type) == "String" else ""
+        lignes.append(f"    {c.nom} {ztype(e.name, c)}{'' if c.obligatoire else '?'}{regle}")
     if e.process:
         lignes.append(f"    status {e.name}Status @default({e.process.initial})")
     lignes.append("    createdAt DateTime @default(now())")

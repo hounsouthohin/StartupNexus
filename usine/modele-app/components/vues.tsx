@@ -1,7 +1,7 @@
 'use client';
 // AFFICHAGE pur : il reçoit des données, il n'en cherche aucune (étude 06).
 import Link from 'next/link';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Fiche, Lien, Saisie } from '@/lib/fiche';
 
 type Ligne = Record<string, unknown> & { id: string };
@@ -20,9 +20,21 @@ export function valeur(fiche: Fiche, ligne: Ligne, nom: string, type?: string): 
     return String(v);
 }
 
+// (contrat des noms à l'écran) ce qui montre une fiche liée : son titre. « book.title » : le titre vient d'une fiche
+// que la fiche liée désigne elle-même (un seul niveau) — le lien est alors inclus par la requête (pieces.tsx).
+export function lireChemin(x: unknown, chemin: string): unknown {
+    return chemin.split('.').reduce<unknown>((o, k) => (o == null ? o : (o as Record<string, unknown>)[k]), x);
+}
 function valeurLien(ligne: Ligne, nom: string, affiche: string): string {
     const lie = ligne[nom] as Record<string, unknown> | null | undefined;
-    return lie ? String(lie[affiche] ?? '') : '';
+    return lie ? String(lireChemin(lie, affiche) ?? '') : '';
+}
+// Le TITRE d'une fiche (règle 6 du contrat), tel qu'il s'affiche : jamais remplacé par un autre morceau.
+export function titreDe(fiche: Fiche, ligne: Ligne): string {
+    const t = fiche.titreFiche;
+    if (!t) return '';
+    const v = t.lien ? lireChemin(ligne[t.lien], t.champ) : ligne[t.champ];
+    return v == null ? '' : String(v);
 }
 
 export function Tableau(props: { fiche: Fiche; lignes: Ligne[]; lienDetail?: string; actions?: (l: Ligne) => React.ReactNode }) {
@@ -34,9 +46,14 @@ export function Tableau(props: { fiche: Fiche; lignes: Ligne[]; lienDetail?: str
                 // d'abord ce qui IDENTIFIE la fiche (ses liens, son nom…), l'état ensuite : le lien cliquable de la
                 // ligne est le premier morceau — pas « actif » (trouvé par la répétition)
                 const champs = [...fiche.champs.filter((c) => c.type !== 'etat'), ...fiche.champs.filter((c) => c.type === 'etat')];
-                // (N1.3) une ligne n'affiche pas son parent : on est déjà dans sa page
-                const morceaux = [...(fiche.liens ?? []).filter((k) => !k.parent).map((k) => valeurLien(l, k.nom, k.affiche)),
-                    ...champs.map((c) => valeur(fiche, l, c.nom, c.type))].filter((x) => x && x !== '—');
+                const t = fiche.titreFiche;
+                // (contrat des noms à l'écran, règle 6) une fiche principale : son TITRE d'abord, toujours, et c'est lui
+                // le lien vers CETTE fiche — même vide, il n'est jamais remplacé par un autre morceau ; le titre n'est pas
+                // répété ensuite. (N1.3) une ligne n'affiche pas son parent : on est déjà dans sa page
+                const autres = [...(fiche.liens ?? []).filter((k) => !k.parent && !(t?.lien && k.nom === t.lien)).map((k) => valeurLien(l, k.nom, k.affiche)),
+                    ...champs.filter((c) => !(t && !t.lien && c.nom === t.champ)).map((c) => valeur(fiche, l, c.nom, c.type))]
+                    .filter((x) => x && x !== '—');
+                const morceaux = t ? [titreDe(fiche, l), ...autres] : autres;
                 return (
                     <li key={l.id} className="flex items-center justify-between gap-4 p-3">
                         <span>
@@ -114,9 +131,14 @@ function enSaisie(saisie: Saisie, v: unknown): string {
 export function Formulaire(props: {
     fiche: Fiche; ligne?: Record<string, unknown>; onSave: (valeurs: Record<string, unknown>) => void;
     etat: 'repos' | 'en-cours' | 'ok' | 'erreur'; erreur?: string; bouton?: string;
-    choixLien?: (lien: Lien, valeur: string) => React.ReactNode;
+    choixLien?: (lien: Lien, valeur: string, id: string) => React.ReactNode;
 }) {
     const { fiche } = props;
+    // (contrat des noms à l'écran, règle 8) chaque étiquette est RELIÉE à son champ (for / id), et son texte est
+    // exactement le libellé ; « (facultatif) » est une indication à part (aria-describedby). Les identifiants sont
+    // uniques même si plusieurs formulaires sont ouverts (useId).
+    const base = useId();
+    const idDe = (nom: string) => `${base}-${nom}`;
     const ligne = props.ligne ?? {};
     const [patience, setPatience] = useState(false);
     const [manque, setManque] = useState<string[]>([]);
@@ -142,30 +164,37 @@ export function Formulaire(props: {
             ]));
         }}>
             {props.choixLien && liens.map((l) => (
-                <label key={l.fk} className="block text-sm">
-                    <span className="text-slate-500">{l.libelle}</span>
-                    {props.choixLien!(l, String(ligne[l.fk] ?? ''))}
-                </label>
+                <div key={l.fk} className="block text-sm">
+                    <label htmlFor={idDe(l.fk)} className="text-slate-500">{l.libelle}</label>
+                    {props.choixLien!(l, String(ligne[l.fk] ?? ''), idDe(l.fk))}
+                </div>
             ))}
-            {fiche.modifiables.map((c) => (
-                <label key={c.nom} className="block text-sm">
-                    <span className="text-slate-500">{c.libelle}{c.obligatoire ? '' : ' (facultatif)'}</span>
-                    {c.saisie === 'texte_long' ? (
-                        <textarea name={c.nom} defaultValue={enSaisie(c.saisie, ligne[c.nom])} className="mt-1 block w-full rounded border p-2" />
-                    ) : c.saisie === 'oui_non' ? (
-                        <input type="checkbox" name={c.nom} defaultChecked={!!ligne[c.nom]} className="ml-2" />
-                    ) : c.saisie === 'choix' ? (
-                        <select name={c.nom} required={c.obligatoire} defaultValue={enSaisie(c.saisie, ligne[c.nom])}
-                            className="mt-1 block w-full rounded border p-2">
-                            {!c.obligatoire && <option value="">—</option>}
-                            {Object.entries(c.options ?? {}).map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
-                        </select>
-                    ) : (
-                        <input name={c.nom} type={ENTREE[c.saisie]} required={c.obligatoire} step={c.saisie === 'montant' ? '0.01' : undefined}
-                            defaultValue={enSaisie(c.saisie, ligne[c.nom])} className="mt-1 block w-full rounded border p-2" />
-                    )}
-                </label>
-            ))}
+            {fiche.modifiables.map((c) => {
+                const id = idDe(c.nom);
+                const aide = c.obligatoire ? undefined : `${id}-aide`;
+                return (
+                    <div key={c.nom} className="block text-sm">
+                        <label htmlFor={id} className="text-slate-500">{c.libelle}</label>
+                        {aide && <span id={aide} className="ml-1 text-slate-400">(facultatif)</span>}
+                        {c.saisie === 'texte_long' ? (
+                            <textarea id={id} name={c.nom} aria-describedby={aide} defaultValue={enSaisie(c.saisie, ligne[c.nom])}
+                                className="mt-1 block w-full rounded border p-2" />
+                        ) : c.saisie === 'oui_non' ? (
+                            <input id={id} type="checkbox" name={c.nom} aria-describedby={aide} defaultChecked={!!ligne[c.nom]} className="ml-2" />
+                        ) : c.saisie === 'choix' ? (
+                            <select id={id} name={c.nom} aria-describedby={aide} required={c.obligatoire} defaultValue={enSaisie(c.saisie, ligne[c.nom])}
+                                className="mt-1 block w-full rounded border p-2">
+                                {!c.obligatoire && <option value="">—</option>}
+                                {Object.entries(c.options ?? {}).map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
+                            </select>
+                        ) : (
+                            <input id={id} name={c.nom} aria-describedby={aide} type={ENTREE[c.saisie]} required={c.obligatoire}
+                                step={c.saisie === 'montant' ? '0.01' : undefined}
+                                defaultValue={enSaisie(c.saisie, ligne[c.nom])} className="mt-1 block w-full rounded border p-2" />
+                        )}
+                    </div>
+                );
+            })}
             <button disabled={props.etat === 'en-cours'} className="rounded bg-slate-900 px-3 py-1 text-sm text-white">{props.bouton ?? 'Enregistrer'}</button>
             {patience && <span className="ml-3 text-sm text-slate-500">Patientez : les listes de choix se chargent.</span>}
             {manque.length > 0 && <span className="ml-3 text-sm text-red-700">Impossible pour l&apos;instant : il faut d&apos;abord créer {manque.join(', ')}.</span>}

@@ -143,17 +143,17 @@ def fabriquer(chemin_description: Path, garder_dependances: bool = False, essai:
     nom = brut.get("app", {}).get("nom", "app")
     run = RUNS / f"{datetime.now():%Y%m%d-%H%M%S}-{nom}"
     (run / "logs").mkdir(parents=True)
-    (run / "validation.json").write_text(json.dumps(validation or {"statut": ESSAI}, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Validée par {validation['client']} (avec {validation['concepteur']}) le {validation['quand']}" if validation
           else f"⚠ {ESSAI.upper()}")
     try:
-        return _fabriquer(chemin_description, brut, run)
+        return _fabriquer(chemin_description, brut, run, validation)
     finally:   # une app livrée pèse ~120 Mo : `python -m usine demarrer` réinstalle ses dépendances au besoin
         if not garder_dependances:
             alleger(run / "app")
 
 
-def _fabriquer(chemin_description: Path, brut: dict, run: Path) -> Path:
+def _fabriquer(chemin_description: Path, brut: dict, run: Path, validation: dict | None) -> Path:
+    from .miroir.porte import ecrire_description, validation_du_run
     journal = Journal(run, total=10)
     print(f"Fabrication : {run.relative_to(RACINE)}\n")
 
@@ -162,7 +162,10 @@ def _fabriquer(chemin_description: Path, brut: dict, run: Path) -> Path:
         if incomplet:
             raise RuntimeError("architecture de l'usine incomplète (python -m usine carte) :\n- " + "\n- ".join(incomplet))
         desc = Description.model_validate(brut)       # forme stricte (règle 3)
-        (run / "01-description.json").write_text(desc.model_dump_json(indent=2), encoding="utf-8")
+        ecrire_description(desc, run / "01-description.json")
+        # (contrat des noms à l'écran, morceau 5) la validation désigne CE fichier, par l'empreinte de ses octets
+        (run / "validation.json").write_text(json.dumps(validation_du_run(run / "01-description.json", validation),
+                                                        ensure_ascii=False, indent=1), encoding="utf-8")
         blocs = blocs_de(desc)
         e["resume"] = (f"{len(desc.acces.actors)} rôles, {len(desc.acces.entities)} fiches, "
                        f"{sum(len(c) for c in desc.champs.values())} champs ; {len(blocs)} blocs utilisés")

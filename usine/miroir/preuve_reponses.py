@@ -12,6 +12,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from ..comprendre.completion import charger_lecture
 from ..matrice import VISITOR, AccessDeclaration, compute_matrix
 from ..variante import proposer
 from .contenu import construire, couverture
@@ -43,7 +44,8 @@ for run in lectures:
     lect = json.loads((run / "lecteurs.json").read_text(encoding="utf-8"))
     if (lect.get("perimetre") or {}).get("perimetre") == "hors":
         continue
-    brut = json.loads((run / "description-brute.json").read_text(encoding="utf-8"))
+    # (format 2) une lecture d'avant le contrat des noms à l'écran est complétée au chargement
+    brut = charger_lecture(run / "description-brute.json")
     hors = (lect.get("perimetre") or {}).get("hors_stock", [])
     props = {f["fiche"]: f["propositions"] for f in ((lect.get("champs") or {}).get("fiches") or []) if f.get("propositions")}
     avant = cases(brut)

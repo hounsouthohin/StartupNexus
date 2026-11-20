@@ -25,6 +25,93 @@ def _maj(s: str) -> str:
     return s[:1].upper() + s[1:]
 
 
+# (contrat des noms à l'écran, 20 nov 2026) LE TITRE d'une fiche vient de la description (format 2), jamais deviné ici.
+def titre_de(desc: Description, fiches: dict[str, FicheApp], nom: str) -> dict | None:
+    """{"champ": "title"} si le titre est un champ de la fiche (a) ; {"lien": "book", "champ": "title"} s'il vient de
+    la fiche qu'elle désigne (b, un seul niveau) ; None pour une fiche qui n'en a pas (profil, ligne)."""
+    ec = desc.ecran.get(nom)
+    t = ec.titre if ec else None
+    if not t:
+        return None
+    if t[:1].isupper():
+        cible = desc.ecran[t].titre
+        lien = next(l for l in fiches[nom].liens if l.cible == t and not l.proprietaire)
+        return {"lien": lien.nom, "champ": cible}
+    return {"champ": t}
+
+
+def affiche_de(desc: Description, fiches: dict[str, FicheApp], cible: str) -> str:
+    """Ce qui montre une fiche liée (listes de choix, fiche désignée) : son titre. Un titre tiré d'une fiche liée
+    s'écrit « lien.champ » (le squelette inclut alors ce lien). Une fiche sans titre (profil, ligne) garde l'ancienne
+    règle « premier champ texte »."""
+    t = titre_de(desc, fiches, cible)
+    if t is None:
+        return premier_texte(fiches[cible])
+    return f"{t['lien']}.{t['champ']}" if "lien" in t else t["champ"]
+
+
+# ─── (contrat des noms à l'écran) LES NOMS QUE L'APP MONTRE, calculés à un seul endroit ─────────────────────────────
+# La notice (les écrans) et le miroir (ce que le client valide) les lisent ici tous les deux : le client valide donc
+# exactement ce que l'app affichera, sans copie d'une règle.
+
+def libelle_liste(e) -> str:
+    """Le nom d'une liste : son entrée de menu et le titre de sa page (« Emprunts »)."""
+    return _maj(e.label_plural)
+
+
+def boutons_etapes(desc: Description, f: FicheApp) -> dict[str, str]:
+    """Le bouton qui mène à chaque état d'arrivée : le nom donné dans la description, sinon le libellé de l'état."""
+    e = f.e
+    ecran = desc.ecran.get(e.name)
+    boutons = (ecran.boutons if ecran else {}) or {}
+    cibles = {t for ts in e.process.transitions.values() for t in ts}
+    return {t: boutons.get(t) or _maj(e.process.labels.get(t, t)) for t in f.etats if t in cibles}
+
+
+def creations_en_un_clic(desc: Description, m: Matrix, fiches: dict[str, FicheApp], cible: str) -> list[dict]:
+    """« Emprunter » : sur chaque fiche `cible`, un bouton qui crée d'un clic la fiche qui la désigne — seulement si
+    le clic suffit à la remplir : aucun champ obligatoire, et un seul lien à poser (sinon il faut un formulaire)."""
+    actions = []
+    for autre in fiches.values():
+        if autre.e.nature == "child" or any(c.obligatoire for c in autre.champs) or len([x for x in autre.liens if not x.proprietaire]) != 1:
+            continue
+        for l in autre.liens:
+            if l.cible == cible and not l.proprietaire and any(
+                    c.entity == autre.nom and c.create == "yes" for c in m.cells):
+                verbe = (desc.ecran.get(autre.nom).verbe_creation if desc.ecran.get(autre.nom) else None)
+                actions.append({"libelle": verbe or f"Nouveau : {autre.e.label}", "cree": autre.nom, "lien": l.fk})
+    return actions
+
+
+def noms_a_l_ecran(desc: Description, m: Matrix) -> dict[str, dict]:
+    """Pour chaque fiche principale (ni profil ni ligne : hors du contrat), les noms que l'app montre :
+    {"menu": "Emprunts", "creation": "Nouvel emprunt", "creation_visible": True,   (False : aucun rôle n'en crée)
+     "titre": {"sorte": "Emprunt", "champ": "Titre", "via": "Book"},   (via : la fiche désignée ; None si c'est un de ses champs)
+     "etapes": {"accepted": "Accepter", …}, "clics": [{"libelle": "Emprunter", "depuis": "Book"}]}"""
+    fiches = construire(desc, m)
+    out: dict[str, dict] = {}
+    for f in fiches.values():
+        e = f.e
+        if e.nature in ("profile", "child"):
+            continue
+        t = titre_de(desc, fiches, e.name)
+        if t is None:
+            titre = None
+        elif "lien" in t:
+            cible = next(l.cible for l in f.liens if l.nom == t["lien"])
+            titre = {"sorte": _maj(e.label), "champ": next(c.libelle for c in fiches[cible].champs if c.nom == t["champ"]),
+                     "via": cible}
+        else:
+            titre = {"sorte": _maj(e.label), "champ": next(c.libelle for c in f.champs if c.nom == t["champ"]), "via": None}
+        # le bouton de création n'apparaît que pour un rôle qui crée : le miroir le dit au lieu de le faire valider en vain
+        cree = any(c.entity == e.name and c.create == "yes" for c in m.cells)
+        out[e.name] = {"menu": libelle_liste(e), "creation": desc.ecran[e.name].creation, "creation_visible": cree, "titre": titre,
+                       "etapes": boutons_etapes(desc, f) if e.process else {},
+                       "clics": [{"libelle": a["libelle"], "depuis": depuis}
+                                 for depuis in fiches for a in creations_en_un_clic(desc, m, fiches, depuis) if a["cree"] == e.name]}
+    return out
+
+
 def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matrix) -> dict:
     e = f.e
     ecran = desc.ecran.get(e.name)
@@ -40,21 +127,22 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
         "modele": bas(e.name),
         "libelle": e.label,
         # la liste (aussi celle des profils, vue par d'autres rôles) ; « Mon … » est le titre de /profil
-        "titre": _maj(e.label_plural),
+        "titre": libelle_liste(e),
         "champs": champs,
         "modifiables": [{"nom": c.nom, "libelle": c.libelle, "saisie": c.type, "obligatoire": c.obligatoire, **_options(c)}
                         for c in f.champs],
     }
     if e.nature not in ("profile", "child"):     # (N1.3) une ligne s'ajoute depuis la page de son parent
-        # (N1.2) le bouton du formulaire de création : « Nouvelle facture », « Nouveau chantier »
-        nouveau = "Nouvelle" if e.feminine else "Nouvel" if e.label[:1].lower() in "aeiouyéèêâîôh" else "Nouveau"
-        n["creation"] = {"libelle": f"{nouveau} {e.label}"}
+        # (contrat des noms à l'écran) le nom du bouton de création VIENT DE LA DESCRIPTION (format 2), montré au client
+        # au miroir ; la règle de grammaire n'est plus ici (elle est dans la complétion, avant le miroir)
+        n["creation"] = {"libelle": ecran.creation}
+        n["titreFiche"] = titre_de(desc, fiches, e.name)
     if f.liens:
         roles = {a.id: a.label for a in desc.acces.actors}
         # le profil du propriétaire s'affiche sous le nom de son rôle (« Adhérent »), pas « Profil » ;
         # (N1.2) fk / cible / proprietaire : pour les listes de choix des formulaires (le lien vers le
         # profil du propriétaire est posé automatiquement : jamais choisi)
-        n["liens"] = [{"nom": l.nom, "affiche": premier_texte(fiches[l.cible]),
+        n["liens"] = [{"nom": l.nom, "affiche": affiche_de(desc, fiches, l.cible),
                        "libelle": _maj(roles.get(e.owner, fiches[l.cible].e.label) if l.proprietaire else fiches[l.cible].e.label),
                        "fk": l.fk, "cible": l.cible, "proprietaire": l.proprietaire, **({"parent": True} if l.parent else {})}
                       for l in f.liens]
@@ -71,27 +159,22 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
         # l'écran le dit au lieu de proposer un bouton que le serveur refuserait
         n["designee_par"] = [{"relation": rel, "libelle": fiches[source].e.label_plural, "libelle_un": fiches[source].e.label}
                              for rel, source in f.inverses]
-    tri = "createdAt" if e.process else premier_texte(f)
-    if tri != "id":
-        n["tri"] = {"champ": tri, "sens": "desc" if e.process else "asc"}
+    # le tri ne fait pas partie du contrat : les fiches à circuit, les plus récentes d'abord (inchangé, les tests en
+    # dépendent) ; les autres fiches principales, par leur titre s'il est un de leurs champs, sinon par date de création
+    t = n.get("titreFiche")
     if e.process:
-        boutons = (ecran.boutons if ecran else {}) or {}
-        cibles = {t for ts in e.process.transitions.values() for t in ts}
+        tri, sens = "createdAt", "desc"
+    elif t is not None:
+        tri, sens = (t["champ"], "asc") if "lien" not in t else ("createdAt", "asc")
+    else:
+        tri, sens = premier_texte(f), "asc"
+    if tri != "id":
+        n["tri"] = {"champ": tri, "sens": sens}
+    if e.process:
         n["etat"] = {"champ": "status", "initial": e.process.initial,
                      "libelles": e.process.labels or {s: s for s in f.etats},
-                     "boutons": {t: boutons.get(t) or _maj(e.process.labels.get(t, t)) for t in f.etats if t in cibles}}
-    # « Emprunter » : un bouton sur chaque fiche liée pour créer, d'un clic, la fiche qui la désigne —
-    # seulement si le clic suffit à la remplir : aucun champ obligatoire, et un seul lien à poser
-    # (sinon il faut un formulaire : N1.5)
-    actions = []
-    for autre in fiches.values():
-        if autre.e.nature == "child" or any(c.obligatoire for c in autre.champs) or len([x for x in autre.liens if not x.proprietaire]) != 1:
-            continue
-        for l in autre.liens:
-            if l.cible == e.name and not l.proprietaire and any(
-                    c.entity == autre.nom and c.create == "yes" for c in m.cells):
-                verbe = (desc.ecran.get(autre.nom).verbe_creation if desc.ecran.get(autre.nom) else None)
-                actions.append({"libelle": verbe or f"Nouveau : {autre.e.label}", "cree": autre.nom, "lien": l.fk})
+                     "boutons": boutons_etapes(desc, f)}
+    actions = creations_en_un_clic(desc, m, fiches, e.name)        # « Emprunter » sur chaque ouvrage
     if actions:
         n["actionsLigne"] = actions
     return n
@@ -153,7 +236,7 @@ def traduire_droits(desc: Description, m: Matrix) -> str:
             # (« l'équipe et ses membres ») était impossible à créer. Les autres rôles qui voient ces profils
             # les ont en liste, jamais comme « Mon … ».
             menu.append({"fiche": e.name, "chemin": "/profil", "libelle": f"Mon {e.label}", "action": "voir", "role": e.owner})
-            menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": _maj(e.label_plural), "action": "voir",
+            menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": libelle_liste(e), "action": "voir",
                          "sauf": e.owner})
             profils.append({"fiche": e.name, "role": e.owner,
                             "obligatoires": [{"nom": c.nom, "type": c.type,
@@ -162,7 +245,7 @@ def traduire_droits(desc: Description, m: Matrix) -> str:
         elif e.nature == "child":
             continue                                 # (N1.3) une ligne n'a pas de menu : elle vit dans son parent
         else:
-            menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": _maj(e.label_plural), "action": "voir"})
+            menu.append({"fiche": e.name, "chemin": f"/f/{e.name}", "libelle": libelle_liste(e), "action": "voir"})
     return "\n".join([
         ENTETE,
         "import type { NomFiche } from './notice';",
