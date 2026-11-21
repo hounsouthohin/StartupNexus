@@ -105,6 +105,18 @@ def infos_fiches(fiches: L.SortieFiches, circuits: L.SortieCircuits) -> dict:
     return out
 
 
+def donnees_libelles(brief: str, info: dict) -> tuple[dict, dict]:
+    """Ce que reçoit le lecteur 7 (libellés d'écran), et le contexte de son contrôle. (Contrat des noms à l'écran) Chaque
+    fiche dit si elle est « principale » (ni profil ni ligne : elle a un bouton de création à nommer)."""
+    principales = [n for n, i in info.items() if i["nature"] not in ("profile", "child")]
+    fiches = [{"fiche": n, "libelle": i["libelle"], "nature": i["nature"], "principale": n in principales,
+               "designe": [lib for _, lib in i["liens"]], "etats": i["etats"], "arrivees": i["arrivees"]}
+              for n, i in info.items()]
+    designee_par = {n: [g for g, j in info.items() if any(r == n for r, _ in j["liens"])] for n in info}
+    return ({"brief": brief, "fiches": fiches},
+            {"arrivees": {n: i["arrivees"] for n, i in info.items()}, "principales": principales, "designee_par": designee_par})
+
+
 def lire_champs(sortie: L.SortieChamps | None, brief: str) -> tuple[dict, dict]:
     """Réponse du lecteur 6 → (champs de la description, propositions pour le miroir)."""
     champs, propositions = {}, {}
@@ -228,9 +240,9 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
                            "designe": [lib for _, lib in i["liens"]], "etats": i["etats"]} for n, i in info.items()]
         champs_ia = lecteur("Lecteur 6 — champs", L.Q_CHAMPS, {"brief": brief, "fiches": donnees_fiches},
                             L.SortieChamps, L.controle_champs, {"fiches_info": info}, "champs")
-        libelles = lecteur("Lecteur 7 — libellés d'écran", L.Q_LIBELLES,
-                           {"brief": brief, "fiches": [{**d, "arrivees": info[d["fiche"]]["arrivees"]} for d in donnees_fiches]},
-                           L.SortieLibelles, L.controle_libelles, {"arrivees": {n: i["arrivees"] for n, i in info.items()}}, "libelles")
+        donnees_lib, ctx_lib = donnees_libelles(brief, info)
+        libelles = lecteur("Lecteur 7 — libellés d'écran", L.Q_LIBELLES, donnees_lib,
+                           L.SortieLibelles, L.controle_libelles, ctx_lib, "libelles")
         if champs_ia is None or libelles is None:
             return fin("ÉCHEC : champs ou libellés refusés 3 fois")
     except PlafondAtteint as x:
@@ -238,8 +250,9 @@ def comprendre(chemin_brief: str, nom: str, modele: str = "gpt-5.5", plafond: fl
 
     with journal.etape("Assembler et contrôler la description") as e:
         champs, propositions = lire_champs(champs_ia, brief)
-        ecran = {f.fiche: {"verbe_creation": f.verbe_creation, "boutons": f.boutons}
-                 for f in libelles.fiches if f.verbe_creation or f.boutons}
+        # (contrat des noms à l'écran) le bouton de création proposé par le lecteur ; la complétion ne le remplace pas
+        ecran = {f.fiche: {"verbe_creation": f.verbe_creation, "boutons": f.boutons, **({"creation": f.creation} if f.creation else {})}
+                 for f in libelles.fiches if f.verbe_creation or f.boutons or f.creation}
         brut = {"app": {"nom": nom, "titre": libelles.titre}, "acces": data, "champs": champs, "ecran": ecran, "depart": {}}
         # (format 2, contrat des noms à l'écran) la complétion : le nom du bouton de création et le titre de chaque fiche
         # principale, AVANT le miroir (qui les montre au client) ; jamais deviné plus loin

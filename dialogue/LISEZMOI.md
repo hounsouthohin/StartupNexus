@@ -121,7 +121,10 @@ code et peut rejouer les preuves est un garde-fou plus fort qu'une relecture de 
     Pourquoi : rien ne prévient un agent quand l'autre écrit, puisque c'est Arthur qui relaie (règle 2). Le 20 nov,
     quatre choses l'ont montré :
     - un message important (« les apps sont prêtes », « la médiathèque est occupée ») est resté non lu ;
-    - deux travaux lourds lancés en même temps ont fait passer une compilation d'une minute à quarante ;
+    - ~~deux travaux lourds lancés en même temps ont fait passer une compilation d'une minute à quarante~~ *(corrigé le
+      20 nov à 17 h 45 par Claude Code : c'était faux. Le journal de Windows montre que le poste était en veille
+      pendant ces quarante minutes, de 11 h 01 à 11 h 41, et la charge n'y était pour rien. Une veille gèle aussi tout
+      travail en cours : un agent doit pouvoir dire « mesure faussée par la veille » plutôt que « lenteur »)* ;
     - une base occupée par l'un pouvait fausser les mesures de l'autre ;
     - deux écritures simultanées du même fichier : celle de Codex a effacé, sans que personne le voie, l'en-tête, un
       message et une ligne du stylo écrits par Claude Code.
@@ -141,6 +144,7 @@ ouvert → en discussion → consensus **ou** désaccord documenté → tranché
 | [Les règles après la décision](2026-11-19-regles-apres-decision.md) | Codex applique les amendements du protocole ; Claude Code vérifie | 19 nov 2026 | **clos** : appliqué par Codex, vérifié par Claude Code ; la proportionnalité a été tranchée par Arthur | — |
 | [Vérification du contrat des noms à l'écran](2026-11-19-verification-contrat-noms-ecran.md) | Codex vérifie le dossier avant tout code : la taille, la faisabilité, les preuves, ce qui manque | 19 nov 2026 | trois vérifications de Codex, toutes acceptées ; **version 3, précisée** ; un défaut probable de l'usine (n° 63, à prouver d'abord) | **Codex** (cocher), puis **Arthur** (« go ») |
 | [Codex, auteur du juge du contrat](2026-11-20-juge-du-contrat-par-codex.md) | Le développement à deux : Claude Code construit le côté usine du contrat, Codex construit son juge (l'inspecteur sans repli, sa maquette, ses sabotages). Chacun vérifie l'autre | 20 nov 2026 | ouvert : interface arrêtée ; les trois exemples sont prêts à juger (12 h 00), la médiathèque libre (12 h 11) ; zones cachées : d'accord, à corriger dans le juge puis à rejouer | **Codex** (tenir sa ligne « En ce moment » ; corriger les zones cachées et rejouer ; vérifier le refus des textes vides ; le format des noms dans l'inventaire ; recalculer l'inventaire sur le format 2) |
+| [L'IA enfermée et son harnais](2026-11-20-ia-enfermee-et-son-harnais.md) | Est-ce le modèle ou son harnais qui compte ? Faut-il essayer une IA par l'API avant l'essai de l'agent constructeur ? Discussion courte, demandée par Arthur | 20 nov 2026 | **consensus** : synthèse écrite par Claude Code (19 h 02) | **Codex** (valider la synthèse), puis **Arthur** (confirmer) |
 | *à ouvrir après le contrat* | **Vérification du dossier de l'essai des exemples à l'aveugle** ([dossier](../conception/essai-exemples-a-l-aveugle.md), écrit par Claude Code le 19 nov) | — | à venir | — |
 | [Vérification de l'essai de la boîte](2026-11-19-verification-essai-boite.md) | Codex compare le compte rendu aux résultats bruts, examine ce qu'un rejeu demanderait, puis rejoue après ton accord | 19 nov 2026 | **clos** : voie (a), l'atelier sera qualifié dans la chaîne complète | — |
 

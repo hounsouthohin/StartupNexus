@@ -49,9 +49,10 @@ const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 // (contrat des noms à l'écran, règle 11) L'ÉTAT D'UNE ZONE DE DONNÉES, pour la machine : chargement, prêt, erreur.
 // Une erreur s'affiche comme une erreur, JAMAIS comme une liste vide ; une liste vide et prête dit « Aucun élément ».
-type EtatZone = 'chargement' | 'pret' | 'erreur';
-const etatZone = (q: { isLoading: boolean; isError: boolean }): EtatZone => (q.isLoading ? 'chargement' : q.isError ? 'erreur' : 'pret');
-function Zone(props: { zone: 'liste' | 'fiche' | 'choix'; fiche: string; etat: EtatZone; erreur?: unknown; className?: string; children?: React.ReactNode }) {
+// Exportées pour l'artisan (CONTRAT-ECRANS.md) : ses écrans de `sur-mesure/` portent leur état de la même façon.
+export type EtatZone = 'chargement' | 'pret' | 'erreur';
+export const etatZone = (q: { isLoading: boolean; isError: boolean }): EtatZone => (q.isLoading ? 'chargement' : q.isError ? 'erreur' : 'pret');
+export function Zone(props:{ zone: 'liste' | 'fiche' | 'choix'; fiche: string; etat: EtatZone; erreur?: unknown; className?: string; children?: React.ReactNode }) {
     return (
         <section data-zone={props.zone} data-fiche={props.fiche} data-etat={props.etat} aria-busy={props.etat === 'chargement'}
             className={props.className}>

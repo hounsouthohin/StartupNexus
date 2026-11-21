@@ -19,8 +19,8 @@
 - **Claude Code** (le côté usine), depuis le 19 nov 2026 : `usine/` (description, comprendre, miroir, traduire, la porte),
   `usine/modele-app/`, `usine/exemples/`, `conception/contrat-noms-ecran.md`, et
   `C:\Users\BAMBARA Arthur\essais\contrat-noms\` **sauf** le sous-dossier `juge\` et l'inventaire.
-- **Codex** (le côté juge) : **libre**, pour `C:\Users\BAMBARA Arthur\essais\contrat-noms\juge\` et l'inventaire
-  (`inventaire.py`, `inventaire.md`, `inventaire-*.json`).
+- **Codex** (le côté juge) : depuis le 20 nov 2026 21 h 12, pour
+  `C:\Users\BAMBARA Arthur\essais\contrat-noms\juge\` ; fil du juge, mesures sur copies d'apps.
 
 Aucun des deux n'écrit dans le périmètre de l'autre ; un besoin chez l'autre s'écrit dans le fil.
 
@@ -28,6 +28,14 @@ Aucun des deux n'écrit dans le périmètre de l'autre ; un besoin chez l'autre 
 
 | Qui | Fichiers | Pris | Rendu | Fil |
 |---|---|---|---|---|
+| Codex (OpenAI) | raccordement, diagnostic de session, correction du jumeau et qualification rejouée | 20 nov 2026 20 h 38 | 20 nov 2026 21 h 11 | juge du contrat, médiathèque |
+| Codex (OpenAI) | juge, inventaire v5, préparation des copies et des fiches, qualification sur maquette | 20 nov 2026 20 h 00 | 20 nov 2026 20 h 37 | juge du contrat, qualification |
+| Codex (OpenAI) | inventaire v4, lecture du juge v3, preuves et rapports de la correction des liens automatiques | 20 nov 2026 19 h 47 | 20 nov 2026 19 h 52 | juge du contrat, classe « Profil » |
+| Codex (OpenAI) | inventaire v3 avec noms et empreintes, preuve et rapport du raccordement au miroir | 20 nov 2026 19 h 23 | 20 nov 2026 19 h 26 | juge du contrat, inventaire |
+| Codex (OpenAI) | `juge/attendre-zone-visible.mjs`, inspecteurs corrigés, preuve et rapports des zones ; rejeu des textes | 20 nov 2026 19 h 08 | 20 nov 2026 19 h 20 | juge du contrat, zones et vérifications |
+| Claude Code | `dialogue/LISEZMOI.md` (l'état du fil : consensus) | 20 nov 2026 19 h 02 | 20 nov 2026 19 h 02 | l'IA enfermée et son harnais |
+| Claude Code | `dialogue/LISEZMOI.md` (une ligne : le nouveau fil ouvert par Arthur) | 20 nov 2026 18 h 50 | 20 nov 2026 18 h 50 | l'IA enfermée et son harnais |
+| Claude Code | `dialogue/LISEZMOI.md` (règle 15 : un fait faux corrigé dans son « pourquoi », la lenteur venait de la veille du poste) | 20 nov 2026 17 h 45 | 20 nov 2026 17 h 45 | juge du contrat |
 | Claude Code | `USINE.md` §5 (inconnue n° 17, hypothèse : la vision d'Arthur) | 20 nov 2026 15 h 30 | 20 nov 2026 15 h 30 | juge du contrat (message de Codex de 15 h 25) |
 | Claude Code | *Écart, signalé ici :* `USINE.md` §7 (registre n° 61 à 63) modifié vers 12 h sans que `USINE.md` soit dans mon périmètre de stylo | 20 nov 2026 ≈ 12 h | 20 nov 2026 ≈ 12 h | contrat des noms à l'écran |
 | Claude Code | `dialogue/LISEZMOI.md` (règle 15 complétée : relire après chaque écriture, décidé par Arthur) | 20 nov 2026 12 h 12 | 20 nov 2026 12 h 14 | juge du contrat ; décision d'Arthur |

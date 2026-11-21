@@ -558,6 +558,11 @@ précisions (fil [Codex, auteur du juge du contrat](../dialogue/2026-11-20-juge-
     - refabriquée à neuf : **28 passés**.
 
     La cause n'est pas trouvée. Le blocage est noté et reste à surveiller ; il n'est pas compté comme réussi.
+
+    *(Ajouté le 20 nov à 17 h 45 [lu, journal de Windows, événements 506 et 507 : l'entrée et la sortie de la veille].
+    Le poste était **en veille de 10 h 06 à 10 h 26**. Ces tests ont démarré vers 10 h 17, pendant la veille, et se sont
+    terminés à 10 h 26 min 57 s, cinq secondes après le réveil. **La veille en est très probablement la cause** ; ce
+    n'est pas prouvé.)*
   - les matrices des trois apps gardent leurs empreintes (`c8c547fb266a…`, `5d27e151634c…`, `95aa8255d325…`).
 - **Un contrôle de l'auteur, qui n'est pas une preuve** [rejoué, à la main] : sur la médiathèque, l'adhérent emprunte
   « Germinal » en un clic. La ligne de l'emprunt commence par « Germinal », son lien ouvre cet emprunt, la page a pour
@@ -638,6 +643,11 @@ morceau 8). À vérifier par Codex.
     50 s. Le processeur était à 100 % et il ne restait que 2,4 Go de mémoire libre ; les autres apps se sont ensuite
     compilées en temps normal. La cause n'est pas établie (peut-être le travail de Codex en même temps). Le résultat
     n'en dépend pas, seulement le temps.
+
+    *(Corrigé le 20 nov à 17 h 45 : **la cause supposée était fausse**. Le journal de Windows [lu] montre que le
+    poste était **en veille de 11 h 01 à 11 h 41**, exactement pendant cette compilation : la veille gèle le travail
+    en cours, et la charge n'y était pour rien. Le processeur à 100 % était relevé à 11 h 41, au réveil. Même chose à
+    16 h 02 : une compilation de 5 928 s, pendant une veille de 16 h 05 à 17 h 42.)*
 - **Une erreur de ma part, rattrapée** : mon premier script de mesure enchaînée passait un chemin faux aux preuves (une
   fonction PowerShell renvoie aussi ce qu'elle affiche). Les preuves n'avaient pas tourné ; elles ont été rejouées à la
   main sur les mêmes apps. Les chiffres ci-dessus viennent de ces rejeux.
@@ -652,6 +662,120 @@ squelette, la porte et le refus des textes vides) [rejoué] :
   443 s, contre 69 minutes le 13 nov ; la raison n'est pas cherchée.
 
 Tous les témoins écrits d'avance au §6 sont donc identiques sur cette version.
+
+**20 nov (après-midi), le miroir : le bloc « À l'écran », sa couverture, et l'empreinte de la vue** (morceau 4, et la
+fin du morceau 5).
+- **Ce qui a été fait** :
+  - `usine/traduire/ecran.py` : les noms que l'app montre (le menu, le bouton de création, le titre d'une fiche, les
+    boutons d'étape, la création en un clic) sont calculés par **une seule fonction**, `noms_a_l_ecran`. La notice des
+    écrans et le miroir la lisent toutes les deux : le client valide donc exactement ce qui sera affiché, sans copie
+    d'une règle. **Preuve que rien n'a bougé** [rejoué] : sur les 4 exemples et les 8 lectures d'apprentissage dans le
+    périmètre, le traducteur produit les **mêmes 36 fichiers, au même octet près**, avant et après ;
+  - `usine/miroir/contenu.py` : chaque fiche principale a son bloc « à l'écran », une ligne par sorte d'action.
+    Exemple, l'emprunt de la médiathèque :
+
+    ```
+    - **Emprunt** : aucune information (seulement ses liens)
+      - relié à : ouvrage, profil
+      - à l'écran :
+        - menu et titre de la liste : « Emprunts »
+        - bouton de création : « Nouvel emprunt »
+        - titre d'une fiche : « Emprunt : » puis le champ « Titre » de l'ouvrage désigné
+        - boutons d'étape : « Accepter » (vers « accepté »), « Refuser » (vers « refusé »), « Marquer rendu » (vers « rendu »)
+        - création en un clic : « Emprunter », sur chaque ouvrage
+    ```
+
+    Un bouton qui n'apparaît pour personne est dit tel quel. Dans la médiathèque, par exemple, on lit « « Nouvel
+    ouvrage » (aucun rôle n'en crée pour l'instant : le bouton n'apparaît pas) ».
+  - **le contrôle de couverture** (`couverture_ecran`) : chaque nom que l'app montrera, recalculé depuis la
+    description, doit figurer dans la vue du client (avant le volet concepteur), **dans le bloc de sa fiche, à la ligne
+    de son action**. Un nom absent arrête la validation, et le contrôle le nomme. Le contrôle accepte aussi une liste de
+    noms venue d'ailleurs : ce sera l'inventaire de l'inspecteur, quand Codex y aura ajouté les noms ;
+  - `usine/miroir/porte.py` : au moment de valider, la porte **régénère** la vue depuis la description et la compare à
+    la vue présentée (`miroir.md`). Une vue tirée d'une autre version est refusée. La porte enregistre l'empreinte de la
+    vue ; une vue modifiée après la validation est refusée, et une validation d'avant cette règle doit être refaite.
+- **Les preuves** [rejoué] :
+  - `python -m usine.miroir.preuve_ecran` : **0 échec**.
+    - **La couverture** : 196 noms contrôlés sur 12 miroirs, les 4 exemples et les 8 lectures d'apprentissage dans le
+      périmètre. Les 2 autres (la place de marché, le réseau social) sont hors périmètre : elles n'ont aucune fiche à
+      montrer.
+    - **Le sabotage 7** est attrapé trois fois : un nom écrit dans le bloc d'une autre fiche, sur une autre ligne de sa
+      fiche, ou seulement après le volet concepteur.
+    - **Le 7 bis** est attrapé : un nom de l'inventaire absent de la vue.
+    - **Le 8** est attrapé : deux étapes « Valider » sur une même page sont refusées par la description, en nommant le
+      nom.
+    - **Le témoin** passe : « Valider » sur deux pages différentes est accepté.
+  - `python -m usine.miroir.preuve_porte <dossier>` : **0 échec** sur deux lectures copiées.
+    - **Le 10** est refusé : la vue modifiée après la validation, ou une validation sans empreinte de vue.
+    - **Le 10 bis** est refusé : la vue présentée d'avant les réponses, ou un nom changé dans la vue présentée.
+    - **Les témoins** passent : la vue qui découle de la description validée est acceptée, et les anciens contrôles
+      tiennent.
+- **Les témoins d'avant** [rejoué] :
+  - la preuve des réponses du miroir sort **à la ligne près la même chose que ce matin** (0 défaut). Ses 67 lectures
+    passent maintenant aussi par le contrôle « à l'écran » ;
+  - la preuve de la description : 21/21.
+- **Ce qui change pour le concepteur** : avant de valider, la vue doit être régénérée (`python -m usine.miroir
+  <lecture>`) et relue avec le client. Les `miroir.md` des lectures déjà faites sont donc anciens jusqu'à leur
+  régénération ; je ne les ai pas régénérés.
+- **Ce qui n'est pas prouvé** :
+  - la couverture contre les noms de l'inventaire de l'inspecteur : ils n'y sont pas encore (demandé à Codex) ;
+  - que le client comprend ces lignes : c'est l'essai des exemples à l'aveugle, plus tard ;
+  - les noms des 10 briefs viennent encore de la règle de grammaire (la complétion), puisque le lecteur des libellés
+    n'est pas fait.
+
+**20 nov (fin d'après-midi), la notice de l'artisan** (morceau 9) : `usine/modele-app/CONTRAT-ECRANS.md`. Elle donne
+les onze règles en une page, pour qui écrit des écrans dans `sur-mesure/`, avec les pièces du squelette à utiliser.
+- **Vérifiée contre le code avant d'être rendue** [lu] : deux affirmations étaient fausses dans mon premier jet, et je
+  les ai corrigées.
+  - **La pièce `Zone` n'était pas exportée**, donc l'artisan n'aurait pas pu s'en servir. Elle l'est maintenant, avec
+    `etatZone` (`components/pieces.tsx`). C'est un simple `export`, sans changement de comportement.
+  - **Les données ne passent pas par « les hooks de `lib/` »**, mais par `useClientQueries` de ZenStack.
+- **Une fabrication de contrôle** [rejoué] : la médiathèque refabriquée avec la notice et l'`export` donne des témoins
+  identiques (120/120, 11 passés et 1 sauté), une matrice inchangée, et la notice est copiée dans l'app.
+
+**20 nov (soir), le lecteur des libellés : la consigne et son contrôle faits et prouvés ; la mesure attend la session
+isolée** (morceau 2).
+- **Ce qui a été fait** :
+  - `usine/comprendre/lecteurs.py` : la consigne du lecteur 7 demande `creation` pour chaque fiche marquée
+    « principale ». **Le contrôle refuse** un nom :
+    - manquant ou vide ;
+    - de plus de 40 caractères ;
+    - qui est un geste seul (« Créer »…) ;
+    - égal à une étape de sa fiche, ou à une création en un clic affichée sur sa page ;
+    - donné à une fiche qui n'est pas principale.
+
+    Le contrôle reste le même pour les anciennes lectures, dont le contexte ne connaît pas les fiches principales.
+  - `usine/comprendre/__init__.py` : `donnees_libelles` prépare ce que le lecteur reçoit, avec le drapeau « principale »
+    et les fiches qui désignent chaque fiche. Le nom proposé entre dans la description, et la complétion ne le remplace
+    pas.
+- **La preuve du contrôle** [rejoué] : `python -m usine.comprendre.preuve_libelles` donne **0 échec**.
+  - Elle porte sur les fiches réelles des 8 lectures d'apprentissage dans le périmètre.
+  - 16 témoins sont acceptés : une réponse complète, et l'ancienne réponse avec l'ancien contexte.
+  - 54 sabotages sont refusés en nommant la fiche. Chacune des huit sortes est essayée de 3 à 8 fois.
+- **La mesure** (méthode écrite d'avance, au morceau 2) : `C:\Users\BAMBARA Arthur\essais\contrat-noms\mesure-libelles.py`.
+  - Préparée sans appel : **8 questions au moins, 45 noms attendus**.
+  - Elle passe par la boîte aux lettres : **Arthur doit ouvrir la session Claude isolée** pour qu'elle réponde.
+  - Elle produit `mesure-libelles.md` : le tableau où Arthur écrit ses corrections. Seuil : au plus un nom corrigé sur
+    cinq.
+- **Ce qui n'est pas prouvé** : la qualité des noms proposés. Seule la mesure le dira.
+
+**20 nov (soir), la vérification croisée avec Codex.**
+- **Codex a rejoué mes pièces** [rapporté par Codex, 19 h 20] :
+  - le refus des textes vides, dans une base neuve : 20 sur 20 pour la bonne raison, 33 témoins sur 33, 30 sur 30 en plus ;
+  - le miroir et la porte : 0 échec, et cinq noms retirés à la main, tous détectés.
+
+  Ses limites : la fabrication et les bases des apps ne sont pas couvertes par ce rejeu.
+- **Codex a corrigé son juge pour les zones cachées** [rapporté par Codex] : 102 cas sur 102, et 34 sur 34 au ralenti,
+  **sur sa maquette**.
+- **J'ai vérifié son inventaire v3, celui qui porte les noms** [rejoué : `essais/contrat-noms/verif-inventaire-v3.py`].
+  - Les empreintes, les sources et les 94 parcours sont justes.
+  - **3 noms sont faux, d'une seule classe** : un champ « Profil » attendu dans trois formulaires de création. C'est le
+    lien vers le propriétaire, que le formulaire ne montre jamais. C'est à Codex de le corriger.
+- **Les champs sont raccordés au miroir** : une ligne « champs du formulaire », calculée par la même source que les
+  écrans (le traducteur produit toujours les mêmes 36 fichiers).
+  - **La couverture complète contre l'inventaire indépendant** porte sur 72 noms : 69 sont à leur place, et les 3 qui
+    manquent sont exactement les trois « Profil » faux.
+  - `preuve_ecran` donne 0 échec, avec 355 noms sur 12 miroirs. Les autres témoins sont identiques.
 
 ## Petit lexique
 

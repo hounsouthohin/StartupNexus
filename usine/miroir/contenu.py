@@ -40,7 +40,7 @@ def du(label: str, fem: bool = False) -> str:
 # par le traducteur (usine/traduire/ecran.py, noms_a_l_ecran) — le client valide exactement ce qui sera affiché.
 # Une ligne par sorte d'action ; le contrôle de couverture cherche chaque nom à SA ligne, dans le bloc de SA fiche.
 A_L_ECRAN = {"menu": "menu et titre de la liste", "creation": "bouton de création", "titre": "titre d'une fiche",
-             "etape": "boutons d'étape", "clic": "création en un clic"}
+             "etape": "boutons d'étape", "clic": "création en un clic", "champ": "champs du formulaire"}
 
 
 def _marque(ou: str, nom: str) -> str:
@@ -58,6 +58,7 @@ def attendus_a_l_ecran(desc: Description, m) -> list[tuple[str, str, str]]:
             out.append((fiche, "titre", n["titre"]["sorte"]))
         out += [(fiche, "etape", b) for b in n["etapes"].values()]
         out += [(fiche, "clic", c["libelle"]) for c in n["clics"]]
+        out += [(fiche, "champ", c) for c in n["champs"]]
     return out
 
 
@@ -82,6 +83,8 @@ def _a_l_ecran(desc: Description, m) -> dict[str, list[dict]]:
         if n["clics"]:
             lignes.append({"ou": "clic", "noms": [c["libelle"] for c in n["clics"]],
                            "texte": ", ".join(f"{_marque('clic', c['libelle'])}, sur chaque {ent[c['depuis']].label}" for c in n["clics"])})
+        if n["champs"]:
+            lignes.append({"ou": "champ", "noms": list(n["champs"]), "texte": ", ".join(_marque("champ", c) for c in n["champs"])})
         out[fiche] = lignes
     return out
 

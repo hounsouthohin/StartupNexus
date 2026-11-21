@@ -160,6 +160,9 @@ class LibellesFiche(_Strict):
     fiche: str
     verbe_creation: str | None
     boutons: dict[str, str]
+    # (contrat des noms à l'écran, morceau 2) le bouton du formulaire de création d'une fiche principale. Facultatif dans
+    # la FORME (les lectures d'avant le 20 nov n'en ont pas) ; le contrôle l'exige pour chaque fiche principale.
+    creation: str | None = None
 
 
 class SortieLibelles(_Strict):
@@ -343,8 +346,14 @@ UNIQUEMENT en JSON. On te donne le brief, les fiches, leurs liens et leurs circu
 3. Pour chaque fiche qui désigne une autre fiche : « verbe_creation » = le libellé du bouton qui la
    crée d'un clic depuis la fiche désignée (une réservation créée depuis une salle → « Réserver » ;
    une inscription depuis un cours → « S'inscrire ») ; null si ça n'a pas de sens.
-Forme : {"titre": "…", "fiches": [{"fiche": "NomExact", "verbe_creation": "… ou null",
-"boutons": {"etat": "Libellé"}}]} — une entrée pour chaque fiche qui a un circuit ou des liens."""
+4. Pour chaque fiche marquée « principale » : « creation » = le libellé du bouton qui ouvre le
+   formulaire pour en créer une, court et au singulier, avec les mots du brief (« Nouvel emprunt »,
+   « Nouveau devis », « Déclarer une absence », « Ajouter un ouvrage »). Il est différent des boutons
+   d'étape de cette fiche et de toute création en un clic affichée sur sa page ; jamais un geste seul
+   (Créer, Modifier, Supprimer, Enregistrer). Pour une fiche qui n'est pas principale : null.
+Forme : {"titre": "…", "fiches": [{"fiche": "NomExact", "creation": "… ou null", "verbe_creation": "… ou null",
+"boutons": {"etat": "Libellé"}}]} — une entrée pour chaque fiche principale, et pour chaque fiche qui a un
+circuit ou des liens."""
 
 
 # ─── Contrôles (règle 3 : refuser, jamais deviner) ─────────────────────────────────────────
@@ -587,4 +596,33 @@ def controle_libelles(o: SortieLibelles, ctx: dict) -> list[str]:
         manquants = [e for e in etats if e not in (vus[n].boutons if n in vus else {})]
         if manquants:
             errs.append(f"fiche {n} : il manque le bouton de chaque état d'arrivée {manquants}")
+    errs += _controle_creation(o, ctx)
+    return errs
+
+
+def _controle_creation(o: SortieLibelles, ctx: dict) -> list[str]:
+    """(contrat des noms à l'écran, morceau 2) Le bouton de création de chaque fiche principale : présent, pas vide,
+    court, jamais un geste seul, et distinct des autres actions de sa page (ses étapes, les créations en un clic que les
+    fiches qui la désignent y affichent). ctx["principales"] : les fiches principales ; ctx["designee_par"] : fiche →
+    les fiches qui la désignent. Absent de ctx (appel d'avant le 20 nov) : rien n'est exigé."""
+    if "principales" not in ctx:
+        return []
+    errs, vus = [], {f.fiche: f for f in o.fiches}
+    for n in ctx["principales"]:
+        f = vus.get(n)
+        nom = (f.creation or "").strip() if f else ""
+        if not nom:
+            errs.append(f"fiche {n} : il manque « creation », le bouton qui ouvre son formulaire de création")
+            continue
+        if len(nom) > 40:
+            errs.append(f"fiche {n} : « creation » trop long ({len(nom)} caractères, 40 au plus)")
+        if nom.lower() in GESTES:
+            errs.append(f"fiche {n} : « {nom} » est un geste que l'application a déjà ; écris ce qu'on crée (« Nouvel … »)")
+        autres = [b for b in f.boutons.values()] + [vus[g].verbe_creation for g in ctx["designee_par"].get(n, [])
+                                                    if g in vus and vus[g].verbe_creation]
+        if nom.lower() in {a.strip().lower() for a in autres}:
+            errs.append(f"fiche {n} : « {nom} » nomme déjà une autre action de sa page (une étape ou une création en un clic)")
+    for f in o.fiches:
+        if f.creation and f.fiche not in ctx["principales"]:
+            errs.append(f"fiche {f.fiche} : n'est pas principale (profil ou ligne) ; « creation » doit être null")
     return errs

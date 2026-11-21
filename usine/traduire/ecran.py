@@ -59,6 +59,20 @@ def libelle_liste(e) -> str:
     return _maj(e.label_plural)
 
 
+def libelle_lien(desc: Description, fiches: dict[str, FicheApp], e, l) -> str:
+    """Le nom d'un lien à l'écran : la fiche désignée (« Ouvrage ») ; le profil du propriétaire s'affiche sous le nom de
+    son rôle (« Adhérent »), pas « Profil »."""
+    roles = {a.id: a.label for a in desc.acces.actors}
+    return _maj(roles.get(e.owner, fiches[l.cible].e.label) if l.proprietaire else fiches[l.cible].e.label)
+
+
+def champs_du_formulaire(desc: Description, fiches: dict[str, FicheApp], f: FicheApp) -> list[str]:
+    """Les étiquettes du formulaire, dans son ordre : d'abord les liens que l'on choisit (jamais le profil du
+    propriétaire ni le parent d'une ligne, posés automatiquement), puis les champs."""
+    return ([libelle_lien(desc, fiches, f.e, l) for l in f.liens if not l.proprietaire and not l.parent]
+            + [c.libelle for c in f.champs])
+
+
 def boutons_etapes(desc: Description, f: FicheApp) -> dict[str, str]:
     """Le bouton qui mène à chaque état d'arrivée : le nom donné dans la description, sinon le libellé de l'état."""
     e = f.e
@@ -87,7 +101,7 @@ def noms_a_l_ecran(desc: Description, m: Matrix) -> dict[str, dict]:
     """Pour chaque fiche principale (ni profil ni ligne : hors du contrat), les noms que l'app montre :
     {"menu": "Emprunts", "creation": "Nouvel emprunt", "creation_visible": True,   (False : aucun rôle n'en crée)
      "titre": {"sorte": "Emprunt", "champ": "Titre", "via": "Book"},   (via : la fiche désignée ; None si c'est un de ses champs)
-     "etapes": {"accepted": "Accepter", …}, "clics": [{"libelle": "Emprunter", "depuis": "Book"}]}"""
+     "etapes": {"accepted": "Accepter", …}, "champs": ["Ouvrage"], "clics": [{"libelle": "Emprunter", "depuis": "Book"}]}"""
     fiches = construire(desc, m)
     out: dict[str, dict] = {}
     for f in fiches.values():
@@ -107,6 +121,7 @@ def noms_a_l_ecran(desc: Description, m: Matrix) -> dict[str, dict]:
         cree = any(c.entity == e.name and c.create == "yes" for c in m.cells)
         out[e.name] = {"menu": libelle_liste(e), "creation": desc.ecran[e.name].creation, "creation_visible": cree, "titre": titre,
                        "etapes": boutons_etapes(desc, f) if e.process else {},
+                       "champs": champs_du_formulaire(desc, fiches, f),
                        "clics": [{"libelle": a["libelle"], "depuis": depuis}
                                  for depuis in fiches for a in creations_en_un_clic(desc, m, fiches, depuis) if a["cree"] == e.name]}
     return out
@@ -138,12 +153,11 @@ def _fiche(f: FicheApp, fiches: dict[str, FicheApp], desc: Description, m: Matri
         n["creation"] = {"libelle": ecran.creation}
         n["titreFiche"] = titre_de(desc, fiches, e.name)
     if f.liens:
-        roles = {a.id: a.label for a in desc.acces.actors}
         # le profil du propriétaire s'affiche sous le nom de son rôle (« Adhérent »), pas « Profil » ;
         # (N1.2) fk / cible / proprietaire : pour les listes de choix des formulaires (le lien vers le
         # profil du propriétaire est posé automatiquement : jamais choisi)
         n["liens"] = [{"nom": l.nom, "affiche": affiche_de(desc, fiches, l.cible),
-                       "libelle": _maj(roles.get(e.owner, fiches[l.cible].e.label) if l.proprietaire else fiches[l.cible].e.label),
+                       "libelle": libelle_lien(desc, fiches, e, l),
                        "fk": l.fk, "cible": l.cible, "proprietaire": l.proprietaire, **({"parent": True} if l.parent else {})}
                       for l in f.liens]
     lp = next((l for l in f.liens if l.parent), None)
